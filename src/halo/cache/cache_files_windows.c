@@ -1,3 +1,323 @@
+/* FUN_001bb430 — begin an async read of the next chunk into a decompression
+ * read buffer.
+ *
+ * self (@<eax>) is the per-file decompression read-state block from
+ * c:\halo\SOURCE\cache\cache_files_decompress_windows.c (TU confirmed via
+ * the __FILE__ strings on the asserts below). No struct has been recovered
+ * for it yet, so it is addressed by raw offset; only these fields are
+ * touched by this function and only two have assert-proven names:
+ *   +0xa8c  read_file_size        (assert "self->current_read_offset<=
+ *                                  self->read_file_size")
+ *   +0xa94  field_a94             (bytes remaining to read; the read size
+ *                                  for this call is this value capped to
+ *                                  0x20000)
+ *   +0xaa8  current_read_offset   (assert-proven name)
+ *   +0xab8  field_ab8 (int16)     (read-sequence counter: copied out to
+ *                                  *request, then incremented)
+ *
+ * request points directly at the caller's read_sequence_index field
+ * (dereferenced at offset 0 — the assert text is
+ * "request->read_sequence_index==NONE", but nothing else about that
+ * struct is touched here, so it is typed as a bare short pointer rather
+ * than an invented struct).
+ *
+ * read_buffer_index selects one of NUMBER_OF_READ_BUFFERS (8) read
+ * buffers; validated to be in [0,8).
+ *
+ * Call-site evidence for the two callees below (both currently
+ * under-declared in kb.json as their generic decompiled void(void)/
+ * void FUN_001bb190(void) forms — corrected here):
+ *   - FUN_001baa50: the disassembly reloads [ebp+8] (request) into EAX
+ *     immediately before this call, and that reload is otherwise dead
+ *     (request is independently reloaded again afterward for the NONE
+ *     assert) — the only explanation is that FUN_001baa50 takes request
+ *     via @<eax> and returns the acquired read buffer pointer in EAX.
+ *   - FUN_001bb190: disassembly shows 4 pushes (read_buffer_index,
+ *     current_read_offset, capped size, buffer) immediately before the
+ *     call, cleaned up by the caller's "ADD ESP,0x10" right after — proof
+ *     of a 4-argument cdecl call, not the void(void) the decompiler
+ *     rendered from the stale kb.json signature.
+ *
+ * Source: c:\halo\SOURCE\cache\cache_files_decompress_windows.c, asserts
+ * at lines 0x5ec, 0x5ed, 0x601.
+ */
+void FUN_001bb430(char *self, short *request, short read_buffer_index)
+{
+  void *buffer;
+  unsigned int size;
+  int new_offset;
+
+  buffer = FUN_001baa50(request);
+
+  size = *(unsigned int *)(self + 0xa94);
+  if ((int)size > 0x1ffff) {
+    size = 0x20000;
+  }
+
+  if (read_buffer_index < 0 || read_buffer_index > 7) {
+    display_assert(
+      "read_buffer_index>=0 && read_buffer_index<NUMBER_OF_READ_BUFFERS",
+      "c:\\halo\\SOURCE\\cache\\cache_files_decompress_windows.c", 0x5ec, 1);
+    system_exit(-1);
+  }
+
+  if (*request != -1) {
+    display_assert("request->read_sequence_index==NONE",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_decompress_windows.c",
+                   0x5ed, 1);
+    system_exit(-1);
+  }
+
+  *request = *(short *)(self + 0xab8);
+
+  physical_memory_protect(buffer, size, 4);
+  FUN_001bb190(buffer, size, *(int *)(self + 0xaa8), read_buffer_index);
+
+  *(short *)(self + 0xab8) = *(short *)(self + 0xab8) + 1;
+
+  new_offset = *(int *)(self + 0xaa8) + (int)size;
+  *(unsigned int *)(self + 0xa94) = *(unsigned int *)(self + 0xa94) - size;
+  *(int *)(self + 0xaa8) = new_offset;
+
+  if (*(int *)(self + 0xa8c) < new_offset) {
+    display_assert("self->current_read_offset<=self->read_file_size",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_decompress_windows.c",
+                   0x601, 1);
+    system_exit(-1);
+  }
+}
+
+/* acquire_read_request — given a pointer into the per-file read-buffer
+ * array, recover its index, verify the buffer's overlapped-I/O has
+ * completed, clear the completed flag, reset the slot to NONE (0xffff),
+ * and hand off to FUN_001bb430 to start the next async read.
+ *
+ * self is the same per-file decompression read-state block as
+ * FUN_001bb430 above. request is a pointer to one of the
+ * NUMBER_OF_READ_BUFFERS (8) 2-byte slots in the read-buffer array at
+ * self+0xa78 ("_read_buffer_base" in the assert text below);
+ * read_buffer_index is recovered as request's element index in that
+ * array: ((request - self - 0xa78) >> 1), matching the disassembly's
+ * SUB ESI,EBX / SUB ESI,0xa78 / SAR ESI,1 on 2-byte elements.
+ *
+ *   +0x998  overlapped_completed_flags (uint32 bit vector, 8 bits used,
+ *           one per read buffer; assert text:
+ *           "BIT_VECTOR_TEST_FLAG(self->overlapped_completed_flags,
+ *            _read_buffer_base+read_buffer_index)")
+ *   +0xa78  read-buffer array base (2-byte stride, matches request's type)
+ *
+ * Source: c:\halo\SOURCE\cache\cache_files_decompress_windows.c, asserts
+ * at lines 0x652, 0x653.
+ */
+void acquire_read_request(char *self, short *request)
+{
+  int read_buffer_index;
+  unsigned int mask;
+  unsigned int *flags;
+
+  read_buffer_index = ((int)request - (int)self - 0xa78) >> 1;
+
+  if (read_buffer_index < 0 || read_buffer_index >= 8) {
+    display_assert(
+      "read_buffer_index>=0 && read_buffer_index<NUMBER_OF_READ_BUFFERS",
+      "c:\\halo\\SOURCE\\cache\\cache_files_decompress_windows.c", 0x652, 1);
+    system_exit(-1);
+  }
+
+  mask = 1u << (read_buffer_index & 0x1f);
+  flags = (unsigned int *)(self + 0x998) + (read_buffer_index >> 5);
+
+  if ((*flags & mask) == 0) {
+    display_assert("BIT_VECTOR_TEST_FLAG(self->overlapped_completed_flags, "
+                   "_read_buffer_base+read_buffer_index)",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_decompress_windows.c",
+                   0x653, 1);
+    system_exit(-1);
+  }
+
+  *flags = *flags & ~mask;
+  *request = -1;
+
+  FUN_001bb430(self, request, (short)read_buffer_index);
+}
+
+/* cache_copy_initialize_read_data — prime the very first synchronous chunk
+ * of a map's decompression read data into the per-file read-state block's
+ * primary buffer (self+0x104, 0x800 bytes), then hand off to the async
+ * read machinery for steady-state reads.
+ *
+ * self (@<eax>) is the same per-file decompression read-state block as
+ * FUN_001bb430/acquire_read_request above (TU confirmed via the __FILE__
+ * assert xref below). No struct has been recovered for it; only the
+ * fields touched here are named, reusing the assert-proven/established
+ * names from FUN_001bb430's comment where they overlap:
+ *   +0x104  primary read buffer, 0x800 bytes (zeroed, then filled)
+ *   +0xa94  field_a94        (bytes remaining to read; decremented by
+ *                             0x800 here, the same field FUN_001bb430
+ *                             caps reads against)
+ *   +0xa98  async_write_bytes_left (assert-proven name, from
+ *           "global_self->async_write_bytes_left==0"; zeroed on entry,
+ *           then asserted zero via a fresh read of the *global* pointer
+ *           at 0x32ea98 rather than the local self copy -- reproduced
+ *           as-is, matching FUN_001bc280's documented "reloads it after
+ *           every call" idiom for that same globals-block pointer)
+ *   +0xaa0  field_aa0 (zeroed)
+ *   +0xaa4  field_aa4 (set to 0x800)
+ *   +0xaa8  current_read_offset (assert-proven name, from FUN_001bb430;
+ *           set to 0x800 -- the offset after this first synchronous
+ *           0x800-byte read)
+ *   +0xaac  field_aac (zeroed)
+ *   +0xab0  field_ab0 (zeroed)
+ *   +0xac2  field_ac2, int16 (zeroed)
+ *
+ * Call-site evidence for the two under-declared callees below (both
+ * corrected here from their stale kb.json void(void) forms, the same way
+ * FUN_001bb430's comment already corrected FUN_001bb190 from a different
+ * call site):
+ *   - FUN_001bb2d0: disassembly shows 4 pushes (1, 0, 0x800, buffer)
+ *     immediately before the call; the caller's single "ADD ESP,0x1c"
+ *     after the call cleans up 7 dwords total -- csmemset's 3-arg
+ *     cleanup plus this call's 4-arg cleanup, batched together (the same
+ *     compiler pattern repeats later in this function: FUN_001bb190's
+ *     4 args + cache_file_header_verify's 3 args are cleaned by one
+ *     "ADD ESP,0x1c" too). Proof of a 4-argument cdecl call, not the
+ *     void(void) the decompiler rendered from the stale signature. The
+ *     first three argument slots share buffer/size/offset values with
+ *     the proven FUN_001bb190 call below; the fourth slot's role is not
+ *     confirmed by this call site alone (1 here vs 8 for FUN_001bb190),
+ *     so it is left as a plain untyped int rather than named.
+ *   - FUN_001bb190: already corrected to a 4-arg cdecl prototype by
+ *     FUN_001bb430's comment above (buffer, size, current_read_offset,
+ *     read_buffer_index). Called here with a literal 8
+ *     (NUMBER_OF_READ_BUFFERS) rather than a real 0-7 buffer index --
+ *     reproduced verbatim, not reinterpreted.
+ *   - cache_file_header_verify: matches its existing kb.json prototype;
+ *     the path argument is the literal string "blah" resolved from
+ *     .rdata at 0x2b89cc (a placeholder/debug string, reproduced as-is).
+ *
+ * MOV EDI,ESI immediately precedes both the FUN_001bb2d0 and FUN_001bb190
+ * calls in the disassembly; it is not consumed by either callee (per the
+ * call-site audit and FUN_001bb430's comment, neither takes a register
+ * self-arg), so it has no C equivalent here.
+ *
+ * FUN_001ba930 and FUN_001ba8b0 (both below FUN_001bb190/
+ * cache_file_header_verify) are now corrected to self@<esi> prototypes
+ * (see their own comments in tags.c): self is still live in ESI at both
+ * call sites from this function's own @<eax> entry, with no reload in
+ * between, so both are called here with the explicit self argument.
+ *
+ * Source: c:\halo\SOURCE\cache\cache_files_decompress_windows.c, assert
+ * at line 0x3eb.
+ */
+void cache_copy_initialize_read_data(char *self)
+{
+  void *buffer;
+
+  buffer = self + 0x104;
+
+  *(unsigned int *)(self + 0xa98) = 0;
+  csmemset(buffer, 0, 0x800);
+
+  FUN_001bb2d0(buffer, 0x800, 0, 1);
+  FUN_001ba930(self);
+
+  if (*(unsigned int *)(*(unsigned char **)0x32ea98 + 0xa98) != 0) {
+    display_assert("global_self->async_write_bytes_left==0",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_decompress_windows.c",
+                   0x3eb, 1);
+    system_exit(-1);
+  }
+
+  FUN_001bb190(buffer, 0x800, 0, 8);
+  FUN_001ba8b0(self);
+  cache_file_header_verify(buffer, "blah", 1);
+
+  *(unsigned int *)(self + 0xa94) = *(unsigned int *)(self + 0xa94) - 0x800;
+  *(unsigned int *)(self + 0xaa8) = 0x800;
+  *(unsigned int *)(self + 0xaa4) = 0x800;
+  *(unsigned int *)(self + 0xaa0) = 0;
+  *(unsigned int *)(self + 0xaac) = 0;
+  *(short *)(self + 0xac2) = 0;
+  *(unsigned int *)(self + 0xab0) = 0;
+}
+
+/* FUN_001bb8a0 — kick off the initial async read for all
+ * NUMBER_OF_READ_BUFFERS (8) read buffers at cache-copy-thread startup.
+ * For each slot i in [0,8): assert its "in use" bit at self+0x994 is not
+ * already set, assert i is in range, call FUN_001bb430 to start the async
+ * read for that slot's request pointer (self+0xa78 + i*2), then mark the
+ * bit set.
+ *
+ * self is the same per-file decompression read-state block as
+ * FUN_001bb430/acquire_read_request/cache_copy_initialize_read_data above,
+ * passed here as an ordinary stack argument (disassembly reads [EBP+8]
+ * directly with no register-spill store, unlike the @<eax> callers of
+ * cache_copy_initialize_read_data/FUN_001bb430). Only one new field:
+ *   +0x994  overlapped_in_use_flags (uint32 bit vector, 8 bits used, one
+ *           per read buffer; assert text:
+ *           "!BIT_VECTOR_TEST_FLAG(self->overlapped_in_use_flags,
+ *            overlapped_index)")
+ * Reuses the assert-proven field from acquire_read_request above:
+ *   +0xa78  read-buffer array base (2-byte stride, matches request's type)
+ *
+ * The second assert ("read_buffer_index>=0 &&
+ * read_buffer_index<NUMBER_OF_READ_BUFFERS") is evaluated every iteration
+ * against the loop's own bounded counter and can never actually fire —
+ * reproduced as-is rather than simplified away, matching the
+ * disassembly's unconditional per-iteration check (TEST DI,DI / CMP DI,0x8
+ * ahead of the call, independent of the bottom-of-loop bound check).
+ *
+ * The loop carries two counters that are numerically identical every
+ * iteration (overlapped_index, an int used for the bit-vector math, and
+ * read_buffer_index, a short used as FUN_001bb430's index argument and as
+ * the loop bound) — disassembly keeps them as separate EBP-4/EDI locations
+ * updated in lockstep (INC EDX / INC EDI), so both are kept as distinct
+ * C variables rather than merged into one.
+ *
+ * Source: c:\halo\SOURCE\cache\cache_files_decompress_windows.c, asserts
+ * at lines 0x416, 0x619. Sole caller: simple_cache_copy_thread (xref
+ * 0x1bbfb7, unconditional call).
+ */
+void FUN_001bb8a0(char *self)
+{
+  int overlapped_index;
+  short read_buffer_index;
+  short *request;
+  unsigned int mask;
+  unsigned int *flags;
+
+  overlapped_index = 0;
+  read_buffer_index = 0;
+  request = (short *)(self + 0xa78);
+
+  do {
+    mask = 1u << (overlapped_index & 0x1f);
+    flags = (unsigned int *)(self + 0x994) + (overlapped_index >> 5);
+
+    if ((*flags & mask) != 0) {
+      display_assert(
+        "!BIT_VECTOR_TEST_FLAG(self->overlapped_in_use_flags, "
+        "overlapped_index)",
+        "c:\\halo\\SOURCE\\cache\\cache_files_decompress_windows.c", 0x416, 1);
+      system_exit(-1);
+    }
+
+    if (read_buffer_index < 0 || read_buffer_index >= 8) {
+      display_assert(
+        "read_buffer_index>=0 && read_buffer_index<NUMBER_OF_READ_BUFFERS",
+        "c:\\halo\\SOURCE\\cache\\cache_files_decompress_windows.c", 0x619, 1);
+      system_exit(-1);
+    }
+
+    FUN_001bb430(self, request, read_buffer_index);
+
+    *flags = *flags | mask;
+    read_buffer_index = read_buffer_index + 1;
+    overlapped_index = overlapped_index + 1;
+    request = request + 1;
+  } while (read_buffer_index < 8);
+}
+
 /* LARGE_INTEGER as the original source spelled it — the assert text at
  * 0x1bc2a4 is literally "freq.u.HighPart==0", so the source used the
  * .u.LowPart/.u.HighPart member form. */
@@ -60,6 +380,104 @@ void FUN_001bc280(void)
 
   *(void **)(*(unsigned char **)0x32ea98 + 0x95c) =
     CreateThread(NULL, 0x4000, simple_cache_copy_thread, NULL, 0, NULL);
+}
+
+/* cache_files_dispose (0x1bc360) — release the cache file globals request
+ * array allocated by FUN_001bdb10 (init counterpart, elsewhere in this TU).
+ * Asserts open_map_file_index==NONE (the map file must already be closed
+ * via cache_file_close before dispose runs), then frees the request array.
+ * Does NOT null DAT_004e9250 after the free — matches the original, which
+ * has no store back to the global after the CALL.
+ * Source: c:\halo\SOURCE\cache\cache_files_windows.c line 0xc9/0xcb.
+ */
+void cache_files_dispose(void)
+{
+  if (*(int16_t *)0x4e9244 != -1) {
+    display_assert("cache_file_globals.open_map_file_index==NONE",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0xc9, 1);
+    system_exit(-1);
+  }
+  debug_free(*(void **)0x4e9250,
+             "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0xcb);
+}
+
+/* FUN_001bc5c0 — find the first free (inactive) cache IO request slot.
+ * Scans the 512-entry request array at DAT_004e9250 (each entry 0x20
+ * bytes) for a slot whose active byte at +0x1d is zero, validating each
+ * index against [0, MAXIMUM_SIMULTANEOUS_CACHE_REQUESTS) as it goes (same
+ * assert/system_exit(-1) idiom as cache_files_io_request_enable and
+ * cache_file_block_until_not_busy in this TU). If no free slot is found
+ * after a full pass, the scan just restarts from index 0 and loops
+ * indefinitely (no wait/yield) until one becomes free — matches the
+ * disassembly exactly, including the dead `looped` flag (set once, never
+ * read; 0x1bc60e-0x1bc614 both paths jump back to the outer-loop restart
+ * regardless of its value).
+ * Called by cache_file_read (0x1bc9e0) to allocate a request slot.
+ */
+short FUN_001bc5c0(void)
+{
+  bool looped;
+  short request_index;
+
+  looped = false;
+  do {
+    request_index = 0;
+    do {
+      if (request_index < 0 || request_index > 0x1ff) {
+        display_assert("request_index>=0 && "
+                       "request_index<MAXIMUM_SIMULTANEOUS_CACHE_REQUESTS",
+                       "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x260,
+                       1);
+        system_exit(-1);
+      }
+      if (*(char *)(*(int *)0x4e9250 + (int)request_index * 0x20 + 0x1d) == 0) {
+        return request_index;
+      }
+      request_index = request_index + 1;
+    } while (request_index < 0x200);
+    if (!looped) {
+      looped = true;
+    }
+  } while (1);
+}
+
+/* FUN_001bc620 — block until every cache IO request slot is idle by
+ * spin-waiting, in slot order, on each of the 512 request slots' active
+ * byte (+0x1d) until it clears (no sleep between checks, unlike
+ * cache_file_block_until_not_busy which rescans the whole array with a
+ * SleepEx(0,1) between passes). Asserts open_map_file_index != NONE up
+ * front (0x285) and validates request_index range each iteration (0x260),
+ * same assert/system_exit(-1) idiom as the other request-slot scanners in
+ * this TU. Called by cache_file_close (0x1bc8f0-region) before clearing
+ * DAT_004e9244.
+ */
+void FUN_001bc620(void)
+{
+  short request_index;
+  int offset;
+  char *req;
+
+  if (*(int16_t *)0x4e9244 == -1) {
+    display_assert("cache_file_globals.open_map_file_index!=NONE",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x285, 1);
+    system_exit(-1);
+  }
+  request_index = 0;
+  offset = 0;
+  do {
+    if (request_index < 0 || request_index > 0x1ff) {
+      display_assert("request_index>=0 && "
+                     "request_index<MAXIMUM_SIMULTANEOUS_CACHE_REQUESTS",
+                     "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x260,
+                     1);
+      system_exit(-1);
+    }
+    req = (char *)(*(int *)0x4e9250 + offset + 0x1d);
+    while (*req != 0) {
+    }
+    request_index = request_index + 1;
+    offset = offset + 0x20;
+  } while (request_index < 0x200);
 }
 
 /* Cache file precaching system for Xbox. Manages background copying of
@@ -602,6 +1020,169 @@ void FUN_001bcfb0(short map_file_index)
   GetLocalTime(local_buf);
   SystemTimeToFileTime(local_buf, entry + 4);
   SetFileTime(*(int *)entry, entry + 4, 0, 0);
+}
+
+/* FUN_001bd1b0 — find the cache slot index whose stored map name matches
+ * map_name (passed in EDI by the caller). Compares against the name field
+ * at DAT_004e6204 + index*0x80c (DAT_004e61d8 + 0x2c, the name field within
+ * each cache file entry) for all 6 slots via crt_stricmp. Returns the
+ * matching slot index, or -1 if none match. */
+int16_t FUN_001bd1b0(const char *map_name)
+{
+  int16_t map_file_index;
+
+  map_file_index = 0;
+  do {
+    if (map_file_index < 0 || map_file_index >= 6) {
+      display_assert(
+        "map_file_index>=0 && map_file_index<NUMBER_OF_CACHED_MAP_FILES",
+        "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x485, 1);
+      system_exit(-1);
+    }
+    if (crt_stricmp(map_name, (char *)0x4e6204 + (int)map_file_index * 0x80c) ==
+        0) {
+      return map_file_index;
+    }
+    map_file_index = map_file_index + 1;
+  } while (map_file_index < 6);
+  return -1;
+}
+
+/* FUN_001bd3a0 — cache file I/O service thread proc. Waits on the cache
+ * I/O event at DAT_004e9248 (WaitForSingleObjectEx, INFINITE, alertable)
+ * until it is signaled by something other than an APC completion
+ * (WAIT_IO_COMPLETION/0xc0 loops back to the wait). Then scans the
+ * 512-entry request array at DAT_004e9250 (0x20 bytes/entry) for the
+ * pending-and-not-running slot (+0x1d!=0 && +0x1e==0) with the lowest
+ * priority byte (+0x1c), breaking ties by the lowest file offset (+0x8) —
+ * same unsigned-byte/unsigned-dword strict-less-than selection as the
+ * disassembly's CMP/JBE pair. If none is found, loops back to the wait.
+ * Otherwise validates the open map-file index, asserts the winning slot
+ * isn't already running, marks it running (+0x1e=1), looks up that map
+ * file's handle (first dword of its DAT_004e61d8 slot, same value
+ * FUN_001bc7a0 returns), and dispatches the request via
+ * FUN_001bc3b0(handle, buffer(+0x18), size(+0x14), offset(+0x8),
+ * completion_flag(+0x10)) before immediately rescanning without waiting
+ * again (JMP 0x1bd3c0 in the disassembly). Never returns; this is the
+ * cache IO worker thread's entry proc. Frameless in the original.
+ */
+void FUN_001bd3a0(void)
+{
+  unsigned int wait_result;
+  char *best;
+  char *cur;
+  short request_index;
+  int offset;
+  int16_t map_file_index;
+  unsigned int handle;
+
+  do {
+    do {
+      wait_result = WaitForSingleObjectEx(*(void **)0x4e9248, 0xffffffff, 1);
+    } while (wait_result == 0xc0);
+
+    for (;;) {
+      best = 0;
+      offset = 0;
+      request_index = 0;
+      do {
+        if (request_index < 0 || request_index > 0x1ff) {
+          display_assert("request_index>=0 && "
+                         "request_index<MAXIMUM_SIMULTANEOUS_CACHE_REQUESTS",
+                         "c:\\halo\\SOURCE\\cache\\cache_files_windows.c",
+                         0x260, 1);
+          system_exit(-1);
+        }
+        cur = (char *)(*(int *)0x4e9250 + offset);
+        if (cur[0x1d] != 0 && cur[0x1e] == 0 &&
+            (best == 0 ||
+             ((unsigned char)cur[0x1c] < (unsigned char)best[0x1c] &&
+              *(unsigned int *)(cur + 8) < *(unsigned int *)(best + 8)))) {
+          best = cur;
+        }
+        request_index = request_index + 1;
+        offset = offset + 0x20;
+      } while (request_index < 0x200);
+
+      if (best == 0)
+        break;
+
+      map_file_index = *(int16_t *)0x4e9244;
+      if (map_file_index < 0 || map_file_index > 5) {
+        display_assert(
+          "map_file_index>=0 && map_file_index<NUMBER_OF_CACHED_MAP_FILES",
+          "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x485, 1);
+        system_exit(-1);
+      }
+      if (best[0x1e] != 0) {
+        display_assert("!best_request->running",
+                       "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x4fc,
+                       1);
+        system_exit(-1);
+      }
+      handle =
+        *(unsigned int *)((char *)0x4e61d8 + (int)map_file_index * 0x80c);
+      best[0x1e] = 1;
+      FUN_001bc3b0(handle, *(int *)(best + 0x18),
+                   *(unsigned int *)(best + 0x14), *(int *)(best + 8),
+                   *(char **)(best + 0x10));
+    }
+  } while (1);
+}
+
+/* cache_file_open (0x1bd4d0) — open the cache slot for stripped_name and
+ * copy its cached 0x800-byte header out to the caller's buffer. Looks up
+ * the slot via FUN_001bd1b0 unconditionally (matches disassembly: the call
+ * happens before the parameter-null checks below, not after). Asserts
+ * scenario_name/header non-NULL, asserts no map is already open
+ * (cache_file_globals.open_map_file_index==NONE), and asserts the lookup
+ * found a slot (map_file_index!=NONE). Clears the 0x4000-byte request
+ * array, stores the new open_map_file_index, then (after validating the
+ * slot index is in range) copies the header from the cache slot entry
+ * (DAT_004e61d8 + index*0x80c + 0xc, the header field within each cache
+ * file entry) into *header. Always returns true — every failure path
+ * halts via system_exit(-1).
+ * Source: c:\halo\SOURCE\cache\cache_files_windows.c line 0xd6-0xda/0x485.
+ */
+bool cache_file_open(const char *stripped_name, void *header)
+{
+  int16_t map_file_index;
+
+  map_file_index = FUN_001bd1b0(stripped_name);
+
+  if (stripped_name == NULL) {
+    display_assert("scenario_name",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0xd6, 1);
+    system_exit(-1);
+  }
+  if (header == NULL) {
+    display_assert("header", "c:\\halo\\SOURCE\\cache\\cache_files_windows.c",
+                   0xd7, 1);
+    system_exit(-1);
+  }
+  if (*(int16_t *)0x4e9244 != -1) {
+    display_assert("cache_file_globals.open_map_file_index==NONE",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0xd9, 1);
+    system_exit(-1);
+  }
+  if (map_file_index == -1) {
+    display_assert("map_file_index!=NONE",
+                   "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0xda, 1);
+    system_exit(-1);
+  }
+
+  csmemset(*(void **)0x4e9250, 0, 0x4000);
+  *(int16_t *)0x4e9244 = map_file_index;
+
+  if (map_file_index < 0 || map_file_index >= 6) {
+    display_assert(
+      "map_file_index>=0 && map_file_index<NUMBER_OF_CACHED_MAP_FILES",
+      "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x485, 1);
+    system_exit(-1);
+  }
+
+  csmemcpy(header, (char *)0x4e61e4 + (int)map_file_index * 0x80c, 0x800);
+  return true;
 }
 
 /* FUN_001bd5f0 — open or create the 6 cache slot files on Z:.

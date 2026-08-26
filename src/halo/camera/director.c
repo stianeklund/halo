@@ -43,6 +43,53 @@ void director_set_local_player_context(int16_t player_index)
 }
 
 /*
+ * director_get_perspective (0x86410) — return the cached camera
+ * "perspective" class for a local player, refreshing the cache from the
+ * currently active camera-mode function pointer at base+0x8.
+ *   base+0x4  float  camera timer
+ *   base+0x8  void*  active camera-mode function pointer
+ *   base+0x56 int16  cached perspective: 0 = first-person (0x89270),
+ *             1 = following/transition (0x89cd0), 2 = free/debug camera
+ *             (0x853c0), 3 = other
+ * Base = 0x3352b0 + local_player_index * 0xf8.
+ *
+ * Mirrors the disassembly's three separate return points exactly: the
+ * first-person branch only refreshes and returns the cache when the timer
+ * equals 0.0f (constant at 0x2533c0, confirmed 0.0f elsewhere in-tree),
+ * otherwise it falls through and returns the stale cached value unchanged.
+ */
+int16_t director_get_perspective(int16_t local_player_index)
+{
+  char *base;
+  void *camera_fn;
+
+  if (local_player_index < 0 ||
+      local_player_index >= MAXIMUM_NUMBER_OF_LOCAL_PLAYERS) {
+    display_assert("local_player_index>=0 && "
+                   "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
+                   "c:\\halo\\SOURCE\\camera\\director.c", 0xb3, 1);
+    system_exit(-1);
+  }
+
+  base = (char *)0x3352b0 + (int)local_player_index * 0xf8;
+  camera_fn = *(void **)(base + 0x8);
+
+  if (camera_fn == (void *)0x89270) {
+    if (*(float *)(base + 0x4) == 0.0f) {
+      *(int16_t *)(base + 0x56) = 0;
+      return *(int16_t *)(base + 0x56);
+    }
+  } else if (camera_fn == (void *)0x89cd0) {
+    *(int16_t *)(base + 0x56) = 1;
+    return *(int16_t *)(base + 0x56);
+  } else {
+    *(int16_t *)(base + 0x56) = (int16_t)((camera_fn != (void *)0x853c0) + 2);
+  }
+
+  return *(int16_t *)(base + 0x56);
+}
+
+/*
  * FUN_000865a0 — set player director mode entry fields.
  * Writes param_1 to [base+0x8], 1.0f to [base+0xc4], clears [base+0xc0],
  * and if param_2 is true writes 1.0f to [base+0x4].

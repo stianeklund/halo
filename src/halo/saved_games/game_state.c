@@ -236,6 +236,38 @@ bool game_state_validate_core_header(char *header, bool fatal)
   return true;
 }
 
+/*
+ * FUN_001bfb60 - 0x1bfb60
+ *
+ * Writes one line to the game state debug log ("d:\\gamestate.txt"),
+ * opening the log file (game_state_globals.log_file, same global as
+ * game_state_gpu_alloc) on first use and returning early if the open
+ * fails. Uses the identical format string and (name, a2-as-string,
+ * value) shape as game_state_gpu_alloc's inline logging at 0x1bfd00,
+ * but the trailing suffix is chosen by the caller's flag (nonzero ->
+ * string at 0x2686f4, zero -> string at 0x25386f) instead of being
+ * hardcoded, and this function has no allocation side effect.
+ *
+ * No callers found in this binary (xrefs_to empty) -- kept as an
+ * explicit unknown (FUN_ name, generic param names) rather than
+ * inferring a semantic role from the sibling gpu_alloc function.
+ */
+void FUN_001bfb60(const char *name, int a2, int value, bool flag)
+{
+  const char *suffix;
+
+  if (game_state_globals.log_file == NULL) {
+    game_state_globals.log_file = crt_fopen("d:\\gamestate.txt", "w");
+    if (game_state_globals.log_file == NULL)
+      return;
+  }
+
+  suffix = flag ? (const char *)0x2686f4 : (const char *)0x25386f;
+  crt_fprintf(game_state_globals.log_file, "% 40s% 20s% 10d%s\n", name,
+              (const char *)(uintptr_t)a2, value, suffix);
+  crt_fflush(game_state_globals.log_file);
+}
+
 void *game_state_malloc(const char *name, const char *group_name, int size)
 {
   void *result;
@@ -341,4 +373,53 @@ void game_state_load_core(const char *name)
 
 fail:
   ((void (*)(int, const char *, ...))0xff4d0)(0, "couldn't open '%s'", name);
+}
+
+/* 0x1c00c0
+ * Commit the Xbox game-state buffer. Validates that no buffer is currently
+ * allocated, that the caller-supplied address is non-NULL, that both region
+ * sizes are non-zero and page-aligned (CPU_PAGE_SIZE == 0x1000), and that the
+ * reserved virtual address returned by the CPU-side reservation call
+ * (FUN_001bdd40) matches the caller's address. Marks the GPU-visible tail of
+ * the region (address + cpu_size, gpu_size bytes) with protection flags
+ * 0x404, then records the buffer in xbox_game_state_globals: buffer_size
+ * (0x4ea9b8) = cpu_size + gpu_size, buffer_allocated (0x4ea9b0) = 1,
+ * buffer (0x4ea9b4) = address.
+ */
+void FUN_001c00c0(void *address, uint32_t cpu_size, uint32_t gpu_size)
+{
+  int result;
+
+  assert_halt_msg_at("!xbox_game_state_globals.buffer_allocated",
+                     "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x2e,
+                     *(char *)0x4ea9b0 == 0);
+  assert_halt_msg_at("address",
+                     "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x30,
+                     address != NULL);
+  assert_halt_msg_at("cpu_size>0",
+                     "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x31,
+                     cpu_size > 0);
+  assert_halt_msg_at("gpu_size>0",
+                     "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x32,
+                     gpu_size > 0);
+  assert_halt_msg_at("!(cpu_size&(CPU_PAGE_SIZE-1))",
+                     "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x35,
+                     (cpu_size & 0xfff) == 0);
+  assert_halt_msg_at("!(gpu_size&(CPU_PAGE_SIZE-1))",
+                     "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x36,
+                     (gpu_size & 0xfff) == 0);
+
+  result = FUN_001bdd40();
+  assert_halt_msg_at("result",
+                     "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x3a,
+                     result != 0);
+  assert_halt_msg_at("(unsigned long)result==address",
+                     "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x3b,
+                     (unsigned long)result == (unsigned long)address);
+
+  physical_memory_protect((char *)address + cpu_size, gpu_size, 0x404);
+
+  *(uint32_t *)0x4ea9b8 = cpu_size + gpu_size;
+  *(char *)0x4ea9b0 = 1;
+  *(void **)0x4ea9b4 = address;
 }

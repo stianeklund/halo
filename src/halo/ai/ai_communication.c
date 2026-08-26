@@ -546,6 +546,29 @@ bool FUN_00042fa0(int param_1, int param_2, int param_3)
   return *(int *)(prop1 + 0x18) == *(int *)(prop2 + 0x18);
 }
 
+/* FUN_00043050 (0x43050): cdecl predicate with three 32-bit stack
+ * arguments.  The binary reads only the third argument at [EBP+0x10]; the
+ * first two slots remain unused (same shape as FUN_00042e60 in this file).
+ * It resolves that argument through actor_data, then requires
+ * actor->field_06a == 3 and actor->field_06e < 4 (signed word compares).
+ * Disasm 0x43050-0x43081: CMP EAX,-1/JZ -> false; datum_get(actor_data,
+ * param_3); CMP word[EAX+0x6a],3/JNZ -> false; CMP word[EAX+0x6e],4/JL ->
+ * true, else false. */
+bool FUN_00043050(int param_1, int param_2, int param_3)
+{
+  actor_t *actor;
+  bool result;
+
+  result = false;
+  if (param_3 != -1) {
+    actor = (actor_t *)datum_get(actor_data, param_3);
+    if (actor->field_06a == 3 && actor->field_06e < 4) {
+      result = true;
+    }
+  }
+  return result;
+}
+
 /* FUN_00043090 (0x43090): cdecl predicate with three 32-bit stack
  * arguments.  The binary uses only param_3 at [EBP+0x10].  It calls
  * actor_is_fighting(param_3); when that succeeds, datum_get(actor_data,
@@ -563,6 +586,111 @@ char FUN_00043090(int param_1, int param_2, int param_3)
       result = 1;
   }
   return result;
+}
+
+/* actor_communication_team (0x43270) — classify an actor's communication
+ * team from its actor-type definition flags. Confirmed via disasm
+ * 0x43270-0x432ac: datum_get(actor_data, actor_handle) resolves the actor
+ * record (no -1 guard on actor_handle, unlike FUN_00043050); the actor's
+ * field_004 (int16_t, "meaning unproven") is passed to FUN_0003a770
+ * (actor_type_definitions[actor_type]->+0x4 flags word, already ported in
+ * actors.c). Bit 0x2 of that flags word (TEST AL,0x2) returns 0; bit 0x4
+ * (TEST AL,0x4) returns 1; otherwise returns -1 (OR ECX,0xffffffff / MOV
+ * AX,CX at 0x43292/0x432a8). Called through a `(short (*)(int))` function
+ * pointer cast at encounters.c:6018 with an actor index, confirming the
+ * (int actor_handle) -> int16_t signature; the prior kb.json `void(void)`
+ * decl was a placeholder. Ghidra's decompile_c mis-typed this as void with
+ * bare `return;` on every path — disassembly is authoritative here. */
+int16_t actor_communication_team(int actor_handle)
+{
+  actor_t *actor;
+  int16_t flags;
+  int16_t result;
+
+  actor = (actor_t *)datum_get(actor_data, actor_handle);
+  flags = FUN_0003a770(actor->field_004);
+  result = -1;
+  if ((flags & 2) != 0) {
+    return 0;
+  }
+  if ((flags & 4) != 0) {
+    result = 1;
+  }
+  return result;
+}
+
+/* FUN_000432b0 (0x432b0) — issue a primary "look at object" request for an
+ * actor, reusing a caller-supplied prop handle when valid instead of always
+ * looking one up. Called with a register-passed prop handle so a caller that
+ * already resolved one (e.g. from an earlier prop_get_active_by_unit_index
+ * call) can skip the redundant lookup.
+ *
+ * Confirmed via disasm 0x432b0-0x43352:
+ *   - No incoming register store to EAX/EBX/EDI in the prologue (only
+ *     `MOV ESI,EAX` at 0x432ba to preserve the value across the
+ *     prop_get_active_by_unit_index call) -> EAX/EBX/EDI are @<reg>
+ *     parameters, not locals.
+ *   - Gate order (0x432b6-0x432df): EBX(actor_handle)==-1 -> return;
+ *     word[EBP+0xc](priority)<=0 -> return; EDI(object_handle)==-1 ->
+ *     return; object_try_and_get_and_verify_type(EDI,3)==NULL -> return.
+ *   - EAX(prop_handle): if ==-1 (0x432e1), call
+ *     prop_get_active_by_unit_index(EBX,EDI) and use its result (0x432e6);
+ *     if the (possibly updated) handle ==-1 (0x432f2), skip straight to the
+ *     position-look fallback at 0x43326.
+ *   - datum_get(prop_data, prop_handle) (0x432f7-0x432fe); word
+ *     [result+0x24] read into AX (0x43303); range-gated 2<=AX<=3 (signed
+ *     CMP/JL/JG at 0x4330a-0x43314) before the type=1 path at 0x4331b; the
+ *     trailing `CMP ESI,-1;JZ` at 0x43316 is provably dead on this path
+ *     (only reachable here with ESI!=-1) but is kept as a literal condition
+ *     rather than silently dropped.
+ *   - Same look_buf convention as FUN_00014540/FUN_00043360 in this file:
+ *     short[8] { int16_t type; int16_t pad; int data[3]; }; only
+ *     look_buf[0] and *(int*)&look_buf[2] are ever written.
+ *   - FUN_00027a60(EBX, [EBP+8], [EBP+0xc], &look_buf) at 0x43346: args
+ *     pushed EDX(&look_buf), EAX([EBP+0xc]=priority), ECX([EBP+8]=
+ *     look_type), EBX(actor_handle) — cdecl ADD ESP,0x10 (4 args).
+ * Uncertain: no evidence for this function's semantic name; kept as
+ *   FUN_000432b0 with params named for their forwarded role, matching the
+ *   FUN_00043360 comment convention below. */
+void FUN_000432b0(int prop_handle, int actor_handle, int object_handle,
+                  short look_type, short priority)
+{
+  short look_buf[8]; /* [0]=type word, [2..7]=data (int handle or float[3]
+                         position) */
+  char *prop;
+  short state;
+  int use_prop_look;
+
+  use_prop_look = 0;
+
+  if (actor_handle == -1)
+    return;
+  if (priority < 1)
+    return;
+  if (object_handle == -1)
+    return;
+  if (object_try_and_get_and_verify_type(object_handle, 3) == NULL)
+    return;
+
+  if (prop_handle == -1) {
+    prop_handle = prop_get_active_by_unit_index(actor_handle, object_handle);
+  }
+  if (prop_handle != -1) {
+    prop = (char *)datum_get(prop_data, prop_handle);
+    state = *(short *)(prop + 0x24);
+    if (state >= 2 && state <= 3 && prop_handle != -1) {
+      use_prop_look = 1;
+    }
+  }
+
+  if (use_prop_look) {
+    look_buf[0] = 1;
+    *(int *)&look_buf[2] = prop_handle;
+  } else {
+    look_buf[0] = 3;
+    unit_get_head_position(object_handle, (float *)&look_buf[2]);
+  }
+  FUN_00027a60(actor_handle, look_type, priority, look_buf);
 }
 
 /* FUN_00043360 (0x43360) — issue a secondary "look at object" request
@@ -671,6 +799,150 @@ void ai_conversation_advance(short param_1)
     }
     conversation = (char *)data_iterator_next(&iter);
   } while (conversation != 0);
+}
+
+/* ai_conversation_finish (0x435b0) — mark a conversation as finished: log it
+ * to the debug console when the AI debug flag is set, record it in the AI
+ * globals ring-history buffer at 0x632574+0x2e/0x2c (16-byte slots starting
+ * at slot 3), invalidate the aim-target fields of every actor still listed
+ * as a speaker (conversation+0x14 bitmask / +0x28+i*4 handle array — same
+ * layout confirmed by ai_conversation_actor_deleted, 0x44590), then delete
+ * the conversation datum. Called from ai_conversation_stop (0x44500) and
+ * ai_conversation_actor_deleted (0x44590).
+ *
+ * Confirmed (disasm 0x435b0-0x4373a):
+ *   - Early-out MOV ESI,[EBP+8]; CMP ESI,-1; JZ 0x43736 — conversation_handle
+ *     == -1 skips the whole body (no console log, no ring write, no
+ *     actor scrub, no datum_delete) and jumps straight to the epilogue that
+ *     only pops ESI (EBX/EDI are not yet pushed on that path).
+ *   - datum_get(*(data_t**)0x6324ec, handle) is called TWICE (0x435ca and
+ *     0x43636) with identical arguments; MSVC does not common the two calls.
+ *     The first result ([EBP-4], saved at 0x435d9) feeds the scenario index
+ *     lookup and is the one read again after the printf for the actor-scrub
+ *     loop (0x436d2 `MOV EAX,[EBP-4]`); the second result (a fresh EAX, not
+ *     spilled) feeds only the ring-buffer +0x2 copy at 0x43686.
+ *   - tag_block_get_element(scenario+0x468, index, 0x74) push order (0x74
+ *     first, then index, then the block pointer immediately before the
+ *     call) matches the decl (block, index, element_size).
+ *   - console_printf argument order from the push sequence (0x4361c-0x43626):
+ *     PUSH ECX(begin-status, keyed off param_2) / PUSH EAX(finish-status,
+ *     keyed off param_3) / PUSH EBX(scenario_conversation) / PUSH format /
+ *     PUSH channel(0) — console_printf(0, fmt, scenario_conversation,
+ *     finish_status, begin_status). The ARG_COUNT hazard (cleanup=5 vs decl
+ *     3+varargs) is a false positive: 2 of the 5 cleaned dwords are varargs.
+ *   - *(char*)0x632574 (the shared AI globals block, same global as
+ *     actor_communication_update/ai_conversation_stop) is reloaded from the
+ *     global pointer at every single use (7 separate `MOV reg,[0x632574]`)
+ *     rather than cached in a register — mirrored here by never caching it
+ *     to a local, matching the rest of this TU.
+ *   - Ring index math: SI = (int16_t)(counter+1) is stored back, then
+ *     re-read and reduced via `AND 0x8000000f` + negative-correction — the
+ *     standard MSVC codegen for signed `% 16` — written here as `% 16` so
+ *     VC71 regenerates the identical mask-and-correct sequence.
+ *   - The high-water mark update reads the ORIGINAL pre-increment counter
+ *     (CX from 0x43643, sign-extended again at 0x43676) for the `counter+1`
+ *     comparison/store, not the post-wrap value, so `index` below is always
+ *     the pre-increment, un-wrapped counter.
+ *   - Ring slot addressing is byte-offset from the AI globals base:
+ *     (index+3)*0x10 for the int16 copy of conversation+0x2, then a second,
+ *     independently recomputed index*0x10 base for the +0x32/+0x33/+0x34
+ *     byte/byte/dword fields — matches the two separate LEA/SHL sequences at
+ *     0x4368e and 0x4369d.
+ *   - game_time_get() (FUN_000b5aa0) takes no arguments (no PUSH before
+ *     0x436b8) and its EAX return is stored as a plain dword at
+ *     ai_globals+index*0x10+0x34.
+ *   - Actor scrub loop reads the bitmask/handle array from the FIRST
+ *     datum_get result ([EBP-4]), not the second — proven by 0x436d2
+ *     `MOV EAX,dword ptr [EBP-4]` immediately before the +0x14/+0x28 reads.
+ *   - `i` is reused: first as the bit-test/array index (0..count-1), then
+ *     reassigned to the array's actor-handle value inside the same
+ *     `&&`-guarded comma expression (0x436e3 `MOV ECX,[EAX+ECX*4+0x28]`
+ *     overwrites the index register) — mirrored with a single `i` and a
+ *     comma expression to match the reuse exactly.
+ *   - actor+0x1dc/+0x1e0 are stored unconditionally (EDI, the loop's -1
+ *     sentinel from `OR EDI,0xffffffff`, reused as the write value);
+ *     actor+0x9c is stored only when actor->state_action == 0xc (CMP
+ *     word[EAX+0x6c],0xc at 0x436fd, matching the co() offset for
+ *     state_action). 0x9c is left as a raw offset cast, not a named actor_t
+ *     field: a dword write there would span the existing
+ *     pad_09a[0x3]/field_09d/field_09e/field_09f bytes in src/types.h,
+ *     which is evidence for a future struct-recovery pass, not something to
+ *     resolve by guessing a field name here.
+ * Uncertain: semantic names for the AI-globals ring fields (+0x2c/+0x2e
+ *   counters, +0x10-stride slot layout) and for conversation+0x14/+0x28 are
+ *   not recoverable from this call site alone — same "no named struct yet"
+ *   situation as the other conversation functions in this TU. */
+void ai_conversation_finish(int conversation_handle, char param_2, char param_3)
+{
+  char *conversation;
+  char *conversation2;
+  char *scenario_conversation;
+  const char *finish_status;
+  const char *begin_status;
+  int16_t counter;
+  int16_t high_water;
+  int16_t wrapped;
+  int16_t line_index;
+  int index;
+  int i;
+  int time;
+  actor_t *actor;
+
+  if (conversation_handle == -1) {
+    return;
+  }
+  conversation = (char *)datum_get(*(data_t **)0x6324ec, conversation_handle);
+  scenario_conversation =
+    (char *)tag_block_get_element((char *)global_scenario_get() + 0x468,
+                                  *(int16_t *)(conversation + 2), 0x74);
+  if (*(char *)0x5aca5f != '\0') {
+    begin_status = " (unable to begin)";
+    if (param_2 == '\0') {
+      begin_status = "";
+    }
+    finish_status = "successfully";
+    if (param_3 == '\0') {
+      finish_status = "prematurely";
+    }
+    console_printf(0, "%s: finished %s%s", scenario_conversation, finish_status,
+                   begin_status);
+  }
+  conversation2 = (char *)datum_get(*(data_t **)0x6324ec, conversation_handle);
+  counter = *(int16_t *)(*(char **)0x632574 + 0x2e);
+  *(int16_t *)(*(char **)0x632574 + 0x2e) = counter + 1;
+  wrapped = (int16_t)((int)*(int16_t *)(*(char **)0x632574 + 0x2e) % 16);
+  *(int16_t *)(*(char **)0x632574 + 0x2e) = wrapped;
+  high_water = *(int16_t *)(*(char **)0x632574 + 0x2c);
+  index = (int)counter;
+  if (high_water <= index + 1) {
+    high_water = (int16_t)(index + 1);
+  }
+  *(int16_t *)(*(char **)0x632574 + 0x2c) = high_water;
+  *(int16_t *)(*(char **)0x632574 + (index + 3) * 0x10) =
+    *(int16_t *)(conversation2 + 2);
+  index = index * 0x10;
+  *(char *)(*(char **)0x632574 + index + 0x32) = param_2;
+  *(char *)(*(char **)0x632574 + index + 0x33) = param_3;
+  time = game_time_get();
+  *(int32_t *)(*(char **)0x632574 + index + 0x34) = time;
+  line_index = 0;
+  if (0 < *(int32_t *)(scenario_conversation + 0x50)) {
+    i = 0;
+    do {
+      if (((*(uint32_t *)(conversation + 0x14) & (1 << (i & 0x1f))) != 0) &&
+          (i = *(int32_t *)(conversation + i * 4 + 0x28), i != -1)) {
+        actor = (actor_t *)datum_get(*(data_t **)0x6325a4, i);
+        actor->field_1dc = -1;
+        actor->field_1e0 = -1;
+        if (actor->state_action == 0xc) {
+          *(int32_t *)((char *)actor + 0x9c) = -1;
+        }
+      }
+      line_index = line_index + 1;
+      i = (int)line_index;
+    } while (i < *(int32_t *)(scenario_conversation + 0x50));
+  }
+  datum_delete(*(data_t **)0x6324ec, conversation_handle);
 }
 
 /* actor_communication_update (0x43db0) — per-tick idle/ambient speech tick for

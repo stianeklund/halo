@@ -25,6 +25,11 @@ typedef bool(__stdcall *write_file_fn)(int handle, void *buffer,
                                        int *number_of_bytes_written,
                                        void *overlapped);
 typedef bool(__stdcall *delete_file_fn)(const char *path);
+typedef int(__stdcall *create_file_fn)(
+  const char *path, uint32_t desired_access, uint32_t share_mode,
+  uint32_t security_attrs, uint32_t creation_disposition,
+  uint32_t flags_and_attrs, uint32_t template_file);
+typedef bool(__stdcall *set_end_of_file_fn)(int handle);
 typedef int (*open_save_file_fn)(int param_1);
 typedef char (*get_save_path_fn)(short index, void *out_path);
 typedef int (*get_last_error_fn)(void);
@@ -35,6 +40,8 @@ typedef void (*crc_begin_fn)(uint32_t *checksum);
 #define XReadFile ((read_file_fn)0x1d13c9)
 #define XWriteFile ((write_file_fn)0x1d14b6)
 #define XDeleteFile ((delete_file_fn)0x1d0ff9)
+#define XCreateFile ((create_file_fn)0x1d1d85)
+#define XSetEndOfFile ((set_end_of_file_fn)0x1d158c)
 #define xapi_GetLastError ((get_last_error_fn)0x1d2240)
 #define xbox_game_state_open_file ((open_save_file_fn)0x1c0780)
 #define xbox_saved_game_get_path ((get_save_path_fn)0xe0bf0)
@@ -60,6 +67,41 @@ void xbox_game_state_dispose_buffer(void)
   assert_halt(*(char *)0x4ea9b0);
   MmFreeContiguousMemory(*(void **)0x4ea9b4);
   *(char *)0x4ea9b0 = 0;
+}
+
+/* 0x1c0260
+ * Create or open the Xbox save-game file. Asserts the state buffer is
+ * already allocated and no file is currently open, then creates/opens
+ * "z:\savegame.bin" with generic read/write access (OPEN_ALWAYS), seeks
+ * past the reserved region, and truncates the file there to pre-allocate
+ * space. Sets file_open on success; otherwise halts with an error message
+ * including the last Win32 error code.
+ */
+void game_state_create_or_open_file(void)
+{
+  assert_halt_msg_at("xbox_game_state_globals.buffer_allocated",
+                     "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x56,
+                     *(char *)0x4ea9b0);
+  assert_halt_msg_at("!xbox_game_state_globals.file_open",
+                     "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x57,
+                     !*(char *)0x4ea9bc);
+
+  *(int *)0x4ea9c0 =
+    XCreateFile("z:\\savegame.bin", 0xc0000000, 0, 0, 4, 0x28000000, 0);
+  if (*(int *)0x4ea9c0 != -1) {
+    if (XSetFilePointer(*(int *)0x4ea9c0, 0x380000, NULL, 0) != (uint32_t)-1) {
+      if (XSetEndOfFile(*(int *)0x4ea9c0) != 0) {
+        *(char *)0x4ea9bc = 1;
+        return;
+      }
+    }
+  }
+
+  display_assert(csprintf((char *)0x5ab100,
+                          "couldn't open or create saved game file (#%d)",
+                          xapi_GetLastError()),
+                 "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x61, 1);
+  system_exit(-1);
 }
 
 /* 0x1c0330

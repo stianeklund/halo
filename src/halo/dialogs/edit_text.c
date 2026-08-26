@@ -1,3 +1,24 @@
+/* Forwards a value to the device group attached to a device-family object
+ * (0x97040). Resolves object_handle as a device|control|machine object
+ * (type_mask 0x380); if it has a device_group_index (int16_t at +0x1b4)
+ * other than -1, calls device_group_set_actual_value with that index and
+ * the given value. No-op if object_handle == -1, the object can't be
+ * resolved, or there is no attached device group.
+ * Callers: FUN_00095c10 (0x95c45), FUN_000bfb40 (0xbfb66). */
+void FUN_00097040(int object_handle, float value)
+{
+  char *object;
+  int16_t device_group_index;
+
+  if (object_handle != -1) {
+    object = (char *)object_get_and_verify_type(object_handle, 0x380);
+    device_group_index = *(int16_t *)(object + 0x1b4);
+    if (device_group_index != -1) {
+      device_group_set_actual_value(device_group_index, value);
+    }
+  }
+}
+
 /* Check if the object's "front" marker faces away from the aim direction
  * (0x971a0). Returns false if the marker forward dot aim > 0 (facing towards
  * aim), true otherwise (facing away, or if the object/marker can't be
@@ -19,6 +40,58 @@ bool FUN_000971a0(int object_handle, float *position, float *aim_position)
     }
   }
   return true;
+}
+
+/* Forwards a value to FUN_00096f20 keyed by the device-family object's
+ * device_group_index (0x97220). Resolves object_handle (arg0) as a
+ * device|control|machine object (type_mask 0x380, same resolve as
+ * FUN_00097040 above); if its device_group_index (int16_t at +0x1b4) is not
+ * -1, tail-calls FUN_00096f20(device_group_index, arg1) and returns its
+ * result. Returns 0 (AL cleared) if object_handle == -1, the object can't be
+ * resolved, or there is no attached device group -- FUN_00096f20 is never
+ * reached on those paths.
+ * arg1 is an opaque float forwarded byte-for-byte (PUSH of the raw dword at
+ * [EBP+0xc], no FLD/FSTP) -- this function never interprets it.
+ * Caller: FUN_000bfab0 (0xbfade), which resolves arg0/arg1 from a
+ * hs_macro_function_evaluate() record. FUN_00096f20 is unported; declared in
+ * kb.json as `char FUN_00096f20(int arg0, float arg1);`. */
+char FUN_00097220(int arg0, float arg1)
+{
+  char *object;
+  int16_t device_group_index;
+
+  if (arg0 != -1) {
+    object = (char *)object_get_and_verify_type(arg0, 0x380);
+    device_group_index = *(int16_t *)(object + 0x1b4);
+    if (device_group_index != -1) {
+      return FUN_00096f20(device_group_index, arg1);
+    }
+  }
+  return 0;
+}
+
+/* Sets a device-family object's "on" flag and cached value, then forwards
+ * the value to FUN_00096f20 keyed by a second int16 field (0x97260).
+ * Resolves object_handle as a device|control|machine object (type_mask
+ * 0x380, same resolve as FUN_00097040/FUN_00097220 above). If resolved:
+ * ORs bit 0x4 into the flags word at +0x1a4, stores value (raw dword, no
+ * FPU conversion) at +0x1ac, then calls
+ * FUN_00096f20(sign-extended int16 at +0x1a8, value).
+ * No-op if object_handle == -1 or the object can't be resolved.
+ * value is forwarded to FUN_00096f20 byte-for-byte (MOV, no FLD/FSTP).
+ * Caller: FUN_000bfa30 (0xbfa56).
+ * FUN_00096f20 is unported; declared in kb.json as
+ * `char FUN_00096f20(int arg0, float arg1);`. */
+void FUN_00097260(int object_handle, float value)
+{
+  char *object;
+
+  if (object_handle != -1) {
+    object = (char *)object_get_and_verify_type(object_handle, 0x380);
+    *(uint32_t *)(object + 0x1a4) |= 4;
+    *(float *)(object + 0x1ac) = value;
+    FUN_00096f20((int)*(int16_t *)(object + 0x1a8), value);
+  }
 }
 
 /* Clamp cursor and selection to valid range [0, strlen] (0x972b0).

@@ -360,7 +360,7 @@ bool any_player_is_in_the_air(void)
     } else {
       /* Unit is on foot */
       if (*(short *)(unit_obj + 0x64) == 0) {
-        if (((bool (*)(int))0x1a0db0)(unit_handle))
+        if (biped_flying_through_air(unit_handle))
           return true;
         continue;
       } else if (*(short *)(unit_obj + 0x64) != 1) {

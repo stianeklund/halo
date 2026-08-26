@@ -3817,3 +3817,93 @@ LAB_001a4062_done:
   (void)tval;
   (void)fdist;
 }
+
+/* FUN_001a4990 (0x1a4990)
+ *
+ * Biped unit callback referenced from a function-pointer table at DATA
+ * 0x323d6c. Loads the biped tag, restores four default float constants
+ * (obj+0x46c..0x478) from the same globals used by biped_reset
+ * (0x32513c..0x325148), sets a state byte and several BSP/contact datum
+ * handles to -1, re-samples world position into obj+0x438..0x444,
+ * conditionally invokes FUN_001a25e0 (bit 0x40 of the tag flags at +0x2f4
+ * -- the same bit referenced at 0x1a39ab, gating a physics "mach edge"
+ * flag), then unconditionally calls FUN_001a4440 and clears two more
+ * state fields. Always returns 1.
+ *
+ * Confirmed: CALL 0x13d680 (object_get_and_verify_type) type 1 (biped).
+ * Confirmed: CALL 0x1ba140 (tag_get) with 'bipd' signature (0x62697064).
+ * Confirmed: obj+0x46c..0x478 loaded from globals 0x32513c, 0x325140,
+ *   0x325144, 0x325148 (same constants as biped_reset).
+ * Confirmed: obj+0x45c (byte) = 0x7f.
+ * Confirmed: obj+0x430, +0x434 = -1 before the world-position call;
+ *   obj+0x448, +0x444, +0x44c = -1 after it (single OR EBX,-1 reused for
+ *   all five -1 stores).
+ * Confirmed: CALL 0x1412f0 (object_get_world_position) writing to
+ *   obj+0x438 (vector3_t).
+ * Confirmed: bit 0x40 of tag+0x2f4 gates CALL 0x1a25e0(unit_handle@ecx).
+ * Confirmed: CALL 0x1a4440(unit_handle) unconditional, cdecl cleanup
+ *   ADD ESP,0x4.
+ * Confirmed: obj+0x42c = -1, obj+0x42b (byte) = 0 after the two calls.
+ * Confirmed: MOV AL,0x1 immediately before epilogue -- unconditional
+ *   return value of 1.
+ * Uncertain: exact semantics of the +0x42b/+0x42c/+0x444/+0x448/+0x44c
+ *   fields and of the return value (bool success vs. dispatch-table
+ *   convention); no strong naming evidence yet, kept as FUN_001a4990.
+ */
+char FUN_001a4990(int unit_handle)
+{
+  char *unit_obj;
+  char *biped_tag;
+  vector3_t *out_position;
+
+  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+
+  *(int *)(unit_obj + 0x46c) = *(int *)0x32513c;
+  *(int *)(unit_obj + 0x470) = *(int *)0x325140;
+  *(int *)(unit_obj + 0x474) = *(int *)0x325144;
+  *(int *)(unit_obj + 0x478) = *(int *)0x325148;
+
+  *(uint8_t *)(unit_obj + 0x45c) = 0x7f;
+  *(int *)(unit_obj + 0x430) = -1;
+  *(int *)(unit_obj + 0x434) = -1;
+
+  out_position = (vector3_t *)(unit_obj + 0x438);
+  object_get_world_position(unit_handle, out_position);
+
+  *(int *)(unit_obj + 0x448) = -1;
+  *(int *)(unit_obj + 0x444) = -1;
+  *(int *)(unit_obj + 0x44c) = -1;
+
+  if ((*(uint8_t *)(biped_tag + 0x2f4) & 0x40) != 0) {
+    FUN_001a25e0(unit_handle);
+  }
+
+  FUN_001a4440(unit_handle);
+
+  *(int *)(unit_obj + 0x42c) = -1;
+  *(uint8_t *)(unit_obj + 0x42b) = 0;
+
+  return 1;
+}
+
+/* FUN_001a4a50 (0x1a4a50) — "preprocess-nodes" timing marker
+ *
+ * One-instruction-body wrapper: loads its cdecl stack argument into EAX and
+ * tail-calls FUN_001a2800(unit_handle@eax, "preprocess-nodes"). Same family
+ * as the "post-airborne"/"post-landing"/"post-slipping" markers above, but
+ * unlike those (which take unit_handle in a register from a frameless
+ * caller), this one has a normal EBP frame and reads unit_handle from
+ * [EBP+8] -- confirmed by disassembly (PUSH EBP; MOV EBP,ESP; MOV
+ * EAX,[EBP+8]; PUSH "preprocess-nodes"; CALL FUN_001a2800). No callers are
+ * present in the current evidence bundle (xrefs_to empty); kb.json's prior
+ * void(void) decl did not match the observed stack read, corrected here to
+ * a single int parameter to match the evidence.
+ *
+ * Confirmed: MOV EAX,[EBP+8]; PUSH 0x2b5160 ("preprocess-nodes"); CALL
+ * FUN_001a2800(unit_handle@eax, failure_kind).
+ */
+void FUN_001a4a50(int unit_handle)
+{
+  FUN_001a2800(unit_handle, "preprocess-nodes");
+}

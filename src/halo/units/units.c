@@ -6884,7 +6884,7 @@ char unit_flying_through_air(int unit_handle)
 
   unit = (char *)object_get_and_verify_type(unit_handle, 3);
   if (*(int16_t *)(unit + 0x64) == 0) {
-    return FUN_001a0db0(unit_handle);
+    return biped_flying_through_air(unit_handle);
   }
   return 0;
 }

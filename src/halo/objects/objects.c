@@ -1171,6 +1171,44 @@ done_minus1:
   return (int)0xffffffff;
 }
 
+/* FUN_001330a0 (0x1330a0 / objects.obj / glow.c) — dispose a glow widget:
+ * delete every particle datum in its list, then delete the widget's own
+ * datum.
+ *
+ * Resolves the glow widget (datum_get(*(data_t**)0x5a90c8, widget_datum),
+ * the same widget pool FUN_00133520 uses) and walks its particle list
+ * rooted at glow_widget+0x250 (next-link at particle+0x5c, per-particle
+ * datum handle at particle+4 -- glow.c's documented particle-node layout),
+ * deleting each particle from the particle pool (*(data_t**)0x5a90cc)
+ * before deleting the widget itself from *(data_t**)0x5a90c8.
+ *
+ * Binary-confirmed order (0x1330c1-0x1330db): the next-link is read into
+ * ESI BEFORE the delete call for the current particle, so the loop is safe
+ * against the just-deleted node -- preserved here by capturing
+ * next_particle before calling datum_delete.
+ *
+ * Single cdecl stack arg (widget_datum, [EBP+8]); no register args.
+ * xrefs_to is a data reference (0x323594) -- a function-pointer table
+ * dispose slot, not a direct call site.
+ */
+void FUN_001330a0(int widget_datum)
+{
+  int glow_widget;
+  int particle;
+  int next_particle;
+
+  glow_widget = (int)datum_get(*(data_t **)0x5a90c8, widget_datum);
+  particle = *(int *)(glow_widget + 0x250);
+
+  while (particle != 0) {
+    next_particle = *(int *)(particle + 0x5c);
+    datum_delete(*(data_t **)0x5a90cc, *(int *)(particle + 4));
+    particle = next_particle;
+  }
+
+  datum_delete(*(data_t **)0x5a90c8, widget_datum);
+}
+
 /* FUN_00133520 (0x133520 / objects.obj, object_lights.c) — build and submit
  * the render-sprite batch for a glow widget's particle list.
  *

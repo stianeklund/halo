@@ -1,3 +1,144 @@
+/* FUN_00120250 (0x120250) — Allocate a rectangle in a texture page's packed
+ * bitmap layout.
+ *
+ * kb.json maps this address into model_animations.obj by link-time object
+ * grouping; the assert's __FILE__ string
+ * ("c:\halo\SOURCE\memory\texture_page.c") confirms the real source TU is the
+ * texture-page allocator, not animations.
+ *
+ * Confirmed: cdecl, 4 args (page ptr, width int16, height int16, immediate
+ * bool). Confirmed: returns int — the new datum handle on success, -1 on
+ * failure (EBX seeded to -1 at 0x120259, returned via MOV EAX,EBX at
+ * 0x120339, or OR EAX,-1 directly at 0x12032f/0x120336).
+ * Confirmed: page+0x0 = contains_unsorted_textures (bool, from the assert
+ * string "immediate || texture_page->contains_unsorted_textures").
+ * Confirmed: page+0x8/+0xa = page width/height (signed int16, JG comparisons
+ * at 0x120292/0x1202a6). Confirmed: page+0x10 = used-area accumulator (int,
+ * added to at 0x120304/0x120308, restored on rollback at 0x120320/0x120324).
+ * Confirmed: page+0x18 = data_t* handle table, passed to data_new_at_index
+ * (0x1202cb) and datum_delete (0x120327). Byte offsets on `page` match the
+ * existing FUN_0011fef0(page, ...) call site in bitmap_utilities.c (page+8,
+ * page+0xa, page+0x18), so `page` stays an untyped pointer per that
+ * precedent rather than a newly invented struct.
+ * Confirmed: FUN_0011fef0 return entry+0x8/+0xa store width/height,
+ * entry+0x2 stores (page->contains_unsorted_textures == 0) (SETZ at
+ * 0x1202f8).
+ * Confirmed: FUN_0011ff70(page) returns bool in AL (TEST AL,AL at 0x120316);
+ * kb.json's prior `void FUN_0011ff70(void)` decl mismatched the call site's
+ * push+cleanup=1 (hazard §7_GETTER_SWALLOWED) and has been corrected.
+ * Confirmed: on immediate-commit failure, the used-area add is undone and
+ * the just-allocated datum is deleted via datum_delete(page->data, handle)
+ * before returning -1 (0x120320-0x12032d).
+ */
+int FUN_00120250(void *page, short width, short height, bool immediate)
+{
+  char *pg;
+  void *entry;
+  int area;
+  int handle;
+
+  pg = (char *)page;
+
+  FUN_0011fd50();
+
+  if (!immediate && *pg == 0) {
+    display_assert("immediate || texture_page->contains_unsorted_textures",
+                   "c:\\halo\\SOURCE\\memory\\texture_page.c", 0x60, 1);
+    system_exit(-1);
+  }
+
+  if (width <= *(short *)(pg + 8) && height <= *(short *)(pg + 0xa)) {
+    area = (int)width * (int)height;
+    if (*(int *)(pg + 0x10) + area <
+        (int)*(short *)(pg + 0xa) * (int)*(short *)(pg + 8)) {
+      handle = data_new_at_index(*(data_t **)(pg + 0x18));
+      if (handle != -1) {
+        entry = FUN_0011fef0(pg, handle);
+        *(short *)((char *)entry + 8) = width;
+        *(short *)((char *)entry + 0xa) = height;
+        *(bool *)((char *)entry + 2) = (bool)(*pg == 0);
+        *(int *)(pg + 0x10) += area;
+        if (immediate) {
+          if (!FUN_0011ff70(pg)) {
+            *(int *)(pg + 0x10) -= area;
+            datum_delete(*(data_t **)(pg + 0x18), handle);
+            return -1;
+          }
+        }
+        return handle;
+      }
+    }
+  }
+  return -1;
+}
+
+/* FUN_00120400 (0x120400) — Flush a texture page's unsorted-entry marks and
+ * clear the page-level dirty flag.
+ *
+ * kb.json maps this address into model_animations.obj by link-time object
+ * grouping; the assert's __FILE__ string
+ * ("c:\halo\SOURCE\memory\texture_page.c") confirms the real source TU is the
+ * texture-page allocator, same as FUN_00120250 immediately above.
+ *
+ * Confirmed: cdecl, 1 arg (page ptr). Confirmed: void return.
+ * Confirmed: calls FUN_0011fd50() unconditionally first, same as
+ * FUN_00120250 (0x120407).
+ * Confirmed: asserts page->contains_unsorted_textures (pg+0x0, byte) is
+ * nonzero — display_assert("texture_page->contains_unsorted_textures",
+ * "c:\halo\SOURCE\memory\texture_page.c", 0xaa, true) then system_exit(-1) on
+ * failure (0x120411-0x12042f). Unlike FUN_00120250's `!immediate && *pg==0`
+ * guard, this function has no alternate condition — it unconditionally
+ * requires *pg != 0.
+ * Confirmed: calls FUN_0011ff70(page) (bool result in AL) at 0x120432; the
+ * entire body below is gated on that result being nonzero (TEST AL,AL / JZ
+ * 0x12046b skips straight to the epilogue, leaving *pg untouched).
+ * Confirmed: on success, walks the 12-byte-stride entry array at
+ * *(int*)(pg+0x18)+0x34, count *(short*)(*(int*)(pg+0x18)+0x2e) — the same
+ * table/entry base FUN_00120250 populates via FUN_0011fef0 (entry+0x2 is the
+ * per-entry bool FUN_00120250 sets from page->contains_unsorted_textures).
+ * The table pointer *(int*)(pg+0x18) is reloaded every iteration
+ * (0x12045a), matching the disassembly exactly. For every entry whose first
+ * short field is nonzero, sets entry+0x2 (byte) = 1 (0x120450-0x120456).
+ * Confirmed: after the loop, clears *pg = 0 (0x120467).
+ */
+void FUN_00120400(void *page)
+{
+  char *pg;
+  char *table;
+  short *entry;
+  short count;
+  short i;
+
+  pg = (char *)page;
+
+  FUN_0011fd50();
+
+  if (*pg == 0) {
+    display_assert("texture_page->contains_unsorted_textures",
+                   "c:\\halo\\SOURCE\\memory\\texture_page.c", 0xaa, 1);
+    system_exit(-1);
+  }
+
+  if (FUN_0011ff70(pg)) {
+    table = *(char **)(pg + 0x18);
+    entry = *(short **)(table + 0x34);
+    count = *(short *)(table + 0x2e);
+    i = 0;
+    if (0 < count) {
+      do {
+        table = *(char **)(pg + 0x18);
+        if (*entry != 0) {
+          *(unsigned char *)(entry + 1) = 1;
+        }
+        i = i + 1;
+        entry = entry + 6;
+        count = *(short *)(table + 0x2e);
+      } while (i < count);
+    }
+    *pg = 0;
+  }
+}
+
 /* FUN_00120500 (0x120500) — Get a pointer to a specific animation frame's data.
  *
  * Given an animation structure and a frame index, returns a pointer to the
