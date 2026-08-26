@@ -104,6 +104,7 @@
     "0x64fa0": "int FUN_00064fa0(void *tif@<edx>, const char *method);",
     "0x65250": "void FUN_00065250(char **destination@<edi>, char *value@<ebx>);",
     "0x652a0": "void FUN_000652a0(unsigned short **destination@<esi>, unsigned short *value@<ebx>, long count);",
+    "0x65af0": "void FUN_00065af0(void **out@<eax>, void *field_table@<ecx>, unsigned int tag@<edx>);",
     "0x68a70": "void FUN_00068a70(int bit_count @<eax>, void *tif @<edi>);",
     "0x68bd0": "int FUN_00068bd0(void *tif @<eax>);",
     "0x68c70": "void *FUN_00068c70(void *tif @<esi>, int extra_size);",

@@ -35178,7 +35178,7 @@
     },
     {
      "addr": "0x65af0",
-     "decl": "void FUN_00065af0(void);"
+     "decl": "void FUN_00065af0(void **out@<eax>, void *field_table@<ecx>, unsigned int tag@<edx>);"
     },
     {
      "addr": "0x65e90",

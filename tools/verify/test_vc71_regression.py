@@ -53,7 +53,7 @@ class TestStrictCheck(unittest.TestCase):
         results = results or {}
         drops = drops or []
 
-        def run(_source, drops_out=None, meta_out=None):
+        def run(_source, drops_out=None, meta_out=None, skip_decl_regen=None):
             if drops_out is not None:
                 drops_out.extend(drops)
             if meta_out is not None:
@@ -512,7 +512,7 @@ class CheckHarness(unittest.TestCase):
         results = results or {}
         drops = drops or []
 
-        def run(_source, drops_out=None, meta_out=None):
+        def run(_source, drops_out=None, meta_out=None, skip_decl_regen=None):
             if drops_out is not None:
                 drops_out.extend(drops)
             if meta_out is not None:

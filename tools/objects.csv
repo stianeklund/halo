@@ -164,7 +164,7 @@ network_connection.obj,true,0x001282F0-0x00129C30,18
 network_game_manager.obj,true,0x0012A960-0x0012B8B0,20
 bsp3d.obj,true,0x00146BE0-0x001472B0,5
 collision_features.obj,true,0x0014AD40-0x0014C6B0,18
-rasterizer_xbox_dynavobgeom.obj,true,0x0015D8B0-0x0016C7A0,112
+rasterizer_xbox_dynavobgeom.obj,true,0x0015F1F0-0x0015FAE0,7
 cache_files.obj,true,0x001B9890-0x001BA070,8
 sound_definitions.obj,true,0x001C8D90-0x001C8F90,1
 actor_firing_position.obj,true,0x00024000-0x00024DE0,15
@@ -187,7 +187,7 @@ static_camera.obj,true,0x0008D410-0x0008D610,1
 rasterizer_xbox_screen_effect.obj,true,0x001700D0-0x00171DC0,2
 rasterizer_xbox_shadows.obj,true,0x00172590-0x00173290,4
 rasterizer_xbox_profile.obj,true,0x0016F910-0x0016FC40,2
-<xdk_stubs>,true,0x001CFB73-0x0024D209,531
+<xdk_stubs>,true,0x001CFB73-0x00252FF4,1648
 wind.obj,true,0x0018FF00-0x00190700,3
 action_vehicle.obj,true,0x0001AEB0-0x0001BAA0,4
 glow.obj,true,0x001345B0-0x001347B0,1
@@ -195,3 +195,10 @@ rasterizer_xbox_widgets.obj,true,0x0017ADC0-0x0017B9D0,8
 rasterizer_lights.obj,true,0x00181670-0x00181870,1
 64bit_math.obj,true,0x0007FF40-0x00080410,5
 targa_file.obj,true,0x0007F3A0-0x0007F5A0,1
+rasterizer_xbox_draw_primitives.obj,true,0x0015D8B0-0x0015F080,15
+rasterizer_xbox_environment.obj,true,0x001609B0-0x00165620,28
+rasterizer_xbox_environment_fog.obj,true,0x00165980-0x001681F0,19
+rasterizer_xbox_hardware_bitmaps.obj,true,0x00168230-0x00168EA0,17
+rasterizer_xbox_hardware_geometry.obj,true,0x00168CD0-0x00169400,5
+rasterizer_xbox_lights.obj,true,0x00169650-0x0016A1D0,5
+rasterizer_xbox_models.obj,true,0x0016AB00-0x0016C7A0,9

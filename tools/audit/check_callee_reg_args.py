@@ -48,7 +48,36 @@ KB_PATH   = REPO_ROOT / "kb.json"
 # finding (observed at 0x97260, whose neighbour 0x972b0 is ported).
 XBE_PATH  = REPO_ROOT / "halo-patched" / "cachebeta.xbe"
 BASELINE_PATH = REPO_ROOT / "tools" / "audit" / "callee_reg_args_baseline.json"
+FUNCTION_BOUNDS_PATH = REPO_ROOT / "tools" / "verify" / "function_bounds.json"
 SRC_ROOT  = REPO_ROOT / "src" / "halo"
+
+_function_bounds_cache: dict[int, int] | None = None
+
+
+def _function_bounds() -> dict[int, int]:
+    """addr -> end addr, from the committed VC71 bounds table.
+
+    Without this, disassembly runs a fixed instruction/byte window past a
+    short function's real end and picks up unrelated bytes from its neighbour
+    as fabricated register reads (observed at 0x1cb980 sound_enable, a
+    6-instruction function whose window walked into the next function's
+    `rep movsd`).
+    """
+    global _function_bounds_cache
+    if _function_bounds_cache is None:
+        _function_bounds_cache = {}
+        if FUNCTION_BOUNDS_PATH.exists():
+            data = json.loads(FUNCTION_BOUNDS_PATH.read_text())
+            for key, info in data.items():
+                if key == "_meta":
+                    continue
+                try:
+                    addr = int(key, 16)
+                    end = int(info["end"], 16)
+                except (ValueError, KeyError, TypeError):
+                    continue
+                _function_bounds_cache[addr] = end
+    return _function_bounds_cache
 
 # Registers we track for implicit input detection.
 TRACKED = {"eax", "ecx", "edx", "ebx", "esi", "edi"}
@@ -169,6 +198,11 @@ def reg_inputs(code: bytes, va: int, max_insns: int = 50) -> tuple[set[str], boo
             prologue = False   # first non-prologue instruction
 
         # ---- Reads ---------------------------------------------------------
+        # insn.regs_read reports only IMPLICIT reads (deliberate: an explicit
+        # read like `cmp edi, -1` is how nearly every real argument register
+        # gets used, so tracking explicit reads here would flag the ordinary
+        # use of any already-written register as a fresh "input" and swamp
+        # the report — regs_read intentionally stays implicit-only).
         regs_read: set[str] = set()
         for rid in insn.regs_read:
             name = insn.reg_name(rid).lower()
@@ -176,8 +210,15 @@ def reg_inputs(code: bytes, va: int, max_insns: int = 50) -> tuple[set[str], boo
                 regs_read.add(REG32[name])
 
         # ---- Writes --------------------------------------------------------
+        # insn.regs_write is implicit-only too, which is the actual bug: an
+        # EXPLICIT write like `mov ecx, eax` (setting up `shl edx, cl`) or
+        # `mov eax, 0x92492493` (a magic-constant `imul` division idiom) never
+        # landed in `written`, so the implicit read on the next instruction
+        # looked like an unwritten input. regs_access()'s write side adds the
+        # missing explicit destination writes on top of the implicit ones.
+        _, access_write = insn.regs_access()
         regs_written: set[str] = set()
-        for rid in insn.regs_write:
+        for rid in access_write:
             name = insn.reg_name(rid).lower()
             if name in REG32:
                 regs_written.add(REG32[name])
@@ -429,9 +470,14 @@ def main():
         and not is_sdk_addr(addr)
     ]
 
+    bounds = _function_bounds()
     findings = []
     for addr, info in to_check:
-        code = read_va(xbe_data, sections, addr, args.max_insns * 8)
+        read_len = args.max_insns * 8
+        end = bounds.get(addr)
+        if end is not None and end > addr:
+            read_len = min(read_len, end - addr)
+        code = read_va(xbe_data, sections, addr, read_len)
         if not code:
             continue
         inputs, chkstk = reg_inputs(code, addr, args.max_insns)
