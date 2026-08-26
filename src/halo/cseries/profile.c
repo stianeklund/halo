@@ -6,17 +6,15 @@
    Use GCC-style asm for clang (even targeting MSVC) because MSVC-style
    __asm doesn't properly communicate register clobbers to the optimizer. */
 #if defined(_MSC_VER) && !defined(__clang__)
-#define RDTSC(lo, hi)   \
-  do {                  \
-    uint32_t _lo, _hi;  \
-    __asm { rdtsc }      \
-    __asm               \
-    {                   \
-      mov _lo, eax      \
-    }                   \
-    __asm { mov _hi, edx } \
-    (lo) = _lo;         \
-    (hi) = _hi;         \
+#define RDTSC(lo, hi)       \
+  do {                      \
+    __asm { push eax }      \
+    __asm { push edx }      \
+    __asm { rdtsc }         \
+    __asm { mov (lo), eax } \
+    __asm { mov (hi), edx } \
+    __asm { pop edx }       \
+    __asm { pop eax }       \
   } while (0)
 #else
 #define RDTSC(lo, hi)                     \
