@@ -65,6 +65,34 @@ void ui_widget_debug_show_path(unsigned char value)
   *(uint8_t *)0x46cc84 = value;
 }
 
+/* widget_instance_get_nth_child — walks the first_child linked list of
+ * widget (offset +0x34) following next_sibling (+0x2c) n times, returning
+ * the widget reached (or NULL if the chain runs out before n steps).
+ * n <= 0 returns first_child unchanged. Asserts widget is non-NULL. */
+void *widget_instance_get_nth_child(void *widget, int n)
+{
+  void *child;
+  int i;
+
+  if (widget == NULL) {
+    display_assert("widget", "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x41a,
+                   true);
+    system_exit(-1);
+  }
+
+  child = *(void **)((char *)widget + 0x34);
+  i = 0;
+  if (0 < n) {
+    do {
+      if (child == NULL)
+        return child;
+      child = *(void **)((char *)child + 0x2c);
+      i = i + 1;
+    } while (i < n);
+  }
+  return child;
+}
+
 /* ui_widget_realloc — thin wrapper around stack_memory_pool_realloc.
  * Passes the global widget stack memory pool at [0x31e04c] as the
  * first argument, forwarding the caller's block pointer, new size,

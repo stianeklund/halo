@@ -26407,7 +26407,8 @@
     },
     {
      "addr": "0xe3cd0",
-     "decl": "void widget_instance_get_nth_child(void);"
+     "decl": "void *widget_instance_get_nth_child(void *widget, int n);",
+     "ported": true
     },
     {
      "addr": "0xe3d20",

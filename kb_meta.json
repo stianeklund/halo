@@ -9489,6 +9489,10 @@
         "The existing ui_widget_debug_show_path name is retained conservatively; binary evidence proves only a one-byte store to 0x46cc84, not broader path-debug semantics."
       ]
     },
+    "0xe3cd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe3d20": {
       "kind": "function",
       "status": "ported",
