@@ -4285,13 +4285,14 @@ void FUN_000be370(int16_t function_index, int thread_datum, char init)
 void FUN_000be3b0(int16_t function_index, int thread_datum, char init)
 {
   int *result;
-  unsigned int value;
+  int value;
 
+  value = 0;
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    value = (uint16_t)FUN_000ce420(*result);
-    hs_return(thread_datum, (int)value);
+    *(int16_t *)&value = FUN_000ce420(*result);
+    hs_return(thread_datum, value);
   }
 }
 
@@ -4464,12 +4465,14 @@ void FUN_000be4c0(int16_t function_index, int thread_datum, char init)
 void FUN_000be500(int16_t function_index, int thread_datum, char init)
 {
   int *result;
-  unsigned char value;
+  int value;
 
+  value = 0;
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    value = FUN_000c9770(result[0], result[1], *(float *)((char *)result + 8));
+    *(char *)&value =
+      FUN_000c9770(result[0], result[1], *(float *)((char *)result + 8));
     hs_return(thread_datum, value);
   }
 }
@@ -5635,13 +5638,14 @@ void FUN_000bec90(int16_t function_index, int thread_datum, char init)
 void FUN_000becd0(int16_t function_index, int thread_datum, char init)
 {
   unsigned char *result;
-  unsigned int value;
+  int value;
 
+  value = 0;
   result = (unsigned char *)hs_macro_function_evaluate(function_index,
                                                        thread_datum, init);
   if (result != NULL) {
-    value = lights_enable(*result);
-    hs_return(thread_datum, (int)value);
+    *(char *)&value = lights_enable(*result);
+    hs_return(thread_datum, value);
   }
 }
 
@@ -5675,13 +5679,14 @@ void FUN_000becd0(int16_t function_index, int thread_datum, char init)
 void FUN_000bed20(int16_t function_index, int thread_datum, char init)
 {
   int *result;
-  unsigned int value;
+  int value;
 
+  value = 0;
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    value = (uint16_t)FUN_00145740(*result);
-    hs_return(thread_datum, (int)value);
+    *(int16_t *)&value = FUN_00145740(*result);
+    hs_return(thread_datum, value);
   }
 }
 
