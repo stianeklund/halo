@@ -36,7 +36,10 @@
  *     current_read_offset, capped size, buffer) immediately before the
  *     call, cleaned up by the caller's "ADD ESP,0x10" right after — proof
  *     of a 4-argument cdecl call, not the void(void) the decompiler
- *     rendered from the stale kb.json signature.
+ *     rendered from the stale kb.json signature. It also reads self via a
+ *     genuine live-in self@<edi> register argument (MOV EDI,EAX at this
+ *     function's own entry keeps self in EDI across the whole body,
+ *     unchanged through this call site) — passed explicitly below.
  *
  * Source: c:\halo\SOURCE\cache\cache_files_decompress_windows.c, asserts
  * at lines 0x5ec, 0x5ed, 0x601.
@@ -45,16 +48,15 @@ void FUN_001bb430(char *self, short *request, short read_buffer_index)
 {
   void *buffer;
   unsigned int size;
-  int new_offset;
 
   buffer = FUN_001baa50(request);
 
   size = *(unsigned int *)(self + 0xa94);
-  if ((int)size > 0x1ffff) {
+  if ((int)size >= 0x20000) {
     size = 0x20000;
   }
 
-  if (read_buffer_index < 0 || read_buffer_index > 7) {
+  if (read_buffer_index < 0 || read_buffer_index >= 8) {
     display_assert(
       "read_buffer_index>=0 && read_buffer_index<NUMBER_OF_READ_BUFFERS",
       "c:\\halo\\SOURCE\\cache\\cache_files_decompress_windows.c", 0x5ec, 1);
@@ -71,15 +73,14 @@ void FUN_001bb430(char *self, short *request, short read_buffer_index)
   *request = *(short *)(self + 0xab8);
 
   physical_memory_protect(buffer, size, 4);
-  FUN_001bb190(buffer, size, *(int *)(self + 0xaa8), read_buffer_index);
+  FUN_001bb190(self, buffer, size, *(int *)(self + 0xaa8), read_buffer_index);
 
   *(short *)(self + 0xab8) = *(short *)(self + 0xab8) + 1;
 
-  new_offset = *(int *)(self + 0xaa8) + (int)size;
   *(unsigned int *)(self + 0xa94) = *(unsigned int *)(self + 0xa94) - size;
-  *(int *)(self + 0xaa8) = new_offset;
+  *(int *)(self + 0xaa8) = *(int *)(self + 0xaa8) + (int)size;
 
-  if (*(int *)(self + 0xa8c) < new_offset) {
+  if (*(int *)(self + 0xaa8) > *(int *)(self + 0xa8c)) {
     display_assert("self->current_read_offset<=self->read_file_size",
                    "c:\\halo\\SOURCE\\cache\\cache_files_decompress_windows.c",
                    0x601, 1);
@@ -195,10 +196,20 @@ void acquire_read_request(char *self, short *request)
  *     the path argument is the literal string "blah" resolved from
  *     .rdata at 0x2b89cc (a placeholder/debug string, reproduced as-is).
  *
+ * CORRECTION (evidence: live disassembly of 0x1bb2d0/0x1bb190 via Ghidra):
  * MOV EDI,ESI immediately precedes both the FUN_001bb2d0 and FUN_001bb190
- * calls in the disassembly; it is not consumed by either callee (per the
- * call-site audit and FUN_001bb430's comment, neither takes a register
- * self-arg), so it has no C equivalent here.
+ * calls in the disassembly. The prior comment here claimed neither callee
+ * consumes it. That was wrong -- both callees' very first instruction is
+ * `MOV EAX,[EDI+0x98c]` / `[EDI+0x990]` with no prologue load of EDI from
+ * the stack, i.e. EDI is a genuine live-in self@<edi> register argument
+ * (same per-file decompression read-state block as self@<eax> here).
+ * Dropping it left EDI holding whatever this TU's clang-compiled code last
+ * put there -- non-deterministic across builds/boots -- which the callee
+ * then dereferences at self+0x98c/+0x990/+0xac8 etc., corrupting its
+ * overlapped-slot bookkeeping and intermittently tripping "couldn't issue
+ * an asynchronous read/write" in cache_files_decompress_windows.c. Fixed
+ * by declaring both callees with an explicit self@<edi> parameter
+ * (kb.json reg_args) and passing `self` at both call sites below.
  *
  * FUN_001ba930 and FUN_001ba8b0 (both below FUN_001bb190/
  * cache_file_header_verify) are now corrected to self@<esi> prototypes
@@ -218,7 +229,7 @@ void cache_copy_initialize_read_data(char *self)
   *(unsigned int *)(self + 0xa98) = 0;
   csmemset(buffer, 0, 0x800);
 
-  FUN_001bb2d0(buffer, 0x800, 0, 1);
+  FUN_001bb2d0(self, buffer, 0x800, 0, 1);
   FUN_001ba930(self);
 
   if (*(unsigned int *)(*(unsigned char **)0x32ea98 + 0xa98) != 0) {
@@ -228,7 +239,7 @@ void cache_copy_initialize_read_data(char *self)
     system_exit(-1);
   }
 
-  FUN_001bb190(buffer, 0x800, 0, 8);
+  FUN_001bb190(self, buffer, 0x800, 0, 8);
   FUN_001ba8b0(self);
   cache_file_header_verify(buffer, "blah", 1);
 
@@ -1065,6 +1076,19 @@ int16_t FUN_001bd1b0(const char *map_name)
  * completion_flag(+0x10)) before immediately rescanning without waiting
  * again (JMP 0x1bd3c0 in the disassembly). Never returns; this is the
  * cache IO worker thread's entry proc. Frameless in the original.
+ *
+ * CORRECTION (evidence: live disassembly via Ghidra): FUN_001bc3b0 also
+ * takes 3 register arguments the prior lift dropped, all visible right
+ * before the call at 0x1bd4ab-0x1bd4b0: `MOV EBX,0x1bc860` (completion
+ * routine -- the constant address of the ported FUN_001bc860 completion
+ * callback), `MOV EDI,0x1d19e7` (the async-request function, the same
+ * ReadFileEx-equivalent FUN_001bb190 issues reads through), and ESI holds
+ * `best` itself -- the winning request slot doubles as the OVERLAPPED-ish
+ * scratch buffer FUN_001bc3b0 csmemsets at self+0x0..0x13. Dropping all
+ * three left EDI/ESI/EBX holding whatever this TU's compiled code last put
+ * there, tripping FUN_001bc3b0's own "async_request_function"/"overlapped"/
+ * "completion_routine" asserts non-deterministically depending on prior
+ * register content.
  */
 void FUN_001bd3a0(void)
 {
@@ -1086,7 +1110,7 @@ void FUN_001bd3a0(void)
       offset = 0;
       request_index = 0;
       do {
-        if (request_index < 0 || request_index > 0x1ff) {
+        if (request_index < 0 || request_index >= 0x200) {
           display_assert("request_index>=0 && "
                          "request_index<MAXIMUM_SIMULTANEOUS_CACHE_REQUESTS",
                          "c:\\halo\\SOURCE\\cache\\cache_files_windows.c",
@@ -1096,8 +1120,8 @@ void FUN_001bd3a0(void)
         cur = (char *)(*(int *)0x4e9250 + offset);
         if (cur[0x1d] != 0 && cur[0x1e] == 0 &&
             (best == 0 ||
-             ((unsigned char)cur[0x1c] < (unsigned char)best[0x1c] &&
-              *(unsigned int *)(cur + 8) < *(unsigned int *)(best + 8)))) {
+             ((unsigned char)best[0x1c] > (unsigned char)cur[0x1c] &&
+              *(unsigned int *)(best + 8) > *(unsigned int *)(cur + 8)))) {
           best = cur;
         }
         request_index = request_index + 1;
@@ -1108,24 +1132,24 @@ void FUN_001bd3a0(void)
         break;
 
       map_file_index = *(int16_t *)0x4e9244;
-      if (map_file_index < 0 || map_file_index > 5) {
+      if (map_file_index < 0 || map_file_index >= 6) {
         display_assert(
           "map_file_index>=0 && map_file_index<NUMBER_OF_CACHED_MAP_FILES",
           "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x485, 1);
         system_exit(-1);
       }
+      handle =
+        *(unsigned int *)((char *)0x4e61d8 + (int)map_file_index * 0x80c);
       if (best[0x1e] != 0) {
         display_assert("!best_request->running",
                        "c:\\halo\\SOURCE\\cache\\cache_files_windows.c", 0x4fc,
                        1);
         system_exit(-1);
       }
-      handle =
-        *(unsigned int *)((char *)0x4e61d8 + (int)map_file_index * 0x80c);
       best[0x1e] = 1;
-      FUN_001bc3b0(handle, *(int *)(best + 0x18),
+      FUN_001bc3b0((void *)0x1d19e7, best, handle, *(int *)(best + 0x18),
                    *(unsigned int *)(best + 0x14), *(int *)(best + 8),
-                   *(char **)(best + 0x10));
+                   *(char **)(best + 0x10), (void *)FUN_001bc860);
     }
   } while (1);
 }

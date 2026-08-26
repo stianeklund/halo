@@ -4717,7 +4717,12 @@
     },
     {
      "addr": "0x1bc3b0",
-     "decl": "void FUN_001bc3b0(unsigned int handle, int buffer, unsigned int size, int offset, char *completion_flag);"
+     "decl": "void FUN_001bc3b0(void *async_request_function /* @<edi> */, void *overlapped /* @<esi> */, unsigned int handle, int buffer, unsigned int size, int offset, char *completion_flag, void *completion_routine /* @<ebx> */);",
+     "reg_args": {
+      "async_request_function": "edi",
+      "overlapped": "esi",
+      "completion_routine": "ebx"
+     }
     },
     {
      "addr": "0x1bc5c0",
@@ -9848,7 +9853,7 @@
     },
     {
      "addr": "0x1c00c0",
-     "decl": "void FUN_001c00c0(void *address, uint32_t cpu_size, uint32_t gpu_size);",
+     "decl": "void *FUN_001c00c0(void *address, uint32_t cpu_size, uint32_t gpu_size);",
      "ported": true,
      "src": "src/halo/saved_games/game_state.c"
     }
@@ -24887,11 +24892,17 @@
     },
     {
      "addr": "0x1bb190",
-     "decl": "void FUN_001bb190(void *buffer, unsigned int size, int current_read_offset, short read_buffer_index);"
+     "decl": "void FUN_001bb190(char *self /* @<edi> */, void *buffer, unsigned int size, int current_read_offset, short read_buffer_index);",
+     "reg_args": {
+      "self": "edi"
+     }
     },
     {
      "addr": "0x1bb2d0",
-     "decl": "void FUN_001bb2d0(void *buffer, unsigned int size, int param_3, int param_4);"
+     "decl": "void FUN_001bb2d0(char *self /* @<edi> */, void *buffer, unsigned int size, int param_3, int param_4);",
+     "reg_args": {
+      "self": "edi"
+     }
     }
    ],
    "name": "tags.obj",
@@ -36545,7 +36556,8 @@
     },
     {
      "addr": "0x120470",
-     "decl": "void FUN_00120470(void);"
+     "decl": "void FUN_00120470(void *page, int handle);",
+     "ported": true
     },
     {
      "addr": "0x1204a0",

@@ -1,3 +1,42 @@
+## Goal-lift run — 0/12 committed (infra_blocked_twice) — 2026-08-26
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_001d77b3 | 0x1d77b3 | XAPILIB:xbox_crt.obj | - | skipped | skip_nt_import (CRT/SEH region 0x1d0000-0x1de000) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| path_heap_pop_cheapest_node | 0x5e560 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' (address not found in kb.json or function lookup failed) [cohort=none] |
+| path_heap_insert | 0x5e680 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+| FUN_0005e700 | 0x5e700 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' in research_bundle._resolve_target (address 0x5e700 may not exist in kb.json or has malformed entry) [cohort=none] |
+| FUN_00060070 | 0x60070 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — address 0x60070 not found in kb.json or lacks source mapping [cohort=none] |
+
+## Goal-lift run — 5/12 committed (stop_on_fail_reached) — 2026-08-25
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| ai_conversation_finish | 0x435b0 | ai_communication.obj | 90.1 | committed | mechanical gate: 90.1% clean (pass1) [cohort=retrieval] |
+| network_game_client_game_has_started | 0x1251e0 | network_client_manager.obj | 76.5 | parked | escalation_exhausted [cohort=retrieval] |
+| FUN_001ba0c0 | 0x1ba0c0 | tags.obj | 96.3 | committed | mechanical gate: 96.3% clean (pass1) [cohort=retrieval] |
+| FUN_00012000 | 0x12000 | vector_math.obj | 83.5 | parked | escalation_exhausted [cohort=retrieval] |
+| FUN_001a0db0 | 0x1a0db0 | bipeds.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_001a4990 | 0x1a4990 | bipeds.obj | 93.6 | committed | pass1 [cohort=retrieval] |
+| FUN_001a4a50 | 0x1a4a50 | bipeds.obj | 94.1 | committed | pass1 [cohort=retrieval] |
+| FUN_001bc620 | 0x1bc620 | cache_files_windows.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_001bcc30 | 0x1bcc30 | cache_files_windows.obj | 75.7 | parked | escalation_exhausted [cohort=retrieval] |
+| FUN_001bd1b0 | 0x1bd1b0 | cache_files_windows.obj | 0 | parked | below_65pct [cohort=retrieval] |
+
 ## Goal-lift run — 4/85 committed (stop_on_fail_reached) — 2026-08-18
 
 | function | addr | obj | vc71 | action | reason |
@@ -7290,3 +7329,72 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 | gamepad_button_is_down | 0xffef0 | main.obj | 84.5 | parked | escalation_exhausted [cohort=retrieval] |
 | network_game_reset_to_pregame_ui | 0xe8830 | ui_widget.obj | 0 | parked | below_65pct [cohort=retrieval] |
 | FUN_001b8f10 | 0x1b8f10 | vehicles.obj | 84.2 | parked | structural_cap[deterministic(classify_cap.py)]: reg_defining_prologue (classify_cap.py, high confidence): decl carries 3 register params (@esi/@eax/@ebx); the reference's own prologue is frameless — PUSH EDI; PUSH 0x2; PUSH ESI; MOV EDI,EAX straight into the object_get_and_verify_type call, no EBP frame — while clang always emits a standard PUSH EBP/MOV EBP,ESP frame for this ABI. VC71 structurally cannot emit the reg-reading prologue shape, permanent sub-bar consistent with the known "@<reg>-defining function's own prologue" cap pattern. [cohort=retrieval] |
+
+## Goal-lift run — 0/12 committed (stop_on_fail_reached) — 2026-08-25
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| ai_conversation_status | 0x433b0 | ai_communication.obj | 80.2 | parked | escalation_exhausted [cohort=retrieval] |
+| director_inhibited_facing | 0x86270 | director.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_000cb940 | 0xcb940 | hs_runtime.obj | 83 | parked | structural_cap[deterministic(classify_cap.py)]: reg_defining_prologue: decl has an @<reg> parameter; VC71 cannot emit the register-reading prologue (permanent sub-bar) — matches classify_cap.py high-confidence verdict against the published fingerprinted score-context artifact. [cohort=retrieval] |
+
+## Goal-lift run — 12/12 committed (goal_reached) — 2026-08-26
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| FUN_000f5650 | 0xf5650 | items.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_001ba930 | 0x1ba930 | tags.obj | 96.6 | committed | mechanical gate: 96.6% clean (pass1) [cohort=retrieval] |
+| network_game_client_handle_game_update | 0x125380 | network_client_manager.obj | 82.1 | parked | escalation_exhausted [cohort=retrieval] |
+| FUN_001bc620 | 0x1bc620 | cache_files_windows.obj | 93.3 | committed | mechanical gate: 93.3% clean (pass1) [cohort=retrieval] |
+| FUN_001bd1b0 | 0x1bd1b0 | cache_files_windows.obj | 92.8 | committed | mechanical gate: 92.8% clean (pass1) [cohort=retrieval] |
+| FUN_001bd3a0 | 0x1bd3a0 | cache_files_windows.obj | 86.3 | parked | REJECT: FUN_001bd3a0 (cache I/O dispatcher thread, src/halo/cache/cache_files_windows.c) has a confirmed, binary-proven call-argument ABI bug at its dispatch call to FUN_001bc3b0 (0x1bc3b0, still unported). The kb.json decl for FUN_001bc3b0 was updated in this same diff to add `@<ebx>` (completion_routine) and `@<edi>` (unknown_edi_arg) register-argument annotations, but `build/generated/decl.h` strips those annotations to plain trailing parameters (`void FUN_001bc3b0(int, void*, unsigned int, int, void*, void* , void* );`), so the C compiler emits a normal 7-argument cdecl call instead of loading EBX/EDI. I disassembled the freshly built object (`build/CMakeFiles/halo.dir/.../cache_files_windows.c.obj`, rebuilt this session) and it confirms: our call pushes both `0x1d19e7` and `0x1bc860` as ordinary stack dwords (`push 0x1d19e7; push 0x1bc860; ...; call; add esp,0x1c`) and never touches EBX/EDI before the call. The immutable Ghidra bundle's disassembly of the original shows the real ABI: `MOV EBX,0x1bc860; MOV EDI,0x1d19e7` (register loads, no push) followed by only 5 stack pushes and `ADD ESP,0x14`. Because FUN_001bc3b0 is unported, this call jumps straight into the untouched original machine code, which the bundle's own kb.json annotation says reads EBX as the ReadFileEx-style IO completion routine — so it will receive whatever garbage EBX/EDI held from earlier in FUN_001bd3a0 (EBX last held a movzx'd priority byte from the selection loop; EDI is never initialized in this function at all) instead of the intended callback address. This is the persistent, always-running cache dispatch thread, so it will misfire on essentially every cache read dispatch — a concrete likely crash/corruption bug, not a codegen artifact. No mechanism in this codebase's build pipeline (`tools/build/patch.py`'s register-to-cdecl trampoline) covers this direction: that trampoline only marshals args on entry into an implemented (`ported:true`) function being called from original code; it does nothing for a lifted caller invoking an unported callee that expects register args. `audit_reg_abi.py --target FUN_001bd3a0` reported "regs=none" because it only checks FUN_001bd3a0's own incoming register args, not whether its outgoing call satisfies FUN_001bc3b0's `@<reg>` requirements — a gap in that gate, not evidence of correctness. Everything else in the function checks out: the priority/offset best-request selection logic (AND of two strict-less-than tests, not the more "obvious" OR-with-tiebreak) exactly matches the original's paired JBE-skip branches per the bundle's decompile_c and disassembly; the WaitForSingleObjectEx call, bounds asserts, and map-file-index/file-handle table lookup are all byte/operand-verified against disassembly; build succeeds (exit 0); the file-level hazard scan is clean; VC71 is 86.3% with a LOADW-WARN that is a benign compiler byte-coalescing artifact on the adjacent `req[0x1d]`/`req[0x1e]` byte reads, unrelated to the call-arg bug. But the register-argument miss at the FUN_001bc3b0 call site is a genuine, concrete, binary-verified defect that must be fixed (a caller-side register-loading mechanism, or an explicit GCC-style `asm volatile` clobber-safe register load immediately before the call) before this lift can be accepted. [cohort=retrieval] |
+| cache_file_open | 0x1bd4d0 | cache_files_windows.obj | 97.5 | committed | mechanical gate: 97.5% clean (pass1) [cohort=retrieval] |
+| director_get_perspective | 0x86410 | director.obj | 92.5 | committed | mechanical gate: 92.5% clean (pass1) [cohort=retrieval] |
+| FUN_00096f20 | 0x96f20 | edit_text.obj | 92.2 | committed | mechanical gate: 92.2% clean (pass1) [cohort=retrieval] |
+| FUN_00097040 | 0x97040 | edit_text.obj | 92.3 | committed | mechanical gate: 92.3% clean (pass1) [cohort=retrieval] |
+| FUN_00097220 | 0x97220 | edit_text.obj | 93.3 | committed | mechanical gate: 93.3% clean (pass1) [cohort=retrieval] |
+| FUN_00097260 | 0x97260 | edit_text.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| FUN_001bfb60 | 0x1bfb60 | game_state.obj | 87.9 | committed | pass1+permute+equiv_weak [equivalence detail: Both the pipeline's auto zero-fill run and a manual state-snapshot run (artifacts/snapshots/infection_swarm.json copied to /tmp/snap_FUN_001bfb60.json, arg_overrides={name:0x2b99c8, a2:0x265938, value:42, flag:1}) reported 100/100 passed, 0 diverged, 0 stub-arg mismatches, but only 31.3% coverage. The snapshot run's own verdict is explicit: INCONCLUSIVE: vacuous_output (exit 3) — game_state_globals (0x4ea990) is not inside any captured snapshot region, so log_file read NULL on every seed, and every seed  — a 0-divergence pass on the live-state infection_swarm snapshot (populated datum tables, real actor handles) is accepted runtime behavioral evidence for the sub-90% band per the state-snapshot equivalence lane in CLAUDE.md] [cohort=retrieval] |
+| game_state_lruv_cache_new | 0x1c0070 | game_state.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| game_state_create_or_open_file | 0x1c0260 | game_state_xbox.obj | 94.6 | committed | pass1 [cohort=retrieval] |
+
+## Goal-lift run — 0/12 committed (infra_blocked_twice)
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_001d77b3 | 0x1d77b3 | XAPILIB:xbox_crt.obj | - | skipped | skip_nt_import (CRT/SEH region 0x1d0000-0x1de000) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00093b60 | 0x93b60 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| path_heap_pop_cheapest_node | 0x5e560 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' in research_bundle.py line 120 — target could not be resolved from kb.json [cohort=none] |
+| path_heap_insert | 0x5e680 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — target 0x5e680 missing source path in kb.json or not found [cohort=none] |
+| FUN_0005e700 | 0x5e700 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — target 0x5e700 not found or has no source mapping in kb.json [cohort=none] |
+| FUN_00060070 | 0x60070 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — target address 0x60070 not found in kb.json or source path unresolved [cohort=none] |
+| FUN_000600c0 | 0x600c0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' in _resolve_target (tools/lift/research_bundle.py:120) [cohort=none] |
+| FUN_000600f0 | 0x600f0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — function not found in kb.json or missing source_path [cohort=none] |
+| FUN_00060140 | 0x60140 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — target 0x60140 missing source mapping in kb.json [cohort=none] |
+| FUN_000601a0 | 0x601a0 | - | - | infra_blocked | Target address 0x601a0 not found in kb.json (AttributeError: 'NoneType' object has no attribute 'startswith') [cohort=none] |
+| FUN_000601e0 | 0x601e0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — target 0x601e0 has no source mapping in kb.json [cohort=none] |
+| FUN_000601f0 | 0x601f0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' in research_bundle.py:120 (_resolve_target) [cohort=none] |
+| FUN_00060200 | 0x60200 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — target address not found in kb.json or source not resolvable [cohort=none] |
+| FUN_00060260 | 0x60260 | - | - | infra_blocked | Function not properly registered in kb.json (no source field or not found in registry) [cohort=none] |
+| FUN_00060910 | 0x60910 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' at tools/lift/research_bundle.py:120 [cohort=none] |
+| FUN_00060970 | 0x60970 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |

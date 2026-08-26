@@ -1491,6 +1491,10 @@
         "No direct code or data xref to 0x43090 was found, so any indirect dispatch caller remains unresolved."
       ]
     },
+    "0x43270": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x434c0": {
       "kind": "function",
       "status": "ported",
@@ -1503,6 +1507,10 @@
       ]
     },
     "0x43520": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x435b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -3736,6 +3744,10 @@
       "status": "ported"
     },
     "0x86220": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x86410": {
       "kind": "function",
       "status": "ported"
     },
@@ -16665,6 +16677,22 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1bb5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bb7d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bbea0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bc360": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1bc6a0": {
       "kind": "function",
       "status": "ported"
@@ -16742,6 +16770,10 @@
       "status": "ported"
     },
     "0x1bcfb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bd4d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -17032,6 +17064,10 @@
       "status": "ported"
     },
     "0x1c0220": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c0260": {
       "kind": "function",
       "status": "ported"
     },

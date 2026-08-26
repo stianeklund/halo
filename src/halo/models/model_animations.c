@@ -139,6 +139,42 @@ void FUN_00120400(void *page)
   }
 }
 
+/* FUN_00120470 (0x120470) — Free a texture-page rectangle allocated by
+ * FUN_00120250, then commit the page.
+ *
+ * kb.json maps this address into model_animations.obj by link-time object
+ * grouping; same texture-page allocator TU as FUN_00120250/FUN_00120400
+ * immediately above (page+0x18 = data_t* handle table, matching precedent).
+ *
+ * Confirmed: cdecl, 2 args (page ptr, datum handle int). Confirmed: void
+ * return.
+ * Confirmed: calls FUN_0011fd50() unconditionally first, same as
+ * FUN_00120250/FUN_00120400 (0x120477).
+ * Confirmed: CALL datum_delete(*(data_t**)(page+0x18), handle) at 0x120484 —
+ * ECX (page+0x18 deref) pushed last = first arg, EAX (param_2) pushed first =
+ * second arg, matching datum_delete(data_t *data, int datum_handle).
+ * Confirmed: CALL FUN_0011ff70(page) at 0x12048a with page (ESI) as the sole
+ * pushed arg; its bool return in AL is discarded here — no TEST/branch on EAX
+ * follows, unlike FUN_00120400's gated use of the same call.
+ * Confirmed: single ADD ESP,0xc at 0x12048f cleans the cumulative 3 pushes
+ * from both calls (2 for datum_delete + 1 for FUN_0011ff70), not 3 args to
+ * FUN_0011ff70 — the call_site_audit's §7_GETTER_SWALLOWED hint is a false
+ * positive against the disassembly, which shows exactly one PUSH ESI
+ * (0x120489) immediately before CALL 0x0011ff70.
+ */
+void FUN_00120470(void *page, int handle)
+{
+  char *pg;
+
+  pg = (char *)page;
+
+  FUN_0011fd50();
+
+  datum_delete(*(data_t **)(pg + 0x18), handle);
+
+  FUN_0011ff70(pg);
+}
+
 /* FUN_00120500 (0x120500) — Get a pointer to a specific animation frame's data.
  *
  * Given an animation structure and a frame index, returns a pointer to the

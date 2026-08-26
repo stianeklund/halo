@@ -386,7 +386,7 @@ fail:
  * (0x4ea9b8) = cpu_size + gpu_size, buffer_allocated (0x4ea9b0) = 1,
  * buffer (0x4ea9b4) = address.
  */
-void FUN_001c00c0(void *address, uint32_t cpu_size, uint32_t gpu_size)
+void *FUN_001c00c0(void *address, uint32_t cpu_size, uint32_t gpu_size)
 {
   int result;
 
@@ -422,4 +422,6 @@ void FUN_001c00c0(void *address, uint32_t cpu_size, uint32_t gpu_size)
   *(uint32_t *)0x4ea9b8 = cpu_size + gpu_size;
   *(char *)0x4ea9b0 = 1;
   *(void **)0x4ea9b4 = address;
+
+  return address;
 }

@@ -28434,6 +28434,11 @@
     "confidence": "none",
     "coverage_pct": 0.0
   },
+  "0x1bfb60": {
+    "class": "non_leaf",
+    "confidence": "moderate",
+    "coverage_pct": 31.3
+  },
   "0x1bfbf0": {
     "class": "non_leaf",
     "confidence": "moderate",
