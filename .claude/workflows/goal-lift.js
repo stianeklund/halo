@@ -85,6 +85,35 @@ const REVIEW_EFFORT = (() => {
   return raw
 })()
 
+// agent() is documented to return null once the harness has exhausted its own
+// internal retries after a terminal API error -- every null-check downstream
+// (Select's retry loop above, lift1's infra_blocked handling, improve-lift's
+// infra_blocked handling) is written against that contract. But a subagent
+// that finishes its turn WITHOUT calling the required StructuredOutput tool
+// throws instead of returning null, bypassing all of that and crashing the
+// whole workflow run. Observed exclusively on the auto-lift-analyst lift
+// calls (lift1, improve-lift) 2026-08-25/26 -- 3 of 5 campaign runs killed by
+// it, mid-batch, after several functions had already committed. Route those
+// two call sites through this wrapper: one immediate retry (workflow scripts
+// have no sleep primitive), then degrade to null like any other agent death
+// so the existing infra_blocked handling takes over instead of crashing.
+async function schemaAgent(prompt, opts, retries) {
+  retries = retries == null ? 1 : retries
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await agent(prompt, opts)
+    } catch (e) {
+      const msg = String((e && e.message) || e)
+      if (!/StructuredOutput/.test(msg)) throw e
+      if (attempt === retries) {
+        log(`${(opts && opts.label) || 'agent'}: StructuredOutput failure, out of retries — returning null`)
+        return null
+      }
+      log(`${(opts && opts.label) || 'agent'}: StructuredOutput failure (attempt ${attempt + 1}/${retries + 1}) — retrying`)
+    }
+  }
+}
+
 // --objects: hard allowlist, enforced in code (not just prompted) — see the
 // filter applied to selection.targets below.
 // --criteria: freeform string appended to the Select prompt; the agent is
@@ -1214,7 +1243,7 @@ rtk python3 tools/verify/vc71_verify.py ${refreshSrc} -f ${rec.name} --no-cache 
       }
     }
     if (!a) {
-      a = await agent(liftPrompt(liftBrief, true, rec.best_score, warm, priorNotes), {
+      a = await schemaAgent(liftPrompt(liftBrief, true, rec.best_score, warm, priorNotes), {
         label: `improve-lift:${rec.name}`, phase: 'Improve', agentType: 'auto-lift-analyst', ...M.improve, schema: LIFT_RESULT_SCHEMA,
       })
     }
@@ -1641,7 +1670,7 @@ while (true) {
   log(`[${committed.length}/${GOAL} committed] next: ${brief.name} (${brief.addr})`)
 
   // ── Attempt 1: Opus lift (sonnet stall-loops under the workflow watchdog) ─
-  const a1 = await agent(liftPrompt(brief, false, null), {
+  const a1 = await schemaAgent(liftPrompt(brief, false, null), {
     label: `lift1:${brief.name}`, phase: 'Lift', agentType: 'auto-lift-analyst', ...M.reason, schema: LIFT_RESULT_SCHEMA,
   })
 
