@@ -3000,12 +3000,12 @@ int FUN_000cafc0(int object_handle)
 {
   int result;
 
+  result = -1;
   if (object_handle != -1) {
     result = FUN_000ce200();
     FUN_000ce2b0(result, object_handle);
-    return result;
   }
-  return -1;
+  return result;
 }
 
 /* 0xcaff0 */

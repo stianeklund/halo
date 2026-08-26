@@ -1010,9 +1010,9 @@ void player_apply_health_effect(int player_handle)
   csmemset(&effect, 0, sizeof(effect));
   effect.type = 6;
   effect.unk_02 = 2;
-  effect.field_10 = 2.0f;
   effect.field_14 = 1;
   effect.field_20 = 0.5f;
+  effect.field_10 = 2.0f;
   effect.field_24 = 0;
   effect.field_28 = 1.0f;
   effect.field_2c = 0.917647f;

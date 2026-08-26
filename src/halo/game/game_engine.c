@@ -8615,14 +8615,10 @@ wchar_t *oddball_get_player_score_string(int param_1, wchar_t *param_2)
   variant = (int)game_engine_get_variant();
 
   if (*(int *)(variant + 0x5c) == 2) {
-    usprintf(param_2, (wchar_t *)0x26c118,
-             score); /* 0x26c118 IS L"%d" (addr), not a ptr */
-
-    return param_2;
+    usprintf(param_2, (wchar_t *)0x26c118, score);
+  } else {
+    ticks_to_unicode_time_string(score, 0x100, param_2);
   }
-
-  ticks_to_unicode_time_string(score, 0x100, param_2);
-
   return param_2;
 }
 

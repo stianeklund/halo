@@ -2860,6 +2860,7 @@ char FUN_0012f330(int server, int machine, void *message_data, int message_size)
           "failed");
         return result;
       }
+      result = 1;
     } else {
       network_game_log(
         "server failed to decode a message_client_remove_player_request_"
