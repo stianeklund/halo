@@ -1561,12 +1561,10 @@ void FUN_00105610(float *point, float radius, float *color)
     system_exit(-1);
   }
   if (FUN_00103d30()) {
-    float *c;
     box[0] = point[0] - radius;
-    c = color + 1;
-    col[1] = c[0];
-    col[2] = c[1];
-    col[3] = c[2];
+    col[1] = color[1];
+    col[2] = color[2];
+    col[3] = color[3];
     box[1] = radius + point[0];
     box[2] = point[1] - radius;
     box[3] = radius + point[1];
@@ -2358,8 +2356,8 @@ float FUN_00106330(int16_t count, float *points)
 
   area = 0.0f; /* FLOAT_002533c0 seed */
   if (count > 2) {
-    n = (uint16_t)(count - 2);
     p = points + 2;
+    n = (uint16_t)(count - 2);
     do {
       area += ((p[2] - points[0]) * (p[1] - points[1]) -
                (p[3] - points[1]) * (p[0] - points[0])) *
@@ -4727,10 +4725,11 @@ void FUN_001954d0(void)
  */
 char FUN_00195530(int param_1, int param_2)
 {
+  int result = param_2 < param_1;
   if (param_2 > param_1) {
     return 0;
   }
-  return param_2 < param_1;
+  return result;
 }
 
 /* 0x195550 - gather structure surfaces selected by a per-32-surface bitmask.
