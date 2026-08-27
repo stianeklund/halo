@@ -5452,7 +5452,7 @@ int16_t unit_set_grenade_count(int unit_handle, int16_t grenade_type,
     system_exit(-1);
   }
 
-  if ((grenade_type < 0) || (grenade_type > 1)) {
+  if ((grenade_type < 0) || (grenade_type >= 2)) {
     display_assert(
       "(grenade_type >= 0) && (grenade_type < NUMBER_OF_UNIT_GRENADE_TYPES)",
       "c:\\halo\\SOURCE\\units\\units.c", 0x1c8e, 1);

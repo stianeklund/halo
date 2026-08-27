@@ -955,7 +955,7 @@ char actor_action_handle_berserking_from_damage(int actor_handle)
     if (*(float *)(actor + 0x1c0) > *(float *)(actr_tag + 0x398)) {
       if (*(float *)(actor + 0x1b8) < *(float *)(actr_tag + 0x39c)) {
         berserk_state = ((actor_t *)actor)->field_310;
-        if (berserk_state < 4) {
+        if (berserk_state <= 3) {
           berserk_state = 3;
         }
         ((actor_t *)actor)->field_310 = berserk_state;
