@@ -61231,16 +61231,16 @@
     "game_engine_team_slayer_default": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 97.8,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0xaa580",
       "end": "0xaa605",
       "kind": "auto",
       "n_r": 45,
-      "opnd_percent": 88.9,
-      "raw_mnemonic_pct": 97.8,
+      "opnd_percent": 95.6,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "c704adbde05575c2",
-      "score": 97.8,
+      "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
     "game_engine_teams_still_playing": {

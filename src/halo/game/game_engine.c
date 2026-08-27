@@ -2107,9 +2107,9 @@ game_variant_t *game_engine_team_slayer_default(game_variant_t *variant)
     (*(int32_t *)((char *)&v + 0x20) & 0xffffffc3) | 3;
   *(int32_t *)((char *)&v + 0x30) = 0x12c;
   *(int32_t *)((char *)&v + 0x34) = 0x12c;
+  *(int32_t *)((char *)&v + 0x18) = 2;
   *(uint8_t *)((char *)&v + 0x1c) = 1;
   *(int16_t *)((char *)&v + 0x64) = 1;
-  *(int32_t *)((char *)&v + 0x18) = 2;
   *(int32_t *)((char *)&v + 0x48) = 2;
   *(int32_t *)((char *)&v + 0x24) = 0;
   *(int32_t *)((char *)&v + 0x3c) = 0x3f800000;
