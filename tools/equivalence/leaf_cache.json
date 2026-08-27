@@ -29656,7 +29656,9 @@
     "coverage_pct": 75.6
   },
   "0x80530": {
-    "class": "non_leaf"
+    "class": "non_leaf",
+    "confidence": "high",
+    "coverage_pct": 70.6
   },
   "0x807d0": {
     "class": "leaf",
@@ -29674,6 +29676,16 @@
     "z3_proven": true,
     "confidence": "high",
     "coverage_pct": 100.0
+  },
+  "0x80940": {
+    "class": "non_leaf",
+    "confidence": "high",
+    "coverage_pct": 76.0
+  },
+  "0x80a40": {
+    "class": "non_leaf",
+    "confidence": "high",
+    "coverage_pct": 75.4
   },
   "0x80b40": {
     "class": "non_leaf",
@@ -30147,6 +30159,11 @@
     "confidence": "high",
     "coverage_pct": 100.0
   },
+  "0xa4200": {
+    "class": "non_leaf",
+    "confidence": "moderate",
+    "coverage_pct": 43.5
+  },
   "0xa4310": {
     "class": "non_leaf",
     "confidence": "moderate",
@@ -30161,6 +30178,16 @@
     "class": "non_leaf",
     "confidence": "weak",
     "coverage_pct": 20.4
+  },
+  "0xa4ab0": {
+    "class": "non_leaf",
+    "confidence": "moderate",
+    "coverage_pct": 44.8
+  },
+  "0xa4be0": {
+    "class": "non_leaf",
+    "confidence": "weak",
+    "coverage_pct": 21.9
   },
   "0xa65e0": {
     "class": "non_leaf",
@@ -30333,7 +30360,7 @@
   },
   "0xaa610": {
     "class": "leaf",
-    "confidence": "weak",
+    "confidence": "high",
     "coverage_pct": 100.0
   },
   "0xaa6a0": {
@@ -30358,7 +30385,7 @@
   },
   "0xaa900": {
     "class": "leaf",
-    "confidence": "weak",
+    "confidence": "high",
     "coverage_pct": 100.0
   },
   "0xaa9a0": {
@@ -30368,37 +30395,37 @@
   },
   "0xaaa20": {
     "class": "leaf",
-    "confidence": "weak",
+    "confidence": "high",
     "coverage_pct": 100.0
   },
   "0xaaab0": {
     "class": "leaf",
-    "confidence": "weak",
+    "confidence": "high",
     "coverage_pct": 100.0
   },
   "0xaab30": {
     "class": "leaf",
-    "confidence": "weak",
+    "confidence": "high",
     "coverage_pct": 100.0
   },
   "0xaabc0": {
     "class": "leaf",
-    "confidence": "weak",
+    "confidence": "high",
     "coverage_pct": 100.0
   },
   "0xaac50": {
     "class": "leaf",
-    "confidence": "weak",
+    "confidence": "high",
     "coverage_pct": 100.0
   },
   "0xaace0": {
     "class": "leaf",
-    "confidence": "weak",
+    "confidence": "high",
     "coverage_pct": 100.0
   },
   "0xaad70": {
     "class": "leaf",
-    "confidence": "weak",
+    "confidence": "high",
     "coverage_pct": 100.0
   },
   "0xaae00": {
