@@ -62551,16 +62551,16 @@
     "game_time_update": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 71.6,
+      "abi_modeled_mnemonic_pct": 72.3,
       "addr": "0xb6020",
       "end": "0xb636e",
       "kind": "auto",
       "n_r": 272,
-      "opnd_percent": 56.8,
-      "raw_mnemonic_pct": 71.6,
+      "opnd_percent": 57.6,
+      "raw_mnemonic_pct": 72.3,
       "ref": "synth",
       "ref_sha": "c2c3d8fa9bfeedd7",
-      "score": 71.6,
+      "score": 72.3,
       "source": "src/halo/game/game_time.c"
     },
     "game_unload": {
@@ -74731,16 +74731,16 @@
     "player_update_weapon_timers": {
       "abi_model": "regparam_stripped_saves",
       "abi_model_items": 3,
-      "abi_modeled_mnemonic_pct": 83.3,
+      "abi_modeled_mnemonic_pct": 84.7,
       "addr": "0xbc4b0",
       "end": "0xbc51d",
       "kind": "auto",
       "n_r": 44,
-      "opnd_percent": 71.4,
-      "raw_mnemonic_pct": 82.8,
+      "opnd_percent": 84.7,
+      "raw_mnemonic_pct": 84.1,
       "ref": "synth",
       "ref_sha": "816fb29b25eba241",
-      "score": 83.3,
+      "score": 84.7,
       "source": "src/halo/game/players.c"
     },
     "players_are_all_dead": {
@@ -88666,16 +88666,16 @@
     "weather_particle_systems_initialize_for_new_map": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 96.7,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0xa3f20",
       "end": "0xa3f85",
       "kind": "auto",
       "n_r": 30,
-      "opnd_percent": 90.0,
-      "raw_mnemonic_pct": 96.7,
+      "opnd_percent": 93.3,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "c86b4866590a918e",
-      "score": 96.7,
+      "score": 100.0,
       "source": "src/halo/effects/weather_particle_systems.c"
     },
     "wide_to_ascii": {

@@ -1949,16 +1949,13 @@ void player_update_weapon_timers(int datum_handle)
   char *unit;
   int16_t *timer;
   int i;
-  int16_t val;
 
   player = (char *)datum_get(player_data, datum_handle);
   timer = (int16_t *)(player + 0x68);
-  for (i = 0; i < 2; i++) {
-    val = timer[i];
-    if (val > 0) {
-      val--;
-      timer[i] = val;
-      if (val == 0) {
+  for (i = 0; i < 2; i++, timer++) {
+    if (*timer > 0) {
+      (*timer)--;
+      if (*timer == 0) {
         player = (char *)datum_get(player_data, datum_handle);
         unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
         if (i == 0)

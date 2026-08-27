@@ -5149,6 +5149,7 @@ void FUN_000ae3c0(int param_1, int param_2, int16_t team)
  * redundant `count = i`: 85.1%) both scored worse and were reverted. */
 void FUN_000ae400(int16_t param_1, int param_2, int16_t param_3, int param_4)
 {
+  int16_t param_1_copy;
   int16_t total_flags;
   int flag_elem;
   int count;
@@ -5157,11 +5158,12 @@ void FUN_000ae400(int16_t param_1, int param_2, int16_t param_3, int param_4)
   total_flags = player_get_starting_location_count();
   count = 0;
   i = 0;
+  param_1_copy = param_1;
   if (0 < total_flags) {
     count = i;
     do {
       flag_elem = ((int (*)(int))player_get_starting_location)(i);
-      if (match_game_type((int)param_1, 4, (int16_t *)(flag_elem + 0x14)))
+      if (match_game_type((int)param_1_copy, 4, (int16_t *)(flag_elem + 0x14)))
         count++;
       i++;
     } while (((int16_t)i) < total_flags);
@@ -7274,9 +7276,6 @@ float ctf_get_starting_location_rating(int param_1, float *param_2)
 {
   float rating;
   float dist_sq;
-  float dx;
-  float dy;
-  float dz;
   float *flag_pos;
   int player;
   int other_team;
@@ -7286,10 +7285,9 @@ float ctf_get_starting_location_rating(int param_1, float *param_2)
     player = (int)datum_get(player_data, param_1);
     other_team = (*(int *)(player + 0x20) + 1) % 2;
     flag_pos = (float *)*(int *)(0x456b74 + other_team * 4);
-    dx = flag_pos[0] - param_2[0];
-    dy = flag_pos[1] - param_2[1];
-    dz = flag_pos[2] - param_2[2];
-    dist_sq = dx * dx + dy * dy + dz * dz;
+    dist_sq = (flag_pos[0] - param_2[0]) * (flag_pos[0] - param_2[0]) +
+              (flag_pos[1] - param_2[1]) * (flag_pos[1] - param_2[1]) +
+              (flag_pos[2] - param_2[2]) * (flag_pos[2] - param_2[2]);
     if (dist_sq <= *(float *)0x253398) {
       dist_sq = 0.5f;
     } else if (*(float *)0x253f34 < dist_sq) {

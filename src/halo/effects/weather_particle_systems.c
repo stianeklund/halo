@@ -484,16 +484,16 @@ void FUN_000a48c0(void *planes /* @<ecx> */, float clip_distance)
 
   forward = (float *)((char *)planes + 0x40);
 
-  point_x = *(float *)0x50655c * clip_distance + *(float *)0x506550;
-  point_y = *(float *)0x506560 * clip_distance + *(float *)0x506554;
-  point_z = *(float *)0x506564 * clip_distance + *(float *)0x506558;
+  point_x = *(float *)0x506550 + *(float *)0x50655c * clip_distance;
+  point_y = *(float *)0x506554 + *(float *)0x506560 * clip_distance;
+  point_z = *(float *)0x506558 + *(float *)0x506564 * clip_distance;
 
   forward[0] = *(float *)0x50655c;
   forward[1] = *(float *)0x506560;
   forward[2] = *(float *)0x506564;
 
   forward[3] =
-    point_z * forward[2] + point_y * forward[1] + point_x * forward[0];
+    forward[0] * point_x + forward[1] * point_y + forward[2] * point_z;
 
   plane_block = (float *)planes;
   plane_block[0] = *(float *)0x50661c;

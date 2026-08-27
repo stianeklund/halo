@@ -245,7 +245,7 @@ void game_time_update(float param_1)
   unsigned int remaining;
 
   assert_halt(game_time_globals);
-  if (!game_time_globals->initialized) {
+  if (!game_time_globals->active) {
     game_time_globals->elapsed = 0;
     return;
   }
