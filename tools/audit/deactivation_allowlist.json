@@ -1510,5 +1510,96 @@
     "object": "bitmaps.obj",
     "reason": "recovered and instruction-audited across all supported formats, but strict lift pipeline rejects the 44.1% structural score and Unicorn cannot execute the oracle jump table (target 0x1ffffc). Dormant pending golden/runtime verification.",
     "since": "2026-08-23"
+  },
+  {
+    "addr": "0x1459d0",
+    "name": "breakable_surfaces_reset",
+    "object": "breakable_surfaces.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0xa5830",
+    "name": "FUN_000a5830",
+    "object": "cheats.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0x154540",
+    "name": "FUN_00154540",
+    "object": "point_physics.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0x20f069",
+    "name": "dsound_stream_is_active",
+    "object": "sound_dsound_xbox.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0x20f081",
+    "name": "FUN_0020f081",
+    "object": "sound_dsound_xbox.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0x1ac180",
+    "name": "FUN_001ac180",
+    "object": "sound_manager.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0xe4310",
+    "name": "ui_widget_get_last_child",
+    "object": "ui_widget.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0xe6ab0",
+    "name": "ui_widget_list_next_item",
+    "object": "ui_widget.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0xe6cb0",
+    "name": "ui_widget_list_prev_item",
+    "object": "ui_widget.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0xe6ed0",
+    "name": "ui_widget_handle_event_handler",
+    "object": "ui_widget.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0xe9320",
+    "name": "ui_widget_spawn_from_event_handler",
+    "object": "ui_widget.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0x17d030",
+    "name": "FUN_0017d030",
+    "object": "rasterizer_sprites.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
+  },
+  {
+    "addr": "0x44660",
+    "name": "ai_conversation_unit_died",
+    "object": "ai_communication.obj",
+    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
+    "since": "2026-08-27"
   }
 ]

@@ -1251,6 +1251,39 @@ def _test_reverse_thunks():
         deact_checked += 1
     log.info("PASS: generated %d current kb.json @<reg> deactivation stub(s)", deact_checked)
 
+    # --- Self-forwarding impl detection (infinite-loop guard) tests ---
+    class _FakeHeader:
+        def __init__(self, va, size):
+            self.virtual_addr = va
+            self.virtual_size = size
+
+    class _FakeSection:
+        def __init__(self, va, data):
+            self.header = _FakeHeader(va, len(data))
+            self.data = data
+
+    class _FakeXbe:
+        def __init__(self, va, data):
+            self.sections = {'.text': _FakeSection(va, data)}
+
+    _IMPL, _ORIG = 0x6459c0, 0x34c80
+    fwd_cases = [
+        # push ebp; mov ebp,esp; mov eax,ORIG; pop ebp; jmp eax  (clang -O0 wrapper)
+        (b'\x55\x89\xe5\xb8' + struct.pack('<I', _ORIG) + b'\x5d\xff\xe0', True,
+         "mov eax,ORIG + jmp eax"),
+        # push ORIG; ret
+        (b'\x68' + struct.pack('<I', _ORIG) + b'\xc3', True, "push ORIG; ret"),
+        # real lift: prologue + locals, no ORIG immediate anywhere
+        (b'\x55\x8b\xec\x81\xec\xc4\x0c\x00\x00\x53\x56\x57\x33\xc0', False,
+         "genuine lift body"),
+    ]
+    for body, expected, desc in fwd_cases:
+        got = is_self_forwarding_impl(_FakeXbe(_IMPL, body), _IMPL, _ORIG)
+        assert got == expected, (
+            f"FAIL: self-forwarding detection for {desc}: "
+            f"expected {expected}, got {got}")
+        log.info("PASS: self-forwarding detection: %s", desc)
+
     log.info("All reverse thunk self-tests passed.")
 
 
@@ -1280,6 +1313,33 @@ def write_to_vaddr(xbe: Xbe, vaddr: int, data: bytes):
     new_data = bytearray(section.data)
     new_data[raw_offset:raw_offset + len(data)] = data
     section.data = bytes(new_data)
+
+
+def read_from_vaddr(xbe: Xbe, vaddr: int, length: int) -> bytes:
+    for section in xbe.sections.values():
+        min_addr = section.header.virtual_addr
+        max_addr = min_addr + section.header.virtual_size
+        if min_addr <= vaddr < max_addr:
+            raw_offset = vaddr - section.header.virtual_addr
+            return bytes(section.data[raw_offset:raw_offset + length])
+    return b''
+
+
+def is_self_forwarding_impl(xbe: Xbe, impl_addr: int, original_addr: int) -> bool:
+    """True if the impl at impl_addr is just a forwarder back to original_addr.
+
+    Redirecting the original address to such an impl builds an infinite loop:
+    original -> impl -> original.  This happens when a C file "resolves" a
+    link error by defining a wrapper that calls the raw original VA
+    (`((fn_t)0x34c80)(...)`), because decl.h declares every kb.json function
+    __declspec(dllexport) -- so the wrapper becomes an EXE export and this
+    patch loop redirects the original onto it.  Unported functions never need
+    such a wrapper: they already resolve through generated/halo.xbe.lib.
+    """
+    body = read_from_vaddr(xbe, impl_addr, 32)
+    if not body:
+        return False
+    return struct.pack('<I', original_addr) in body
 
 
 def main():
@@ -1574,6 +1634,16 @@ def main():
             deactivated_count += 1
             continue
         hook_target = rvthunks_redirect.get(n, addr_of_reimplementation)
+        if n not in rvthunks_redirect and is_self_forwarding_impl(
+                xbe, addr_of_reimplementation, addr_of_original_in_xbe):
+            log.error(
+                'Refusing to redirect "%s": impl at %x forwards back to the '
+                'original at %x — patching would build an infinite loop '
+                '(original -> impl -> original). Delete the raw-address '
+                'forwarding wrapper; unported functions resolve through '
+                'generated/halo.xbe.lib without one.',
+                n, addr_of_reimplementation, addr_of_original_in_xbe)
+            exit(1)
         log.info('Patching "%s" at %x in XBE with redirect to %x%s',
                  n, addr_of_original_in_xbe, hook_target,
                  ' (via rvthunk)' if n in rvthunks_redirect else '')

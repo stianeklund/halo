@@ -386,6 +386,124 @@ int strncmp(const char *s1, const char *s2, unsigned int n)
   return 0;
 }
 
+/* crt_tolower / crt_toupper (0x1da1d8 / 0x1da19f) — provided here since they
+ * are internal to the original LIBCMT and not exported from the XBE import
+ * table. Standard ASCII case folding; called by crt_stricmp/__strnicmp below
+ * and directly from cseries.c/console.c. */
+int crt_tolower(int c)
+{
+  if (c >= 'A' && c <= 'Z')
+    return c + ('a' - 'A');
+  return c;
+}
+
+int crt_toupper(int c)
+{
+  if (c >= 'a' && c <= 'z')
+    return c - ('a' - 'A');
+  return c;
+}
+
+/* crt_stricmp (0x1dd801) — provided here since it is internal to the original
+ * LIBCMT and not exported from the XBE import table. Behaviorally equivalent
+ * to the standard (case-insensitive) stricmp. */
+int crt_stricmp(const char *a, const char *b)
+{
+  unsigned char c1;
+  unsigned char c2;
+
+  for (;;) {
+    c1 = (unsigned char)crt_tolower((unsigned char)*a);
+    c2 = (unsigned char)crt_tolower((unsigned char)*b);
+    if (c1 != c2)
+      return c1 < c2 ? -1 : 1;
+    if (c1 == '\0')
+      return 0;
+    a++;
+    b++;
+  }
+}
+
+/* __strnicmp (0x1e6596) — provided here since it is internal to the original
+ * LIBCMT and not exported from the XBE import table. Behaviorally equivalent
+ * to the standard (case-insensitive, bounded) strnicmp. */
+int __strnicmp(const char *s1, const char *s2, unsigned int count)
+{
+  unsigned int i;
+  unsigned char c1;
+  unsigned char c2;
+
+  for (i = 0; i < count; i++) {
+    c1 = (unsigned char)crt_tolower((unsigned char)s1[i]);
+    c2 = (unsigned char)crt_tolower((unsigned char)s2[i]);
+    if (c1 != c2)
+      return c1 < c2 ? -1 : 1;
+    if (c1 == '\0')
+      return 0;
+  }
+  return 0;
+}
+
+/* crt_strchr (0x1d95d0) — provided here since it is internal to the original
+ * LIBCMT and not exported from the XBE import table. Behaviorally equivalent
+ * to the standard strchr. */
+char *crt_strchr(const char *str, int c)
+{
+  char ch;
+  ch = (char)c;
+  for (;;) {
+    if (*str == ch)
+      return (char *)str;
+    if (*str == '\0')
+      return NULL;
+    str++;
+  }
+}
+
+/* strrchr (0x1d9710) — provided here since it is internal to the original
+ * LIBCMT and not exported from the XBE import table. Behaviorally equivalent
+ * to the standard strrchr. */
+char *strrchr(const char *str, int c)
+{
+  const char *last;
+  char ch;
+  ch = (char)c;
+  last = NULL;
+  for (;;) {
+    if (*str == ch)
+      last = str;
+    if (*str == '\0')
+      break;
+    str++;
+  }
+  return (char *)last;
+}
+
+/* crt_strstr (0x1d9690) — provided here since it is internal to the original
+ * LIBCMT and not exported from the XBE import table. Behaviorally equivalent
+ * to the standard strstr. */
+char *crt_strstr(const char *haystack, const char *needle)
+{
+  const char *h;
+  const char *n;
+  const char *start;
+
+  if (*needle == '\0')
+    return (char *)haystack;
+
+  for (start = haystack; *start != '\0'; start++) {
+    h = start;
+    n = needle;
+    while (*h != '\0' && *n != '\0' && *h == *n) {
+      h++;
+      n++;
+    }
+    if (*n == '\0')
+      return (char *)start;
+  }
+  return NULL;
+}
+
 /* fabs and __chkstk are clang-build-only helpers using GCC-style inline asm /
  * naked attributes that the real VC71 compiler cannot parse.  They are guarded
  * out of the VC71 path (which defines MSVC) so vc71_verify can compile this TU;

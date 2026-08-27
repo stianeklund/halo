@@ -1,3 +1,32 @@
+/* event_controller_index_compatible_with_widget (0xe3b80) — true if the
+ * widget accepts input from any controller (local_player_index == -1, at
+ * widget+8) or if the widget's local_player_index matches the event's
+ * controller_index (at event+2). Same check is inlined below as
+ * "allowed_player" in ui_widget_process_event. */
+bool event_controller_index_compatible_with_widget(void *event, void *widget)
+{
+  if (*(int16_t *)((char *)widget + 8) != -1 &&
+      *(int16_t *)((char *)widget + 8) != *(int16_t *)((char *)event + 2)) {
+    return false;
+  }
+  return true;
+}
+
+/* set_ui_plasma_effect_color (0xe3bb0) — stores four caller-supplied dword
+ * values into four consecutive UI plasma-effect-color globals at
+ * 0x5aa460-0x5aa46c. No callers found in the binary (xrefs empty) and no
+ * callees; the values are copied verbatim via plain MOV (no FPU/other
+ * interpretation), so whether they are int or float components is not
+ * proven by this evidence — kept as raw dwords. */
+void set_ui_plasma_effect_color(uint32_t component_0, uint32_t component_1,
+                                uint32_t component_2, uint32_t component_3)
+{
+  *(uint32_t *)0x5aa460 = component_0;
+  *(uint32_t *)0x5aa464 = component_1;
+  *(uint32_t *)0x5aa468 = component_2;
+  *(uint32_t *)0x5aa46c = component_3;
+}
+
 /* ui_widgets_initialize — sets up the UI widget subsystem. Allocates a
  * 0x4000-byte block via debug_malloc for the stack memory pool at
  * [0x31e04c], initializes the pool, zeroes the 0x68-byte static widget
@@ -102,6 +131,44 @@ void *ui_widget_realloc(int a1, unsigned short a2, const char *a3,
                         unsigned int a4)
 {
   return stack_memory_pool_realloc(*(void **)0x31e04c, a1, a2, a3, a4);
+}
+
+/* widget_free — releases a widget node back to the global widget stack
+ * memory pool at [0x31e04c]. Thin wrapper around
+ * stack_memory_pool_deallocate, same pool used by ui_widget_realloc above
+ * and the other stack_memory_pool_deallocate call sites in this file. */
+void widget_free(void *widget)
+{
+  stack_memory_pool_deallocate(*(void **)0x31e04c, widget);
+}
+
+/* ui_widgets_active — reports whether the widget subsystem is initialized
+ * (0x46cc82) and at least one of the 4 widget root stack slots
+ * (0x46cc20..0x46cc2c, same slots as main_screen_shell_begin_fade and the
+ * other 0x46cc20[] scans in this file) holds a non-NULL root widget.
+ * Returns false immediately if the subsystem hasn't been initialized;
+ * otherwise scans the root slots and returns true on the first non-zero
+ * slot, false if all 4 are zero.
+ * 0xe3d70: MOV CL,[0x46cc82]; TEST CL,CL; JZ ret-false; loop: CMP
+ * dword[ECX],0; JNZ ret-true (AL=1); ADD ECX,4; CMP ECX,0x46cc30;
+ * JL loop; else fall through to RET with AL still 0 from the entry
+ * XOR AL,AL. */
+bool ui_widgets_active(void)
+{
+  int *root_slots;
+
+  if (*(uint8_t *)0x46cc82 == 0) {
+    return false;
+  }
+
+  root_slots = (int *)0x46cc20;
+  while (*root_slots == 0) {
+    root_slots++;
+    if ((int)root_slots >= 0x46cc30) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /* ui_widget_set_events_suppressed — sets or clears the events-suppressed
@@ -2046,6 +2113,7 @@ void ui_widget_clear_last_error_index(void)
 {
   *(int *)0x31e4c0 = -1;
 }
+
 /* dispose sp level list (event handler table index 7, 0x0e9a60) — clears the
  * 0x50-byte single-player level list scratch block at 0x46cce8 and drops the
  * widget's cached list pointer/count at +0x40/+0x44. */
@@ -2056,6 +2124,68 @@ bool ui_widget_dispose_single_player_level_list(void *widget, void *event_data,
   *(int *)((char *)widget + 0x40) = 0;
   *(int16_t *)((char *)widget + 0x44) = 0;
   return true;
+}
+
+/* start network game server if not already advertised (event handler table
+ * index 17, 0x0e9d40) — disposes any existing server, clears the cached
+ * multiplayer variant UI text, and re-enables incoming connections. If no
+ * server is currently advertised, initializes the game engine playlist and
+ * attempts to start hosting (FUN_0012a890); on success, fetches the fresh
+ * server handle, pauses its countdown, begins the playlist, and switches
+ * the local game connection state to 2 (host). Once past that gate (or if
+ * a server was already up), checks for a local client and, if none,
+ * re-derives the result via FUN_0012a250. On any failure the server and
+ * client are torn down, "accept connections" is cleared, the multiplayer
+ * variant text is re-cleared, and error 2 "failed to initiate a
+ * multiplayer game server" is reported. widget/event_data/widget_deleted
+ * are unused — the original never establishes a stack frame and never
+ * touches its incoming event-handler params. Called both through the
+ * dispatch table above and directly (tail-propagated) by
+ * ui_widget_start_server_if_none_advertised (0x0f01d0). */
+bool FUN_000E9D40(void *widget, void *event_data, bool *widget_deleted)
+{
+  bool result;
+  void *server;
+  void *client;
+
+  (void)widget;
+  (void)event_data;
+  (void)widget_deleted;
+
+  result = true;
+  dispose_global_network_game_server();
+  player_ui_clear_multiplayer_variant();
+  network_game_set_accept_remote_connections(1);
+  server = network_game_server_get();
+  if (server == NULL) {
+    game_engine_playlist_initialize();
+    result = FUN_0012a890();
+    if (result) {
+      server = network_game_server_get();
+      network_game_server_pause_countdown(server, 1);
+      game_engine_playlist_begin();
+      set_game_connection(2);
+    }
+    if (!result) {
+      goto fail;
+    }
+  }
+
+  client = network_game_client_get();
+  if (client == NULL) {
+    result = FUN_0012a250();
+  }
+  if (result) {
+    return result;
+  }
+
+fail:
+  dispose_global_network_game_client();
+  dispose_global_network_game_server();
+  network_game_set_accept_remote_connections(0);
+  player_ui_clear_multiplayer_variant();
+  error(2, "failed to initiate a multiplayer game server");
+  return result;
 }
 
 /* dispose net game server list (event handler table index 18, 0x0e9fd0) —

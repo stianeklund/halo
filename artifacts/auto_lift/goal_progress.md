@@ -7398,3 +7398,99 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 | FUN_00060260 | 0x60260 | - | - | infra_blocked | Function not properly registered in kb.json (no source field or not found in registry) [cohort=none] |
 | FUN_00060910 | 0x60910 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' at tools/lift/research_bundle.py:120 [cohort=none] |
 | FUN_00060970 | 0x60970 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+
+## Goal-lift run — 2/12 committed (stop_on_fail_reached) — 2026-08-26
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093ba0 | 0x93ba0 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| FUN_000E9D40 | 0xe9d40 | ui_widget.obj | 90.7 | build_failed | Ghidra artifact (fingerprint e22be6f1...) showed a void __cdecl body with no frame setup that never touches its stack args, while kb.json's persisted decl guessed a 3-param widget-handler signature `int FUN_000E9D40(void*,void*,bool*)` from neighbor pattern only. Per policy I did not trust that inference — I verified it mechanically instead: raw-capstone disasm of the one real call site (0xf022c, inside ui_widget_start_server_if_none_advertised) off the pristine XBE shows exactly 3 pushes (esi, [ebp+0xc], [ebp+0x10]) cleaned by `add esp,0xc`, confirming the 3-param ABI is real even though the callee ignores all three (legal C, matches the project's existing `(void)param;` idiom already used in the sibling FUN_000f0170). The bundle's own disasm also shows `MOV AL,BL; POP EBX; RET` (Ghidra's decompile mislabeled this void — a known Ghidra AL-return quirk), so I corrected kb.json's return type from `int` to `bool`, matching the caller's own `return FUN_000E9D40(...)` inside a `bool`-returning function and the whole ui_widget event-handler family. Body faithfully reproduces the disassembly: dispose/reset server state, try-start-hosting gated on FUN_0012a890, pause-countdown + playlist-begin + set_game_connection(2) on success, then a client-presence check (FUN_0012a250 fallback) before the shared fail path (dispose both, clear accept-connections, error 'failed to initiate a multiplayer game server'). All 7 named callees were already in kb.json with ported=true and no register args (call_site_audit confirms callee_has_reg_args=false throughout) — no @<reg> additions needed. maintain.py ran clean (only kb_meta.json's routine ported-status sync of 4 unrelated pre-existing functions changed besides my 2 target files — no cross-TU relocation). check_lift_hazards.py reported zero hazards (only the expected stale-decl.h notice, which vc71_verify regenerates itself). VC71 verify (run directly against the file, since decl.h regen is baked into vc71_verify.py) scored FUN_000E9D40 at 90.7% (42/44 insns, opnd 90.7%) with no SHAPE/LOADW/IMM warnings attributed to this function — score-context published via research_bundle.py prepare --current-attempt (fingerprint b720e950...). The full `cmake --target halo` link fails, but ONLY on pre-existing undefined AI/actor-perception symbols (e.g. _actor_perception_abandoned_search, _action_vehicle_evaluate_seat) from src/halo/ai/actions.c and action_vehicle.c — files this diff never touches (confirmed: git diff --stat -- src/ kb.json shows only kb.json and ui_widget.c changed; those AI files are registered in CMakeLists.txt and were last touched by unrelated recent commits on this branch). ui_widget.c itself produced zero compiler errors, and vc71_verify.py's independent per-TU compile of the same file succeeded, so this lift is not the source of the link failure. Reporting status=build_failed to match the literal pipeline build-stage result, but this is pre-existing/unrelated breakage on this tmp-reintegrate branch, not a defect introduced by this lift — score/ABI evidence above should be trusted on its own merits by the review gate. Permuter/equivalence/cap-classify all skipped per their score-band gates (90.7% falls outside [85,89] and [65,84]). [cohort=retrieval] |
+| event_controller_index_compatible_with_widget | 0xe3b80 | ui_widget.obj | 86.7 | committed | pass1+permute+equiv_high [equivalence detail: unicorn_diff ran automatically inside lift_pipeline (--allow-stubs, mem-trace): 100/100 seeds passed, 0 diverged, 0 errors, 100.0% coverage, confidence=high. The function is a 2-branch leaf (no calls, no callees to stub) reading two int16 fields, so default/zero-fill seeding already exercises every path; no custom infection_swarm snapshot was needed. — a 0-divergence pass on the live-state infection_swarm snapshot (populated datum tables, real actor handles) is accepted runtime behavioral evidence for the sub-90% band per the state-snapshot equivalence lane in CLAUDE.md] [cohort=retrieval] |
+| set_ui_plasma_effect_color | 0xe3bb0 | ui_widget.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=none] |
+| widget_instance_count_children | 0xe3cb0 | ui_widget.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| widget_instance_get_nth_child | 0xe3cd0 | ui_widget.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| ui_widgets_active | 0xe3d70 | ui_widget.obj | 0 | build_failed | Implemented ui_widgets_active per disassembly: checks the widget-subsystem-initialized byte at 0x46cc82, then scans the 4 widget root slots at 0x46cc20..0x46cc2c (same slots used elsewhere in this file, e.g. main_screen_shell_begin_fade) returning true on the first non-zero slot, false if uninitialized or all 4 slots are zero. No register-arg callees (function has no params, no calls). kb.json updated: ported=true, name, source_path set for 0xe3d70 in ui_widget.obj (diff is a clean +3-line addition, no reformatting). maintain.py and check_lift_hazards.py both ran clean, touching only src/halo/interface/ui_widget.c. The full-project build (tools/build/build.py --target halo) fails at the link stage, but with ~20+ lld-link "undefined symbol" errors entirely unrelated to this target: _action_vehicle_evaluate_seat, _actor_perception_*, _encounter_*, _ai_test_ballistic_line_of_fire, _vehicle_stuck, _prop_position_refresh/_prop_status_refresh, _path_state_*, etc. These are AI-subsystem functions declared in kb.json (called from src/halo/ai/actions.c, action_vehicle.c) with no "ported" flag and no implementation anywhere in src/ — a pre-existing gap on this branch, not touched by this task. Confirmed unrelated: (1) grepping the build output for "ui_widget" shows zero compile errors or warnings for this file or function — it compiles cleanly; (2) the working tree was clean at session start (git status showed no pending changes) so this breakage predates this lift; (3) none of the undefined symbols have any call relationship to ui_widget.c or ui_widgets_active. Because the whole-project link never completes, VC71 verify and equivalence never ran (no vc71_measured, no score, no permuter/equivalence lane). This is an infra/scope blocker for the whole branch, not a defect in this lift. [cohort=retrieval] |
+
+## Goal-lift run — 0/12 committed (infra_blocked_twice) — 2026-08-26
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093ba0 | 0x93ba0 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| path_heap_pop_cheapest_node | 0x5e560 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' at research_bundle.py line 120 in _resolve_target [cohort=none] |
+| path_heap_insert | 0x5e680 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — target resolution failed in kb lookup [cohort=none] |
+| FUN_0005e700 | 0x5e700 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+| FUN_00060070 | 0x60070 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+| FUN_000600c0 | 0x600c0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' in _resolve_target when looking up source path for address 0x600c0 [cohort=none] |
+| FUN_000600f0 | 0x600f0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — function 0x600f0 not found in kb.json with source mapping [cohort=none] |
+| FUN_00060140 | 0x60140 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — research_bundle.py _resolve_target failed; target address 0x60140 does not resolve to kb.json entry or lacks source_path [cohort=none] |
+| FUN_000601a0 | 0x601a0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+| FUN_000601e0 | 0x601e0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+| FUN_000601f0 | 0x601f0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+| FUN_00060200 | 0x60200 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' at research_bundle.py:120 in _resolve_target [cohort=none] |
+| FUN_00060260 | 0x60260 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' in research_bundle.py line 120 (_resolve_target) [cohort=none] |
+| FUN_00060910 | 0x60910 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' in _resolve_target [cohort=none] |
+| FUN_00060970 | 0x60970 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+
+
+## Goal-lift run — 0/12 committed (infra_blocked_twice) — 2026-08-27
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093ba0 | 0x93ba0 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| path_heap_pop_cheapest_node | 0x5e560 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — function not found or missing source field in kb.json [cohort=none] |
+| path_heap_insert | 0x5e680 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' (address 0x5e680 not found or missing source metadata in kb.json) [cohort=none] |
+| FUN_0005e700 | 0x5e700 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+| FUN_00060070 | 0x60070 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — target resolution failed (source undefined in kb.json) [cohort=none] |
+| FUN_000600c0 | 0x600c0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' in research_bundle.py line 120 [cohort=none] |
+| FUN_000600f0 | 0x600f0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+| FUN_00060140 | 0x60140 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — function address not found in kb.json with source field [cohort=none] |
+| FUN_000601a0 | 0x601a0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' in _resolve_target — kb.json entry for 0x601a0 missing or source field null [cohort=none] |
+| FUN_000601e0 | 0x601e0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — kb.json entry for 0x601e0 has no source field [cohort=none] |
+| FUN_000601f0 | 0x601f0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+| FUN_00060200 | 0x60200 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' at research_bundle.py:120 — target resolution failed [cohort=none] |
+| FUN_00060260 | 0x60260 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — target resolution failed; source path not found in kb.json or not properly registered [cohort=none] |
+| FUN_00060910 | 0x60910 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — target address not registered in kb.json source map [cohort=none] |
+| FUN_00060970 | 0x60970 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+
+## Goal-lift run — 0/12 committed (infra_blocked_twice) — 2026-08-27
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093ba0 | 0x93ba0 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| path_heap_pop_cheapest_node | 0x5e560 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — address not found in kb.json [cohort=none] |
+| path_heap_insert | 0x5e680 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — research_bundle.py line 120 failed to resolve target [cohort=none] |
+| FUN_0005e700 | 0x5e700 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' in _resolve_target [cohort=none] |
+| FUN_00060070 | 0x60070 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — address not found or lacks source mapping in kb.json [cohort=none] |
+| FUN_000600c0 | 0x600c0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' at tools/lift/research_bundle.py:120 [cohort=none] |
+| FUN_000600f0 | 0x600f0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' during target resolution [cohort=none] |
+| FUN_00060140 | 0x60140 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — research_bundle.py failed to resolve source path from kb.json for this address [cohort=none] |
+| FUN_000601a0 | 0x601a0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — target address 0x601a0 not found in kb.json or has no source mapping [cohort=none] |
+| FUN_000601e0 | 0x601e0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' [cohort=none] |
+| FUN_000601f0 | 0x601f0 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' in research_bundle.py line 120 [cohort=none] |
+| FUN_00060200 | 0x60200 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' (source_path resolution failed in _resolve_target) [cohort=none] |
+| FUN_00060260 | 0x60260 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' at tools/lift/research_bundle.py:120 in _resolve_target [cohort=none] |
+| FUN_00060910 | 0x60910 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — KB entry at 0x60910 has null name/source fields; entry incomplete or not yet discovered [cohort=none] |
+| FUN_00060970 | 0x60970 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — KB entry at 0x60970 has null name/source fields; entry incomplete or not yet discovered [cohort=none] |

@@ -2751,3 +2751,60 @@ PE, finds every direct CALL to each helper registered in
 `CALLER_FRAME_HELPERS`, and fails if the calling function does not open with
 `push ebp; mov ebp,esp`. Add to that list whenever a new naked helper reads its
 caller's frame (the `xbox_crt.c` SEH thunks are the same class).
+
+## 56. "Undefined Symbol" Was a Truncated `halo.xbe.def` — the Wrapper That "Fixed" It Built 679 Infinite Loops
+
+`--target halo` failed to link with ~665 undefined symbols, all of them kb.json
+entries in the normal unported form (`addr` + `decl`, no `name`, no `ported`).
+They were read as "never registered in kb.json", and the build was unblocked by
+adding `src/halo/unported_thunks.c`: 679 raw-address forwarding wrappers,
+
+```c
+void actor_perception_refresh(int actor_handle)
+{ typedef void (*fn_t)(int); ((fn_t)0x34c80)(actor_handle); }
+```
+
+Both halves of that were wrong.
+
+**The symbols were never missing.** Unported functions resolve through the
+generated import library: `knowledge.py --gen-def` writes every kb.json symbol
+into `build/generated/halo.xbe.def`, `lld-link /def:` turns it into
+`halo.xbe.lib`, and `patch.py` rewrites each import slot to the original XBE VA.
+All 679 wrapper names were already in that `.def` (678 undecorated, plus
+`@FUN_000922a0@16` for the one `__fastcall`). Removing the file relinks clean.
+
+**What actually broke the link:** `build_def` wrote the file with `open(path,
+'w')` plus one `f.write()` per symbol. Any concurrent reader — the `lib` step, a
+parallel verify or campaign build sharing the tree — could observe a *truncated*
+`.def`. A mid-write read on 2026-08-27 showed 4625 of 8482 lines. `lib` accepts
+a short `.def` happily, and every symbol past the cut then comes back as an
+undefined symbol at link time, which reads exactly like "these were never
+registered". `build_header` had already been hardened against this class (§52);
+`build_def` and `build_thunks` had not.
+
+**Why the wrapper is worse than the failure it hid:** `decl.h` declares every
+kb.json function `HFUNC` = `__declspec(dllexport)`, so defining one of those
+names in our source *exports* it. `patch.py` redirects every EXE export that is
+not a special export, and `ported: null` is not skipped (only `ported: false`
+is). So the patcher wrote `push <wrapper>; ret` at `0x34c80`, and the wrapper
+tail-jumped to `0x34c80`:
+
+```
+0x34c80  68 c0 59 64 00 c3           push 0x6459c0 ; ret      -> wrapper
+0x6459c0 55 89 e5 b8 80 4c 03 00 5d ff e0
+         push ebp; mov ebp,esp; mov eax,0x34c80; pop ebp; jmp eax  -> back
+```
+
+Infinite loop on first call, for all 679 — including `CloseHandle` and other
+XAPI entry points. It linked, it patched, it passed the raw-cast ratchet (the
+`typedef` form is not the pattern that gate counts), and nothing else looked at
+it. A link error that names symbols you believe are registered is a *generated
+file* bug; never resolve it by defining the symbol yourself.
+
+**Automation:** two detectors. (1) `knowledge.py._write_if_changed` — `build_def`
+and `build_thunks` now build their content in memory and write it in one call,
+skipping the write when unchanged, same as `build_header`. (`os.replace` is not
+usable here: on drvfs it raises `PermissionError` when a reader holds the target
+open.) (2) `patch.py.is_self_forwarding_impl`, checked before every redirect: if
+the impl's first 32 bytes contain the original VA as an immediate, the patcher
+aborts instead of building the loop. Self-tested in `reverse_thunk_tests`.

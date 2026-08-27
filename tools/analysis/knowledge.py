@@ -430,9 +430,35 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 		with open(path, 'w') as out:
 			out.write(text)
 
+	@staticmethod
+	def _write_if_changed(path: str, text: str, what: str):
+		"""Write text to path in ONE call, and only when it changed.
+
+		Same rationale as build_header: these generated files are consumed by
+		other build steps (lld-link /def:, the compiler) while a concurrent
+		verify/campaign build may be regenerating them.  The old incremental
+		`open(path, 'w')` + many `f.write()` form left a window in which a
+		reader saw a TRUNCATED file.  For halo.xbe.def that is silent and
+		expensive: lib builds an import library missing every symbol past the
+		truncation point, and the link then fails with hundreds of undefined
+		symbols for functions that are perfectly well registered in kb.json.
+		(Observed 2026-08-27: a mid-write read of halo.xbe.def showed 4625 of
+		8482 lines.)  os.replace is NOT usable here — on drvfs (/mnt/g) it
+		raises PermissionError when a reader holds the target open.
+		"""
+		try:
+			if open(path).read() == text:
+				log.info('%s unchanged; not rewriting %s', what, path)
+				return
+		except OSError:
+			pass
+		with open(path, 'w') as out:
+			out.write(text)
+
 	def build_thunks(self, path: str):
 		log.info('Generating thunks...')
-		with open(path, 'w') as f:
+		f = io.StringIO()
+		if True:
 			f.write("""
 #if defined(MSVC) || defined(_MSC_VER)
 #pragma code_seg(".thunks")
@@ -453,11 +479,13 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 							f.write(t)
 							# FIXME: If we have an implementation, export
 							#        the thunker to the patcher
+		self._write_if_changed(path, f.getvalue(), 'Thunks')
 
 	def build_def(self, path: str):
 		log.info('Generating XBE export .def file...')
 
-		with open(path, 'w') as f:
+		f = io.StringIO()
+		if True:
 			f.write('LIBRARY halo.xbe\n'
 					'EXPORTS\n')
 			for s in sorted(self.symbols, key=lambda s: (isinstance(s, Function), s.name)):
@@ -485,6 +513,7 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 					f.write(' DATA\n')
 				else:
 					f.write('\n')
+		self._write_if_changed(path, f.getvalue(), 'Export .def')
 
 	def serialize(self):
 		log.info('Saving knowledge base to %s...', self.kb_path)

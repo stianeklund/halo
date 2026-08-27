@@ -13,6 +13,273 @@ bool ui_widget_color_picker_menu_dispose(void *widget, void *event_data,
   return true;
 }
 
+/* player profile list selection handler (event handler table index 64,
+ * 0x0eed10) — validates the 'player profile list' spinner widget (3 items)
+ * hanging off widget+0x34, resolves the selected item's profile handle, and
+ * either begins editing it, plays a deny sound (no profile / handle == -1),
+ * or reports a deferred error (handle >= 0). */
+bool FUN_000eed10(void *widget, void *event_data, bool *widget_deleted)
+{
+  short *list_tag;
+  int *list_widget;
+  short list_index;
+  int profile_handle;
+
+  (void)event_data;
+  (void)widget_deleted;
+
+  if (*(short *)((char *)widget + 0xe) == 0) {
+    display_assert(
+      "expected the player profile select screen to be a container widget",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c", 0xe53,
+      1);
+    system_exit(-1);
+  }
+
+  *(int *)0x31e494 = -1; /* DAT_0031e494 — unknown purpose, cleared here */
+
+  list_widget = *(int **)((char *)widget + 0x34);
+  list_tag = (short *)tag_get(0x44654c61 /* 'DeLa' */, *(int *)list_widget);
+  if (*list_tag != 2) {
+    display_assert(
+      "expected a spinner list widget for 'player profile list' widget",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c", 0xe5d,
+      1);
+    system_exit(-1);
+  }
+
+  if (*(int *)((char *)list_tag + 0x3e0) != 3) {
+    display_assert(
+      "expected 3 list items for 'player profile list' widget",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c", 0xe5e,
+      1);
+    system_exit(-1);
+  }
+
+  list_widget = *(int **)((char *)widget + 0x34);
+  list_index = *(short *)((char *)list_widget + 0x3c);
+  if (list_index < 0 ||
+      (int)list_index >= (int)*(unsigned short *)((char *)list_widget + 0x44)) {
+    display_assert(
+      "invalid player profile specified from 'player profile list' list "
+      "widget",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c", 0xe67,
+      1);
+    system_exit(-1);
+  }
+
+  profile_handle = (*(int **)((char *)list_widget + 0x40))[list_index];
+
+  if (profile_handle == -1) {
+    ui_play_audio_feedback_sound(4);
+    return false;
+  }
+
+  if (profile_handle < 0) {
+    player_ui_begin_editing_profile(profile_handle);
+    return true;
+  }
+
+  display_error_deferred(0x1f, -1, true, false);
+  ui_play_audio_feedback_sound(4);
+  return false;
+}
+
+/* player profile edit dispose (0x0eeeb0) — asserts event_data is non-null
+ * (halts and exits otherwise), then saves any pending player-profile edits:
+ * if nothing changed, no save is attempted; if a save was attempted and
+ * succeeded, returns immediately. On no-op or save failure it reports the
+ * condition via error(), ends the profile edit session, closes the widget's
+ * last child, marks *widget_deleted, and returns false. */
+bool FUN_000eeeb0(void *widget, void *event_data, bool *widget_deleted)
+{
+  void *last_child;
+  bool profile_dirty;
+  bool result;
+  const char *message;
+
+  if (event_data == NULL) {
+    display_assert(
+      "event",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c", 0xeaf,
+      1);
+    system_exit(-1);
+  }
+
+  result = false;
+  message = "no changes to player profile detected; not saving to disk";
+  profile_dirty = player_ui_edit_profile_is_dirty();
+  if (profile_dirty) {
+    result = player_ui_save_profile();
+    message = "failed to save changes to player profile";
+  }
+
+  if (!result) {
+    error(2, message);
+    player_ui_end_editing_profile();
+    last_child = ui_widget_get_last_child(widget);
+    ui_widget_close(last_child);
+    *widget_deleted = 1;
+  }
+
+  return result;
+}
+
+/* remove local player from network game (0x0ef900, table xref 0x31e278) —
+ * validates that the event's controller index (event_data+0x2) is in [0,4)
+ * and, if so, quits that local player from the current network game. A NULL
+ * event_data or an out-of-range controller index halts with an assert and
+ * exits. */
+bool ui_widget_remove_local_player_from_network_game(void *widget,
+                                                     void *event_data,
+                                                     bool *widget_deleted)
+{
+  (void)widget;
+  (void)widget_deleted;
+
+  if (event_data == NULL || *(short *)((char *)event_data + 2) < 0 ||
+      *(short *)((char *)event_data + 2) >= 4) {
+    display_assert(
+      "valid controller index required to remove player from network game",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c", 0xfe9,
+      1);
+    system_exit(-1);
+  }
+
+  network_game_client_local_player_quit(*(short *)((char *)event_data + 2));
+  return true;
+}
+
+/* multiplayer profile list selection handler (0x0ef970) — validates the
+ * widget hierarchy (widget itself must be a container w/ 3+ children; the
+ * sub-widget at widget+0x34 must be a 3-item spinner list), resolves the
+ * selected item's profile handle, stores it to DAT_0031e494, and either
+ * plays a deny sound (handle == -1, returns false) or returns true. Sibling
+ * of FUN_000eed10 (player profile list) but with an extra tag_get-based
+ * container check instead of a flag check, and no editing-session branch. */
+bool FUN_000ef970(void *widget, void *event_data, bool *widget_deleted)
+{
+  short *container_tag;
+  int *list_widget;
+  short *list_tag;
+  short list_index;
+  int profile_handle;
+
+  (void)event_data;
+  (void)widget_deleted;
+
+  container_tag = (short *)tag_get(0x44654c61 /* 'DeLa' */, *(int *)widget);
+  if (*container_tag != 0 || *(int *)((char *)container_tag + 0x3e0) < 3) {
+    display_assert(
+      "expected the multiplayer profile select screen to be a container w/ "
+      "3+ children",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+      0x100f, 1);
+    system_exit(-1);
+  }
+
+  list_widget = *(int **)((char *)widget + 0x34);
+  list_tag = (short *)tag_get(0x44654c61 /* 'DeLa' */, *(int *)list_widget);
+  if (*list_tag != 2) {
+    display_assert(
+      "expected a spinner list widget for 'multiplayer profile list' widget",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+      0x1012, 1);
+    system_exit(-1);
+  }
+
+  if (*(int *)((char *)list_tag + 0x3e0) != 3) {
+    display_assert(
+      "expected 3 list items for 'multiplayer profile list' widget",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+      0x1013, 1);
+    system_exit(-1);
+  }
+
+  list_widget = *(int **)((char *)widget + 0x34);
+  list_index = *(short *)((char *)list_widget + 0x3c);
+  if (list_index < 0 ||
+      (int)list_index >= (int)*(unsigned short *)((char *)list_widget + 0x44)) {
+    display_assert(
+      "invalid multiplayer profile specified from 'multiplayer profile "
+      "list' list widget",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+      0x101c, 1);
+    system_exit(-1);
+  }
+
+  profile_handle = (*(int **)((char *)list_widget + 0x40))[list_index];
+  *(int *)0x31e494 = profile_handle; /* DAT_0031e494 — unknown purpose */
+
+  if (profile_handle == -1) {
+    ui_play_audio_feedback_sound(4);
+    return false;
+  }
+
+  return true;
+}
+
+/* create and edit a new player profile (0x0efde0, table xref 0x31e298) —
+ * fetches a default "untitled profile" name, creates a new saved-game
+ * profile for the event's controller index (event_data+0x2; sentinel -1
+ * defaults to controller 0) under that name, begins editing it, copies the
+ * default name into the now-editable profile's name buffer (max 11 chars +
+ * NUL), and hands the buffer to the virtual keyboard for validation. Any
+ * failure along the way reports a deferred error and plays the deny sound;
+ * a validation failure does the same after also ending the edit session. */
+bool FUN_000efde0(void *widget, void *event_data, bool *widget_deleted)
+{
+  wchar_t untitled_name[128];
+  short controller_index;
+  int profile_index;
+  void *edit_name;
+  bool validated;
+
+  (void)widget;
+  (void)widget_deleted;
+
+  controller_index = *(short *)((char *)event_data + 2);
+  if (controller_index == -1) {
+    controller_index = 0;
+  }
+
+  saved_game_file_get_useable_untitled_profile_name(untitled_name);
+  if (untitled_name[0] == L'\0') {
+    error(2, "unable to create a new untitled profile");
+    display_error_deferred(0x25, -1, true, false);
+    ui_play_audio_feedback_sound(4);
+    return false;
+  }
+
+  profile_index = FUN_001c1720(controller_index, untitled_name);
+  if (profile_index == -1) {
+    error(2, "failed to create a new player profile");
+    display_error_deferred(0x25, -1, true, false);
+    ui_play_audio_feedback_sound(4);
+    return false;
+  }
+
+  player_ui_begin_editing_profile(profile_index);
+  edit_name = player_ui_get_edit_player_profile();
+  if (edit_name == NULL) {
+    error(2, "failed to retrieve editable player profile!");
+    player_ui_end_editing_profile();
+    display_error_deferred(0x25, -1, true, false);
+    ui_play_audio_feedback_sound(4);
+    return false;
+  }
+
+  ustrncpy((wchar_t *)edit_name, untitled_name, 0xb);
+  ((wchar_t *)edit_name)[0xb] = L'\0';
+  validated = virtual_keyboard_set_validation((wchar_t *)edit_name, 0x18, 8);
+  if (!validated) {
+    display_error_deferred(0x25, -1, true, false);
+    ui_play_audio_feedback_sound(4);
+  }
+
+  return validated;
+}
+
 /* network start-time-change request handler (0x000efed0) — event handler
  * table entry, same 3-arg bool convention as the siblings above/below in
  * this file (widget/widget_deleted unused here; disasm never touches
@@ -60,6 +327,50 @@ bool FUN_000efed0(void *widget, void *event_data, bool *widget_deleted)
   return true;
 }
 
+/* request start-time change (0x0eff70, table xref 0x31e2a0) — scans up to 16
+ * player-record slots (client's machine-index base +0x242, stride 0x20) for
+ * a valid player whose record bytes at +0x1c/+0x1d match this machine's
+ * index and the event's controller index (event_data+0x2); on a match asks
+ * the network client to request a start-time change, logging an error if the
+ * request is refused. Always returns true regardless of outcome. */
+bool FUN_000eff70(void *widget, void *event_data, bool *widget_deleted)
+{
+  void *client;
+  void *machine_base;
+  unsigned short local_machine_index;
+  char *player_rec;
+  int i;
+  bool change_ok;
+
+  (void)widget;
+  (void)widget_deleted;
+
+  client = network_game_client_get();
+  if (client != NULL) {
+    machine_base = network_game_client_get_machine_index(client);
+    local_machine_index = FUN_00124c40(client);
+    player_rec = (char *)machine_base + 0x242;
+    i = 0;
+    while (1) {
+      if (network_player_is_valid(player_rec - 0x1c) &&
+          (short)*player_rec == local_machine_index &&
+          (short)player_rec[1] == *(short *)((char *)event_data + 2)) {
+        break;
+      }
+      i++;
+      player_rec += 0x20;
+      if (i > 15) {
+        return true;
+      }
+    }
+    change_ok = network_game_client_request_start_time_change(client, 0);
+    if (!change_ok) {
+      error(2, "network_game_client_request_start_time_change() failed");
+    }
+  }
+  return true;
+}
+
 /* disable if no xdemos (event handler table index 86, 0x0f0070) — marks the
  * widget disabled (+0x12) and clears its enabled/visible byte (+0x10) when no
  * Xbox demo content is installed. */
@@ -70,6 +381,194 @@ bool ui_widget_disable_if_no_xdemos(void *widget, void *event_data,
     *(uint8_t *)((char *)widget + 0x12) = 1;
     *(uint8_t *)((char *)widget + 0x10) = 0;
   }
+  return true;
+}
+
+/* set single-player controller from event (0x0f00b0, table xref 0x31e2bc) —
+ * asserts event_data is non-null (halts and exits otherwise), then sets the
+ * single-player local player's controller index to the event's controller
+ * index (event_data+0x2). Local player index is always 0. */
+bool FUN_000f00b0(void *widget, void *event_data, bool *widget_deleted)
+{
+  (void)widget;
+  (void)widget_deleted;
+
+  if (event_data == NULL) {
+    display_assert(
+      "event != NULL",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+      0x11b9, 1);
+    system_exit(-1);
+  }
+
+  player_ui_set_single_player_local_player_controller(
+    0, *(short *)((char *)event_data + 2));
+
+  return true;
+}
+
+/* set second local-player controller from event, refusing a controller
+ * already claimed by local player 0 (0x0f0100, table xref 0x31e2c0) —
+ * asserts event_data is non-null, then compares the event's controller
+ * index (event_data+0x2) against player 0's current controller. If they
+ * match, shows error 0x12 (modal, no pause) and marks the widget deleted,
+ * returning false. Otherwise assigns that controller to local player 1
+ * and returns true. */
+bool FUN_000f0100(void *widget, void *event_data, bool *widget_deleted)
+{
+  short controller_index;
+  short current_controller;
+
+  (void)widget;
+
+  if (event_data == NULL) {
+    display_assert(
+      "event != NULL",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+      0x11c7, 1);
+    system_exit(-1);
+  }
+
+  controller_index = *(short *)((char *)event_data + 2);
+  current_controller = player_ui_get_single_player_local_player_controller(0);
+
+  if (controller_index == current_controller) {
+    ui_widget_display_error(0x12, -1, 1, 0);
+    *widget_deleted = 1;
+    return false;
+  }
+
+  player_ui_set_single_player_local_player_controller(1, controller_index);
+  return true;
+}
+
+/* check network availability, error if unavailable (0x0f0170, table xref
+ * 0x31e2c4) — asserts event_data is non-null (halts and exits otherwise).
+ * If transport_network_available() is false, shows error 5 with the
+ * event's controller index (event_data+0x2, zero-extended) as the local
+ * player index (modal, pauses game). Returns the network-available flag
+ * regardless of which branch ran. */
+bool FUN_000f0170(void *widget, void *event_data, bool *widget_deleted)
+{
+  bool network_available;
+
+  (void)widget;
+  (void)widget_deleted;
+
+  network_available = transport_network_available();
+
+  if (event_data == NULL) {
+    display_assert(
+      "event != NULL",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+      0x11df, 1);
+    system_exit(-1);
+  }
+
+  if (!network_available) {
+    ui_widget_display_error(5, *(uint16_t *)((char *)event_data + 2), 1, 1);
+  }
+
+  return network_available;
+}
+
+/* start server if none advertised (0x0f01d0) — asserts widget+0xe is a
+ * column-list widget type (3), then, if widget+0x44 (no visible advertised
+ * servers) is zero, fetches the network client and, if present and its
+ * connection state is 0 ("searching"), forwards this handler's own params to
+ * FUN_000E9D40 and returns its result directly (the original tail-propagates
+ * FUN_000E9D40's EAX into AL without touching it). If widget+0x44 is
+ * non-zero, logs that a new server isn't being started because other servers
+ * are already available. Falls through to false on: missing client, non-zero
+ * client state, or the log branch. */
+bool ui_widget_start_server_if_none_advertised(void *widget, void *event_data,
+                                               bool *widget_deleted)
+{
+  void *client;
+  int16_t state;
+  int16_t elapsed_pct; /* discarded out-param; MSVC reuses the dead
+                        * 'widget' incoming-param stack slot (EBP+0xa) for
+                        * this scratch write since widget is already
+                        * cached in ESI by this point */
+
+  if (*(short *)((char *)widget + 0xe) != 3) {
+    display_assert(
+      "expected a column list for server list",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+      0x11f1, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)widget + 0x44) == 0) {
+    client = network_game_client_get();
+    if (client != NULL) {
+      state = network_game_client_get_state(client, &elapsed_pct);
+      if (state == 0) {
+        return FUN_000E9D40(widget, event_data, widget_deleted);
+      }
+    }
+  } else {
+    error(2, "not attempting to start a new server; there are other servers "
+             "available");
+  }
+
+  return false;
+}
+
+/* FUN_000f03d0 (0xf03d0, table xref 0x31e2d0) — closes the widget's last
+ * child when neither an in-progress player profile edit nor an in-progress
+ * playlist profile edit is active ("no saved game file being edited"
+ * cancel path). */
+void FUN_000f03d0(void *widget)
+{
+  void *child;
+
+  if (player_ui_get_edit_player_profile() == NULL &&
+      player_ui_get_edit_playlist_profile() == NULL) {
+    child = ui_widget_get_last_child(widget);
+    error(2, "closing widget '%s' because no saved game file is being edited",
+          *(const char **)((char *)child + 4));
+    *(uint32_t *)((char *)child + 0x1c) = 1;
+    *(uint8_t *)((char *)child + 0x10) = 0;
+  }
+}
+
+/* new campaign chosen (0x0f0430) — asserts + exits if event_data is NULL.
+ * Fetches an unused campaign save-profile name into a scratch wide buffer,
+ * copies the first 11 chars (+ null terminator) into the global campaign
+ * name-entry buffer (DAT_0046ccd0, 12 x wchar_t), stashes event_data+0x2 (a
+ * caller-supplied 16-bit value) into DAT_0031e4fc, then opens the virtual
+ * keyboard to let the player edit the name. Logs an error (does not fail)
+ * if the keyboard couldn't be invoked; always returns true. */
+bool ui_widget_new_campaign_chosen(void *widget, void *event_data,
+                                   bool *widget_deleted)
+{
+  wchar_t campaign_name[128];
+  bool keyboard_ok;
+
+  (void)widget;
+  (void)widget_deleted;
+
+  if (event_data == NULL) {
+    display_assert(
+      "event",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+      0x1285, 1);
+    system_exit(-1);
+  }
+
+  saved_game_file_get_useable_untitled_profile_name(campaign_name);
+  ustrncpy((wchar_t *)0x46ccd0, campaign_name, 0xb);
+  *(uint16_t *)0x46cce6 = 0; /* DAT_0046cce6 — null terminator at index 11 */
+  *(uint16_t *)0x31e4fc =
+    *(uint16_t *)((char *)event_data + 2); /* DAT_0031e4fc */
+
+  keyboard_ok = virtual_keyboard_set_validation((wchar_t *)0x46ccd0, 0x18, 8);
+  if (!keyboard_ok) {
+    error(2, "failed to invoke the virtual keyboard for a new campaign profile "
+             "name");
+  }
+
   return true;
 }
 

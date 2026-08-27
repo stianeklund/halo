@@ -1491,10 +1491,6 @@
         "No direct code or data xref to 0x43090 was found, so any indirect dispatch caller remains unresolved."
       ]
     },
-    "0x43270": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x434c0": {
       "kind": "function",
       "status": "ported",
@@ -1507,10 +1503,6 @@
       ]
     },
     "0x43520": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x435b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -3744,10 +3736,6 @@
       "status": "ported"
     },
     "0x86220": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x86410": {
       "kind": "function",
       "status": "ported"
     },
@@ -9488,10 +9476,6 @@
       "uncertain": [
         "The existing ui_widget_debug_show_path name is retained conservatively; binary evidence proves only a one-byte store to 0x46cc84, not broader path-debug semantics."
       ]
-    },
-    "0xe3cd0": {
-      "kind": "function",
-      "status": "ported"
     },
     "0xe3d20": {
       "kind": "function",
@@ -16681,22 +16665,6 @@
       "kind": "function",
       "status": "ported"
     },
-    "0x1bb5a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bb7d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bbea0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bc360": {
-      "kind": "function",
-      "status": "ported"
-    },
     "0x1bc6a0": {
       "kind": "function",
       "status": "ported"
@@ -16774,10 +16742,6 @@
       "status": "ported"
     },
     "0x1bcfb0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bd4d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -17068,10 +17032,6 @@
       "status": "ported"
     },
     "0x1c0220": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c0260": {
       "kind": "function",
       "status": "ported"
     },
@@ -18081,6 +18041,78 @@
     },
     "0x5065a4": {
       "kind": "data",
+      "status": "ported"
+    },
+    "0x43270": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x435b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x86410": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3b80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3bb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3cd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3d50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3d70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xef900": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf01d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf0430": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bb5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bb7d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bbea0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bc360": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bd4d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c0260": {
+      "kind": "function",
       "status": "ported"
     }
   }

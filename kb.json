@@ -888,7 +888,10 @@
    "functions": [
     {
      "addr": "0x1d9710",
-     "decl": "char *strrchr(const char *str, int c);"
+     "decl": "char *strrchr(const char *str, int c);",
+     "name": "strrchr",
+     "ported": true,
+     "source_path": "src/halo/cseries/xbox_crt.c"
     },
     {
      "addr": "0x1d9761",
@@ -917,7 +920,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -1334,11 +1337,17 @@
     },
     {
      "addr": "0x1da19f",
-     "decl": "int crt_toupper(int c);"
+     "decl": "int crt_toupper(int c);",
+     "name": "crt_toupper",
+     "ported": true,
+     "source_path": "src/halo/cseries/xbox_crt.c"
     },
     {
      "addr": "0x1da1d8",
-     "decl": "int crt_tolower(int c);"
+     "decl": "int crt_tolower(int c);",
+     "name": "crt_tolower",
+     "ported": true,
+     "source_path": "src/halo/cseries/xbox_crt.c"
     },
     {
      "addr": "0x1da260",
@@ -2188,7 +2197,10 @@
     },
     {
      "addr": "0x1e6596",
-     "decl": "int __strnicmp(const char *s1, const char *s2, unsigned int count);"
+     "decl": "int __strnicmp(const char *s1, const char *s2, unsigned int count);",
+     "name": "__strnicmp",
+     "ported": true,
+     "source_path": "src/halo/cseries/xbox_crt.c"
     },
     {
      "addr": "0x1e65eb",
@@ -7009,7 +7021,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7070,7 +7082,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -9980,7 +9992,7 @@
     },
     {
      "addr": "0x1c1720",
-     "decl": "void FUN_001c1720(void);"
+     "decl": "int FUN_001c1720(int a1, wchar_t *name);"
     },
     {
      "addr": "0x1c18f0",
@@ -17942,7 +17954,7 @@
     },
     {
      "addr": "0xe0ee0",
-     "decl": "void player_ui_edit_profile_is_dirty(void);"
+     "decl": "bool player_ui_edit_profile_is_dirty(void);"
     },
     {
      "addr": "0xe0fd0",
@@ -17980,11 +17992,11 @@
     },
     {
      "addr": "0xe1500",
-     "decl": "void player_ui_begin_editing_profile(void);"
+     "decl": "void player_ui_begin_editing_profile(int a1);"
     },
     {
      "addr": "0xe15b0",
-     "decl": "void player_ui_save_profile(void);"
+     "decl": "bool player_ui_save_profile(void);"
     },
     {
      "addr": "0xe1760",
@@ -23174,7 +23186,7 @@
     },
     {
      "addr": "0x1c29c0",
-     "decl": "void saved_game_file_get_useable_untitled_profile_name(void);"
+     "decl": "void saved_game_file_get_useable_untitled_profile_name(wchar_t *out_name);"
     },
     {
      "addr": "0x1c2af0",
@@ -26375,11 +26387,13 @@
    "functions": [
     {
      "addr": "0xe3b80",
-     "decl": "void event_controller_index_compatible_with_widget(void);"
+     "decl": "bool event_controller_index_compatible_with_widget(void *event, void *widget);",
+     "ported": true
     },
     {
      "addr": "0xe3bb0",
-     "decl": "void set_ui_plasma_effect_color(void);"
+     "decl": "void set_ui_plasma_effect_color(uint32_t component_0, uint32_t component_1, uint32_t component_2, uint32_t component_3);",
+     "ported": true
     },
     {
      "addr": "0xe3be0",
@@ -26417,11 +26431,15 @@
     },
     {
      "addr": "0xe3d50",
-     "decl": "void widget_free(void *widget);"
+     "decl": "void widget_free(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xe3d70",
-     "decl": "bool ui_widgets_active(void);"
+     "decl": "bool ui_widgets_active(void);",
+     "ported": true,
+     "name": "ui_widgets_active",
+     "source_path": "src/halo/interface/ui_widget.c"
     },
     {
      "addr": "0xe3da0",
@@ -26792,7 +26810,8 @@
     },
     {
      "addr": "0xe9d40",
-     "decl": "void FUN_000E9D40(void);"
+     "decl": "bool FUN_000E9D40(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xe9dd0",
@@ -26972,11 +26991,13 @@
     },
     {
      "addr": "0xeed10",
-     "decl": "void FUN_000eed10(void);"
+     "decl": "bool FUN_000eed10(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xeeeb0",
-     "decl": "void FUN_000eeeb0(void);"
+     "decl": "bool FUN_000eeeb0(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xeef30",
@@ -26996,11 +27017,13 @@
     },
     {
      "addr": "0xef900",
-     "decl": "void FUN_000ef900(void);"
+     "decl": "bool ui_widget_remove_local_player_from_network_game(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xef970",
-     "decl": "void FUN_000ef970(void);"
+     "decl": "bool FUN_000ef970(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xefa80",
@@ -27012,7 +27035,8 @@
     },
     {
      "addr": "0xefde0",
-     "decl": "void FUN_000efde0(void);"
+     "decl": "bool FUN_000efde0(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xefed0",
@@ -27021,7 +27045,8 @@
     },
     {
      "addr": "0xeff70",
-     "decl": "void FUN_000eff70(void);"
+     "decl": "bool FUN_000eff70(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xf0070",
@@ -27030,19 +27055,23 @@
     },
     {
      "addr": "0xf00b0",
-     "decl": "void FUN_000f00b0(void);"
+     "decl": "bool FUN_000f00b0(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xf0100",
-     "decl": "void FUN_000f0100(void);"
+     "decl": "bool FUN_000f0100(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xf0170",
-     "decl": "void FUN_000f0170(void);"
+     "decl": "bool FUN_000f0170(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xf01d0",
-     "decl": "bool ui_widget_start_server_if_none_advertised(void *widget, void *event_data, bool *widget_deleted);"
+     "decl": "bool ui_widget_start_server_if_none_advertised(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xf0250",
@@ -27050,11 +27079,13 @@
     },
     {
      "addr": "0xf03d0",
-     "decl": "void FUN_000F03D0(void);"
+     "decl": "void FUN_000f03d0(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf0430",
-     "decl": "bool ui_widget_new_campaign_chosen(void *widget, void *event_data, bool *widget_deleted);"
+     "decl": "bool ui_widget_new_campaign_chosen(void *widget, void *event_data, bool *widget_deleted);",
+     "ported": true
     },
     {
      "addr": "0xf04c0",
@@ -30664,7 +30695,10 @@
    "functions": [
     {
      "addr": "0x1d95d0",
-     "decl": "char *crt_strchr(const char *str, int c);"
+     "decl": "char *crt_strchr(const char *str, int c);",
+     "name": "crt_strchr",
+     "ported": true,
+     "source_path": "src/halo/cseries/xbox_crt.c"
     },
     {
      "addr": "0x1d94f0",
@@ -30853,7 +30887,10 @@
    "functions": [
     {
      "addr": "0x1d9690",
-     "decl": "char *crt_strstr(const char *haystack, const char *needle);"
+     "decl": "char *crt_strstr(const char *haystack, const char *needle);",
+     "name": "crt_strstr",
+     "ported": true,
+     "source_path": "src/halo/cseries/xbox_crt.c"
     }
    ],
    "name": "LIBCMT:strstr.obj"
@@ -30952,7 +30989,10 @@
     },
     {
      "addr": "0x1dd801",
-     "decl": "int crt_stricmp(const char *a, const char *b);"
+     "decl": "int crt_stricmp(const char *a, const char *b);",
+     "name": "crt_stricmp",
+     "ported": true,
+     "source_path": "src/halo/cseries/xbox_crt.c"
     },
     {
      "addr": "0x1dd850",
