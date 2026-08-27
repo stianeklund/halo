@@ -201,7 +201,7 @@ void actor_perception_find_prop_pathfinding_location(int actor_handle,
     unit_handle = *(int *)(prop + 0x18);
     if (object_try_and_get_and_verify_type(unit_handle, 1) != NULL) {
       *(int *)(prop + 0xec) = biped_find_pathfinding_surface_index(
-        unit_handle, (vector3_t *)(prop + 0xf0));
+        *(int *)(prop + 0x18), (vector3_t *)(prop + 0xf0));
     }
   }
 }

@@ -49456,16 +49456,16 @@
     "actor_perception_find_prop_pathfinding_location": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 97.2,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x2f910",
       "end": "0x2f9ae",
       "kind": "auto",
       "n_r": 53,
-      "opnd_percent": 86.0,
-      "raw_mnemonic_pct": 97.2,
+      "opnd_percent": 88.7,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "05db657b4b268795",
-      "score": 97.2,
+      "score": 100.0,
       "source": "src/halo/ai/actor_perception.c"
     },
     "actor_perception_find_sense_position": {
