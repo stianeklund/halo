@@ -298,9 +298,10 @@ void matrix4x3_identity_with_position(float *out, float *position)
   out[7] = 0.0f;
   out[8] = 0.0f;
   out[9] = 1.0f;
-  out[10] = position[0];
-  out[11] = position[1];
-  out[12] = position[2];
+  out += 10;
+  out[0] = position[0];
+  out[1] = position[1];
+  out[2] = position[2];
 }
 
 void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)

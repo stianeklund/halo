@@ -67711,16 +67711,16 @@
     "matrix4x3_identity_with_position": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 98.0,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x109280",
       "end": "0x1092c2",
       "kind": "auto",
       "n_r": 25,
-      "opnd_percent": 89.8,
-      "raw_mnemonic_pct": 98.0,
+      "opnd_percent": 96.0,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "8c9715d096544e5d",
-      "score": 98.0,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "matrix4x3_multiply": {
