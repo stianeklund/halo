@@ -31086,7 +31086,9 @@
     "class": "non_leaf"
   },
   "0xdd110": {
-    "class": "non_leaf"
+    "class": "non_leaf",
+    "confidence": "moderate",
+    "coverage_pct": 66.4
   },
   "0xdd410": {
     "class": "non_leaf"

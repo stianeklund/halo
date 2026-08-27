@@ -467,8 +467,24 @@ def extract_function_body(source: Path, func_name: str) -> tuple[str, str] | Non
                     entered_body = True
                 j += 1
             block_text = '\n'.join(block)
+            def_names = set()
+            if block_text.startswith('typedef'):
+                tail = block_text.rstrip(';').split('}')[-1] if '}' in block_text else block_text.rstrip(';')
+                def_names.update(re.findall(r'\b[A-Za-z_]\w*\b', tail))
+                def_names.update(re.findall(r'\b(?:struct|union|enum)\s+([A-Za-z_]\w*)\b', block_text))
+            elif block_text.startswith(('static', 'extern')):
+                sig = block_text.split('{')[0]
+                m = re.findall(r'\b([A-Za-z_]\w*)\s*(?:\[|\=|\()', sig)
+                if m:
+                    def_names.add(m[-1])
+            elif re.match(r'^(?:struct|union|enum)\s+([A-Za-z_]\w*)', block_text):
+                m = re.match(r'^(?:struct|union|enum)\s+([A-Za-z_]\w*)', block_text)
+                if m:
+                    def_names.add(m.group(1))
+            def_names -= _C_KEYWORDS
+
             block_ids = set(re.findall(r'\b[A-Za-z_]\w*\b', block_text)) - _C_KEYWORDS
-            all_blocks.append((block_text, block_ids))
+            all_blocks.append((block_text, def_names, block_ids))
             i = j
         else:
             i += 1
@@ -481,13 +497,13 @@ def extract_function_body(source: Path, func_name: str) -> tuple[str, str] | Non
     while changed:
         changed = False
         remaining = []
-        for block_text, block_ids in all_blocks:
-            if block_ids & resolved:
+        for block_text, def_names, block_ids in all_blocks:
+            if def_names & resolved:
                 kept.append(block_text)
                 resolved |= block_ids
                 changed = True
             else:
-                remaining.append((block_text, block_ids))
+                remaining.append((block_text, def_names, block_ids))
         all_blocks = remaining
 
     return "\n\n".join(kept), func_body
