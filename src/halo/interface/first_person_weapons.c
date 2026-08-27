@@ -372,21 +372,20 @@ void FUN_000dce00(int16_t local_player_index)
  * Returns the local player index (0-3), or -1 if not found (0xdd110). */
 int first_person_weapon_get_local_index(int object_handle)
 {
-  int base;
+  char *base;
   int16_t i;
 
   i = 0;
   do {
-    if ((i < 0) || (3 < i)) {
+    if (i < 0 || i >= 4) {
       display_assert("local_player_index>=0 && "
                      "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
                      "c:\\halo\\SOURCE\\interface\\first_person_weapons.c",
                      0x599, 1);
       system_exit(-1);
     }
-    base = *(int *)0x46bea8;
-    if ((*(int *)(base + (int)i * 0x1ea0 + 8) == object_handle) &&
-        (*(char *)(base + (int)i * 0x1ea0) != 0))
+    base = *(char **)0x46bea8 + (int)i * 0x1ea0;
+    if (*(int *)(base + 8) == object_handle && *base != 0)
       break;
     i++;
   } while (i < 4);
