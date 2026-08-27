@@ -2774,19 +2774,20 @@ void cluster_partition_remove_object(void *partition, int object_handle,
 int cluster_partition_iter_first(void *partition, int *state,
                                  int16_t cluster_idx)
 {
+  void *data;
+
   if (cluster_idx < 0 ||
       cluster_idx >= *(int *)((char *)scenario_get() + 0x134)) {
     display_assert("cluster_index>=0 && "
                    "cluster_index<global_structure_bsp_get()->clusters.count",
                    "c:\\halo\\SOURCE\\structures\\cluster_partitions.c", 0xd5,
-                   true);
+                   1);
     system_exit(-1);
   }
-
   *state = *(int *)(*(int *)partition + cluster_idx * 4);
+  data = *(void **)((char *)partition + 4);
   if (*state != -1) {
-    char *cluster_reference =
-      datum_get(*(void **)((char *)partition + 4), *state);
+    char *cluster_reference = datum_get(data, *state);
     *state = *(int *)(cluster_reference + 8);
     return *(int *)(cluster_reference + 4);
   }

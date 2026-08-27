@@ -389,7 +389,7 @@ void path_add_directory(char *path, const char *directory)
     return;
   }
 
-  if ((int)csstrlen(path) + 1 + (int)csstrlen(directory) > 0xFF) {
+  if ((int)(csstrlen(path) + 1 + csstrlen(directory)) > 0xFF) {
     display_assert("strlen(path)+1+strlen(name)<=MAXIMUM_FILENAME_LENGTH",
                    "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x2A0, true);
     system_exit(-1);

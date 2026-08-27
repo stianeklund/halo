@@ -192,7 +192,7 @@ __int16 local_player_get_next(__int16 local_player_index)
   result = -1;
   for (i = 0; i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS; i++) {
     if (*(int *)&players_globals->unk_0[4 + i * 4] != -1 &&
-        local_player_index < i) {
+        i > local_player_index) {
       if (i < result || result == -1)
         result = i;
     }
@@ -1403,9 +1403,6 @@ bool player_teleport(int player_handle, int anchor_unit_handle,
   player = (char *)datum_get(player_data, player_handle);
   unit_handle = *(int *)(player + 0x34);
   unit = (char *)object_try_and_get_and_verify_type(unit_handle, 1);
-  /* Nested-if (rather than early-return) shape: the original places the
-   * failure epilogue out of line at 0xbbbcf, after the success epilogue, and
-   * hoists its zero into CL above the TEST. */
   if (unit != NULL) {
     if (*(int *)(unit + 0xcc) != -1)
       unit_exit_seat_end(unit_handle);

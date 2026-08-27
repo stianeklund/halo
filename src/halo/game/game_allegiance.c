@@ -158,18 +158,13 @@ void game_allegiance_notify_change(int16_t team_a, int16_t team_b)
   int16_t i;
   int16_t *entry;
 
-  i = 0;
   entry = (int16_t *)game_allegiance_globals + 1;
-  if (*(int16_t *)game_allegiance_globals > 0) {
-    while ((entry[0] != team_a || entry[1] != team_b) &&
-           (entry[1] != team_a || entry[0] != team_b)) {
-      i++;
-      entry += 9;
-      if (*(int16_t *)game_allegiance_globals <= i) {
-        return;
-      }
+  for (i = 0; i < *(int16_t *)game_allegiance_globals; i++, entry += 9) {
+    if ((entry[0] == team_a && entry[1] == team_b) ||
+        (entry[1] == team_a && entry[0] == team_b)) {
+      *((char *)entry + 0xb) = 0;
+      break;
     }
-    *((char *)entry + 0xb) = 0;
   }
 }
 

@@ -66,9 +66,8 @@ char *strnupr(char *s, int n)
     if (n-- <= 0)
       break;
     c = (char)crt_toupper((unsigned char)*p);
-    *p = c;
-    c = p[1];
-    p++;
+    *p++ = c;
+    c = *p;
   } while (c != '\0');
   return s;
 }
@@ -87,9 +86,8 @@ char *strnlwr(char *s, int n)
     if (n-- <= 0)
       break;
     c = (char)crt_tolower((unsigned char)*p);
-    *p = c;
-    c = p[1];
-    p++;
+    *p++ = c;
+    c = *p;
   } while (c != '\0');
   return s;
 }

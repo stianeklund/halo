@@ -121,10 +121,8 @@ void tea_encrypt(unsigned int *v, unsigned int *w, int *key)
 
   do {
     iVar3 = iVar3 + (int)0x9E3779B9u; /* -0x61c88647 mod 2^32 */
-    uVar1 = uVar1 + ((uVar2 >> 5) + key[1] ^ uVar2 * 0x10 + key[0] ^
-                     (unsigned int)iVar3 + uVar2);
-    uVar2 = uVar2 + ((uVar1 >> 5) + key[3] ^ uVar1 * 0x10 + key[2] ^
-                     (unsigned int)iVar3 + uVar1);
+    uVar1 += (((uVar2 << 4) + key[0]) ^ (uVar2 + (unsigned int)iVar3)) ^ ((uVar2 >> 5) + key[1]);
+    uVar2 += (((uVar1 << 4) + key[2]) ^ (uVar1 + (unsigned int)iVar3)) ^ ((uVar1 >> 5) + key[3]);
     count = count - 1;
   } while (count != 0);
 
@@ -149,10 +147,8 @@ void tea_decrypt(unsigned int *v, unsigned int *w, int *key)
   count = 0x20;
 
   do {
-    uVar1 = uVar1 - ((uVar2 >> 5) + key[3] ^ uVar2 * 0x10 + key[2] ^
-                     (unsigned int)iVar3 + uVar2);
-    uVar2 = uVar2 - ((uVar1 >> 5) + key[1] ^ uVar1 * 0x10 + key[0] ^
-                     (unsigned int)iVar3 + uVar1);
+    uVar1 -= (((uVar2 << 4) + key[2]) ^ (uVar2 + (unsigned int)iVar3)) ^ ((uVar2 >> 5) + key[3]);
+    uVar2 -= (((uVar1 << 4) + key[0]) ^ (uVar1 + (unsigned int)iVar3)) ^ ((uVar1 >> 5) + key[1]);
     iVar3 = iVar3 + 0x61c88647;
     count = count - 1;
   } while (count != 0);
@@ -266,7 +262,7 @@ void build_message_header(unsigned short *header, unsigned short length,
   assert_halt_msg((0 <= (int)length) && ((int)length <= 0xfff),
                   "(0<=(length)) && ((length)<=MAXIMUM_MESSAGE_SIZE)");
 
-  *header = ((unsigned char)*header & 0xf) | (length << 4);
+  *header = (*header & 0xf) | (length << 4);
 
   if (type == 0) {
     goto bad_type;
@@ -341,7 +337,7 @@ after_malloc:
     build_message_header((unsigned short *)buffer, payload_len + 2,
                          (unsigned char)type, 0);
     if (payload != 0) {
-      csmemcpy((void *)(buffer + 2), (void *)payload, payload_len & 0xffff);
+      csmemcpy((void *)(buffer + 2), (void *)payload, (unsigned short)payload_len);
     }
   }
   return buffer;
@@ -354,7 +350,10 @@ int prime_compare(unsigned int *a, unsigned int *b)
   if (*a < *b) {
     return 1;
   }
-  return -(int)(*b < *a);
+  if (*a > *b) {
+    return -1;
+  }
+  return 0;
 }
 
 /* 0x80d50 - Sieve of Eratosthenes: return an ascending array of primes <=

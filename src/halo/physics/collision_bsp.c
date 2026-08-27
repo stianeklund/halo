@@ -49,6 +49,7 @@ short collision_surface_edge_count(int bsp, int surface_index)
   int first_edge;
   int edge_index;
   int *edge;
+  bool side;
 
   edge_count = 0;
   first_edge = *(int *)((char *)tag_block_get_element((void *)(bsp + 0x3c),
@@ -58,7 +59,8 @@ short collision_surface_edge_count(int bsp, int surface_index)
   do {
     edge = (int *)tag_block_get_element((void *)(bsp + 0x48), edge_index, 0x18);
     edge_count = (short)(edge_count + 1);
-    edge_index = edge[2 + (edge[5] == surface_index)];
+    side = (edge[5] == surface_index);
+    edge_index = edge[2 + side];
   } while (edge_index != first_edge);
   return edge_count;
 }

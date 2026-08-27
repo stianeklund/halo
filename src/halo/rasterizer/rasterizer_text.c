@@ -3546,13 +3546,15 @@ void rasterizer_transparent_geometry_begin(void)
  * group slot (0x184330) */
 void *rasterizer_transparent_geometry_group_new(void)
 {
+  int index;
   void *group;
 
   group = (void *)0;
   if (*(int *)0x4d0cf4 < 0x180) {
+    index = *(int *)0x4d0cf4;
     group = (void *)(*(int *)0x4d0cf4 * 0xa0 + *(int *)0x4d0cec);
     *(int *)((char *)group + 0x90) = *(int *)0x4d0cf4;
-    *(int *)0x4d0cf4 = *(int *)0x4d0cf4 + 1;
+    *(int *)0x4d0cf4 = index + 1;
   }
   return group;
 }
@@ -3561,13 +3563,15 @@ void *rasterizer_transparent_geometry_group_new(void)
  * group slot (0x184360) */
 void *rasterizer_secondary_geometry_group_new(void)
 {
+  int index;
   void *group;
 
   group = (void *)0;
   if (*(int *)0x4d0cf8 < 0x20) {
+    index = *(int *)0x4d0cf8;
     group = (void *)(*(int *)0x4d0cf8 * 0xa0 + *(int *)0x4d0cf0);
     *(int *)((char *)group + 0x90) = *(int *)0x4d0cf8;
-    *(int *)0x4d0cf8 = *(int *)0x4d0cf8 + 1;
+    *(int *)0x4d0cf8 = index + 1;
   }
   return group;
 }
@@ -3620,7 +3624,7 @@ void *rasterizer_transparent_geometry_next_group(void *group)
  * (0x184460) */
 void *rasterizer_transparent_geometry_group_get(short group_presorted_index)
 {
-  if (group_presorted_index < 0 || *(int *)0x4d0cf4 <= group_presorted_index) {
+  if (group_presorted_index < 0 || group_presorted_index >= *(int *)0x4d0cf4) {
     display_assert(
       "group_presorted_index>=0 && "
       "group_presorted_index<transparent_geometry_group_count",

@@ -1900,12 +1900,7 @@ void game_engine_playlist_next(int game_variant_type, int param_2, int param_3)
  * 1.0 speed. */
 game_variant_t *game_engine_slayer_default(game_variant_t *variant)
 {
-  /* Original builds the variant in a local ({0} zeroing = word store +
-   * REP STOSD from +2), read-modify-writes the +0x20 flag word with an
-   * AND/OR mask, re-stores several fields to zero explicitly, then
-   * block-copies 0x1a dwords to the out pointer (REP MOVSD). */
   game_variant_t v = { 0 };
-  *(int32_t *)((char *)&v + 0x18) = 2;
   *(int32_t *)((char *)&v + 0x48) = 2;
   *(int32_t *)((char *)&v + 0x20) =
     (*(int32_t *)((char *)&v + 0x20) & 0xffffffc3) | 3;
@@ -1919,6 +1914,7 @@ game_variant_t *game_engine_slayer_default(game_variant_t *variant)
   *(int32_t *)((char *)&v + 0x34) = 0x12c;
   *(uint8_t *)((char *)&v + 0x1c) = 0;
   *(int32_t *)((char *)&v + 0x44) = 0;
+  *(int32_t *)((char *)&v + 0x18) = 2;
   *(uint8_t *)((char *)&v + 0x4c) = 0;
   *(uint8_t *)((char *)&v + 0x4d) = 0;
   *(uint8_t *)((char *)&v + 0x4e) = 0;
@@ -1960,15 +1956,12 @@ game_variant_t *FUN_000aa220(game_variant_t *out)
  * 1 round, 25 lives, 2 weapon sets, 1.0 speed. */
 game_variant_t *game_engine_elimination_default(game_variant_t *variant)
 {
-  /* Builds the variant in a zeroed local (word store + REP STOSD),
-   * read-modify-writes the +0x20 flag dword with an AND/OR mask,
-   * then block-copies 0x1a dwords to the out pointer (REP MOVSD). */
   game_variant_t v = { 0 };
+  *(int32_t *)((char *)&v + 0x18) = 2;
   *(int32_t *)((char *)&v + 0x20) =
     (*(int32_t *)((char *)&v + 0x20) & 0xffffffc3) | 3;
   *(int32_t *)((char *)&v + 0x38) = 1;
   *(int16_t *)((char *)&v + 0x64) = 1;
-  *(int32_t *)((char *)&v + 0x18) = 2;
   *(int32_t *)((char *)&v + 0x48) = 2;
   *(int32_t *)((char *)&v + 0x24) = 0;
   *(int32_t *)((char *)&v + 0x3c) = 0x3f800000;
@@ -2893,13 +2886,10 @@ void ticks_to_unicode_time_string(int param_1, int param_2, wchar_t *param_3)
 
     unicode_sprintf(min_buf, 0x40, (wchar_t *)0x26c118, minutes);
 
-  if (seconds < 10)
-
-    unicode_sprintf(sec_buf, 0x40, (wchar_t *)0x26c110, seconds);
-
-  else
-
+  if (seconds >= 10)
     unicode_sprintf(sec_buf, 0x40, (wchar_t *)0x26c118, seconds);
+  else
+    unicode_sprintf(sec_buf, 0x40, (wchar_t *)0x26c110, seconds);
 
   unicode_sprintf(param_3, param_2, L"%s:%s", min_buf, sec_buf);
 }

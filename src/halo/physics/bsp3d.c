@@ -124,19 +124,19 @@ uint32_t bsp3d_find_leaf(void *bsp3d, int root, void *point)
   uint32_t *node;
   float *plane;
   float *p = (float *)point;
-  uint32_t node_index = (uint32_t)root;
+  int node_index = root;
   float dist;
 
   do {
-    node = (uint32_t *)tag_block_get_element(bsp3d, (int)node_index, 0xc);
+    node = (uint32_t *)tag_block_get_element(bsp3d, node_index, 0xc);
     plane =
       (float *)tag_block_get_element((char *)bsp3d + 0xc, (int)node[0], 0x10);
     dist = (plane[0] * p[0] + plane[2] * p[2] + plane[1] * p[1]) - plane[3];
-    node_index = node[1 + (0.0f <= dist ? 1 : 0)];
-  } while ((int)node_index >= 0);
+    node_index = (int)node[1 + (0.0f <= dist ? 1 : 0)];
+  } while (0 <= node_index);
 
-  if (node_index != 0xffffffff) {
-    return node_index & 0x7fffffff;
+  if (node_index != -1) {
+    return (uint32_t)node_index & 0x7fffffff;
   }
   return 0xffffffff;
 }
