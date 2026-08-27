@@ -148,7 +148,7 @@ file_ref_t *file_reference_verify(file_ref_t *info)
                    "c:\\halo\\SOURCE\\tag_files\\files.c", 0x1fe, true);
     system_exit(-1);
   }
-  if (info->unk_6 < -1 || info->unk_6 > 1) {
+  if (info->unk_6 < -1 || info->unk_6 >= 2) {
     display_assert("info->location>=NONE && "
                    "info->location<NUMBER_OF_FILE_REFERENCE_LOCATIONS",
                    "c:\\halo\\SOURCE\\tag_files\\files.c", 0x1ff, true);
@@ -389,7 +389,7 @@ void path_add_directory(char *path, const char *directory)
     return;
   }
 
-  if (csstrlen(path) + 1 + csstrlen(directory) > 0xFF) {
+  if ((int)csstrlen(path) + 1 + (int)csstrlen(directory) > 0xFF) {
     display_assert("strlen(path)+1+strlen(name)<=MAXIMUM_FILENAME_LENGTH",
                    "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x2A0, true);
     system_exit(-1);
@@ -417,7 +417,7 @@ void path_add_extension(char *path, const char *extension)
     return;
   }
 
-  if (csstrlen(path) + 1 + csstrlen(extension) > 0xFF) {
+  if ((int)csstrlen(path) + 1 + (int)csstrlen(extension) > 0xFF) {
     display_assert("strlen(path)+1+strlen(extension)<=MAXIMUM_FILENAME_LENGTH",
                    "c:\\halo\\SOURCE\\tag_files\\files_windows.c", 0x2b8, true);
     system_exit(-1);

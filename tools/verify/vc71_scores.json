@@ -59296,16 +59296,16 @@
     "file_reference_verify": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 98.0,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x199620",
       "end": "0x1996d0",
       "kind": "auto",
       "n_r": 51,
-      "opnd_percent": 84.3,
-      "raw_mnemonic_pct": 98.0,
+      "opnd_percent": 86.3,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "6d221c9bc77e4631",
-      "score": 98.0,
+      "score": 100.0,
       "source": "src/halo/tag_files/files.c"
     },
     "file_references_equal": {
