@@ -920,7 +920,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -7021,7 +7021,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7082,7 +7082,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -19531,19 +19531,23 @@
    "functions": [
     {
      "addr": "0x8f870",
-     "decl": "void profile_seconds_elapsed(void);"
+     "decl": "void profile_seconds_elapsed(float seconds_elapsed);",
+     "ported": true
     },
     {
      "addr": "0x8f880",
-     "decl": "void profile_lapsed_frames(void);"
+     "decl": "void profile_lapsed_frames(int16_t frames_delta, bool synced, const char *debug_buf);",
+     "ported": true
     },
     {
      "addr": "0x8f8c0",
-     "decl": "void profile_lapsed_msec(void);"
+     "decl": "void profile_lapsed_msec(int msec);",
+     "ported": true
     },
     {
      "addr": "0x8f8e0",
-     "decl": "void find_profile_section(void *section);"
+     "decl": "void find_profile_section(void *section);",
+     "ported": true
     },
     {
      "addr": "0x8fa40",
@@ -19557,11 +19561,20 @@
     },
     {
      "addr": "0x8fb60",
-     "decl": "void FUN_0008fb60(void);"
+     "decl": "void FUN_0008fb60(void *ring_entry /* @<eax> */, char *out_buf /* @<esi> */, int buf_size);",
+     "reg_args": {
+      "ring_entry": "eax",
+      "out_buf": "esi"
+     }
     },
     {
      "addr": "0x90170",
-     "decl": "void FUN_00090170(void);"
+     "decl": "void FUN_00090170(void *dest /* @<eax> */, uint32_t value0, uint32_t value1);",
+     "ported": true,
+     "reg_args": {
+      "dest": "eax"
+     },
+     "source_path": "halo/cseries/profile.c"
     },
     {
      "addr": "0x90180",
@@ -19573,15 +19586,21 @@
     },
     {
      "addr": "0x902f0",
-     "decl": "void profile_dump(void);"
+     "decl": "void profile_dump(const char *substring, int flag, int unk1, int buffer_size, char *buffer);"
     },
     {
      "addr": "0x90650",
-     "decl": "void profile_dump_to_file(const char *substring);"
+     "decl": "void profile_dump_to_file(const char *substring);",
+     "ported": true
     },
     {
      "addr": "0x906d0",
-     "decl": "void FUN_000906d0(void);"
+     "decl": "void FUN_000906d0(char *param_1 /* @<edi> */);",
+     "ported": true,
+     "reg_args": {
+      "param_1": "edi"
+     },
+     "source_path": "halo/cseries/profile.c"
     },
     {
      "addr": "0x907c0",
@@ -19609,19 +19628,26 @@
     },
     {
      "addr": "0x910b0",
-     "decl": "void profile_frame_iterator_new(void);"
+     "decl": "void profile_frame_iterator_new(void *iterator);",
+     "ported": true
     },
     {
      "addr": "0x91110",
-     "decl": "void profile_frame_iterator_next(void);"
+     "decl": "bool profile_frame_iterator_next(void *iterator, void *out_record);",
+     "ported": true,
+     "source_path": "halo/cseries/profile.c"
     },
     {
      "addr": "0x91190",
-     "decl": "void profile_frame_get_messages(void);"
+     "decl": "void profile_frame_get_messages(void *iterator);",
+     "ported": true,
+     "source_path": "halo/cseries/profile.c"
     },
     {
      "addr": "0x91220",
-     "decl": "void profile_frame_get_stalls(void);"
+     "decl": "int32_t profile_frame_get_stalls(void *iterator, int16_t *out_a, int32_t *out_b);",
+     "ported": true,
+     "source_path": "halo/cseries/profile.c"
     },
     {
      "addr": "0x912c0",
@@ -19687,7 +19713,9 @@
     },
     {
      "addr": "0x91b70",
-     "decl": "void FUN_00091b70(void);"
+     "decl": "void FUN_00091b70(void);",
+     "ported": true,
+     "source_path": "halo/cseries/profile.c"
     },
     {
      "addr": "0x91ba0",
@@ -19695,11 +19723,15 @@
     },
     {
      "addr": "0x91c10",
-     "decl": "void FUN_00091c10(void);"
+     "decl": "void FUN_00091c10(int *dest, int *source, char *name, int value);",
+     "ported": true,
+     "source_path": "halo/cseries/profile.c"
     },
     {
      "addr": "0x91c70",
-     "decl": "void FUN_00091c70(void);"
+     "decl": "void FUN_00091c70(int *data, void *user_data, int value, char force_update);",
+     "ported": true,
+     "source_path": "halo/cseries/profile.c"
     },
     {
      "addr": "0x91cf0",
