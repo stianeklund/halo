@@ -91,9 +91,9 @@ void key_message_xor_keystream(int msg, int len, int keystream, int key_len)
   if (0 < len) {
     do {
       pbVar1 = (unsigned char *)(iVar2 + keystream);
-      iVar2 = iVar2 + iVar4;
       *(unsigned char *)(iVar3 + msg) =
         ~(*pbVar1 ^ *(unsigned char *)(iVar3 + msg));
+      iVar2 = iVar2 + iVar4;
       iVar3 = iVar3 + 1;
       if ((iVar2 == key_len) || (iVar2 < 0)) {
         iVar4 = -iVar4;
@@ -110,7 +110,7 @@ void key_message_xor_keystream(int msg, int len, int keystream, int key_len)
 void tea_encrypt(unsigned int *v, unsigned int *w, int *key)
 {
   unsigned int uVar1;
-  unsigned int uVar2;
+  int uVar2;
   int iVar3;
   unsigned int count;
 
@@ -136,7 +136,7 @@ void tea_encrypt(unsigned int *v, unsigned int *w, int *key)
  * Starting sum = 0xC6EF3720 = 32 * TEA_DELTA. Runs 32 rounds. */
 void tea_decrypt(unsigned int *v, unsigned int *w, int *key)
 {
-  unsigned int uVar1;
+  int uVar1;
   unsigned int uVar2;
   int iVar3;
   unsigned int count;
