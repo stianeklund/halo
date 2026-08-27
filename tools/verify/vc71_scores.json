@@ -1713,16 +1713,16 @@
     "FUN_00012e50": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 98.0,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x12e50",
       "end": "0x12e92",
       "kind": "auto",
       "n_r": 25,
-      "opnd_percent": 98.0,
-      "raw_mnemonic_pct": 98.0,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "7a7cab44074ae395",
-      "score": 98.0,
+      "score": 100.0,
       "source": "src/halo/math/vector_math.c"
     },
     "FUN_00012ea0": {
