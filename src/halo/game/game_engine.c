@@ -2132,10 +2132,10 @@ game_variant_t *game_engine_oddball_default(game_variant_t *variant)
   *(int32_t *)((char *)&v + 0x24) = 1;
   *(int32_t *)((char *)&v + 0x48) = 1;
   *(int32_t *)((char *)&v + 0x60) = 1;
+  *(int32_t *)((char *)&v + 0x34) = 0x96;
   *(uint8_t *)((char *)&v + 0x4d) = 1;
   *(int16_t *)((char *)&v + 0x64) = 1;
   *(int32_t *)((char *)&v + 0x30) = 0x96;
-  *(int32_t *)((char *)&v + 0x34) = 0x96;
   *(int32_t *)((char *)&v + 0x18) = 3;
   *(int32_t *)((char *)&v + 0x3c) = 0x3f800000;
   *(int32_t *)((char *)&v + 0x38) = 0;
@@ -2304,10 +2304,10 @@ game_variant_t *game_engine_stalker_default(game_variant_t *variant)
   *(int32_t *)((char *)&v + 0x30) = 0x96;
   *(int32_t *)((char *)&v + 0x34) = 0x96;
   *(int32_t *)((char *)&v + 0x60) = 1;
-  *(int32_t *)((char *)&v + 0x54) = 1;
   *(int16_t *)((char *)&v + 0x64) = 1;
   *(int32_t *)((char *)&v + 0x18) = 3;
   *(int32_t *)((char *)&v + 0x58) = 3;
+  *(int32_t *)((char *)&v + 0x54) = 1;
   *(int32_t *)((char *)&v + 0x48) = 2;
   *(int32_t *)((char *)&v + 0x5c) = 2;
   *(int32_t *)((char *)&v + 0x50) = 2;
@@ -2361,10 +2361,10 @@ game_variant_t *FUN_000aaa20(game_variant_t *out)
   game_variant_t v = { 0 };
   *(int32_t *)((char *)&v + 0x20) =
     (*(int32_t *)((char *)&v + 0x20) & 0xffffffe3) | 0x23;
-  *(int32_t *)((char *)&v + 0x40) = 2;
-  *(int32_t *)((char *)&v + 0x48) = 2;
   *(int32_t *)((char *)&v + 0x24) = 1;
+  *(int32_t *)((char *)&v + 0x40) = 2;
   *(int16_t *)((char *)&v + 0x64) = 1;
+  *(int32_t *)((char *)&v + 0x48) = 2;
   *(int32_t *)((char *)&v + 0x18) = 4;
   *(int32_t *)((char *)&v + 0x3c) = 0x3f800000;
   *(int32_t *)((char *)&v + 0x38) = 0;
@@ -2388,8 +2388,8 @@ game_variant_t *FUN_000aaab0(game_variant_t *out)
     (*(int32_t *)((char *)&v + 0x20) & 0xffffffc3) | 3;
   *(int32_t *)((char *)&v + 0x24) = 1;
   *(uint8_t *)((char *)&v + 0x4c) = 1;
-  *(int16_t *)((char *)&v + 0x64) = 1;
   *(int32_t *)((char *)&v + 0x40) = 2;
+  *(int16_t *)((char *)&v + 0x64) = 1;
   *(int32_t *)((char *)&v + 0x48) = 2;
   *(int32_t *)((char *)&v + 0x18) = 4;
   *(int32_t *)((char *)&v + 0x3c) = 0x3f800000;
@@ -2419,8 +2419,8 @@ game_variant_t *game_engine_team_king_default(game_variant_t *variant)
   *(int32_t *)((char *)&v + 0x24) = 1;
   *(uint8_t *)((char *)&v + 0x1c) = 1;
   *(uint8_t *)((char *)&v + 0x4c) = 1;
-  *(int16_t *)((char *)&v + 0x64) = 1;
   *(int32_t *)((char *)&v + 0x40) = 2;
+  *(int16_t *)((char *)&v + 0x64) = 1;
   *(int32_t *)((char *)&v + 0x48) = 2;
   *(int32_t *)((char *)&v + 0x18) = 4;
   *(int32_t *)((char *)&v + 0x3c) = 0x3f800000;
@@ -2445,11 +2445,11 @@ game_variant_t *game_engine_ctf_default(game_variant_t *variant)
    * then REP MOVSD 0x1a dwords to the out pointer. */
   game_variant_t v = { 0 };
   *(int32_t *)((char *)&v + 0x18) = 1;
+  *(int32_t *)((char *)&v + 0x20) =
+    (*(int32_t *)((char *)&v + 0x20) & 0xffffffc3) | 3;
   *(int32_t *)((char *)&v + 0x24) = 1;
   *(uint8_t *)((char *)&v + 0x1c) = 1;
   *(int16_t *)((char *)&v + 0x64) = 1;
-  *(int32_t *)((char *)&v + 0x20) =
-    (*(int32_t *)((char *)&v + 0x20) & 0xffffffc3) | 3;
   *(int32_t *)((char *)&v + 0x3c) = 0x3f800000;
   *(int32_t *)((char *)&v + 0x38) = 0;
   *(uint8_t *)((char *)&v + 0x28) = 0;
@@ -2474,12 +2474,12 @@ game_variant_t *FUN_000aac50(game_variant_t *out)
   /* Assault variant: zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
   *(int32_t *)((char *)&v + 0x18) = 1;
+  *(int32_t *)((char *)&v + 0x20) =
+    (*(int32_t *)((char *)&v + 0x20) & 0xffffffe3) | 0x23;
   *(int32_t *)((char *)&v + 0x24) = 1;
   *(uint8_t *)((char *)&v + 0x1c) = 1;
   *(uint8_t *)((char *)&v + 0x4f) = 1;
   *(int16_t *)((char *)&v + 0x64) = 1;
-  *(int32_t *)((char *)&v + 0x20) =
-    (*(int32_t *)((char *)&v + 0x20) & 0xffffffe3) | 0x23;
   *(int32_t *)((char *)&v + 0x3c) = 0x3f800000;
   *(int32_t *)((char *)&v + 0x38) = 0;
   *(uint8_t *)((char *)&v + 0x28) = 0;
@@ -2503,12 +2503,12 @@ game_variant_t *FUN_000aace0(game_variant_t *out)
   /* Assault variant (alt): zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
   *(int32_t *)((char *)&v + 0x18) = 1;
+  *(int32_t *)((char *)&v + 0x20) =
+    (*(int32_t *)((char *)&v + 0x20) & 0xffffffc3) | 3;
   *(int32_t *)((char *)&v + 0x24) = 1;
   *(uint8_t *)((char *)&v + 0x1c) = 1;
   *(uint8_t *)((char *)&v + 0x4c) = 1;
   *(int16_t *)((char *)&v + 0x64) = 1;
-  *(int32_t *)((char *)&v + 0x20) =
-    (*(int32_t *)((char *)&v + 0x20) & 0xffffffc3) | 3;
   *(int32_t *)((char *)&v + 0x3c) = 0x3f800000;
   *(int32_t *)((char *)&v + 0x38) = 5;
   *(uint8_t *)((char *)&v + 0x28) = 0;
@@ -2537,12 +2537,12 @@ game_variant_t *game_engine_ironctf_default(game_variant_t *variant)
    * then REP MOVSD 0x1a dwords to the out pointer. */
   game_variant_t v = { 0 };
   *(int32_t *)((char *)&v + 0x18) = 1;
+  *(int32_t *)((char *)&v + 0x20) =
+    (*(int32_t *)((char *)&v + 0x20) & 0xffffffc3) | 3;
   *(int32_t *)((char *)&v + 0x24) = 1;
   *(uint8_t *)((char *)&v + 0x1c) = 1;
   *(uint8_t *)((char *)&v + 0x4e) = 1;
   *(int16_t *)((char *)&v + 0x64) = 1;
-  *(int32_t *)((char *)&v + 0x20) =
-    (*(int32_t *)((char *)&v + 0x20) & 0xffffffc3) | 3;
   *(int32_t *)((char *)&v + 0x3c) = 0x40000000;
   *(int32_t *)((char *)&v + 0x38) = 0;
   *(uint8_t *)((char *)&v + 0x28) = 0;
