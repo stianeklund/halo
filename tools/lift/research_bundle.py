@@ -116,7 +116,7 @@ class ResolvedTarget:
 def _resolve_target(query: str, kb: dict) -> ResolvedTarget:
     wanted_addr = _norm_addr(query)
     for obj in kb.get("objects", []):
-        source = obj.get("source", "")
+        source = obj.get("source") or ""
         source_path = source if source.startswith("src/") else f"src/halo/{source}"
         for entry in obj.get("functions", []):
             addr = _norm_addr(entry.get("addr", ""))
