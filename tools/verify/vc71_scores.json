@@ -10753,6 +10753,21 @@
       "score": 100.0,
       "source": "src/halo/networking/message_header.c"
     },
+    "FUN_000803b0": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 3,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x803b0",
+      "end": "0x803cd",
+      "kind": "auto",
+      "n_r": 14,
+      "opnd_percent": 92.9,
+      "raw_mnemonic_pct": 90.3,
+      "ref": "synth",
+      "ref_sha": "35e04d6dc344b203",
+      "score": 100.0,
+      "source": "src/halo/networking/message_header.c"
+    },
     "FUN_00080470": {
       "abi_model": "regparam_stripped_saves",
       "abi_model_items": 9,
@@ -10796,6 +10811,21 @@
       "ref": "synth",
       "ref_sha": "2c909b0b1dd50297",
       "score": 100.0,
+      "source": "src/halo/networking/message_header.c"
+    },
+    "FUN_00080f00": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 94.0,
+      "addr": "0x80f00",
+      "end": "0x80fc0",
+      "kind": "auto",
+      "n_r": 68,
+      "opnd_percent": 89.6,
+      "raw_mnemonic_pct": 94.0,
+      "ref": "synth",
+      "ref_sha": "4fcc337b5f3e6d15",
+      "score": 94.0,
       "source": "src/halo/networking/message_header.c"
     },
     "FUN_00080fc0": {

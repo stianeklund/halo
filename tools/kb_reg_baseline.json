@@ -170,6 +170,7 @@
     "0x7d440": "bool bitmap_validate_depth(int depth@<eax>, int format, int type);",
     "0x7ffe0": "void math64_negate(const uint16_t *a@<esi>, uint16_t *result@<ebx>);",
     "0x80380": "bool FUN_00080380(void *decoded_packet, char *encoded_packet, short *encoded_packet_size, short *packet_type /* @<edx> */, short *packet_version /* @<ecx> */, short expected_packet_class /* @<eax> */);",
+    "0x803b0": "bool FUN_000803b0(void *data, char *encoded_packet, short *encoded_packet_size /* @<edx> */, short packet_type /* @<ecx> */, short version /* @<eax> */);",
     "0x80470": "void FUN_00080470(int buffer, unsigned short buffer_size, unsigned int *prime /* @<esi> */, unsigned int *g /* @<ebx> */, unsigned int *key /* @<edi> */);",
     "0x804e0": "void FUN_000804e0(int buffer, unsigned short buffer_size, unsigned int *key /* @<esi> */);",
     "0x80fc0": "void FUN_00080fc0(uint32_t exponent /* @<eax> */, uint32_t base /* @<ecx> */, uint32_t modulus /* @<edx> */);",
@@ -864,5 +865,6 @@
     "0x225021": "int __stdcall socket(void *xnet@<ecx>, int af, int type, int protocol);",
     "0x2256bb": "int __stdcall recv(void *xnet@<ecx>, unsigned int socket, char *buf, int len, int flags);",
     "0x2258a4": "int __stdcall send(void *xnet@<ecx>, unsigned int socket, const char *buf, int len, int flags);"
-  }
+  },
+  "0x803b0": "bool FUN_000803b0(void *data, char *encoded_packet, short *encoded_packet_size /* @<edx> */, short packet_type /* @<ecx> */, short version /* @<eax> */);"
 }

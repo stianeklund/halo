@@ -24,6 +24,28 @@ bool FUN_00080380(void *decoded_packet, char *encoded_packet,
                       expected_packet_class);
 }
 
+/* 0x803b0 - Encode a key-agreement packet: thin wrapper around
+ * encode_packet_group (FUN_0011aca0, data_packet_groups.c) bound to the
+ * key_agreement_group definition, the encode twin of 0x80380's
+ * decode_packet_group call above. Two params (data, encoded_packet) arrive
+ * on the stack at [EBP+8]/[EBP+0xC]; the other three (encoded_packet_size,
+ * packet_type, version) arrive in EDX/ECX/EAX (binary-proven: PUSH
+ * EDX/ECX/EAX at entry save the incoming register values before EAX/ECX are
+ * reloaded from the stack args and re-pushed for encoded_packet/data, and
+ * the saved EDX/ECX/EAX copies are the first three cdecl pushes before the
+ * CALL, i.e. the last three params: encoded_packet_size, packet_type,
+ * version). The function does not touch EAX after the CALL, so
+ * encode_packet_group's bool return value passes through unmodified
+ * (implicit-EAX return, no comparison in the wrapper). */
+bool FUN_000803b0(void *data, char *encoded_packet,
+                  short *encoded_packet_size /* @<edx> */,
+                  short packet_type /* @<ecx> */, short version /* @<eax> */)
+{
+  return encode_packet_group((group_definition *)key_agreement_group, data,
+                             encoded_packet, encoded_packet_size, packet_type,
+                             version);
+}
+
 /* 0x803d0 - Encode a key-agreement packet and wrap it in a message.
  * Encodes the packet data (param_2) into a 128-byte stack buffer using
  * encode_packet_group with message type param_1, then calls create_message
@@ -537,15 +559,61 @@ unsigned int FUN_00080eb0(unsigned int limit)
   return result;
 }
 
-/* A 64-bit value addressable both as a plain qword (the exit range check
- * below reproduces the original `s.qword <= 0xFFFFFFFF` compare, recovered
- * verbatim from the assert message string) and as four 16-bit limbs (the
- * math64_multiply/math64_divide calls below take `uint16_t *`). Local to
- * this TU; not 64bit_math.c's math64_half_t, which has no scalar view. */
+/* A 64-bit value addressable both as a plain qword (the exit range check in
+ * FUN_00080fc0 reproduces the original `s.qword <= 0xFFFFFFFF` compare,
+ * recovered verbatim from the assert message string) and as four 16-bit
+ * limbs (the math64_multiply/math64_add/math64_divide calls below take
+ * `uint16_t *`). Shared by FUN_00080f00 and FUN_00080fc0. Local to this TU;
+ * not 64bit_math.c's math64_half_t, which has no scalar view. */
 typedef union {
   uint64_t qword;
   uint16_t word[4];
 } math64_qword_t;
+
+/* 0x80f00 - Compute a pseudo-random 64-bit "key" into *result: start at 1,
+ * then for four iterations sieve primes <=0xffff, pick one at a
+ * pseudo-random index, multiply it into the accumulator, and free the
+ * table -- the same sieve_of_eratosthenes + FUN_00081410 + debug_free
+ * sequence FUN_00080eb0 uses, inlined here per iteration rather than
+ * calling it. Finally adds 2. assert_halt_msg's recovered text ("result")
+ * is the parameter's original name. `result` is declared uint16_t * (like
+ * math64_multiply/math64_add) rather than math64_qword_t * so the global
+ * decl.h prototype does not depend on this TU-local typedef; acc
+ * reinterprets it in place so every write below lands directly in the
+ * caller's buffer, matching the original's direct [EBX]/[EBX+4] stores. */
+void FUN_00080f00(uint16_t *result)
+{
+  math64_qword_t *acc;
+  unsigned int *primes;
+  unsigned int num_primes;
+  unsigned int index;
+  unsigned int prime_value;
+  unsigned int count;
+  math64_qword_t prime;
+  math64_qword_t two;
+
+  assert_halt_msg(result != (uint16_t *)0, "result");
+
+  acc = (math64_qword_t *)result;
+  acc->qword = 1;
+
+  count = 4;
+  do {
+    prime_value = 0;
+    primes = sieve_of_eratosthenes(0xffff, &num_primes);
+    if (primes != (unsigned int *)0) {
+      index = (unsigned int)FUN_00081410(0, (int)(num_primes - 1));
+      prime_value = primes[index];
+      debug_free(primes,
+                 "c:\\halo\\SOURCE\\bungie_net\\common\\prime_numbers.c", 0x89);
+    }
+    prime.qword = prime_value;
+    math64_multiply(acc->word, prime.word, acc->word);
+  } while (--count != 0);
+
+  two.qword = 2;
+  math64_add(acc->word, two.word, acc->word);
+}
 
 /* 0x80fc0 - 32-bit modular exponentiation: base^exponent mod modulus via
  * binary square-and-multiply, computed into a 64-bit accumulator that is

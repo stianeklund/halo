@@ -37992,7 +37992,14 @@
     },
     {
      "addr": "0x803b0",
-     "decl": "void FUN_000803b0(void);"
+     "decl": "bool FUN_000803b0(void *data, char *encoded_packet, short *encoded_packet_size /* @<edx> */, short packet_type /* @<ecx> */, short version /* @<eax> */);",
+     "ported": true,
+     "reg_args": {
+      "encoded_packet_size": "edx",
+      "packet_type": "ecx",
+      "version": "eax"
+     },
+     "source_path": "src/halo/networking/message_header.c"
     },
     {
      "addr": "0x803d0",
@@ -38085,7 +38092,9 @@
     },
     {
      "addr": "0x80f00",
-     "decl": "void FUN_00080f00(void);"
+     "decl": "void FUN_00080f00(uint16_t *result);",
+     "ported": true,
+     "source_path": "src/halo/networking/message_header.c"
     },
     {
      "addr": "0x80fc0",
