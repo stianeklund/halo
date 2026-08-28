@@ -1706,6 +1706,9 @@ typedef void (*draw_string_emit_proc)(void *state, void *font_table,
                                       short dest_y, int src_x, int src_y,
                                       short width, short height);
 
+typedef int (*profile_sort16_compare_proc)(uint16_t a, uint16_t b);
+typedef int (*profile_sort32_compare_proc)(int32_t a, int32_t b);
+
 /* -------------------------------------------------------------------------
  * collision_test_result -- 0x50-byte record filled by the world collision
  * entry points in physics/collision_bsp.c (FUN_0014e7d0, FUN_0014e940).
