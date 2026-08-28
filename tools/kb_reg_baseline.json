@@ -1,4 +1,5 @@
 {
+  "0x91350": "void FUN_00091350(uint32_t *out@<ecx>);",
   "0x1194a0": "void datum_initialize(data_t *data@<esi>, void *datum@<edi>);",
   "0x139e50": "void FUN_00139e50(unsigned int param_1, float *param_2, float *param_3, float param_4, float *color_ptr@<ebx>, float *output_ptr@<esi>, float *intensity_ptr@<edi>);",
   "0x27a10": {
@@ -177,6 +178,9 @@
     "0x90170": "void FUN_00090170(void *dest /* @<eax> */, uint32_t value0, uint32_t value1);",
     "0x906d0": "void FUN_000906d0(char *param_1 /* @<edi> */);",
     "0x907c0": "void FUN_000907c0(char *substring /* @<edi> */, unsigned char active);",
+    "0x91350": "void FUN_00091350(uint32_t *out @<ecx>);",
+    "0x91cf0": "void FUN_00091cf0(uint16_t *end /* @<eax> */, uint16_t *begin, profile_sort16_compare_proc compare);",
+    "0x91d50": "void FUN_00091d50(int32_t *end /* @<eax> */, int32_t *begin, profile_sort32_compare_proc compare);",
     "0x93b60": "void FUN_00093b60(short *angles @<eax>, signed char *cursor @<edx>);",
     "0x93ba0": "void FUN_00093ba0(short *angles @<eax>, short *cursor @<edx>);",
     "0x93be0": "void FUN_00093be0(short *angles @<eax>, float *out_vector);",
@@ -852,5 +856,6 @@
   "0x64fa0": "int FUN_00064fa0(void *tif@<edx>, const char *method);",
   "0x1bb430": "void FUN_001bb430(char *self@<eax>, short *request, short read_buffer_index);",
   "0x1baa50": "void *FUN_001baa50(void *request@<eax>);",
-  "0x1bb7d0": "void cache_copy_initialize_read_data(char *self@<eax>);"
+  "0x1bb7d0": "void cache_copy_initialize_read_data(char *self@<eax>);",
+  "0x91cf0": "void FUN_00091cf0(uint16_t *end /* @<eax> */, uint16_t *begin, profile_sort16_compare_proc compare);"
 }

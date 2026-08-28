@@ -11773,6 +11773,21 @@
       "score": 85.9,
       "source": "src/halo/cseries/profile.c"
     },
+    "FUN_00091350": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x91350",
+      "end": "0x91371",
+      "kind": "auto",
+      "n_r": 17,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "cd31ada98467800f",
+      "score": 100.0,
+      "source": "src/halo/cseries/profile.c"
+    },
     "FUN_00091b70": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -11818,6 +11833,36 @@
       "score": 100.0,
       "source": "src/halo/cseries/profile.c"
     },
+    "FUN_00091cf0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 91.6,
+      "addr": "0x91cf0",
+      "end": "0x91d4a",
+      "kind": "auto",
+      "n_r": 42,
+      "opnd_percent": 81.9,
+      "raw_mnemonic_pct": 91.6,
+      "ref": "synth",
+      "ref_sha": "7698038f4aac86b4",
+      "score": 91.6,
+      "source": "src/halo/cseries/profile.c"
+    },
+    "FUN_00091d50": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 91.1,
+      "addr": "0x91d50",
+      "end": "0x91da0",
+      "kind": "auto",
+      "n_r": 40,
+      "opnd_percent": 81.0,
+      "raw_mnemonic_pct": 91.1,
+      "ref": "synth",
+      "ref_sha": "65719f87697ca428",
+      "score": 91.1,
+      "source": "src/halo/cseries/profile.c"
+    },
     "FUN_00091ef0": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -11832,6 +11877,21 @@
       "ref_sha": "b0652cc4509d309f",
       "score": 6.5,
       "source": "src/halo/unported_thunks.c"
+    },
+    "FUN_00092050": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x92050",
+      "end": "0x9205d",
+      "kind": "auto",
+      "n_r": 6,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "0d9e7944b60c7d8b",
+      "score": 100.0,
+      "source": "src/halo/cseries/profile.c"
     },
     "FUN_00092110": {
       "abi_model": "raw",
@@ -75326,6 +75386,21 @@
       "ref": "synth",
       "ref_sha": "6fc7c98ee318e63b",
       "score": 98.0,
+      "source": "src/halo/cseries/profile.c"
+    },
+    "profile_find_game_value": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x90cd0",
+      "end": "0x90d0e",
+      "kind": "auto",
+      "n_r": 22,
+      "opnd_percent": 86.4,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "2e1b6281f081f578",
+      "score": 100.0,
       "source": "src/halo/cseries/profile.c"
     },
     "profile_frame_end": {

@@ -374,6 +374,26 @@ void FUN_000907c0(char *substring /* @<edi> */, unsigned char active)
   }
 }
 
+/* Asserts name and section_index_reference are both non-null (per the
+ * assert string), then unconditionally writes -1 (0xffff, the same
+ * "not found"/"not started" sentinel used elsewhere in this file, e.g.
+ * profile_frame_iterator_new) to *section_index_reference and returns -1.
+ * Disassembly shows the null-check-failure path (display_assert +
+ * system_exit) and the normal fallthrough path converge on the same
+ * write+return -- name is only null-checked here, never dereferenced. */
+int16_t profile_find_game_value(const char *name,
+                                int16_t *section_index_reference)
+{
+  if (name == NULL || section_index_reference == NULL) {
+    display_assert("name && section_index_reference",
+                   "c:\\halo\\SOURCE\\cseries\\profile.c", 0x4c8, 1);
+    system_exit(-1);
+  }
+
+  *section_index_reference = -1;
+  return -1;
+}
+
 /* Initialize a profile-frame ring iterator: mark it not-yet-started
  * (index sentinel 0xffff) and record the last completed frame's ring
  * index (current ring write index - 1, mod 256) as the iteration bound.
@@ -501,6 +521,18 @@ int32_t profile_frame_get_stalls(void *iterator, int16_t *out_a, int32_t *out_b)
   *out_a = *(int16_t *)(entry + 0x111c);
   *out_b = *(int32_t *)(entry + 0x1120);
   return *(int32_t *)(entry + 0x1118);
+}
+
+/* Read RDTSC into a caller-supplied low/high dword pair (register-argument
+ * helper: out pointer arrives in ECX). Auto-lift-assigned name; no callers
+ * found in this binary. Mirrors the RDTSC macro's two dword stores. */
+void FUN_00091350(uint32_t *out /* @<ecx> */)
+{
+  uint32_t lo, hi;
+
+  RDTSC(lo, hi);
+  out[0] = lo;
+  out[1] = hi;
 }
 
 /* Start timing a game tick. Increments the tick counter and records
@@ -910,6 +942,125 @@ void FUN_00091c70(int *data, void *user_data, int value, char force_update)
       data[0x43] = now;
     }
   }
+}
+
+/* FUN_00091cf0 (0x91cf0) -- generic in-place selection sort over an array of
+ * 16-bit elements, ascending, using a caller-supplied comparator. Sibling of
+ * FUN_00091ef0 (0x91ef0, the int/32-bit-keyed generic sort already declared
+ * in kb.json): same shape (repeatedly scan for the "largest" element per
+ * `compare`, swap it into the current tail slot, shrink the range by one
+ * element), but this variant's elements and pointer stride are 2 bytes
+ * (LEA ESI,[EAX+0x2] / SUB EDI,0x2 at 0x91d00/0x91d3e) instead of 4, and
+ * `end` arrives in EAX (register arg) rather than on the stack. Sole xref is
+ * an unconditional call from FUN_00091da0 (0x91de6), not yet lifted.
+ *
+ * `end` points at the last element to consider (inclusive); `begin` at the
+ * first. No sort happens when the range holds 0 or 1 elements (0x91cf9
+ * CMP EDI,EAX / JBE). Each outer pass linearly scans (begin, end] for the
+ * element `compare` judges greatest, tracking it in `max_elem` (init'd to
+ * `begin`), then swaps that element with *end and steps end down by one
+ * element; the outer loop continues while end > begin (0x91d41/0x91d43).
+ *
+ * Compare call-site push order (0x91d1a-0x91d1c): PUSH *max_elem, PUSH
+ * *scan, CALL -- cdecl right-to-left, so *scan is the first argument and
+ * *max_elem the second: compare(*scan, *max_elem) != 0 means *scan replaces
+ * the running max. Both values are loaded with XOR reg,reg + MOV r16
+ * (explicit zero-extend, not MOVSX), so the element type is unsigned. */
+void FUN_00091cf0(uint16_t *end /* @<eax> */, uint16_t *begin,
+                  profile_sort16_compare_proc compare)
+{
+  uint16_t *scan;
+  uint16_t *max_elem;
+  uint16_t tmp;
+
+  if (end <= begin) {
+    return;
+  }
+
+  do {
+    scan = begin + 1;
+    max_elem = begin;
+    if (scan <= end) {
+      do {
+        if (compare(*scan, *max_elem) != 0) {
+          max_elem = scan;
+        }
+        scan++;
+      } while (scan <= end);
+    }
+
+    tmp = *end;
+    *end = *max_elem;
+    *max_elem = tmp;
+    end--;
+  } while (end > begin);
+}
+
+/* FUN_00091d50 (0x91d50) -- generic in-place selection sort over an array of
+ * 32-bit elements, ascending, using a caller-supplied comparator. Sibling of
+ * FUN_00091cf0 (0x91cf0, the 16-bit-keyed variant just above): identical
+ * shape (repeatedly scan for the "largest" element per `compare`, swap it
+ * into the current tail slot, shrink the range by one element), but this
+ * variant's elements and pointer stride are 4 bytes (LEA ESI,[EAX+0x4] /
+ * SUB EDI,0x4 at 0x91d60/0x91d94) instead of 2, loaded with a plain 32-bit
+ * MOV (dword ptr) rather than a zero-extending 16-bit MOV; `end` arrives in
+ * EAX (register arg), same convention as the 16-bit sibling. Sole xref is
+ * an unconditional call from FUN_00091ef0 (0x91f37), not yet lifted.
+ *
+ * `end` points at the last element to consider (inclusive); `begin` at the
+ * first. No sort happens when the range holds 0 or 1 elements (0x91d59
+ * CMP EDI,EAX / JBE). Each outer pass linearly scans (begin, end] for the
+ * element `compare` judges greatest, tracking it in `max_elem` (init'd to
+ * `begin`), then swaps that element with *end and steps end down by one
+ * element; the outer loop continues while end > begin (0x91d97/0x91d99).
+ *
+ * Compare call-site push order (0x91d74-0x91d76): PUSH *max_elem, PUSH
+ * *scan, CALL -- cdecl right-to-left, so *scan is the first argument and
+ * *max_elem the second: compare(*scan, *max_elem) != 0 means *scan replaces
+ * the running max. */
+void FUN_00091d50(int32_t *end /* @<eax> */, int32_t *begin,
+                  profile_sort32_compare_proc compare)
+{
+  int32_t *scan;
+  int32_t *max_elem;
+  int32_t tmp;
+
+  if (end <= begin) {
+    return;
+  }
+
+  do {
+    scan = begin + 1;
+    max_elem = begin;
+    if (scan <= end) {
+      do {
+        if (compare(*scan, *max_elem) != 0) {
+          max_elem = scan;
+        }
+        scan++;
+      } while (scan <= end);
+    }
+
+    tmp = *end;
+    *end = *max_elem;
+    *max_elem = tmp;
+    end--;
+  } while (end > begin);
+}
+
+/* FUN_00092050 (0x92050) -- one-instruction setter: store the incoming
+ * byte argument into stack_walk_load_failed (0x2ee784), a stack_walk_windows
+ * global (see globals note at the top of stack_walk_windows.c) written from
+ * this profile.obj-resident helper.
+ *
+ * Disassembly: PUSH EBP / MOV EBP,ESP / MOV AL,[EBP+8] / MOV [0x2ee784],AL /
+ * POP EBP / RET -- a byte-width load and store, so the parameter is declared
+ * uint8_t to match the reference's AL-sized argument fetch. No xrefs found
+ * in the decompiled artifact (xrefs_to reported none); caller is elsewhere
+ * in the unlifted binary. */
+void FUN_00092050(uint8_t failed)
+{
+  stack_walk_load_failed = failed;
 }
 
 /* -----------------------------------------------------------------------
