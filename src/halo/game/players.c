@@ -9,6 +9,7 @@ void players_initialize(void)
   *(_WORD *)&players_globals->unk_0[36] = 0;
   player_control_globals = (player_control_globals_t *)game_state_malloc(
     "player control globals", 0, sizeof(player_control_globals_t));
+  player_control_initialize();
 }
 
 void players_initialize_for_new_map(void)

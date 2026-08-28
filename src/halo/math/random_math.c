@@ -499,10 +499,9 @@ void random_math_initialize(void)
 {
   unsigned int seed;
   void *tag;
-  int16_t count;
   int16_t i;
-  float *src;
-  float *dst;
+  vector3_t *src;
+  vector3_t *dst;
 
   seed = system_seconds() ^ system_milliseconds() ^ (unsigned int)rand();
   *(unsigned int *)0x46e3f8 = seed;
@@ -514,19 +513,15 @@ void random_math_initialize(void)
     system_exit(-1);
   }
 
-  count = *(int16_t *)((char *)tag + 0xc);
   *(void **)0x46e3e8 = debug_malloc(
-    (int)count * 12, 0, "c:\\halo\\SOURCE\\math\\random_math.c", 0xb0);
-  *(int16_t *)0x46e3ec = count;
+    (int)*(int16_t *)((char *)tag + 0xc) * 12, 0,
+    "c:\\halo\\SOURCE\\math\\random_math.c", 0xb0);
+  *(int16_t *)0x46e3ec = *(int16_t *)((char *)tag + 0xc);
 
-  i = 0;
-  src = *(float **)((char *)tag + 4);
-  dst = *(float **)0x46e3e8;
-  while (i < *(int16_t *)((char *)tag + 0xc)) {
-    dst[i * 3 + 0] = src[i * 3 + 0];
-    dst[i * 3 + 1] = src[i * 3 + 1];
-    dst[i * 3 + 2] = src[i * 3 + 2];
-    i++;
+  src = *(vector3_t **)((char *)tag + 4);
+  dst = *(vector3_t **)0x46e3e8;
+  for (i = 0; i < *(int16_t *)((char *)tag + 0xc); i++) {
+    dst[i] = src[i];
   }
 
   FUN_001056e0(tag);
@@ -558,10 +553,12 @@ __declspec(noinline) float random_math_real(unsigned int *seed)
 float random_real_range(int *seed, float min, float max)
 {
   unsigned int s;
+  float fraction;
 
   s = (unsigned int)*seed * 0x19660d + 0x3c6ef35f;
   *seed = (int)s;
-  return (float)(s >> 16) / 65535.0f * (max - min) + min;
+  fraction = (float)(s >> 16) * *(float *)0x2647f4;
+  return fraction * (max - min) + min;
 }
 
 /* Advance an LCG seed and return the upper 16 bits. */
@@ -867,9 +864,12 @@ float FUN_0010c340(float *v1, float *v2)
  * 0x10c390 / random_math.obj */
 float FUN_0010c390(float param_1, float param_2, uint8_t param_3)
 {
+  float fraction;
+
   if (param_3 == 0xff)
     return param_2;
-  return (param_2 - param_1) * param_3 * *(float *)0x261518 + param_1;
+  fraction = (float)param_3 * *(float *)0x261518;
+  return fraction * (param_2 - param_1) + param_1;
 }
 
 /* Compute the angle (radians) between two 3D vectors v1 and v2.

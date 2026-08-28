@@ -5122,7 +5122,7 @@ int actor_look_secondary(int actor_handle)
   if (((actor_t *)actor)->field_09e == '\0') {
     if (*(short *)(actor + 0xa4) == 0) {
       ret = actor_move_to_prop(
-        actor_handle, ((actor_t *)actor)->target_target_prop_index, 3.0f);
+        actor_handle, ((actor_t *)actor)->target_target_prop_index, 2.5f);
       if (!ret) {
         *(char *)(actor + 0x9c) = 1;
         ((actor_t *)actor)->field_09d = 1;

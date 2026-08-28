@@ -6007,8 +6007,8 @@ int FUN_00112260(int strm)
   *(int *)(s + 0x10) = *(int *)(s + 8);
   *(int *)(s + 0x14) = 0;
   if (*(int *)(s + 0x18) < 0)
-    *(int *)(s + 0x18) = 0;
-  *(int *)(s + 4) = (-(int)(*(int *)(s + 0x18) != 0) & 0x47) + 0x2a;
+    *(int *)(s + 0x18) = -*(int *)(s + 0x18);
+  *(int *)(s + 4) = *(int *)(s + 0x18) ? 42 : 113;
   *(int *)(strm + 0x30) = 1;
   *(int *)(s + 0x20) = 0;
   _tr_init(s);

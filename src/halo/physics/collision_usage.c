@@ -506,7 +506,7 @@ void FUN_0014cf20(int param_1)
  */
 int FUN_0014cfe0(int param_1, int param_2)
 {
-  if (*(int *)(param_2 + 8) < *(int *)(param_1 + 8)) {
+  if (*(int *)(param_1 + 8) > *(int *)(param_2 + 8)) {
     return -1;
   }
   return *(int *)(param_1 + 8) < *(int *)(param_2 + 8);
