@@ -72886,16 +72886,16 @@
     "perpendicular3d": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 98.2,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x10b620",
       "end": "0x10b6aa",
       "kind": "auto",
       "n_r": 55,
-      "opnd_percent": 98.2,
-      "raw_mnemonic_pct": 98.2,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "e2b3715c0401177f",
-      "score": 98.2,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "perpendicular4d": {

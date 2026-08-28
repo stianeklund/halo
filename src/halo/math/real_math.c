@@ -1547,8 +1547,8 @@ void perpendicular3d(float *in, float *out)
     out[1] = in[2];
     out[2] = -in[1];
   } else if (abs_y <= abs_z) {
-    out[1] = 0.0f;
     out[0] = -in[2];
+    out[1] = 0.0f;
     out[2] = in[0];
   } else {
     out[0] = in[1];
