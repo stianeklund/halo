@@ -42628,6 +42628,21 @@
       "score": 14.0,
       "source": "src/halo/unported_thunks.c"
     },
+    "FUN_0019ce70": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 90.9,
+      "addr": "0x19ce70",
+      "end": "0x19ceb5",
+      "kind": "auto",
+      "n_r": 22,
+      "opnd_percent": 86.4,
+      "raw_mnemonic_pct": 90.9,
+      "ref": "synth",
+      "ref_sha": "1cf1f042ab9dfc06",
+      "score": 90.9,
+      "source": "src/halo/text/international_strings.c"
+    },
     "FUN_0019cff0": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -80596,17 +80611,17 @@
     "set_language_code": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 50.0,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x19d060",
       "end": "0x19d07b",
       "kind": "auto",
       "n_r": 11,
-      "opnd_percent": 37.5,
-      "raw_mnemonic_pct": 50.0,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "54cab78d9d804d2d",
-      "score": 50.0,
-      "source": "src/halo/unported_thunks.c"
+      "score": 100.0,
+      "source": "src/halo/text/international_strings.c"
     },
     "set_random_seed": {
       "abi_model": "raw",
@@ -85527,6 +85542,21 @@
       "ref_sha": "fa338ef190345ac7",
       "score": 100.0,
       "source": "src/halo/text/unicode.c"
+    },
+    "unicode_string_contains_char": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 90.3,
+      "addr": "0x19d380",
+      "end": "0x19d3bc",
+      "kind": "auto",
+      "n_r": 33,
+      "opnd_percent": 83.9,
+      "raw_mnemonic_pct": 90.3,
+      "ref": "synth",
+      "ref_sha": "217e2acb809acdf1",
+      "score": 90.3,
+      "source": "src/halo/text/international_strings.c"
     },
     "unit_abort_animation": {
       "abi_model": "raw",

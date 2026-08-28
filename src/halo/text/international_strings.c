@@ -1,3 +1,45 @@
+/* 0x19ce70 — Seed the shared draw-string cursor hit-test search and resolve
+ * the text cursor position nearest a screen point.
+ *
+ * Writes the reference point (*ref_point, a packed pair of shorts) and a
+ * "no match yet" sentinel into the small globals block at 0x4d9af0 that
+ * FUN_0019b430 (draw_string.c) reads/updates per candidate text element:
+ *   0x4d9af0 (short ref_x) / 0x4d9af2 (short ref_y) <- *ref_point
+ *   0x4d9af4 (short) cursor marker A -> reset to 0, returned
+ *   0x4d9af6 (short) best distance   -> reset to 0x7fff (sentinel)
+ *   0x4d9af8 (short) cursor marker B -> reset to 0
+ * Then walks the text layout via FUN_0019c5d0 (international_strings.obj,
+ * same TU) with FUN_0019b430 as the per-element hit-test callback — same
+ * calling idiom as the FUN_0019c5d0 call in rasterizer_text.c. Returns the
+ * resulting cursor marker.
+ */
+int16_t FUN_0019ce70(void *screen_pos, char *text, const void *ref_point)
+{
+  *(int *)0x4d9af0 = *(const int *)ref_point;
+  *(int16_t *)0x4d9af4 = 0;
+  *(int16_t *)0x4d9af6 = 0x7fff;
+  *(int16_t *)0x4d9af8 = 0;
+
+  FUN_0019c5d0(FUN_0019b430, screen_pos, 0, 0, 0, text);
+
+  return *(int16_t *)0x4d9af4;
+}
+
+/* 0x19d060 — Set the language/encoding selector read by
+ * unicode_is_multibyte below. Values outside 0..5 (the encodings that
+ * switch recognizes: 1=Shift-JIS, 2=Big5, 3=GBK, 4=Johab-like,
+ * 5=Thai-like, 0=none) are clamped to 0. Stores into the encoding
+ * selector global at 0x4d9be0. */
+void set_language_code(short code)
+{
+  if (code < 0)
+    code = 0;
+  else if (code >= 6)
+    code = 0;
+
+  *(int16_t *)0x4d9be0 = code;
+}
+
 /* 0x19d080 — Return true if the two bytes starting at p form a valid
  * multibyte character under the current language encoding.
  *
@@ -146,4 +188,24 @@ void unicode_snap_cursor(const char *str, int16_t *cursor)
   }
 
   *cursor = pos;
+}
+
+/* 0x19d380 — Return true if character ch occurs anywhere in str. Walks str
+ * with unicode_cursor_forward from position 0, comparing each decoded
+ * character against ch, stopping at the terminating 0 (not found) or at the
+ * first match (found). Callers (parse_string, draw_string.obj) use this to
+ * test a decoded character against small delimiter-set strings. */
+bool unicode_string_contains_char(uint16_t ch, const char *str)
+{
+  int16_t cursor;
+  uint16_t c;
+
+  cursor = 0;
+  do {
+    c = unicode_cursor_forward(str, &cursor);
+    if (c == 0)
+      return 0;
+  } while (c != ch);
+
+  return 1;
 }

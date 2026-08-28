@@ -32552,7 +32552,8 @@
     },
     {
      "addr": "0x19ce70",
-     "decl": "void FUN_0019ce70(void);"
+     "decl": "int16_t FUN_0019ce70(void *screen_pos, char *text, const void *ref_point);",
+     "ported": true
     },
     {
      "addr": "0x19cec0",
@@ -32564,7 +32565,8 @@
     },
     {
      "addr": "0x19d060",
-     "decl": "void set_language_code(short code);"
+     "decl": "void set_language_code(short code);",
+     "ported": true
     },
     {
      "addr": "0x19d080",
@@ -32588,7 +32590,8 @@
     },
     {
      "addr": "0x19d380",
-     "decl": "void FUN_0019d380(void);"
+     "decl": "bool unicode_string_contains_char(uint16_t ch, const char *str);",
+     "ported": true
     },
     {
      "addr": "0x19d3c0",

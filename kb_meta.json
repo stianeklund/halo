@@ -9900,6 +9900,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf0d10": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf0ea0": {
       "kind": "function",
       "status": "ported"
