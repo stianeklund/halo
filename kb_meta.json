@@ -1491,6 +1491,10 @@
         "No direct code or data xref to 0x43090 was found, so any indirect dispatch caller remains unresolved."
       ]
     },
+    "0x43270": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x434c0": {
       "kind": "function",
       "status": "ported",
@@ -1503,6 +1507,10 @@
       ]
     },
     "0x43520": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x435b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -3739,6 +3747,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x86410": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x86600": {
       "kind": "function",
       "status": "ported"
@@ -4079,11 +4091,51 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x8f870": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8f880": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8f8c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8f8e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x8fa40": {
       "kind": "function",
       "status": "ported"
     },
     "0x8fac0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x90650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x90cd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x910b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x91110": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x91190": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x91220": {
       "kind": "function",
       "status": "ported"
     },
@@ -9455,6 +9507,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe3b80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3bb0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe3be0": {
       "kind": "function",
       "status": "ported"
@@ -9477,6 +9537,14 @@
         "The existing ui_widget_debug_show_path name is retained conservatively; binary evidence proves only a one-byte store to 0x46cc84, not broader path-debug semantics."
       ]
     },
+    "0xe3cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3cd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xe3d20": {
       "kind": "function",
       "status": "ported",
@@ -9484,6 +9552,14 @@
         "stack_memory_pool_realloc at 0x11fbe0 is the name inferred from the stack_memory_pool.c source path in its assert strings and its role as the realloc counterpart to stack_memory_pool_deallocate.",
         "stack_memory_pool_realloc at 0x11fbe0 is the name inferred from the stack_memory_pool.c source path in its assert strings and its role as the realloc counterpart to stack_memory_pool_deallocate."
       ]
+    },
+    "0xe3d50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xe3d70": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xe3e10": {
       "kind": "function",
@@ -9796,7 +9872,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xef900": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf0070": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf01d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf0430": {
       "kind": "function",
       "status": "ported"
     },
@@ -16665,6 +16753,22 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1bb5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bb7d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bbea0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bc360": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1bc6a0": {
       "kind": "function",
       "status": "ported"
@@ -16742,6 +16846,10 @@
       "status": "ported"
     },
     "0x1bcfb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1bd4d0": {
       "kind": "function",
       "status": "ported"
     },
@@ -17032,6 +17140,10 @@
       "status": "ported"
     },
     "0x1c0220": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c0260": {
       "kind": "function",
       "status": "ported"
     },
@@ -18041,78 +18153,6 @@
     },
     "0x5065a4": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0x43270": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x435b0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x86410": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe3b80": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe3bb0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe3cb0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe3cd0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe3d50": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xe3d70": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xef900": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xf01d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xf0430": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bb5a0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bb7d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bbea0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bc360": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1bd4d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c0260": {
-      "kind": "function",
       "status": "ported"
     }
   }

@@ -68,9 +68,7 @@ bool unicode_is_multibyte(const uint8_t *p)
  * advances by 1. Returns the character as uint16_t. */
 uint16_t unicode_cursor_forward(const char *str, int16_t *cursor)
 {
-  const uint8_t *p;
-
-  if (*cursor < 0 || (unsigned int)(int)*cursor > csstrlen(str)) {
+  if (*cursor < 0 || (size_t)*cursor > csstrlen(str)) {
     display_assert(csprintf((char *)0x5ab100,
                             "#%d is out of range in string @%p", (int)*cursor,
                             str),
@@ -78,16 +76,16 @@ uint16_t unicode_cursor_forward(const char *str, int16_t *cursor)
     system_exit(-1);
   }
 
-  p = (const uint8_t *)(str + *cursor);
-  if (unicode_is_multibyte(p)) {
-    uint8_t b1 = p[0];
-    uint8_t b2 = p[1];
+  str += *cursor;
+  if (unicode_is_multibyte((const uint8_t *)str)) {
+    uint16_t ch = (uint16_t)(((uint8_t)str[0] << 8) | (uint8_t)str[1]);
     *cursor += 2;
-    return (uint16_t)((b1 << 8) | b2);
+    return ch;
+  } else {
+    uint16_t ch = (uint8_t)str[0];
+    *cursor += 1;
+    return ch;
   }
-
-  *cursor += 1;
-  return (uint16_t)p[0];
 }
 
 /* 0x19d240 — Move cursor backward by one character. Scans forward from

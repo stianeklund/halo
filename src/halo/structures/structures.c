@@ -6988,52 +6988,43 @@ char structure_render_surface_from_point_and_leaf(
 int32_t structure_get_planar_fog_definition_index(void *structure_bsp,
                                                   int16_t index, char flag)
 {
-  int16_t fog_ref; /* AX-resident through every gate in the original */
+  int16_t fog_ref;
   char *element;
-  int32_t result = -1; /* EDI; all failure paths share the sunk return */
+  int32_t result = -1;
 
-  if (index == -1) {
-    return result;
-  }
-
-  element =
-    tag_block_get_element((char *)structure_bsp + 0x134, (int)index, 0x68);
-
-  /* flag != 0 arm falls through first in the original; the cluster path is
-   * the sunk arm at 0x198781 */
-  if (flag != '\0') {
-    element = FUN_0018e7d0(0);
-    if (element == 0) {
-      goto fail;
+  if (index != -1) {
+    element =
+      tag_block_get_element((char *)structure_bsp + 0x134, (int)index, 0x68);
+    fog_ref = flag;
+    if (fog_ref) {
+      element = FUN_0018e7d0(0);
+      if (element != 0) {
+        return *(int32_t *)(element + 0xa4);
+      }
+    } else {
+      fog_ref = *(int16_t *)(element + 2);
+      if (fog_ref != -1) {
+        if (fog_ref < 0) {
+          element = tag_block_get_element((char *)structure_bsp + 0x178,
+                                          fog_ref & 0x7fff, 0x20);
+          fog_ref = *(int16_t *)element;
+        } else {
+          fog_ref &= 0x7fff;
+        }
+        if (fog_ref != -1) {
+          element = tag_block_get_element((char *)structure_bsp + 0x184,
+                                          (int)fog_ref, 0x28);
+          fog_ref = *(int16_t *)(element + 0x24);
+          if (fog_ref != -1) {
+            element = tag_block_get_element((char *)structure_bsp + 0x190,
+                                            (int)fog_ref, 0x88);
+            return *(int32_t *)(element + 0x2c);
+          }
+        }
+      }
     }
-    return *(int32_t *)(element + 0xa4);
   }
 
-  fog_ref = *(int16_t *)(element + 2);
-  if (fog_ref == -1) {
-    goto fail;
-  }
-  if (fog_ref < 0) {
-    element = tag_block_get_element((char *)structure_bsp + 0x178,
-                                    fog_ref & 0x7fff, 0x20);
-    fog_ref = *(int16_t *)element;
-  } else {
-    fog_ref = (int16_t)(fog_ref & 0x7fff);
-  }
-  if (fog_ref == -1) {
-    goto fail;
-  }
-  element =
-    tag_block_get_element((char *)structure_bsp + 0x184, (int)fog_ref, 0x28);
-  fog_ref = *(int16_t *)(element + 0x24);
-  if (fog_ref == -1) {
-    goto fail;
-  }
-  element =
-    tag_block_get_element((char *)structure_bsp + 0x190, (int)fog_ref, 0x88);
-  return *(int32_t *)(element + 0x2c);
-
-fail:
   return result;
 }
 

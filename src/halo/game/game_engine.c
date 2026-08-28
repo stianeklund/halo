@@ -1310,12 +1310,8 @@ int game_engine_remap_vehicle(int param_1)
  * type. */
 
 int game_engine_remap_weapon(int param_1)
-
 {
   int index;
-
-  int result;
-
 
   index = weapon_definition_index_to_list_index(param_1);
 
@@ -1344,97 +1340,61 @@ int game_engine_remap_weapon(int param_1)
     }
 
   case 2:
-
-    /* Original (T2 @0xa98d4 + JA 0xa9888): every index OUTSIDE {3,4,6,7}
-     * — including 5 and out-of-range — maps to list index 0. */
     switch (index) {
     case 3:
     case 4:
     case 6:
     case 7:
-
       return list_index_to_weapon_definition_index(6);
     }
-
-    return list_index_to_weapon_definition_index(0);
+    index = 0;
+    break;
 
   case 3:
-
-    if (index > 2 && index < 6)
-
-      return list_index_to_weapon_definition_index(5);
-
-    return list_index_to_weapon_definition_index(6);
+    if (index < 3 || index > 5)
+      return list_index_to_weapon_definition_index(6);
+    return list_index_to_weapon_definition_index(5);
 
   case 4:
-
     if (index != 4 && index != 9)
-
       return list_index_to_weapon_definition_index(9);
-
     break;
 
   case 5:
-
-    /* Original (0xa9836): index 4 -> JZ 0xa9888 (XOR EAX) = list 0. */
     if (index == 4)
-
-      return list_index_to_weapon_definition_index(0);
-
-    if (index == 9)
-
+      index = 0;
+    else if (index == 9)
       return list_index_to_weapon_definition_index(8);
-
     break;
 
   case 6:
-
     return list_index_to_weapon_definition_index(7);
 
   case 7:
-
     return list_index_to_weapon_definition_index(8);
 
   case 8:
-
     switch (index) {
     case 0:
     case 3:
     case 4:
     case 9:
-
       return list_index_to_weapon_definition_index(8);
     }
-
     break;
 
   case 9:
-
-    /* Original (0xa9875): index 3 -> list 0 (JZ 0xa9888); index 5 ->
-     * list 4 (0xa97cb); index 6 -> list 0 (fallthrough to 0xa9888);
-     * everything else passes through. */
-    if (index == 3)
-
-      return list_index_to_weapon_definition_index(0);
-
-    if (index == 5)
-
+    if (index == 3 || index == 6)
+      index = 0;
+    else if (index == 5)
       return list_index_to_weapon_definition_index(4);
-
-    if (index == 6)
-
-      return list_index_to_weapon_definition_index(0);
-
     break;
 
   default:
-
     break;
   }
 
-  result = list_index_to_weapon_definition_index(index);
-
-  return result;
+  return list_index_to_weapon_definition_index(index);
 }
 
 /* game_engine_man_out (0xa9900)
@@ -7235,11 +7195,7 @@ int ctf_unit_can_enter_seat(int weapon_handle, int player_handle)
             *(int16_t *)(player + 0xc2) = *(int16_t *)(player + 0xc2) + 1;
             game_show_score_you_ally_enemy(player_handle, 0x23, 0x28, 0x26,
                                            player_handle);
-            {
-              char event =
-                (-(uint32_t)(*(int *)(player + 0x20) != 0) & 0xfffffffd) + 0xc;
-              game_engine_post_event(event);
-            }
+            game_engine_post_event(*(int *)(player + 0x20) ? 9 : 12);
           }
         }
         cheats_apply(weapon_handle);
@@ -7254,11 +7210,7 @@ int ctf_unit_can_enter_seat(int weapon_handle, int player_handle)
         *(int16_t *)(player + 0xc0) = *(int16_t *)(player + 0xc0) + 1;
         variant = (int)game_engine_get_variant();
         if (*(char *)(variant + 0x4c) == 0) {
-          {
-            char event =
-              (-(uint32_t)(*(int *)(player + 0x20) != 0) & 0xfffffffd) + 0xb;
-            game_engine_post_event(event);
-          }
+          game_engine_post_event(*(int *)(player + 0x20) ? 8 : 11);
           *(char *)(0x456b90 + flag_team) = 1;
           *(int *)(0x456b94 + flag_team * 4) = 0;
           game_show_score_you_ally_enemy(player_handle, -1, 0x27, 0x24,
@@ -8874,11 +8826,14 @@ int FUN_000b3120(int param_1)
     if (*(int16_t *)(biped + 0x2a2) != -1) {
       weapon_handle = *(int *)(biped + 0x2a8 + *(int16_t *)(biped + 0x2a2) * 4);
       if (weapon_handle != -1 && weapon_is_flag(weapon_handle)) {
-        score = *(int *)(0x456e4c + (param_1 & 0xffff) * 4);
+        int index = param_1 & 0xffff;
+        int time_sec;
+        score = *(int *)(0x456e4c + index * 4);
+        time_sec = score / 30;
         weapon = (int)object_get_and_verify_type(weapon_handle, 4);
         if (0 < score && score % 0x96 == 0 && score < *(int *)0x456e08)
           game_engine_post_event(0x2a);
-        *(int16_t *)(weapon + 0x260) = (int16_t)(score / 30);
+        *(int16_t *)(weapon + 0x260) = (int16_t)time_sec;
       }
     }
   }
@@ -9169,29 +9124,18 @@ int FUN_000b3770(int param_1)
 /* Fix duplicate netgame flag sequence indices by reassigning conflicts. */
 
 void FUN_000b3860(void)
-
 {
   int *flag_block;
-
   int16_t i;
-
   int elem;
-
   int16_t seq;
-
   uint32_t used_mask;
-
   int j;
-
   int scenario;
 
-
   scenario = (int)global_scenario_get();
-
   flag_block = (int *)(scenario + 0x378);
-
   used_mask = 0;
-
   i = 0;
 
   if (0 < *flag_block) {
@@ -9199,34 +9143,27 @@ void FUN_000b3860(void)
       elem = (int)tag_block_get_element(flag_block, (int)i, 0x94);
 
       if (((netgame_flag *)elem)->type == 3 &&
-
           ((netgame_flag *)elem)->team_index >= 0 &&
-
           ((netgame_flag *)elem)->team_index < 0x20) {
         seq = ((netgame_flag *)elem)->team_index;
 
-        if ((used_mask & (1u << ((uint8_t)seq & 0x1f))) == 0) {
-          used_mask |= (1u << ((uint8_t)seq & 0x1f));
-
-        } else {
+        if ((used_mask & (1 << seq)) != 0) {
           for (j = 0; j < 0x20; j++) {
-            if ((used_mask & (1u << ((uint8_t)j & 0x1f))) == 0) {
-              used_mask |= (1u << ((uint8_t)seq & 0x1f));
-
+            if ((used_mask & (1 << j)) == 0) {
+              used_mask |= (1 << seq);
               ((netgame_flag *)elem)->team_index = (int16_t)j;
-
               break;
             }
           }
 
           if (j >= 0x20)
-
             ((netgame_flag *)elem)->team_index = (int16_t)j;
+        } else {
+          used_mask |= (1 << seq);
         }
       }
 
       i++;
-
     } while ((int)i < *flag_block);
   }
 }
