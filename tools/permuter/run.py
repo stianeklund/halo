@@ -583,8 +583,12 @@ def build_base_c(func_name: str, func_body: str, file_statics: str = "") -> str:
                 block_text = "".join(current_block)
                 mname = re.search(r"(\w+)\s*;\s*$", block_text.rstrip())
                 name = mname.group(1) if mname else None
-                guard_names = _FI_TYPEDEF_NAMES | _typedef_names_in_text(PYCPARSER_TYPEDEFS)
-                if name and name not in guard_names and '__int64' not in block_text:
+                pyc_names = _typedef_names_in_text(PYCPARSER_TYPEDEFS)
+                guard_names = _FI_TYPEDEF_NAMES | pyc_names
+                if name and name in pyc_names:
+                    # Already in PYCPARSER_TYPEDEFS; do not duplicate in type_statics
+                    pass
+                elif name and name not in guard_names and '__int64' not in block_text:
                     func_statics_lines.extend(current_block)
                 else:
                     type_statics_lines.extend(current_block)
