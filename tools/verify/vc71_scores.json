@@ -11758,6 +11758,21 @@
       "score": 91.4,
       "source": "src/halo/cseries/profile.c"
     },
+    "FUN_000907c0": {
+      "abi_model": "regparam_stripped_saves",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 85.9,
+      "addr": "0x907c0",
+      "end": "0x9085e",
+      "kind": "auto",
+      "n_r": 62,
+      "opnd_percent": 53.1,
+      "raw_mnemonic_pct": 85.3,
+      "ref": "synth",
+      "ref_sha": "d5a5cb390472bc68",
+      "score": 85.9,
+      "source": "src/halo/cseries/profile.c"
+    },
     "FUN_00091b70": {
       "abi_model": "raw",
       "abi_model_items": 0,

@@ -176,6 +176,7 @@
     "0x8fb60": "void FUN_0008fb60(void *ring_entry /* @<eax> */, char *out_buf /* @<esi> */, int buf_size);",
     "0x90170": "void FUN_00090170(void *dest /* @<eax> */, uint32_t value0, uint32_t value1);",
     "0x906d0": "void FUN_000906d0(char *param_1 /* @<edi> */);",
+    "0x907c0": "void FUN_000907c0(char *substring /* @<edi> */, unsigned char active);",
     "0x93b60": "void FUN_00093b60(short *angles @<eax>, signed char *cursor @<edx>);",
     "0x93ba0": "void FUN_00093ba0(short *angles @<eax>, short *cursor @<edx>);",
     "0x93be0": "void FUN_00093be0(short *angles @<eax>, float *out_vector);",

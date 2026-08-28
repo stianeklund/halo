@@ -306,6 +306,74 @@ void FUN_000906d0(char *param_1 /* @<edi> */)
   *(uint8_t *)0x3365c0 = 1;
 }
 
+/* FUN_000907c0 (0x907c0) -- shared worker for profile_sections_activate
+ * (0x90860) and profile_sections_deactivate (0x90880): walks
+ * profile_globals.sections[] (0x3361b4, count at 0x3361b0, both raw
+ * addresses per this file's convention -- see find_profile_section) and
+ * writes each matching section's "active" byte (offset 8, same field
+ * find_profile_section checks as "section->active") to the caller-
+ * supplied flag.
+ *
+ * substring arrives in EDI (unaff_EDI in the decompile -- caller-set,
+ * never saved/restored here, matching FUN_000906d0's @<edi> pattern).
+ * active is an ordinary cdecl stack arg, read/written as a single byte
+ * at [EBP+8]/[section+8].
+ *
+ * Match rule per section (tested in this order, first hit wins):
+ *   - csstrcmp(substring, "*") == 0: every section matches. Computed
+ *     once before the loop (BL in the disassembly), not per-section.
+ *   - substring[0] == '_': matches when section name starts with
+ *     substring+1. The inline compare loop only checks that substring+1
+ *     is exhausted (hits '\0'); it never re-checks the name for its own
+ *     terminator at that point, so this is a PREFIX test, not exact
+ *     equality -- name may run on longer than substring+1.
+ *   - otherwise: matches when substring appears anywhere in the section
+ *     name (crt_strstr(name, substring) != NULL). */
+void FUN_000907c0(char *substring /* @<edi> */, unsigned char active)
+{
+  int is_wildcard;
+  char leading_underscore;
+  int16_t i;
+  void **sections;
+
+  is_wildcard = (csstrcmp(substring, "*") == 0);
+  leading_underscore = (*substring == '_');
+  sections = (void **)0x3361b4;
+
+  for (i = 0; i < *(int16_t *)0x3361b0; i++) {
+    char *section = (char *)sections[i];
+    char *name = *(char **)section;
+    int matched;
+
+    if (is_wildcard) {
+      matched = 1;
+    } else if (leading_underscore) {
+      char *p = substring + 1;
+      char c = *p;
+
+      matched = 1;
+      if (c != '\0') {
+        int offset = (int)name - (int)p;
+
+        do {
+          if (c != p[offset]) {
+            matched = 0;
+            break;
+          }
+          c = p[1];
+          p = p + 1;
+        } while (c != '\0');
+      }
+    } else {
+      matched = (crt_strstr(name, substring) != NULL);
+    }
+
+    if (matched) {
+      *(unsigned char *)(section + 8) = active;
+    }
+  }
+}
+
 /* Initialize a profile-frame ring iterator: mark it not-yet-started
  * (index sentinel 0xffff) and record the last completed frame's ring
  * index (current ring write index - 1, mod 256) as the iteration bound.

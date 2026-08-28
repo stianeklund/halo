@@ -19604,7 +19604,11 @@
     },
     {
      "addr": "0x907c0",
-     "decl": "void FUN_000907c0(void);"
+     "decl": "void FUN_000907c0(char *substring /* @<edi> */, unsigned char active);",
+     "ported": true,
+     "reg_args": {
+      "substring": "edi"
+     }
     },
     {
      "addr": "0x90860",
