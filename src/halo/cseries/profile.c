@@ -1090,3 +1090,48 @@ void symbol_table_dispose(int32_t *symtab)
   symtab[1] = 0;
   symtab[2] = 0;
 }
+
+/* -----------------------------------------------------------------------
+ * FUN_000921c0 (0x921c0) -- linear-search a 3-word table for an entry
+ * whose name matches `name`, returning the matched entry's value field
+ * (or -1 if none matched). table[0]=count, table[1]=name-pool base,
+ * table[2]=entries base; this is the same 3-field shape documented for
+ * symtab in symbol_table_dispose (0x92090) directly above, but that is
+ * a structural resemblance only -- nothing in this function's own
+ * disassembly proves it is the identical struct, so the parameter stays
+ * generically named rather than reusing "symtab".
+ *
+ * Each entry is 0x10 bytes; entry+4 is the value returned on a match,
+ * entry+8 is a byte offset into the name pool for that entry's name
+ * string (entry_name = *(int32_t*)(entries+i*0x10+8) + table[1]).
+ * The search starts at entry index 1, skipping entry 0 entirely (no
+ * disassembly evidence for why -- likely a reserved/sentinel slot).
+ *
+ * Disassembly: no early-out on match -- TEST EAX,EAX / JNZ only skips
+ * the result-store on a NON-match; the loop always runs to
+ * index == table[0], and count/table[2] are re-read from memory on
+ * every iteration rather than cached in a register. So if more than
+ * one entry compares equal, the LAST matching entry's value wins. */
+int32_t FUN_000921c0(const char *name, int32_t *table)
+{
+  int32_t result;
+  int32_t index;
+  int32_t offset;
+
+  result = -1;
+  index = 1;
+
+  if (1 < table[0]) {
+    offset = 0x10;
+    do {
+      if (csstrcmp(name, (char *)(*(int32_t *)(offset + 8 + table[2]) +
+                                  table[1])) == 0) {
+        result = *(int32_t *)(offset + 4 + table[2]);
+      }
+      index = index + 1;
+      offset = offset + 0x10;
+    } while (index < table[0]);
+  }
+
+  return result;
+}

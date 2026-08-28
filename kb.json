@@ -19790,7 +19790,8 @@
     },
     {
      "addr": "0x921c0",
-     "decl": "void FUN_000921c0(void);"
+     "decl": "int32_t FUN_000921c0(const char *name, int32_t *table);",
+     "ported": true
     },
     {
      "addr": "0x922a0",

@@ -12013,6 +12013,21 @@
       "score": 11.3,
       "source": "src/halo/unported_thunks.c"
     },
+    "FUN_000921c0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x921c0",
+      "end": "0x9221b",
+      "kind": "auto",
+      "n_r": 40,
+      "opnd_percent": 80.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "c58a2331193795af",
+      "score": 100.0,
+      "source": "src/halo/cseries/profile.c"
+    },
     "FUN_000922a0": {
       "abi_model": "raw",
       "abi_model_items": 0,
