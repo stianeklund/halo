@@ -76261,16 +76261,16 @@
     "quantize_real_to_byte_lower_bound": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 95.1,
+      "abi_modeled_mnemonic_pct": 98.5,
       "addr": "0x10fb20",
       "end": "0x10fc5a",
       "kind": "auto",
       "n_r": 103,
-      "opnd_percent": 90.2,
-      "raw_mnemonic_pct": 95.1,
+      "opnd_percent": 93.7,
+      "raw_mnemonic_pct": 98.5,
       "ref": "synth",
       "ref_sha": "d6357bfd082bff49",
-      "score": 95.1,
+      "score": 98.5,
       "source": "src/halo/math/real_math.c"
     },
     "quantize_real_to_byte_rectangle3d": {

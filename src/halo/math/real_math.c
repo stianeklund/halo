@@ -3955,22 +3955,23 @@ unsigned char quantize_real_to_byte_lower_bound(float min, float max,
    * because a NaN would already have been caught above. */
   if (!(min - *(float *)0x253f44 <= value) ||
       !(max + *(float *)0x253f44 >= value)) {
-    csprintf((char *)0x5ab100, "%lf is not between %lf and %lf", (double)value,
-             (double)min, (double)max);
-    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\math\\real_math.c",
-                   0xaf3, 1);
+    display_assert(csprintf((char *)0x5ab100,
+                            "%lf is not between %lf and %lf", (double)value,
+                            (double)min, (double)max),
+                   "c:\\halo\\SOURCE\\math\\real_math.c", 0xaf3, 1);
     system_exit(-1);
   }
 
-  for (; test > 0; test--) {
-    if (test == 0xff)
-      dequant = max;
-    else
-      dequant = (float)test * (1.0f / 255.0f) * range + min;
-    /* ref: fld value; fcomp st(1); test ah,5; jp -> break on
-     * !(value < dequant), NaN breaks */
-    if (!(value < dequant))
-      break;
+  if (test > 0) {
+    do {
+      if (test == 0xff)
+        dequant = max;
+      else
+        dequant = (float)test * (1.0f / 255.0f) * range + min;
+      if (!(value < dequant))
+        break;
+      test--;
+    } while (test != 0);
   }
 
   if (test == 0xff)
