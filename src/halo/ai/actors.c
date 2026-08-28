@@ -3485,35 +3485,47 @@ void actor_set_team(int actor_handle, int16_t team_index)
   char *unit;
   int unit_handle;
   short i;
+  int new_var2;
+  data_t *new_var3;
+  char *new_var;
 
-  actor = (char *)datum_get(actor_data, actor_handle);
-  if (*(char *)(actor + 6) != 0) {
-    if (((actor_t *)actor)->meta_swarm_cache_index != -1) {
-      /* Swarm actor with swarm handle: iterate swarm member array */
-      swarm = (char *)datum_get(swarm_data,
-                                ((actor_t *)actor)->meta_swarm_cache_index);
+  new_var3 = swarm_data;
+  actor = (char *) datum_get(actor_data, actor_handle);
+  if ((*((char *) (actor + 6))) != 0)
+  {
+    if (((actor_t *) actor)->meta_swarm_cache_index != (-1))
+    {
+      swarm = (char *) datum_get(new_var3, ((actor_t *) actor)->meta_swarm_cache_index);
       i = 0;
-      while (i < *(short *)(swarm + 2)) {
-        unit = (char *)object_get_and_verify_type(
-          *(int *)(swarm + 0x18 + (int)i * 4), 3);
+      while (i < (*((short *) (swarm + 2))))
+      {
+        new_var = swarm;
+        unit = (char *) object_get_and_verify_type(*((int *) ((new_var + 0x18) + (((int) i) * 4))), 3);
         i++;
-        *(int16_t *)(unit + 0x68) = team_index;
+        *((int16_t *) (0x68 + unit)) = team_index;
       }
-    } else {
-      /* Swarm actor with no swarm handle: walk the unit linked list */
-      unit_handle = ((actor_t *)actor)->field_024;
-      while (unit_handle != -1) {
-        unit = (char *)object_get_and_verify_type(unit_handle, 3);
-        *(int16_t *)(unit + 0x68) = team_index;
-        unit_handle = *(int *)(unit + 0x1ac);
-      }
+
     }
-  } else {
-    /* Non-swarm actor: set team on the single associated unit */
-    unit_handle = ((actor_t *)actor)->field_018;
-    if (unit_handle != -1) {
-      unit = (char *)object_get_and_verify_type(unit_handle, 3);
-      *(int16_t *)(unit + 0x68) = team_index;
+    else
+    {
+      unit_handle = ((actor_t *) actor)->field_024;
+      while (unit_handle != (-1))
+      {
+        unit = (char *) object_get_and_verify_type(unit_handle, 3);
+        *((int16_t *) (unit + 0x68)) = team_index;
+        unit_handle = *((int *) (unit + 0x1ac));
+      }
+
+    }
+  }
+  else
+  {
+    new_var2 = 1;
+    unit_handle = ((actor_t *) actor)->field_018;
+    if (unit_handle != (-new_var2))
+    {
+      unit = (char *) object_get_and_verify_type(unit_handle, 3);
+      *((int16_t *) (unit + 0x68)) = team_index;
     }
   }
 }

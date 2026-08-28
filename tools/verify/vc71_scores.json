@@ -49846,16 +49846,16 @@
     "actor_set_team": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 95.0,
+      "abi_modeled_mnemonic_pct": 95.7,
       "addr": "0x3aac0",
       "end": "0x3ab71",
       "kind": "auto",
       "n_r": 71,
-      "opnd_percent": 95.0,
-      "raw_mnemonic_pct": 95.0,
+      "opnd_percent": 87.1,
+      "raw_mnemonic_pct": 95.7,
       "ref": "synth",
       "ref_sha": "354a40098908ae0f",
-      "score": 95.0,
+      "score": 95.7,
       "source": "src/halo/ai/actors.c"
     },
     "actor_situation_combat_status_update": {
