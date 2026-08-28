@@ -1,31 +1,45 @@
 {
-  "generated": "2026-08-26T02:24:30.261414+00:00",
+  "generated": "2026-08-28T09:45:44.148733+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-08-26T02:23:19Z",
+    "last_run_time": "2026-08-28T09:44:44Z",
     "last_commit": "fc11d861",
     "workflows": [
       {
         "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-08-26T02:23:19Z",
+        "created_at": "2026-08-28T09:44:44Z",
         "head_sha": "fc11d861",
-        "url": "https://github.com/stianeklund/halo/actions/runs/32922533567"
+        "url": "https://github.com/stianeklund/halo/actions/runs/33160620916"
       },
       {
         "name": "Equivalence Tests",
         "conclusion": "failure",
-        "created_at": "2026-08-26T00:35:21Z",
+        "created_at": "2026-08-28T07:26:09Z",
         "head_sha": "fc11d861",
-        "url": "https://github.com/stianeklund/halo/actions/runs/32915687525"
+        "url": "https://github.com/stianeklund/halo/actions/runs/33151442846"
+      },
+      {
+        "name": "Runtime Oracle Tests",
+        "conclusion": "failure",
+        "created_at": "2026-08-27T14:55:27Z",
+        "head_sha": "fc11d861",
+        "url": "https://github.com/stianeklund/halo/actions/runs/33084942654"
+      },
+      {
+        "name": "Audit Gates",
+        "conclusion": "failure",
+        "created_at": "2026-08-27T13:37:37Z",
+        "head_sha": "fc11d861",
+        "url": "https://github.com/stianeklund/halo/actions/runs/33077808971"
       },
       {
         "name": "pages-build-deployment",
         "conclusion": "success",
-        "created_at": "2026-08-25T22:39:58Z",
-        "head_sha": "f870ed00",
-        "url": "https://github.com/stianeklund/halo/actions/runs/32907223489"
+        "created_at": "2026-08-26T02:24:40Z",
+        "head_sha": "f7e763f0",
+        "url": "https://github.com/stianeklund/halo/actions/runs/32922615858"
       },
       {
         "name": "Snapshot Verification",
@@ -35,25 +49,11 @@
         "url": "https://github.com/stianeklund/halo/actions/runs/32907091756"
       },
       {
-        "name": "Audit Gates",
-        "conclusion": "failure",
-        "created_at": "2026-08-25T22:38:17Z",
-        "head_sha": "fc11d861",
-        "url": "https://github.com/stianeklund/halo/actions/runs/32907091755"
-      },
-      {
         "name": ".github/workflows/main.yml",
         "conclusion": "failure",
         "created_at": "2026-08-25T22:38:17Z",
         "head_sha": "fc11d861",
         "url": "https://github.com/stianeklund/halo/actions/runs/32907091716"
-      },
-      {
-        "name": "Runtime Oracle Tests",
-        "conclusion": "success",
-        "created_at": "2026-08-25T04:32:56Z",
-        "head_sha": "26b4a108",
-        "url": "https://github.com/stianeklund/halo/actions/runs/32809383833"
       }
     ]
   },
