@@ -3,6 +3,27 @@
 /* Global: pointer to key_agreement_packets group definition at 0x2ee588. */
 #define key_agreement_group ((void *)0x2ee588)
 
+/* 0x80380 - Decode a key-agreement packet: thin wrapper around
+ * decode_packet_group (FUN_0011aa40, data_packet_groups.c) bound to the
+ * key_agreement_group definition, the decode twin of 0x803d0's
+ * encode_packet_group call below. Three params (packet_type,
+ * packet_version, expected_packet_class) arrive in EDX/ECX/EAX
+ * (binary-proven: PUSH EDX/ECX/EAX at entry save the incoming register
+ * values before EAX/ECX/EDX are reloaded from the stack args, and those
+ * saved copies are the last three cdecl pushes before the CALL). The
+ * function does not touch EAX after the CALL, so FUN_0011aa40's bool
+ * return value passes through unmodified (implicit-EAX return, no
+ * comparison in the wrapper). */
+bool FUN_00080380(void *decoded_packet, char *encoded_packet,
+                  short *encoded_packet_size, short *packet_type /* @<edx> */,
+                  short *packet_version /* @<ecx> */,
+                  short expected_packet_class /* @<eax> */)
+{
+  return FUN_0011aa40((int)key_agreement_group, decoded_packet, encoded_packet,
+                      encoded_packet_size, packet_type, packet_version,
+                      expected_packet_class);
+}
+
 /* 0x803d0 - Encode a key-agreement packet and wrap it in a message.
  * Encodes the packet data (param_2) into a 128-byte stack buffer using
  * encode_packet_group with message type param_1, then calls create_message
@@ -37,6 +58,56 @@ unsigned short *key_agreement_build_message(short type, void *data, int buffer,
     }
   }
   return (unsigned short *)0;
+}
+
+/* 0x80470 - Pack prime/g/key values and build a key-agreement message.
+ * Copies two dwords (8 bytes) from each of prime, g, key (register args,
+ * binary-proven: TEST ESI/EBX/EDI at entry, tested in that order matching
+ * the assert text "prime && g && key") into a contiguous 24-byte stack
+ * buffer in that order (prime, then g, then key), then forwards buffer and
+ * buffer_size unchanged to key_agreement_build_message with message type 0
+ * and the packed buffer as data. Return value is discarded (binary-proven:
+ * no test of EAX after the CALL). Asserts and halts if prime, g, or key is
+ * NULL. */
+void FUN_00080470(int buffer, unsigned short buffer_size,
+                  unsigned int *prime /* @<esi> */,
+                  unsigned int *g /* @<ebx> */, unsigned int *key /* @<edi> */)
+{
+  unsigned int packed_data[6];
+
+  assert_halt_msg(prime != (unsigned int *)0 && g != (unsigned int *)0 &&
+                    key != (unsigned int *)0,
+                  "prime && g && key");
+
+  packed_data[0] = prime[0];
+  packed_data[1] = prime[1];
+  packed_data[2] = g[0];
+  packed_data[3] = g[1];
+  packed_data[4] = key[0];
+  packed_data[5] = key[1];
+
+  key_agreement_build_message(0, packed_data, buffer, buffer_size);
+}
+
+/* 0x804e0 - Pack a key value and build a key-agreement message (single-value
+ * variant of FUN_00080470: one 8-byte operand instead of the prime/g/key
+ * triple). Copies two dwords (8 bytes) from key (register arg, binary-proven:
+ * TEST ESI at entry, tested against assert text "key") into an 8-byte stack
+ * buffer, then forwards buffer and buffer_size unchanged to
+ * key_agreement_build_message with message type 1 and the packed buffer as
+ * data. Return value is discarded (binary-proven: no test of EAX after the
+ * CALL). Asserts and halts if key is NULL. */
+void FUN_000804e0(int buffer, unsigned short buffer_size,
+                  unsigned int *key /* @<esi> */)
+{
+  unsigned int packed_data[2];
+
+  assert_halt_msg(key != (unsigned int *)0, "key");
+
+  packed_data[0] = key[0];
+  packed_data[1] = key[1];
+
+  key_agreement_build_message(1, packed_data, buffer, buffer_size);
 }
 
 /* ========================================================================
@@ -121,8 +192,10 @@ void tea_encrypt(unsigned int *v, unsigned int *w, int *key)
 
   do {
     iVar3 = iVar3 + (int)0x9E3779B9u; /* -0x61c88647 mod 2^32 */
-    uVar1 += (((uVar2 << 4) + key[0]) ^ (uVar2 + (unsigned int)iVar3)) ^ ((uVar2 >> 5) + key[1]);
-    uVar2 += (((uVar1 << 4) + key[2]) ^ (uVar1 + (unsigned int)iVar3)) ^ ((uVar1 >> 5) + key[3]);
+    uVar1 += (((uVar2 << 4) + key[0]) ^ (uVar2 + (unsigned int)iVar3)) ^
+             ((uVar2 >> 5) + key[1]);
+    uVar2 += (((uVar1 << 4) + key[2]) ^ (uVar1 + (unsigned int)iVar3)) ^
+             ((uVar1 >> 5) + key[3]);
     count = count - 1;
   } while (count != 0);
 
@@ -147,8 +220,10 @@ void tea_decrypt(unsigned int *v, unsigned int *w, int *key)
   count = 0x20;
 
   do {
-    uVar1 -= (((uVar2 << 4) + key[2]) ^ (uVar2 + (unsigned int)iVar3)) ^ ((uVar2 >> 5) + key[3]);
-    uVar2 -= (((uVar1 << 4) + key[0]) ^ (uVar1 + (unsigned int)iVar3)) ^ ((uVar1 >> 5) + key[1]);
+    uVar1 -= (((uVar2 << 4) + key[2]) ^ (uVar2 + (unsigned int)iVar3)) ^
+             ((uVar2 >> 5) + key[3]);
+    uVar2 -= (((uVar1 << 4) + key[0]) ^ (uVar1 + (unsigned int)iVar3)) ^
+             ((uVar1 >> 5) + key[1]);
     iVar3 = iVar3 + 0x61c88647;
     count = count - 1;
   } while (count != 0);
@@ -337,7 +412,8 @@ after_malloc:
     build_message_header((unsigned short *)buffer, payload_len + 2,
                          (unsigned char)type, 0);
     if (payload != 0) {
-      csmemcpy((void *)(buffer + 2), (void *)payload, (unsigned short)payload_len);
+      csmemcpy((void *)(buffer + 2), (void *)payload,
+               (unsigned short)payload_len);
     }
   }
   return buffer;
@@ -437,4 +513,162 @@ unsigned int *sieve_of_eratosthenes(unsigned int limit,
     }
   }
   return primes;
+}
+
+/* 0x80eb0 - Build a sieved prime table for [2, limit], pick one entry at a
+ * pseudo-random index via FUN_00081410(0, num_primes-1), then free the whole
+ * table with debug_free. Returns the picked prime, or 0 if the sieve
+ * produced no table. */
+unsigned int FUN_00080eb0(unsigned int limit)
+{
+  unsigned int *primes;
+  unsigned int num_primes;
+  unsigned int index;
+  unsigned int result;
+
+  result = 0;
+  primes = sieve_of_eratosthenes(limit, &num_primes);
+  if (primes != (unsigned int *)0) {
+    index = (unsigned int)FUN_00081410(0, (int)(num_primes - 1));
+    result = primes[index];
+    debug_free(primes, "c:\\halo\\SOURCE\\bungie_net\\common\\prime_numbers.c",
+               0x89);
+  }
+  return result;
+}
+
+/* A 64-bit value addressable both as a plain qword (the exit range check
+ * below reproduces the original `s.qword <= 0xFFFFFFFF` compare, recovered
+ * verbatim from the assert message string) and as four 16-bit limbs (the
+ * math64_multiply/math64_divide calls below take `uint16_t *`). Local to
+ * this TU; not 64bit_math.c's math64_half_t, which has no scalar view. */
+typedef union {
+  uint64_t qword;
+  uint16_t word[4];
+} math64_qword_t;
+
+/* 0x80fc0 - 32-bit modular exponentiation: base^exponent mod modulus via
+ * binary square-and-multiply, computed into a 64-bit accumulator that is
+ * never returned to the caller (void, no output parameter). This TU
+ * (public_key_crypt.c) is unfinished RSA-support scaffolding the 2276 beta
+ * does not appear to exercise -- consistent with the seeded/broken
+ * math64_multiply and operand-swapped math64_divide primitives it calls
+ * (see 64bit_math.c), which make the "product" this function computes not
+ * an actual modular power.
+ *
+ * Confirmed (0x80fc0-0x81080):
+ *  - Register args, no stack params: exponent@<eax> (aliased into EBX for
+ *    the whole body), base@<ecx>, modulus@<edx>. All three are 32-bit
+ *    values, zero-extended into a 64-bit slot (dword pair, high dword
+ *    forced to 0) before being handed to the 64bit_math.c helpers.
+ *  - `TEST EBX,EBX` at entry (0x80fc9) is tested by the `JZ 0x8107c` at
+ *    0x80fee -- i.e. exponent==0 skips the loop entirely -- but the flags
+ *    survive three unrelated MOV stores (the s/base/modulus initialization)
+ *    in between, so those inits run unconditionally before the branch.
+ *  - Standard binary modexp: multiply-by-base runs only when the current
+ *    exponent bit is set (`TEST BL,1` / `JZ` at 0x80ff4/0x80ff7); square
+ *    runs every iteration unconditionally. `SHR EBX,1` (0x8102c) is
+ *    scheduled between the square step's arg pushes and its CALL -- pure
+ *    instruction scheduling, since nothing reads the shifted exponent
+ *    before the bottom-of-loop continuation test.
+ *  - Each multiply+divide pair is two back-to-back cdecl calls sharing one
+ *    combined cleanup: `ADD ESP,0x1c` = 0x1c/4 = 7 dwords = multiply's 3
+ *    args + divide's 4 args, not a single 7-arg call.
+ *  - math64_divide's quotient argument is a literal `PUSH 0x0` (NULL) at
+ *    both call sites -- only the remainder output is used:
+ *    `accumulator = product % modulus` (subject to math64_divide's own
+ *    documented numerator/denominator swap).
+ *  - Exit range check (0x8104d-0x81052) is the textbook two-step expansion
+ *    of a 64-bit-vs-32-bit-constant compare (`accumulator > 0xFFFFFFFF`,
+ *    whose constant has high dword 0): `TEST` the accumulator's high dword
+ *    / `JA` assert; only reached when that's false does it fall through to
+ *    `CMP` the low dword against -1 / `JBE` exit (always true for a 32-bit
+ *    value, so the low-dword compare is dead in practice -- an artifact of
+ *    the constant's shape, not a second condition). The recovered assert
+ *    string at 0x265d88 is literally "s.qword <= 0xFFFFFFFF", which both
+ *    confirms this reading and gives the accumulator's original name.
+ *  - display_assert args at 0x8106a: __FILE__ 0x265da0 =
+ *    "c:\halo\SOURCE\bungie_net\common\public_key_crypt.c", line 0x5f.
+ */
+void FUN_00080fc0(uint32_t exponent /* @<eax> */, uint32_t base /* @<ecx> */,
+                  uint32_t modulus /* @<edx> */)
+{
+  math64_qword_t s;
+  math64_qword_t b;
+  math64_qword_t m;
+  math64_qword_t product;
+
+  s.qword = 1;
+  b.qword = base;
+  m.qword = modulus;
+
+  while (exponent != 0) {
+    if ((exponent & 1) != 0) {
+      math64_multiply(s.word, b.word, product.word);
+      math64_divide(product.word, m.word, NULL, s.word);
+    }
+
+    exponent >>= 1;
+    math64_multiply(b.word, b.word, product.word);
+    math64_divide(product.word, m.word, NULL, b.word);
+  }
+
+  assert_halt_at("c:\\halo\\SOURCE\\bungie_net\\common\\public_key_crypt.c",
+                 0x5f, s.qword <= 0xFFFFFFFF);
+}
+
+/* 0x81090 - validate Diffie-Hellman parameters then compute modexp.
+ * Register-arg entry point (no stack params, no prologue): callers set
+ * p@esi, x@ebx, g@edi before calling in. All three asserts recovered
+ * verbatim from cachebeta.xbe .rdata at the same __FILE__ FUN_00080fc0
+ * uses (c:\halo\SOURCE\bungie_net\common\public_key_crypt.c):
+ *   0x70 "p>2", 0x71 "x<(p-1)", 0x72 "g<p".
+ * After validation, tail-calls FUN_00080fc0 (modexp: base^exponent mod
+ * modulus) with x/g/p in FUN_00080fc0's declared register slots
+ * (exponent@eax, base@ecx, modulus@edx) -- confirmed by the MOV EDX,ESI /
+ * MOV EAX,EBX / MOV ECX,EDI register shuffle immediately before the
+ * original JMP 0x80fc0 tail call. */
+void FUN_00081090(uint32_t p /* @<esi> */, uint32_t x /* @<ebx> */,
+                  uint32_t g /* @<edi> */)
+{
+  assert_halt_msg_at("p>2",
+                     "c:\\halo\\SOURCE\\bungie_net\\common\\public_key_crypt.c",
+                     0x70, p > 2);
+  assert_halt_msg_at("x<(p-1)",
+                     "c:\\halo\\SOURCE\\bungie_net\\common\\public_key_crypt.c",
+                     0x71, x < (p - 1));
+  assert_halt_msg_at("g<p",
+                     "c:\\halo\\SOURCE\\bungie_net\\common\\public_key_crypt.c",
+                     0x72, g < p);
+
+  FUN_00080fc0(x, g, p);
+}
+
+/* 0x81110 - Validate Diffie-Hellman exponent/modulus then compute modexp.
+ * Standard cdecl prologue (PUSH EBP/MOV EBP,ESP, no locals): one stack
+ * param g@[EBP+8], plus register args p@esi, x@edi (binary-proven: CMP
+ * ESI,0x2 / LEA EAX,[ESI-1] / CMP EDI,EAX operate directly on the incoming
+ * register values, no reload from a stack slot). Only two of the three
+ * FUN_00081090 checks are present here (no g<p check). Both asserts
+ * recovered verbatim from cachebeta.xbe .rdata at the same __FILE__
+ * FUN_00080fc0/FUN_00081090 use
+ * (c:\halo\SOURCE\bungie_net\common\public_key_crypt.c): 0x85 "p>2" (string
+ * bytes read directly from the pristine XBE at VA 0x265de0, confirmed "p>2\0"
+ * -- Ghidra's decompile showed it as an unresolved PTR_DAT because it
+ * immediately follows "x<(p-1)\0" at 0x265dd8 in .rdata, not because it's a
+ * different string), 0x86 "x<(p-1)". After validation, tail-calls FUN_00080fc0
+ * (modexp: base^exponent mod modulus) with x/g/p in FUN_00080fc0's declared
+ *   register slots (exponent@eax, base@ecx, modulus@edx) -- confirmed by
+ *   the MOV ECX,[EBP+8] / MOV EDX,ESI / MOV EAX,EDI register shuffle
+ *   immediately before the original JMP 0x80fc0 tail call. */
+void FUN_00081110(uint32_t g, uint32_t x /* @<edi> */, uint32_t p /* @<esi> */)
+{
+  assert_halt_msg_at("p>2",
+                     "c:\\halo\\SOURCE\\bungie_net\\common\\public_key_crypt.c",
+                     0x85, p > 2);
+  assert_halt_msg_at("x<(p-1)",
+                     "c:\\halo\\SOURCE\\bungie_net\\common\\public_key_crypt.c",
+                     0x86, x < (p - 1));
+
+  FUN_00080fc0(x, g, p);
 }

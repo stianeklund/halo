@@ -920,7 +920,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -7021,7 +7021,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7082,7 +7082,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -26145,7 +26145,7 @@
     },
     {
      "addr": "0x81410",
-     "decl": "void FUN_00081410(void);"
+     "decl": "int FUN_00081410(int low, int high);"
     },
     {
      "addr": "0x81480",
@@ -37980,7 +37980,14 @@
    "functions": [
     {
      "addr": "0x80380",
-     "decl": "void FUN_00080380(void);"
+     "decl": "bool FUN_00080380(void *decoded_packet, char *encoded_packet, short *encoded_packet_size, short *packet_type /* @<edx> */, short *packet_version /* @<ecx> */, short expected_packet_class /* @<eax> */);",
+     "ported": true,
+     "reg_args": {
+      "packet_type": "edx",
+      "packet_version": "ecx",
+      "expected_packet_class": "eax"
+     },
+     "source_path": "halo/networking/message_header.c"
     },
     {
      "addr": "0x803b0",
@@ -37992,11 +37999,15 @@
     },
     {
      "addr": "0x80470",
-     "decl": "void FUN_00080470(void);"
+     "decl": "void FUN_00080470(int buffer, unsigned short buffer_size, unsigned int *prime /* @<esi> */, unsigned int *g /* @<ebx> */, unsigned int *key /* @<edi> */);",
+     "ported": true,
+     "source_path": "src/halo/networking/message_header.c"
     },
     {
      "addr": "0x804e0",
-     "decl": "void FUN_000804e0(void);"
+     "decl": "void FUN_000804e0(int buffer, unsigned short buffer_size, unsigned int *key /* @<esi> */);",
+     "ported": true,
+     "source_path": "src/halo/networking/message_header.c"
     },
     {
      "addr": "0x80530",
@@ -38068,7 +38079,8 @@
     },
     {
      "addr": "0x80eb0",
-     "decl": "void FUN_00080eb0(void);"
+     "decl": "unsigned int FUN_00080eb0(unsigned int limit);",
+     "ported": true
     },
     {
      "addr": "0x80f00",
@@ -38076,15 +38088,21 @@
     },
     {
      "addr": "0x80fc0",
-     "decl": "void FUN_00080fc0(void);"
+     "decl": "void FUN_00080fc0(uint32_t exponent /* @<eax> */, uint32_t base /* @<ecx> */, uint32_t modulus /* @<edx> */);",
+     "ported": true,
+     "source_path": "src/halo/networking/message_header.c"
     },
     {
      "addr": "0x81090",
-     "decl": "void FUN_00081090(void);"
+     "decl": "void FUN_00081090(uint32_t p /* @<esi> */, uint32_t x /* @<ebx> */, uint32_t g /* @<edi> */);",
+     "ported": true,
+     "source_path": "src/halo/networking/message_header.c"
     },
     {
      "addr": "0x81110",
-     "decl": "void FUN_00081110(void);"
+     "decl": "void FUN_00081110(uint32_t g, uint32_t x /* @<edi> */, uint32_t p /* @<esi> */);",
+     "ported": true,
+     "source_path": "src/halo/networking/message_header.c"
     }
    ],
    "name": "message_header.obj",
