@@ -581,6 +581,60 @@ bool ui_widget_pop_history_stack_once(void *widget, void *event_data,
   return true;
 }
 
+/* difficulty menu item select (0xf0640, ui_widget_game_data_function_table
+ * xref 0x31e2e4) — asserts the widget is a column list (widget+0xe == 3).
+ * If the "difficulty forced for this map" flag (DAT_0046ce3b) is set and
+ * the current map (main_get_map_name()) case-insensitively matches the
+ * forced-map name string (DAT_0046cd38), preselects the forced difficulty
+ * child index (DAT_0046ce38, a stored int16); otherwise preselects index 1
+ * (default difficulty). Stores the resolved child widget pointer at
+ * widget+0x38 and the selected index at widget+0x3c — the same "selected
+ * list item" field pair FUN_000f46e0 uses at +0x3c for its spinner list. */
+bool ui_widget_game_data_select_difficulty_item(void *widget)
+{
+  const char *map_name;
+  void *child;
+  short forced_index;
+
+  if (*(short *)((char *)widget + 0xe) != 3) {
+    display_assert(
+      "expected column list for difficulty menu widget",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+      0x12fc, 1);
+    system_exit(-1);
+  }
+
+  if (*(unsigned char *)0x46ce3b == 1) {
+    map_name = main_get_map_name();
+    if (crt_stricmp((const char *)0x46cd38, map_name) == 0) {
+      forced_index = *(short *)0x46ce38; /* DAT_0046ce38 */
+      child = widget_instance_get_nth_child(widget, forced_index);
+      if (child == NULL) {
+        display_assert(
+          "failed to find 'difficulty' menu item",
+          "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+          0x1301, 1);
+        system_exit(-1);
+      }
+      *(void **)((char *)widget + 0x38) = child;
+      *(short *)((char *)widget + 0x3c) = *(short *)0x46ce38;
+      return true;
+    }
+  }
+
+  child = widget_instance_get_nth_child(widget, 1);
+  if (child == NULL) {
+    display_assert(
+      "failed to find 'difficulty' menu item",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_event_handler_functions.c",
+      0x1307, 1);
+    system_exit(-1);
+  }
+  *(void **)((char *)widget + 0x38) = child;
+  *(short *)((char *)widget + 0x3c) = 1;
+  return true;
+}
+
 void ui_widget_game_data_function_invoke(
   void *widget, unsigned __int16 game_data_input_reference_function)
 {
@@ -592,6 +646,342 @@ void ui_widget_game_data_function_invoke(
     ui_widget_game_data_function_table[game_data_input_reference_function](
       widget);
   }
+}
+
+/* FUN_000f0aa0 (0xf0aa0)
+ * Updates the extended-description text/pic widgets for a "settings select"
+ * list widget's currently highlighted item. Resolves the widget's owner's
+ * definition tag via widget+0x48 (tag_get('DeLa', tag_index)) and asserts
+ * it is a settings-select widget definition (tag+0x3e0 == 2). Walks the
+ * sibling chain at widget+0x34 (via +0x2c "next sibling"), counting the
+ * index of the previously-selected child (widget+0x38), then asserts the
+ * shape of the extended-description container hanging off
+ * (*(widget+0x48))+0x34 — a container widget (+0xe==0) whose first child
+ * (+0x2c) is a text-box widget (+0xe==1) — and writes the resolved index
+ * into both the container (+0x50) and its text child (+0x40).
+ *
+ * MSVC reuses the dead incoming widget parameter's stack slot (EBP+8) to
+ * cache the text-box child pointer once it is no longer needed as widget;
+ * represented below with a separate local (text_widget). */
+void FUN_000f0aa0(void *widget)
+{
+  void *widget_def;
+  void *description_container;
+  void *text_widget;
+  int child;
+  short index;
+
+  widget_def =
+    tag_get(0x44654c61 /* 'DeLa' */, **(int **)((char *)widget + 0x48));
+
+  if ((*(int *)((char *)widget + 0x38) == 0) ||
+      (*(int *)((char *)widget + 0x48) == 0)) {
+    display_assert(
+      "invalid widget trying to update its extended list description",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x12c, 1);
+    system_exit(-1);
+  }
+
+  if (*(int *)((char *)widget_def + 0x3e0) != 2) {
+    display_assert(
+      "this doesn't look like the settings select widget to me",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x12d, 1);
+    system_exit(-1);
+  }
+
+  description_container =
+    *(void **)((char *)*(int *)((char *)widget + 0x48) + 0x34);
+  text_widget = *(void **)((char *)description_container + 0x2c);
+
+  child = *(int *)((char *)widget + 0x34);
+  index = 0;
+  if (child != 0) {
+    int selected_child = *(int *)((char *)widget + 0x38);
+    do {
+      if (child == selected_child)
+        break;
+      child = *(int *)((char *)child + 0x2c);
+      index = index + 1;
+    } while (child != 0);
+    if (index == -1) {
+      return;
+    }
+  }
+
+  if (*(short *)((char *)description_container + 0xe) != 0) {
+    display_assert(
+      "expected a container widget for the settings select list extended "
+      "description pic",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x138, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)text_widget + 0xe) == 1) {
+    *(short *)((char *)description_container + 0x50) = index;
+    *(short *)((char *)text_widget + 0x40) = index;
+    return;
+  }
+
+  display_assert(
+    "expected a text box widget for the settings select list extended "
+    "description text",
+    "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c", 0x139,
+    1);
+  system_exit(-1);
+}
+
+/* FUN_000f0bb0 (0xf0bb0)
+ * Same purpose as FUN_000f0aa0 above (updates an extended-description
+ * widget for a "settings select" list widget's currently highlighted
+ * item), but for a widget whose extended-description owner (widget+0x48)
+ * holds the index directly on its container ((*(widget+0x48))+0x34) and
+ * that container's first child (+0x2c), rather than distinguishing a
+ * container/text-box pair by type. Counts the index of widget's
+ * currently-selected sibling (widget+0x34 chain via +0x2c, compared
+ * against widget+0x38), resolves the owner's definition tag via
+ * tag_get('DeLa', *(widget+0x48)) and asserts it is a 2-child widget
+ * definition (tag+0x3e0 == 2), then writes the resolved index into both
+ * the container (+0x40) and its first child (+0x50). */
+void FUN_000f0bb0(void *widget)
+{
+  int child;
+  short index;
+  void *widget_def;
+  int container;
+
+  if ((widget == 0) || (*(int *)((char *)widget + 0x38) == 0) ||
+      (*(int *)((char *)widget + 0x48) == 0)) {
+    display_assert(
+      "invalid widget trying to update its extended list description",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x14d, 1);
+    system_exit(-1);
+  }
+
+  child = *(int *)((char *)widget + 0x34);
+  index = 0;
+  if (child != 0) {
+    int selected_child = *(int *)((char *)widget + 0x38);
+    do {
+      if (child == selected_child)
+        break;
+      child = *(int *)((char *)child + 0x2c);
+      index = index + 1;
+    } while (child != 0);
+    if (index == -1) {
+      return;
+    }
+  }
+
+  widget_def =
+    tag_get(0x44654c61 /* 'DeLa' */, *(int *)*(int *)((char *)widget + 0x48));
+
+  if (*(int *)((char *)widget_def + 0x3e0) != 2) {
+    display_assert(
+      "expected a container widget w/ 2 children for the playlist settings "
+      "list extended description",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x15b, 1);
+    system_exit(-1);
+  }
+
+  container = *(int *)((char *)*(int *)((char *)widget + 0x48) + 0x34);
+  *(short *)((char *)container + 0x40) = index;
+  *(short *)((char *)*(int *)((char *)container + 0x2c) + 0x50) = index;
+}
+
+/* FUN_000f0c60 (0xf0c60)
+ * Same shape as FUN_000f0bb0 above (updates an extended-description widget
+ * for a "settings select" list widget's currently highlighted item, owner
+ * holding the index directly on its container), reusing the identical
+ * pooled string literals for both display_assert messages — only the
+ * embedded __LINE__ values (0x173, 0x181 vs 0x14d, 0x15b) differ. */
+void FUN_000f0c60(void *widget)
+{
+  int child;
+  short index;
+  void *widget_def;
+  int container;
+
+  if ((widget == 0) || (*(int *)((char *)widget + 0x38) == 0) ||
+      (*(int *)((char *)widget + 0x48) == 0)) {
+    display_assert(
+      "invalid widget trying to update its extended list description",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x173, 1);
+    system_exit(-1);
+  }
+
+  child = *(int *)((char *)widget + 0x34);
+  index = 0;
+  if (child != 0) {
+    int selected_child = *(int *)((char *)widget + 0x38);
+    do {
+      if (child == selected_child)
+        break;
+      child = *(int *)((char *)child + 0x2c);
+      index = index + 1;
+    } while (child != 0);
+    if (index == -1) {
+      return;
+    }
+  }
+
+  widget_def =
+    tag_get(0x44654c61 /* 'DeLa' */, *(int *)*(int *)((char *)widget + 0x48));
+
+  if (*(int *)((char *)widget_def + 0x3e0) != 2) {
+    display_assert(
+      "expected a container widget w/ 2 children for the playlist settings "
+      "list extended description",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x181, 1);
+    system_exit(-1);
+  }
+
+  container = *(int *)((char *)*(int *)((char *)widget + 0x48) + 0x34);
+  *(short *)((char *)container + 0x40) = index;
+  *(short *)((char *)*(int *)((char *)container + 0x2c) + 0x50) = index;
+}
+
+/* playlist_settings_menu_update_extended_description (0xf0d10)
+ * Same purpose as FUN_000f0bb0/FUN_000f0c60 above (updates an
+ * extended-description widget for a "settings select" list widget's
+ * currently-highlighted item: counts the index of widget's currently
+ * selected sibling via the +0x34/+0x2c chain compared against widget+0x38),
+ * but does not resolve a 'DeLa' tag definition — instead it validates
+ * widget+0x48's container (+0x34) and that container's first child (+0x2c)
+ * directly, and writes the resolved index to container+0x50 and
+ * (container's first child)+0x40, the offsets swapped relative to
+ * FUN_000f0bb0/FUN_000f0c60's +0x40/+0x50 writes. The final two stores each
+ * re-derive the container from widget+0x48 independently (matching two
+ * separate reloads in the disassembly, 0xf0d75 and 0xf0d7f), rather than
+ * reusing the value computed for the guard check. */
+void playlist_settings_menu_update_extended_description(void *widget)
+{
+  int container;
+  int child;
+  short index;
+
+  if ((widget == 0) || (*(int *)((char *)widget + 0x38) == 0) ||
+      (*(int *)((char *)widget + 0x48) == 0) ||
+      (container = *(int *)((char *)*(int *)((char *)widget + 0x48) + 0x34),
+       container == 0) ||
+      (*(int *)((char *)container + 0x2c) == 0)) {
+    display_assert(
+      "invalid widget trying to update its extended list description",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x1a6, 1);
+    system_exit(-1);
+  }
+
+  child = *(int *)((char *)widget + 0x34);
+  index = 0;
+  if (child != 0) {
+    int selected_child = *(int *)((char *)widget + 0x38);
+    do {
+      if (child == selected_child)
+        break;
+      child = *(int *)((char *)child + 0x2c);
+      index = index + 1;
+    } while (child != 0);
+    if (index == -1) {
+      return;
+    }
+  }
+
+  *(short *)((char *)*(int *)((char *)*(int *)((char *)widget + 0x48) + 0x34) +
+             0x50) = index;
+  *(short *)((char *)*(
+               int *)((char *)*(int *)((char *)*(int *)((char *)widget + 0x48) +
+                                       0x34) +
+                      0x2c) +
+             0x40) = index;
+}
+
+/* FUN_000f0d90 (0xf0d90)
+ * Same shape as FUN_000f0aa0 above (updates the extended-description
+ * text/pic widgets for a "settings select" list widget's currently
+ * highlighted item), but for the difficulty-select widget: resolves the
+ * widget's owner's definition tag via widget+0x48 (tag_get('DeLa',
+ * tag_index)) and asserts it is a 2-child widget definition (tag+0x3e0 ==
+ * 2). Walks the sibling chain at widget+0x34 (via +0x2c "next sibling"),
+ * counting the index of the previously-selected child (widget+0x38), then
+ * asserts the shape of the extended-description container hanging off
+ * (*(widget+0x48))+0x34 — a container widget (+0xe==0) whose first child
+ * (+0x2c) is a text-box widget (+0xe==1) — and writes the resolved index
+ * into both the container (+0x50) and its text child (+0x40). */
+void FUN_000f0d90(void *widget)
+{
+  void *widget_def;
+  void *description_container;
+  void *text_widget;
+  int child;
+  short index;
+
+  widget_def =
+    tag_get(0x44654c61 /* 'DeLa' */, **(int **)((char *)widget + 0x48));
+
+  if ((*(int *)((char *)widget + 0x38) == 0) ||
+      (*(int *)((char *)widget + 0x48) == 0)) {
+    display_assert(
+      "invalid widget trying to update its extended list description",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x237, 1);
+    system_exit(-1);
+  }
+
+  if (*(int *)((char *)widget_def + 0x3e0) != 2) {
+    display_assert(
+      "this doesn't look like the difficulty select widget to me",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x238, 1);
+    system_exit(-1);
+  }
+
+  description_container =
+    *(void **)((char *)*(int *)((char *)widget + 0x48) + 0x34);
+  text_widget = *(void **)((char *)description_container + 0x2c);
+
+  child = *(int *)((char *)widget + 0x34);
+  index = 0;
+  if (child != 0) {
+    int selected_child = *(int *)((char *)widget + 0x38);
+    do {
+      if (child == selected_child)
+        break;
+      child = *(int *)((char *)child + 0x2c);
+      index = index + 1;
+    } while (child != 0);
+    if (index == -1) {
+      return;
+    }
+  }
+
+  if (*(short *)((char *)description_container + 0xe) != 0) {
+    display_assert(
+      "expected a container widget for the difficulty list extended "
+      "description pic",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x243, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)text_widget + 0xe) == 1) {
+    *(short *)((char *)description_container + 0x50) = index;
+    *(short *)((char *)text_widget + 0x40) = index;
+    return;
+  }
+
+  display_assert(
+    "expected a text box widget for the difficulty list extended "
+    "description text",
+    "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c", 0x244,
+    1);
+  system_exit(-1);
 }
 
 void ui_widget_game_data_build_version(int widget)
@@ -622,6 +1012,47 @@ void ui_widget_game_data_build_version(int widget)
   if (v2) {
     ustrncpy(v2, ui_widget_game_data_build_version_wide_str, 0x3Fu);
     *(wchar_t *)(*(uint32_t *)(widget + 60) + 126) = 0;
+  }
+}
+
+/* FUN_000f2690 (0xf2690)
+ * "objective text" data-driven text box widget update. Fetches the current
+ * hud objective string (empty if hud_messaging_get_objective() returns NULL
+ * or an empty string), requires the widget to be a text box (type == 1 at
+ * +0xe), then, when the text is non-empty, reallocates the widget's text
+ * buffer (+0x3c) to fit it and copies it in, null-terminated. */
+void FUN_000f2690(void *widget)
+{
+  wchar_t *objective_text;
+  wchar_t *new_buf;
+  unsigned int len;
+
+  objective_text = (wchar_t *)hud_messaging_get_objective();
+  if (objective_text == NULL || *objective_text == 0) {
+    len = 0;
+  } else {
+    len = (unsigned int)ustrlen((unsigned short *)objective_text);
+  }
+
+  if (*(short *)((char *)widget + 0xe) != 1) {
+    display_assert(
+      "expected a text box for objective text",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x924, 1);
+    system_exit(-1);
+  }
+
+  if (0 < (int)len) {
+    new_buf = (wchar_t *)ui_widget_realloc(
+      *(int *)((char *)widget + 0x3c), (unsigned short)(len * 2 + 2),
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x928);
+    *(wchar_t **)((char *)widget + 0x3c) = new_buf;
+    if (new_buf != NULL) {
+      ustrncpy(new_buf, objective_text, len);
+      *(unsigned short *)((char *)*(wchar_t **)((char *)widget + 0x3c) +
+                          len * 2) = 0;
+    }
   }
 }
 

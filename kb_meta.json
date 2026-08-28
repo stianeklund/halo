@@ -9892,6 +9892,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf0640": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf0a30": {
       "kind": "function",
       "status": "ported"

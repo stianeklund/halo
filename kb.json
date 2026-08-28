@@ -27152,7 +27152,8 @@
     },
     {
      "addr": "0xf0640",
-     "decl": "void FUN_000f0640(void);"
+     "decl": "bool ui_widget_game_data_select_difficulty_item(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf0740",
@@ -27169,23 +27170,28 @@
     },
     {
      "addr": "0xf0aa0",
-     "decl": "void FUN_000f0aa0(void);"
+     "decl": "void FUN_000f0aa0(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf0bb0",
-     "decl": "void FUN_000f0bb0(void);"
+     "decl": "void FUN_000f0bb0(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf0c60",
-     "decl": "void FUN_000f0c60(void);"
+     "decl": "void FUN_000f0c60(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf0d10",
-     "decl": "void playlist_settings_menu_update_extended_description(void);"
+     "decl": "void playlist_settings_menu_update_extended_description(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf0d90",
-     "decl": "void FUN_000f0d90(void);"
+     "decl": "void FUN_000f0d90(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf0ea0",
@@ -27218,7 +27224,8 @@
     },
     {
      "addr": "0xf2690",
-     "decl": "void FUN_000f2690(void);"
+     "decl": "void FUN_000f2690(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf2720",
