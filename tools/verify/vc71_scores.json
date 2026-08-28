@@ -79441,16 +79441,16 @@
     "scalars_interpolate_and_clamp_0_to_1": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 76.2,
+      "abi_modeled_mnemonic_pct": 100.0,
       "addr": "0x10b840",
       "end": "0x10b896",
       "kind": "auto",
       "n_r": 32,
-      "opnd_percent": 76.2,
-      "raw_mnemonic_pct": 76.2,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "3a4ddc762cbc8c0b",
-      "score": 76.2,
+      "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
     "scenario_debug_to_file": {

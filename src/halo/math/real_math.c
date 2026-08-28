@@ -1630,16 +1630,16 @@ void scalars_interpolate(float a, float b, float blend, float *out)
 }
 
 /* 0x10b840 — Interpolate two scalars and clamp result to [0, 1]. */
+static __inline float pin(float val, float min_val, float max_val)
+{
+  if (val < min_val) return min_val;
+  if (val > max_val) return max_val;
+  return val;
+}
+
 void scalars_interpolate_and_clamp_0_to_1(float a, float b, float t, float *out)
 {
-  float result = b * t + (1.0f - t) * a;
-  if (result < *(float *)0x2533c0) {
-    *out = 0.0f;
-  } else if (result > *(float *)0x2533c8) {
-    *out = 1.0f;
-  } else {
-    *out = result;
-  }
+  *out = pin((1.0f - t) * a + b * t, 0.0f, 1.0f);
 }
 
 /* 0x10b8a0 — Project a vector onto an axis: parallel = dot(v,axis)*axis,
