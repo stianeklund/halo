@@ -9908,6 +9908,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf24b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf46e0": {
       "kind": "function",
       "status": "unknown",
@@ -15481,6 +15485,10 @@
         "The meaning of parse result values 2, 5 and 6 and of the three character sets fetched by FUN_0019d3c0(tag_index, 4|5|6) is unproven, so they are left numeric; result 5 is never produced by this function and is only tested in the loop condition."
       ]
     },
+    "0x19d060": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x19d080": {
       "kind": "function",
       "status": "ported",
@@ -15501,6 +15509,34 @@
       "status": "ported"
     },
     "0x19d300": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d380": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d480": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d4f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d590": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d600": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d670": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x19d760": {
       "kind": "function",
       "status": "ported"
     },

@@ -1103,6 +1103,79 @@ void FUN_000f28e0(void *widget)
   }
 }
 
+/* FUN_000f2e60 (0xf2e60)
+ * "mp game settings text" data-driven text box widget update. Requires the
+ * widget to be a text box (type == 1 at +0xe); otherwise asserts + exits
+ * (reference PUSH immediates at 0xf2e6e/0xf2e70/0xf2e75/0xf2e7a). Fetches
+ * the active network game object (FUN_0012a0a0); if one exists, writes a
+ * 2-state code to the widget's +0x40 word — 0xc when the game object's byte
+ * at +0xc0 equals 1, else 0xd. If there is no active network game, reports
+ * error(2, "no network game") instead (reference PUSH immediates at
+ * 0xf2eaf/0xf2eb4). Evidence: reference disassembly at 0xf2e60-0xf2ec1. */
+void FUN_000f2e60(void *widget)
+{
+  int game;
+  unsigned char state_byte;
+
+  if (*(short *)((char *)widget + 0xe) != 1) {
+    display_assert(
+      "expected text box widget for mp game settings text",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0xaaa, 1);
+    system_exit(-1);
+  }
+
+  game = FUN_0012a0a0();
+  if (game != 0) {
+    state_byte = *(unsigned char *)(game + 0xc0);
+    *(unsigned short *)((char *)widget + 0x40) =
+      (unsigned short)((state_byte != 1) + 0xc);
+  } else {
+    error(2, "no network game");
+  }
+}
+
+/* FUN_000f3280 (0xf3280)
+ * "mp game settings text" numeric text box widget update. Requires the
+ * widget to be a text box (type == 1 at +0xe). Looks up the current network
+ * game via FUN_0012a0a0(); if none is active, reports error 2 "no network
+ * game" and leaves the widget's text buffer untouched. Otherwise reallocates
+ * the widget's text buffer (+0x3c) to 8 bytes (4 wchar_t) and formats a
+ * signed 16-bit game field at game+0x224 into it with "%d", explicitly
+ * null-terminating at wchar index 3 (byte offset 6) regardless of how many
+ * digits were written. Evidence: disassembly at 0xf3280-0xf3311 (assert
+ * string/line are the reference's own PUSH immediates at
+ * 0xf3291/0xf3296/0xf329b; ui_widget_realloc call at 0xf32bd-0xf32ca; error
+ * call at 0xf32fe-0xf3305). */
+void FUN_000f3280(void *widget)
+{
+  int game;
+  wchar_t *new_buf;
+
+  if (*(short *)((char *)widget + 0xe) != 1) {
+    display_assert(
+      "expected text box widget for mp game settings text",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0xb4e, 1);
+    system_exit(-1);
+  }
+
+  game = FUN_0012a0a0();
+  if (game != 0) {
+    new_buf = (wchar_t *)ui_widget_realloc(
+      *(int *)((char *)widget + 0x3c), 8,
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0xb56);
+    *(wchar_t **)((char *)widget + 0x3c) = new_buf;
+    if (new_buf != NULL) {
+      unicode_sprintf(new_buf, 3, L"%d", *(short *)(game + 0x224));
+      *(unsigned short *)((char *)*(wchar_t **)((char *)widget + 0x3c) + 6) = 0;
+    }
+  } else {
+    error(2, "no network game");
+  }
+}
+
 /* FUN_000f46e0 (0xf46e0)
  * "mp player settings select" quarter-screen profile list widget update.
  *

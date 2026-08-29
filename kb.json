@@ -27262,7 +27262,8 @@
     },
     {
      "addr": "0xf2e60",
-     "decl": "void FUN_000f2e60(void);"
+     "decl": "void FUN_000f2e60(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf2ed0",
@@ -27282,7 +27283,8 @@
     },
     {
      "addr": "0xf3280",
-     "decl": "void FUN_000f3280(void);"
+     "decl": "void FUN_000f3280(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf3320",
