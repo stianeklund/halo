@@ -1,6 +1,7 @@
 //Export function size cache for tools/progress.py, then print coverage summary
 //@category Analysis
 import ghidra.app.script.GhidraScript;
+import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.FunctionManager;
 import ghidra.program.model.mem.Memory;
@@ -37,19 +38,40 @@ public class ExportFunctionSizes extends GhidraScript {
         long textEnd = textBlock.getEnd().getOffset();
         long textSize = textEnd - textStart + 1;
 
-        TreeMap<Long, long[]> funcs = new TreeMap<>();
-        int allTextFuncs = 0;
-        long allTextBytes = 0;
+        // entry addr -> highest address in the function's body. Using the max
+        // address (not getBody().getNumAddresses()) survives bodies that Ghidra
+        // has fragmented with internal holes -- e.g. a callee correctly marked
+        // noreturn drops the (unreachable but still-emitted) cleanup bytes after
+        // the call out of the body's address SET, even though those bytes are
+        // still real code before the function's true end.
+        TreeMap<Long, Long> bodyMax = new TreeMap<>();
 
         for (Function func : fm.getFunctions(true)) {
             long funcAddr = func.getEntryPoint().getOffset();
             if (funcAddr >= textStart && funcAddr <= textEnd) {
-                allTextFuncs++;
-                long fsize = func.getBody().getNumAddresses();
-                allTextBytes += fsize;
-                funcs.put(funcAddr, new long[]{fsize, 0});
+                Address maxAddr = func.getBody().getMaxAddress();
+                bodyMax.put(funcAddr, maxAddr.getOffset());
             }
         }
+
+        // Clamp each function's extent to the next function's entry point (or
+        // .text end), mirroring tools/verify/function_bounds.py's `end = min(...)`
+        // rule. Without the clamp, a stray disassembled range unrelated to the
+        // function's real code can balloon its reported size by tens of KB.
+        Long[] addrs = bodyMax.keySet().toArray(new Long[0]);
+        TreeMap<Long, long[]> funcs = new TreeMap<>();
+        long allTextBytes = 0;
+
+        for (int idx = 0; idx < addrs.length; idx++) {
+            long addr = addrs[idx];
+            long rawMax = bodyMax.get(addr);
+            long nextEntry = (idx + 1 < addrs.length) ? addrs[idx + 1] : (textEnd + 1);
+            long end = Math.min(rawMax + 1, nextEntry);
+            long size = Math.max(end - addr, 1);
+            allTextBytes += size;
+            funcs.put(addr, new long[]{size, 0});
+        }
+        int allTextFuncs = funcs.size();
 
         StringBuilder json = new StringBuilder();
         json.append("{\n");
