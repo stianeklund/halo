@@ -9912,6 +9912,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf3590": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf46e0": {
       "kind": "function",
       "status": "unknown",

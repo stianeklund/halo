@@ -27300,7 +27300,8 @@
     },
     {
      "addr": "0xf3590",
-     "decl": "void get_editable_player_profile_display_name(void);"
+     "decl": "void get_editable_player_profile_display_name(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf3640",

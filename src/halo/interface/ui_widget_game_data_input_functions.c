@@ -1176,6 +1176,64 @@ void FUN_000f3280(void *widget)
   }
 }
 
+/* get_editable_player_profile_display_name (0xf3590, ui_widget_game_data_
+ * function_table[39]). The name is kb.json's pre-existing placeholder and
+ * does not match the observed behavior: the assert strings and the globals
+ * this touches (DAT_0046ce3b/0046cd38/0046ce38) are the exact same
+ * "difficulty forced for this map" state that
+ * ui_widget_game_data_select_difficulty_item above reads, so this is a
+ * paired difficulty-warning visibility updater, not a profile-name getter.
+ * No source-derived name is available; kept as-is to avoid an unrequested
+ * kb.json/table rename.
+ *
+ * Asserts widget+0x34 is a column list (+0xe == 3, "the difficulty list
+ * widget"), then that list's sibling at +0x2c is a text box (+0xe == 1,
+ * "expected warning text box"). If the "difficulty forced for this map"
+ * flag (DAT_0046ce3b) is set and the current map (main_get_map_name())
+ * case-insensitively matches the forced-map name (DAT_0046cd38), writes 1
+ * into the warning textbox's +0x10 byte when the list's currently selected
+ * index (+0x3c) differs from the forced difficulty index (DAT_0046ce38),
+ * else 0. If the flag isn't set or the map doesn't match, unconditionally
+ * clears +0x10 to 0. Evidence: reference disassembly at 0xf3590-0xf3630
+ * (assert immediates at 0xf35a8/0xf35ad/0xf35b2/0xf35b7 and
+ * 0xf35d6/0xf35db/0xf35e0/0xf35e5; crt_stricmp call at 0xf3608). */
+void get_editable_player_profile_display_name(void *widget)
+{
+  void *list_widget;
+  void *warning_widget;
+  const char *map_name;
+
+  list_widget = *(void **)((char *)widget + 0x34);
+  if (list_widget == NULL || *(short *)((char *)list_widget + 0xe) != 3) {
+    display_assert(
+      "this doesn't look like the difficulty list widget",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0xc1f, 1);
+    system_exit(-1);
+  }
+
+  warning_widget = *(void **)((char *)list_widget + 0x2c);
+  if (warning_widget == NULL || *(short *)((char *)warning_widget + 0xe) != 1) {
+    display_assert(
+      "this doesn't look like the difficulty list widget (expected warning "
+      "text box)",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0xc23, 1);
+    system_exit(-1);
+  }
+
+  if (*(unsigned char *)0x46ce3b == 1) {
+    map_name = main_get_map_name();
+    if (crt_stricmp((const char *)0x46cd38, map_name) == 0) {
+      *(unsigned char *)((char *)warning_widget + 0x10) =
+        (unsigned char)(*(short *)((char *)list_widget + 0x3c) !=
+                        *(short *)0x46ce38);
+      return;
+    }
+  }
+  *(unsigned char *)((char *)warning_widget + 0x10) = 0;
+}
+
 /* FUN_000f46e0 (0xf46e0)
  * "mp player settings select" quarter-screen profile list widget update.
  *

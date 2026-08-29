@@ -63043,6 +63043,21 @@
       "score": 100.0,
       "source": "src/halo/game/game_engine.c"
     },
+    "get_editable_player_profile_display_name": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xf3590",
+      "end": "0xf3631",
+      "kind": "auto",
+      "n_r": 53,
+      "opnd_percent": 94.3,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "12ff7f92e4bb620c",
+      "score": 100.0,
+      "source": "src/halo/interface/ui_widget_game_data_input_functions.c"
+    },
     "get_flag_definition_index": {
       "abi_model": "raw",
       "abi_model_items": 0,

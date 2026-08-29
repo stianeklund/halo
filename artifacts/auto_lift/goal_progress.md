@@ -7494,3 +7494,105 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 | FUN_00060260 | 0x60260 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' at tools/lift/research_bundle.py:120 in _resolve_target [cohort=none] |
 | FUN_00060910 | 0x60910 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — KB entry at 0x60910 has null name/source fields; entry incomplete or not yet discovered [cohort=none] |
 | FUN_00060970 | 0x60970 | - | - | infra_blocked | AttributeError: 'NoneType' object has no attribute 'startswith' — KB entry at 0x60970 has null name/source fields; entry incomplete or not yet discovered [cohort=none] |
+
+## Goal-lift run — 1/12 committed (stop_on_fail_reached) — 2026-08-29
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093ba0 | 0x93ba0 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| FUN_0019ccf0 | 0x19ccf0 | - | 0 | parked | below_65pct [cohort=none] |
+| FUN_0019ce70 | 0x19ce70 | international_strings.obj | 90.9 | committed | mechanical gate: 90.9% clean (pass1) [cohort=retrieval] |
+| FUN_0019cec0 | 0x19cec0 | international_strings.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_0019cff0 | 0x19cff0 | international_strings.obj | 83.3 | parked | escalation_exhausted [cohort=retrieval] |
+| set_language_code | 0x19d060 | international_strings.obj | 0 | parked | below_65pct [cohort=retrieval] |
+
+## Goal-lift run — 1/12 committed (stop_on_fail_reached) — 2026-08-29
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093ba0 | 0x93ba0 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| FUN_0019ccf0 | 0x19ccf0 | international_strings.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_0019cec0 | 0x19cec0 | international_strings.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| set_language_code | 0x19d060 | international_strings.obj | - | infra_blocked | agent_null [cohort=retrieval] |
+| FUN_0019d380 | 0x19d380 | international_strings.obj | 90.3 | committed | mechanical gate: 90.3% clean (pass1) [cohort=retrieval] |
+| FUN_0019d3c0 | 0x19d3c0 | international_strings.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_0019d420 | 0x19d420 | international_strings.obj | 82.4 | parked | escalation_exhausted [cohort=retrieval] |
+| umemchr | 0x19d480 | international_strings.obj | 0 | parked | below_65pct [cohort=retrieval] |
+
+## Goal-lift run — 4/12 committed (stop_on_fail_reached) — 2026-08-28
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093ba0 | 0x93ba0 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001d77b3 | 0x1d77b3 | XAPILIB:xbox_crt.obj | - | skipped | skip_nt_import (CRT/SEH region 0x1d0000-0x1de000) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| FUN_0019d3c0 | 0x19d3c0 | international_strings.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| umemchr | 0x19d480 | international_strings.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| umemcpy | 0x19d4f0 | international_strings.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| umemcmp | 0x19d590 | international_strings.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| umemmove | 0x19d600 | international_strings.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| umemset | 0x19d670 | international_strings.obj | 100 | committed | mechanical gate: 100% clean (pass1) [cohort=retrieval] |
+| align_to_character | 0x19d6e0 | international_strings.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| ustrcat | 0x19d760 | international_strings.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| mutliplayer_settings_select_list_update_displayed_items | 0xf24b0 | ui_widget_game_data_input_functions.obj | 0 | parked | below_65pct [cohort=retrieval] |
+
+## Goal-lift run — 1/12 committed (stop_on_fail_reached) — 2026-08-29
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093ba0 | 0x93ba0 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| FUN_000f2850 | 0xf2850 | ui_widget_game_data_input_functions.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_000f28e0 | 0xf28e0 | ui_widget_game_data_input_functions.obj | 94.6 | committed | mechanical gate: 94.6% clean (pass1) [cohort=retrieval] |
+| FUN_000f2990 | 0xf2990 | ui_widget_game_data_input_functions.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_000f2a40 | 0xf2a40 | ui_widget_game_data_input_functions.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_000f2b00 | 0xf2b00 | ui_widget_game_data_input_functions.obj | 0 | parked | below_65pct [cohort=retrieval] |
+
+## Goal-lift run — 0/12 committed (infra_blocked_twice) — 2026-08-29
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093ba0 | 0x93ba0 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| FUN_000f2a40 | 0xf2a40 | ui_widget_game_data_input_functions.obj | 0 | infra_blocked | Cached Ghidra artifact 71a5eded...885f4.json is invalid: decompile_c/disassembly/xrefs_to are all Ghidra-unreachable error strings, and callees/callers/call_site_audit/struct_offsets are empty — no mechanical evidence present. Fingerprint validation therefore requires a Ghidra query to recover it, but both ghidra and ghidra-live MCP servers fail to connect this session (SSE error: Unable to connect; confirmed via ToolSearch, no ghidra tools resolve). kb.json's current decl (void FUN_000f2a40(void);) is an unverified placeholder, not evidence. No implementation exists in src/halo/interface/ui_widget_game_data_input_functions.c to build on. Wrote no code, made no kb.json/source edits, and ran no build/verify/equivalence steps since there is no binary-backed basis for a C89 implementation. Needs either the Ghidra MCP connection restored or a fresh, valid research-cache artifact for this address before this lift can proceed. [cohort=retrieval] |
+| FUN_000f2b00 | 0xf2b00 | ui_widget_game_data_input_functions.obj | 0 | infra_blocked | The fingerprinted bundle (/mnt/g/dev/halo/artifacts/research_cache/bundles/f2b00/102924bb6f13960c9fe3e899251c22dfc59612426ea5a23e2aa49dce6a3f3974.json) points to Ghidra artifact sha256:71a5eded...885f4, which contains only connection-error stubs for decompile_c, disassembly, and xrefs_to ("Ghidra is not reachable at http://localhost:8089"), with callees=[], callers=[], call_site_audit=[], struct_offsets={} all empty. The mechanical_context_complete verdict only checked that the artifact file exists and its hash matches the bundle pointer -- it did not check that the artifact contains actual evidence. kb.json's entry for 0xf2b00 is an unresolved stub (`void FUN_000f2b00(void);`, no name field, no callers/side-effect data), and no source implementation exists yet in src/halo/interface/ui_widget_game_data_input_functions.c. I confirmed live Ghidra is unreachable now too: direct probe of port 8089 timed out, the SSE bridges at 127.0.0.1:8090/sse and 127.0.0.1:8091/sse both failed to connect (curl connect-timeout), and ToolSearch found no mcp__ghidra*/mcp__ghidra-live__* tools to invoke (consistent with the session's own MCP-connection-failure notice for both ghidra and ghidra-live). No decompile, disassembly, call-site, or struct evidence exists anywhere in the research cache for this address (checked targets/f2b00.json and the sibling object cache, which is for a different function, FUN_000e0980). Writing an implementation with zero binary evidence would be speculation, which project policy (No Speculation / Explicit Unknowns / binary is source of truth) forbids. No edits were made to src/ or kb.json. Recommend re-running this lift once Ghidra (port 8089) and its MCP bridges are back up so a real decompile/disassembly/call-site-audit can be captured. [cohort=retrieval] |
+
+## Goal-lift run — 0/12 committed (stop_on_fail_reached) — 2026-08-29
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093ba0 | 0x93ba0 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| FUN_000f2a40 | 0xf2a40 | ui_widget_game_data_input_functions.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_000f2b00 | 0xf2b00 | ui_widget_game_data_input_functions.obj | 0 | parked | below_65pct [cohort=retrieval] |
+| FUN_000f2d50 | 0xf2d50 | ui_widget_game_data_input_functions.obj | 0 | parked | below_65pct [cohort=retrieval] |
