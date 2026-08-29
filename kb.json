@@ -36663,7 +36663,8 @@
     },
     {
      "addr": "0x120340",
-     "decl": "void FUN_00120340(void);"
+     "decl": "void FUN_00120340(void *page);",
+     "ported": true
     },
     {
      "addr": "0x120400",
@@ -36677,7 +36678,8 @@
     },
     {
      "addr": "0x1204a0",
-     "decl": "void FUN_001204a0(void);"
+     "decl": "bool FUN_001204a0(void *page, short width, short height);",
+     "ported": true
     },
     {
      "addr": "0x120500",

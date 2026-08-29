@@ -31033,6 +31033,21 @@
       "score": 98.3,
       "source": "src/halo/models/model_animations.c"
     },
+    "FUN_00120340": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 96.0,
+      "addr": "0x120340",
+      "end": "0x1203f3",
+      "kind": "auto",
+      "n_r": 63,
+      "opnd_percent": 67.2,
+      "raw_mnemonic_pct": 96.0,
+      "ref": "synth",
+      "ref_sha": "521a7974ad1e03df",
+      "score": 96.0,
+      "source": "src/halo/models/model_animations.c"
+    },
     "FUN_00120400": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -31061,6 +31076,21 @@
       "ref": "synth",
       "ref_sha": "25739806c701c473",
       "score": 93.8,
+      "source": "src/halo/models/model_animations.c"
+    },
+    "FUN_001204a0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 97.1,
+      "addr": "0x1204a0",
+      "end": "0x1204f2",
+      "kind": "auto",
+      "n_r": 35,
+      "opnd_percent": 97.1,
+      "raw_mnemonic_pct": 97.1,
+      "ref": "synth",
+      "ref_sha": "e532ea967b8faa44",
+      "score": 97.1,
       "source": "src/halo/models/model_animations.c"
     },
     "FUN_00120500": {

@@ -72,6 +72,87 @@ int FUN_00120250(void *page, short width, short height, bool immediate)
   return -1;
 }
 
+/* FUN_00120340 (0x120340) — Reclaim unsorted texture-page entries and
+ * trigger a resort.
+ *
+ * kb.json maps this address into model_animations.obj by link-time object
+ * grouping; the assert's __FILE__ string
+ * ("c:\halo\SOURCE\memory\texture_page.c") confirms the real source TU is the
+ * texture-page allocator, same as FUN_00120250/FUN_00120400 above/below.
+ *
+ * Confirmed: cdecl, 1 arg (page ptr, matches [EBP+8] loaded once into ESI at
+ * 0x120345). Confirmed: void return (plain RET at 0x1203f2).
+ * Confirmed: calls FUN_0011fd50() unconditionally first, same as
+ * FUN_00120250/FUN_00120400.
+ * Confirmed: asserts page->contains_unsorted_textures (pg+0x0, byte) is
+ * nonzero — display_assert("texture_page->contains_unsorted_textures",
+ * "c:\halo\SOURCE\memory\texture_page.c", 0x8a, true) then system_exit(-1) on
+ * failure (0x12034e-0x12036b), same message text as FUN_00120400's guard but
+ * a different line number (0x8a vs 0xaa) since it's a different call site in
+ * the same source file.
+ * Confirmed: walks the 12-byte-stride entry array at
+ * *(int*)(pg+0x18)+0x34, count *(short*)(*(int*)(pg+0x18)+0x2e) — the same
+ * table/entry layout as FUN_00120250/FUN_00120400 (entry+0x0 salt, entry+0x2
+ * bool, entry+0x8/+0xa width/height). The count/table pointer is reloaded
+ * from *(pg+0x18) at the bottom of each iteration (0x1203b1-0x1203b8),
+ * matching FUN_00120400's precedent of not trusting the table pointer across
+ * loop iterations.
+ * Confirmed: for every entry whose salt (entry+0x0) is nonzero AND whose
+ * bool flag (entry+0x2) is zero (i.e. an allocated-but-unsorted entry),
+ * subtracts that entry's area (height*width, read as entry+0xa * entry+0x8
+ * per the decompiled expression order which mirrors the ECX=width/EAX=height
+ * load order at 0x12038e-0x120396) from the page's used-area accumulator
+ * (pg+0x10) and deletes the datum via datum_delete(*(data_t**)(pg+0x18),
+ * (int)i) — the loop index i is sign-extended (MOVSX EDX,BX at 0x12039c)
+ * before being passed as the handle, and the delete uses the *current*
+ * (pre-increment) index (0x120399-0x1203ae).
+ * Confirmed: after the loop, clears *pg = 0 (0x1203bf), then calls
+ * FUN_0011ff70(pg) (bool result in AL, same corrected decl as
+ * FUN_00120250/FUN_00120400) and asserts the result is nonzero —
+ * display_assert("resort_succeeded",
+ * "c:\halo\SOURCE\memory\texture_page.c", 0x9d, true) then system_exit(-1)
+ * on failure (0x1203cf-0x1203e9).
+ */
+void FUN_00120340(void *page)
+{
+  char *pg;
+  short *entry;
+  short count;
+  short i;
+
+  pg = (char *)page;
+
+  FUN_0011fd50();
+
+  if (*pg == 0) {
+    display_assert("texture_page->contains_unsorted_textures",
+                   "c:\\halo\\SOURCE\\memory\\texture_page.c", 0x8a, 1);
+    system_exit(-1);
+  }
+
+  entry = *(short **)(*(int *)(pg + 0x18) + 0x34);
+  count = *(short *)(*(int *)(pg + 0x18) + 0x2e);
+  i = 0;
+  if (0 < count) {
+    do {
+      if (*entry != 0 && *((char *)entry + 2) == 0) {
+        *(int *)(pg + 0x10) -= (int)entry[5] * (int)entry[4];
+        datum_delete(*(data_t **)(pg + 0x18), (int)i);
+      }
+      i = i + 1;
+      entry = entry + 6;
+      count = *(short *)(*(int *)(pg + 0x18) + 0x2e);
+    } while (i < count);
+  }
+  *pg = 0;
+
+  if (!FUN_0011ff70(pg)) {
+    display_assert("resort_succeeded",
+                   "c:\\halo\\SOURCE\\memory\\texture_page.c", 0x9d, 1);
+    system_exit(-1);
+  }
+}
+
 /* FUN_00120400 (0x120400) — Flush a texture page's unsorted-entry marks and
  * clear the page-level dirty flag.
  *
@@ -173,6 +254,59 @@ void FUN_00120470(void *page, int handle)
   datum_delete(*(data_t **)(pg + 0x18), handle);
 
   FUN_0011ff70(pg);
+}
+
+/* FUN_001204a0 (0x1204a0) — Try to resize a texture page to new dimensions,
+ * rolling back on failure to commit.
+ *
+ * kb.json maps this address into model_animations.obj by link-time object
+ * grouping; same texture-page allocator TU as FUN_00120250/FUN_00120340/
+ * FUN_00120400/FUN_00120470 immediately above (unconditional FUN_0011fd50()
+ * first, and FUN_0011ff70(page) to commit — same corrected bool-returning
+ * decl already used by those functions).
+ *
+ * Confirmed: cdecl, 3 args (page ptr at [EBP+8]->ESI, new width int16 at
+ * [EBP+0xc], new height int16 at [EBP+0x10]). Confirmed: returns bool in AL
+ * (MOV AL,1 at 0x1204d5 vs XOR AL,AL at 0x1204ed).
+ * Confirmed: page+0x8/+0xa = page width/height (int16), same offsets
+ * FUN_00120250 compares against.
+ * Confirmed: saves the old width/height (MOV DI,[ESI+8] / MOV BX,[ESI+0xa]
+ * at 0x1204b6/0x1204ba) before overwriting them with the new values
+ * (0x1204bf/0x1204c3), then calls FUN_0011ff70(page) to attempt to commit
+ * the new size (0x1204c7). If that succeeds (TEST AL,AL / JZ 0x1204d1
+ * not taken), returns true with the new dimensions left in place.
+ * Confirmed: on failure (JZ 0x1204d1 taken), restores the saved old
+ * width/height (0x1204db/0x1204df) and calls FUN_0011ff70(page) again to
+ * re-commit the reverted size (0x1204e3), discarding that second call's
+ * result (no TEST/branch on it — matches FUN_00120470's precedent of an
+ * unchecked FUN_0011ff70 return), then returns false.
+ */
+bool FUN_001204a0(void *page, short width, short height)
+{
+  char *pg;
+  short old_width;
+  short old_height;
+
+  pg = (char *)page;
+
+  FUN_0011fd50();
+
+  old_width = *(short *)(pg + 8);
+  old_height = *(short *)(pg + 0xa);
+
+  *(short *)(pg + 8) = width;
+  *(short *)(pg + 0xa) = height;
+
+  if (FUN_0011ff70(pg)) {
+    return true;
+  }
+
+  *(short *)(pg + 8) = old_width;
+  *(short *)(pg + 0xa) = old_height;
+
+  FUN_0011ff70(pg);
+
+  return false;
 }
 
 /* FUN_00120500 (0x120500) — Get a pointer to a specific animation frame's data.
