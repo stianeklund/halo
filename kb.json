@@ -941,7 +941,7 @@
     },
     {
      "addr": "0x1dbed0",
-     "decl": "void _memchr(void);"
+     "decl": "void *_memchr(const void *buffer, int c, size_t count);"
     },
     {
      "addr": "0x1dbf75",
@@ -32603,7 +32603,8 @@
     },
     {
      "addr": "0x19d480",
-     "decl": "void umemchr(void);"
+     "decl": "void *umemchr(void *buffer, int c, size_t count);",
+     "ported": true
     },
     {
      "addr": "0x19d4f0",
@@ -32611,15 +32612,18 @@
     },
     {
      "addr": "0x19d590",
-     "decl": "void umemcmp(void);"
+     "decl": "int umemcmp(const void *buffer1, const void *buffer2, size_t count);",
+     "ported": true
     },
     {
      "addr": "0x19d600",
-     "decl": "void umemmove(void);"
+     "decl": "void umemmove(void *dest, const void *src, size_t count);",
+     "ported": true
     },
     {
      "addr": "0x19d670",
-     "decl": "void umemset(void);"
+     "decl": "void *umemset(void *buffer, int c, size_t count);",
+     "ported": true
     },
     {
      "addr": "0x19d6e0",
