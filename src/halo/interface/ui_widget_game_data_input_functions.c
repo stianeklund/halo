@@ -1056,6 +1056,53 @@ void FUN_000f2690(void *widget)
   }
 }
 
+/* FUN_000f28e0 (0xf28e0)
+ * "profile display name" data-driven text box widget update. Requires the
+ * widget to be a text box (type == 1 at +0xe) and its bound local player
+ * index (+0x8, a signed 16-bit slot) to be in range
+ * [0, MAXIMUM_NUMBER_OF_LOCAL_PLAYERS), fetches that player's active profile
+ * (a 0x30-byte opaque record, see player_ui_get_active_player_profile),
+ * reallocates the widget's text buffer (+0x3c) to a fixed 0x18 bytes, and
+ * copies the first 11 wchar_t of the profile record (its name field) in,
+ * null-terminated at wchar index 11 (byte offset 0x16). Evidence: reference
+ * disassembly at 0xf28e0-0xf298c (assert strings/lines are the reference's
+ * own PUSH immediates at 0xf2911/0xf2917/0xf2940/0xf2946). */
+void FUN_000f28e0(void *widget)
+{
+  unsigned char profile[0x30];
+  wchar_t *new_buf;
+  short local_player_index;
+
+  if (*(short *)((char *)widget + 0xe) != 1) {
+    display_assert(
+      "expected a text box widget for profile display name",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x9ec, 1);
+    system_exit(-1);
+  }
+
+  local_player_index = *(short *)((char *)widget + 8);
+  if (local_player_index < 0 || local_player_index >= 4) {
+    display_assert(
+      "profile display name requires a valid local player index",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0x9ee, 1);
+    system_exit(-1);
+  }
+
+  player_ui_get_active_player_profile(local_player_index, profile);
+
+  new_buf = (wchar_t *)ui_widget_realloc(
+    *(int *)((char *)widget + 0x3c), 0x18,
+    "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+    0x9f0);
+  *(wchar_t **)((char *)widget + 0x3c) = new_buf;
+  if (new_buf != NULL) {
+    ustrncpy(new_buf, (wchar_t *)profile, 0xb);
+    *(unsigned short *)((char *)new_buf + 0x16) = 0;
+  }
+}
+
 /* FUN_000f46e0 (0xf46e0)
  * "mp player settings select" quarter-screen profile list widget update.
  *

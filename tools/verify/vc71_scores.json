@@ -25948,6 +25948,21 @@
       "score": 100.0,
       "source": "src/halo/interface/ui_widget_game_data_input_functions.c"
     },
+    "FUN_000f28e0": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 94.6,
+      "addr": "0xf28e0",
+      "end": "0xf298c",
+      "kind": "auto",
+      "n_r": 56,
+      "opnd_percent": 64.3,
+      "raw_mnemonic_pct": 94.6,
+      "ref": "synth",
+      "ref_sha": "6cbe0243ceb5476d",
+      "score": 94.6,
+      "source": "src/halo/interface/ui_widget_game_data_input_functions.c"
+    },
     "FUN_000f3960": {
       "abi_model": "raw",
       "abi_model_items": 0,

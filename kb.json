@@ -27237,7 +27237,8 @@
     },
     {
      "addr": "0xf28e0",
-     "decl": "void FUN_000f28e0(void);"
+     "decl": "void FUN_000f28e0(void *widget);",
+     "ported": true
     },
     {
      "addr": "0xf2990",
