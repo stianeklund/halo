@@ -888,14 +888,19 @@ rtk git status --short
 // ledger (tools/lift/park.py), shared with manual /lift and the improve pass.
 // attemptME = the {model,effort} of the lift ATTEMPT (recorded for later
 // exclude-model selection), not the park agent's own model.
-const parkToolPrompt = (name, addr, obj, srcFile, score, attemptME, reason, capHyp, notes, fingerprint, artifacts) =>
+// keepTree = checkpoint-only park: save the patch + record the attempt but LEAVE
+// the working tree alone. Used for the pre-escalation checkpoint, whose whole
+// point is that the ladder keeps tuning the very source on disk (a --revert-tree
+// there wiped the candidate out from under the optimizer — the empty-patch
+// "escalation_exhausted" records with "no C implementation to apply a lever to").
+const parkToolPrompt = (name, addr, obj, srcFile, score, attemptME, reason, capHyp, notes, fingerprint, artifacts, keepTree) =>
   `${AGENT_RULES}
 
 Preserve the sub-bar lift of ${name} (${addr}, ${score}% VC71) for a later improve
-pass, then clean the tree. Run exactly this one command:
-rtk python3 tools/lift/park.py park --name ${JSON.stringify(name)} --addr ${JSON.stringify(addr || '')} --obj ${JSON.stringify(obj || '')} --source ${JSON.stringify(srcFile || '')} --score ${score} --model ${JSON.stringify(attemptME.model)} --effort ${JSON.stringify(attemptME.effort)} --reason ${JSON.stringify(reason || '')} --outcome parked${fingerprint ? ' --fingerprint ' + JSON.stringify(fingerprint) : ''}${Object.values(artifacts || {}).filter(Boolean).map(id => ' --evidence ' + JSON.stringify(id)).join('')}${capHyp ? ' --cap-hypothesis ' + JSON.stringify(capHyp) : ''}${notes ? ' --notes ' + JSON.stringify(String(notes).slice(0, 2000)) : ''} --revert-tree
-park.py saves the git diff to artifacts/parked/, records the attempt (with
-history), and reverts src/ kb.json tools/kb_reg_baseline.json to HEAD. Return the
+pass${keepTree ? '' : ', then clean the tree'}. Run exactly this one command:
+rtk python3 tools/lift/park.py park --name ${JSON.stringify(name)} --addr ${JSON.stringify(addr || '')} --obj ${JSON.stringify(obj || '')} --source ${JSON.stringify(srcFile || '')} --score ${score} --model ${JSON.stringify(attemptME.model)} --effort ${JSON.stringify(attemptME.effort)} --reason ${JSON.stringify(reason || '')} --outcome parked${fingerprint ? ' --fingerprint ' + JSON.stringify(fingerprint) : ''}${Object.values(artifacts || {}).filter(Boolean).map(id => ' --evidence ' + JSON.stringify(id)).join('')}${capHyp ? ' --cap-hypothesis ' + JSON.stringify(capHyp) : ''}${notes ? ' --notes ' + JSON.stringify(String(notes).slice(0, 2000)) : ''}${keepTree ? '' : ' --revert-tree'}
+park.py saves the git diff to artifacts/parked/ and records the attempt (with
+history)${keepTree ? '. This is a CHECKPOINT: do NOT revert, reset or checkout anything — the working tree must stay exactly as it is' : ', then reverts src/ kb.json tools/kb_reg_baseline.json to HEAD'}. Return the
 tool's "parked ..." stdout line.`
 
 // Improve pass — pick the closest-to-bar parked function the improve model has
@@ -1049,13 +1054,14 @@ async function gateThenCommit(brief, score, srcFile, path, phaseTitle, preEquiv)
 // attemptME = {model,effort} of the lift attempt being preserved. notes = free-form
 // diagnostic/rationale text for this attempt (capped 2000 chars in parkToolPrompt),
 // read back by the improve pass via park.py next's last_notes/attempt_history.
-async function parkBuilt(brief, srcFile, score, attemptME, reason, capHyp, phaseTitle, notes) {
+// keepTree = record the attempt WITHOUT reverting (checkpoint park); see parkToolPrompt.
+async function parkBuilt(brief, srcFile, score, attemptME, reason, capHyp, phaseTitle, notes, keepTree) {
   const refreshed = await agent(bundlePrompt(brief, true), {
     label: `publish-score:${brief.name}`, phase: phaseTitle || 'Lift', ...M.mechanical, schema: BUNDLE_SCHEMA,
   })
   const evidence = refreshed || brief
   await agent(parkToolPrompt(brief.name, brief.addr, brief.obj, srcFile, score, attemptME, reason, capHyp, notes,
-    evidence.attempt_fingerprint || evidence.fingerprint, evidence.artifacts),
+    evidence.attempt_fingerprint || evidence.fingerprint, evidence.artifacts, keepTree),
     { label: `park:${brief.name}`, phase: phaseTitle || 'Lift', ...M.mechanical })
 }
 
@@ -1786,7 +1792,13 @@ while (true) {
     // internally). Unlike the old cold-rewrite escalation this does NOT re-lift
     // — attempt 1 already builds and is believed faithful, so the optimizer
     // tunes THAT source in place, one score-recovery lever at a time.
-    await parkBuilt(brief, srcFile, score, M.reason, 'pre_escalation', a1.cap_reason || '', 'Lift', a1.reason || '')
+    // CHECKPOINT ONLY (keepTree): the patch is saved and the attempt recorded,
+    // but the tree is NOT reverted — every rung below edits srcFile in place and
+    // the commit gate at the end commits from that same live tree. Reverting
+    // here deleted the candidate before the first optimizer rung ever read it.
+    // The terminal parks (structural_cap / escalation_exhausted / review-blocked
+    // below) still revert, so a ladder that never clears the bar leaves a clean tree.
+    await parkBuilt(brief, srcFile, score, M.reason, 'pre_escalation', a1.cap_reason || '', 'Lift', a1.reason || '', true)
 
     // Effort ladder (Opus, NOT Fable): start at the cheap rung and step up to
     // xhigh/max ONLY for a target still below the 85% pass bar, not documented-
