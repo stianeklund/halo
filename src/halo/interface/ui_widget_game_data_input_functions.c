@@ -1135,6 +1135,62 @@ void FUN_000f2e60(void *widget)
   }
 }
 
+/* FUN_000f2f60 (0xf2f60)
+ * "mp game settings text" data-driven text box widget update (game-type
+ * variant). Requires the widget to be a text box (type == 1 at +0xe);
+ * otherwise asserts + exits (reference PUSH immediates at
+ * 0xf2f6e/0xf2f70/0xf2f75/0xf2f7a). Fetches the active network game object
+ * (FUN_0012a0a0); if one exists, dispatches on the game object's dword field
+ * at +0xbc (jump table at 0xf2ff8, values 1-5) to write the widget's +0x40
+ * word:
+ *   1                                -> 0x16
+ *   2, or any value outside 1..5 (the out-of-range default falls into the
+ *     same code as case 2 -- reference 0xf2fa1 JA 0xf2fb3)  -> 0x18
+ *   3     -> 0x18 if the game object's dword at +0x100 == 2, else 0x17
+ *   4     -> 0x17
+ *   5     -> 0x19
+ * If there is no active network game, reports error(2, "no network game")
+ * instead (reference PUSH immediates at 0xf2fe6/0xf2feb). Evidence:
+ * reference disassembly at 0xf2f60-0xf2ff8 plus jump table dwords at
+ * 0xf2ff8-0xf300c (0xf2faa/0xf2fb3/0xf2fbc/0xf2fd4/0xf2fdd). */
+void FUN_000f2f60(void *widget)
+{
+  int game;
+
+  if (*(short *)((char *)widget + 0xe) != 1) {
+    display_assert(
+      "expected text box widget for mp game settings text",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0xadc, 1);
+    system_exit(-1);
+  }
+
+  game = FUN_0012a0a0();
+  if (game != 0) {
+    switch (*(int *)(game + 0xbc)) {
+    case 1:
+      *(unsigned short *)((char *)widget + 0x40) = 0x16;
+      break;
+    case 3:
+      *(unsigned short *)((char *)widget + 0x40) =
+        (*(int *)(game + 0x100) == 2) ? 0x18 : 0x17;
+      break;
+    case 4:
+      *(unsigned short *)((char *)widget + 0x40) = 0x17;
+      break;
+    case 5:
+      *(unsigned short *)((char *)widget + 0x40) = 0x19;
+      break;
+    case 2:
+    default:
+      *(unsigned short *)((char *)widget + 0x40) = 0x18;
+      break;
+    }
+  } else {
+    error(2, "no network game");
+  }
+}
+
 /* FUN_000f3280 (0xf3280)
  * "mp game settings text" numeric text box widget update. Requires the
  * widget to be a text box (type == 1 at +0xe). Looks up the current network
