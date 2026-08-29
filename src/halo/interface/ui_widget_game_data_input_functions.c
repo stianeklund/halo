@@ -1290,6 +1290,36 @@ void get_editable_player_profile_display_name(void *widget)
   *(unsigned char *)((char *)warning_widget + 0x10) = 0;
 }
 
+/* get_editable_playlist_profile_display_name (0xf3640, ui_widget_game_data_
+ * function_table). Like the sibling at 0xf3590, kb.json's name is a
+ * pre-existing placeholder that does not match the observed behavior: there
+ * is no profile lookup or name copy here at all. Kept as-is to avoid an
+ * unrequested rename.
+ *
+ * Asserts the widget is a text box (+0xe == 1); otherwise halts (reference
+ * PUSH immediates at 0xf364e/0xf3650/0xf3655/0xf365a: display_assert(
+ * "expected a text box widget for system link menu text item", ..., 0xc3c,
+ * 1); system_exit(-1)). Then unconditionally writes the widget's +0x24 float
+ * field: 1.0f if transport_network_available(), else 0.333f (0x3eaa7efa) --
+ * meaning of +0x24 is unconfirmed (no other function in this TU touches it).
+ * Evidence: reference disassembly at 0xf3640-0xf368b. */
+void get_editable_playlist_profile_display_name(void *widget)
+{
+  if (*(short *)((char *)widget + 0xe) != 1) {
+    display_assert(
+      "expected a text box widget for system link menu text item",
+      "c:\\halo\\SOURCE\\interface\\ui_widget_game_data_input_functions.c",
+      0xc3c, 1);
+    system_exit(-1);
+  }
+
+  if (transport_network_available()) {
+    *(float *)((char *)widget + 0x24) = 1.0f;
+  } else {
+    *(float *)((char *)widget + 0x24) = 0.333f;
+  }
+}
+
 /* FUN_000f46e0 (0xf46e0)
  * "mp player settings select" quarter-screen profile list widget update.
  *

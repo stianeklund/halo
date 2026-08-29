@@ -63103,6 +63103,21 @@
       "score": 100.0,
       "source": "src/halo/interface/ui_widget_game_data_input_functions.c"
     },
+    "get_editable_playlist_profile_display_name": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0xf3640",
+      "end": "0xf368b",
+      "kind": "auto",
+      "n_r": 25,
+      "opnd_percent": 88.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "7c646fe5f6db9441",
+      "score": 100.0,
+      "source": "src/halo/interface/ui_widget_game_data_input_functions.c"
+    },
     "get_flag_definition_index": {
       "abi_model": "raw",
       "abi_model_items": 0,
