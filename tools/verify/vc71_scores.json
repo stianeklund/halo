@@ -47911,16 +47911,16 @@
     "action_wait_setup": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 86.2,
+      "abi_modeled_mnemonic_pct": 98.3,
       "addr": "0x1c0e0",
       "end": "0x1c189",
       "kind": "auto",
       "n_r": 60,
-      "opnd_percent": 77.6,
-      "raw_mnemonic_pct": 86.2,
+      "opnd_percent": 93.3,
+      "raw_mnemonic_pct": 98.3,
       "ref": "synth",
       "ref_sha": "a82b372b5634492a",
-      "score": 86.2,
+      "score": 98.3,
       "source": "src/halo/ai/actions.c"
     },
     "action_wait_update": {
@@ -48421,16 +48421,16 @@
     "actor_action_handle_panic_transition": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 89.6,
+      "abi_modeled_mnemonic_pct": 90.6,
       "addr": "0x1dd40",
       "end": "0x1de92",
       "kind": "auto",
       "n_r": 109,
-      "opnd_percent": 69.8,
-      "raw_mnemonic_pct": 89.6,
+      "opnd_percent": 71.7,
+      "raw_mnemonic_pct": 90.6,
       "ref": "synth",
       "ref_sha": "fd4d2f8a2930d5ca",
-      "score": 89.6,
+      "score": 90.6,
       "source": "src/halo/ai/actions.c"
     },
     "actor_action_handle_pending_command_list": {

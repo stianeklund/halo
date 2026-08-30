@@ -2065,7 +2065,7 @@ char actor_action_handle_panic_transition(int actor_handle, short param_2,
 
   panic_level = actor->stimuli_panic_type;
   result = 0;
-  if (param_2 <= panic_level && actor->field_160 == '\0') {
+  if (panic_level >= param_2 && actor->field_160 == '\0') {
     if (actor->state_action == _actor_action_flee &&
         (shield_value = actor->field_0a8, shield_value > 0)) {
       if (panic_level < shield_value) {
