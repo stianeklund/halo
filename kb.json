@@ -15192,7 +15192,7 @@
     {
      "addr": "0x12f430",
      "decl": "bool FUN_0012f430(void *server, void *message);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x12f5d0",

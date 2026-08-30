@@ -463,8 +463,8 @@ bool network_game_server_graceful_shutdown(void *server)
 /* Check if a machine is marked as valid/active on this server (0x12c500).
  * Asserts both server and machine are non-null, then returns bit 1 of the
  * flags byte at machine+0xe (shifted right by 1, masked to a bool). */
-bool network_game_server_client_machine_is_joined_to_game(int server,
-                                                          int machine)
+__declspec(noinline) bool
+network_game_server_client_machine_is_joined_to_game(int server, int machine)
 {
   if (!server) {
     display_assert("server",
@@ -1247,7 +1247,8 @@ int network_game_server_get_connection(void *server)
 
 /* Return the connection handle from a machine struct (0x12d3b0).
  * Returns the first dword at machine+0, or 0 if machine is NULL. */
-int network_game_server_adjust_machine_settings(void *machine)
+__declspec(noinline) int
+network_game_server_adjust_machine_settings(void *machine)
 {
   if (machine != NULL)
     return *(int *)machine;
@@ -1287,8 +1288,8 @@ int network_game_server_get_machine_connection(int server, int machine)
 /* Get a pointer to the machine entry at the given index (0x12d450).
  * Asserts server is non-null and index < MAXIMUM_NETWORK_MACHINE_COUNT (4).
  * Each machine entry is 0x10 bytes, starting at server+0x43c. */
-int network_game_server_get_client_machine_at_index(int server,
-                                                    int machine_index)
+__declspec(noinline) int
+network_game_server_get_client_machine_at_index(int server, int machine_index)
 {
   if (!server || machine_index >= 4) {
     display_assert("server && (index<MAXIMUM_NETWORK_MACHINE_COUNT)",
@@ -2780,6 +2781,11 @@ bool FUN_0012f170(int server, int machine, void *message_data, int message_size)
 }
 
 /* Handle add-player request ingame (0x12f200). */
+#if defined(_MSC_VER) && !defined(__clang__)
+/* The reference calls network_game_server_get_state and compares AX; keep
+ * VC71 from inlining its server+4 field load into this handler. */
+#pragma inline_depth(0)
+#endif
 bool FUN_0012f200(int server, int machine, void *message_data, int message_size)
 {
   char decoded_buf[32];
@@ -2805,6 +2811,9 @@ bool FUN_0012f200(int server, int machine, void *message_data, int message_size)
     "packet");
   return true;
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma inline_depth()
+#endif
 
 /* Handle remove-player request postgame (0x12f290). */
 bool FUN_0012f290(int server, int machine, void *message_data, int message_size)
