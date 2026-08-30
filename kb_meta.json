@@ -9916,6 +9916,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf3640": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf3850": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf46e0": {
       "kind": "function",
       "status": "unknown",
@@ -11909,11 +11917,27 @@
         "Internal callee 0x11f750 (alloc_or_resize) register convention: EAX=new_size, ECX=pool, stack=[block_hdr, file, line]; confirmed from disassembly of call site but callee internals not fully analyzed."
       ]
     },
+    "0x120670": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x120790": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x120810": {
       "kind": "function",
       "status": "ported"
     },
     "0x120870": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x120930": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x120ee0": {
       "kind": "function",
       "status": "ported"
     },

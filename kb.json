@@ -36689,7 +36689,7 @@
     },
     {
      "addr": "0x120590",
-     "decl": "void FUN_00120590(void *animation, short frame_index, short frame_size);",
+     "decl": "void *FUN_00120590(void *animation, short frame_index, short frame_size);",
      "ported": true
     },
     {
@@ -36711,7 +36711,8 @@
     },
     {
      "addr": "0x120790",
-     "decl": "void animation_set_frame_size(void);"
+     "decl": "void animation_set_frame_size(void *animation);",
+     "ported": true
     },
     {
      "addr": "0x120810",
@@ -36725,7 +36726,8 @@
     },
     {
      "addr": "0x120930",
-     "decl": "void quaternion_decompress_6byte_renormalized(void);"
+     "decl": "void quaternion_decompress_6byte_renormalized(void *compressed_data, float *dest);",
+     "ported": true
     },
     {
      "addr": "0x120950",
@@ -36755,7 +36757,8 @@
     },
     {
      "addr": "0x120ee0",
-     "decl": "void animation_frame_get_xy_translation(void);"
+     "decl": "void animation_frame_get_xy_translation(void *animation, short frame_index, float *out_translation);",
+     "ported": true
     },
     {
      "addr": "0x120f20",
@@ -36828,11 +36831,13 @@
     },
     {
      "addr": "0x123e20",
-     "decl": "void animation_get_root_matrix(void);"
+     "decl": "float *animation_get_root_matrix(void *mode_tag, short node_index);",
+     "ported": true
     },
     {
      "addr": "0x123e50",
-     "decl": "void FUN_00123e50(void);"
+     "decl": "short FUN_00123e50(int tag_index, const char *name);",
+     "ported": true
     },
     {
      "addr": "0x123ed0",

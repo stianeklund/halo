@@ -363,9 +363,15 @@ void *FUN_00120500(void *animation, short frame_index)
  * Given an animation structure pointer, a frame_index, and the per-frame
  * stride (frame_size), bounds-checks frame_index against animation->frame_count
  * (int16 at +0x22), then calls tag_data_get_pointer on the tag_data block at
- * animation+0x48 with offset = frame_index * frame_size and size = frame_size.
- * The return value of tag_data_get_pointer is discarded; the call is for its
- * side effect of resolving the tag_data reference.
+ * animation+0x48 with offset = frame_index * frame_size and size = frame_size,
+ * returning that pointer to the caller.
+ *
+ * Confirmed void-EAX-return (lift-silent-bugs §16): the original leaves
+ * tag_data_get_pointer's result in EAX across the epilogue (no instruction
+ * between the CALL at 0x1205d7 and RET touches EAX) and its only caller,
+ * animation_frame_get_xy_translation (0x120ee0), reads EAX immediately after
+ * `CALL 0x00120590` (MOV EDX,[EAX] / MOV EAX,[EAX+4] at 0x120ef9/0x120f00) as
+ * the returned frame-data pointer. Must NOT be declared void.
  *
  * Confirmed: cdecl, 3 args (animation ptr, frame_index short, frame_size
  * short). Confirmed: assert "frame_index>=0 &&
@@ -375,7 +381,7 @@ void *FUN_00120500(void *animation, short frame_index)
  * Source: c:\halo\SOURCE\models\model_animation_definitions.c, line 0x48e
  * (1166).
  */
-void FUN_00120590(void *animation, short frame_index, short frame_size)
+void *FUN_00120590(void *animation, short frame_index, short frame_size)
 {
   char *anim;
   int offset;
@@ -392,7 +398,7 @@ void FUN_00120590(void *animation, short frame_index, short frame_size)
 
   size = (int)frame_size;
   offset = (int)frame_index * size;
-  tag_data_get_pointer(anim + 0x48, offset, size);
+  return tag_data_get_pointer(anim + 0x48, offset, size);
 }
 
 /* FUN_001205f0 (0x1205f0) — look up a string in an indexed string table.
@@ -407,6 +413,72 @@ const char *FUN_001205f0(void *string_table, int16_t index)
     result = "#<invalid>";
   }
   return result;
+}
+
+/* animation_set_frame_size (0x120790) — Compute and store the per-frame byte
+ * stride for a compressed animation from its per-node data-presence flags.
+ *
+ * If animation is NULL, calls display_assert("animation", ...) then
+ * system_exit(-1) (does not return). Otherwise, if animation->node_count
+ * (int16 at +0x2c) is positive, walks node_count bits, indexed by
+ * word = bit_index >> 5 across three per-node flag bitmaps stored as 32-bit
+ * words at +0x6c, +0x5c, +0x7c: each set bit in the +0x6c bitmap adds 8
+ * (compressed rotation), each set bit in +0x5c adds 12 (compressed
+ * translation), each set bit in +0x7c adds 4 (compressed scale). The
+ * accumulated total is stored to animation->frame_size (int16 at +0x24).
+ *
+ * Confirmed: cdecl, 1 arg (animation ptr) via [EBP+0x8] (ESI).
+ * Confirmed: NULL check at 0x12079c (TEST ESI,ESI / JNZ); CALL display_assert
+ * ("animation","c:\halo\SOURCE\models\model_animations.c",0x7b,true) at
+ * 0x1207ac, then CALL system_exit(-1) at 0x1207b3 (no return).
+ * Confirmed: loop guard is signed `0 < *(short *)(anim+0x2c)` at 0x1207bb-
+ * 0x1207c0; loop count MOVZX'd (unsigned) into EBX at 0x1207c3.
+ * Confirmed: accumulator (EDI) is a 32-bit register, zeroed once in the
+ * prologue (XOR EDI,EDI at 0x120798) before the NULL check, added to via
+ * 32-bit ADD (0x1207e7/0x1207f0/0x1207f9), and only narrowed to int16 at the
+ * final store (MOV word ptr [ESI+0x24],DI at 0x120801).
+ * Confirmed: per-iteration bit test order in disassembly is +0x6c (+8), then
+ * +0x5c (+0xc), then +0x7c (+4) (0x1207e1-0x1207f9).
+ */
+void animation_set_frame_size(void *animation)
+{
+  char *anim;
+  int frame_size;
+  int node_count;
+  int i;
+  int word_index;
+  unsigned int bit;
+
+  anim = (char *)animation;
+  frame_size = 0;
+
+  if (anim == NULL) {
+    display_assert("animation", "c:\\halo\\SOURCE\\models\\model_animations.c",
+                   0x7b, 1);
+    system_exit(-1);
+  }
+
+  if (0 < *(short *)(anim + 0x2c)) {
+    node_count = (int)*(unsigned short *)(anim + 0x2c);
+    i = 0;
+    do {
+      bit = 1u << (i & 0x1f);
+      word_index = i >> 5;
+      if ((*(unsigned int *)(anim + 0x6c + word_index * 4) & bit) != 0) {
+        frame_size = frame_size + 8;
+      }
+      if ((*(unsigned int *)(anim + 0x5c + word_index * 4) & bit) != 0) {
+        frame_size = frame_size + 0xc;
+      }
+      if ((*(unsigned int *)(anim + 0x7c + word_index * 4) & bit) != 0) {
+        frame_size = frame_size + 4;
+      }
+      i = i + 1;
+      node_count = node_count - 1;
+    } while (node_count != 0);
+  }
+
+  *(short *)(anim + 0x24) = (short)frame_size;
 }
 
 /* quaternion_decompress_8byte (0x120810) — Convert 4 packed int16 values to
@@ -466,6 +538,29 @@ void quaternion_decompress_6byte(void *compressed_data, float *dest)
   dest[1] = (float)(int)s1 * (1.0f / 32767.0f);
   dest[2] = (float)(int)s2 * (1.0f / 32767.0f);
   dest[3] = (float)(int)s3 * (1.0f / 32767.0f);
+}
+
+/* quaternion_decompress_6byte_renormalized (0x120930) — Decompress 3 packed
+ * uint16s into 4 floats via quaternion_decompress_6byte, then renormalize
+ * dest in place via sphere_intersects_rectangle3d (misnamed at 0x10ca30 —
+ * see its kb.json decl `float *quaternion`; it is the same renormalize call
+ * inlined right after quaternion_decompress_6byte at 0x121e89/0x121e8f in
+ * FUN_00121d60).
+ *
+ * Confirmed: cdecl, 2 args (compressed_data ptr, dest float ptr), void
+ * return, leaf wrapper (no locals beyond saved ESI).
+ * Confirmed: CALL quaternion_decompress_6byte at 0x12093c — PUSH ESI(dest)
+ * then PUSH EAX(compressed_data), matching the callee's (compressed_data,
+ * dest) parameter order.
+ * Confirmed: CALL sphere_intersects_rectangle3d at 0x120942 — PUSH ESI(dest).
+ * The single ADD ESP,0xc at 0x120947 is the combined cleanup for both calls
+ * (8 bytes + 4 bytes), not a 3-arg call.
+ */
+void quaternion_decompress_6byte_renormalized(void *compressed_data,
+                                              float *dest)
+{
+  quaternion_decompress_6byte(compressed_data, dest);
+  sphere_intersects_rectangle3d(dest);
 }
 
 /* FUN_00120cb0 (0x120cb0) — Look up an animation by name in an 'antr'
@@ -618,6 +713,41 @@ short FUN_00120d10(unsigned short *keyframe_frame_indices,
   }
 
   return (short)kf_idx;
+}
+
+/* animation_frame_get_xy_translation (0x120ee0) — Fetch a frame's XY
+ * translation offset, for animation types whose translation is applied via
+ * this path (discriminator == 1), else return (0, 0).
+ *
+ * If *(short *)(animation+0x26) == 1, resolves the frame's raw data block
+ * via FUN_00120590(animation, frame_index, 8) and copies the block's first
+ * two dwords (x, y) into *out_translation. FUN_00120590 returns that pointer
+ * in EAX (see its confirmed void-EAX-return note above); the two MOVs here
+ * are a straight dword bit-copy, not FPU math, matching the original's plain
+ * MOV/MOV pair. Otherwise zero-fills *out_translation.
+ *
+ * Confirmed: cdecl, 3 args (animation ptr [EBP+8], frame_index short
+ * [EBP+0xc], out_translation float* [EBP+0x10]). Confirmed: CMP word ptr
+ * [EAX+0x26],0x1 / JNZ 0x00120f0b at 0x120ee6-0x120eeb. Confirmed: frame_size
+ * literal 8 pushed at 0x120ef0 (PUSH 0x8). Confirmed: taken path copies
+ * dword [ret_ptr] -> out[0] and dword [ret_ptr+4] -> out[1] at
+ * 0x120ef9-0x120f06. Confirmed: not-taken path stores dword 0 to both output
+ * slots at 0x120f0e and 0x120f14.
+ */
+void animation_frame_get_xy_translation(void *animation, short frame_index,
+                                        float *out_translation)
+{
+  char *anim = (char *)animation;
+  void *frame_data;
+
+  if (*(short *)(anim + 0x26) == 1) {
+    frame_data = FUN_00120590(animation, frame_index, 8);
+    out_translation[0] = *(float *)frame_data;
+    out_translation[1] = *(float *)((char *)frame_data + 4);
+    return;
+  }
+  out_translation[0] = 0.0f;
+  out_translation[1] = 0.0f;
 }
 
 /* model_animation_choose_random (0x120f20) — Choose a weighted random
@@ -1315,4 +1445,68 @@ void FUN_00123aa0(void *mode_tag, void *out_node_data)
       iVar4 = (int)sVar1;
     } while (iVar4 < *(int *)(param_1 + 0xb8));
   }
+}
+
+/* animation_get_root_matrix (0x123e20) — Get a node's default matrix from a
+ * model mode tag.
+ *
+ * Confirmed: cdecl, 2 args (mode_tag ptr, node_index short).
+ * Confirmed: CALL tag_block_get_element(mode_tag+0xb8, node_index, 0x9c) at
+ * 0x123e37 — same tag block/element-size pair as FUN_00123aa0 above, so
+ * element+0x68 is a field of that same 0x9c-byte node structure (past the
+ * element+0x28 translation and element+0x34 rotation already confirmed
+ * there). Confirmed: MOVSX at 0x123e23 sign-extends node_index before the
+ * PUSH. Confirmed: return value is element+0x68 (ADD EAX,0x68 at 0x123e3f) —
+ * no dereference, so this returns a pointer, not a copied value.
+ */
+float *animation_get_root_matrix(void *mode_tag, short node_index)
+{
+  char *element;
+
+  element = (char *)tag_block_get_element((void *)((char *)mode_tag + 0xb8),
+                                          (int)node_index, 0x9c);
+  return (float *)(element + 0x68);
+}
+
+/* FUN_00123e50 (0x123e50) — Find a mode-tag node's index by name.
+ *
+ * Confirmed: cdecl, 2 args (tag_index int, name char*). Confirmed: early-out
+ * returns -1 without calling tag_get when tag_index == -1 (JZ at 0x123e5c).
+ * Confirmed: CALL tag_get(0x6d6f6465 ('mode'), tag_index) at 0x123e64.
+ * Confirmed: tag block at mode_tag+0xb8 — same tag block/element-size pair
+ * (0x9c) as FUN_00123aa0 and animation_get_root_matrix above, so this walks
+ * the mode tag's node array. Confirmed: CALL
+ * tag_block_get_element(nodes, index, 0x9c) at 0x123e87. Confirmed: CALL
+ * csstrcmp(element, name) at 0x123e8e — the element pointer itself is passed
+ * as the string, so the node name field is at offset 0x0 of the 0x9c-byte
+ * node struct. Confirmed: loop index is a short — MOVSX EAX,DI at 0x123e9d
+ * re-sign-extends it from DI before the count comparison, matching a
+ * `short` C loop variable stored in a 32-bit register. Confirmed: on a
+ * csstrcmp match (== 0) the function returns the index via MOV AX,DI at
+ * 0x123ead; the tag_index==-1, empty-block, and no-match paths all fall
+ * through to OR AX,0xffff at 0x123ea6 and return -1.
+ */
+short FUN_00123e50(int tag_index, const char *name)
+{
+  void *mode_tag;
+  char *element;
+  short index;
+  int count;
+
+  if (tag_index != -1) {
+    mode_tag = tag_get(0x6d6f6465, tag_index); /* 'mode' */
+    count = *(int *)((char *)mode_tag + 0xb8);
+    index = 0;
+    if (0 < count) {
+      do {
+        element = (char *)tag_block_get_element(
+          (void *)((char *)mode_tag + 0xb8), (int)index, 0x9c);
+        if (csstrcmp(element, name) == 0) {
+          return index;
+        }
+        index = index + 1;
+      } while ((int)index < count);
+    }
+  }
+  return -1;
 }

@@ -31333,6 +31333,21 @@
       "score": 8.5,
       "source": "src/halo/unported_thunks.c"
     },
+    "FUN_00123e50": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 93.5,
+      "addr": "0x123e50",
+      "end": "0x123eb5",
+      "kind": "auto",
+      "n_r": 47,
+      "opnd_percent": 82.6,
+      "raw_mnemonic_pct": 93.5,
+      "ref": "synth",
+      "ref_sha": "e7bb38a6dc55870a",
+      "score": 93.5,
+      "source": "src/halo/models/model_animations.c"
+    },
     "FUN_00123ed0": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -52048,6 +52063,21 @@
       "score": 86.0,
       "source": "src/halo/math/real_math.c"
     },
+    "animation_frame_get_xy_translation": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x120ee0",
+      "end": "0x120f1d",
+      "kind": "auto",
+      "n_r": 23,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "a4cfc55c755d7088",
+      "score": 100.0,
+      "source": "src/halo/models/model_animations.c"
+    },
     "animation_get_node_orientations": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -52061,6 +52091,36 @@
       "ref": "synth",
       "ref_sha": "7fb6d1c40f671d5f",
       "score": 83.1,
+      "source": "src/halo/models/model_animations.c"
+    },
+    "animation_get_root_matrix": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x123e20",
+      "end": "0x123e44",
+      "kind": "auto",
+      "n_r": 13,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "4f0a76d755268699",
+      "score": 100.0,
+      "source": "src/halo/models/model_animations.c"
+    },
+    "animation_set_frame_size": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 96.8,
+      "addr": "0x120790",
+      "end": "0x120809",
+      "kind": "auto",
+      "n_r": 46,
+      "opnd_percent": 92.5,
+      "raw_mnemonic_pct": 96.8,
+      "ref": "synth",
+      "ref_sha": "88095d31528610c1",
+      "score": 96.8,
       "source": "src/halo/models/model_animations.c"
     },
     "animation_update_internal": {
@@ -76690,6 +76750,21 @@
       "raw_mnemonic_pct": 100.0,
       "ref": "synth",
       "ref_sha": "45cfa59cb65b2d4d",
+      "score": 100.0,
+      "source": "src/halo/models/model_animations.c"
+    },
+    "quaternion_decompress_6byte_renormalized": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 100.0,
+      "addr": "0x120930",
+      "end": "0x12094d",
+      "kind": "auto",
+      "n_r": 14,
+      "opnd_percent": 100.0,
+      "raw_mnemonic_pct": 100.0,
+      "ref": "synth",
+      "ref_sha": "d1d001ce329e91aa",
       "score": 100.0,
       "source": "src/halo/models/model_animations.c"
     },
