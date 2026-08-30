@@ -15437,7 +15437,7 @@
     {
      "addr": "0x12f330",
      "decl": "char FUN_0012f330(int server @<esi>, int machine, void *message_data, int message_size);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x12f3d0",

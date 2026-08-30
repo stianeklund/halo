@@ -2836,11 +2836,14 @@ bool FUN_0012f290(int server, int machine, void *message_data, int message_size)
 }
 
 /* Handle client switch-to-pregame request (0x12f330). */
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma inline_depth(0)
+#endif
 char FUN_0012f330(int server, int machine, void *message_data, int message_size)
 {
   char decoded_buf[4];
-  short packet_type;
-  short packet_version;
+  int packet_type;
+  int packet_version;
   char result;
 
   result = 1;
@@ -2873,6 +2876,9 @@ char FUN_0012f330(int server, int machine, void *message_data, int message_size)
   }
   return result;
 }
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma inline_depth()
+#endif
 
 /* Fastcall wrapper: write message via network_connection_write (0x12f3d0).
  * dest_address @<ecx>, size @<edx>, reliable @<eax>, stack: connection,
