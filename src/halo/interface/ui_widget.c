@@ -863,16 +863,19 @@ void render_text_box_widget(void *definition, void *widget,
     color[2] = white[2];
     color[3] = white[3];
   } else {
-    color[0] = definition_color[0];
-    color[1] = definition_color[1];
-    color[2] = definition_color[2];
-    color[3] = definition_color[3];
-    if (color[1] == 1.0f && color[2] == 1.0f && color[3] == 1.0f) {
+    if (*(const float *)0x2533c8 == definition_color[1] &&
+        *(const float *)0x2533c8 == definition_color[2] &&
+        *(const float *)0x2533c8 == definition_color[3]) {
       white = get_ui_argb_white(white_temp);
       color[0] = white[0];
       color[1] = white[1];
       color[2] = white[2];
       color[3] = white[3];
+    } else {
+      color[0] = definition_color[0];
+      color[1] = definition_color[1];
+      color[2] = definition_color[2];
+      color[3] = definition_color[3];
     }
   }
   color[0] = definition_color[0] * opacity;
