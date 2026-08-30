@@ -1905,12 +1905,12 @@ void FUN_001a1e70(int unit_handle)
       if ((FUN_001a1a10(6.0f, probe_hit, (void *)0, dir_ptr, unit_handle) ==
            -1) ||
           (object_get_world_position(unit_handle, (vector3_t *)world_pos),
-           *(float *)((char *)unit_obj + 0x20) <= *(float *)0x2533c0 &&
+           !(*(float *)((char *)unit_obj + 0x20) > *(float *)0x2533c0) &&
              (fall_term = (world_pos[2] - probe_hit[2]) * *(float *)0x32512c,
-              *(float *)(physics + 0x94) * *(float *)(physics + 0x94) <=
+              !(*(float *)(physics + 0x94) * *(float *)(physics + 0x94) >
                 *(float *)((char *)unit_obj + 0x20) *
                     *(float *)((char *)unit_obj + 0x20) +
-                  fall_term + fall_term))) {
+                  fall_term + fall_term)))) {
         FUN_001a74d0(unit_handle, 0);
       }
     }
