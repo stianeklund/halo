@@ -82,6 +82,22 @@ class FingerprintTests(unittest.TestCase):
 
 
 class StoreTests(unittest.TestCase):
+    def test_outcome_stats_keep_provider_model_identifiers_opaque(self):
+        with tempfile.TemporaryDirectory() as td:
+            cache = ResearchCache(Path(td) / "shared")
+            cache.record_outcome(
+                target="0x11", cohort="control", outcome="committed", tokens=100,
+                model_id="gpt-5.6-luna-medium", effort="medium", route="atlas_fix")
+            cache.record_outcome(
+                target="0x12", cohort="control", outcome="parked", tokens=50,
+                model_id="provider-b/model-x", effort="high", route="semantic_relift")
+            stats = cache.stats()
+            self.assertEqual(stats["models"]["gpt-5.6-luna-medium"], {
+                "attempts": 1, "tokens": 100, "accepted": 1,
+                "accepted_per_100k_tokens": 1000.0,
+            })
+            self.assertEqual(stats["models"]["provider-b/model-x"]["attempts"], 1)
+
     def test_retrieval_gate_stays_closed_without_two_fifty_target_cohorts(self):
         with tempfile.TemporaryDirectory() as td:
             stats = ResearchCache(Path(td) / "shared").stats()

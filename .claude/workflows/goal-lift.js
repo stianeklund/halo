@@ -41,7 +41,14 @@ const IMPROVE      = !!(args && args.improve)
 //   with a +14.7pp mean score gain over 16 improve handoffs, vs 52% for
 //   opus-high (2026-08-07) — so opus/fable are worth requesting for the
 //   hardest parked targets that stall on Sonnet.
-const IMPROVE_MODEL = (args && args.improveModel) || 'sonnet'
+// Provider/model names are intentionally opaque workflow arguments.  A quota
+// exhaustion should be a routing change, not a forked workflow or lost attempt
+// history.  Example: --reasonModel gpt-5.6-terra --mechanicalModel gpt-5.6-luna.
+const MECHANICAL_MODEL = (args && args.mechanicalModel) || 'haiku'
+const EXTRACT_MODEL = (args && args.extractModel) || 'sonnet'
+const REASON_MODEL = (args && args.reasonModel) || 'sonnet'
+const COMMIT_MODEL = (args && args.commitModel) || MECHANICAL_MODEL
+const IMPROVE_MODEL = (args && args.improveModel) || REASON_MODEL
 // Effort ladder for the in-place score tune. Each rung re-runs the optimizer at
 // a higher effort, but only for a target still below the pass bar, not capped,
 // and while budget remains. Override as a comma list, e.g. --improveEfforts
@@ -58,15 +65,15 @@ const ESCALATION_BUDGET_FLOOR = (args && args.escalationBudgetFloor) || 120000
 // Override with --maxEscalations.
 const MAX_ESCALATIONS = (args && args.maxEscalations != null) ? args.maxEscalations : 3
 const M = {
-  mechanical: { model: 'haiku', effort: 'high'  },  // tool-run + parse
+  mechanical: { model: MECHANICAL_MODEL, effort: 'high'  },  // tool-run + parse
   // Selection and one-shot score levers still need constrained judgment.
   // Per-target research is mechanical and routes through M.mechanical below.
-  extract:    { model: 'sonnet', effort: 'low'  },  // select + classified score lever
+  extract:    { model: EXTRACT_MODEL, effort: 'low'  },  // select + classified score lever
   // Commit runs a fixed 6-command script whose only judgement is "does the
   // build log contain an error: line" -- the same shape as the 19 sites already
   // on `mechanical`. Measured 31 agents / ~4% of session spend on opus for it.
-  commit:     { model: 'haiku', effort: 'high'  },  // runs the clean-build gate
-  reason:     { model: 'sonnet', effort: 'high' },  // lift, review
+  commit:     { model: COMMIT_MODEL, effort: 'high'  },  // runs the clean-build gate
+  reason:     { model: REASON_MODEL, effort: 'high' },  // lift, review
   improve:    { model: IMPROVE_MODEL, effort: IMPROVE_EFFORTS[0] },  // improve-pass base rung
 }
 // --reviewEffort: A/B lever for reviewer cost (docs/plans/agent-model-routing-2026-08.md
@@ -579,7 +586,7 @@ STEPS:
    workflow re-spawns a FRESH escalation agent rather than extending this one (this
    agent's whole context is re-read every turn, so a long agent costs quadratically
    in tokens — a short one is linear).
-   timeout 165 rtk python3 tools/lift_pipeline.py --target ${brief.name} --no-metadata-update --verify-policy goal90 2>&1 || echo "[lift_pipeline timed-out]"
+   timeout 165 rtk python3 tools/lift_pipeline.py --target ${brief.name} --no-metadata-update --verify-policy goal90${brief.artifact_paths && brief.artifact_paths.ghidra ? ` --ghidra-context ${JSON.stringify(brief.artifact_paths.ghidra)}` : ''} 2>&1 || echo "[lift_pipeline timed-out]"
    Parse the VC71 % line and build pass/fail ONLY. Do NOT paste the full objdiff or
    build log into your reasoning — quoting large tool output back inflates every
    following turn's re-read. If it timed out, status="needs_review", vc71_score=0.
@@ -1957,7 +1964,8 @@ if (outcomeRows.length) {
     `Record retrieval experiment outcomes. Run each command exactly; these are metrics only:\n${outcomeRows.map(r => {
       const outcome = (r.status === 'reverted_review' || String(r.reason || '').includes('REJECT'))
         ? 'reviewer_rejected' : (String(r.reason || '').includes('runtime_failed') ? 'runtime_failed' : r.status)
-      return `rtk python3 tools/lift/research_bundle.py record-outcome --target ${JSON.stringify(r.addr)} --cohort ${r.retrieval_cohort} --outcome ${JSON.stringify(outcome)} --tokens ${perTargetTokens} --fingerprint ${JSON.stringify(r.fingerprint || '')} --json`
+      const routeModel = IMPROVE ? M.improve : M.reason
+      return `rtk python3 tools/lift/research_bundle.py record-outcome --target ${JSON.stringify(r.addr)} --cohort ${r.retrieval_cohort} --outcome ${JSON.stringify(outcome)} --tokens ${perTargetTokens} --fingerprint ${JSON.stringify(r.fingerprint || '')} --model-id ${JSON.stringify(routeModel.model)} --effort ${JSON.stringify(routeModel.effort)} --route ${JSON.stringify(IMPROVE ? 'improve' : 'goal_lift')} --json`
     }).join('\n')}`,
     { label: 'retrieval-outcomes', phase: 'Report', ...M.mechanical })
 }

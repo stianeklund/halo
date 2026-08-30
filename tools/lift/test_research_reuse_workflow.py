@@ -11,10 +11,10 @@ ROOT = Path(__file__).resolve().parents[2]
 class WorkflowCutoverTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.goal = (ROOT / ".claude" / "workflows" / "goal-lift.js").read_text()
-        cls.auto_session = (ROOT / ".claude" / "workflows" / "auto-session.js").read_text()
-        cls.analyst = (ROOT / ".claude" / "agents" / "auto-lift-analyst.md").read_text()
-        cls.reviewer = (ROOT / ".claude" / "agents" / "auto-lift-reviewer.md").read_text()
+        cls.goal = (ROOT / ".claude" / "workflows" / "goal-lift.js").read_text(encoding="utf-8")
+        cls.auto_session = (ROOT / ".claude" / "workflows" / "auto-session.js").read_text(encoding="utf-8")
+        cls.analyst = (ROOT / ".claude" / "agents" / "auto-lift-analyst.md").read_text(encoding="utf-8")
+        cls.reviewer = (ROOT / ".claude" / "agents" / "auto-lift-reviewer.md").read_text(encoding="utf-8")
 
     def test_no_unconditional_force_or_opus_research_call(self):
         self.assertNotIn("cache-context --target ${t.addr} --force", self.goal)

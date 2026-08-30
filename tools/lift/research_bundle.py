@@ -432,13 +432,26 @@ class ResearchCache:
         }
 
     def record_outcome(self, *, target: str, cohort: str, outcome: str,
-                       tokens: int, fingerprint: str = "") -> Path:
+                       tokens: int, fingerprint: str = "", model_id: str = "",
+                       effort: str = "", route: str = "") -> Path:
+        """Store one provider-neutral lift outcome.
+
+        ``model_id`` deliberately remains an opaque string.  The campaign may
+        move between providers as quota changes, and the evidence ledger must
+        preserve that fact instead of imposing a provider-specific enum.
+        """
         record = {
             "schema": SCHEMA, "target": _norm_addr(target), "cohort": cohort,
             "outcome": outcome, "tokens": max(0, int(tokens)),
             "fingerprint": fingerprint,
             "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
+        if model_id:
+            record["model_id"] = model_id
+        if effort:
+            record["effort"] = effort
+        if route:
+            record["route"] = route
         event_id = _fingerprint(record)
         path = self.root / "outcomes" / f"{event_id}.json"
         self._write_immutable(path, record)
@@ -452,6 +465,7 @@ class ResearchCache:
             cache["hits" if event.get("hit") else "misses"] += 1
             cache["ghidra_builds"] += int(event.get("ghidra_builds") or 0)
         cohorts = {}
+        models = {}
         for path in (self.root / "outcomes").glob("*.json") if (self.root / "outcomes").exists() else []:
             rec = self._load(path) or {}
             cohort = rec.get("cohort", "unknown")
@@ -465,7 +479,16 @@ class ResearchCache:
             row["accepted"] += int(outcome in {"committed", "would_commit"})
             row["reviewer_rejections"] += int(outcome == "reviewer_rejected")
             row["runtime_failures"] += int(outcome == "runtime_failed")
+            model_id = rec.get("model_id", "unspecified")
+            model = models.setdefault(model_id, {"attempts": 0, "tokens": 0,
+                                                 "accepted": 0})
+            model["attempts"] += 1
+            model["tokens"] += int(rec.get("tokens") or 0)
+            model["accepted"] += int(outcome in {"committed", "would_commit"})
         for row in cohorts.values():
+            row["accepted_per_100k_tokens"] = (
+                100000.0 * row["accepted"] / row["tokens"] if row["tokens"] else 0.0)
+        for row in models.values():
             row["accepted_per_100k_tokens"] = (
                 100000.0 * row["accepted"] / row["tokens"] if row["tokens"] else 0.0)
         eligible = all(cohorts.get(c, {}).get("targets", 0) >= 50
@@ -482,6 +505,7 @@ class ResearchCache:
                 <= control.get("runtime_failures", 0)
         )
         return {"schema": SCHEMA, "cache": cache, "cohorts": cohorts,
+                "models": models,
                 "retrieval_decision_eligible": eligible,
                 "recommend_unconditional_retrieval": gate_passes}
 
@@ -584,6 +608,12 @@ def build_parser() -> argparse.ArgumentParser:
     outcome.add_argument("--outcome", required=True)
     outcome.add_argument("--tokens", type=int, default=0)
     outcome.add_argument("--fingerprint", default="")
+    outcome.add_argument("--model-id", default="",
+                         help="Opaque provider/model identifier, e.g. gpt-5.6-luna-medium.")
+    outcome.add_argument("--effort", default="",
+                         help="Optional provider-neutral reasoning effort label.")
+    outcome.add_argument("--route", default="",
+                         help="Optional deterministic route, e.g. atlas_fix or semantic_relift.")
     outcome.add_argument("--json", action="store_true")
     return parser
 
@@ -597,7 +627,9 @@ def main(argv=None) -> int:
     if args.command == "record-outcome":
         path = cache.record_outcome(target=args.target, cohort=args.cohort,
                                     outcome=args.outcome, tokens=args.tokens,
-                                    fingerprint=args.fingerprint)
+                                    fingerprint=args.fingerprint,
+                                    model_id=args.model_id, effort=args.effort,
+                                    route=args.route)
         _json_print({"recorded": str(path)}, args.json)
         return 0
 
