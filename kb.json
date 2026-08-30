@@ -34771,12 +34771,12 @@
     {
      "addr": "0x58700",
      "decl": "int16_t FUN_00058700(int16_t param_1);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x58710",
      "decl": "int16_t FUN_00058710(int16_t param_1);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x58720",
@@ -34812,7 +34812,7 @@
     {
      "addr": "0x58ae0",
      "decl": "void FUN_00058ae0(unsigned int combined_index);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x58af0",
