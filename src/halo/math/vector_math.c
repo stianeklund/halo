@@ -283,7 +283,7 @@ float magnitude3d(float *v)
   float scale;
 
   mag = sqrtf(v[0] * v[0] + v[1] * v[1]);
-  if (fabsf(mag) >= *(double *)0x2533d0) {
+  if (!(x87_fabs(mag) < *(double *)0x2533d0)) {
     scale = 1.0f / mag;
     v[0] = v[0] * scale;
     v[1] = v[1] * scale;
