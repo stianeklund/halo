@@ -1446,9 +1446,8 @@ void FUN_00181c20(void)
                                         refl_anim, &anim_alpha_out);
 
                     /* Validate animation_color.alpha */
-                    if (anim_alpha_out < *(float *)0x2533c0 ||
-                        (anim_alpha_out < *(float *)0x2533c8 ==
-                         (anim_alpha_out == *(float *)0x2533c8))) {
+                    if (!(anim_alpha_out >= *(float *)0x2533c0 &&
+                          anim_alpha_out <= *(float *)0x2533c8)) {
                       display_assert(
                         "animation_color.alpha>=0.0f && "
                         "animation_color.alpha<=1.0f",
@@ -1457,9 +1456,8 @@ void FUN_00181c20(void)
                       system_exit(-1);
                     }
                     /* Validate animation_color.red */
-                    if (anim_rgb[0] < *(float *)0x2533c0 ||
-                        (anim_rgb[0] < *(float *)0x2533c8 ==
-                         (anim_rgb[0] == *(float *)0x2533c8))) {
+                    if (!(anim_rgb[0] >= *(float *)0x2533c0 &&
+                          anim_rgb[0] <= *(float *)0x2533c8)) {
                       display_assert(
                         "animation_color.red >=0.0f && animation_color.red "
                         "<=1.0f",
@@ -1468,9 +1466,8 @@ void FUN_00181c20(void)
                       system_exit(-1);
                     }
                     /* Validate animation_color.green */
-                    if (anim_rgb[1] < *(float *)0x2533c0 ||
-                        (anim_rgb[1] < *(float *)0x2533c8 ==
-                         (anim_rgb[1] == *(float *)0x2533c8))) {
+                    if (!(anim_rgb[1] >= *(float *)0x2533c0 &&
+                          anim_rgb[1] <= *(float *)0x2533c8)) {
                       display_assert(
                         "animation_color.green>=0.0f && "
                         "animation_color.green<=1.0f",
@@ -1479,9 +1476,8 @@ void FUN_00181c20(void)
                       system_exit(-1);
                     }
                     /* Validate animation_color.blue */
-                    if (anim_rgb[2] < *(float *)0x2533c0 ||
-                        (anim_rgb[2] < *(float *)0x2533c8 ==
-                         (anim_rgb[2] == *(float *)0x2533c8))) {
+                    if (!(anim_rgb[2] >= *(float *)0x2533c0 &&
+                          anim_rgb[2] <= *(float *)0x2533c8)) {
                       display_assert(
                         "animation_color.blue >=0.0f && animation_color.blue "
                         "<=1.0f",
