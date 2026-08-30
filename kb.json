@@ -30135,7 +30135,7 @@
      "addr": "0x1844b0",
      "decl": "short rasterizer_transparent_geometry_group_to_presorted_index(unsigned int group);",
      "name": "rasterizer_transparent_geometry_group_to_presorted_index",
-     "ported": false
+     "ported": true
     }
    ],
    "name": "rasterizer_text.obj",

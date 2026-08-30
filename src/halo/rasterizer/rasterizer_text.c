@@ -3640,18 +3640,16 @@ void *rasterizer_transparent_geometry_group_get(short group_presorted_index)
 short rasterizer_transparent_geometry_group_to_presorted_index(
   unsigned int group)
 {
-  unsigned int base;
-  int count;
   short index;
   unsigned int offset;
   unsigned int remainder;
 
-  base = *(unsigned int *)0x4d0cec;
-  count = *(int *)0x4d0cf4;
   index = -1;
-  if (group >= base && group < base + (unsigned int)(count * 0xa0)) {
-    index = (short)((int)(group - base) / 0xa0);
-    if (index < 0 || count <= index) {
+  if (group >= *(unsigned int *)0x4d0cec &&
+      group < *(unsigned int *)0x4d0cec +
+                (unsigned int)(*(int *)0x4d0cf4 * 0xa0)) {
+    index = (short)((int)(group - *(unsigned int *)0x4d0cec) / 0xa0);
+    if (index < 0 || *(int *)0x4d0cf4 <= index) {
       display_assert(
         "group_presorted_index>=0 && "
         "group_presorted_index<transparent_geometry_group_count",
@@ -3659,7 +3657,7 @@ short rasterizer_transparent_geometry_group_to_presorted_index(
         1);
       system_exit(-1);
     }
-    offset = group - base;
+    offset = group - *(unsigned int *)0x4d0cec;
     remainder = offset % 0xa0;
     if (remainder != 0) {
       display_assert(

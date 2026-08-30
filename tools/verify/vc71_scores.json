@@ -78091,16 +78091,16 @@
     "rasterizer_transparent_geometry_group_to_presorted_index": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 88.9,
+      "abi_modeled_mnemonic_pct": 91.7,
       "addr": "0x1844b0",
       "end": "0x184567",
       "kind": "auto",
       "n_r": 61,
-      "opnd_percent": 58.1,
-      "raw_mnemonic_pct": 88.9,
+      "opnd_percent": 63.3,
+      "raw_mnemonic_pct": 91.7,
       "ref": "synth",
       "ref_sha": "2a850ef17fc87b3b",
-      "score": 88.9,
+      "score": 91.7,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "rasterizer_transparent_geometry_new": {
