@@ -343,8 +343,8 @@ char action_wait_setup(int actor_handle, char param_2, int state_data)
 
   actor = (char *)datum_get(actor_data, actor_handle);
   assert_halt(state_data != 0);
-  csmemset((void *)state_data, 0, 0x18);
   result = 0;
+  csmemset((void *)state_data, 0, 0x18);
   if (((actor_t *)actor)->field_160 == '\0') {
     *(char *)(state_data + 1) = ((actor_t *)actor)->field_1cc;
     *(char *)(state_data + 2) = param_2;
