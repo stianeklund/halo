@@ -7073,7 +7073,8 @@ void FUN_001ac680(float initial_p, float initial_v, float max_v, float max_a,
       /* sq holds (diff * coasting_vel) so the volatile coasting
        * velocity is loaded once, doubled on the FPU stack (FADD ST,ST0)
        * as in the original. */
-      sq = (initial_v - initial_p) * f1;
+      sq = initial_v - initial_p;
+      sq = sq * f1;
       scratch =
         (sq + sq) - (initial_v - initial_p) * (initial_v - initial_p) * max_a;
       if (!(f1 < 0.0f)) {

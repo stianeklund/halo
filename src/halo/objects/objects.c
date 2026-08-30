@@ -11276,10 +11276,9 @@ void FUN_00141900(void)
 
   data_verify(*(data_t **)0x5a8d50);
 
-  it.type_mask = -1;
+  it.last_handle = (it.type_mask = -1);
   it.flags = 0;
   it.current_index = 0;
-  it.last_handle = -1;
   it.cookie = 0x86868686;
 
   obj = (object_data_t *)object_iterator_next(&it);

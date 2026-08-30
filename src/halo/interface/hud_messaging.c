@@ -527,11 +527,13 @@ void scripted_hud_time_code_show(char param_1)
 void scripted_hud_time_code_start(char param_1)
 {
   int now;
+  int *timer_end;
 
   if (param_1 != '\0') {
     now = game_time_get();
-    *(int *)0x2f66e4 = *(int *)0x2f66e4 + (now - *(int *)0x2f66e8);
-    *(int *)0x2f66e8 = -1;
+    timer_end = (int *)0x2f66e8;
+    *(int *)0x2f66e4 = *(int *)0x2f66e4 + (now - *timer_end);
+    *timer_end = -1;
     return;
   }
   *(int *)0x2f66e8 = game_time_get();

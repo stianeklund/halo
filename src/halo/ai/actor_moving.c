@@ -270,7 +270,7 @@ bool actor_move_force_stop(int actor_handle)
         src = *(float **)0x31fc38;
         actor += 0x6e0;
         dest = (float *)actor;
-        dest[0] = src[0];
+        ((float *)actor)[0] = src[0];
         dest[1] = src[1];
         dest[2] = src[2];
         actor_unit_control_stop_animation_impulse(actor_handle);
