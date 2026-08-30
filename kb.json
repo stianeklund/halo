@@ -27854,9 +27854,9 @@
      "ported": false
     },
     {
-     "addr": "0x1a2290",
-     "decl": "char FUN_001a2290(int unit_handle@<edi>);",
-     "ported": false
+      "addr": "0x1a2290",
+      "decl": "char FUN_001a2290(int unit_handle@<edi>);",
+      "ported": true
     },
     {
      "addr": "0x1a2440",

@@ -43034,18 +43034,18 @@
       "source": "src/halo/units/bipeds.c"
     },
     "FUN_001a2290": {
-      "abi_model": "regparam_stripped_saves",
-      "abi_model_items": 4,
-      "abi_modeled_mnemonic_pct": 88.2,
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 90.9,
       "addr": "0x1a2290",
       "end": "0x1a243d",
       "kind": "auto",
       "n_r": 139,
-      "opnd_percent": 70.6,
-      "raw_mnemonic_pct": 87.0,
+      "opnd_percent": 73.5,
+      "raw_mnemonic_pct": 90.6,
       "ref": "synth",
       "ref_sha": "a7c1370918574a57",
-      "score": 88.2,
+      "score": 90.9,
       "source": "src/halo/units/bipeds.c"
     },
     "FUN_001a2440": {

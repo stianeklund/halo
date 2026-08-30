@@ -2094,27 +2094,22 @@ char FUN_001a2290(int unit_handle)
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
   biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
 
-  if ((*(unsigned char *)(unit_obj + 0x424) & 1) != 0) {
-    return 0;
-  }
   zero_idx = 0;
-  if (*(short *)(unit_obj + 0x460) == 1) {
-    return 0;
-  }
-
-  max_speed = *(float *)(biped_tag + 0x3b4);
-  vel0_ptr = &vel[0];
-  success = 1;
-  if (*(int *)(unit_obj + 0x1c8) != -1) {
+  if ((*(unsigned char *)(unit_obj + 0x424) & 1) == 0 &&
+      *(short *)(unit_obj + 0x460) != 1) {
+    max_speed = *(float *)(biped_tag + 0x3b4);
+    vel0_ptr = &vel[0];
+    success = 1;
+    if (*(int *)(unit_obj + 0x1c8) != -1) {
     physics = (char *)tag_block_get_element((char *)game_globals_get() + 0x170,
                                             0, 0xf4);
     max_speed = (*(float *)0x2533c8 -
                  *(float *)(unit_obj + 0x3d4) * *(float *)(physics + 0x84)) *
                 max_speed;
-  }
-  if (*(char *)0x5aa894 != '\0' && *(int *)(unit_obj + 0x1c8) != -1) {
-    max_speed = max_speed * *(float *)0x2533d8;
-  }
+    }
+    if (*(char *)0x5aa894 != '\0' && *(int *)(unit_obj + 0x1c8) != -1) {
+      max_speed = max_speed * *(float *)0x2533d8;
+    }
 
   vel_ptr = (float *)(unit_obj + 0x18);
   vel[0] = vel_ptr[0];
@@ -2154,7 +2149,9 @@ char FUN_001a2290(int unit_handle)
   *(int *)(unit_obj + 0x430) = -1;
   FUN_001a0f10(unit_handle, 4, 0);
   FUN_001a0f10(unit_handle, 4, 1);
-  return success;
+    return success;
+  }
+  return (char)zero_idx;
 }
 
 /* FUN_001a2440 (0x1a2440) — per-tick footstep / animation-marker event step
