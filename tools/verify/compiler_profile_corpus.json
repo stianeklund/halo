@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "description": "Small, stable VC71 compiler-profile calibration corpus. Keep functions in distinct domains and avoid in-flight edits.",
+  "cases": [
+    "src/halo/math/vector_math.c:FUN_00012090",
+    "src/halo/math/real_math.c:FUN_0001acb0",
+    "src/halo/ai/actor_looking.c:FUN_00014460",
+    "src/halo/ai/actor_combat.c:FUN_00021010"
+  ],
+  "profiles": [
+    "/O2",
+    "/O2 /Ob1",
+    "/O1"
+  ]
+}

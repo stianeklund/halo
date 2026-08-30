@@ -46,6 +46,11 @@ class WorkflowCutoverTests(unittest.TestCase):
             self.assertIn(required, self.goal, required)
         self.assertIn("auto_reintegrate.py", self.auto_session)
 
+    def test_pipeline_publishes_deterministic_route_after_scoring(self):
+        pipeline = (ROOT / "tools" / "lift_pipeline.py").read_text(encoding="utf-8")
+        self.assertIn("tools/lift/route_attempt.py", pipeline)
+        self.assertIn('StageResult("route_attempt"', pipeline)
+
 
 if __name__ == "__main__":
     unittest.main()

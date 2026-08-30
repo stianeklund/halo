@@ -10,6 +10,9 @@ Example:
     --case src/halo/math/real_math.c:vector3d_scale_add \
     --case src/halo/objects/objects.c:object_get_origin \
     --opt /O2 --opt "/O2 /Ob1" --output artifacts/compiler_profile/pilot.json
+
+The scheduled calibration workflow supplies a committed ``--corpus`` file.
+Manual ``--case`` and ``--opt`` values remain available for focused experiments.
 """
 
 from __future__ import annotations
@@ -36,6 +39,26 @@ def parse_case(value: str) -> tuple[str, str]:
     if not source.endswith(".c"):
         raise ValueError("case source must be a .c file")
     return source, function
+
+
+def load_corpus(path: Path) -> tuple[list[str], list[str]]:
+    """Load a versioned calibration corpus without accepting ambiguous input."""
+    try:
+        corpus = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"could not read corpus {path}: {exc}") from exc
+    if not isinstance(corpus, dict):
+        raise ValueError("corpus must be a JSON object")
+    cases = corpus.get("cases")
+    profiles = corpus.get("profiles", [])
+    if (not isinstance(cases, list) or not cases or
+            not all(isinstance(case, str) for case in cases)):
+        raise ValueError("corpus cases must be a non-empty list of source:function strings")
+    if not isinstance(profiles, list) or not all(isinstance(opt, str) for opt in profiles):
+        raise ValueError("corpus profiles must be a list of optimization strings")
+    for case in cases:
+        parse_case(case)
+    return cases, profiles
 
 
 def score_case(source: str, function: str, opt: str) -> dict[str, Any]:
@@ -92,21 +115,31 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--case", action="append", required=True, metavar="SOURCE:FUNCTION",
+    parser.add_argument("--case", action="append", default=[], metavar="SOURCE:FUNCTION",
                         help="Repeatable known-good corpus member.")
+    parser.add_argument("--corpus", type=Path, default=None,
+                        help="Versioned JSON corpus used by scheduled calibration.")
     parser.add_argument("--opt", action="append", default=[], metavar="FLAGS",
                         help="Repeatable VC71 optimization profile (default: /O2).")
     parser.add_argument("--output", type=Path, default=None,
                         help="Write the complete immutable measurement report here.")
     args = parser.parse_args(argv)
     try:
-        cases = [parse_case(value) for value in args.case]
+        corpus_cases: list[str] = []
+        corpus_profiles: list[str] = []
+        if args.corpus:
+            corpus_cases, corpus_profiles = load_corpus(args.corpus)
+        raw_cases = corpus_cases + args.case
+        if not raw_cases:
+            raise ValueError("provide --corpus or at least one --case")
+        cases = [parse_case(value) for value in raw_cases]
     except ValueError as exc:
         parser.error(str(exc))
-    profiles = args.opt or ["/O2"]
+    profiles = args.opt or corpus_profiles or ["/O2"]
     rows = [score_case(source, function, opt)
             for source, function in cases for opt in profiles]
-    report = {"schema": 1, "profiles": profiles, "cases": args.case,
+    report = {"schema": 1, "profiles": profiles,
+              "cases": raw_cases, "corpus": str(args.corpus) if args.corpus else None,
               "results": rows, "summary": summarize(rows)}
     encoded = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.output:

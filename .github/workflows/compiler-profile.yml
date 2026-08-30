@@ -1,0 +1,39 @@
+name: Compiler Profile Calibration
+
+on:
+  schedule:
+    # Weekly, after the nightly equivalence run; calibration is intentionally
+    # off the per-lift path because each profile recompiles the corpus.
+    - cron: '0 6 * * 0'
+  workflow_dispatch:
+
+env:
+  XBE_DIR: /mnt/g/dev/halo/halo-patched
+  VENV_PYTHON: /mnt/g/dev/halo/.venv/bin/python3
+
+jobs:
+  calibrate:
+    name: Measure VC71 optimization profiles
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Link pristine XBE
+        run: ln -sfn "$XBE_DIR" halo-patched
+
+      - name: Run versioned calibration corpus
+        run: |
+          PY="$VENV_PYTHON"
+          [ -x "$PY" ] || PY=python3
+          mkdir -p artifacts/compiler_profile
+          "$PY" tools/verify/compiler_profile.py \
+            --corpus tools/verify/compiler_profile_corpus.json \
+            --output artifacts/compiler_profile/report.json
+
+      - name: Publish calibration report
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiler-profile-${{ github.run_id }}
+          path: artifacts/compiler_profile/report.json
+          if-no-files-found: error

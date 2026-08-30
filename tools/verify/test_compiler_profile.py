@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Unit tests for compiler-profile corpus bookkeeping."""
 
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
-from compiler_profile import parse_case, score_case, summarize
+from compiler_profile import load_corpus, parse_case, score_case, summarize
 
 
 class CompilerProfileTests(unittest.TestCase):
@@ -28,6 +31,21 @@ class CompilerProfileTests(unittest.TestCase):
     def test_missing_corpus_source_never_reuses_a_stale_score_context(self):
         result = score_case("src/halo/no_such_corpus_case.c", "target", "/O2")
         self.assertEqual(result["error"], "corpus source does not exist")
+
+    def test_load_corpus_requires_versioned_case_and_profile_lists(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "corpus.json"
+            path.write_text(json.dumps({
+                "schema": 1,
+                "cases": ["src/halo/test.c:target"],
+                "profiles": ["/O2", "/O1"],
+            }), encoding="utf-8")
+            self.assertEqual(load_corpus(path),
+                             (["src/halo/test.c:target"], ["/O2", "/O1"]))
+        cases, profiles = load_corpus(
+            Path(__file__).with_name("compiler_profile_corpus.json"))
+        self.assertGreaterEqual(len(cases), 3)
+        self.assertIn("/O2", profiles)
 
 
 if __name__ == "__main__":

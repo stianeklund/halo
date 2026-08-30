@@ -906,6 +906,28 @@ def run_pipeline(args: argparse.Namespace) -> int:
     stages.append(StageResult("vc71_verify", ran=False, ok=True,
                               details="skipped" + (" (--skip-vc71-verify)" if args.skip_vc71_verify else "")))
 
+  # Always publish a deterministic, provider-neutral next action after a
+  # measured score.  This is advisory: a routing-tool failure must never hide a
+  # valid verification result or turn a lift into a false failure.
+  if vc71_match_pct is not None:
+    score_context = ROOT / "artifacts" / "score_context" / f"{target.name}.json"
+    route_cmd = [
+      "python3", "tools/lift/route_attempt.py", "--score",
+      f"{vc71_match_pct:.6f}", "--score-context", str(score_context), "--json",
+    ]
+    route_proc = run_command(route_cmd, cwd=ROOT, log_path=artifact_dir / "route_attempt.log")
+    try:
+      routing = json.loads(route_proc.stdout)
+      route = str(routing["route"])
+      reason = str(routing["reason"])
+      detail = f"{route}: {reason}"
+    except (json.JSONDecodeError, KeyError, TypeError):
+      detail = "routing unavailable (see route_attempt.log)"
+    stages.append(StageResult("route_attempt", ran=True, ok=True, details=detail))
+  else:
+    stages.append(StageResult("route_attempt", ran=False, ok=True,
+                              details="skipped (no attributed VC71 score)"))
+
   # Optional last-mile permuter pass (informational; never auto-applies).
   if args.permute:
     if vc71_match_pct is not None and 85.0 <= vc71_match_pct < 99.0:
