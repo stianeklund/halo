@@ -7596,3 +7596,19 @@ AUTOLIFT_REVIEW: NEEDS_RUNTIME |
 | FUN_000f2a40 | 0xf2a40 | ui_widget_game_data_input_functions.obj | 0 | parked | below_65pct [cohort=retrieval] |
 | FUN_000f2b00 | 0xf2b00 | ui_widget_game_data_input_functions.obj | 0 | parked | below_65pct [cohort=retrieval] |
 | FUN_000f2d50 | 0xf2d50 | ui_widget_game_data_input_functions.obj | 0 | parked | below_65pct [cohort=retrieval] |
+
+## Goal-lift run — 0/12 committed (stop_on_fail_reached) — 2026-08-30
+
+| function | addr | obj | vc71 | action | reason |
+|---|---|---|---|---|---|
+| FUN_00093ba0 | 0x93ba0 | cinematics.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| input_abstraction_print_config_control | 0xce8c0 | input_abstraction.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| gamepad_button_is_down | 0xffef0 | main.obj | - | skipped | skip_parked_repeat (4 attempts, best 84.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_00104710 | 0x104710 | main.obj | - | skipped | skip_parked_repeat (2 attempts, best 81.5% < 90 — use the improve pass) [cohort=none] |
+| FUN_0006ca50 | 0x6ca50 | tif_open.obj | - | skipped | skip_reg_args (selector: @reg-defined prologue → sub-bar) [cohort=none] |
+| FUN_001b8f10 | 0x1b8f10 | vehicles.obj | - | skipped | skip_parked_repeat (3 attempts, best 84.2% < 90 — use the improve pass) [cohort=none] |
+| ui_widget_multiplayer_profile_save_changes | 0xeea10 | ui_widget_game_data_input_functions.obj | - | skipped | skip_parked_repeat (2 attempts, best 68.3% < 90 — use the improve pass) [cohort=none] |
+| ai_debug_lineofsight | 0x4b770 | ai_debug.obj | - | skipped | skip_parked_repeat (2 attempts, best 63.4% < 90 — use the improve pass) [cohort=none] |
+| FUN_000f3690 | 0xf3690 | ui_widget_game_data_input_functions.obj | 59.2 | parked | below_65pct [cohort=retrieval] |
+| FUN_00120710 | 0x120710 | model_animations.obj | 43.2 | parked | below_65pct [cohort=retrieval] |
+| FUN_000bf380 | 0xbf380 | players.obj | 0 | parked | below_65pct [cohort=retrieval] |
