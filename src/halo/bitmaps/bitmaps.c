@@ -952,6 +952,8 @@ uint32_t bitmap_format_to_a8r8g8b8(short format, void *mipmap_address,
   uint32_t result;
   uint32_t work;
   uint32_t channel;
+  uint32_t middle_channel;
+  uint32_t low_channel;
   uint16_t value16;
   uint8_t ch;
 
@@ -982,11 +984,13 @@ uint32_t bitmap_format_to_a8r8g8b8(short format, void *mipmap_address,
     work = value >> 8;
     result = (((work & 0xf0) << 12) | value) & 0xfffff000;
     channel = work & 0xf;
+    middle_channel = value;
+    low_channel = value;
     result |= ((channel << 4) | channel) << 4;
-    channel = (value >> 4) & 0xf;
-    result = ((result | channel) << 4) | channel;
-    channel = value & 0xf;
-    return ((result << 4) | channel) << 4 | channel;
+    middle_channel = (middle_channel >> 4) & 0xf;
+    result = ((result | middle_channel) << 4) | middle_channel;
+    low_channel &= 0xf;
+    return ((result << 4) | low_channel) << 4 | low_channel;
   case 10:
     return ((uint32_t *)mipmap_address)[pixel_index];
   case 11:
@@ -2388,4 +2392,3 @@ void FUN_0007f150(void *bitmap, short *bits_per_channel)
     debug_free(next, "c:\\halo\\SOURCE\\bitmaps\\bitmaps_quantitize.c", 0x74);
   }
 }
-

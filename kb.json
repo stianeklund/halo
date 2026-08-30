@@ -4446,8 +4446,8 @@
     },
     {
      "addr": "0x7d0d0",
-     "decl": "uint32_t bitmap_format_to_a8r8g8b8(short format, void *mipmap_address, int pixel_index);",
-     "ported": false
+          "decl": "uint32_t bitmap_format_to_a8r8g8b8(short format, void *mipmap_address, int pixel_index);",
+          "ported": true
     },
     {
      "addr": "0x7d300",
