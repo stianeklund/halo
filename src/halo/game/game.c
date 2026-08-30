@@ -765,7 +765,7 @@ int FUN_000b45c0(int param_1)
   count = 0;
   iVar4 = 0;
   do {
-    if ((*(int *)0x456f10 & (1 << ((unsigned char)iVar4 & 0x1f))) != 0) {
+    if ((*(int *)0x456f10 & (1 << iVar4)) != 0) {
       count = count + 1;
     }
     iVar4 = iVar4 + 1;
