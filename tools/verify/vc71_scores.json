@@ -32356,16 +32356,16 @@
     "FUN_0012f330": {
       "abi_model": "regparam_stripped",
       "abi_model_items": 1,
-      "abi_modeled_mnemonic_pct": 90.1,
+      "abi_modeled_mnemonic_pct": 96.7,
       "addr": "0x12f330",
       "end": "0x12f3cf",
       "kind": "auto",
       "n_r": 62,
-      "opnd_percent": 71.8,
-      "raw_mnemonic_pct": 89.4,
+      "opnd_percent": 83.6,
+      "raw_mnemonic_pct": 95.9,
       "ref": "synth",
       "ref_sha": "259e78ed64f0cee6",
-      "score": 90.1,
+      "score": 96.7,
       "source": "src/halo/networking/network_server_manager.c"
     },
     "FUN_0012f3d0": {

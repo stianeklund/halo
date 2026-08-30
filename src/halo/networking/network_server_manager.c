@@ -2852,7 +2852,8 @@ char FUN_0012f330(int server, int machine, void *message_data, int message_size)
     packet_type = 0x21;
     packet_version = 1;
     if (FUN_0012bce0((int)decoded_buf, (int)((char *)message_data + 2),
-                     (short *)&message_size, &packet_type, &packet_version,
+                     (short *)&message_size, (short *)&packet_type,
+                     (short *)&packet_version,
                      7)) {
       result =
         (char)network_game_server_switch_machine_from_postgame_to_pregame(
