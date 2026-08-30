@@ -2779,7 +2779,6 @@ int FUN_00183390(int param_1)
   int row_pitch;
   short adjusted_face_index;
   short local_1c;
-  int local_20;
 
   total_size = FUN_00183290((void *)param_1);
   iVar8 = 0;
@@ -2802,7 +2801,6 @@ int FUN_00183390(int param_1)
         sVar2 = FUN_00183120((void *)param_1);
         if (sVar2 >= 0) {
           local_c = 0;
-          local_20 = (int)sVar2;
           do {
             mip_src = (int)bitmap_mipmap_address((void *)param_1, local_c);
             mip_size =
@@ -2852,7 +2850,7 @@ int FUN_00183390(int param_1)
               }
             }
             local_c = local_c + 1;
-          } while ((short)local_c <= (short)local_20);
+          } while ((short)local_c <= sVar2);
         }
         /* align offset to 128 bytes at end of each face */
         csmemset((void *)(swizzle_buf + iVar8), 0, (unsigned int)(-iVar8 & 0x7f));
