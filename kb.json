@@ -27881,7 +27881,7 @@
     {
      "addr": "0x1a2a60",
      "decl": "void FUN_001a2a60(int unit_handle@<edi>, char *state);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1a2b10",
