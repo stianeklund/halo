@@ -15056,7 +15056,7 @@
     {
      "addr": "0x12c100",
      "decl": "bool network_game_server_game_is_open(void *server);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x12c160",
@@ -15417,7 +15417,7 @@
     {
      "addr": "0x12f0d0",
      "decl": "bool FUN_0012f0d0(int server @<esi>, int machine, void *message_data, int message_size);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x12f170",
