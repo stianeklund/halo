@@ -2295,7 +2295,7 @@
     {
      "addr": "0x1c0e0",
      "decl": "char action_wait_setup(int actor_handle, char param_2, int state_data);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1c190",
@@ -21441,7 +21441,7 @@
     {
      "addr": "0x12f10",
      "decl": "float magnitude3d(float *v);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x28610",
@@ -21878,7 +21878,7 @@
     {
      "addr": "0x10a5e0",
      "decl": "float FUN_0010a5e0(int16_t function_type, float input);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x10a710",
@@ -22331,7 +22331,7 @@
     {
      "addr": "0x111770",
      "decl": "void FUN_00111770(int state @<esi>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x111910",
@@ -27821,7 +27821,7 @@
     {
      "addr": "0x1a1a10",
      "decl": "int FUN_001a1a10(float scale, float *out_point, void *out_vec, float *direction@<eax>, int unit_handle@<edi>);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x1a1b90",
@@ -29929,7 +29929,7 @@
      "addr": "0x1824e0",
      "decl": "int rasterizer_memory_pool_new(void);",
      "name": "rasterizer_memory_pool_new",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x182520",
@@ -37348,7 +37348,7 @@
     {
      "addr": "0x994d0",
      "decl": "void plane_negate(float *plane_in, float *plane_out);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x106390",
