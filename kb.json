@@ -38519,11 +38519,16 @@
     },
     {
      "addr": "0x5e330",
-     "decl": "void path_heap_bubble_down(void);"
+     "decl": "void path_heap_bubble_down(short heap_index);"
     },
     {
      "addr": "0x5e560",
-     "decl": "void path_heap_pop_cheapest_node(void);"
+     "decl": "short path_heap_pop_cheapest_node(void *state /* @<eax> */);",
+     "ported": true,
+     "reg_args": {
+      "state": "eax"
+     },
+     "source_path": "src/halo/ai/path.c"
     },
     {
      "addr": "0x5e680",

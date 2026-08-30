@@ -167,6 +167,103 @@ void FUN_0005e0d0(void *param_1, float *param_2, int param_3, int param_4)
   return;
 }
 
+/* 0x005e560 — path_heap_pop_cheapest_node
+ * Pops the cheapest node (heap[1]) off the binary min-heap embedded in a path
+ * state and returns its node index, or NONE (-1) if the heap is empty.
+ *
+ * Register-arg: state passed in EAX (no stack push at either call site in
+ * FUN_0005f740: `mov eax, edi; call 0x5e560`).
+ *
+ * `state->heap_count` (word at +0x11084) is a "next free slot" index into the
+ * 1-indexed heap array at +0x11086 (dword entries: low word = node_index,
+ * high word = quantized_cost_estimate — confirmed by the word-sized read/
+ * compare at +0x1108a/+0x1108c, which is exactly heap[1]). heap_count==1
+ * means the heap holds no real elements.
+ *
+ * Node records are 0x44 bytes starting at state+0x84 (path_get_node,
+ * 0x5e760); this function computes the same `node_index * 0x44` scaled
+ * pointer but folds the +0x84 node-array base directly into the two field
+ * displacements it uses (+0xb0 = quantized_cost_estimate, +0xb4 =
+ * heap_location), so no separate node-array-base add appears in the
+ * disassembly.
+ *
+ * Disassembly-confirmed asserts (display_assert + system_exit(-1), all at
+ * __FILE__ "c:\halo\SOURCE\ai\path.c", strings read from the pristine XBE
+ * .rdata):
+ *   0x572 (1394): state->heap_count >= 1
+ *   0x577 (1399): (node_index >= 0) && (node_index < PATH_NODE_LIST_SIZE)
+ *   0x579 (1401): state->node_list[node_index].heap_location == 1
+ *   0x57a (1402): state->node_list[node_index].quantized_cost_estimate ==
+ *                 state->heap[1].quantized_cost_estimate
+ *
+ * Pop sequence once heap_count > 1:
+ *   node_index = heap[1].node_index (saved as return value)
+ *   node_list[node_index].heap_location = NONE (0xffff)
+ *   heap_count--
+ *   if heap_count > 1: heap[1] = heap[heap_count] (move last element to
+ *     root), then path_heap_bubble_down(1) to restore heap order.
+ * (0x5e330, push 1; call 0x5e330; add esp,4 — plain cdecl int arg, not a
+ * register arg; kb.json decl corrected alongside this lift since the stub
+ * `void(void)` prototype cannot be called with an argument.)
+ */
+#define PATH_NODE_LIST_SIZE 0x400
+
+short path_heap_pop_cheapest_node(void *state)
+{
+  short node_index;
+  short heap_count;
+  char *node;
+
+  node_index = -1;
+
+  if (!(*(short *)((char *)state + 0x11084) >= 1)) {
+    display_assert("state->heap_count >= 1", "c:\\halo\\SOURCE\\ai\\path.c",
+                   0x572, 1);
+    system_exit(-1);
+  }
+
+  if (*(short *)((char *)state + 0x11084) > 1) {
+    node_index = *(short *)((char *)state + 0x1108a);
+
+    if (!(node_index >= 0 && node_index < PATH_NODE_LIST_SIZE)) {
+      display_assert("(node_index >= 0) && (node_index < PATH_NODE_LIST_SIZE)",
+                     "c:\\halo\\SOURCE\\ai\\path.c", 0x577, 1);
+      system_exit(-1);
+    }
+
+    node = (char *)state + (int)node_index * 0x44;
+
+    if (*(short *)(node + 0xb4) != 1) {
+      display_assert("state->node_list[node_index].heap_location == 1",
+                     "c:\\halo\\SOURCE\\ai\\path.c", 0x579, 1);
+      system_exit(-1);
+    }
+
+    if (*(short *)(node + 0xb0) != *(short *)((char *)state + 0x1108c)) {
+      display_assert("state->node_list[node_index].quantized_cost_estimate == "
+                     "state->heap[1].quantized_cost_estimate",
+                     "c:\\halo\\SOURCE\\ai\\path.c", 0x57a, 1);
+      system_exit(-1);
+    }
+
+    *(short *)(node + 0xb4) = -1;
+
+    heap_count = *(short *)((char *)state + 0x11084) - 1;
+    *(short *)((char *)state + 0x11084) = heap_count;
+
+    if (heap_count > 1) {
+      unsigned int last_entry;
+
+      last_entry =
+        *(unsigned int *)((char *)state + (int)heap_count * 4 + 0x11086);
+      *(unsigned int *)((char *)state + 0x1108a) = last_entry;
+      path_heap_bubble_down(1);
+    }
+  }
+
+  return node_index;
+}
+
 /* 0x005e760 — path_get_node
  * Returns a pointer to a node within the path state buffer, given a node index.
  *
