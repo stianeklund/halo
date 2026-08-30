@@ -79453,6 +79453,21 @@
       "score": 91.3,
       "source": "src/halo/structures/structures.c"
     },
+    "render_text_box_widget": {
+      "abi_model": "regparam_stripped",
+      "abi_model_items": 1,
+      "abi_modeled_mnemonic_pct": 76.3,
+      "addr": "0xe6140",
+      "end": "0xe644c",
+      "kind": "auto",
+      "n_r": 270,
+      "opnd_percent": 60.7,
+      "raw_mnemonic_pct": 76.2,
+      "ref": "synth",
+      "ref_sha": "fe9dea98965186b2",
+      "score": 76.3,
+      "source": "src/halo/interface/ui_widget.c"
+    },
     "render_ui_widgets": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -89531,6 +89546,21 @@
       "ref": "synth",
       "ref_sha": "81f250a275bc80e4",
       "score": 100.0,
+      "source": "src/halo/interface/ui_widget.c"
+    },
+    "widget_instance_get_nth_child": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 94.9,
+      "addr": "0xe3cd0",
+      "end": "0xe3d16",
+      "kind": "auto",
+      "n_r": 28,
+      "opnd_percent": 91.5,
+      "raw_mnemonic_pct": 94.9,
+      "ref": "synth",
+      "ref_sha": "be252894e766549b",
+      "score": 94.9,
       "source": "src/halo/interface/ui_widget.c"
     },
     "widgets_dispose": {

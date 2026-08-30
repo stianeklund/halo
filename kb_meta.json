@@ -9715,6 +9715,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xe6140": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The @<eax> parameter is the widget definition (tag data) and @<ecx> is the runtime widget instance; this split is inferred from the offsets each one is read at (definition 0x24-0x132, instance 0x10/0x30/0x3c/0x40) plus the fact that ui_widget_text_search_and_replace_function_invoke, whose kb.json prototype names its first parameter widget, receives the @<ecx> value.",
+        "position_offset (third cdecl parameter) is treated as a packed pair of int16 values because the original reads its two halves separately at [EBP+0xc] and [EBP+0xe]; the low half shifts left/right and the high half shifts top/bottom, which is why it is read here through an int16_t pointer aimed at the parameter slot.",
+        "The four-short block passed as the first draw argument is laid out {top, left, bottom, right}; this ordering is inferred from which half of position_offset each slot receives, not from any named type.",
+        "The definition fields at 0x130 and 0x132 are added only to the top-left corner of the drawn rect and are read as int16, so they are inferred to be a text inset rather than a general translation.",
+        "get_ui_argb_white at 0xe5530 is almost certainly an MSVC struct-return accessor returning a 16-byte real_argb_color by hidden pointer; it is declared here in the explicit out-pointer form float *get_ui_argb_white(float *out_color) because the project has no real_argb_color type yet, and the separate 16-byte scratch plus field-by-field copy in the caller is exactly what a hidden-sret temporary looks like."
+      ],
+      "uncertain": [
+        "The original pushes EDI as the justification argument to draw_string_set_font after writing only its low 16 bits (MOV DI, word [ESI+0x11c]), so the upper half carries stale data; draw_string_set_font's kb.json prototype declares that parameter int, and this lift passes a clean sign-extended int16_t instead, which is safe only if the callee reads no more than the low word.",
+        "The 0x22-byte stride of the text search-and-replace block at definition+0x64 is split here as a 0x20-byte ascii name followed by a uint16 function index at +0x20; the 0x20 name size is inferred from the stride and from ascii_to_wide being called with a 0x40-byte (32 wide char) destination, not from a struct definition.",
+        "FUN_0019d420's second parameter is declared int in kb.json but the original passes it with a bare PUSH ECX after a 16-bit MOV CX, which is the MSVC signature of a short parameter; the prototype was left alone because eight call sites in other translation units depend on it, at the cost of one extra MOVSX instruction in this lift.",
+        "The equivalence lane reports 9 divergences and 9 errors out of 140 seeds at 48.3 percent coverage, but every divergence shows the candidate with an ESP delta of -300 and a much lower instruction count than the oracle, which is the known unresolved-callee harness artifact for a non-leaf with six unported callees; the divergences were not treated as evidence of a lift bug and remain unproven either way."
+      ]
+    },
     "0xe6890": {
       "kind": "function",
       "status": "ported",

@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* event_controller_index_compatible_with_widget (0xe3b80) — true if the
  * widget accepts input from any controller (local_player_index == -1, at
  * widget+8) or if the widget's local_player_index matches the event's
@@ -704,6 +706,189 @@ void main_screen_shell_begin_fade(int duration_ms)
     }
     root_slots++;
   } while ((int)root_slots < 0x46cc30);
+}
+
+/* render_text_box_widget (0xe6140) — refreshes and draws a text-box widget.
+ *
+ * Register ABI confirmed from the prologue: MOV ESI,EAX / MOV EBX,ECX, so
+ * EAX carries the widget *definition* (tag data: offsets 0x24..0x132) and
+ * ECX the runtime *widget* instance (offsets 0x10, 0x3c, 0x40 and the
+ * parent chain at 0x30).  Three cdecl stack params follow.
+ *
+ * Two error strings anchor the name and the two validity checks:
+ *   0x2839c8 "failed to render text box widget because the justification
+ *             was invalid"
+ *   0x283a10 "failed to render text box widget because the font tag was
+ *             invalid"
+ *
+ * Sequence:
+ *  1. If the definition names a string-list tag (+0xf8 != NONE), fetch the
+ *     string (widget's own index at +0x40 overrides definition +0x12e),
+ *     realloc the widget's cached text block (+0x3c) out of the UI stack
+ *     memory pool and copy it in.  On allocation failure the cached
+ *     pointer is pointed at the literal L"<out of memory>" (0x283a54).
+ *  2. Run every text search-and-replace function block (count +0x60,
+ *     base +0x64, stride 0x22: 0x20-byte ascii name + uint16 function
+ *     index) over the cached text.
+ *  3. Validate font tag and justification, then draw.
+ *
+ * The colour is the definition's real_argb quad at +0x10c.  It is replaced
+ * by the global UI "white" colour when the caller asks for it or when the
+ * definition's RGB is exactly (1,1,1); the alpha is always the definition's
+ * alpha scaled by the widget's inherited opacity (the product of field_24 up
+ * the parent chain, computed by FUN_000e4960 and returned in ST0 — the
+ * original keeps it live on the x87 stack across the whole colour selection,
+ * which is not expressible in C).  Flag 0x4 at +0x11e adds a cosine pulse
+ * driven by the UI millisecond clock at 0x46cc40 (FILD plus a negative fixup
+ * of 4294967296.0f, i.e. the clock is unsigned).
+ *
+ * Note the asymmetry between the two rects, which is what the binary does:
+ * the drawn position rect always starts from the definition's bounds
+ * (+0x24/+0x28), while the clip/bounds rect passed as the second draw
+ * argument honours position_override when it is non-NULL.  position_offset
+ * is a packed {int16 x; int16 y} pair; x shifts left/right, y shifts
+ * top/bottom, and the top-left corner additionally picks up the definition's
+ * text offsets at +0x132 (y) and +0x130 (x). */
+void render_text_box_widget(void *definition, void *widget,
+                            const int32_t *position_override,
+                            int32_t position_offset, bool use_white_color)
+{
+  const int16_t *offset;
+  volatile int32_t offset_pair;
+  wchar_t name[32];
+  float white_temp[4];
+  float color[4];
+  int16_t bounds[4];
+  int16_t position[4];
+  const float *definition_color;
+  const float *white;
+  wchar_t **text;
+  const wchar_t *source_text;
+  const char *function_name;
+  void *block;
+  float opacity;
+  int string_tag;
+  int16_t string_index;
+  int length;
+  int i;
+  int function_offset;
+  int font_tag;
+  int16_t justification;
+
+  string_tag = *(int *)((char *)definition + 0xf8);
+  if (string_tag != -1) {
+    string_index = *(int16_t *)((char *)widget + 0x40);
+    if (string_index == -1) {
+      string_index = *(int16_t *)((char *)definition + 0x12e);
+    }
+    source_text = (const wchar_t *)FUN_0019d420(string_tag, string_index);
+    length = ustrlen((const unsigned short *)source_text) * 2;
+    block = stack_memory_pool_realloc(
+      *(void **)0x31e04c, (int)*(void **)((char *)widget + 0x3c),
+      (unsigned short)(length + 2), "c:\\halo\\SOURCE\\interface\\ui_widget.c",
+      0x1145);
+    *(void **)((char *)widget + 0x3c) = block;
+    if (block != NULL) {
+      csmemcpy(block, (void *)source_text, (size_t)length);
+      *(wchar_t *)((char *)*(void **)((char *)widget + 0x3c) + length) = 0;
+    } else {
+      *(const wchar_t **)((char *)widget + 0x3c) = L"<out of memory>";
+    }
+  }
+
+  text = (wchar_t **)((char *)widget + 0x3c);
+  if (*text == NULL || **text == 0) {
+    return;
+  }
+
+  function_offset = 0;
+  for (i = 0; i < *(int *)((char *)definition + 0x60); i++) {
+    function_name =
+      *(const char **)((char *)definition + 0x64) + function_offset;
+    if (function_name != NULL && *function_name != '\0') {
+      FUN_000e5180(ascii_to_wide(function_name, name, 0x40),
+                   ui_widget_text_search_and_replace_function_invoke(
+                     widget, *(const uint16_t *)(function_name + 0x20)),
+                   text);
+    }
+    function_offset += 0x22;
+  }
+
+  font_tag = *(int *)((char *)definition + 0x108);
+  if (font_tag == -1) {
+    error(2,
+          "failed to render text box widget because the font tag was invalid");
+    return;
+  }
+
+  justification = *(int16_t *)((char *)definition + 0x11c);
+  if (justification < 0 || justification >= 3) {
+    error(
+      2,
+      "failed to render text box widget because the justification was invalid");
+    return;
+  }
+
+  if (*(uint8_t *)((char *)widget + 0x10) == 0) {
+    return;
+  }
+
+  opacity = FUN_000e4960(widget);
+
+  *(int32_t *)&position[0] = *(int32_t *)((char *)definition + 0x24);
+  *(int32_t *)&position[2] = *(int32_t *)((char *)definition + 0x28);
+  if (position_override != NULL) {
+    *(int32_t *)&bounds[0] = position_override[0];
+    *(int32_t *)&bounds[2] = position_override[1];
+  } else {
+    *(int32_t *)&bounds[0] = *(int32_t *)((char *)definition + 0x24);
+    *(int32_t *)&bounds[2] = *(int32_t *)((char *)definition + 0x28);
+  }
+
+  /* offset[0] = x (low half), offset[1] = y (high half) */
+  offset_pair = position_offset;
+  offset = (const int16_t *)&offset_pair;
+  position[0] = (int16_t)(position[0] + offset[1] +
+                          *(int16_t *)((char *)definition + 0x132));
+  position[1] = (int16_t)(position[1] + offset[0] +
+                          *(int16_t *)((char *)definition + 0x130));
+  position[2] = (int16_t)(position[2] + offset[1]);
+  position[3] = (int16_t)(position[3] + offset[0]);
+
+  definition_color = (const float *)((char *)definition + 0x10c);
+  if (use_white_color) {
+    white = get_ui_argb_white(white_temp);
+    color[0] = white[0];
+    color[1] = white[1];
+    color[2] = white[2];
+    color[3] = white[3];
+  } else {
+    color[0] = definition_color[0];
+    color[1] = definition_color[1];
+    color[2] = definition_color[2];
+    color[3] = definition_color[3];
+    if (color[1] == 1.0f && color[2] == 1.0f && color[3] == 1.0f) {
+      white = get_ui_argb_white(white_temp);
+      color[0] = white[0];
+      color[1] = white[1];
+      color[2] = white[2];
+      color[3] = white[3];
+    }
+  }
+  color[0] = definition_color[0] * opacity;
+
+  if ((*(uint8_t *)((char *)definition + 0x11e) & 4) != 0) {
+    color[0] = (x87_fcos((float)*(uint32_t *)0x46cc40 * 0.001f * 3.0f) + 1.5f) *
+               0.4f * color[0];
+  }
+
+  draw_string_set_font(font_tag, -1, justification, 0, color);
+
+  if (FUN_000e4ce0(*text)) {
+    draw_string_and_hack_in_icons(position, (int)bounds, 0, 0, *text, 0);
+  } else {
+    rasterizer_draw_string(position, bounds, NULL, 0, (unsigned short *)*text);
+  }
 }
 
 /* ui_widget_set_focus — walks up the parent chain (field_0x30) from the given

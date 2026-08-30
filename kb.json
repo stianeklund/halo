@@ -26613,7 +26613,7 @@
     },
     {
      "addr": "0xe4960",
-     "decl": "void FUN_000e4960(void);"
+     "decl": "float FUN_000e4960(void *widget@<eax>);"
     },
     {
      "addr": "0xe4980",
@@ -26637,7 +26637,7 @@
     },
     {
      "addr": "0xe4ce0",
-     "decl": "void FUN_000e4ce0(void);"
+     "decl": "bool FUN_000e4ce0(const wchar_t *text@<eax>);"
     },
     {
      "addr": "0xe4d40",
@@ -26659,7 +26659,7 @@
     },
     {
      "addr": "0xe5180",
-     "decl": "void FUN_000e5180(void);"
+     "decl": "int FUN_000e5180(const wchar_t *search, const wchar_t *replace, wchar_t **text);"
     },
     {
      "addr": "0xe5380",
@@ -26682,7 +26682,7 @@
     },
     {
      "addr": "0xe5530",
-     "decl": "void get_ui_argb_white(void);"
+     "decl": "float *get_ui_argb_white(float *out_color);"
     },
     {
      "addr": "0xe5590",
@@ -26729,7 +26729,8 @@
     },
     {
      "addr": "0xe6140",
-     "decl": "void FUN_000e6140(void);"
+     "decl": "void render_text_box_widget(void *definition@<eax>, void *widget@<ecx>, const int32_t *position_override, int32_t position_offset, bool use_white_color);",
+     "ported": true
     },
     {
      "addr": "0xe6450",
