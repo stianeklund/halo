@@ -201,10 +201,20 @@ void FUN_0005e0d0(void *param_1, float *param_2, int param_3, int param_4)
  *   node_list[node_index].heap_location = NONE (0xffff)
  *   heap_count--
  *   if heap_count > 1: heap[1] = heap[heap_count] (move last element to
- *     root), then path_heap_bubble_down(1) to restore heap order.
- * (0x5e330, push 1; call 0x5e330; add esp,4 — plain cdecl int arg, not a
- * register arg; kb.json decl corrected alongside this lift since the stub
- * `void(void)` prototype cannot be called with an argument.)
+ *     root), then path_heap_bubble_down(state, 1) to restore heap order.
+ * (0x5e330, push 1; call 0x5e330; add esp,4 for the heap_index stack arg.
+ * BUG FIX 2026-08-30: 0x5e330's disassembly never loads EBX itself — it reads
+ * [EBX+0x11084] etc. directly, relying on the caller's EBX still holding
+ * `state` from this function's own "MOV EBX,EAX" at entry (0x5e563), never
+ * clobbered before the call. That is an implicit register argument, missed
+ * when this function was first lifted (kb.json decl only carried the stack
+ * arg, tagged "not a register arg"). A plain C call from clang-compiled code
+ * does not guarantee EBX holds `state`, so path_heap_bubble_down read garbage
+ * node_list/heap state and tripped its heap_location invariant assert
+ * ("state->node_list[parent_node_index].heap_location == parent_location",
+ * path.c #1280 in the original source line numbering). Fix: kb.json decl now
+ * carries the implicit state pointer explicitly as an ebx register arg, and
+ * this call site passes it.)
  */
 #define PATH_NODE_LIST_SIZE 0x400
 
@@ -257,7 +267,7 @@ short path_heap_pop_cheapest_node(void *state)
       last_entry =
         *(unsigned int *)((char *)state + (int)heap_count * 4 + 0x11086);
       *(unsigned int *)((char *)state + 0x1108a) = last_entry;
-      path_heap_bubble_down(1);
+      path_heap_bubble_down(state, 1);
     }
   }
 

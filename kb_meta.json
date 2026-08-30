@@ -2309,6 +2309,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x5e560": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x5e760": {
       "kind": "function",
       "status": "ported"
@@ -11959,6 +11963,10 @@
       "comments": {
         "summary": "Seat-enter matrix bridge: decodes one animation node into an 0x800-byte stack buffer via FUN_00121d60, then converts the decoded basis+position slice into an output matrix via FUN_001094d0."
       }
+    },
+    "0x123e20": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1249b0": {
       "kind": "function",
