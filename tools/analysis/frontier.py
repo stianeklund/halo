@@ -52,20 +52,6 @@ def parse_called_functions(path: str, known_names: set[str]) -> set[str]:
     return called
 
 
-def implemented_names(kb: KnowledgeBase) -> set[str]:
-    names = set()
-    index = clang.Index.create()
-    for path in iter_source_files():
-        with open(path) as f:
-            text = f.read()
-        tu = index.parse(path, unsaved_files=[(path, text)], options=0)
-        for cursor in tu.cursor.get_children():
-            if (cursor.kind == clang.CursorKind.FUNCTION_DECL and
-                    cursor.is_definition() and cursor.spelling in kb.name_to_addr):
-                names.add(cursor.spelling)
-    return names
-
-
 def score_object(frontier_refs: int, unresolved_count: int,
                  ported_count: int, confirmed_names: int) -> int:
     return (unresolved_count * 5 +
@@ -82,14 +68,12 @@ def function_symbols_for_object(kb: KnowledgeBase, object_name: str) -> list[Fun
     ]
 
 
-def object_ported_and_remaining(kb: KnowledgeBase, store: MetadataStore,
+def object_ported_and_remaining(kb: KnowledgeBase,
                                 object_name: str) -> tuple[int, int]:
     ported = 0
     remaining = 0
     for symbol in function_symbols_for_object(kb, object_name):
-        meta = store.symbols.get(f'{symbol.addr:#x}')
-        status = meta.status if meta else 'unknown'
-        if status in {'ported', 'verified'}:
+        if symbol.ported:
             ported += 1
         else:
             remaining += 1
@@ -130,7 +114,13 @@ def main():
     store.load()
 
     known_names = set(kb.name_to_addr)
-    ported_names = implemented_names(kb)
+    # kb.json controls whether the original entry point redirects to the C
+    # implementation. kb_meta.json is supplementary annotation and can lag
+    # behind, so it must not determine current port coverage.
+    ported_names = {
+        symbol.name for symbol in kb.symbols
+        if isinstance(symbol, Function) and symbol.ported
+    }
     object_refs = defaultdict(int)
     object_unresolved = defaultdict(set)
     object_ported = defaultdict(set)
@@ -143,11 +133,7 @@ def main():
         if obj:
             object_ported[obj].add(name)
 
-    index = clang.Index.create()
     for path in iter_source_files():
-        with open(path) as f:
-            text = f.read()
-        tu = index.parse(path, unsaved_files=[(path, text)], options=0)
         called = parse_called_functions(path, known_names)
         for callee in called:
             addr = kb.name_to_addr[callee]
@@ -156,10 +142,9 @@ def main():
             if obj is None:
                 continue
             object_refs[obj] += 1
-            meta = store.symbols.get(f'{addr:#x}')
-            status = meta.status if meta else 'unknown'
-            if status != 'ported' and callee not in ported_names:
+            if callee not in ported_names:
                 object_unresolved[obj].add(callee)
+            meta = store.symbols.get(f'{addr:#x}')
             if meta and meta.name_confidence == 'confirmed':
                 object_confirmed_names[obj].add(callee)
 
@@ -174,7 +159,7 @@ def main():
         if total == 0:
             continue
         total_functions += total
-        ported_total, remaining_total = object_ported_and_remaining(kb, store, obj)
+        ported_total, remaining_total = object_ported_and_remaining(kb, obj)
         total_ported += ported_total
 
         unresolved = object_unresolved[obj]

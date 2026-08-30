@@ -103,16 +103,16 @@ whether forwarding semantics must be preserved. Then score forwarding entry as
 a thunk and target as a body, or report both. Source work is premature until
 that audit is complete.
 
-## Incomplete Implementations
+## Historically Incomplete Implementations
 
 | Function | Ours | Ref | Score |
 |---|---|---|---|
-| `collision_log_render` | 1 insn | 465 | 0.4% |
+| `collision_log_render` | 1 insn | 465 | 0.4% (historical) |
 | `FUN_00180d10` | 1 insn | 242 | 0.8% |
 
 These scores measure incomplete implementations rather than subtle codegen
-drift. They are not the same kind of omission. `collision_log_render` is a
-ported debug-only stub whose guard is lifted and body is documented as omitted:
+drift. At snapshot time, `collision_log_render` was a ported debug-only stub
+whose guard was lifted and body documented as omitted:
 
 ```c
 void collision_log_render(void)
@@ -123,7 +123,12 @@ void collision_log_render(void)
 }
 ```
 
-`FUN_00180d10` is different: it is a vertex-buffer compression routine, its C
+`collision_log_render` is no longer a stub: its active implementation in
+`src/halo/physics/collision_usage.c` now renders collision statistics. The
+historical 0.4% row must not be treated as an omitted lift or current low-score
+diagnosis.
+
+`FUN_00180d10` remains incomplete: it is a vertex-buffer compression routine, its C
 body is empty, and its kb.json entry remains `ported: false`. It is not a debug
 display path. Original behavior still runs, so the low score is not a current
 patched-runtime defect, but porting it is functional work whose reachability and
@@ -212,9 +217,11 @@ Sub-70% band (221 functions):
 
 Coverage matters: among 221 sub-70 functions, only 115 receive any rule, 106
 receive no rule, and 51 receive more than one. The table contains 191 total rule
-hits. Even after excluding one-instruction references, two incomplete
-implementations, and 53 functions with a >10pp metric gap, 89 of 152 remaining
-functions hit none of the five warning/frame rules.
+hits. The historical exclusion set contained two incomplete implementations,
+including `collision_log_render`; today only `FUN_00180d10` remains incomplete.
+Within that historical exclusion set, after excluding one-instruction references,
+two incomplete implementations, and 53 functions with a >10pp metric gap, 89 of
+152 remaining functions hit none of the five warning/frame rules.
 
 `frame_mismatch` is the most frequent trigger. It means detected candidate and
 reference stack reservations differ; it does not prove why functions diverge.
@@ -325,8 +332,9 @@ Of the 221 functions below 70%:
 
 - **14** have one-instruction references and score below 70%. They need
   target-by-target reference and forwarding-entry attribution review.
-- **2** are incomplete C implementations: one ported debug-only omission and
-  one inactive vertex-compression stub.
+- **At snapshot time, 2** were incomplete C implementations: one ported
+  debug-only omission and one inactive vertex-compression stub. Today only the
+  inactive vertex-compression stub (`FUN_00180d10`) remains incomplete.
 - **53** have DP mnemonic LCS more than 10pp above official score, up to 40.8pp.
   This establishes aligner sensitivity, not correctness.
 - Diagnostic rules cover **115** low-score functions, leave **106** unclassified,
