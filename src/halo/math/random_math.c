@@ -624,7 +624,7 @@ void random_seed_get_direction3d(unsigned int *seed, float *out)
  *
  * LCG steps and angle computations are interleaved to match MSVC scheduler.
  * Azimuth in [0, 2pi], elevation in [-pi/2, pi/2], roll in [0, 2pi].
- * Uses FUN_0010c690 to rotate the up vector around facing by roll.
+ * Uses yaw_vectors to rotate the up vector around facing by roll.
  *
  * 0x10b3c0 / random_math.obj
  */
@@ -656,7 +656,7 @@ void seed_random_orientation(unsigned int *seed, float *facing, float *up)
   up[1] = -(az_sin * el_sin);
   up[2] = el_cos;
 
-  FUN_0010c690(up, facing, x87_fsin(roll), x87_fcos(roll));
+  yaw_vectors(up, facing, x87_fsin(roll), x87_fcos(roll));
 }
 
 /* Generate a random 3D direction within a cone around a forward vector.

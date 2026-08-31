@@ -19,6 +19,7 @@ Safety:
 Usage:
     rtk python3 tools/analysis/apply_punpckhdq_renames.py
     rtk python3 tools/analysis/apply_punpckhdq_renames.py --apply
+    rtk python3 tools/analysis/apply_punpckhdq_renames.py --apply --addresses 0x10bd70
     rtk python3 tools/analysis/apply_punpckhdq_renames.py --confidence medium  # widen scope
 """
 
@@ -114,9 +115,14 @@ def main() -> int:
                   help="write changes; default is dry-run")
   ap.add_argument("--confidence", choices=["high", "medium", "low"],
                   default="high", help="minimum confidence to include")
+  ap.add_argument("--addresses", nargs="+", metavar="ADDR",
+                  help="apply only these hexadecimal target addresses")
   args = ap.parse_args()
 
   renames = load_proposals(args.confidence)
+  if args.addresses:
+    selected = {f"0x{int(addr, 16):x}" for addr in args.addresses}
+    renames = [rename for rename in renames if rename.addr.lower() in selected]
   if not renames:
     print("no proposals at the requested confidence level", file=sys.stderr)
     return 1

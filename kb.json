@@ -21968,17 +21968,17 @@
     },
     {
      "addr": "0x10bd70",
-     "decl": "int FUN_0010bd70(float *point, float *rect);",
+     "decl": "int point_in_rectangle2d(float *point, float *rect);",
      "ported": true
     },
     {
      "addr": "0x10bdc0",
-     "decl": "int FUN_0010bdc0(float *point, float *box);",
+     "decl": "int point_in_rectangle3d(float *point, float *box);",
      "ported": true
     },
     {
      "addr": "0x10be20",
-     "decl": "char FUN_0010be20(float *ray_origin, float *ray_dir, float *aabb);",
+     "decl": "char vector_intersects_rectangle2d(float *ray_origin, float *ray_dir, float *aabb);",
      "ported": true
     },
     {
@@ -21993,7 +21993,7 @@
     },
     {
      "addr": "0x10c690",
-     "decl": "void FUN_0010c690(float *v1, float *axis, float scale1, float scale2);",
+     "decl": "void yaw_vectors(float *v1, float *axis, float scale1, float scale2);",
      "ported": true
     },
     {
@@ -22008,7 +22008,7 @@
     },
     {
      "addr": "0x10cab0",
-     "decl": "void FUN_0010cab0(float *out, float angle, float *axis);",
+     "decl": "void quaternion_from_angle_and_vector(float *out, float angle, float *axis);",
      "ported": true
     },
     {
