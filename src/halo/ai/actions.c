@@ -3836,7 +3836,7 @@ char actor_action_handle_combat_transition(int actor_handle)
  * action 4 with positive count at 0xa8, clears the grenade flag (0x6a0) and
  * returns 0. Otherwise, checks the actor's tag definition (actv) grenade type
  * at offset 0x184: type 1 requires action priority >= 5; type 2 requires the
- * prop flag at 0x14 to be set (or action 4 with nonzero 0xa8). If conditions
+ * prop flag at 0x14 to be set (or action 4 with zero 0xa8). If conditions
  * pass, calls actor_action_consider_grenade. Finally, if the grenade flag
  * (0x6a0) is set, calls actor_action_try_to_throw_grenade. */
 char actor_action_handle_grenade_throwing(int actor_handle)
@@ -3851,28 +3851,27 @@ char actor_action_handle_grenade_throwing(int actor_handle)
   if (actor->target_target_type < 5 ||
       (actor->state_action == _actor_action_flee && actor->field_0a8 > 0)) {
     actor->field_6a0 = 0;
-    return 0;
-  }
+  } else {
+    prop = (char *)datum_get(prop_data, actor->target_target_prop_index);
+    mode = *(short *)(actv_tag + 0x184);
 
-  prop = (char *)datum_get(prop_data, actor->target_target_prop_index);
-  mode = *(short *)(actv_tag + 0x184);
-
-  switch (mode) {
-  case 1:
-    if (actor->field_06e >= 5) {
-      result = actor_action_consider_grenade(actor_handle);
+    switch (mode) {
+    case 1:
+      if (actor->field_06e >= 5) {
+        result = actor_action_consider_grenade(actor_handle);
+      }
+      break;
+    case 2:
+      if (*(char *)(prop + 0x14) != '\0' ||
+          (actor->state_action == _actor_action_flee && actor->field_0a8 == 0)) {
+        result = actor_action_consider_grenade(actor_handle);
+      }
+      break;
     }
-    break;
-  case 2:
-    if (*(char *)(prop + 0x14) != '\0' ||
-        (actor->state_action == _actor_action_flee && actor->field_0a8 != 0)) {
-      result = actor_action_consider_grenade(actor_handle);
-    }
-    break;
-  }
 
-  if (actor->field_6a0 != '\0') {
-    actor_action_try_to_throw_grenade(actor_handle, 0);
+    if (actor->field_6a0 != '\0') {
+      actor_action_try_to_throw_grenade(actor_handle, 0);
+    }
   }
   return result;
 }

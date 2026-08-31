@@ -2636,7 +2636,7 @@
      "addr": "0x205a0",
      "decl": "char actor_action_handle_grenade_throwing(int actor_handle);",
      "name": "actor_action_handle_grenade_throwing",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x20670",
