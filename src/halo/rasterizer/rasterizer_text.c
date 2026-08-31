@@ -23,7 +23,7 @@ void FUN_0017ff60(void)
 /* rasterizer_geometry.c */
 
 /* scale byte 0-255 to float via constant at 0x261518 (0x17ff80) */
-float FUN_0017ff80(unsigned char param_1)
+__declspec(noinline) float FUN_0017ff80(unsigned char param_1)
 {
   return (float)param_1 * *(float *)0x261518;
 }
@@ -107,8 +107,6 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
   unsigned int *out32;
   unsigned char *in8;
   signed short *in16;
-  unsigned char node0_byte;
-  unsigned char node1_byte;
 
   if (param_3 == 0) {
     display_assert("uncompressed",
@@ -123,7 +121,8 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
     system_exit(-1);
   }
 
-  if (param_1 == 1) {
+  switch (param_1) {
+  case 1: {
     /* environment_vertex: uncompressed=56 bytes, compressed=32 bytes */
     count = param_2;
     if (param_2 * 0x38 != param_4) {
@@ -171,7 +170,9 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
         in32 += 8;
       }
     }
-  } else if (param_1 == 3) {
+    break;
+  }
+  case 3: {
     /* environment_lightmap_vertex: uncompressed=20 bytes, compressed=8 bytes */
     count = param_2;
     if (param_2 * 0x14 != param_4) {
@@ -211,11 +212,9 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
         in16 += 4;
       }
     }
-  } else {
-    if (param_1 != 5) {
-      error(2, "### ERROR can't uncompress this type of vertex buffer");
-      return;
-    }
+    break;
+  }
+  case 5: {
     /* model_vertex: uncompressed=68 bytes, compressed=32 bytes */
     count = param_2;
     if (param_2 * 0x44 != param_4) {
@@ -264,23 +263,21 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
           ((float)temp_int + (float)temp_int + 1.0f) * (1.0f / 65535.0f);
         /* node_index[0] = in[28] / 3 (assert in[28] % 3 == 0) */
         in8 = (unsigned char *)in32;
-        node0_byte = in8[12];
-        node1_byte = in8[13];
-        if ((unsigned int)node0_byte % 3 != 0) {
+        if ((unsigned int)in8[12] % 3 != 0) {
           display_assert("src->nodes[0]%3==0",
                          "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c",
                          0x155, 1);
           system_exit(-1);
         }
-        if ((unsigned int)node1_byte % 3 != 0) {
+        if ((unsigned int)in8[13] % 3 != 0) {
           display_assert("src->nodes[1]%3==0",
                          "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c",
                          0x156, 1);
           system_exit(-1);
         }
         /* node_index stored as short = byte / 3 */
-        *(short *)(out32 + 8) = (short)((int)node0_byte / 3);
-        *((short *)(out32 + 8) + 1) = (short)((int)node1_byte / 3);
+        *(short *)(out32 + 8) = (short)((int)in8[12] / 3);
+        *((short *)(out32 + 8) + 1) = (short)((int)in8[13] / 3);
         /* weight0 = in[30] * (1/255.0f); weight1 = 1.0f - weight0 */
         weight0 = (float)(int)in8[14] * (1.0f / 255.0f);
         *(float *)(out32 + 9) = weight0;
@@ -290,6 +287,11 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
         in32 += 8;
       }
     }
+    break;
+  }
+  default:
+    error(2, "### ERROR can't uncompress this type of vertex buffer");
+    return;
   }
 }
 
@@ -1171,10 +1173,7 @@ void FUN_00181c20(void)
   /* Reflection color */
   unsigned int color; /* packed ARGB for FUN_0017d010 (uVar11) */
   unsigned int tex_flags; /* [EBP-0x5c] local_60 */
-  float anim_alpha; /* [EBP-0x58] local_5c */
-  float anim_r; /* [EBP-0x54] local_58 */
-  float anim_g; /* [EBP-0x50] local_54 */
-  float anim_b; /* [EBP-0x4c] local_50 */
+  float anim_color[4]; /* [EBP-0x58..-0x4c] = { alpha, red, green, blue } */
 
   /* Animation color: alpha from scalars_interpolate, RGB[3] from FUN_0007c270.
    * In MSVC layout: anim_alpha_out at EBP-0x3c (local_40),
@@ -1193,13 +1192,13 @@ void FUN_00181c20(void)
   unsigned int stencil_mode; /* uVar15 */
   char occlusion_result; /* cVar4 return of FUN_0017cfd0 */
   int iVar1; /* iVar1 = i * 0x28 */
+  float *camera_forward_x;
 
   FUN_0016f910(0x19);
 
   if (*(char *)0x3256d7 == '\0' || *(short *)0x5a5bc0 != 0 ||
       *(int *)0x4d0480 <= 0) {
-    FUN_0016fa40(0x19);
-    return;
+    goto cleanup;
   }
 
   FUN_0017cfc0(5, 0);
@@ -1232,7 +1231,7 @@ void FUN_00181c20(void)
       dir_z = dir_ptr[2];
 
       /* Filter by window index: byte[entry+0x22] & 0x7f == DAT_005a5bc2 */
-      if (((*(unsigned char *)((char *)entry + 0x22) & 0x7f) ==
+      if (((*(unsigned char *)((char *)entry + 0x22) & 0xffffff7f) ==
            *(unsigned short *)0x5a5bc2) &&
           (*(int *)((char *)entry + 0x24) > 0) &&
           (*(unsigned char *)((char *)entry + 0x1b) != 0) &&
@@ -1253,6 +1252,7 @@ void FUN_00181c20(void)
                    *(float *)0x5a5bdc * delta[2];
 
         /* Reflection offset: 2*(view_fwd * dot - delta) */
+        camera_forward_x = (float *)0x5a5bd4;
         refl_off_x = *(float *)0x5a5bd4 * view_dot - delta[0];
         refl_off_y = *(float *)0x5a5bd8 * view_dot - delta[1];
         refl_off_z = *(float *)0x5a5bdc * view_dot - delta[2];
@@ -1264,7 +1264,7 @@ void FUN_00181c20(void)
 
         /* Near-clip brightness: clamp (view_dot - near_end) / (near_start -
          * near_end) */
-        if (*(float *)(definition + 0x1c) <= *(float *)0x2533c0) {
+        if (!(*(float *)(definition + 0x1c) > *(float *)0x2533c0)) {
           brightness = 1.0f;
         } else {
           brightness =
@@ -1318,7 +1318,7 @@ void FUN_00181c20(void)
         {
           float v;
           v = depth_bias -
-              (dir_x * *(float *)0x5a5bd4 + *(float *)0x5a5bd8 * dir_y +
+              (dir_x * *camera_forward_x + *(float *)0x5a5bd8 * dir_y +
                *(float *)0x5a5bdc * dir_z) *
                 depth_scale;
           if (v < *(float *)0x2533c0) {
@@ -1347,7 +1347,7 @@ void FUN_00181c20(void)
         {
           float v;
           v = (*(float *)0x5a5bdc * delta[2] + *(float *)0x5a5bd8 * delta[1] +
-               delta[0] * *(float *)0x5a5bd4) *
+               delta[0] * *camera_forward_x) *
                 depth_scale +
               depth_bias;
           if (v < *(float *)0x2533c0) {
@@ -1359,7 +1359,7 @@ void FUN_00181c20(void)
           }
         }
 
-        if (*(float *)0x2533c0 < brightness) {
+        if (brightness > *(float *)0x2533c0) {
           /* vis[4] = rotation function output for animation */
           vis[4] = FUN_0017ff80(*(unsigned char *)((char *)entry + 0x23));
 
@@ -1384,16 +1384,16 @@ void FUN_00181c20(void)
                              vis[4] +
                            *(float *)((char *)refl + 0x34);
                 /* refl[0x3c] = vis-factor index (short, sign-extended) */
-                anim_alpha = anim_val *
-                             vis[(int)(*(short *)((char *)refl + 0x3c))] *
-                             brightness;
+                anim_color[0] =
+                  anim_val * vis[(int)(*(short *)((char *)refl + 0x3c))] *
+                  brightness;
               }
 
               if (refl_idx == 0) {
-                brightness = anim_alpha;
+                brightness = anim_color[0];
               }
 
-              if (*(float *)0x2533c0 < anim_alpha) {
+              if (anim_color[0] > *(float *)0x2533c0) {
                 refl_size = (*(float *)((char *)refl + 0x2c) -
                              *(float *)((char *)refl + 0x28)) *
                               vis[4] +
@@ -1406,15 +1406,15 @@ void FUN_00181c20(void)
                     *(float *)((char *)refl + 0x4c) == *(float *)0x2533c0) {
                   /* No tint: use alpha from light_data byte, color from entry
                    */
-                  color = (unsigned int)FUN_00180770(anim_alpha) << 0x18 |
+                  color = (unsigned int)FUN_00180770(anim_color[0]) << 0x18 |
                           (*(unsigned int *)((char *)entry + 0x18) & 0xffffff);
                   tex_flags = 0x3f800000;
                 } else {
                   /* Has tint: build ARGB from animation color */
-                  anim_r = *(float *)((char *)refl + 0x44);
-                  anim_g = *(float *)((char *)refl + 0x48);
-                  anim_b = *(float *)((char *)refl + 0x4c);
-                  /* anim_alpha already set above */
+                  anim_color[1] = *(float *)((char *)refl + 0x44);
+                  anim_color[2] = *(float *)((char *)refl + 0x48);
+                  anim_color[3] = *(float *)((char *)refl + 0x4c);
+                  /* anim_color[0] already set above */
 
                   if (*(short *)((char *)refl + 0x72) > 1) {
                     /* Has animation: compute animated color */
@@ -1486,23 +1486,13 @@ void FUN_00181c20(void)
                       system_exit(-1);
                     }
 
-                    anim_alpha = anim_alpha_out * anim_alpha;
-                    anim_r = anim_r * anim_rgb[0];
-                    anim_g = anim_g * anim_rgb[1];
-                    anim_b = anim_b * anim_rgb[2];
+                    anim_color[0] = anim_alpha_out * anim_color[0];
+                    anim_color[1] = anim_color[1] * anim_rgb[0];
+                    anim_color[2] = anim_color[2] * anim_rgb[1];
+                    anim_color[3] = anim_color[3] * anim_rgb[2];
                   }
 
-                  {
-                    /* Pack ARGB: FUN_000d1c90 takes float[4] = {alpha,r,g,b}
-                     * at [EBP-0x58] = {anim_alpha, anim_r, anim_g, anim_b}.
-                     * These four contiguous slots map to local_5c/58/54/50. */
-                    float argb4[4];
-                    argb4[0] = anim_alpha;
-                    argb4[1] = anim_r;
-                    argb4[2] = anim_g;
-                    argb4[3] = anim_b;
-                    color = FUN_000d1c90(argb4);
-                  }
+                  color = FUN_000d1c90(anim_color);
                   tex_flags = *(unsigned int *)((char *)refl + 0x40);
                 }
 
@@ -1623,6 +1613,7 @@ void FUN_00181c20(void)
     }
   }
 
+cleanup:
   FUN_0016fa40(0x19);
 }
 
@@ -1773,23 +1764,26 @@ void rasterizer_swizzle_compute_masks(short param_1, short param_2,
   unsigned int uVar6;
   unsigned int uVar4;
   int upper;
+  int signed_param_3;
+  int signed_param_4;
 
   sVar1 = FUN_00108db0((unsigned int)(int)param_1);
-  sVar2 = FUN_00108db0((unsigned int)(int)param_2);
+  sVar2 = (param_1_min = FUN_00108db0((unsigned int)(int)param_2));
 
   /* param_1_min = min(sVar1, sVar2) */
-  param_1_min = sVar2;
   if (sVar1 <= sVar2) {
     param_1_min = sVar1;
   }
   bVar5 = (unsigned char)param_1_min;
-  uVar3 = (unsigned short)((1 << (bVar5 & 0x1f)) - 1);
+  uVar3 = (unsigned short)((1 << bVar5) - 1);
+  signed_param_3 = (int)(short)param_3;
+  signed_param_4 = (int)(short)param_4;
 
-  if ((short)uVar3 < 0x40) {
+  if ((short)uVar3 <= 0x3f) {
     uVar6 = (unsigned int)*(
-      unsigned short *)((int)0x2b07e0 + (int)(short)(param_3 & uVar3) * 2);
+      unsigned short *)((int)0x2b07e0 + (signed_param_3 & (short)uVar3) * 2);
     uVar4 = (unsigned int)*(
-      unsigned short *)((int)0x2b07e0 + (int)(short)(param_4 & uVar3) * 2);
+      unsigned short *)((int)0x2b07e0 + (signed_param_4 & (short)uVar3) * 2);
   } else {
     upper = (int)(short)uVar3 >> 6;
     if (upper > 0x3f) {
@@ -1800,27 +1794,25 @@ void rasterizer_swizzle_compute_masks(short param_1, short param_2,
     }
     uVar6 = (unsigned int)*(
               unsigned short *)((int)0x2b07e0 +
-                                (((int)(short)param_3 >> 6) & upper) * 2)
+                                ((signed_param_3 >> 6) & upper) * 2)
               << 0xc |
             (unsigned int)*(unsigned short *)((int)0x2b07e0 +
-                                              ((int)(short)param_3 & 0x3f) * 2);
+                                              (signed_param_3 & 0x3f) * 2);
     uVar4 = (unsigned int)*(
               unsigned short *)((int)0x2b07e0 +
-                                (((int)(short)param_4 >> 6) & upper) * 2)
+                                ((signed_param_4 >> 6) & upper) * 2)
               << 0xc |
             (unsigned int)*(unsigned short *)((int)0x2b07e0 +
-                                              ((int)(short)param_4 & 0x3f) * 2);
+                                              (signed_param_4 & 0x3f) * 2);
   }
   uVar4 = uVar4 << 1;
-  if (param_1_min < sVar1) {
+  if (sVar1 > param_1_min) {
     param_5[1] = uVar4;
-    *param_5 = uVar6 | ((int)(short)param_3 >> (bVar5 & 0x1f))
-                         << (bVar5 * 2 & 0x1f);
+    *param_5 = uVar6 | (signed_param_3 >> bVar5) << (bVar5 * 2);
     return;
   }
-  if (param_1_min < sVar2) {
-    uVar4 = uVar4 | ((int)(short)param_4 >> (bVar5 & 0x1f))
-                      << (bVar5 * 2 & 0x1f);
+  if (sVar2 > param_1_min) {
+    uVar4 = uVar4 | (signed_param_4 >> bVar5) << (bVar5 * 2);
   }
   *param_5 = uVar6;
   param_5[1] = uVar4;
@@ -1837,49 +1829,40 @@ void rasterizer_swizzle_interleave_bits(short param_1, short param_2,
                                         unsigned int param_6,
                                         unsigned int *param_7)
 {
-  unsigned int local_c;
-  unsigned int local_8;
-  unsigned int uVar7;
-  short sVar6;
-  short sVar4;
-  short sVar5;
-  short bVar8;
-  unsigned int uVar1;
-  unsigned int uVar2;
-  unsigned int uVar3;
+  unsigned int x_bits;
+  unsigned int y_bits;
+  unsigned int z_bits;
+  short channel_mask;
+  short previous_bit;
+  short output_bit;
 
-  local_c = 0;
-  local_8 = 0;
-  uVar7 = 0;
-  sVar6 = 1;
-  sVar4 = 0;
+  x_bits = 0;
+  y_bits = 0;
+  z_bits = 0;
+  channel_mask = 1;
+  output_bit = 0;
   do {
-    uVar3 = param_6;
-    uVar2 = param_5;
-    uVar1 = param_4;
-    sVar5 = sVar4;
-    if (sVar6 < param_1) {
-      param_4 = (unsigned int)(unsigned short)((short)param_4 >> 1);
-      local_8 = local_8 | (uVar1 & 1) << ((unsigned char)sVar4 & 0x1f);
-      sVar5 = sVar4 + 1;
+    previous_bit = output_bit;
+    if (channel_mask < param_1) {
+      x_bits |= (param_4 & 1) << output_bit;
+      *(short *)&param_4 >>= 1;
+      output_bit++;
     }
-    if (sVar6 < param_2) {
-      param_5 = (unsigned int)(unsigned short)((short)param_5 >> 1);
-      local_c = local_c | (uVar2 & 1) << ((unsigned char)sVar5 & 0x1f);
-      sVar5 = sVar5 + 1;
+    if (channel_mask < param_2) {
+      y_bits |= (param_5 & 1) << output_bit;
+      *(short *)&param_5 >>= 1;
+      output_bit++;
     }
-    if (sVar6 < param_3) {
-      param_6 = (unsigned int)(unsigned short)((short)param_6 >> 1);
-      uVar7 = uVar7 | (uVar3 & 1) << ((unsigned char)sVar5 & 0x1f);
-      sVar5 = sVar5 + 1;
+    if (channel_mask < param_3) {
+      z_bits |= (param_6 & 1) << output_bit;
+      *(short *)&param_6 >>= 1;
+      output_bit++;
     }
-    sVar6 = sVar6 << 1;
-    bVar8 = (short)(sVar4 != sVar5);
-    sVar4 = sVar5;
-  } while (bVar8);
-  param_7[2] = uVar7;
-  *param_7 = local_8;
-  param_7[1] = local_c;
+    channel_mask <<= 1;
+  } while (previous_bit != output_bit);
+  param_7[2] = z_bits;
+  param_7[0] = x_bits;
+  param_7[1] = y_bits;
 }
 
 /* rasterizer_xbox_bitmap_swizzle2d_byte (0x182840): swizzle a 2D 8-bit
@@ -3500,9 +3483,10 @@ void rasterizer_draw_string(void *screen_pos, short *bounds, const void *color,
 
 /* rasterizer_transparent_geometry_new: allocate transparent geometry buffers
  * and init vertex cache (0x184260) */
-int rasterizer_transparent_geometry_new(void)
+char rasterizer_transparent_geometry_new(void)
 {
-  int success;
+  char success;
+  void *transparent_geometry_buffer;
 
   *(void **)0x4d0cec = debug_malloc(
     0xf000, 0,
@@ -3513,17 +3497,20 @@ int rasterizer_transparent_geometry_new(void)
   *(void **)0x4d0cf0 = debug_malloc(
     0x1400, 0,
     "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0x2e);
+  transparent_geometry_buffer = *(void **)0x4d0cec;
   *(int *)0x4d0cf8 = 0;
   *(int *)0x4d0cf4 = 0;
-  if (*(int *)0x4d0cec == 0 || *(int *)0x4d0cfc == 0 || *(int *)0x4d0cf0 == 0) {
+  if (transparent_geometry_buffer == (void *)0 || *(int *)0x4d0cfc == 0 ||
+      *(int *)0x4d0cf0 == 0) {
     error(2, "### ERROR failed to allocate transparent geometry buffer");
+    return 0;
   } else {
     success = FUN_00174bd0();
     if (success != 0) {
       return 1;
     }
+    return 0;
   }
-  return 0;
 }
 
 /* rasterizer_transparent_geometry_begin: reset group counts and stats for new
