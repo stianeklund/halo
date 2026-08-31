@@ -32,7 +32,8 @@ import os
 import re
 import sys
 import urllib.request
-from collections import defaultdict
+from bisect import bisect_left
+from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -42,8 +43,8 @@ KB_JSON = ROOT / "kb.json"
 REPORT_PATH = DATA_DIR / "report.md"
 PROPOSALS_PATH = DATA_DIR / "name_proposals.json"
 
-UPSTREAM = "https://raw.githubusercontent.com/punpckhdq/halo/master/config"
-FILES = ("config.json", "contribs.json", "symbols.json", "splits.json")
+UPSTREAM = "https://raw.githubusercontent.com/punpckhdq/halo/main/config"
+FILES = ("config.json", "contribs.json", "symbols.json", "splits.json", "relocs.json")
 
 GAME_PROJECT = "halobetacache"
 SIZE_TOLERANCE = 0.30
@@ -400,12 +401,88 @@ def match_tus(theirs: dict[int, TheirTU],
   return one_to_one, one_to_many, unmatched_ours, unmatched_theirs
 
 
+def _lcis_pairs(pairs: list[tuple[int, int]]) -> list[tuple[int, int]]:
+  """Longest strictly-increasing-in-both-axes subsequence of (i, j) pairs.
+
+  `pairs` need not be sorted or unique. Used to pick a mutually-consistent
+  set of exact-name anchors: an anchor (ti, oj) is only trustworthy if it
+  doesn't cross another anchor (their order and our order must agree),
+  otherwise a same-named-but-wrong-position coincidence could seed a bad
+  window boundary.
+  """
+  if not pairs:
+    return []
+  ordered = sorted(pairs)
+  tails_idx: list[int] = []
+  tails_val: list[int] = []
+  pred = [-1] * len(ordered)
+  for idx, (_, j) in enumerate(ordered):
+    pos = bisect_left(tails_val, j)
+    if pos == len(tails_val):
+      tails_val.append(j)
+      tails_idx.append(idx)
+    else:
+      tails_val[pos] = j
+      tails_idx[pos] = idx
+    pred[idx] = tails_idx[pos - 1] if pos > 0 else -1
+  result = []
+  k = tails_idx[-1]
+  while k != -1:
+    result.append(ordered[k])
+    k = pred[k]
+  result.reverse()
+  return result
+
+
+def find_anchors(our: OurObject, tu: TheirTU) -> list[tuple[int, int]]:
+  """Exact-name matches between their TU and our object, used as fixed points.
+
+  An anchor requires the normalized name to be real (not their `code_XXXX`
+  placeholder) and unique on both sides within this TU/object pair, and our
+  side must already carry that name from prior binary-confirmed evidence
+  (not a `FUN_` placeholder) — so an anchor is never itself a guess.
+  """
+  their_funcs = tu.function_symbols()
+  their_names = [_normalize_their_name(s.name) if _is_real_name(s.name) else None
+                 for s in their_funcs]
+  our_names = [f.name if not f.is_placeholder and f.name else None
+               for f in our.funcs]
+
+  their_count = Counter(n for n in their_names if n)
+  our_count = Counter(n for n in our_names if n)
+  our_index_by_name: dict[str, int] = {
+    n: j for j, n in enumerate(our_names) if n and our_count[n] == 1
+  }
+
+  raw_pairs = []
+  for ti, tn in enumerate(their_names):
+    if not tn or their_count[tn] != 1:
+      continue
+    oj = our_index_by_name.get(tn)
+    if oj is not None:
+      raw_pairs.append((ti, oj))
+
+  return _lcis_pairs(raw_pairs)
+
+
 def propose_names(our: OurObject,
-                  tu: TheirTU,
-                  use_nw: bool = True
+                  tu: TheirTU
                   ) -> tuple[list[Proposal], list[str], list[str]]:
-  """Align our function list with theirs (Needleman-Wunsch by size, with
-  ordinal fallback) and propose names.
+  """Propose names for our `FUN_` placeholders from their TU's symbols.
+
+  Alignment is anchor-bounded, not whole-TU: exact-name matches (see
+  `find_anchors`) split the function list into windows, and only functions
+  *inside* a window are aligned against each other (by size, Needleman-Wunsch,
+  same scoring as before). This keeps a bad guess from drifting across an
+  entire TU — a mismatch can propagate at most as far as the next anchor.
+
+  A window bounded by anchors on both sides, with equal function counts on
+  both sides (a forced 1:1 mapping, no gap-filling needed) gets "high"
+  confidence. Same-both-sides-bounded but requiring NW gap alignment gets
+  "medium". A window open on one end (before the first anchor or after the
+  last — extrapolation, not interpolation) is capped at "low", as is an
+  entire TU with zero anchors (whole-TU size-only fallback, the failure mode
+  that produced 0/74 on the validation set before this rewrite).
 
   Returns:
     proposals: list of name proposals (FUN_ -> real)
@@ -423,54 +500,109 @@ def propose_names(our: OurObject,
   if len(our.funcs) != len(their_funcs):
     notes.append(f"function count differs: ours={len(our.funcs)}, theirs={len(their_funcs)}")
 
-  if use_nw:
-    pairs = align_by_size(their_sizes, our_sizes)
-  else:
-    n_min = min(len(our.funcs), len(their_funcs))
-    pairs = [(i, i) for i in range(n_min)]
+  anchors = find_anchors(our, tu)
+  if not anchors:
+    notes.append("no name anchors in this TU — whole-TU size-only fallback, capped at low confidence")
 
-  for ti, oj in pairs:
-    if ti is None or oj is None:
-      continue  # gap; one side has no counterpart at this ordinal
+  # Build windows: (ti_lo, ti_hi, oj_lo, oj_hi, bounded_left, bounded_right).
+  windows: list[tuple[int, int, int, int, bool, bool]] = []
+  prev_ti, prev_oj = -1, -1
+  for ti, oj in anchors:
+    windows.append((prev_ti + 1, ti - 1, prev_oj + 1, oj - 1, prev_ti != -1, True))
+    prev_ti, prev_oj = ti, oj
+  windows.append((prev_ti + 1, len(their_funcs) - 1, prev_oj + 1, len(our.funcs) - 1,
+                  prev_ti != -1, False))
 
-    our_fn = our.funcs[oj]
-    their_sym = their_funcs[ti]
-    proposed = _normalize_their_name(their_sym.name)
-    if not proposed or proposed.startswith("?"):
-      continue
+  for ti_lo, ti_hi, oj_lo, oj_hi, bounded_left, bounded_right in windows:
+    if ti_lo > ti_hi or oj_lo > oj_hi:
+      continue  # empty on at least one side — nothing to align here
 
-    s_them = their_sizes[ti]
-    s_ours = our_sizes[oj]
-    size_match = False
-    high_conf = False
-    if s_them and s_ours:
-      ratio = abs(s_them - s_ours) / max(s_them, s_ours)
-      size_match = ratio <= SIZE_TOLERANCE
-      high_conf = ratio <= HIGH_CONF_SIZE_TOL
+    window_their_sizes = their_sizes[ti_lo:ti_hi + 1]
+    window_our_sizes = our_sizes[oj_lo:oj_hi + 1]
+    forced_1to1 = len(window_their_sizes) == len(window_our_sizes)
 
-    confidence = "low"
-    if size_match:
-      confidence = "high" if high_conf else "medium"
+    if forced_1to1:
+      # Equal count between two fixed anchors (or a whole unanchored TU where
+      # both sides happen to match count) implies no insertion/deletion in
+      # this span — pair strictly by position, no size guessing.
+      local_pairs = [(i, i) for i in range(len(window_their_sizes))]
+    else:
+      local_pairs = align_by_size(window_their_sizes, window_our_sizes)
 
-    if our_fn.is_placeholder:
-      proposals.append(Proposal(
-        our_addr=f"0x{our_fn.addr:x}",
-        our_name=our_fn.name,
-        proposed_name=proposed,
-        our_object=our.name,
-        their_source=tu.source_path,
-        ordinal=oj,
-        size_their=s_them,
-        size_ours=s_ours,
-        size_match=size_match,
-        confidence=confidence,
-        real_name=_is_real_name(proposed),
-      ))
-    elif our_fn.name and our_fn.name != proposed:
-      conflicts.append(
-        f"  ordinal {oj}: ours={our_fn.name} (0x{our_fn.addr:x}) vs theirs={proposed}")
+    if bounded_left and bounded_right:
+      confidence_cap = "high" if forced_1to1 else "medium"
+    else:
+      confidence_cap = "low"
+
+    for lti, loj in local_pairs:
+      if lti is None or loj is None:
+        continue
+      ti, oj = ti_lo + lti, oj_lo + loj
+      our_fn = our.funcs[oj]
+      their_sym = their_funcs[ti]
+      proposed = _normalize_their_name(their_sym.name)
+      if not proposed or proposed.startswith("?"):
+        continue
+
+      s_them = their_sizes[ti]
+      s_ours = our_sizes[oj]
+      size_match = False
+      if s_them and s_ours:
+        size_match = abs(s_them - s_ours) / max(s_them, s_ours) <= SIZE_TOLERANCE
+
+      confidence = confidence_cap if size_match else "low"
+
+      if our_fn.is_placeholder:
+        proposals.append(Proposal(
+          our_addr=f"0x{our_fn.addr:x}",
+          our_name=our_fn.name,
+          proposed_name=proposed,
+          our_object=our.name,
+          their_source=tu.source_path,
+          ordinal=oj,
+          size_their=s_them,
+          size_ours=s_ours,
+          size_match=size_match,
+          confidence=confidence,
+          real_name=_is_real_name(proposed),
+        ))
+      elif our_fn.name and our_fn.name != proposed:
+        conflicts.append(
+          f"  ordinal {oj}: ours={our_fn.name} (0x{our_fn.addr:x}) vs theirs={proposed}")
 
   return proposals, conflicts, notes
+
+
+def build_global_name_index(ours: list[OurObject]) -> dict[str, str]:
+  """Map every already-real (binary-confirmed) function name to its addr."""
+  idx: dict[str, str] = {}
+  for o in ours:
+    for f in o.funcs:
+      if not f.is_placeholder and f.name:
+        idx.setdefault(f.name, f"0x{f.addr:x}")
+  return idx
+
+
+def drop_contradicted(all_proposals: list[Proposal],
+                      ours: list[OurObject]) -> tuple[list[Proposal], list[Proposal]]:
+  """Remove any proposal whose name is already bound to a DIFFERENT address.
+
+  If `proposed_name` is already a real, binary-confirmed name for some other
+  function in kb.json, this proposal is provably wrong regardless of its
+  confidence tier — no guess can override existing evidence. This is the
+  same check `apply_punpckhdq_renames.py` does at apply time (as a textual
+  collision skip); doing it here makes it a visible, counted part of every
+  import run instead of a silent apply-time skip.
+  """
+  global_names = build_global_name_index(ours)
+  kept, contradicted = [], []
+  for p in all_proposals:
+    existing_addr = global_names.get(p.proposed_name)
+    if existing_addr and existing_addr != p.our_addr:
+      contradicted.append(p)
+    else:
+      kept.append(p)
+  return kept, contradicted
 
 
 # ---------------------------------------------------------------------------
@@ -616,6 +748,16 @@ def main() -> int:
     if notes:
       notes_by_tu[our.name] = notes
 
+  all_proposals, contradicted = drop_contradicted(all_proposals, ours)
+  if contradicted:
+    print(f"dropped {len(contradicted)} proposals contradicted by an "
+          f"already-known name elsewhere in kb.json:", file=sys.stderr)
+    for p in contradicted[:20]:
+      print(f"  {p.our_addr} -> {p.proposed_name} "
+            f"(already at a different address)", file=sys.stderr)
+    if len(contradicted) > 20:
+      print(f"  ... and {len(contradicted) - 20} more", file=sys.stderr)
+
   write_report(theirs, ours, one_to_one, one_to_many,
                unmatched_ours, unmatched_theirs,
                all_proposals, conflicts_by_tu, notes_by_tu)
@@ -626,7 +768,8 @@ def main() -> int:
   print(
     f"summary: {len(one_to_one)} TU matches, "
     f"{len(all_proposals)} proposals total "
-    f"({len(real)} real names, {len(safe)} safe-to-apply)",
+    f"({len(real)} real names, {len(safe)} safe-to-apply), "
+    f"{len(contradicted)} dropped as contradicted",
     file=sys.stderr)
 
   return 0

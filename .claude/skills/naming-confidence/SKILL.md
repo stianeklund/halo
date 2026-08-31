@@ -14,7 +14,7 @@ must be justified by a tier below, and the name's *shape* must not exceed its ti
 
 | Tier | Evidence | Allowed name shape |
 |---|---|---|
-| T1 | Binary strings: assert expression text, `__FILE__` anchors, format strings; PDB corpus match (`punpckhdq_import.py`) | Full semantic name, verbatim from evidence (`actor_set_active`, `vertical_field_of_view`) |
+| T1 | Binary strings: assert expression text, `__FILE__` anchors, format strings | Full semantic name, verbatim from evidence (`actor_set_active`, `vertical_field_of_view`) |
 | T2 | Strong structural evidence: writes a T1-named global, mirror of a named PC/CE symbol, callee role proven by disasm across all callers | Semantic name + evidence comment; prefer domain-neutral wording |
 | T3 | Behavior only: role clear from code shape, meaning unproven | **Mechanical** name (`count`, `elem_index`, `scale_q`, `out_buf`) — never domain semantics |
 | T4 | No evidence | Stays `FUN_<addr>`, `field_<hex>` (accessed) / `pad_<hex>[n]` (never observed accessed), `unknown_<addr>`, `local_NN` |
@@ -25,11 +25,24 @@ looks like health"). If you can't cite the evidence in one line, the name is T3 
 ## Per-symbol-kind rules
 
 - **Functions (kb.json).** Renames go through the existing pipeline —
-  `tools/analysis/fun_pipeline.py` (`reclassify`/`propose`/`apply`) and
-  `apply_punpckhdq_renames.py` for PDB-derived names — not ad-hoc kb.json edits.
-  `@<reg>` annotations are immutable regardless of rename. After a rename, fix call
-  sites via the build-error triage flow (grep `build/generated/decl.h`, `rtk jq` the
-  addr) rather than re-reading sources.
+  `tools/analysis/fun_pipeline.py` (`reclassify`/`propose`/`apply`) — not ad-hoc
+  kb.json edits. `@<reg>` annotations are immutable regardless of rename. After a
+  rename, fix call sites via the build-error triage flow (grep
+  `build/generated/decl.h`, `rtk jq` the addr) rather than re-reading sources.
+  **`apply_punpckhdq_renames.py` is T2, not T1.** Its original size-only
+  Needleman-Wunsch matcher scored 0/74 on a validation set (proposals that
+  collided with an already-known name) — 2026-08-31, since fixed. It now
+  anchors on exact-name matches already confirmed on our side (never a
+  guess), bounds any size-based guessing to the window between two
+  consecutive anchors, and pairs strictly by position (no size involved) when
+  a window has equal counts on both sides — a bad guess can no longer drift
+  past a verified anchor. Two independent reviews validated the rebuild
+  (0 provably-wrong survivors in the applied batch); cross-build inference is
+  still one build away from our own binary, hence T2 not T1 — cite the
+  anchor/window evidence, don't treat its names as self-justifying.
+  `tools/analysis/crossbuild_context.py`, which surfaces the same proposal
+  corpus as read-only INFERRED research context per-function during a lift
+  (never writes source/kb.json), is unaffected and still fine to use.
 - **Struct fields.** Only via a `struct-recovery` (Phase 2)ed definition; a rename never changes
   width/offset (the `co()` assert pins it). Record the evidence in the `///<` comment.
   Unknowns keep the canonical split — `field_<hex>` when the offset is accessed but its
