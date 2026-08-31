@@ -1001,6 +1001,7 @@ void FUN_00181900(short param_1)
 void FUN_00181a90(void)
 {
   int *entry; /* pointer to queued lens flare slot (from FUN_00181020) */
+  volatile unsigned int loop_index_shadow; /* store-once/reload copy of i; matches VC71 frame shape */
   int definition; /* *entry = definition tag ptr */
   float *dir_result; /* return of FUN_0017ffc0 (3-float direction vec) */
   int occlusion_dir; /* *(short *)(definition + 0x14) */
@@ -1053,6 +1054,7 @@ void FUN_00181a90(void)
       dir_result = FUN_0017ffc0(perp, (unsigned int)entry[4]);
       dir[0] = dir_result[0];
       dir[1] = dir_result[1];
+      loop_index_shadow = i;
       dir[2] = dir_result[2];
 
       /* MOVZX byte [entry+0x22]; AND 0xffffff7f (clear bit 7) → compare
@@ -1088,7 +1090,7 @@ void FUN_00181a90(void)
           break;
         }
 
-        entry[9] = FUN_0017d030(pos, vis_param, i);
+        entry[9] = FUN_0017d030(pos, vis_param, loop_index_shadow);
       }
 
       i++;
