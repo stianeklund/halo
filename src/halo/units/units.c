@@ -2037,21 +2037,19 @@ char FUN_001a74d0(int unit_handle, int scream_type)
 int FUN_001a7650(void *tag_data, int dialogue_type)
 {
   int *block;
-  int count;
-  int match_count;
+  int16_t match_count;
   int16_t match_indices[16];
-  int i;
+  int16_t i;
   short *element;
   int16_t chosen;
   int chosen_element;
   int dialogue_tag_index;
 
   block = (int *)((char *)tag_data + 0x2b4);
-  count = *block;
   match_count = 0;
 
-  if (count > 0) {
-    for (i = 0; i < count; i++) {
+  if (*block > 0) {
+    for (i = 0; i < *block; i++) {
       element = (short *)tag_block_get_element(block, i, 0x18);
       if ((int16_t)dialogue_type == -1 || *element == (int16_t)dialogue_type) {
         match_indices[match_count] = (int16_t)i;
@@ -4350,51 +4348,39 @@ int16_t unit_inventory_next_grenade(int unit_handle, int current_index,
                                     int16_t direction)
 {
   char *unit;
-  int16_t start;
-  int16_t saved;
-  int idx;
+  int16_t next_index;
+  int16_t index;
 
   unit = (char *)object_get_and_verify_type(unit_handle, 3);
-  saved = -1;
-  start = (int16_t)current_index;
-  if (start == -1) {
+  next_index = (int16_t)-1;
+
+  if ((int16_t)current_index == (int16_t)-1) {
     current_index = 0;
-    idx = current_index;
   } else {
-    idx = current_index;
-    if (start < 0 || 1 < start) {
+    if ((int16_t)current_index < 0 || (int16_t)current_index >= 2) {
       display_assert(
         "current_index>=0 && current_index<NUMBER_OF_UNIT_GRENADE_TYPES",
         "c:\\halo\\SOURCE\\units\\units.c", 0x163e, 1);
       system_exit(-1);
     }
   }
+
+  index = (int16_t)current_index;
   do {
-    start = (int16_t)current_index;
-    if (*(char *)((int)start + 0x2ce + (int)unit) > '\0') {
-      if (start != (int16_t)idx) {
-        return start;
-      }
-      saved = (int16_t)current_index;
-      if (direction == 0) {
-        return start;
-      }
+    if (*(char *)(unit + index + 0x2ce) > 0) {
+      next_index = index;
+      if (index != (int16_t)current_index || direction == 0)
+        break;
     }
+
     if (direction < 0) {
-      if (start == 0) {
-        current_index = 1;
-      } else {
-        current_index = (int)start - 1;
-      }
-    } else if (start == 1) {
-      current_index = 0;
+      index = (index == 0) ? 1 : (int16_t)(index - 1);
     } else {
-      current_index = (int)start + 1;
+      index = (index == 1) ? 0 : (int16_t)(index + 1);
     }
-    if ((int16_t)current_index == (int16_t)idx) {
-      return saved;
-    }
-  } while (1);
+  } while (index != (int16_t)current_index);
+
+  return next_index;
 }
 
 /* unit_is_alive (0x1a9a30)
@@ -5996,7 +5982,7 @@ void FUN_001ab110(int unit_handle, char flag)
     ratio_val = (float)throw_timer / (float)throw_total;
     if (ratio_val < 1.0f) {
       rand_val =
-        random_real_range(get_global_random_seed_address(), 0.02f, 0.046875f);
+        random_real_range(get_global_random_seed_address(), 0.02f, 0.046666667f);
       rand_x = rand_val * *(float *)(unit + 0x1ec);
       rand_y = rand_val * *(float *)(unit + 0x1f0);
       rand_z = rand_val * *(float *)(unit + 0x1f4);
@@ -6378,7 +6364,7 @@ void unit_detach_weapon(int unit_handle, int weapon_handle)
 
   /* Scale direction by random amount */
   seed = get_global_random_seed_address();
-  scale = random_real_range(seed, 0.02666667f, 0.04f);
+  scale = random_real_range(seed, 0.026666667f, 0.04f);
   direction[0] *= scale;
   direction[1] *= scale;
   direction[2] *= scale;
@@ -6810,7 +6796,7 @@ void unit_start_running_blindly(int unit_handle)
 
   if (has_blind_vector) {
     *(float *)(unit + 0x3c4) = 0.0f;
-    spread = 0.4363323f;
+    spread = 0.43633232f;
   } else {
     vector_to_angles(angles, (float *)(unit + 0x24));
     base_angle = angles[0];
@@ -8558,17 +8544,11 @@ bool unit_current_weapon_is_busy(int unit_handle)
 {
   char *unit;
   int weapon_handle;
-  char *weapon;
 
   unit = object_get_and_verify_type(unit_handle, 3);
   weapon_handle = unit_get_weapon(unit_handle, *(int16_t *)(unit + 0x2a2));
-  if (weapon_handle == -1)
-    return false;
-
-  weapon = object_get_and_verify_type(weapon_handle, 4);
-  if (*(char *)(weapon + 0x211) == 2 || *(char *)(weapon + 0x211) == 3)
-    return true;
-
+  if (weapon_handle != -1)
+    return weapon_overcharged(weapon_handle);
   return false;
 }
 
@@ -8780,7 +8760,8 @@ int16_t FUN_001ae490(int unit_handle, int16_t current_index, int16_t direction)
   char usable;
   char readied;
   int best_index;
-  int current;
+  volatile int16_t current;
+  int16_t best_si;
 
   unit = (char *)object_get_and_verify_type(unit_handle, 3);
   best_index = -1;
@@ -8812,20 +8793,23 @@ int16_t FUN_001ae490(int unit_handle, int16_t current_index, int16_t direction)
         usable =
           (char)game_engine_allow_weapon_pick_up(unit_handle, weapon_handle);
         if (usable != 0) {
+          best_si = (int16_t)best_index;
           if (direction != 0) {
-            best_index = current;
+            best_si = current;
+            best_index = best_si;
           } else {
             if ((int16_t)best_index == (int16_t)-1 ||
                 *(int *)(unit + 0x2b8 + (int)(int16_t)best_index * 4) <
                   *(int *)(unit + 0x2b8 + iter_index * 4)) {
-              best_index = current;
+              best_si = current;
+              best_index = best_si;
             }
           }
 
           readied = (char)weapon_must_be_readied(
             *(int *)(unit + 0x2a8 + iter_index * 4));
           if (readied != 0)
-            return (int16_t)best_index;
+            return best_si;
 
           if ((int16_t)current != current_index)
             return (int16_t)best_index;
@@ -11183,13 +11167,15 @@ float unit_get_zoom_magnification(int unit_handle, int zoom_level)
 {
   char *unit;
   int weapon;
+  float result;
 
+  result = 1.0f;
   unit = (char *)object_get_and_verify_type(unit_handle, 3);
   weapon = unit_get_weapon(unit_handle, (int)*(int16_t *)(unit + 0x2a2));
   if (weapon != -1) {
-    return weapon_get_zoom_magnification(weapon, zoom_level);
+    result = weapon_get_zoom_magnification(weapon, zoom_level);
   }
-  return 1.0f;
+  return result;
 }
 
 /* unit_has_night_vision_weapon (0x1b13a0)
@@ -11753,10 +11739,10 @@ char unit_leap_begin(int unit_handle, float *forward)
 {
   char *unit;
   char result;
-  char anim_ok;
+  char biped_limping;
 
-  unit = (char *)object_get_and_verify_type(unit_handle, 3);
   result = 0;
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
 
   switch (*(uint8_t *)(unit + 0x253)) {
   case 0x17:
@@ -11773,20 +11759,19 @@ char unit_leap_begin(int unit_handle, float *forward)
   case 0x23:
   case 0x27:
   case 0x29:
-    /* These states block leaping */
     break;
   default:
-    if (*(short *)(unit + 0x64) != 0 || (*(uint8_t *)(unit + 0x424) & 1) == 0) {
-      anim_ok = FUN_001ad260(unit_handle, 0x27);
-      if (anim_ok != '\0') {
-        if (forward != 0) {
-          unit_apply_alignment_vector(unit_handle, forward);
-        }
-        result = 1;
-      }
+    biped_limping = 0;
+    if (*(short *)(unit + 0x64) == 0)
+      biped_limping = (char)(*(uint8_t *)(unit + 0x424) & 1);
+    if (!biped_limping && FUN_001ad260(unit_handle, 0x27)) {
+      if (forward != 0)
+        unit_apply_alignment_vector(unit_handle, forward);
+      result = 1;
     }
     break;
   }
+
   return result;
 }
 
