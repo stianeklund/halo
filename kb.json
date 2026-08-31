@@ -35042,12 +35042,12 @@
     {
      "addr": "0x5ba70",
      "decl": "void encounter_force_activate(int encounter_handle);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x5baa0",
      "decl": "void encounter_force_deactivate(int encounter_handle);",
-     "ported": false
+     "ported": true
     },
     {
      "addr": "0x5bad0",
