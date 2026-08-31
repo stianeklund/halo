@@ -2479,7 +2479,7 @@
     },
     {
      "addr": "0x1d6d0",
-     "decl": "int16_t actor_action_try_to_panic(int actor_handle);",
+     "decl": "int16_t actor_get_action_priority_flag(int actor_handle);",
      "ported": true
     },
     {
@@ -3221,7 +3221,7 @@
     },
     {
      "addr": "0x3c410",
-     "decl": "int FUN_0003c410(int actv_tag_index);",
+     "decl": "int actor_new(int actv_tag_index);",
      "ported": true
     },
     {
@@ -6968,7 +6968,7 @@
     },
     {
      "addr": "0x97800",
-     "decl": "bool FUN_00097800(int object_handle, void *lighting);",
+     "decl": "bool editor_preprocess_rendered_object(int object_handle, void *lighting);",
      "ported": true
     },
     {
@@ -7633,7 +7633,7 @@
     },
     {
      "addr": "0x19a490",
-     "decl": "bool FUN_0019a490(file_ref_t *info);",
+     "decl": "bool file_create(file_ref_t *info);",
      "ported": true
     },
     {
@@ -8515,19 +8515,19 @@
     },
     {
      "addr": "0xa9570",
-     "decl": "char FUN_000a9570(int param_1);",
+     "decl": "char game_engine_infinite_grenades(int param_1);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xa95a0",
-     "decl": "char FUN_000a95a0(void);",
+     "decl": "char game_engine_has_teams(void);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xa95c0",
-     "decl": "char FUN_000a95c0(void);",
+     "decl": "char game_engine_display_team_indicators(void);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8600,19 +8600,19 @@
     },
     {
      "addr": "0xa9f90",
-     "decl": "char FUN_000a9f90(int param_1);",
+     "decl": "char game_engine_hud_draw_motion_sensor(int param_1);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xa9fd0",
-     "decl": "char FUN_000a9fd0(void);",
+     "decl": "char game_engine_test_flag(void);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xa9ff0",
-     "decl": "char FUN_000a9ff0(void);",
+     "decl": "char game_engine_test_trait(void);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8640,7 +8640,7 @@
     },
     {
      "addr": "0xaa220",
-     "decl": "game_variant_t *FUN_000aa220(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_slayer_pro(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8651,25 +8651,25 @@
     },
     {
      "addr": "0xaa340",
-     "decl": "game_variant_t *FUN_000aa340(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_phantoms(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xaa3d0",
-     "decl": "game_variant_t *FUN_000aa3d0(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_endurance(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xaa460",
-     "decl": "game_variant_t *FUN_000aa460(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_rockets(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xaa4f0",
-     "decl": "game_variant_t *FUN_000aa4f0(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_snipers(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8690,7 +8690,7 @@
     },
     {
      "addr": "0xaa730",
-     "decl": "game_variant_t *FUN_000aa730(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_reverse_tag(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8701,7 +8701,7 @@
     },
     {
      "addr": "0xaa860",
-     "decl": "game_variant_t *FUN_000aa860(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_juggernaut(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8717,13 +8717,13 @@
     },
     {
      "addr": "0xaaa20",
-     "decl": "game_variant_t *FUN_000aaa20(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_king_pro(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xaaab0",
-     "decl": "game_variant_t *FUN_000aaab0(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_crazy_king(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8739,13 +8739,13 @@
     },
     {
      "addr": "0xaac50",
-     "decl": "game_variant_t *FUN_000aac50(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_ctf_pro(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xaace0",
-     "decl": "game_variant_t *FUN_000aace0(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_invasion(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8771,19 +8771,19 @@
     },
     {
      "addr": "0xaafb0",
-     "decl": "game_variant_t *FUN_000aafb0(game_variant_t *out);",
+     "decl": "game_variant_t *build_game_variant_team_rally(game_variant_t *out);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xab040",
-     "decl": "void FUN_000ab040(char *param_1);",
+     "decl": "void game_engine_override_map_name(char *param_1);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xab070",
-     "decl": "void FUN_000ab070(int param_1);",
+     "decl": "void game_engine_override_game_variant(int param_1);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8795,13 +8795,13 @@
     },
     {
      "addr": "0xab230",
-     "decl": "char FUN_000ab230(int param_1);",
+     "decl": "char game_engine_hud_draw_messages(int param_1);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xab290",
-     "decl": "int FUN_000ab290(int param_1);",
+     "decl": "int game_engine_player_has_stealth_weapon(int param_1);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8824,7 +8824,7 @@
     },
     {
      "addr": "0xab510",
-     "decl": "void FUN_000ab510(int param_1, int param_2);",
+     "decl": "void game_engine_flag_reset(int param_1, int param_2);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8845,19 +8845,19 @@
     },
     {
      "addr": "0xab9a0",
-     "decl": "char FUN_000ab9a0(void);",
+     "decl": "char game_engine_draw_object_in_motion_sensor(void);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xab9c0",
-     "decl": "char FUN_000ab9c0(void);",
+     "decl": "char game_engine_allow_dynamic_lighting(void);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
     {
      "addr": "0xab9e0",
-     "decl": "char FUN_000ab9e0(void);",
+     "decl": "char game_engine_allow_integrated_lights(void);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -8998,7 +8998,7 @@
     },
     {
      "addr": "0xad140",
-     "decl": "void FUN_000ad140(int param_1, int param_2);",
+     "decl": "void game_show_score(int param_1, int param_2);",
      "ported": true,
      "src": "src/halo/game/game_engine.c"
     },
@@ -14374,7 +14374,7 @@
     },
     {
      "addr": "0x12a0a0",
-     "decl": "int FUN_0012a0a0(void);",
+     "decl": "int network_game_get_game(void);",
      "ported": true,
      "src": "src/halo/networking/network_game_globals.c"
     },
@@ -14476,7 +14476,7 @@
     },
     {
      "addr": "0x124d40",
-     "decl": "bool FUN_00124d40(void *connection, void *message, unsigned short size, int dest_address, int reliable);",
+     "decl": "bool network_game_client_write(void *connection, void *message, unsigned short size, int dest_address, int reliable);",
      "ported": true
     },
     {
@@ -15070,7 +15070,7 @@
     },
     {
      "addr": "0x12c290",
-     "decl": "bool FUN_0012c290(void *server);",
+     "decl": "bool network_game_server_start_network_game(void *server);",
      "ported": true
     },
     {
@@ -15357,7 +15357,7 @@
     },
     {
      "addr": "0x12d5b0",
-     "decl": "unsigned int FUN_0012d5b0(int param_1);",
+     "decl": "unsigned int network_game_server_get_oldest_client_update_received(int param_1);",
      "ported": true,
      "src": "src/halo/networking/network_server_manager.c"
     },
@@ -16180,7 +16180,7 @@
     },
     {
      "addr": "0x13d5f0",
-     "decl": "int16_t FUN_0013d5f0(void *param_1, int param_2);",
+     "decl": "int16_t object_get_next_cluster(void *param_1, int param_2);",
      "ported": true,
      "source_path": "objects/objects.c"
     },
@@ -16211,7 +16211,7 @@
     },
     {
      "addr": "0x13d870",
-     "decl": "void FUN_0013d870(int unit_handle, void *data);",
+     "decl": "void object_add_scenario_permutation(int unit_handle, void *data);",
      "ported": true
     },
     {
@@ -16223,7 +16223,7 @@
     },
     {
      "addr": "0x13d8b0",
-     "decl": "void FUN_0013d8b0(int param_1);",
+     "decl": "void objects_fix_for_deleted_object(int param_1);",
      "ported": true,
      "source_path": "objects/objects.c"
     },
@@ -16246,23 +16246,23 @@
     },
     {
      "addr": "0x13dbe0",
-     "decl": "void FUN_0013dbe0(int param_1);",
+     "decl": "void object_pvs_set_object(int param_1);",
      "ported": true
     },
     {
      "addr": "0x13dc10",
-     "decl": "void FUN_0013dc10(short camera_point_index);",
+     "decl": "void object_pvs_set_camera_point(short camera_point_index);",
      "ported": true,
      "source_path": "objects/objects.c"
     },
     {
      "addr": "0x13dcb0",
-     "decl": "void FUN_0013dcb0(void);",
+     "decl": "void object_pvs_clear(void);",
      "ported": true
     },
     {
      "addr": "0x13dcc0",
-     "decl": "short FUN_0013dcc0(void);",
+     "decl": "short objects_get_activating_cluster_index(void);",
      "ported": true,
      "source_path": "objects/objects.c"
     },
@@ -16273,7 +16273,7 @@
     },
     {
      "addr": "0x13ddd0",
-     "decl": "void FUN_0013ddd0(int object_handle);",
+     "decl": "void object_predict(int object_handle);",
      "ported": true,
      "source_path": "objects/objects.c"
     },
@@ -16413,7 +16413,7 @@
     },
     {
      "addr": "0x13f080",
-     "decl": "int FUN_0013f080(int param_1, char (*param_2)(int, int), int param_3, int param_4, int param_5, int *param_6);",
+     "decl": "int recursive_object_adder(int param_1, char (*param_2)(int, int), int param_3, int param_4, int param_5, int *param_6);",
      "ported": true,
      "source_path": "objects/objects.c"
     },
@@ -16572,8 +16572,8 @@
     },
     {
      "addr": "0x140750",
-     "decl": "void FUN_00140750(void);",
-     "name": "FUN_00140750",
+     "decl": "void objects_disconnect_from_structure_bsp(void);",
+     "name": "objects_disconnect_from_structure_bsp",
      "ported": true,
      "source_path": "objects/objects.c"
     },
@@ -16657,7 +16657,7 @@
     },
     {
      "addr": "0x1414e0",
-     "decl": "void FUN_001414e0(int param_1, int param_2, int param_3, int param_4, int param_5);",
+     "decl": "void object_inverse_kinematics(int param_1, int param_2, int param_3, int param_4, int param_5);",
      "ported": true,
      "source_path": "objects/objects.c"
     },
@@ -16701,7 +16701,7 @@
     },
     {
      "addr": "0x143550",
-     "decl": "void FUN_00143550(int param_1);",
+     "decl": "void object_render_debug(int param_1);",
      "ported": true,
      "src": "src/halo/objects/objects.c"
     },
@@ -17459,7 +17459,7 @@
     },
     {
      "addr": "0xb6dd0",
-     "decl": "float FUN_000b6dd0(float param_1, float param_2);",
+     "decl": "float signed_angular_difference(float param_1, float param_2);",
      "ported": true
     },
     {
@@ -22044,12 +22044,12 @@
     },
     {
      "addr": "0x10cc90",
-     "decl": "int FUN_0010cc90(float *p1, float *p2, float *p3, float r);",
+     "decl": "int point_in_pill2d(float *p1, float *p2, float *p3, float r);",
      "ported": true
     },
     {
      "addr": "0x10cd40",
-     "decl": "float FUN_0010cd40(float *p1, float *p2, float *p3);",
+     "decl": "float point_to_line_distance_squared3d(float *p1, float *p2, float *p3);",
      "ported": true
     },
     {
@@ -22059,47 +22059,47 @@
     },
     {
      "addr": "0x10d380",
-     "decl": "char FUN_0010d380(float *p1, float p2, float *p3, float *p4, float *out_t, float *out_normal);",
+     "decl": "char sphere_test_vector3d(float *p1, float p2, float *p3, float *p4, float *out_t, float *out_normal);",
      "ported": true
     },
     {
      "addr": "0x10d4c0",
-     "decl": "char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5, float *p6, float *p7);",
+     "decl": "char pill_test_vector3d(float *p1, float p2, float p3, float *p4, float *p5, float *p6, float *p7);",
      "ported": true
     },
     {
      "addr": "0x10d680",
-     "decl": "float FUN_0010d680(float *ray_origin, float *ray_dir, float *sphere_center, float radius);",
+     "decl": "float fast_vector_intersection_with_sphere(float *ray_origin, float *ray_dir, float *sphere_center, float radius);",
      "ported": true
     },
     {
      "addr": "0x10d770",
-     "decl": "char FUN_0010d770(float *p1, float *p2, float *p3, float *p4, float *out_u, float *out_v);",
+     "decl": "char point_in_triangle2d(float *p1, float *p2, float *p3, float *p4, float *out_u, float *out_v);",
      "ported": true
     },
     {
      "addr": "0x10d830",
-     "decl": "char FUN_0010d830(float *p1, float *p2, float *p3, float *p4, float *out_u, float *out_v);",
+     "decl": "char point_in_triangle3d(float *p1, float *p2, float *p3, float *p4, float *out_u, float *out_v);",
      "ported": true
     },
     {
      "addr": "0x10d9e0",
-     "decl": "char FUN_0010d9e0(float *p1, float *p2, float *p3, float cone_radius, float cosine);",
+     "decl": "char point_in_cone2d(float *p1, float *p2, float *p3, float cone_radius, float cosine);",
      "ported": true
     },
     {
      "addr": "0x10da90",
-     "decl": "char FUN_0010da90(float *p1, float *p2, float *p3, float cone_radius, float cosine);",
+     "decl": "char point_in_cone3d(float *p1, float *p2, float *p3, float cone_radius, float cosine);",
      "ported": true
     },
     {
      "addr": "0x10db50",
-     "decl": "char FUN_0010db50(float *p1, float *p2, float *p3, float cone_radius, float cosine);",
+     "decl": "char point_in_sector2d(float *p1, float *p2, float *p3, float cone_radius, float cosine);",
      "ported": true
     },
     {
      "addr": "0x10dbf0",
-     "decl": "char FUN_0010dbf0(float *p1, float *p2, float *p3, float cone_radius, float cosine);",
+     "decl": "char point_in_sector3d(float *p1, float *p2, float *p3, float cone_radius, float cosine);",
      "ported": true
     },
     {
@@ -22114,17 +22114,17 @@
     },
     {
      "addr": "0x10e4d0",
-     "decl": "char FUN_0010e4d0(float *point, float *dir, float *v0, float *v1, float *v2);",
+     "decl": "char vector_intersects_triangle2d(float *point, float *dir, float *v0, float *v1, float *v2);",
      "ported": true
     },
     {
      "addr": "0x10e6f0",
-     "decl": "char FUN_0010e6f0(float *p1, float *p2, float *p3, float *p4, float *p5, float *p6);",
+     "decl": "char vector_intersects_triangle3d(float *p1, float *p2, float *p3, float *p4, float *p5, float *p6);",
      "ported": true
     },
     {
      "addr": "0x10e8a0",
-     "decl": "char FUN_0010e8a0(float *point, float radius, float *rect);",
+     "decl": "char circle_intersects_rectangle2d(float *point, float radius, float *rect);",
      "ported": true
     },
     {
@@ -22134,7 +22134,7 @@
     },
     {
      "addr": "0x10e9f0",
-     "decl": "char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4, float *p5);",
+     "decl": "char circle_intersects_triangle2d(float *circle_center, float radius, float *p3, float *p4, float *p5);",
      "ported": true
     },
     {
@@ -22159,12 +22159,12 @@
     },
     {
      "addr": "0x10f310",
-     "decl": "char FUN_0010f310(float *p1, float *p2, float *p3, float *out);",
+     "decl": "char point_from_planes3d(float *p1, float *p2, float *p3, float *out);",
      "ported": true
     },
     {
      "addr": "0x10f480",
-     "decl": "char FUN_0010f480(float *p1, float *p2, float *out, float *cross_out);",
+     "decl": "char line_from_planes3d(float *p1, float *p2, float *out, float *cross_out);",
      "ported": true
     },
     {
@@ -22179,7 +22179,7 @@
     },
     {
      "addr": "0x10f9b0",
-     "decl": "char FUN_0010f9b0(float *param_1, float *param_2, float max_length);",
+     "decl": "char accelerate_to_velocity3d(float *param_1, float *param_2, float max_length);",
      "ported": true
     },
     {
@@ -22204,7 +22204,7 @@
     },
     {
      "addr": "0x10fe80",
-     "decl": "int FUN_0010fe80(float x, float y);",
+     "decl": "int valid_real_sine_cosine(float x, float y);",
      "ported": true
     },
     {
@@ -28351,7 +28351,7 @@
     },
     {
      "addr": "0x1a9c90",
-     "decl": "char FUN_001a9c90(int unit_handle, const char *seat_name, int object_list);",
+     "decl": "char unit_scripting_vehicle_test_seat_list(int unit_handle, const char *seat_name, int object_list);",
      "ported": true
     },
     {
@@ -28376,7 +28376,7 @@
     },
     {
      "addr": "0x1a9f20",
-     "decl": "void FUN_001a9f20(int unit_handle);",
+     "decl": "void unit_shield_sapping_update(int unit_handle);",
      "ported": true
     },
     {
@@ -28396,7 +28396,7 @@
     },
     {
      "addr": "0x1aa360",
-     "decl": "char FUN_001aa360(int unit_handle, int param_2, int16_t index);",
+     "decl": "char unit_set_user_animation(int unit_handle, int param_2, int16_t index);",
      "ported": true
     },
     {
@@ -28406,17 +28406,17 @@
     },
     {
      "addr": "0x1aa430",
-     "decl": "char FUN_001aa430(int unit_handle, float *point, float half_angle);",
+     "decl": "char unit_can_see_point(int unit_handle, float *point, float half_angle);",
      "ported": true
     },
     {
      "addr": "0x1aa4d0",
-     "decl": "char FUN_001aa4d0(int unit_handle);",
+     "decl": "char unit_driven_by_ai(int unit_handle);",
      "ported": true
     },
     {
      "addr": "0x1aa510",
-     "decl": "char FUN_001aa510(int unit_handle);",
+     "decl": "char unit_gunned_by_ai(int unit_handle);",
      "ported": true
     },
     {
@@ -28521,13 +28521,13 @@
     },
     {
      "addr": "0x1aaf40",
-     "decl": "void FUN_001aaf40(int unit_handle@<edi>);",
-     "name": "FUN_001aaf40",
+     "decl": "void unit_throw_grenade_move_to_hand(int unit_handle@<edi>);",
+     "name": "unit_throw_grenade_move_to_hand",
      "ported": true
     },
     {
      "addr": "0x1ab110",
-     "decl": "void FUN_001ab110(int unit_handle, char flag);",
+     "decl": "void unit_throw_grenade_release(int unit_handle, char flag);",
      "ported": true
     },
     {
@@ -28544,12 +28544,12 @@
     },
     {
      "addr": "0x1ab730",
-     "decl": "int16_t FUN_001ab730(const char *seat_name@<edi>);",
+     "decl": "int16_t seat_label_to_base_seat_index(const char *seat_name@<edi>);",
      "ported": true
     },
     {
      "addr": "0x1ab770",
-     "decl": "const char *FUN_001ab770(int16_t base_weapon_index@<si>);",
+     "decl": "const char *base_weapon_label_get(int16_t base_weapon_index@<si>);",
      "ported": true
     },
     {
@@ -28564,7 +28564,7 @@
     },
     {
      "addr": "0x1ab8c0",
-     "decl": "void FUN_001ab8c0(int unit_handle@<edi>);",
+     "decl": "void unit_refresh_illumination(int unit_handle@<edi>);",
      "ported": true
     },
     {
@@ -28646,7 +28646,7 @@
     },
     {
      "addr": "0x1acd70",
-     "decl": "char FUN_001acd70(int unit_handle@<eax>, const char *seat_label, const char *weapon_name, char apply_state);",
+     "decl": "char unit_set_or_test_seat_and_weapon_label(int unit_handle@<eax>, const char *seat_label, const char *weapon_name, char apply_state);",
      "ported": true
     },
     {
@@ -28663,7 +28663,7 @@
     },
     {
      "addr": "0x1ad260",
-     "decl": "char FUN_001ad260(int unit_handle, int16_t anim_state);",
+     "decl": "char unit_animation_set_state(int unit_handle, int16_t anim_state);",
      "ported": true
     },
     {
@@ -28744,7 +28744,7 @@
     },
     {
      "addr": "0x1ae490",
-     "decl": "int16_t FUN_001ae490(int unit_handle@<ebx>, int16_t current_index, int16_t direction);",
+     "decl": "int16_t unit_weapon_next_index(int unit_handle@<ebx>, int16_t current_index, int16_t direction);",
      "ported": true
     },
     {
@@ -28849,8 +28849,8 @@
     },
     {
      "addr": "0x1b0d90",
-     "decl": "short FUN_001b0d90(int unit_handle, char *anim_state);",
-     "name": "FUN_001b0d90",
+     "decl": "short unit_update_animation(int unit_handle, char *anim_state);",
+     "name": "unit_update_animation",
      "ported": true
     },
     {
@@ -28962,7 +28962,7 @@
     },
     {
      "addr": "0x1b2780",
-     "decl": "char FUN_001b2780(int unit_handle);",
+     "decl": "char unit_new(int unit_handle);",
      "ported": true
     },
     {
@@ -33663,11 +33663,11 @@
     },
     {
      "addr": "0x44fd0",
-     "decl": "void FUN_00044fd0(int unit_handle, uint16_t priority, uint16_t type, void *comm_data);"
+     "decl": "void ai_communication_started(int unit_handle, uint16_t priority, uint16_t type, void *comm_data);"
     },
     {
      "addr": "0x45290",
-     "decl": "void FUN_00045290(int unit_handle, uint16_t priority, uint16_t type, void *comm_data);"
+     "decl": "void ai_communication_notify(int unit_handle, uint16_t priority, uint16_t type, void *comm_data);"
     },
     {
      "addr": "0x454a0",
@@ -33691,11 +33691,11 @@
     },
     {
      "addr": "0x46530",
-     "decl": "void FUN_00046530(int unit_handle, uint16_t priority, uint16_t type, int unk, int unk2, void *comm_data);"
+     "decl": "void ai_communication_finished(int unit_handle, uint16_t priority, uint16_t type, int unk, int unk2, void *comm_data);"
     },
     {
      "addr": "0x46b60",
-     "decl": "int FUN_00046b60(int param_1, int param_2);"
+     "decl": "int ai_conversation(int param_1, int param_2);"
     },
     {
      "addr": "0x46cb0",
@@ -33780,7 +33780,7 @@
     },
     {
      "addr": "0x49300",
-     "decl": "void FUN_00049300(void);"
+     "decl": "void ai_debug_render_surface(void);"
     },
     {
      "addr": "0x493b0",
@@ -33970,12 +33970,12 @@
     },
     {
      "addr": "0x4b220",
-     "decl": "void FUN_0004b220(float *position @<eax>);"
+     "decl": "void ai_debug_drawstack_setup(float *position @<eax>);"
     },
     {
      "addr": "0x4b2b0",
-     "decl": "float *FUN_0004b2b0(void);",
-     "name": "FUN_0004b2b0",
+     "decl": "float *ai_debug_drawstack(void);",
+     "name": "ai_debug_drawstack",
      "ported": true,
      "src": "src/halo/ai/ai_debug.c"
     },
@@ -33985,8 +33985,8 @@
     },
     {
      "addr": "0x4b670",
-     "decl": "void FUN_0004b670(int object_handle @<edi>, void *color @<ebx>, char draw_flag);",
-     "name": "FUN_0004b670",
+     "decl": "void ai_debug_highlight_unit(int object_handle @<edi>, void *color @<ebx>, char draw_flag);",
+     "name": "ai_debug_highlight_unit",
      "ported": true,
      "src": "src/halo/ai/ai_debug.c"
     },
@@ -34901,7 +34901,7 @@
     },
     {
      "addr": "0x59b50",
-     "decl": "int FUN_00059b50(void *iter);",
+     "decl": "int actor_iterator_next(void *iter);",
      "ported": true
     },
     {
@@ -36708,7 +36708,7 @@
     },
     {
      "addr": "0x120710",
-     "decl": "void FUN_00120710(int anim_entry, int tick_out, int damage_time_out);"
+     "decl": "void animation_get_x_offsets(int anim_entry, int tick_out, int damage_time_out);"
     },
     {
      "addr": "0x120790",
@@ -36748,7 +36748,7 @@
     },
     {
      "addr": "0x120cb0",
-     "decl": "short FUN_00120cb0(int animation_graph_tag_index, const char *name);",
+     "decl": "short animation_graph_get_animation_by_name(int animation_graph_tag_index, const char *name);",
      "ported": true
     },
     {
