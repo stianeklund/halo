@@ -336,7 +336,7 @@ void FUN_0012c1c0(int server, int client)
  * a type-8 message with a zero payload and broadcasts that too.  On
  * success sets server+0x4b9 (loading flag) to 1.  Always clears
  * server+0x47c and always returns true regardless of success or failure. */
-__declspec(noinline) bool FUN_0012c290(void *server)
+__declspec(noinline) bool network_game_server_start_network_game(void *server)
 {
   int data;
   void *msg;
@@ -1361,7 +1361,7 @@ int network_game_server_get_game(void *server)
 /* Return the smallest last-update tick across all 4 machine slots that are
  * joined and have a valid update tick. Returns 0xffffffff if none qualify.
  * 0x12d5b0 / network_server_manager.obj */
-unsigned int FUN_0012d5b0(int param_1)
+unsigned int network_game_server_get_oldest_client_update_received(int param_1)
 {
   unsigned int uVar1;
 
@@ -2297,7 +2297,7 @@ bool FUN_0012e750(int server)
       if (timer_ms == 0) {
         if (FUN_0012dbb0(server) && *(char *)(s + 0x495) == 0) {
           network_game_server_close_game((void *)server);
-          result = FUN_0012c290((void *)server);
+          result = network_game_server_start_network_game((void *)server);
           if (result == 1)
             return true;
           network_game_log("network_game_server_start_network_game() failed");

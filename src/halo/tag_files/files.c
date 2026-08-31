@@ -541,7 +541,7 @@ void file_error(file_ref_t *info, const char *function_name)
  * On success, closes the returned handle. On failure, logs the error and
  * clears it. Returns true on success, false on failure.
  */
-bool FUN_0019a490(file_ref_t *info)
+bool file_create(file_ref_t *info)
 {
   file_ref_t *ref;
   char path[256];

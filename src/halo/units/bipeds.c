@@ -377,18 +377,18 @@ char FUN_001a0680(int unit_handle)
  *
  * Places a biped unit at a placement location. Calls unit_place with the
  * placement data at offset +0x48 (the unit-level placement struct), then
- * calls FUN_0013d870 (no-op stub) with the placement data at offset +0x28.
+ * calls object_add_scenario_permutation (no-op stub) with the placement data at offset +0x28.
  *
  * Confirmed: param_2+0x48 passed to unit_place (PUSH ESI+0x48 via LEA).
- * Confirmed: param_2+0x28 passed to FUN_0013d870 (ADD ESI,0x28; PUSH ESI).
- * Confirmed: FUN_0013d870 is a no-op (single RET).
+ * Confirmed: param_2+0x28 passed to object_add_scenario_permutation (ADD ESI,0x28; PUSH ESI).
+ * Confirmed: object_add_scenario_permutation is a no-op (single RET).
  * Inferred: param_2 is a biped placement struct (unit placement at +0x48,
  *   biped-specific data at +0x28).
  */
 void biped_place(int unit_handle, void *placement)
 {
   unit_place(unit_handle, (char *)placement + 0x48);
-  FUN_0013d870(unit_handle, (char *)placement + 0x28);
+  object_add_scenario_permutation(unit_handle, (char *)placement + 0x28);
 }
 
 /* biped_reset (0x1a0800)

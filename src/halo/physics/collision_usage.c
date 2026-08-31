@@ -1900,7 +1900,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
             prev_plane_ptr[0] * velocity[0];
 
       if (dot < *(float *)0x26a810 &&
-          FUN_0010f480(plane_ptr, prev_plane_ptr, clip_result, clip_line)) {
+          line_from_planes3d(plane_ptr, prev_plane_ptr, clip_result, clip_line)) {
         CHECK_FINITE3_POINT(clip_result, "&clip_line_point", 0x3e1);
         CHECK_FINITE3_VEC(clip_line, "&clip_line_vector", 0x3e2);
 
@@ -1930,7 +1930,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
                 prev_plane_ptr[0] * velocity[0];
 
           if (dot < *(float *)0x26a810 &&
-              FUN_0010f310(
+              point_from_planes3d(
                 (float *)((char *)collisions +
                           (int)(short)clip_staging[0] * 0x2c + 0x10),
                 (float *)((char *)collisions +
@@ -1965,7 +1965,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
               prev_plane_ptr[0] * velocity[0];
 
         if (dot < *(float *)0x26a810 &&
-            FUN_0010f480(
+            line_from_planes3d(
               (float *)((char *)collisions +
                         (int)clip_staging[0] * 0x2c + 0x10),
               (float *)((char *)collisions +

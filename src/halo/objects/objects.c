@@ -3934,7 +3934,7 @@ void FUN_0013a420(void)
 
   if (*(char *)*(int *)0x46f074 == '\0')
     goto done;
-  if (FUN_000ab9c0() == '\0')
+  if (game_engine_allow_dynamic_lighting() == '\0')
     goto done;
 
   loop_idx = 0;
@@ -4041,7 +4041,7 @@ void FUN_0013a5f0(void)
 
   if (*(char *)*(int *)0x46f074 == '\0')
     goto done;
-  if (FUN_000ab9c0() == '\0')
+  if (game_engine_allow_dynamic_lighting() == '\0')
     goto done;
 
   loop_idx = 0;
@@ -4259,7 +4259,7 @@ void FUN_0013a740(int param_1, int param_2, float *param_3)
 /* 0x13aa10: gather the light markers that illuminate an object.  Computes the
  * object's bounding sphere (center local_2c, radius local_8) via FUN_0001aae0,
  * then iterates the object's cluster set (object_get_first_cluster /
- * FUN_0013d5f0 over iter_state local_10).  For each cluster it calls
+ * object_get_next_cluster over iter_state local_10).  For each cluster it calls
  * FUN_00139c20 to select the strongest point lights into the caller's marker
  * array (param_2+0x44), capped at 2 (count at param_2+0x40).  Finally it
  * converts each stored light datum handle into the light's object field
@@ -4294,7 +4294,7 @@ void FUN_0013aa10(int param_1, int param_2)
     do {
       FUN_00139c20(param_1, marker, center, radius, param_2 + 0x44, weights,
                    (int)atten, count, 2);
-      marker = FUN_0013d5f0(iter_state, param_1);
+      marker = object_get_next_cluster(iter_state, param_1);
     } while (marker != -1);
   }
 
@@ -6599,7 +6599,7 @@ int cluster_partition_object_iter_next(int *state)
 }
 
 /*
- * FUN_0013d5f0 (0x13d5f0 / objects.obj) — advance an object's per-object
+ * object_get_next_cluster (0x13d5f0 / objects.obj) — advance an object's per-object
  * cluster iterator to the next cluster. The iterator state (param_1) holds
  * the cluster partition pointer at +0x00 (must be the collideable
  * 0x5a8d40 or noncollideable 0x5a8d30 partition) and the current cluster
@@ -6611,7 +6611,7 @@ int cluster_partition_object_iter_next(int *state)
  * Confirmed: assert string at 0x29b890, file at 0x29b91c, line 0x419.
  * Confirmed: void-EAX return (returns FUN_001916d0's result).
  */
-int16_t FUN_0013d5f0(void *param_1, int param_2)
+int16_t object_get_next_cluster(void *param_1, int param_2)
 {
   int *iter = (int *)param_1;
   (void)param_2;
@@ -6872,7 +6872,7 @@ int object_get_root_parent(int object_handle)
   return result;
 }
 
-void FUN_0013d870(int unit_handle, void *data)
+void object_add_scenario_permutation(int unit_handle, void *data)
 {
   (void)unit_handle;
   (void)data;
@@ -6906,7 +6906,7 @@ void object_name_list_set_handle(short name_index, int object_handle)
 }
 
 /*
- * FUN_0013d8b0 (0x13d8b0 / objects.obj) — detach an object handle from every
+ * objects_fix_for_deleted_object (0x13d8b0 / objects.obj) — detach an object handle from every
  * other object that references it.
  *
  * Walks all objects via an inlined object iterator (type_mask = all, flags = 0)
@@ -6922,7 +6922,7 @@ void object_name_list_set_handle(short name_index, int object_handle)
  * conditional MOV [EAX+0xa0],-1; FUN_0013c680([EBP-0x8]=last_handle,
  * ESI=handle).
  */
-void FUN_0013d8b0(int object_handle)
+void objects_fix_for_deleted_object(int object_handle)
 {
   object_iter_t it;
   object_data_t *obj;
@@ -7095,7 +7095,7 @@ void objects_information_get(void *info_ptr)
   info->used_memory = *(float *)0x2533c8 - (float)iVar2 * *(float *)0x29ba04;
 }
 
-void FUN_0013dbe0(int param_1)
+void object_pvs_set_object(int param_1)
 {
   int iVar1;
 
@@ -7109,7 +7109,7 @@ void FUN_0013dbe0(int param_1)
 }
 
 /*
- * FUN_0013dc10 (0x13dc10 / objects.obj) — object_pvs_set_camera_point: set the
+ * object_pvs_set_camera_point (0x13dc10 / objects.obj) — object_pvs_set_camera_point: set the
  * object-PVS source to a scenario camera point.
  *
  * If the camera point index is NONE (-1), clears the PVS mode (object_globals
@@ -7129,7 +7129,7 @@ void FUN_0013dbe0(int param_1)
  * scenario_location_from_point(&loc, element+0x28); CMP word [EBP-4],-1;
  * error(2, "...%s...", element+4); else word[og+0x90]=2, word[og+0x94]=leaf.
  */
-void FUN_0013dc10(short camera_point_index)
+void object_pvs_set_camera_point(short camera_point_index)
 {
   int iVar1;
   int cam;
@@ -7154,13 +7154,13 @@ void FUN_0013dc10(short camera_point_index)
   *(short *)(iVar1 + 0x94) = *(short *)(location + 4);
 }
 
-void FUN_0013dcb0(void)
+void object_pvs_clear(void)
 {
   *(short *)(*(int *)0x46f084 + 0x90) = 0;
 }
 
 /*
- * FUN_0013dcc0 (0x13dcc0 / objects.obj) — object_pvs_get_cluster_index:
+ * objects_get_activating_cluster_index (0x13dcc0 / objects.obj) — object_pvs_get_cluster_index:
  * resolve the PVS/observer camera point to a structure-BSP cluster index.
  *
  * object_globals (*0x46f084) holds a small state machine at +0x90:
@@ -7183,7 +7183,7 @@ void FUN_0013dcb0(void)
  * Confirmed: assert cluster_index in [0, scenario_get()->[+0x134]) at 0x8e7,
  *            followed by system_exit(-1).
  */
-short FUN_0013dcc0(void)
+short objects_get_activating_cluster_index(void)
 {
   int globals;
   int entry;
@@ -7249,7 +7249,7 @@ void object_definition_predict(int param_1)
 }
 
 /*
- * FUN_0013ddd0 (0x13ddd0 / objects.obj) — recursively precache the predicted
+ * object_predict (0x13ddd0 / objects.obj) — recursively precache the predicted
  * resources for an object and its attachment tree.
  *
  * Iterative+recursive walk over the object datum (table at 0x5a8d50). For each
@@ -7267,7 +7267,7 @@ void object_definition_predict(int param_1)
  * "...objects.c", 0x69a, 1) then system_exit(-1); child at +0xc8, sibling at
  * +0xc4; precache arg is tag+0x170.
  */
-void FUN_0013ddd0(int object_handle)
+void object_predict(int object_handle)
 {
   object_data_t *obj;
   int *defn;
@@ -7290,7 +7290,7 @@ void FUN_0013ddd0(int object_handle)
       tag = (int)tag_get(0x6f626a65, defn[0]);
       predicted_resources_precache((void *)(tag + 0x170));
     }
-    FUN_0013ddd0(defn[0x32]);
+    object_predict(defn[0x32]);
     object_handle = defn[0x31];
   }
 }
@@ -8420,7 +8420,7 @@ void objects_place(void)
  * output array. param_5: maximum capacity of output array (stops when param_4
  * >= param_5). param_6: output array (int[]) that receives matching object
  * handles. Returns: updated count after processing this subtree. */
-int FUN_0013f080(int param_1, char (*param_2)(int, int), int param_3,
+int recursive_object_adder(int param_1, char (*param_2)(int, int), int param_3,
                  int param_4, int param_5, int *param_6)
 {
   void *local_c;
@@ -8432,11 +8432,11 @@ int FUN_0013f080(int param_1, char (*param_2)(int, int), int param_3,
       param_4 = param_4 + 1;
     }
     if (*(int *)((char *)local_c + 0xc8) != -1) {
-      param_4 = FUN_0013f080(*(int *)((char *)local_c + 0xc8), param_2, param_3,
+      param_4 = recursive_object_adder(*(int *)((char *)local_c + 0xc8), param_2, param_3,
                              param_4, param_5, param_6);
     }
     if (*(int *)((char *)local_c + 0xc4) != -1) {
-      param_4 = FUN_0013f080(*(int *)((char *)local_c + 0xc4), param_2, param_3,
+      param_4 = recursive_object_adder(*(int *)((char *)local_c + 0xc4), param_2, param_3,
                              param_4, param_5, param_6);
     }
   }
@@ -8540,7 +8540,7 @@ int find_objects_from_point_vector(int param_1, int param_2, int param_3,
 
               if (*(int *)((char *)obj_body + 8) != *(int *)(0x5a8d28 ^ 0)) {
                 *(int *)((char *)obj_body + 8) = *marker_gen_ptr;
-                result = FUN_0013f080(obj_handle, (char (*)(int, int))param_3,
+                result = recursive_object_adder(obj_handle, (char (*)(int, int))param_3,
                                       param_4, result, param_5, (int *)param_6);
               }
 
@@ -9319,7 +9319,7 @@ void object_disconnect_from_map(int object_handle)
  *
  * Read-only with respect to object lifecycle: writes only the caller's 8-byte
  * iter_state buffer ([0] table ptr, [4] cluster iterator state). Paired with
- * FUN_0013d5f0 (cluster-next) on the same iter_state.
+ * object_get_next_cluster (cluster-next) on the same iter_state.
  *
  * Confirmed: 2 cdecl args (iter_state @ [EBP+0x8] ESI, object_handle @
  * [EBP+0xc]). Confirmed: object_get_root_parent(object_handle) result reused
@@ -10004,7 +10004,7 @@ int object_name_list_get_handle(int16_t index)
 }
 
 /*
- * FUN_00140750 (0x140750 / objects.obj) — disconnect every map-connected,
+ * objects_disconnect_from_structure_bsp (0x140750 / objects.obj) — disconnect every map-connected,
  * childless object from the map.
  *
  * Walks all objects via an inlined object iterator (type_mask = -1, flags = 0;
@@ -10021,7 +10021,7 @@ int object_name_list_get_handle(int16_t index)
  * pointer returned in EAX (ESI); EDI reloaded from [EBP-8]=last_handle each
  * iteration; TEST [ESI+4],0x800 then CMP [ESI+0xcc],-1; both callees take EDI.
  */
-void FUN_00140750(void)
+void objects_disconnect_from_structure_bsp(void)
 {
   object_iter_t it;
   object_data_t *obj;
@@ -10071,7 +10071,7 @@ void FUN_00140750(void)
  * Confirmed: CALL 0x13d680 (object_get_and_verify_type) with mask -1 and 3.
  * Confirmed: CALL 0xba6c0 (players_get_combined_pvs) with no args.
  * Confirmed: CALL 0x13fe10 (object_get_first_cluster) with 2 cdecl args.
- * Confirmed: CALL 0x13d5f0 (FUN_0013d5f0) with 2 cdecl args.
+ * Confirmed: CALL 0x13d5f0 (object_get_next_cluster) with 2 cdecl args.
  * Confirmed: CALL 0x1198f0 (data_next_index) with player_data, prev_index.
  * Confirmed: CALL 0x1a9200 (unit_get_head_position) with unit_handle, &out.
  * Confirmed: CALL 0x13010 (normalize3d) with delta vector pointer.
@@ -10120,7 +10120,7 @@ char object_visible_to_any_player(int object_handle)
     if (cluster_index != (int16_t)0xFFFF) {
       while (
         !(pvs[(int)cluster_index >> 5] & (1 << ((int)cluster_index & 0x1f)))) {
-        cluster_index = FUN_0013d5f0(iter_state, object_handle);
+        cluster_index = object_get_next_cluster(iter_state, object_handle);
         if (cluster_index == (int16_t)0xFFFF)
           return result;
       }
@@ -10992,7 +10992,7 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
 }
 
 /*
- * FUN_001414e0 — inverse-kinematics matrix adjustment between two object
+ * object_inverse_kinematics — inverse-kinematics matrix adjustment between two object
  * markers.
  *
  * Resolves two named markers (marker A on object param_1, marker B on object
@@ -11025,7 +11025,7 @@ void *object_get_world_matrix(int object_handle, void *out_matrix)
  *  - matrix4x3_multiply aliases b == out (&composed_matrix twice). Faithful.
  *  - Node indices are signed shorts via MOVSX; NONE test is == -1.
  */
-void FUN_001414e0(int param_1, int param_2, int param_3, int param_4,
+void object_inverse_kinematics(int param_1, int param_2, int param_3, int param_4,
                   int param_5)
 {
   char marker_a[0x6c];
@@ -11258,7 +11258,7 @@ void objects_reconnect_to_structure_bsp(void)
  * FUN_00141900 (0x141900 / objects.obj) — delete every object flagged for
  * deletion (object flags bit 0x400000).
  *
- * Mirrors FUN_00140750's structure: data_verify the object table, then walk all
+ * Mirrors objects_disconnect_from_structure_bsp's structure: data_verify the object table, then walk all
  * objects with an inlined iterator (type_mask = -1, flags = 0, the binary
  * inlines object_iterator_new's five field stores).  Each object whose flags
  * carry bit 0x400000 is removed via object_delete_internal(handle, 0).
@@ -11305,7 +11305,7 @@ void FUN_00141900(void)
  *   code 0x12 -> 0.0 when object+0xb6 bit 4 set, else 1.0
  *   code 0x13 -> heading-vs-scenario angle: atan2(marker[+4], marker[+8]) of
  * the base node marker (object_get_node_matrix(handle,0)); wrapped against
- * scenario+0x4c (FUN_000b6dd0), scaled (0x29c120) + offset (0x253398), clamped
+ * scenario+0x4c (signed_angular_difference), scaled (0x29c120) + offset (0x253398), clamped
  * to [0,1]; falls back to the cached value when |marker[+0xc]| >= threshold
  * (0x29c128) codes 0xa..0x11 (default) -> region state byte
  * object+0x128+(code-0xa) * 0x261518 any other code in default range -> assert
@@ -11316,7 +11316,7 @@ void FUN_00141900(void)
  *
  * Confirmed: 1 cdecl arg (object_handle @ [EBP+0x8]); 4-iteration loop
  * ([EBP-0x8]). Confirmed: default value is 0.0 (FLOAT 0x2533c0); 1.0 =
- * 0x2533c8. Confirmed (push-then-fstp): FUN_000b6dd0 takes TWO args — param_1 =
+ * 0x2533c8. Confirmed (push-then-fstp): signed_angular_difference takes TWO args — param_1 =
  * scenario+0x4c (PUSH ECX at 0x141a9a), param_2 = the FPATAN result stored via
  * FSTP [ESP] at 0x141a8f over the PUSH ECX at 0x141a89; ADD ESP,8 cleans both.
  * Decompiler dropped param_2. Confirmed: jump table at 0x141b38 / index map at
@@ -11378,13 +11378,13 @@ void FUN_00141970(int param_1)
         if (fabs(*(float *)(marker + 0xc)) < *(double *)0x29c128) {
 #if defined(_MSC_VER) && !defined(__clang__)
 #undef atan2
-          angle = FUN_000b6dd0(
+          angle = signed_angular_difference(
             *(float *)((char *)global_scenario_get() + 0x4c),
             (float)atan2(*(float *)(marker + 4), *(float *)(marker + 8)));
 #define atan2 atan2_
 #else
           angle =
-            FUN_000b6dd0(*(float *)((char *)global_scenario_get() + 0x4c),
+            signed_angular_difference(*(float *)((char *)global_scenario_get() + 0x4c),
                          (float)xbox_atan2((double)*(float *)(marker + 4),
                                            (double)*(float *)(marker + 8)));
 #endif
@@ -12403,8 +12403,8 @@ void objects_scripting_detach(int param_1, int param_2)
   }
 }
 
-/* FUN_00143550 / objects.obj -- render debug visualizations for an object. */
-void FUN_00143550(int param_1)
+/* object_render_debug / objects.obj -- render debug visualizations for an object. */
+void object_render_debug(int param_1)
 {
   int *obj;
   char *tag_data;

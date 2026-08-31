@@ -12,12 +12,12 @@
  * Copies ai_globals[6..7] (int16_t) into ai_globals[4..5], then clears
  * both ai_globals[6..7] and the byte flag at ai_globals[3].
  * Iterates all active player-actors (flag=1) via
- * encounter_iterator_next/FUN_00059b50. For each actor record:
+ * encounter_iterator_next/actor_iterator_next. For each actor record:
  *   - if record+0xb is nonzero: calls actor_erase(actor_handle, 0)
  *     to delete/dispose the actor entry.
  *   - if record+0xb is zero and record+0x6a > 0: calls FUN_0003ec80(@esi)
  *     to activate the actor (full AI init sequence).
- * The datum handle comes from iter offset 0x14 (stored by FUN_00059b50).
+ * The datum handle comes from iter offset 0x14 (stored by actor_iterator_next).
  * Confirmed: void(void), called from ai_update at 0x41206 with no args.
  * Confirmed: FUN_0003ec80 takes @esi register arg (MOV ESI,[EBP-8]; CALL).
  * Confirmed: actor_erase is cdecl with 2 stack args (PUSH 0; PUSH EAX; CALL;
@@ -38,7 +38,7 @@ void FUN_0003f5f0(void)
 
   /* iterate over all active player-actors */
   encounter_iterator_next(iter, 1);
-  record = (char *)FUN_00059b50(iter);
+  record = (char *)actor_iterator_next(iter);
   while (record != 0) {
     if (*(char *)(record + 0xb) != 0) {
       /* actor marked for deletion — dispose it */
@@ -49,7 +49,7 @@ void FUN_0003f5f0(void)
         FUN_0003ec80(*(int *)(iter + 0x14));
       }
     }
-    record = (char *)FUN_00059b50(iter);
+    record = (char *)actor_iterator_next(iter);
   }
 }
 
@@ -212,7 +212,7 @@ void ai_get_major_upgrade_chance(int16_t param_1, char *force_major,
 /* ai_erase: erase AI actors matching an encounter/squad/squad-group filter.
  * Guards on AI globals active flag (*(char*)(ai_globals+1) != 0).
  * If param_1 == -1 (all encounters): iterates all actors via
- *   encounter_iterator_next (flag=0) + FUN_00059b50; erases each via
+ *   encounter_iterator_next (flag=0) + actor_iterator_next; erases each via
  *   actor_erase(iter+0x14 handle, param_4).
  * Else: initialises a per-encounter actor iterator via
  *   encounter_actor_iterator_new(&iter, param_1) +
@@ -245,10 +245,10 @@ void ai_erase(int param_1, int param_2, int param_3, int param_4)
   if (param_1 == -1) {
     /* iterate all actors across all encounters */
     encounter_iterator_next(enc_iter, 0);
-    has_more = FUN_00059b50(enc_iter);
+    has_more = actor_iterator_next(enc_iter);
     while (has_more != 0) {
       actor_erase(*(int *)(enc_iter + 0x14), (char)param_4);
-      has_more = FUN_00059b50(enc_iter);
+      has_more = actor_iterator_next(enc_iter);
     }
   } else {
     /* iterate actors within the specified encounter, applying filters */
@@ -267,7 +267,7 @@ void ai_erase(int param_1, int param_2, int param_3, int param_4)
 /* ai_release_inactive_swarms: count and erase swarm units, format a result
  * description.
  *
- * Iterates all AI actors via encounter_iterator_next (flag=0) + FUN_00059b50.
+ * Iterates all AI actors via encounter_iterator_next (flag=0) + actor_iterator_next.
  * For each actor record where:
  *   record[6] != 0  (actor is active/alive)
  *   record[8] == 0  (not in some suppressed state)
@@ -280,7 +280,7 @@ void ai_erase(int param_1, int param_2, int param_3, int param_4)
  *
  * Stack layout (SUB ESP,0x20):
  *   [EBP-0x20..EBP-0xd]: iter[0x14] (encounter iterator, 20-byte body)
- *   [EBP-0xc]:           iter+0x14  (actor handle stored by FUN_00059b50)
+ *   [EBP-0xc]:           iter+0x14  (actor handle stored by actor_iterator_next)
  *   [EBP-0x4]:           local_8    (initialized to 0; base for swarm_count/SI)
  *
  * Confirmed: assert string "result_description && more_to_release", line
@@ -306,14 +306,14 @@ int ai_release_inactive_swarms(int result_description, char *more_to_release)
   }
 
   encounter_iterator_next(iter, 0);
-  record = FUN_00059b50(iter);
+  record = actor_iterator_next(iter);
   while (record != 0) {
     if ((*(char *)(record + 6) != '\0') && (*(char *)(record + 8) == '\0') &&
         (*(int *)(record + 0xc) != -1)) {
       swarm_count = (short)(swarm_count + *(short *)(record + 0x1e));
       actor_erase(*(int *)(iter + 0x14), 1);
     }
-    record = FUN_00059b50(iter);
+    record = actor_iterator_next(iter);
   }
 
   crt_sprintf((char *)result_description, "%d swarm units", (int)swarm_count);
@@ -521,7 +521,7 @@ char ai_handle_killing_spree(int unit_handle, short killing_spree_count)
 /* game_allegiance_apply_change: apply an allegiance change between two
  * teams, updating all matching actor records in the AI actor iterator.
  * Iterates over all active player-actors via
- * encounter_iterator_next/FUN_00059b50; for each actor whose team matches
+ * encounter_iterator_next/actor_iterator_next; for each actor whose team matches
  * team_a or team_b, walks the actor's clump items via FUN_00064540/FUN_00064570
  * and applies the friendship and force flags. Confirmed: 4 args via PUSH count
  * + ADD ESP,0x18 cleanup at 0x40068. Operand sizes confirmed: team_a/team_b as
@@ -553,7 +553,7 @@ void game_allegiance_apply_change(int16_t team_a, int16_t team_b,
 
   /* initialise iterator over all active player-actors (flag=1) */
   encounter_iterator_next(iter, 1);
-  actor = FUN_00059b50(iter);
+  actor = actor_iterator_next(iter);
   while (actor != 0) {
     /* check if this actor belongs to team_a or team_b */
     matched_team = team_b;
@@ -590,7 +590,7 @@ void game_allegiance_apply_change(int16_t team_a, int16_t team_b,
     }
 
   next_actor:
-    actor = FUN_00059b50(iter);
+    actor = actor_iterator_next(iter);
   }
 }
 
@@ -608,7 +608,7 @@ void ai_update_team_status(void)
   short team;
 
   encounter_iterator_next(iter, 1);
-  actor = FUN_00059b50(iter);
+  actor = actor_iterator_next(iter);
   while (actor != 0) {
     FUN_00064540(clump_iter, *(int *)(iter + 0x14));
     clump_item = FUN_00064570(clump_iter);
@@ -626,7 +626,7 @@ void ai_update_team_status(void)
         actor_compute_prop_target_weight(*(int *)(iter + 0x14), clump_iter[0]);
       clump_item = FUN_00064570(clump_iter);
     }
-    actor = FUN_00059b50(iter);
+    actor = actor_iterator_next(iter);
   }
 }
 

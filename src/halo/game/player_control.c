@@ -4,7 +4,7 @@
  * Two forms appear below and the difference is deliberate, not cosmetic.
  * Where the original compares against a slot in its own .rdata constant pool
  * the lift reads that slot by address, so VC71 emits the same FCOMP/FLD
- * operand (see the note on FUN_000b6dd0); where the original materializes an
+ * operand (see the note on signed_angular_difference); where the original materializes an
  * inline immediate instead -- e.g. MOV [EBP-0xC],0x3fbf0243 at 0xb800f -- the
  * lift uses a source literal.  Swapping one form for the other changes the
  * emitted code, so do not "unify" them.
@@ -975,7 +975,7 @@ bool player_control_action_test_look_relative_down(void)
  *
  * The four axis blocks are tri-state: FCOMP against 0.0f twice, once for
  * `> 0` and once for `< 0`, with zero setting neither bit. Branch polarity
- * per the derivation on FUN_000b6dd0 above -- TEST AH,0x41 keeps C0|C3 so
+ * per the derivation on signed_angular_difference above -- TEST AH,0x41 keeps C0|C3 so
  * JNZ is taken unless st0 > mem, and TEST AH,0x5 + JP is taken unless
  * st0 < mem. 0.0f is read from its pool address 0x2533c0 rather than written
  * as a literal, for the reason given above.
@@ -1137,7 +1137,7 @@ latch_1c_alt:
  * Constants are read as raw-address globals (pi at 0x256980, 2*pi at 0x255a54,
  * -pi at 0x26e280) to share the original's constant pool; substituting source
  * literals would change the emitted immediates. */
-float FUN_000b6dd0(float param_1, float param_2)
+float signed_angular_difference(float param_1, float param_2)
 {
   float delta;
 

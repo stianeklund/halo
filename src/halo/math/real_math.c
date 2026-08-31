@@ -2138,7 +2138,7 @@ void vector3d_from_angle(float *out, float angle)
 
 /* 0x10cc90 — Test if a 2D circle intersects a line segment.
  * p1=point, p2=line start, p3=line direction, r=radius². */
-int FUN_0010cc90(float *p1, float *p2, float *p3, float r)
+int point_in_pill2d(float *p1, float *p2, float *p3, float r)
 {
   float d0 = p1[0] - p2[0];
   float d1 = p1[1] - p2[1];
@@ -2166,7 +2166,7 @@ int FUN_0010cc90(float *p1, float *p2, float *p3, float r)
 /* 0x10cd40 — Squared distance from a 3D point to a line segment.
  * p1=point, p2=segment start, p3=segment direction.
  * Returns dot(closest - point, closest - point). */
-float FUN_0010cd40(float *p1, float *p2, float *p3)
+float point_to_line_distance_squared3d(float *p1, float *p2, float *p3)
 {
   volatile float t_unclamped = ((p1[2] - p2[2]) * p3[2] + (p1[1] - p2[1]) * p3[1] +
                        (p1[0] - p2[0]) * p3[0]) /
@@ -2195,7 +2195,7 @@ float FUN_0010cd40(float *p1, float *p2, float *p3)
  *     via projection + clamp-midpoint, then fall through to the distance.
  *   Non-parallel: scalar-triple-product params s,t; if either is out of [0,1]
  *     the closest approach is at an endpoint -> clamp it onto its line and take
- *     the min of point-vs-segment squared distances via FUN_0010cd40 (asserting
+ *     the min of point-vs-segment squared distances via point_to_line_distance_squared3d (asserting
  *     at least one is finite); else both in [0,1] (asserted) -> fall through.
  * Constants: 0x2533c0=0.0f, 0x2533c8=1.0f, 0x253398=0.5f, 0x253f44=len eps,
  * 0x2533d0=double parallel eps, 0x2548fc=REAL_MAX (FLT_MAX). */
@@ -2249,7 +2249,7 @@ float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3,
         closest_a[0] = clamped_s * p2[0] + p1[0];
         closest_a[1] = clamped_s * p2[1] + p1[1];
         closest_a[2] = clamped_s * p2[2] + p1[2];
-        d0 = FUN_0010cd40(closest_a, p3, p4);
+        d0 = point_to_line_distance_squared3d(closest_a, p3, p4);
       }
       if (t_oob) {
         clamped_t =
@@ -2258,8 +2258,8 @@ float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3,
         closest_b[1] = clamped_t * p4[1] + p3[1];
         closest_b[2] = clamped_t * p4[2] + p3[2];
         /* 2nd arg is start_a (p1): decompile shows extraout_EDX, but
-         * FUN_0010cd40 preserves EDX which still holds p1 from entry. */
-        d1 = FUN_0010cd40(closest_b, p1, p2);
+         * point_to_line_distance_squared3d preserves EDX which still holds p1 from entry. */
+        d1 = point_to_line_distance_squared3d(closest_b, p1, p2);
       }
       if (!(d0 < *(float *)0x2548fc) && !(d1 < *(float *)0x2548fc)) {
         display_assert("(d0 < REAL_MAX) || (d1 < REAL_MAX)",
@@ -2336,7 +2336,7 @@ float vector_to_line_distance_squared3d(float *p1, float *p2, float *p3,
 /* 0x10d380 — Ray-sphere intersection.
  * p1=ray_origin, p2=sphere_radius, p3=sphere_center, p4=ray_direction.
  * Returns 1 if intersect, sets *out_t and *out_normal. */
-__declspec(noinline) char FUN_0010d380(float *p1, float p2, float *p3,
+__declspec(noinline) char sphere_test_vector3d(float *p1, float p2, float *p3,
                                        float *p4, float *out_t,
                                        float *out_normal)
 {
@@ -2379,7 +2379,7 @@ __declspec(noinline) char FUN_0010d380(float *p1, float p2, float *p3,
 /* 0x10d4c0 — Ray vs cylinder intersection (cylinder along z-axis).
  * p1=ray_origin, p2=cylinder_height, p3=cylinder_radius, p4=cylinder_center,
  * p5=ray_direction, p6=out_t, p7=out_normal. */
-char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5,
+char pill_test_vector3d(float *p1, float p2, float p3, float *p4, float *p5,
                   float *p6, float *p7)
 {
   float local_origin[3];
@@ -2418,7 +2418,7 @@ char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5,
    *   `flds bp ; fcomps 0.0f ; testb $0x5,%ah ; jp` = fail-branch of `bp < 0.0f`
    *   `fcomps 0.0f ; testb $0x41,%ah ; jne` = fail-branch of `dot > 0.0f` */
   if (c2 < 0.0f) {
-    hit = FUN_0010d380(p1, p3, p4, p5, p6, p7);
+    hit = sphere_test_vector3d(p1, p3, p4, p5, p6, p7);
   } else if (!(c2 > 1.0f)) {
     if (!(bp < 0.0f))
       return 0;
@@ -2432,7 +2432,7 @@ char FUN_0010d4c0(float *p1, float p2, float p3, float *p4, float *p5,
     local_origin[0] = p1[0];
     local_origin[1] = p1[1];
     local_origin[2] = p2 + p1[2];
-    hit = FUN_0010d380(local_origin, p3, p4, p5, p6, p7);
+    hit = sphere_test_vector3d(local_origin, p3, p4, p5, p6, p7);
   }
   if (hit == 0)
     return 0;
@@ -2446,7 +2446,7 @@ check:
 /* 0x10d680 — Ray vs sphere distance.
  * Returns t along ray where ray hits sphere, or REAL_MAX if no hit.
  * Returns 0 if ray origin is inside sphere. */
-float FUN_0010d680(float *ray_origin, float *ray_dir, float *sphere_center,
+float fast_vector_intersection_with_sphere(float *ray_origin, float *ray_dir, float *sphere_center,
                    float radius)
 {
   float dx = ray_origin[0] - sphere_center[0];
@@ -2495,7 +2495,7 @@ float FUN_0010d680(float *ray_origin, float *ray_dir, float *sphere_center,
  * Tests if point p1 is inside triangle (p2, p3, p4) and computes
  * barycentric coords. Returns 1 if inside, 0 if outside.
  * Returns char to match MSVC's MOV AL,0x1 (preserves upper EAX bytes). */
-char FUN_0010d770(float *p1, float *p2, float *p3, float *p4, float *out_u,
+char point_in_triangle2d(float *p1, float *p2, float *p3, float *p4, float *out_u,
                   float *out_v)
 {
   float e0 = p3[0] - p2[0];
@@ -2524,7 +2524,7 @@ char FUN_0010d770(float *p1, float *p2, float *p3, float *p4, float *out_u,
 
 /* 0x10d830 — 3D triangle barycentric coordinates: project to dominant
  * axis and compute barycentric (u,v). p1=point, p2,p3,p4=triangle vertices. */
-char FUN_0010d830(float *p1, float *p2, float *p3, float *p4, float *out_u,
+char point_in_triangle3d(float *p1, float *p2, float *p3, float *p4, float *out_u,
                   float *out_v)
 {
   float v3[3], v1[3], v2[3];
@@ -2577,7 +2577,7 @@ char FUN_0010d830(float *p1, float *p2, float *p3, float *p4, float *out_u,
 /* 0x10d9e0 — 2D point in cone test.
  * Returns 1 if point in 2D cone (apex=p2, axis=p3, max length=cone_radius,
  * half-angle whose cos=cosine). */
-char FUN_0010d9e0(float *p1, float *p2, float *p3, float cone_radius,
+char point_in_cone2d(float *p1, float *p2, float *p3, float cone_radius,
                   float cosine)
 {
   float dx, dy;
@@ -2609,7 +2609,7 @@ char FUN_0010d9e0(float *p1, float *p2, float *p3, float cone_radius,
 /* 0x10da90 — 3D cone vs sphere test.
  * Tests if sphere(center=p1, radius=cone_radius*cosine) is intersected
  * by the cone with apex=p2, axis=p3, half-angle whose cos=cosine. */
-char FUN_0010da90(float *p1, float *p2, float *p3, float cone_radius,
+char point_in_cone3d(float *p1, float *p2, float *p3, float cone_radius,
                   float cosine)
 {
   float dx, dy, dz;
@@ -2636,14 +2636,14 @@ char FUN_0010da90(float *p1, float *p2, float *p3, float cone_radius,
   dist_sq = (dz * dz + dx * dx + dy * dy) * cosine * cosine;
   /* ref fcompp has dist_sq in ST0: return 0 when dist_sq > rsq (or NaN) —
    * i.e. inside requires rsq >= dist_sq. The old !(rsq <= dist_sq) form was
-   * INVERTED (same bug family as FUN_0010db50/dbf0/d9e0). */
+   * INVERTED (same bug family as point_in_sector2d/dbf0/d9e0). */
   if (rsq >= dist_sq)
     return 1;
   return 0;
 }
 
 /* 0x10db50 — 2D cone vs circle test. */
-__declspec(noinline) char FUN_0010db50(float *p1, float *p2, float *p3,
+__declspec(noinline) char point_in_sector2d(float *p1, float *p2, float *p3,
                                        float cone_radius, float cosine)
 {
   float dx, dy;
@@ -2672,7 +2672,7 @@ __declspec(noinline) char FUN_0010db50(float *p1, float *p2, float *p3,
 }
 
 /* 0x10dbf0 — 3D cone vs sphere test (variant). */
-__declspec(noinline) char FUN_0010dbf0(float *p1, float *p2, float *p3,
+__declspec(noinline) char point_in_sector3d(float *p1, float *p2, float *p3,
                                        float cone_radius, float cosine)
 {
   float dx, dy, dz;
@@ -2709,7 +2709,7 @@ __declspec(noinline) char FUN_0010dbf0(float *p1, float *p2, float *p3,
  *     projection + clamp-midpoint, then one distance check.
  *   Non-parallel case: 2D line-intersection params s,t; if both in [0,1] the
  *     segments cross; otherwise clamp the out-of-range endpoint onto its line
- *     and delegate to FUN_0010cc90 (point vs segment within radius).
+ *     and delegate to point_in_pill2d (point vs segment within radius).
  * Constants: 0x2533c0=0.0f, 0x2533c8=1.0f, 0x253398=0.5f, 0x253f44=len epsilon,
  * 0x2533d0=double cross-parallel epsilon. */
 char vector_intersects_pill2d(float *line_start, float *line_dir,
@@ -2768,9 +2768,9 @@ char vector_intersects_pill2d(float *line_start, float *line_dir,
 
   point_segment_checks:
     if ((!s_oob ||
-         FUN_0010cc90(&closest_a_x, pill_center, pill_dir, pill_radius) == 0) &&
+         point_in_pill2d(&closest_a_x, pill_center, pill_dir, pill_radius) == 0) &&
         (!t_oob ||
-         FUN_0010cc90(&closest_b_x, line_start, line_dir, pill_radius) == 0))
+         point_in_pill2d(&closest_b_x, line_start, line_dir, pill_radius) == 0))
       return 0;
     return 1;
   }
@@ -3009,7 +3009,7 @@ distance_check:
  * dir   : 2-element direction array [x,y]
  * v0,v1,v2 : triangle vertices, each 2-element [x,y]
  * Returns 1 if intersection, 0 otherwise. */
-char FUN_0010e4d0(float *point, float *dir, float *v0, float *v1, float *v2)
+char vector_intersects_triangle2d(float *point, float *dir, float *v0, float *v1, float *v2)
 {
   float tmin, tmax;
   volatile float e_x;
@@ -3101,7 +3101,7 @@ char FUN_0010e4d0(float *point, float *dir, float *v0, float *v1, float *v2)
 /* 0x10e6f0 — 3D ray vs triangle intersection (Möller–Trumbore-like).
  * p1=ray_origin, p2=ray_direction, p3,p4,p5=triangle vertices,
  * p6=out_t. Returns 1 if ray hits triangle. */
-char FUN_0010e6f0(float *p1, float *p2, float *p3, float *p4, float *p5,
+char vector_intersects_triangle3d(float *p1, float *p2, float *p3, float *p4, float *p5,
                   float *p6)
 {
   float e1[3], e2[3];
@@ -3156,7 +3156,7 @@ char FUN_0010e6f0(float *p1, float *p2, float *p3, float *p4, float *p5,
 
 /* 0x10e8a0 — 2D point-to-rectangle distance test.
  * Returns 1 if point is within radius of rectangle. */
-char FUN_0010e8a0(float *point, float radius, float *rect)
+char circle_intersects_rectangle2d(float *point, float radius, float *rect)
 {
   float dx, dy;
 
@@ -3214,9 +3214,9 @@ char FUN_0010e930(float *point, float radius, float *aabb)
 }
 
 /* 0x10e9f0 — 2D triangle vs circle test. Tests the 3 edges (cw winding)
- * with FUN_0010cc90 (point-segment intersect). Returns 1 if any edge or
+ * with point_in_pill2d (point-segment intersect). Returns 1 if any edge or
  * point intersects. */
-char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4,
+char circle_intersects_triangle2d(float *circle_center, float radius, float *p3, float *p4,
                   float *p5)
 {
   float seg[2];
@@ -3226,7 +3226,7 @@ char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4,
   seg[1] = p4[1] - p3[1];
   if (0.0f < seg[1] * (circle_center[0] - p3[0]) -
                seg[0] * (circle_center[1] - p3[1])) {
-    if ((char)FUN_0010cc90(circle_center, p3, seg, radius)) {
+    if ((char)point_in_pill2d(circle_center, p3, seg, radius)) {
       return 1;
     }
     result = 0;
@@ -3236,7 +3236,7 @@ char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4,
   if (seg[1] * (circle_center[0] - p4[0]) -
         seg[0] * (circle_center[1] - p4[1]) <
       0.0f) {
-    if ((char)FUN_0010cc90(circle_center, p4, seg, radius)) {
+    if ((char)point_in_pill2d(circle_center, p4, seg, radius)) {
       return 1;
     }
     result = 0;
@@ -3245,7 +3245,7 @@ char FUN_0010e9f0(float *circle_center, float radius, float *p3, float *p4,
   seg[1] = p3[1] - p5[1];
   if (0.0f < seg[1] * (circle_center[0] - p5[0]) -
                seg[0] * (circle_center[1] - p5[1])) {
-    if ((char)FUN_0010cc90(circle_center, p5, seg, radius)) {
+    if ((char)point_in_pill2d(circle_center, p5, seg, radius)) {
       return 1;
     }
     result = 0;
@@ -3528,7 +3528,7 @@ return_true:
 /* 0x10f310 — Intersect three planes (homogeneous): solve for the point
  * that lies on all three planes. Returns 0 if planes are parallel/degenerate.
  */
-char FUN_0010f310(float *p1, float *p2, float *p3, float *out)
+char point_from_planes3d(float *p1, float *p2, float *p3, float *out)
 {
   float cross[3];
   float determinant;
@@ -3575,7 +3575,7 @@ char FUN_0010f310(float *p1, float *p2, float *p3, float *out)
 /* 0x10f480 — Intersect a line (described by two planes p1, p2) with a third
  * plane to get the point. param_3 receives the line-direction cross,
  * param_4 receives the cross of the input planes. */
-char FUN_0010f480(float *p1, float *p2, float *out, float *cross_out)
+char line_from_planes3d(float *p1, float *p2, float *out, float *cross_out)
 {
   float local_direction[3];
   float determinant;
@@ -3867,7 +3867,7 @@ void angular_accelerate_to_position(float *facing, float *target_facing,
    max_length; if it clamped (returns nonzero), advances param_1 by the clamped
    delta and returns 0 (not arrived); otherwise snaps param_1 to param_2 and
    returns 1 (arrived). */
-char FUN_0010f9b0(float *param_1, float *param_2, float max_length)
+char accelerate_to_velocity3d(float *param_1, float *param_2, float max_length)
 {
   float delta[3];
 
@@ -3902,12 +3902,12 @@ char FUN_0010f9b0(float *param_1, float *param_2, float max_length)
  * delta = target - pos; mag = |delta| (normalize3d normalizes delta in place).
  * When mag == 0 the delta is zeroed; otherwise delta is scaled by
  * sqrt(2*mag*max_length) (a braking curve that reaches the target with zero
- * residual speed).  FUN_0010f9b0 clamps the desired move (`vel`, `delta`,
+ * residual speed).  accelerate_to_velocity3d clamps the desired move (`vel`, `delta`,
  * max_length): if it reports arrival AND the original distance was already 0,
  * pos snaps to target and returns 1.  Otherwise pos += vel and returns 0.
  *
  * `delta` is a contiguous float[3] because its address is passed to both
- * normalize3d and FUN_0010f9b0 (both read v[0..2]).
+ * normalize3d and accelerate_to_velocity3d (both read v[0..2]).
  * Constant: 0x2533c0 = 0.0f. */
 char accerate_to_position3d(float *pos, float *vel, float *target, int unused,
                             float max_length)
@@ -3932,7 +3932,7 @@ char accerate_to_position3d(float *pos, float *vel, float *target, int unused,
     delta[2] = delta[2] * scale;
   }
 
-  if (FUN_0010f9b0(vel, delta, max_length) != 0) {
+  if (accelerate_to_velocity3d(vel, delta, max_length) != 0) {
     if (mag == *(float *)0x2533c0) {
       pos[0] = target[0];
       pos[1] = target[1];
@@ -4100,7 +4100,7 @@ unsigned char *quantize_real_to_byte_rectangle3d(float *bounds, int *rect,
 }
 
 /* 0x10fe80 — Validate 2D normal: x²+y² close to 1.0 and not NaN/Inf. */
-int FUN_0010fe80(float x, float y)
+int valid_real_sine_cosine(float x, float y)
 {
   float diff = (x * x + y * y) - 1.0f;
   if ((*(unsigned int *)&diff & 0x7f800000) != 0x7f800000 &&
@@ -4258,7 +4258,7 @@ char FUN_00110210(float *p1, float p2, float *p3, float *p4, float p5,
   return 0;
 }
 
-/* 0x110380 — 2D capsule vs cone test (calls FUN_0010db50 for cone test). */
+/* 0x110380 — 2D capsule vs cone test (calls point_in_sector2d for cone test). */
 char FUN_00110380(float *p1, float p2, float *p3, float *p4, float p5,
                   float sine, float cosine)
 {
@@ -4296,7 +4296,7 @@ char FUN_00110380(float *p1, float p2, float *p3, float *p4, float p5,
       neg_offset = -radius_offset;
       apex[0] = neg_offset * p4[0] + p3[0];
       apex[1] = neg_offset * p4[1] + p3[1];
-      if (FUN_0010db50(p1, apex, p4, radius_offset + p2 + p5, cosine)) {
+      if (point_in_sector2d(p1, apex, p4, radius_offset + p2 + p5, cosine)) {
         return 1;
       }
     }
@@ -4304,7 +4304,7 @@ char FUN_00110380(float *p1, float p2, float *p3, float *p4, float p5,
   return 0;
 }
 
-/* 0x1104e0 — 3D capsule vs cone test (calls FUN_0010dbf0 for cone test). */
+/* 0x1104e0 — 3D capsule vs cone test (calls point_in_sector3d for cone test). */
 char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
                   float sine, float cosine)
 {
@@ -4341,7 +4341,7 @@ char FUN_001104e0(float *p1, float p2, float *p3, float *p4, float p5,
       apex[0] = neg_offset * p4[0] + p3[0];
       apex[1] = neg_offset * p4[1] + p3[1];
       apex[2] = neg_offset * p4[2] + p3[2];
-      if (FUN_0010dbf0(p1, apex, p4, radius_offset + p2 + p5, cosine)) {
+      if (point_in_sector3d(p1, apex, p4, radius_offset + p2 + p5, cosine)) {
         return 1;
       }
     }

@@ -19,7 +19,7 @@ static double breakable_ceil(double x)
 /* FUN_00145560 (0x145560)
  *
  * Two-argument forwarding wrapper: passes arg1 through unchanged and arg2
- * advanced by 0x28 to FUN_0013d870. Referenced only from data at 0x3241d0
+ * advanced by 0x28 to object_add_scenario_permutation. Referenced only from data at 0x3241d0
  * (a function table slot), so no direct code callers exist.
  *
  * Confirmed: MOV EAX,[EBP+0xc]; ADD EAX,0x28; PUSH EAX -> second argument is
@@ -27,13 +27,13 @@ static double breakable_ceil(double x)
  * Confirmed: MOV ECX,[EBP+0x8]; PUSH ECX -> first argument is arg1 unchanged.
  * Confirmed: CALL 0x13d870; ADD ESP,0x8 -> cdecl, two stack args.
  * Unknown: the concrete meaning of both parameters; names follow the existing
- *   kb.json decl of the callee (FUN_0013d870(int unit_handle, void *data)).
+ *   kb.json decl of the callee (object_add_scenario_permutation(int unit_handle, void *data)).
  *   Same shape as biped_place/vehicle_causes_collision_damage, which forward
  *   placement data at +0x28 to this same callee.
  */
 void FUN_00145560(int unit_handle, void *data)
 {
-  FUN_0013d870(unit_handle, (char *)data + 0x28);
+  object_add_scenario_permutation(unit_handle, (char *)data + 0x28);
 }
 
 /* FUN_00145580 (0x145580)

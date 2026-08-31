@@ -59,7 +59,7 @@ const char *targa_export(file_ref_t *file, __int16 *bitmap)
     system_exit(-1);
   }
 
-  if (FUN_0019a490(file)) {
+  if (file_create(file)) {
     if (file_open(file, 2)) {
       csmemset(&header, 0, sizeof(header));
       header.id_length = 0;

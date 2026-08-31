@@ -317,7 +317,7 @@ void network_game_set_random_seed(int seed)
 /* Return the active game object: server's game if server exists,
  * else client's machine index, else NULL.
  * 0x12a0a0 / network_game_globals.obj */
-int FUN_0012a0a0(void)
+int network_game_get_game(void)
 {
   int result;
 
@@ -653,7 +653,7 @@ bool network_game_client_end_frame(void)
          * FUN_00128e00). arg4 is the address of the local_1c record filled by
          * switch_to_postgame. */
         result =
-          FUN_00124d40((void *)network_game_client_get_seconds_to_game_start(
+          network_game_client_write((void *)network_game_client_get_seconds_to_game_start(
                          *(void **)0x46e8c0),
                        msg, *msg >> 4, (int)addr_buf, 0);
         if (!result) {

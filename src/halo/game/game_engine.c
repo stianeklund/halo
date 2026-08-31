@@ -1114,7 +1114,7 @@ char FUN_000a9550(void)
 
 /* Return whether friendly fire is enabled for a specific player.
  * Returns 0 if no engine, player is NONE, or complexity flag bit 2 set. */
-char FUN_000a9570(int param_1)
+char game_engine_infinite_grenades(int param_1)
 {
   if (current_game_engine && param_1 != -1 && (*(uint32_t *)0x5aa720 & 4) == 0)
     return (char)(*(uint32_t *)0x456b18 >> 2) & 1;
@@ -1123,7 +1123,7 @@ char FUN_000a9570(int param_1)
 
 /* Return the game engine variant identifier byte.
  * Returns 0 if no engine is active. */
-char FUN_000a95a0(void)
+char game_engine_has_teams(void)
 {
   if (current_game_engine)
     return *(char *)0x456b14;
@@ -1131,7 +1131,7 @@ char FUN_000a95a0(void)
 }
 
 /* Return whether the game engine has lives enabled and variant is nonzero. */
-char FUN_000a95c0(void)
+char game_engine_display_team_indicators(void)
 {
   if (current_game_engine && (*(uint8_t *)0x456b18 & 2) != 0 &&
       *(char *)0x456b14 != 0)
@@ -1719,7 +1719,7 @@ int game_engine_get_place(int param_1, int param_2)
 
 /* Return a combined spawn/respawn readiness flag.
  * Checks engine active, server/client, game type 2 + flag, and flags byte. */
-char FUN_000a9f90(int param_1)
+char game_engine_hud_draw_motion_sensor(int param_1)
 {
   char result;
   int is_client;
@@ -1737,7 +1737,7 @@ char FUN_000a9f90(int param_1)
 
 /* Dispatch to vtable slot 31 (0x7c).
  * Checks a game-type-specific condition. */
-char FUN_000a9fd0(void)
+char game_engine_test_flag(void)
 {
   if (current_game_engine) {
     char (*fn)(void) = ((char (**)(void))current_game_engine)[0x7c / 4];
@@ -1749,7 +1749,7 @@ char FUN_000a9fd0(void)
 
 /* Dispatch to vtable slot 32 (0x80).
  * Checks a game-type-specific condition. */
-char FUN_000a9ff0(void)
+char game_engine_test_trait(void)
 {
   if (current_game_engine) {
     char (*fn)(void) = ((char (**)(void))current_game_engine)[0x80 / 4];
@@ -1884,7 +1884,7 @@ game_variant_t *game_engine_slayer_default(game_variant_t *variant)
 }
 
 /* Initialize a CTF game variant (slayer pro). */
-game_variant_t *FUN_000aa220(game_variant_t *out)
+game_variant_t *build_game_variant_slayer_pro(game_variant_t *out)
 {
   /* CTF ("slayer pro") variant: zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -1940,7 +1940,7 @@ game_variant_t *game_engine_elimination_default(game_variant_t *variant)
 }
 
 /* Initialize a Slayer game variant. */
-game_variant_t *FUN_000aa340(game_variant_t *out)
+game_variant_t *build_game_variant_phantoms(game_variant_t *out)
 {
   /* Slayer variant: zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -1967,7 +1967,7 @@ game_variant_t *FUN_000aa340(game_variant_t *out)
 }
 
 /* Initialize a King of the Hill game variant. */
-game_variant_t *FUN_000aa3d0(game_variant_t *out)
+game_variant_t *build_game_variant_endurance(game_variant_t *out)
 {
   /* King of the Hill variant: zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -1994,7 +1994,7 @@ game_variant_t *FUN_000aa3d0(game_variant_t *out)
 }
 
 /* Initialize a Oddball game variant. */
-game_variant_t *FUN_000aa460(game_variant_t *out)
+game_variant_t *build_game_variant_rockets(game_variant_t *out)
 {
   /* Oddball variant: zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -2021,7 +2021,7 @@ game_variant_t *FUN_000aa460(game_variant_t *out)
 }
 
 /* Initialize a Oddball variant (alt). */
-game_variant_t *FUN_000aa4f0(game_variant_t *out)
+game_variant_t *build_game_variant_snipers(game_variant_t *out)
 {
   /* Oddball variant (alt): zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -2154,7 +2154,7 @@ game_variant_t *game_engine_team_oddball_default(game_variant_t *variant)
 }
 
 /* Initialize a Race game variant. */
-game_variant_t *FUN_000aa730(game_variant_t *out)
+game_variant_t *build_game_variant_reverse_tag(game_variant_t *out)
 {
   /* Race variant: zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -2220,7 +2220,7 @@ game_variant_t *game_engine_accumulation_default(game_variant_t *variant)
 }
 
 /* Initialize a Race game variant (alt). */
-game_variant_t *FUN_000aa860(game_variant_t *out)
+game_variant_t *build_game_variant_juggernaut(game_variant_t *out)
 {
   /* Race variant (alt): zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -2315,7 +2315,7 @@ game_variant_t *game_engine_king_default(game_variant_t *variant)
 }
 
 /* Initialize a CTF variant (team). */
-game_variant_t *FUN_000aaa20(game_variant_t *out)
+game_variant_t *build_game_variant_king_pro(game_variant_t *out)
 {
   /* CTF variant (team): zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -2340,7 +2340,7 @@ game_variant_t *FUN_000aaa20(game_variant_t *out)
 }
 
 /* Initialize a CTF variant (no teams). */
-game_variant_t *FUN_000aaab0(game_variant_t *out)
+game_variant_t *build_game_variant_crazy_king(game_variant_t *out)
 {
   /* CTF variant (no teams): zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -2429,7 +2429,7 @@ game_variant_t *game_engine_ctf_default(game_variant_t *variant)
 }
 
 /* Initialize a Assault game variant. */
-game_variant_t *FUN_000aac50(game_variant_t *out)
+game_variant_t *build_game_variant_ctf_pro(game_variant_t *out)
 {
   /* Assault variant: zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -2458,7 +2458,7 @@ game_variant_t *FUN_000aac50(game_variant_t *out)
 }
 
 /* Initialize a Assault game variant (alt). */
-game_variant_t *FUN_000aace0(game_variant_t *out)
+game_variant_t *build_game_variant_invasion(game_variant_t *out)
 {
   /* Assault variant (alt): zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -2613,7 +2613,7 @@ game_variant_t *game_engine_team_race_default(game_variant_t *variant)
 }
 
 /* Initialize a Race game variant (team). */
-game_variant_t *FUN_000aafb0(game_variant_t *out)
+game_variant_t *build_game_variant_team_rally(game_variant_t *out)
 {
   /* Race variant (team): zeroed local, +0x20 RMW, REP MOVSD out. */
   game_variant_t v = { 0 };
@@ -2639,14 +2639,14 @@ game_variant_t *FUN_000aafb0(game_variant_t *out)
 }
 
 /* Set the map name from an external source string. */
-void FUN_000ab040(char *param_1)
+void game_engine_override_map_name(char *param_1)
 {
   if (param_1 != NULL && *param_1 != 0)
     csstrncpy((char *)0x5aa760, param_1, 0x3f);
 }
 
 /* Copy game variant data from source to the global variant buffer. */
-void FUN_000ab070(int param_1)
+void game_engine_override_game_variant(int param_1)
 {
   if (param_1 != 0)
     csmemcpy((void *)0x5aa7a0, (void *)param_1, 0x68);
@@ -2716,7 +2716,7 @@ void FUN_000ab090(int text, char highlight, int row, int state)
 
 /* Check if a player's invincibility timer has expired.
  * Returns 0 (not invincible) if the timer float is > 0, else 1. */
-char FUN_000ab230(int param_1)
+char game_engine_hud_draw_messages(int param_1)
 {
   int player;
 
@@ -2732,7 +2732,7 @@ char FUN_000ab230(int param_1)
 
 /* Return whether the player's held weapon is a "power weapon" (bit 13 of
  * weapon flags at tag offset +0x308). */
-int FUN_000ab290(int param_1)
+int game_engine_player_has_stealth_weapon(int param_1)
 {
   int player;
   int biped;
@@ -2781,7 +2781,7 @@ void game_engine_weapon_fired(int param_1)
   biped2 = (int)object_get_and_verify_type(player, 3);
   weapon_handle = (int)unit_get_weapon(player, *(int16_t *)(biped2 + 0x2a2));
   decay = 0.1f;
-  if (FUN_000ab290(param_1)) {
+  if (game_engine_player_has_stealth_weapon(param_1)) {
     decay = 0.0f;
   } else if (weapon_handle != -1) {
     weapon = (int)object_get_and_verify_type(weapon_handle, 4);
@@ -2856,7 +2856,7 @@ void ticks_to_unicode_time_string(int param_1, int param_2, wchar_t *param_3)
 
 /* Set the weapon spawn configuration for a player. */
 
-void FUN_000ab510(int param_1, int param_2)
+void game_engine_flag_reset(int param_1, int param_2)
 
 {
   int weapon;
@@ -3062,7 +3062,7 @@ void game_engine_load_sounds(void)
 /* Return 1 if the game engine is inactive (no engine), or bit 0 of flags.
  * Original preloads AL=1 and overwrites in the engine-active branch
  * (single RET) — keep the result-variable form. */
-char FUN_000ab9a0(void)
+char game_engine_draw_object_in_motion_sensor(void)
 {
   char result = 1;
   if (current_game_engine)
@@ -3071,7 +3071,7 @@ char FUN_000ab9a0(void)
 }
 
 /* Return 1 if no engine, or inverted bit 0 of the complexity word. */
-char FUN_000ab9c0(void)
+char game_engine_allow_dynamic_lighting(void)
 {
   char result = 1;
   if (current_game_engine)
@@ -3081,7 +3081,7 @@ char FUN_000ab9c0(void)
 
 /* Return 1 if no engine, or inverted bit 1 of the complexity word.
  * Original loads the full DWORD at 0x5aa720 then SHR 1. */
-char FUN_000ab9e0(void)
+char game_engine_allow_integrated_lights(void)
 {
   char result = 1;
   if (current_game_engine)
@@ -4341,7 +4341,7 @@ void game_engine_player_event(int param_1, int param_2, int param_3)
 
 /* Wrapper: dispatch game_engine_player_event with killer=NONE. */
 
-void FUN_000ad140(int param_1, int param_2)
+void game_show_score(int param_1, int param_2)
 
 {
   game_engine_player_event(param_1, param_2, -1);
@@ -5083,7 +5083,7 @@ int FUN_000ae340(int team)
 /* Post-game team announcement. SI = team index. */
 void FUN_000ae3c0(int param_1, int param_2, int16_t team)
 {
-  FUN_000ad140(0, param_1);
+  game_show_score(0, param_1);
   error(2, (char *)param_2, (int)team);
 }
 
@@ -6973,7 +6973,7 @@ void cheats_apply(int weapon_handle)
   *(char *)(0x456b90 + team) = 0;
   *(int *)(0x456b94 + team * 4) = 0;
   if (*(int *)(0x456b74 + *(int16_t *)(weapon + 0x68) * 4) != 0) {
-    FUN_000ab510(weapon_handle,
+    game_engine_flag_reset(weapon_handle,
                  *(int *)(0x456b74 + *(int16_t *)(weapon + 0x68) * 4));
     *(uint32_t *)(weapon + 0x1dc) = *(uint32_t *)(weapon + 0x1dc) & 0xffffffbf;
   }
@@ -7000,7 +7000,7 @@ void FUN_000b09e0(int player_handle, int weapon_handle)
   *(char *)(0x456b90 + team) = 0;
   *(int *)(0x456b94 + team * 4) = 0;
   if (*(int *)(0x456b74 + *(int16_t *)(weapon + 0x68) * 4) != 0) {
-    FUN_000ab510(weapon_handle,
+    game_engine_flag_reset(weapon_handle,
                  *(int *)(0x456b74 + *(int16_t *)(weapon + 0x68) * 4));
     *(uint32_t *)(weapon + 0x1dc) &= 0xffffffbf;
   }
@@ -7101,7 +7101,7 @@ void ctf_spawn_equipment(int weapon_handle, int weapon_obj)
         *(int *)0x456b9c = *(int *)0x456b9c - 1;
       if (*(int *)0x456b9c == 0 &&
           (*(uint8_t *)(weapon_obj + 0x1a4) & 1) == 0) {
-        FUN_000ad140(-1, 0x2b);
+        game_show_score(-1, 0x2b);
         *(char *)0x456b90 = 0;
         *(int *)0x456b94 = 0;
         *(char *)0x456b91 = 0;
@@ -7454,14 +7454,14 @@ void FUN_000b1600(int param_1)
         current_ticks = *(int *)(0x456ba8 + *(int *)(player + 0x20) * 4);
         remaining = target_ticks - current_ticks;
         if (remaining == 900) {
-          if (FUN_000a95a0() == 0)
+          if (game_engine_has_teams() == 0)
             event = 3;
           else
             event = (*(int *)(player + 0x20) != 0) * 2 + 5;
           game_engine_post_event(event);
         }
         if (remaining == 0x708) {
-          if (FUN_000a95a0() == 0)
+          if (game_engine_has_teams() == 0)
             event = 2;
           else
             event = (*(int *)(player + 0x20) != 0) * 2 + 4;
@@ -7492,7 +7492,7 @@ void FUN_000b1760(void)
 
   /* Original layout: team play (AL!=0) is the fallthrough path; FFA is the
    * JZ target placed after it. Keep that order for the compiler. */
-  if (FUN_000a95a0() != 0) {
+  if (game_engine_has_teams() != 0) {
     team0_count = 0;
     team1_count = 0;
     data_iterator_new(&iter, player_data);
@@ -8262,7 +8262,7 @@ void FUN_000b2740(int player_handle)
     *(int *)(0x456e0c + *(int *)(player + 0x20) * 4) + 1;
   if (*(int *)0x456e08 - *(int *)(0x456e0c + *(int *)(player + 0x20) * 4) ==
       0x384) {
-    if (FUN_000a95a0() == 0)
+    if (game_engine_has_teams() == 0)
       event = 3;
     else
       event = (*(int *)(player + 0x20) != 0) * 2 + 5;
@@ -8270,7 +8270,7 @@ void FUN_000b2740(int player_handle)
   }
   if (*(int *)0x456e08 - *(int *)(0x456e0c + *(int *)(player + 0x20) * 4) ==
       0x708) {
-    if (FUN_000a95a0() == 0)
+    if (game_engine_has_teams() == 0)
       event = 2;
     else
       event = (*(int *)(player + 0x20) != 0) * 2 + 4;
@@ -8726,7 +8726,7 @@ void FUN_000b3020(int weapon_handle)
   variant = (int)game_engine_get_variant();
   if (*(int *)(variant + 0x60) < 3)
     game_engine_post_event(0x1e);
-  FUN_000ab510(weapon_handle, (int)position);
+  game_engine_flag_reset(weapon_handle, (int)position);
   *(uint32_t *)(weapon + 0x1dc) &= 0xffffffbf;
 }
 
@@ -8862,7 +8862,7 @@ void oddball_spawn_equipment(int weapon_handle, int weapon_obj)
         (*(uint32_t *)(weapon_obj + 4) >> 11 & 1) != 0 &&
         *(int *)(weapon_obj + 0xcc) == -1) {
       if ((*(uint8_t *)(weapon_obj + 0x1dc) & 0x40) != 0)
-        FUN_000ad140(-1, 0x24);
+        game_show_score(-1, 0x24);
       FUN_000b3020(weapon_handle);
     }
   }

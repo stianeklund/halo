@@ -57,7 +57,7 @@ void FUN_001b5500(int param_1)
 void vehicle_causes_collision_damage(int param_1, void *param_2)
 {
   unit_place(param_1, (char *)param_2 + 0x48);
-  FUN_0013d870(param_1, (char *)param_2 + 0x28);
+  object_add_scenario_permutation(param_1, (char *)param_2 + 0x28);
 }
 
 /* vehicle_hover (0x1b55c0) — does this vehicle's definition mark it as a

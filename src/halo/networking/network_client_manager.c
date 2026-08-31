@@ -278,7 +278,7 @@ int16_t FUN_00124D00(void *client)
  * connection pointer via network_game_client_get_seconds_to_game_start, then
  * calls this wrapper with the resulting connection pointer, a message buffer,
  * its size, a dest_address, and reliable=0. */
-bool FUN_00124d40(void *connection, void *message, unsigned short size,
+bool network_game_client_write(void *connection, void *message, unsigned short size,
                   int dest_address, int reliable)
 {
   return network_connection_write(connection, message, size, dest_address,
@@ -647,7 +647,7 @@ char network_game_client_switch_to_pregame(void *client)
 /* 0x125710 — Asserts client is non-null and returns the connection handle
  * (int) stored at offset 0x82c in the client structure. The returned handle
  * is used by the caller (network_game_client_end_frame) as the first argument
- * to FUN_00124d40 (which forwards it to network_connection_write to send a
+ * to network_game_client_write (which forwards it to network_connection_write to send a
  * network message). */
 int network_game_client_get_seconds_to_game_start(void *client)
 {

@@ -5825,11 +5825,11 @@ char FUN_00024ca0(int actor_handle, short param_2)
  *   Danger zone (eval[0x40] set):
  *     Trajectory dir = actor[0x2c8..0x2d0] - actor[0x2b0..0x2b8].
  *     Sphere (r=actor[0x2d8]+2.5) around actor[0x2dc]: if fp inside:
- *       FUN_0010cd40 dist from fp to trajectory line (dist_sq).
+ *       point_to_line_distance_squared3d dist from fp to trajectory line (dist_sq).
  *       if dist_sq <= range^2: mark fp[0x1d]=1; invalidate if unlocked.
  *       if dist_sq <= (range+2.5)^2: score=(sqrt(dist_sq)-range)*8.0 ->
  * FUN_00024000. else: score=20.0 -> FUN_00024000. Sphere (r=actor[0x2d8]+3.0)
- * around actor[0x12c] eye: if eye inside AND actor[0x2d4]>range: FUN_0010cd40
+ * around actor[0x12c] eye: if eye inside AND actor[0x2d4]>range: point_to_line_distance_squared3d
  * from eye to trajectory; if eye_dist>range^2: scaled fp direction =
  * fp_ptr[-8..0]*3.0; if norm>1e-4: vector_to_line_distance_squared3d; if
  * dist<range^2: invalidate if unlocked.
@@ -5848,7 +5848,7 @@ char FUN_00024ca0(int actor_handle, short param_2)
  *
  * Confirmed: datum_get at 0x24d04; CALL FUN_00024ca0 at 0x24d46.
  * Confirmed: stride 0x3c at 0x25138; fp_ptr saved at [EBP-4] (0x24d24).
- * Confirmed: FUN_0010cd40 at 0x24e33, 0x24f3a;
+ * Confirmed: point_to_line_distance_squared3d at 0x24e33, 0x24f3a;
  * vector_to_line_distance_squared3d at 0x24fb8. Confirmed:
  * object_get_and_verify_type(target,2) at 0x25168. Confirmed: fp->score =
  * fp_ptr+0x24 = fp2_ptr+8 (element_base+0x38). Confirmed: threat stride i*0x10
@@ -5938,7 +5938,7 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
           radius = ((actor_t *)actor)->field_2d8 + 2.5f;
 
           if (dist_sq <= radius * radius) {
-            local_10_dsq = FUN_0010cd40((float *)fp_pos_ptr,
+            local_10_dsq = point_to_line_distance_squared3d((float *)fp_pos_ptr,
                                         (float *)actor_traj_base, local_buf);
             local_14_score = 0.0f;
 
@@ -5970,7 +5970,7 @@ void FUN_00024cf0(int actor_handle, char *eval_state, unsigned short fp_count,
 
           if (dist_sq <= radius * radius) {
             if (((actor_t *)actor)->field_2d4 > ((actor_t *)actor)->field_294) {
-              local_10_dsq = FUN_0010cd40((float *)(actor + 0x12c),
+              local_10_dsq = point_to_line_distance_squared3d((float *)(actor + 0x12c),
                                           (float *)actor_traj_base, local_buf);
               range = ((actor_t *)actor)->field_294;
               if (local_10_dsq > range * range) {
@@ -7161,7 +7161,7 @@ short FUN_00025c10(int actor_handle, void *eval_ctx, int *out_record,
         } else {
           float mag;
           float mag_kept;
-          *(float *)(rec + 0x1c) = xbox_sqrtf(FUN_0010cd40(
+          *(float *)(rec + 0x1c) = xbox_sqrtf(point_to_line_distance_squared3d(
             (float *)(ctx + 0x604), (float *)(actor + 0x12c), dir));
           mag = xbox_sqrtf(dir[2] * dir[2] + dir[1] * dir[1] + dir[0] * dir[0]);
           mag_kept = *(float *)0x2533c0;
@@ -8692,7 +8692,7 @@ void actor_look_update(int actor_handle)
 
   /* Panic overrides secondary_mode up to 5 */
   if (((actor_t *)actor)->field_504) {
-    sVar8 = actor_action_try_to_panic(actor_handle);
+    sVar8 = actor_get_action_priority_flag(actor_handle);
     if (sVar8 == 2) {
       sVar8 = secondary_mode;
       secondary_mode = 5;

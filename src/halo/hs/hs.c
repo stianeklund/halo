@@ -952,7 +952,7 @@ void FUN_000c14b0(int16_t function_index, int thread_datum, char init)
  * hs_return(thread_datum, value).
  *
  * FUN_000585d0's kb decl is understated as `void`, but it returns a value in
- * EAX (its body tail-returns FUN_00046b60's int) and this call site consumes
+ * EAX (its body tail-returns ai_conversation's int) and this call site consumes
  * the low byte: `mov BYTE PTR [ebp-4],al`. The result slot is a 4-byte stack
  * local zero-initialized up front (`mov DWORD PTR [ebp-4],0`); only its low 8
  * bits are overwritten from AL, then the full dword is read back

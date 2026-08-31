@@ -857,7 +857,7 @@ void FUN_000d1400(void)
   if (c == '\0') {
     goto check_cinematic;
   }
-  c = FUN_000a95c0();
+  c = game_engine_display_team_indicators();
   if (c == '\0') {
     goto after_cinematic;
   }

@@ -888,7 +888,7 @@ void FUN_001a6280(int unit_handle, char *state_out)
  *   - melee damage timer at +0x45d/+0x45e
  *   - FUN_001a2440, FUN_001a1e70, FUN_001a0b30: footstep/marker events
  * If seated in a vehicle (parent +0xCC != -1), handles ejection and exit.
- * FUN_001b0d90 runs at the end in both cases; tracks suspension ticks at +0x6C.
+ * unit_update_animation runs at the end in both cases; tracks suspension ticks at +0x6C.
  * Always returns 1 (via CONCAT31).
  * Confirmed: cdecl, 1 stack param, returns char. */
 char FUN_001a6350(int unit_handle)
@@ -1087,7 +1087,7 @@ char FUN_001a6350(int unit_handle)
   }
 
   /* Post-section: animation state update */
-  anim_result = FUN_001b0d90(unit_handle, (char *)state_pair);
+  anim_result = unit_update_animation(unit_handle, (char *)state_pair);
   if (anim_result == 1) {
     FUN_001a2290(unit_handle);
   }
@@ -1741,7 +1741,7 @@ void FUN_001a70d0(int unit_handle, int sound_tag, int sound_handle)
   *(int *)(unit + 0x3b0) = sound_handle;
   *(uint8_t *)(unit + 0x3a4) = 1;
   *(int16_t *)(unit + 0x3a8) = 0;
-  FUN_00044fd0(unit_handle, 6, 0xffff, unit + 0x348);
+  ai_communication_started(unit_handle, 6, 0xffff, unit + 0x348);
 }
 
 /* FUN_001a71c0 (0x1a71c0) — unit_dialogue_activation
@@ -2181,7 +2181,7 @@ void FUN_001a7790(int param_1)
             param_1, *(int *)(unit + 0x33c), *(int16_t *)marker_buf, position,
             forward, 1.0f);
         }
-        FUN_00044fd0(param_1, *(uint16_t *)(unit + 0x338),
+        ai_communication_started(param_1, *(uint16_t *)(unit + 0x338),
                      *(uint16_t *)(unit + 0x33a), unit + 0x348);
         *(uint8_t *)(unit + 0x3a4) = 1;
       }
@@ -2201,7 +2201,7 @@ void FUN_001a7790(int param_1)
         }
       } else {
         if (*(uint8_t *)(unit + 0x3a6) == 0) {
-          FUN_00046530(param_1, *(uint16_t *)(unit + 0x338),
+          ai_communication_finished(param_1, *(uint16_t *)(unit + 0x338),
                        *(uint16_t *)(unit + 0x33a), 0, -1, unit + 0x348);
           *(uint8_t *)(unit + 0x3a6) = 1;
         }
@@ -2216,7 +2216,7 @@ void FUN_001a7790(int param_1)
   }
 
   if (*(int16_t *)(unit + 0x3ac) == 0 && *(uint8_t *)(unit + 0x3a5) == 0) {
-    FUN_00045290(param_1, *(uint16_t *)(unit + 0x338),
+    ai_communication_notify(param_1, *(uint16_t *)(unit + 0x338),
                  *(uint16_t *)(unit + 0x33a), unit + 0x348);
     *(uint8_t *)(unit + 0x3a5) = 1;
   }
@@ -2752,7 +2752,7 @@ char unit_get_melee_range_and_ticks(int unit_handle, char is_secondary,
   }
   anim_tag =
     (char *)tag_block_get_element((int *)(anim_tag + 0x74), (int)anim_id, 0xb4);
-  FUN_00120710((int)anim_tag, (int)out_attack_time, (int)out_damage_time);
+  animation_get_x_offsets((int)anim_tag, (int)out_attack_time, (int)out_damage_time);
   if (out_tick_count != NULL) {
     *out_tick_count = (int)*(int16_t *)(anim_tag + 0x34);
   }
@@ -4463,7 +4463,7 @@ void unit_scripting_set_emotion_animation(int unit_index,
 
   if (unit_index != -1) {
     unit = (char *)object_get_and_verify_type(unit_index, 3);
-    anim = FUN_00120cb0(*(int *)(unit + 0x7c), animation_name);
+    anim = animation_graph_get_animation_by_name(*(int *)(unit + 0x7c), animation_name);
     if (anim != -1) {
       *(int16_t *)(unit + 0x1ce) = anim;
       return;
@@ -4537,7 +4537,7 @@ void unit_scripting_doesnt_drop_items(int object_list)
   }
 }
 
-/* FUN_001a9c90 (0x1a9c90) — unit_scripting_vehicle_test_seat_list
+/* unit_scripting_vehicle_test_seat_list (0x1a9c90) — unit_scripting_vehicle_test_seat_list
  *
  * Checks whether any unit occupying a named seat in the given vehicle
  * (unit_handle) is present in the object_list. Iterates seats from the
@@ -4554,7 +4554,7 @@ void unit_scripting_doesnt_drop_items(int object_list)
  * Confirmed: object iterator at EBP-0x18 (16 bytes), datum handle at iter+0x08.
  * Confirmed: child iter state at EBP-0x8 (single int).
  */
-char FUN_001a9c90(int unit_handle, const char *seat_name, int object_list)
+char unit_scripting_vehicle_test_seat_list(int unit_handle, const char *seat_name, int object_list)
 {
   char *unit_data;
   char *unit_tag;
@@ -4717,7 +4717,7 @@ int FUN_001a9ef0(int unit_handle)
   return -1;
 }
 
-/* FUN_001a9f20 (0x1a9f20) — unit_shield_sapping_update
+/* unit_shield_sapping_update (0x1a9f20) — unit_shield_sapping_update
  *
  * Called each tick for units in the shield-sapping state (unit+0x253 == 0x2a
  * = '*'). Checks whether the unit's current seat index (+0x80) exceeds the
@@ -4737,7 +4737,7 @@ int FUN_001a9ef0(int unit_handle)
  * Confirmed: attacker handle stored at damage_params+0x0c = [EBP-0x5c].
  * Confirmed: 0x254e74 = 16.0f (squared distance threshold).
  */
-void FUN_001a9f20(int unit_handle)
+void unit_shield_sapping_update(int unit_handle)
 {
   char *unit;
   char *unit_tag;
@@ -4949,7 +4949,7 @@ void unit_debug_ninja_rope(int unit_handle)
   global_current_collision_user_depth -= 1;
 }
 
-/* FUN_001aa360 (0x1aa360) — unit_set_user_animation
+/* unit_set_user_animation (0x1aa360) — unit_set_user_animation
  *
  * Validates a user animation index against the range
  * [0, NUMBER_OF_UNIT_USER_ANIMATIONS). The function resolves the unit tag
@@ -4962,7 +4962,7 @@ void unit_debug_ninja_rope(int unit_handle)
  * Confirmed: NUMBER_OF_UNIT_USER_ANIMATIONS == 2 (CMP AX,0x2).
  * Confirmed: returns AL=0 (XOR AL,AL at 001aa3bb).
  */
-char FUN_001aa360(int unit_handle, int param_2, int16_t index)
+char unit_set_user_animation(int unit_handle, int param_2, int16_t index)
 {
   char *unit;
   int unit_tag_index;
@@ -5017,7 +5017,7 @@ bool any_unit_is_dangerous(void)
   return false;
 }
 
-/* FUN_001aa430 (0x1aa430) — unit_can_see_point
+/* unit_can_see_point (0x1aa430) — unit_can_see_point
  *
  * Returns true if the given point is within the unit's field of view.
  * Computes a direction vector from the unit's head marker to the target
@@ -5034,7 +5034,7 @@ bool any_unit_is_dangerous(void)
  * Confirmed: FCOS + FCOMPP comparison: dot > cos(angle) → return 1.
  * Confirmed: normalize3d return (magnitude) discarded via FSTP ST0.
  */
-char FUN_001aa430(int unit_handle, float *point, float half_angle)
+char unit_can_see_point(int unit_handle, float *point, float half_angle)
 {
   char *unit;
   char marker_buf[0x78];
@@ -5073,9 +5073,9 @@ char FUN_001aa430(int unit_handle, float *point, float half_angle)
   return 0;
 }
 
-/* FUN_001aa4d0 (0x1aa4d0) — unit_driven_by_ai
+/* unit_driven_by_ai (0x1aa4d0) — unit_driven_by_ai
  * Returns true if the unit (or its driver) has an AI actor. */
-char FUN_001aa4d0(int unit_handle)
+char unit_driven_by_ai(int unit_handle)
 {
   char *unit;
 
@@ -5086,9 +5086,9 @@ char FUN_001aa4d0(int unit_handle)
   return *(int *)(unit + 0x1a4) != -1;
 }
 
-/* FUN_001aa510 (0x1aa510) — unit_gunned_by_ai
+/* unit_gunned_by_ai (0x1aa510) — unit_gunned_by_ai
  * Returns true if the unit (or its gunner) has an AI actor. */
-char FUN_001aa510(int unit_handle)
+char unit_gunned_by_ai(int unit_handle)
 {
   char *unit;
 
@@ -5770,13 +5770,13 @@ int16_t unit_get_current_grenade_type(int unit_handle)
   return (int16_t)(signed char)*(char *)(unit + 0x2cc);
 }
 
-/* FUN_001aaf40 (0x1aaf40) — grenade throw initiation
+/* unit_throw_grenade_move_to_hand (0x1aaf40) — grenade throw initiation
  * Decrements grenade count (unless infinite), creates a grenade placement
  * from the unit's forward vector and marker position, spawns the grenade
  * object, and attaches it to the unit.
  * Register args: @edi = unit_handle. No stack params.
  * Called from the grenade throw state (state=1) in the unit update switch. */
-void FUN_001aaf40(int unit_handle)
+void unit_throw_grenade_move_to_hand(int unit_handle)
 {
   char *unit;
   char *globals_entry;
@@ -5803,7 +5803,7 @@ void FUN_001aaf40(int unit_handle)
     if (*(char *)0x5aa892 != 0) {
       goto skip_decrement;
     }
-    if (FUN_000a9570(*(int *)(unit + 0x1c8)) != 0) {
+    if (game_engine_infinite_grenades(*(int *)(unit + 0x1c8)) != 0) {
       goto skip_decrement;
     }
   }
@@ -5871,7 +5871,7 @@ skip_decrement:
   *(uint8_t *)(unit + 0x23d) = 3;
 }
 
-/* FUN_001ab110 (0x1ab110)
+/* unit_throw_grenade_release (0x1ab110)
  * Grenade throw release. Detaches the held grenade from the unit, computes
  * its throw velocity using the unit's forward vector and tag throw speed,
  * optionally applies random spread if the throw animation was cut short,
@@ -5879,7 +5879,7 @@ skip_decrement:
  * attempts to place it.
  * cdecl: 2 stack params (unit_handle, flag).
  * Confirmed from callers 0x1ad260, 0x1b0d90, 0x1b1400, 0x1b3690. */
-void FUN_001ab110(int unit_handle, char flag)
+void unit_throw_grenade_release(int unit_handle, char flag)
 {
   char *unit;
   char *unit_tag;
@@ -6148,11 +6148,11 @@ const char *FUN_001ab6e0(int16_t base_seat_index)
   return *(const char **)(0x32e484 + (int)base_seat_index * 4);
 }
 
-/* FUN_001ab730 (0x1ab730)
+/* seat_label_to_base_seat_index (0x1ab730)
  * Searches the base seat name table for a matching name (case-insensitive).
  * Returns the index [0..5] if found, or -1 if no match.
  * @edi = seat_name string to search for. */
-int16_t FUN_001ab730(const char *seat_name)
+int16_t seat_label_to_base_seat_index(const char *seat_name)
 {
   int16_t i;
 
@@ -6164,11 +6164,11 @@ int16_t FUN_001ab730(const char *seat_name)
   return -1;
 }
 
-/* FUN_001ab770 (0x1ab770)
+/* base_weapon_label_get (0x1ab770)
  * Returns a pointer to the base weapon name string given a base_weapon_index.
  * Asserts that the index is in [0, NUMBER_OF_UNIT_BASE_WEAPONS).
  * The weapon name table is a local array containing just "unarmed". */
-const char *FUN_001ab770(int16_t base_weapon_index)
+const char *base_weapon_label_get(int16_t base_weapon_index)
 {
   const char *weapon_names[1];
 
@@ -6250,13 +6250,13 @@ int16_t FUN_001ab870(void *animation_state, int animation_graph_tag_index,
   return result;
 }
 
-/* FUN_001ab8c0 (0x1ab8c0)
+/* unit_refresh_illumination (0x1ab8c0)
  * Computes or copies lighting data for a unit.
  * If the unit has a parent unit (at +0xcc), copies the parent's lighting
  * values from +0x290 and +0x294. Otherwise, computes an ambient RGB color
  * brightness and self-illumination value from the unit's position and
  * orientation. */
-void FUN_001ab8c0(int unit_handle)
+void unit_refresh_illumination(int unit_handle)
 {
   char *unit;
   void *parent;
@@ -7258,10 +7258,10 @@ void unit_adjust_plan_overlap(void *plan_a_ptr, void *plan_b_ptr, int dummy,
   }
 }
 
-/* FUN_001acd70 (0x1acd70) — unit_try_animation_state
+/* unit_set_or_test_seat_and_weapon_label (0x1acd70) — unit_try_animation_state
  * Searches the unit's animation graph for a matching seat/weapon animation
  * mode. Register arg: unit_handle in EAX. */
-char FUN_001acd70(int unit_handle, const char *seat_label,
+char unit_set_or_test_seat_and_weapon_label(int unit_handle, const char *seat_label,
                   const char *weapon_name, char apply_state)
 {
   char *unit;
@@ -7692,7 +7692,7 @@ bool unit_try_animation_state(int unit_handle, int seat_label, int weapon_label,
   return found;
 }
 
-/* FUN_001ad260 (0x1ad260) — unit animation state transition
+/* unit_animation_set_state (0x1ad260) — unit animation state transition
  *
  * Sets the unit's animation state (unk_595 at offset 0x253). Looks up the
  * correct animation from the unit tag's animation graph hierarchy based on
@@ -7720,7 +7720,7 @@ bool unit_try_animation_state(int unit_handle, int seat_label, int weapon_label,
  * Confirmed: 0x322308 = mode anim name table, 0x322450 = overlay anim name
  * table.
  */
-char FUN_001ad260(int unit_handle, int16_t anim_state)
+char unit_animation_set_state(int unit_handle, int16_t anim_state)
 {
   int *unit;
   char *unit_tag;
@@ -7762,7 +7762,7 @@ char FUN_001ad260(int unit_handle, int16_t anim_state)
   overlay_index = -1;
 
   if (old_state_byte == 0x21) {
-    FUN_001ab110(unit_handle, 1);
+    unit_throw_grenade_release(unit_handle, 1);
   }
 
   if ((int)anim_state > 0x2b)
@@ -8040,10 +8040,10 @@ skip_transition:
 }
 
 /* unit_abort_animation (0x1ad7e0)
- * Aborts the current animation by calling FUN_001ad260 with state 0. */
+ * Aborts the current animation by calling unit_animation_set_state with state 0. */
 void unit_abort_animation(int unit_handle)
 {
-  FUN_001ad260(unit_handle, 0);
+  unit_animation_set_state(unit_handle, 0);
 }
 
 /* unit_find_best_enter_seat (0x1ad800)
@@ -8519,7 +8519,7 @@ int16_t vehicle_scripting_find_available_seats(int unit_handle,
 void unit_open(int unit_handle)
 {
   if (unit_handle != -1) {
-    FUN_001ad260(unit_handle, 0x25);
+    unit_animation_set_state(unit_handle, 0x25);
   }
 }
 
@@ -8528,7 +8528,7 @@ void unit_open(int unit_handle)
 void unit_close(int unit_handle)
 {
   if (unit_handle != -1) {
-    FUN_001ad260(unit_handle, 0x26);
+    unit_animation_set_state(unit_handle, 0x26);
   }
 }
 
@@ -8559,7 +8559,7 @@ char unit_set_seat(int unit_handle, int seat_name)
   /* `!!` triggers VC71's branchless neg/sbb/neg bool-normalize (matching the
    * original at 0x1ae1f8) rather than a test/setne branch. Runtime-identical.
    */
-  return (char)!!FUN_001acd70(unit_handle, (const char *)seat_name, 0, 1);
+  return (char)!!unit_set_or_test_seat_and_weapon_label(unit_handle, (const char *)seat_name, 0, 1);
 }
 
 /* units_set_desired_flashlight_state (0x1ae210)
@@ -8746,10 +8746,10 @@ bool unit_should_swap_weapon(int unit_handle, int weapon_handle)
   return approved;
 }
 
-/* FUN_001ae490 (0x1ae490) — unit_next_weapon_index
+/* unit_weapon_next_index (0x1ae490) — unit_next_weapon_index
  * Scans weapon slots circularly for the next valid weapon.
  * Register arg: unit_handle in EBX. */
-int16_t FUN_001ae490(int unit_handle, int16_t current_index, int16_t direction)
+int16_t unit_weapon_next_index(int unit_handle, int16_t current_index, int16_t direction)
 {
   char *unit;
   int iter_index;
@@ -8786,7 +8786,7 @@ int16_t FUN_001ae490(int unit_handle, int16_t current_index, int16_t direction)
 
       seat_label = unit_get_seat_label(unit_handle);
       weapon_label = (char *)weapon_get_label(weapon_handle);
-      can_use = FUN_001acd70(unit_handle, (const char *)seat_label,
+      can_use = unit_set_or_test_seat_and_weapon_label(unit_handle, (const char *)seat_label,
                              (const char *)weapon_label, 0);
 
       if (can_use != 0) {
@@ -8946,7 +8946,7 @@ int16_t unit_next_weapon_index(int unit_handle, int16_t weapon_index,
  * Steps:
  * 1. Gets the unit tag definition via tag_get("unit", unit->tag_index).
  * 2. Looks up the current weapon handle via unit_get_weapon.
- * 3. Calls FUN_001ae490 to compute the next weapon index.
+ * 3. Calls unit_weapon_next_index to compute the next weapon index.
  * 4. Skips if weapon is NONE, or if next index equals current and flag is
  * false.
  * 5. Checks the weapon object's flags byte (bit 0 must be clear).
@@ -9019,7 +9019,7 @@ char *unit_get_weapon_name(int unit_handle, int unused)
  * Sets the global magic base seat from a seat name string. */
 void scripting_set_magic_base_seat(const char *param_1)
 {
-  *(int16_t *)0x32de80 = FUN_001ab730(param_1);
+  *(int16_t *)0x32de80 = seat_label_to_base_seat_index(param_1);
 }
 
 /* unit_scripting_set_seat (0x1ae750)
@@ -9031,7 +9031,7 @@ void unit_scripting_set_seat(int unit_handle, const char *seat_name)
 
   if (unit_handle != -1) {
     unit = (char *)object_get_and_verify_type(unit_handle, 3);
-    seat = (char)FUN_001ab730(seat_name);
+    seat = (char)seat_label_to_base_seat_index(seat_name);
     *(char *)(unit + 0x1bf) = seat;
   }
 }
@@ -9070,7 +9070,7 @@ void unit_handle_deleted_object(int unit_handle, int deleted_handle)
     weapon_slot++;
   } while (i < 4);
   if (*(int16_t *)(unit + 0x2a2) == -1) {
-    *(int16_t *)(unit + 0x2a4) = FUN_001ae490(unit_handle, -1, 0);
+    *(int16_t *)(unit + 0x2a4) = unit_weapon_next_index(unit_handle, -1, 0);
   }
   if (*(int *)(unit + 0x2c8) == deleted_handle) {
     *(int *)(unit + 0x2c8) = -1;
@@ -9510,7 +9510,7 @@ void unit_stop_custom_animation(int unit_handle)
   if (unit_handle != -1) {
     unit = (char *)object_get_and_verify_type(unit_handle, 3);
     if (*(char *)(unit + 0x253) == '\x1c') {
-      FUN_001ad260(unit_handle, 0);
+      unit_animation_set_state(unit_handle, 0);
     }
   }
 }
@@ -10493,7 +10493,7 @@ void FUN_001b04b0(int unit_handle, int node_matrices)
         idx = 0;
         do {
           ik_point = (int)tag_block_get_element(ik_block, idx, 0x40);
-          FUN_001414e0(unit_handle, ik_point, *(int *)((int)unit_data + 0xcc),
+          object_inverse_kinematics(unit_handle, ik_point, *(int *)((int)unit_data + 0xcc),
                        ik_point + 0x20, node_matrices);
           ik_index = ik_index + 1;
           idx = (int)ik_index;
@@ -10517,7 +10517,7 @@ void FUN_001b04b0(int unit_handle, int node_matrices)
             (unsigned int *)object_get_and_verify_type(unit_handle, 3);
           weapon_handle = unit_get_weapon(
             unit_handle, (short)*(unsigned short *)((int)unit_data2 + 0x2a2));
-          FUN_001414e0(unit_handle, weapon_ik_point, weapon_handle,
+          object_inverse_kinematics(unit_handle, weapon_ik_point, weapon_handle,
                        weapon_ik_point + 0x20, node_matrices);
           ik_index = ik_index + 1;
           idx = (int)ik_index;
@@ -10847,7 +10847,7 @@ char unit_has_animation_to_enter_seat(int unit_handle, int vehicle_handle,
       if (*(int16_t *)(unit_data + 0x64) != 1) {
         seat_entry = (char *)tag_block_get_element((int *)(unit_tag + 0x2e4),
                                                    (int)seat_index, 0x11c);
-        if (!FUN_001acd70(unit_handle, (const char *)(seat_entry + 4), 0, 0)) {
+        if (!unit_set_or_test_seat_and_weapon_label(unit_handle, (const char *)(seat_entry + 4), 0, 0)) {
           return 0;
         }
       }
@@ -10857,13 +10857,13 @@ char unit_has_animation_to_enter_seat(int unit_handle, int vehicle_handle,
   return 0;
 }
 
-/* FUN_001b0d90 (0x1b0d90) — animation state update
+/* unit_update_animation (0x1b0d90) — animation state update
  *
  * Evaluates the current unit animation state and applies transitions.
  * Confirmed: cdecl, 2 stack params.
  * Returns: int16_t (animation flags bitmask).
  */
-short FUN_001b0d90(int unit_handle, char *anim_state)
+short unit_update_animation(int unit_handle, char *anim_state)
 {
   unsigned int *unit;
   int unit_tag_data;
@@ -10963,7 +10963,7 @@ short FUN_001b0d90(int unit_handle, char *anim_state)
         const char *seat_label;
         weapon_name = unit_get_weapon_name(unit_handle, 1);
         seat_label = FUN_001ab6e0(base_seat);
-        FUN_001acd70(unit_handle, seat_label, weapon_name, 1);
+        unit_set_or_test_seat_and_weapon_label(unit_handle, seat_label, weapon_name, 1);
       }
     }
   }
@@ -10989,7 +10989,7 @@ short FUN_001b0d90(int unit_handle, char *anim_state)
           unit_cause_melee_damage(unit_handle, 0, -1, -1, -1, -1, (float *)0);
           break;
         case 0x21:
-          FUN_001ab110(unit_handle, 0);
+          unit_throw_grenade_release(unit_handle, 0);
           break;
         default:
           break;
@@ -11112,7 +11112,7 @@ short FUN_001b0d90(int unit_handle, char *anim_state)
         goto done;
     }
   }
-  FUN_001ad260(unit_handle, desired_state);
+  unit_animation_set_state(unit_handle, desired_state);
 
 done:
   return (short)(result & 0xffff);
@@ -11370,7 +11370,7 @@ check_ping:
   if (is_melee != 0) {
     char *weapon_name;
     weapon_name = unit_get_weapon_name(unit_handle, 1);
-    FUN_001acd70(unit_handle, *(char **)0x32e48c, weapon_name, 0);
+    unit_set_or_test_seat_and_weapon_label(unit_handle, *(char **)0x32e48c, weapon_name, 0);
   }
 
   if ((short)anim_state == 0x19 && *(short *)(unit + 0x19) == 0) {
@@ -11380,7 +11380,7 @@ check_ping:
         (*(unsigned int *)(biped_tag + 0x2f4) & 0x400) == 0) {
       char transition_ok;
       anim_state = 0x18;
-      transition_ok = FUN_001ad260(unit_handle, 0x18);
+      transition_ok = unit_animation_set_state(unit_handle, 0x18);
       if (transition_ok != 0)
         goto alignment_section;
     }
@@ -11409,7 +11409,7 @@ check_ping:
     }
   } else {
     if (*(char *)((int)unit + 0x253) == 0x21) {
-      FUN_001ab110(unit_handle, 1);
+      unit_throw_grenade_release(unit_handle, 1);
     }
     object_set_region_count(unit_handle, 3);
     *(char *)((int)unit + 0x253) = anim_state;
@@ -11633,7 +11633,7 @@ bool unit_apply_animation_impulse(int unit_handle, int anim_index,
  * Advances to the next weapon in the inventory. */
 int unit_inventory_next_weapon(int unit_handle, int slot, int direction)
 {
-  return FUN_001ae490(unit_handle, slot, direction);
+  return unit_weapon_next_index(unit_handle, slot, direction);
 }
 
 /* unit_melee_attack_begin (0x1b1b60) — begin a melee attack animation.
@@ -11642,7 +11642,7 @@ int unit_inventory_next_weapon(int unit_handle, int slot, int direction)
  * of the dying/dead/special states (0x17-0x23,0x27,0x29), the attack is
  * blocked. Otherwise, determines the target animation state based on
  * param_2 (forced hit), melee readiness, and unit flags. Requests the
- * animation via FUN_001ad260. On success (or forced), sets melee flags
+ * animation via unit_animation_set_state. On success (or forced), sets melee flags
  * and optionally applies alignment vector.
  *
  * param_2: if non-zero, force melee hit (animation state 0x20, type=4).
@@ -11700,7 +11700,7 @@ char unit_melee_attack_begin(int unit_handle, char param_2, int param_3)
       }
     }
 
-    anim_ok = FUN_001ad260(unit_handle, new_state);
+    anim_ok = unit_animation_set_state(unit_handle, new_state);
 
     if (anim_ok != '\0' || param_2 != '\0') {
       /* Check unit tag flag bit 8 at offset 0x17c */
@@ -11764,7 +11764,7 @@ char unit_leap_begin(int unit_handle, float *forward)
     biped_limping = 0;
     if (*(short *)(unit + 0x64) == 0)
       biped_limping = (char)(*(uint8_t *)(unit + 0x424) & 1);
-    if (!biped_limping && FUN_001ad260(unit_handle, 0x27)) {
+    if (!biped_limping && unit_animation_set_state(unit_handle, 0x27)) {
       if (forward != 0)
         unit_apply_alignment_vector(unit_handle, forward);
       result = 1;
@@ -12106,7 +12106,7 @@ char unit_throw_grenade_begin(int unit_handle, float *alignment_vector)
   *(int16_t *)(unit + 0x25a) = -1;
 
   /* Request grenade throw animation */
-  anim_ok = FUN_001ad260(unit_handle, 0x21);
+  anim_ok = unit_animation_set_state(unit_handle, 0x21);
   if (anim_ok == '\0') {
     return result;
   }
@@ -12479,7 +12479,7 @@ void unit_select_weapon_after_vehicle_exit(int unit_handle)
   unit_update_weapon_readiness(unit_handle, 1);
 }
 
-/* FUN_001b2780 / unit_new (0x1b2780)
+/* unit_new (0x1b2780)
  *
  * Unit creation/initialization. Called when a new unit object is created.
  * Sets default values for all unit-specific fields: weapons, seats,
@@ -12491,7 +12491,7 @@ void unit_select_weapon_after_vehicle_exit(int unit_handle)
  *
  * Confirmed: 1 cdecl param (unit_handle), returns char (0 or 1).
  */
-char FUN_001b2780(int unit_handle)
+char unit_new(int unit_handle)
 {
   char *unit;
   char *unit_tag;
@@ -12879,7 +12879,7 @@ void unit_exit_seat_end(int unit_handle)
   /* Notify parent driver if this unit was the driver */
   if (*(int *)(parent_unit + 0x2d4) == unit_handle &&
       *(char *)(parent_unit + 0x253) != 0x25 && *(int *)(unit + 0xcc) != -1) {
-    FUN_001ad260(*(int *)(unit + 0xcc), 0x25);
+    unit_animation_set_state(*(int *)(unit + 0xcc), 0x25);
   }
 
   /* Record exit info */
@@ -12946,7 +12946,7 @@ void unit_exit_seat_end(int unit_handle)
     uint8_t anim_data[2];
     anim_data[0] = 0x14;
     anim_data[1] = 0x00;
-    FUN_001b0d90(unit_handle, (char *)anim_data);
+    unit_update_animation(unit_handle, (char *)anim_data);
   }
 
   /* Create object header block reference for exit velocity */
@@ -13169,7 +13169,7 @@ void unit_scripting_enter_vehicle(int unit_handle, int vehicle_handle,
         if (seat_filled == '\0') {
           /* Seat is available - check type compatibility */
           if (*(short *)(unit_data + 0x64) == 1 ||
-              FUN_001acd70(unit_handle, (const char *)(seat_element + 4), 0,
+              unit_set_or_test_seat_and_weapon_label(unit_handle, (const char *)(seat_element + 4), 0,
                            0) != '\0') {
             /* Compatible - board the vehicle */
             unit_board_vehicle(unit_handle, vehicle_handle, (int16_t)seat_idx);
@@ -13248,7 +13248,7 @@ uint16_t vehicle_scripting_load_magic(int vehicle_handle, int seat_substring,
 
             /* Check seat type compatibility */
             if (*(short *)(child_data + 0x64) != 1) {
-              seat_type_ok = FUN_001acd70(
+              seat_type_ok = unit_set_or_test_seat_and_weapon_label(
                 child_handle, (const char *)(seat_element + 4), 0, 0);
               if (seat_type_ok == '\0') {
                 goto next_seat;
@@ -13464,7 +13464,7 @@ char FUN_001b3690(int unit_handle)
   l_7 = 0;
   l_5 = 0;
   l_8 = 0;
-  l_9 = FUN_000ab9e0();
+  l_9 = game_engine_allow_integrated_lights();
 
   /* [1] Debug trace enter */
   if (*(char *)0x449ef1 != 0 && *(char *)0x32de90 != 0) {
@@ -13702,7 +13702,7 @@ char FUN_001b3690(int unit_handle)
             anim_byte = *(unsigned char *)((char *)unit + 0x248);
             unit_set_actively_controlled(unit_handle, 1);
             unit_try_animation_state(unit_handle, (int)*(int **)0x32e48c, 0, 1);
-            FUN_001ad260(unit_handle,
+            unit_animation_set_state(unit_handle,
                          (int16_t)((~(anim_byte >> 3) & 1) | 0x22));
             *(unsigned char *)((char *)unit + 0x248) =
               *(unsigned char *)((char *)unit + 0x248) & 0xfb;
@@ -13945,13 +13945,13 @@ char FUN_001b3690(int unit_handle)
         break;
       case 1:
         if (*(short *)((char *)unit + 0x82) > 1) {
-          FUN_001aaf40(unit_handle);
+          unit_throw_grenade_move_to_hand(unit_handle);
         }
         break;
       case 2:
         *(short *)((char *)unit + 0x23e) = *(short *)((char *)unit + 0x23e) + 1;
         if (*(char *)((char *)unit + 0x253) != 0x21) {
-          FUN_001ab110(unit_handle, 1);
+          unit_throw_grenade_release(unit_handle, 1);
         }
         break;
       case 3:
@@ -14137,7 +14137,7 @@ char FUN_001b3690(int unit_handle)
 
   /* Weapon alert sound */
   if ((l_7 != 0 || unit[0x72] != -1) &&
-      (FUN_001ab8c0(unit_handle), *(char *)0x5054fa != 0) && unit[0x72] != -1) {
+      (unit_refresh_illumination(unit_handle), *(char *)0x5054fa != 0) && unit[0x72] != -1) {
     i10 = game_time_get();
     if (i10 >= *(int *)0x32e480 + 0x1e) {
       ((void (*)(int, const char *, ...))0x8f390)(

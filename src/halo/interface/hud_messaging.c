@@ -1059,7 +1059,7 @@ void FUN_000d5350(int param_1)
     return;
   }
   u7 = local_player_get_player_index((short)param_1);
-  c1 = FUN_000ab230(u7);
+  c1 = game_engine_hud_draw_messages(u7);
   if (c1 == '\0') {
     return;
   }
@@ -3422,7 +3422,7 @@ void FUN_000d7d40(int param_1)
 
         if (u18 == 0 &&
             (*(unsigned char *)(*(int *)0x46bd20 + 0x160) & 0x10) == 0 &&
-            FUN_000a9f90(player_index) != '\0') {
+            game_engine_hud_draw_motion_sensor(player_index) != '\0') {
           l_130[0] = 2;
 
           s4 = local_player_count();
@@ -3463,7 +3463,7 @@ void FUN_000d7d40(int param_1)
 
           i13 = unhi_tag;
           widget_base = unhi_tag + 0x380;
-          c3 = FUN_000a95a0();
+          c3 = game_engine_has_teams();
           s4 = local_player_count();
           widget_block_ptr = (int *)(i13 + 0x3a4);
           widget_flags_mask = (int)((s4 < 2) - 1) & 4;

@@ -139,7 +139,7 @@ void FUN_00053bf0(void)
  * spelled as a literal to avoid an IMM mismatch against a DAT_ reference.
  *
  * MSVC frame layout (SUB ESP,0x38):
- *   [EBP-0x38] iter          0x18 bytes — FUN_00059b50 writes the current
+ *   [EBP-0x38] iter          0x18 bytes — actor_iterator_next writes the current
  *                            actor handle to iter+0x14 (EBP-0x24), so this must
  *                            be one contiguous buffer, not two locals.
  *   [EBP-0x1c] head_position 3 floats — out buffer for unit_get_head_position
@@ -149,8 +149,8 @@ void FUN_00053bf0(void)
  *
  * Confirmed: `PUSH EAX(flag); PUSH ECX(&iter)` at the 0x59b10 call — cdecl, so
  * the argument order is (iter, flag).  The `ADD ESP,0xc` there is a merged
- * cleanup covering that 2-arg call plus the following 1-arg FUN_00059b50; the
- * second FUN_00059b50 site at 0x53d7e cleans with `ADD ESP,4`, proving the
+ * cleanup covering that 2-arg call plus the following 1-arg actor_iterator_next; the
+ * second actor_iterator_next site at 0x53d7e cleans with `ADD ESP,4`, proving the
  * 1-arg declaration is correct (the argument-count audit's report of 3 args is
  * a false positive).
  * Confirmed: the dispatch is a DEC/DEC chain (`MOVSX EAX,[0x5abaa2]; DEC EAX;
@@ -187,7 +187,7 @@ void FUN_00053c50(void)
     point[2] = camera[10] * 0.05f + camera[2];
 
     encounter_iterator_next(iter, draw_flag);
-    while (FUN_00059b50(iter) != 0) {
+    while (actor_iterator_next(iter) != 0) {
       actor_record = (char *)datum_get(actor_data, *(int *)(iter + 0x14));
 
       switch (*(int16_t *)0x5abaa2) {
@@ -815,12 +815,12 @@ short FUN_00056880(int param_1)
 
   sVar2 = 0;
   encounter_iterator_next(local_20, 1);
-  iVar1 = FUN_00059b50(local_20);
+  iVar1 = actor_iterator_next(local_20);
   while (iVar1 != 0) {
     if (*(short *)((char *)iVar1 + 0x6c) == 9 &&
         *(int *)((char *)iVar1 + 0x9c) == param_1)
       sVar2 = (short)(sVar2 + 1);
-    iVar1 = FUN_00059b50(local_20);
+    iVar1 = actor_iterator_next(local_20);
   }
   return sVar2;
 }
@@ -1541,7 +1541,7 @@ void FUN_00057900(int param_1, char param_2)
  * Then iterates actors in the encounter via
  * ai_index_actor_iterator_new/ai_index_actor_iterator_next. For each actor,
  * writes the return_state into actor+0x62. If actor+0x6e == 0 and the result of
- * actor_action_try_to_panic is 0, 1, or 2, calls actor_action_set_default_state
+ * actor_get_action_priority_flag is 0, 1, or 2, calls actor_action_set_default_state
  * with -1. 0x579d0 / encounters.obj
  */
 void FUN_000579d0(int encounter_handle, short return_state)
@@ -1562,7 +1562,7 @@ void FUN_000579d0(int encounter_handle, short return_state)
     ai_index_actor_iterator_new(encounter_handle, local_1c);
     actor = ai_index_actor_iterator_next(local_1c);
     while (actor != 0) {
-      action_state = actor_action_try_to_panic(*(int *)(local_1c + 0x10));
+      action_state = actor_get_action_priority_flag(*(int *)(local_1c + 0x10));
       *(short *)((char *)actor + 0x62) = return_state;
       if (*(short *)((char *)actor + 0x6e) == 0 &&
           (action_state == 0 || action_state == 1 || action_state == 2)) {
@@ -2220,7 +2220,7 @@ void FUN_00058550(unsigned int param_1, float param_2)
  * 0x5aca59 is set, resolves the conversation name from the scenario tag's
  * conversations block (offset +0x468, element size 0x74), defaults to
  * "<error>" if the index is out of bounds, and logs via error().
- * Then unconditionally calls FUN_00046b60(param_1, 1) to begin the
+ * Then unconditionally calls ai_conversation(param_1, 1) to begin the
  * conversation.
  *
  * Confirmed:
@@ -2231,9 +2231,9 @@ void FUN_00058550(unsigned int param_1, float param_2)
  *   - Pre-push pattern: PUSH EDI before hs_runtime_get_executing_thread_name()
  *     call; EDI is 4th arg to error(), not arg to hs_runtime_get.
  *   - error(2, "%s: ai_conversation %s", thread_name, conv_name).
- *   - FUN_00046b60(param_1, 1) called unconditionally at end.
+ *   - ai_conversation(param_1, 1) called unconditionally at end.
  *   - ADD ESP,0x10 cleans error() args (4 dwords).
- *   - ADD ESP,0x8 cleans FUN_00046b60 args (2 dwords).
+ *   - ADD ESP,0x8 cleans ai_conversation args (2 dwords).
  */
 int FUN_000585d0(int param_1)
 {
@@ -2254,7 +2254,7 @@ int FUN_000585d0(int param_1)
     error(2, "%s: ai_conversation %s", hs_runtime_get_executing_thread_name(),
           conv_name);
   }
-  return FUN_00046b60(param_1, 1);
+  return ai_conversation(param_1, 1);
 }
 
 /* 0x00058640 — FUN_00058640 (ai_conversation_stop script command).
@@ -3506,7 +3506,7 @@ __declspec(noinline) void encounter_iterator_next(void *iter, char flag)
  *   0x59ba0: MOV EDX,[0x632574]  — ai_globals
  *   0x59ba6: MOV EAX,[EDX+0x8]  — ai_globals->encounterless_head
  *   0x59bac: MOV [ESI+0x10],1   — set phase=1 */
-int FUN_00059b50(void *iter)
+int actor_iterator_next(void *iter)
 {
   char *p = (char *)iter;
   char *actor;

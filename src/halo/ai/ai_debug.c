@@ -2623,7 +2623,7 @@ void ai_debug_select_actor(int encounter_idx, int param_2)
   }
 }
 
-/* FUN_0004b2b0: advance the AI debug text cursor by one line.
+/* ai_debug_drawstack: advance the AI debug text cursor by one line.
  *
  * Saves the current cursor position (vec3 @0x5ac9b0) into the previous-position
  * slot (vec3 @0x5ac9a0), then steps the cursor along the world up vector:
@@ -2662,8 +2662,8 @@ void ai_debug_select_actor(int encounter_idx, int param_2)
  *     Nothing in this function writes 0x5ac990, so the hoist is value-safe.
  *
  * Uncertain: no __FILE__ string and no assert anchor, so the original symbol
- * name is unknown; kept as FUN_0004b2b0. */
-float *FUN_0004b2b0(void)
+ * name is unknown; kept as ai_debug_drawstack. */
+float *ai_debug_drawstack(void)
 {
   float *up;
   uint32_t x;
@@ -2688,7 +2688,7 @@ float *FUN_0004b2b0(void)
   return (float *)0x5ac9a0;
 }
 
-/* FUN_0004b670 (0x4b670): draws the AI debug "unit position" marker for a
+/* ai_debug_highlight_unit (0x4b670): draws the AI debug "unit position" marker for a
  * unit passed in EDI, with a caller-supplied colour in EBX and a draw-extras
  * flag on the stack (`draw_flag`, [EBP+8]).  Register args confirmed from
  * disasm: EDI/EBX are read without being defined inside the function (no
@@ -2734,9 +2734,9 @@ float *FUN_0004b2b0(void)
  *           *(float*)0x255154, color) — same FSTP-over-dummy shape.
  *
  * Uncertain: no __FILE__ string/assert anchor for this function; kept as
- * FUN_0004b670. Confirmed callers: FUN_0004c920 (0x4caaa, 0x4cad6), not yet
+ * ai_debug_highlight_unit. Confirmed callers: FUN_0004c920 (0x4caaa, 0x4cad6), not yet
  * ported, so the caller-side register setup is not cross-checked here. */
-void FUN_0004b670(int object_handle, void *color, char draw_flag)
+void ai_debug_highlight_unit(int object_handle, void *color, char draw_flag)
 {
   void *unit;
   void *weapon;
@@ -3007,7 +3007,7 @@ void ai_debug_change_selected_actor(int param)
  *     JGE keeps colors[11] and falls into the call; else EAX=colors[7].
  *
  * Second half: if DAT_60d2d0 (path-ready flag, set by ai_debug_update) is
- * set, continue the path with FUN_0004b220(&DAT_60d2ec) and
+ * set, continue the path with ai_debug_drawstack_setup(&DAT_60d2ec) and
  * FUN_0004c560(&DAT_60d2c4).  Both pass the *address* of the global (MOV
  * EAX/ESI, imm32 -- no brackets), not its value, matching their @<eax>/@<esi>
  * float-pointer / void-pointer parameter types already recorded in kb.json.
@@ -3032,7 +3032,7 @@ void FUN_0004c890(void)
   }
 
   if (*(uint8_t *)0x60d2d0 != 0) {
-    FUN_0004b220((float *)0x60d2ec);
+    ai_debug_drawstack_setup((float *)0x60d2ec);
     FUN_0004c560((void *)0x60d2c4);
   }
 }
@@ -3041,7 +3041,7 @@ void FUN_0004c890(void)
  * table at [0x331f5c] (stride 0x1ca7c).  For each entry whose two enable bytes
  * at +0x0c and +0x0d are both non-zero, it offsets the entry's world position
  * by the global up vector, pushes that as the debug-text anchor
- * (FUN_0004b220), formats the entry's actor description into a 256-byte stack
+ * (ai_debug_drawstack_setup), formats the entry's actor description into a 256-byte stack
  * buffer, draws it at the current text cursor, and runs the paired
  * FUN_0004c560 pass for the entry.
  *
@@ -3072,7 +3072,7 @@ void FUN_0004c890(void)
  *     char* return is discarded; the stack buffer is what gets drawn.
  *   - The color dword [0x2ee6d0] is loaded at 0x52b18, BEFORE the ADD ESP,0x14
  *     and before the pushes for 0x189cb0, so it is the right-to-left-first
- *     (last) argument.  FUN_0004b2b0's return (EAX) is the `position`
+ *     (last) argument.  ai_debug_drawstack's return (EAX) is the `position`
  *     argument; Ghidra models it as `extraout_EAX` and reorders the call.
  *   - Frame: SUB ESP,0x10c = 0xc (float[3] at EBP-0xc) + 0x100 (buf at
  *     EBP-0x10c); epilogue is MOV ESP,EBP / POP EBP, no `leave`.
@@ -3104,9 +3104,9 @@ void FUN_00052ab0(void)
       position[0] = up[0] + *(float *)(entry + 0x28);
       position[1] = up[1] + *(float *)(entry + 0x2c);
       position[2] = up[2] + *(float *)(entry + 0x30);
-      FUN_0004b220(position);
+      ai_debug_drawstack_setup(position);
       ai_debug_describe_actor(*(int *)entry, -1, 1, buf, 0x100);
-      FUN_00189cb0(1, FUN_0004b2b0(), buf, *(int *)0x2ee6d0);
+      FUN_00189cb0(1, ai_debug_drawstack(), buf, *(int *)0x2ee6d0);
       FUN_0004c560(entry);
     }
     offset += 0x1ca7c;
@@ -3489,9 +3489,9 @@ int16_t FUN_000538d0(void)
  *   encounters), matching ai_erase's all-actors branch.
  * Confirmed: ADD ESP,0xc at 0x5390c is *coalesced* cleanup for both preceding
  *   calls (2 args + 1 arg).  The loop-back call at 0x5392b has its own
- *   ADD ESP,0x4, so FUN_00059b50 really does take exactly one argument; the
+ *   ADD ESP,0x4, so actor_iterator_next really does take exactly one argument; the
  *   ARG_COUNT hazard on this site is a false positive.
- * Confirmed: FUN_00059b50 returns the actor record pointer (kb decl types it
+ * Confirmed: actor_iterator_next returns the actor record pointer (kb decl types it
  *   int); it is dereferenced at +0x6 and +0x1e here, so the result is cast.
  * Confirmed: MOVSX EAX,word ptr [EAX+0x1e] at 0x5391a -- the count field is a
  *   *signed* 16-bit member, not an int.
@@ -3512,10 +3512,10 @@ int16_t FUN_000538f0(void)
 
   total = 0;
   encounter_iterator_next(iter, 0);
-  record = (char *)FUN_00059b50(iter);
+  record = (char *)actor_iterator_next(iter);
   while (record != NULL) {
     total += (*(char *)(record + 6) != 0) ? *(int16_t *)(record + 0x1e) : 1;
-    record = (char *)FUN_00059b50(iter);
+    record = (char *)actor_iterator_next(iter);
   }
   return (int16_t)total;
 }
@@ -3532,9 +3532,9 @@ int16_t FUN_000538f0(void)
  *   encounters), matching the sibling counter at 0x538f0.
  * Confirmed: the ADD ESP,0xc after the second CALL is *coalesced* cleanup for
  *   both preceding calls (2 dwords + 1 dword).  The loop-back call site has
- *   its own ADD ESP,0x4, so FUN_00059b50 really takes exactly one argument;
+ *   its own ADD ESP,0x4, so actor_iterator_next really takes exactly one argument;
  *   the ARG_COUNT hazard on the first site is a false positive.
- * Confirmed: FUN_00059b50 returns the actor record pointer (kb decl types it
+ * Confirmed: actor_iterator_next returns the actor record pointer (kb decl types it
  *   int); it is dereferenced at +0x6 here, so the result is cast.
  * Confirmed: MOVZX DX,byte ptr [EAX+0x6] -- the summed member is an *unsigned
  *   8-bit* field widened to 16 bits, then ADD ESI,EDX.  It is not a word.
@@ -3555,10 +3555,10 @@ int16_t FUN_00053960(void)
 
   total = 0;
   encounter_iterator_next(iter, 0);
-  record = (unsigned char *)FUN_00059b50(iter);
+  record = (unsigned char *)actor_iterator_next(iter);
   while (record != NULL) {
     total += record[6];
-    record = (unsigned char *)FUN_00059b50(iter);
+    record = (unsigned char *)actor_iterator_next(iter);
   }
   return total;
 }

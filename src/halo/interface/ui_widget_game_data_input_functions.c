@@ -1107,7 +1107,7 @@ void FUN_000f28e0(void *widget)
  * "mp game settings text" data-driven text box widget update. Requires the
  * widget to be a text box (type == 1 at +0xe); otherwise asserts + exits
  * (reference PUSH immediates at 0xf2e6e/0xf2e70/0xf2e75/0xf2e7a). Fetches
- * the active network game object (FUN_0012a0a0); if one exists, writes a
+ * the active network game object (network_game_get_game); if one exists, writes a
  * 2-state code to the widget's +0x40 word — 0xc when the game object's byte
  * at +0xc0 equals 1, else 0xd. If there is no active network game, reports
  * error(2, "no network game") instead (reference PUSH immediates at
@@ -1125,7 +1125,7 @@ void FUN_000f2e60(void *widget)
     system_exit(-1);
   }
 
-  game = FUN_0012a0a0();
+  game = network_game_get_game();
   if (game != 0) {
     state_byte = *(unsigned char *)(game + 0xc0);
     *(unsigned short *)((char *)widget + 0x40) =
@@ -1140,7 +1140,7 @@ void FUN_000f2e60(void *widget)
  * variant). Requires the widget to be a text box (type == 1 at +0xe);
  * otherwise asserts + exits (reference PUSH immediates at
  * 0xf2f6e/0xf2f70/0xf2f75/0xf2f7a). Fetches the active network game object
- * (FUN_0012a0a0); if one exists, dispatches on the game object's dword field
+ * (network_game_get_game); if one exists, dispatches on the game object's dword field
  * at +0xbc (jump table at 0xf2ff8, values 1-5) to write the widget's +0x40
  * word:
  *   1                                -> 0x16
@@ -1165,7 +1165,7 @@ void FUN_000f2f60(void *widget)
     system_exit(-1);
   }
 
-  game = FUN_0012a0a0();
+  game = network_game_get_game();
   if (game != 0) {
     switch (*(int *)(game + 0xbc)) {
     case 1:
@@ -1194,7 +1194,7 @@ void FUN_000f2f60(void *widget)
 /* FUN_000f3280 (0xf3280)
  * "mp game settings text" numeric text box widget update. Requires the
  * widget to be a text box (type == 1 at +0xe). Looks up the current network
- * game via FUN_0012a0a0(); if none is active, reports error 2 "no network
+ * game via network_game_get_game(); if none is active, reports error 2 "no network
  * game" and leaves the widget's text buffer untouched. Otherwise reallocates
  * the widget's text buffer (+0x3c) to 8 bytes (4 wchar_t) and formats a
  * signed 16-bit game field at game+0x224 into it with "%d", explicitly
@@ -1216,7 +1216,7 @@ void FUN_000f3280(void *widget)
     system_exit(-1);
   }
 
-  game = FUN_0012a0a0();
+  game = network_game_get_game();
   if (game != 0) {
     new_buf = (wchar_t *)ui_widget_realloc(
       *(int *)((char *)widget + 0x3c), 8,

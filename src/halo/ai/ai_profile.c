@@ -1870,7 +1870,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
   /* --- Loop 3: rewrite pending records (only if source is active) ------- */
   if (*(char *)((char *)src_datum + 0x1e) != 0) {
     encounter_iterator_next(enc_iter, 0);
-    record = (char *)FUN_00059b50(enc_iter);
+    record = (char *)actor_iterator_next(enc_iter);
     while (record != 0) {
       if ((*(int *)(record + 0x44) & 0xffff) == src_index) {
         cur_squad = *(short *)(record + 0x48);
@@ -1896,7 +1896,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
           *(short *)(record + 0x48) = target_squad_indices[cur_squad];
         }
       }
-      record = (char *)FUN_00059b50(enc_iter);
+      record = (char *)actor_iterator_next(enc_iter);
     }
 
     if (match_flag == 0) {

@@ -851,7 +851,7 @@ void *scenario_leaf_index_from_point(int object_handle, float lod)
  * @<ecx>). Render pass: visibility is false only for attached objects
  * (flags bit0, +0xc8 == NONE) whose attachment 0x11c fails FUN_001363d0 —
  * and a NONE 0x11c returns outright; fetches the 'obje' tag def, resolves
- * lighting (or NULL when invisible), gates on FUN_00097800 (retail stub:
+ * lighting (or NULL when invisible), gates on editor_preprocess_rendered_object (retail stub:
  * always 1; args passed and ignored), zero-inits the type/modifier/node
  * fields of a stack render_model_effect_t, computes record+9 = the
  * plane-side flag (1 unless the clip word 0x50674c == 1 and the object
@@ -933,7 +933,7 @@ void FUN_0018c100(void *record)
     } else {
       *(int *)(rec + 4) = 0;
     }
-    if (FUN_00097800(*(int *)rec, *(void **)(rec + 4))) {
+    if (editor_preprocess_rendered_object(*(int *)rec, *(void **)(rec + 4))) {
       effect.type = 0;
       effect.modifier_shader = 0;
       effect.node_matrices = 0;

@@ -6894,7 +6894,7 @@ void structures_cluster_marker_end(void)
  * geometry material/section (via structure_bsp_find_material_for_surface, which
  * writes out_collection_index / out_geometry_index), fetches the three vertex
  * positions (vertex stride 0x20, vertices base at section+0xf8) into three
- * vec3 buffers, and hands them to FUN_0010d830 (ray/point-vs-triangle test)
+ * vec3 buffers, and hands them to point_in_triangle3d (ray/point-vs-triangle test)
  * along with the caller's context and the out_u/out_v pointers.  On the first
  * triangle that passes, it stores the surface index into *out_surface and
  * returns 1; otherwise 0.
@@ -6964,7 +6964,7 @@ char structure_render_surface_from_point_and_leaf(
           FUN_00180500((float *)(vertices + (uint32_t)tri[0] * 0x20), v0);
           FUN_00180500((float *)(vertices + (uint32_t)tri[1] * 0x20), v1);
           FUN_00180500((float *)(vertices + (uint32_t)tri[2] * 0x20), v2);
-          if (FUN_0010d830((float *)render_context, v0, v1, v2, out_u, out_v) !=
+          if (point_in_triangle3d((float *)render_context, v0, v1, v2, out_u, out_v) !=
               0) {
             *out_surface = *surface_ref;
             return 1;

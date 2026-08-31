@@ -1241,7 +1241,7 @@ char FUN_000c9700(int param_1, int param_2, float param_3)
       position =
         *(vector3_t *)((char *)object_get_and_verify_type(param_2, -1) + 0x50);
     result =
-      FUN_001aa430(param_1, (float *)&position, param_3 * *(float *)0x253d4c);
+      unit_can_see_point(param_1, (float *)&position, param_3 * *(float *)0x253d4c);
   }
   return result;
 }
@@ -1262,7 +1262,7 @@ char FUN_000c9700(int param_1, int param_2, float param_3)
  *   call at 0xc97a8 pushes EBX, then ECX, then ESI, so in cdecl order it is
  *   FUN_000c9700(child_handle, arg1, arg2) — the child handle is the FIRST
  *   argument (the seeing unit), matching FUN_000c9700 passing its param_1
- *   straight to FUN_001aa430 as the unit handle and resolving its param_2 as
+ *   straight to unit_can_see_point as the unit handle and resolving its param_2 as
  *   the object whose position is tested.  ADD ESP,0xc confirms three args; the
  *   artifact's §7_GETTER_SWALLOWED hazard was against a stale void(void) decl
  *   for 0xc9700 and does not apply.
@@ -1330,12 +1330,12 @@ unsigned char FUN_000c9770(int arg0, int arg1, float arg2)
  *   and ADD EAX,0x24 at 0xc989c takes the element's +0x24 vector3 — the same
  *   field FUN_000c9de0 and players.c use for this block.
  *
- *   The float arg is the FIRST push of the FUN_001aa430 call, not of
+ *   The float arg is the FIRST push of the unit_can_see_point call, not of
  *   tag_block_get_element: PUSH ECX at 0xc9879 only reserves the slot and
  *   FSTP float ptr [ESP] at 0xc9883 fills it with FLD [EBP+0x10] * [0x253d4c].
  *   PUSH EAX (the +0x24 point) / PUSH ESI (the child handle) follow, and
  *   ADD ESP,0xc at 0xc98a6 retires all three — so in cdecl order it is
- *   FUN_001aa430(child_handle, flag_position, angle * *(float *)0x253d4c),
+ *   unit_can_see_point(child_handle, flag_position, angle * *(float *)0x253d4c),
  *   identical to the forward in FUN_000c9700.
  *
  *   Two exits: MOV AL,0x1 at 0xc98cc on a hit, XOR AL,AL at 0xc98c3 when the
@@ -1348,7 +1348,7 @@ unsigned char FUN_000c9770(int arg0, int arg1, float arg2)
  *   0x13d640 = object_try_and_get_and_verify_type(handle, type_mask)
  *   0x18e380 = global_scenario_get(void)
  *   0x19b210 = tag_block_get_element(block, index, element_size)
- *   0x1aa430 = FUN_001aa430(unit_handle, point, half_angle)
+ *   0x1aa430 = unit_can_see_point(unit_handle, point, half_angle)
  *
  * No callers in the binary (xrefs_to is empty), so the parameter names stay
  * mechanical; the role of arg2 beyond being scaled by 0x253d4c and forwarded
@@ -1362,7 +1362,7 @@ unsigned char FUN_000c9840(int arg0, short flag_index, float arg2)
   while (child != -1) {
     if (object_try_and_get_and_verify_type(child, 3) != NULL &&
         flag_index != 0) {
-      if (FUN_001aa430(child,
+      if (unit_can_see_point(child,
                        (float *)((char *)tag_block_get_element(
                                    (char *)global_scenario_get() + 0x4e4,
                                    flag_index, 0x5c) +
@@ -1848,12 +1848,12 @@ void FUN_000c9c80(int object_handle, int region_name, int permutation_name)
 }
 
 /* 0xc9d40 — Walk an HS object list and hand every member handle to
- * FUN_0013ddd0.
+ * object_predict.
  *
  * Binary evidence (0xc9d40..0xc9d6c, cdecl, one stack arg, one dword local at
  * [EBP-4]): the list handle stays in ESI across both iterator calls, the
  * cursor is the single dword local, and the loop is the ordinary
- * first/next/NONE walk.  ADD ESP,0xc at 0xc9d60 folds FUN_0013ddd0's one push
+ * first/next/NONE walk.  ADD ESP,0xc at 0xc9d60 folds object_predict's one push
  * and FUN_000ce320's two.
  *
  * kb.json previously modelled this as void(void); the caller at 0xbeb8c does
@@ -1865,7 +1865,7 @@ void FUN_000c9d40(int object_list)
 
   object_handle = FUN_000ce450(object_list, &iterator);
   while (object_handle != -1) {
-    FUN_0013ddd0(object_handle);
+    object_predict(object_handle);
     object_handle = FUN_000ce320(object_list, &iterator);
   }
 }

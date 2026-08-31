@@ -3304,7 +3304,7 @@ char FUN_0003a800(int16_t actor_type)
  * Looks up the actor datum by handle, reads the actor_type field (int16_t at
  * offset 4), retrieves the actor type definition, and calls the type-specific
  * init callback (function pointer at type_def+0x10) if it is non-null.
- * Called at the end of actor_new (FUN_0003c410) to perform per-type
+ * Called at the end of actor_new (actor_new) to perform per-type
  * initialization of a newly allocated actor. */
 void FUN_0003a810(int actor_handle)
 {
@@ -4034,7 +4034,7 @@ int FUN_0003b190(int actor_handle, int *attack_vector_out)
     system_exit(-1);
   }
   if (((actor_t *)actor)->target_target_type > 8) {
-    mode = actor_action_try_to_panic(actor_handle);
+    mode = actor_get_action_priority_flag(actor_handle);
     if (mode == 4) {
       if (((actor_t *)actor)->field_6a0) {
         attack_vector_out[0] = *(int *)(actor + 0x180);
@@ -4573,7 +4573,7 @@ void actors_freeze(void)
 {
   char iter[0x1c];
   encounter_iterator_next(iter, 1);
-  while (FUN_00059b50(iter)) {
+  while (actor_iterator_next(iter)) {
     FUN_0003b860(*(int *)(iter + 0x14));
   }
 }
@@ -4655,7 +4655,7 @@ void FUN_0003b940(int actor_handle, int unit_object_index /* @<esi> */)
 /* actors_move_randomly (0x3ba00) — actors_idle_update
  *
  * Iterates all active actors via the standard iterator
- * (encounter_iterator_next/FUN_00059b50). For each actor record:
+ * (encounter_iterator_next/actor_iterator_next). For each actor record:
  *   - If record->field_6 == 0 (non-swarm): calls FUN_0003b940 once with the
  *     actor's unit object index from record->field_18.
  *   - If record->field_6 != 0 and record->field_28 (swarm handle) is valid:
@@ -4677,7 +4677,7 @@ void actors_move_randomly(void)
   int actor_handle;
 
   encounter_iterator_next(iter, 1);
-  record = (char *)FUN_00059b50(iter);
+  record = (char *)actor_iterator_next(iter);
   while (record != NULL) {
     actor_handle = *(int *)(iter + 0x14);
     if (*(char *)(record + 6) == 0) {
@@ -4691,7 +4691,7 @@ void actors_move_randomly(void)
         FUN_0003b940(actor_handle, *(int *)(swarm + 0x18 + i * 4));
       }
     }
-    record = (char *)FUN_00059b50(iter);
+    record = (char *)actor_iterator_next(iter);
   }
 }
 
@@ -5137,7 +5137,7 @@ void FUN_0003be90(int actor_handle)
  * Confirmed: [EBP+0x08]=object_handle (->EDI), [EBP+0x0C]=effect_type,
  *   [EBP+0x10]=position (->ESI), [EBP+0x14]=volume, [EBP+0x18]=count (->EBX).
  * Confirmed: location [EBP-0x08] 8 bytes; iter [EBP-0x24] 20 bytes;
- *   actor_handle [EBP-0x10] = iter+0x14 (set by FUN_00059b50);
+ *   actor_handle [EBP-0x10] = iter+0x14 (set by actor_iterator_next);
  *   input_block [EBP-0x5C] 56 bytes.
  * Confirmed: CMP word ptr [EAX+0x6e],0x7 / JGE skip at 0x3c105.
  * Confirmed: ADD ESP,0x2c at 0x3c138 cleans
@@ -5165,7 +5165,7 @@ void actors_handle_spatial_effect(int object_handle, short effect_type,
 
   scenario_location_from_point(location, position);
   encounter_iterator_next(iter, 1);
-  actor_record = (char *)FUN_00059b50(iter);
+  actor_record = (char *)actor_iterator_next(iter);
   while (actor_record != NULL) {
     actor_handle = *(int *)(iter + 0x14);
     if (((actor_t *)actor_record)->field_06e < 7) {
@@ -5186,7 +5186,7 @@ void actors_handle_spatial_effect(int object_handle, short effect_type,
         }
       }
     }
-    actor_record = (char *)FUN_00059b50(iter);
+    actor_record = (char *)actor_iterator_next(iter);
   }
 }
 
@@ -5315,7 +5315,7 @@ void actor_unit_control_stop_animation_impulse(int actor_handle)
   *(int16_t *)(actor + 0x6ec) = -1;
 }
 
-/* FUN_0003c410 (0x3c410) — actor_new
+/* actor_new (0x3c410)
  * Allocate and minimally initialize a new actor datum from the actor_data pool.
  * Looks up the actv (actor variant) tag by actv_tag_index, then the actr
  * (actor) tag it references at offset +0x10. Calls data_new_at_index to
@@ -5353,7 +5353,7 @@ void actor_unit_control_stop_animation_impulse(int actor_handle)
  * Confirmed: return value = ESI = handle (MOV EAX,ESI at 0x3c7a4).
  * Inferred: *(float**)0x31fc3c points to a {1,0,0} default facing vec3.
  * Inferred: 0x2533c0 is a float threshold (0.0f at load, runtime-set later). */
-int FUN_0003c410(int actv_tag_index)
+int actor_new(int actv_tag_index)
 {
   char *actv_data;
   char *actr_data;
@@ -6315,12 +6315,12 @@ void actor_swarm_unit_died(int actor_handle, int unit_handle)
  *   - If actor+0x12 == 0 (no player-presence?) OR combined flags != 0:
  *       call actor_set_dormant(actor_handle, 0); return 1.
  *   - If actor+0x13 != 0 (dormant): return 1 (dormant actors always pass).
- *   - If actor_action_try_to_panic(actor_handle) returns 2 (action already in
+ *   - If actor_get_action_priority_flag(actor_handle) returns 2 (action already in
  * flight): return 1.
  *   - Encounter validity check: if actor+0x270 != -1:
  *       datum_get(DAT_005ab23c, actor+0x270); check +0x12e, +0x60, +0x127;
  *       if valid encounter and action type in [2,3] → return 1;
- *       if action type in [4,5] and actor_action_try_to_panic returned 3 →
+ *       if action type in [4,5] and actor_get_action_priority_flag returned 3 →
  * return 1.
  *   - FUN_0002a3d0(actor_handle) checks byte at actor+0x4a8 (non-zero =
  * vehicle?): if mode==3 and actor+0x6c==6 and biped+0x62==1 → return 1. if
@@ -6337,10 +6337,10 @@ void actor_swarm_unit_died(int actor_handle, int unit_handle)
  *   All exits load AL from [EBP-1], so default return is 1.
  * Confirmed: ESI = datum_get result (actor record pointer) throughout.
  * Confirmed: EDI = actor_handle (from [EBP+0x8]) at 0x3d9fb; preserved until
- *   overwritten by actor_action_try_to_panic return at 0x3db2a, then restored
+ *   overwritten by actor_get_action_priority_flag return at 0x3db2a, then restored
  * at 0x3db92. Confirmed: encounter data table at DAT_005ab23c (0x5ab23c).
  * Confirmed: actor_set_dormant(actor_handle, flag) cdecl 2 args — ADD ESP,0x8.
- * Confirmed: actor_action_try_to_panic(actor_handle) cdecl 1 arg → short action
+ * Confirmed: actor_get_action_priority_flag(actor_handle) cdecl 1 arg → short action
  * type in AX. Return stored in DI; compared as 16-bit (CMP DI,0x2 / CMP
  * DI,0x3). Confirmed: FUN_0002a3d0(actor_handle) cdecl 1 arg → byte at
  * actor+0x4a8. Confirmed: mode==3 path: CMP word[ESI+0x6c],6; CMP
@@ -6845,7 +6845,7 @@ char FUN_0003d9f0(int actor_handle)
   }
 
   /* Check current action type */
-  action_type = (short)actor_action_try_to_panic(actor_handle);
+  action_type = (short)actor_get_action_priority_flag(actor_handle);
   if (action_type == 2) {
     return ret;
   }
@@ -7541,7 +7541,7 @@ void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3)
   }
   object_get_world_position(unit_handle, (vector3_t *)position);
   encounter_iterator_next(encounter_iter, 1);
-  cur = FUN_00059b50(encounter_iter);
+  cur = actor_iterator_next(encounter_iter);
   while (cur != 0) {
     encounter_actor = *(int *)((char *)encounter_iter + 0x14);
     if (encounter_actor != encounter_handle) {
@@ -7567,7 +7567,7 @@ void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3)
         }
       }
     }
-    cur = FUN_00059b50(encounter_iter);
+    cur = actor_iterator_next(encounter_iter);
   }
 }
 
@@ -8011,7 +8011,7 @@ void FUN_0003ec80(int actor_handle /* @<esi> */)
  * exclude handle, has fewer than 16 swarm units, and (if param6==0) matches the
  * squad index.
  *
- * Then creates a fresh actor datum via FUN_0003c410 (which allocates from
+ * Then creates a fresh actor datum via actor_new (which allocates from
  * actor_data and initializes all fields). Sets encounter/squad assignment via
  * encounterless_attach_actor (no encounter) or encounter_attach_actor (with
  * encounter). Sets the encounter_flag, squad starting location index, squad
@@ -8089,7 +8089,7 @@ int actor_create_for_unit(char flags, int unit_index, int actv_tag_index,
   }
 
   /* Allocate a new actor datum from actor_data. */
-  actor_handle = FUN_0003c410(actv_tag_index);
+  actor_handle = actor_new(actv_tag_index);
   if (actor_handle == -1) {
     return -1;
   }

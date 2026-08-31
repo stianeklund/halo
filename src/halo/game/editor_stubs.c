@@ -12,7 +12,7 @@ bool game_in_editor(void)
 // 0x97800 — retail editor stub: always 1. The sole caller (FUN_0018c100)
 // passes (object_handle, lighting); the original ignores them, so we accept
 // and ignore them too to keep the call site byte-faithful.
-bool FUN_00097800(int object_handle, void *lighting)
+bool editor_preprocess_rendered_object(int object_handle, void *lighting)
 {
   (void)object_handle;
   (void)lighting;

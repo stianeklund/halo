@@ -695,7 +695,7 @@ int FUN_000bac10(void *record, int parent_handle)
  *       - if player+0x3C is valid, OR that cluster's visibility row into
  *         combined_pvs.
  *   - Then OR in the cluster returned by 0x13DCC0 (the "currently focused
- *     parent object" cluster -- see objects.c FUN_0013dcc0) when valid. */
+ *     parent object" cluster -- see objects.c objects_get_activating_cluster_index) when valid. */
 void players_update_pvs(void *combined_pvs /* @<edi> */, bool local_player_only)
 {
   void *structure_bsp;
@@ -5488,7 +5488,7 @@ void FUN_000bebb0(int16_t function_index, int thread_datum, char init)
  * above. Evaluates the script function via hs_macro_function_evaluate(
  * function_index, thread_datum, init), which returns a pointer to an
  * evaluation record. On a non-NULL record it forwards the first dword
- * (*record, MOV EAX,[EAX]) to FUN_0013dbe0, then completes the calling
+ * (*record, MOV EAX,[EAX]) to object_pvs_set_object, then completes the calling
  * script thread with hs_return(thread_datum, 0).
  *
  * cdecl frame:
@@ -5506,7 +5506,7 @@ void FUN_000bebf0(int16_t function_index, int thread_datum, char init)
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    FUN_0013dbe0(*record);
+    object_pvs_set_object(*record);
     hs_return(thread_datum, 0);
   }
 }
@@ -5518,7 +5518,7 @@ void FUN_000bebf0(int16_t function_index, int thread_datum, char init)
  * hs_macro_function_evaluate(function_index, thread_datum, init); while that
  * returns NULL the evaluation is still pending and nothing is committed. Once a
  * non-NULL evaluation record is returned, its first field is loaded as a 16-bit
- * value (*(short *)record) and forwarded to FUN_0013dc10, then the thread is
+ * value (*(short *)record) and forwarded to object_pvs_set_camera_point, then the thread is
  * committed with hs_return(thread_datum, 0).
  *
  * cdecl frame (PUSH EBP; MOV EBP,ESP):
@@ -5528,7 +5528,7 @@ void FUN_000bebf0(int16_t function_index, int thread_datum, char init)
  *
  * hs_macro_function_evaluate returns the record pointer in EAX. On non-NULL the
  * original loads its first field as a 16-bit value (word load) and passes it to
- * FUN_0013dc10 (which takes a short camera_point_index), then commits the
+ * object_pvs_set_camera_point (which takes a short camera_point_index), then commits the
  * thread with hs_return(thread_datum, 0). Ghidra modeled this void(void) with
  * the three cdecl params read as in_stack_*; the correct prototype is the 3-arg
  * cdecl below. kb decl corrected from void(void) so callers pass all three
@@ -5540,7 +5540,7 @@ void FUN_000bec30(int16_t function_index, int thread_datum, char init)
   record =
     (short *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    FUN_0013dc10(*record);
+    object_pvs_set_camera_point(*record);
     hs_return(thread_datum, 0);
   }
 }
@@ -5549,7 +5549,7 @@ void FUN_000bec30(int16_t function_index, int thread_datum, char init)
  *
  * HaloScript builtin implementation, a direct sibling of the numeric-countdown
  * wrappers above (FUN_000be6f0 / FUN_000be710). It does not call
- * hs_macro_function_evaluate: it invokes the void/void helper FUN_0013dcb0
+ * hs_macro_function_evaluate: it invokes the void/void helper object_pvs_clear
  * directly, then completes the calling script thread with
  * hs_return(thread_handle, 0).
  *
@@ -5557,7 +5557,7 @@ void FUN_000bec30(int16_t function_index, int thread_datum, char init)
  *   function_index  int16_t  [EBP+0x08]  (unused -- never loaded)
  *   thread_handle   int      [EBP+0x0c]  -> hs_return arg1
  *
- * FUN_0013dcb0() takes no args and is called first. The second stack param is
+ * object_pvs_clear() takes no args and is called first. The second stack param is
  * then loaded (MOV EAX,[EBP+0xc]) and pushed as hs_return's thread_handle; the
  * constant 0 is pushed as hs_return's value (PUSH 0; PUSH EAX; CALL hs_return;
  * ADD ESP,8 cleans the two cdecl args). Ghidra modeled this void(void) and read
@@ -5565,7 +5565,7 @@ void FUN_000bec30(int16_t function_index, int thread_datum, char init)
  * kb decl was previously void(void). */
 void FUN_000bec70(int16_t function_index, int thread_handle)
 {
-  FUN_0013dcb0();
+  object_pvs_clear();
   hs_return(thread_handle, 0);
 }
 
@@ -6744,7 +6744,7 @@ void FUN_000bf220(int16_t function_index, int thread_datum, char init)
  *
  * Callees (all cdecl, in kb.json):
  *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
- *   0x1a9c90 = FUN_001a9c90(int unit_handle, const char *seat_name,
+ *   0x1a9c90 = unit_scripting_vehicle_test_seat_list(int unit_handle, const char *seat_name,
  *              int object_list) -> char predicate in AL
  *   0xcbf80  = hs_return(int thread_handle, int value) */
 void FUN_000bf260(int16_t function_index, int thread_datum, char init)
@@ -6759,7 +6759,7 @@ void FUN_000bf260(int16_t function_index, int thread_datum, char init)
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    value.b = FUN_001a9c90(record[0], (const char *)record[1], record[2]);
+    value.b = unit_scripting_vehicle_test_seat_list(record[0], (const char *)record[1], record[2]);
     hs_return(thread_datum, value.i);
   }
 }

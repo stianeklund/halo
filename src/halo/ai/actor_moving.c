@@ -750,7 +750,7 @@ void FUN_0002ade0(int actor_handle)
  * transformed direction (local origin pfVar1=avoidance_data+0xc), second the
  * world-space ray_origin/ray_direction.  Ghidra truncates the 2nd call to 4
  * args; disasm 0x2b256-0x2b265 shows the full 8.
- * Confirmed: obstacle loop calls FUN_0010d4c0 (truncated to 3 args by Ghidra;
+ * Confirmed: obstacle loop calls pill_test_vector3d (truncated to 3 args by Ghidra;
  * disasm 0x2b29d-0x2b2b3 shows 7) writing the per-obstacle collision time into
  * a scratch float (EBP-0x4) that is compared against *collision_t.  This
  * scratch is distinct from avoidance_ray[6], which Ghidra aliases as the same
@@ -858,7 +858,7 @@ short FUN_0002b020(float *avoidance_ray, float *ray_origin, int avoidance_data,
       int rec;
 
       rec = avoidance_data + 0x40 + i * 0x18;
-      hit = FUN_0010d4c0((float *)(rec + 4), *(float *)(rec + 0x10),
+      hit = pill_test_vector3d((float *)(rec + 4), *(float *)(rec + 0x10),
                          *(float *)(rec + 0x14), ray_origin, ray_direction,
                          &dist, dir);
       if (hit != '\0' && dist < *collision_t) {

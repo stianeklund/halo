@@ -563,7 +563,7 @@ void quaternion_decompress_6byte_renormalized(void *compressed_data,
   sphere_intersects_rectangle3d(dest);
 }
 
-/* FUN_00120cb0 (0x120cb0) — Look up an animation by name in an 'antr'
+/* animation_graph_get_animation_by_name (0x120cb0) — Look up an animation by name in an 'antr'
  * (model_animations) tag's animation block.
  *
  * Walks the tag_block at antr+0x74 (element stride 0xb4) comparing `name`
@@ -584,7 +584,7 @@ void quaternion_decompress_6byte_renormalized(void *compressed_data,
  *            (MOV ECX,[ESI] at 0x120cf1); it is not hoisted into a register.
  * Confirmed: not-found path is OR AX,0xffff (-1); found path is MOV AX,DI.
  */
-short FUN_00120cb0(int animation_graph_tag_index, const char *name)
+short animation_graph_get_animation_by_name(int animation_graph_tag_index, const char *name)
 {
   char *antr_tag;
   int *animation_block;
