@@ -490,6 +490,30 @@ def run_pipeline(args: argparse.Namespace) -> int:
                       details=f"{target.addr} {target.name} ({target.object_name})")
   stages.append(stage)
 
+  # Cross-build PDB/map evidence is a mandatory research aid, but never an
+  # oracle or a gate: 2276 disassembly remains authoritative.  The helper
+  # deliberately exits successfully when the optional corpus is unavailable.
+  crossbuild_json = artifact_dir / "crossbuild_context.json"
+  proc = run_command(
+    ["python3", "tools/analysis/crossbuild_context.py", "--target", target.addr,
+     "--output", str(crossbuild_json)],
+    cwd=ROOT,
+    log_path=artifact_dir / "crossbuild_context.log",
+  )
+  crossbuild_detail = "unavailable (context helper failed)"
+  if crossbuild_json.exists():
+    try:
+      crossbuild = json.loads(crossbuild_json.read_text(encoding="utf-8"))
+      summary["crossbuild_context"] = crossbuild
+      crossbuild_detail = str(crossbuild.get("status", "unavailable"))
+      candidates = crossbuild.get("candidates", [])
+      if candidates:
+        crossbuild_detail += f": {candidates[0].get('name', '?')} [INFERRED]"
+    except json.JSONDecodeError:
+      crossbuild_detail = "unavailable (invalid context artifact)"
+  stages.append(StageResult("crossbuild_context", ran=True, ok=True,
+                            details=crossbuild_detail))
+
   if args.extract_cmd:
     cmd = args.extract_cmd.format(
       target_addr=target.addr,
