@@ -3188,9 +3188,11 @@ no_transition:
 char actor_action_handle_combat_failure(int actor_handle)
 {
   char *actor;
+  char result;
   short sVar2;
 
   actor = (char *)datum_get(actor_data, actor_handle);
+  result = 0;
   if (((actor_t *)actor)->state_action == _actor_action_charge) {
     sVar2 = *(short *)(actor + 0xa0);
     if ((sVar2 == 2) || (sVar2 == 3)) {
@@ -3198,14 +3200,14 @@ char actor_action_handle_combat_failure(int actor_handle)
           (*(char *)(actor + 0xa4) != '\0'))
         goto do_combat_selection;
     } else if ((sVar2 != 4) && (sVar2 != 5)) {
-      return 0;
+      return result;
     }
     if (((actor_t *)actor)->field_0c5 != '\0') {
     do_combat_selection:
-      return actor_action_handle_combat_selection(actor_handle);
+      result = actor_action_handle_combat_selection(actor_handle);
     }
   }
-  return 0;
+  return result;
 }
 
 /* actor_action_handle_exit_pursuit (0x1f9a0) — Handles exit from pursuit-type
@@ -3783,20 +3785,21 @@ int actor_pursuit_find_nearby_actors(int actor_handle, char flag)
 char actor_action_handle_berserk_transition(int actor_handle, short param_2)
 {
   char *actor;
+  char result;
 
   actor = (char *)datum_get(actor_data, actor_handle);
+  result = 0;
   if (((actor_t *)actor)->field_310 < param_2 ||
-      ((actor_t *)actor)->field_378 != '\0') {
+      ((actor_t *)actor)->field_378 != result) {
     ((actor_t *)actor)->field_310 = 0;
-    return 0;
+    return result;
   }
   actor_berserk(actor_handle, 1);
-  if (((actor_t *)actor)->field_06e > 3) {
-    ((actor_t *)actor)->field_310 = 0;
-    return actor_action_handle_combat_selection(actor_handle);
+  if (((actor_t *)actor)->field_06e >= 4) {
+    result = actor_action_handle_combat_selection(actor_handle);
   }
   ((actor_t *)actor)->field_310 = 0;
-  return 0;
+  return result;
 }
 
 /* actor_action_handle_combat_transition (0x204f0) — Handles transition into

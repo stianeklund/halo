@@ -34949,10 +34949,10 @@
      "ported": true
     },
     {
-     "addr": "0x5a5a0",
-     "decl": "char encounter_link_activation(int encounter_handle, short link_encounter_index);",
-     "name": "encounter_link_activation",
-     "ported": false
+      "addr": "0x5a5a0",
+      "decl": "char encounter_link_activation(int encounter_handle, short link_encounter_index);",
+      "name": "encounter_link_activation",
+      "ported": true
     },
     {
      "addr": "0x5a640",
