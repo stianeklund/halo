@@ -71,21 +71,51 @@ __attribute__((naked)) void _chkstk(void) {
     );
 }
 
-/* MSVC's __ftol2: truncate ST(0) to int32 in EAX.
+/* MSVC's __ftol2: truncate ST(0) to int32 in EAX (and int64 in EDX:EAX).
  * Non-standard calling convention: float on x87 stack, result in EAX.
- * Sets rounding mode to truncation, converts, restores original rounding. */
+ * Fast float-to-int conversion matching cachebeta.xbe 0x1d9068 byte-for-byte. */
 __attribute__((naked)) void _ftol2(void) {
     __asm__(
-        "subl $8, %esp\n\t"
-        "fnstcw (%esp)\n\t"
-        "movw (%esp), %ax\n\t"
-        "orb $0x0c, %ah\n\t"
-        "movw %ax, 4(%esp)\n\t"
-        "fldcw 4(%esp)\n\t"
-        "fistpl 4(%esp)\n\t"
-        "fldcw (%esp)\n\t"
-        "movl 4(%esp), %eax\n\t"
-        "addl $8, %esp\n\t"
+        "pushl %ebp\n\t"
+        "movl %esp, %ebp\n\t"
+        "subl $0x20, %esp\n\t"
+        "andl $-0x10, %esp\n\t"
+        "fld %st(0)\n\t"
+        "fsts 0x18(%esp)\n\t"
+        "fistpll 0x10(%esp)\n\t"
+        "fildll 0x10(%esp)\n\t"
+        "movl 0x18(%esp), %edx\n\t"
+        "movl 0x10(%esp), %eax\n\t"
+        "testl %eax, %eax\n\t"
+        "je 1f\n\t"
+        "2:\n\t"
+        "fsubrp %st, %st(1)\n\t"
+        "testl %edx, %edx\n\t"
+        "jns 3f\n\t"
+        "fstps (%esp)\n\t"
+        "movl (%esp), %ecx\n\t"
+        "xorl $0x80000000, %ecx\n\t"
+        "addl $0x7fffffff, %ecx\n\t"
+        "adcl $0, %eax\n\t"
+        "movl 0x14(%esp), %edx\n\t"
+        "adcl $0, %edx\n\t"
+        "jmp 4f\n\t"
+        "3:\n\t"
+        "fstps (%esp)\n\t"
+        "movl (%esp), %ecx\n\t"
+        "addl $0x7fffffff, %ecx\n\t"
+        "sbbl $0, %eax\n\t"
+        "movl 0x14(%esp), %edx\n\t"
+        "sbbl $0, %edx\n\t"
+        "jmp 4f\n\t"
+        "1:\n\t"
+        "movl 0x14(%esp), %edx\n\t"
+        "testl $0x7fffffff, %edx\n\t"
+        "jne 2b\n\t"
+        "fstps 0x18(%esp)\n\t"
+        "fstps 0x18(%esp)\n\t"
+        "4:\n\t"
+        "leave\n\t"
         "ret\n\t"
     );
 }
