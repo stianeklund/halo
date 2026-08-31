@@ -4079,10 +4079,12 @@ char FUN_0005a4e0(int encounter_index /* @<eax> */)
 char encounter_link_activation(int encounter_handle, short link_encounter_index)
 {
   char *encounter;
+  char result;
   short count;
   short i;
 
   encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  result = 0;
 
   if (link_encounter_index < 0 ||
       link_encounter_index >= *(int *)((char *)global_scenario_get() + 0x42c)) {
@@ -4102,12 +4104,12 @@ char encounter_link_activation(int encounter_handle, short link_encounter_index)
     } while (i < *(short *)(encounter + 0x20));
   }
 
-  if (count >= 3)
-    return 0;
-
-  *(short *)(encounter + 0x22 + count * 2) = link_encounter_index;
-  *(short *)(encounter + 0x20) = *(short *)(encounter + 0x20) + 1;
-  return 1;
+  if (count < 3) {
+    *(short *)(encounter + 0x22 + count * 2) = link_encounter_index;
+    *(short *)(encounter + 0x20) = *(short *)(encounter + 0x20) + 1;
+    return 1;
+  }
+  return result;
 }
 
 /* 0x5a640 — encounter_deactivate.
