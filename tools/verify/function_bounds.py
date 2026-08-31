@@ -97,6 +97,15 @@ OVERRIDES = {
                 "ret at 0x12a4df -- 5 dword targets at 0x12a4e0 "
                 "(0x12a3c2/0x12a3eb/0x12a414/0x12a43d/0x12a462)",
     },
+    0x1A8E10: {
+        "end": 0x1A8EE0,
+        "kind": "table_data",
+        "note": "unit_handle_weapon_state_change: true_end stopped at the "
+                "default-case ret at 0x1a8e5d; remaining case bodies run to "
+                "the ret at 0x1a8ebd, then 8 dword jump-table slots at "
+                "0x1a8ec0 (0x1a8e72/0x1a8e85/0x1a8e4c/0x1a8e5f/0x1a8e24/"
+                "0x1a8e38/0x1a8e98/0x1a8eab). Next function is 0x1a8ee0.",
+    },
 }
 
 _MD = None

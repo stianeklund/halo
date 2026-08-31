@@ -6152,7 +6152,7 @@
  "0x1a8b20": {"end": "0x1a8ca0", "kind": "auto", "name": "FUN_001a8b20"},
  "0x1a8ce0": {"end": "0x1a8d9e", "kind": "auto", "name": "unit_find_nearby_seat"},
  "0x1a8da0": {"end": "0x1a8e04", "kind": "auto", "name": "unit_impulse"},
- "0x1a8e10": {"end": "0x1a8e5f", "kind": "auto", "name": "unit_handle_weapon_state_change"},
+ "0x1a8e10": {"end": "0x1a8ee0", "kind": "table_data", "name": "unit_handle_weapon_state_change", "note": "unit_handle_weapon_state_change: true_end stopped at the default-case ret at 0x1a8e5d; remaining case bodies run to the ret at 0x1a8ebd, then 8 dword jump-table slots at 0x1a8ec0 (0x1a8e72/0x1a8e85/0x1a8e4c/0x1a8e5f/0x1a8e24/0x1a8e38/0x1a8e98/0x1a8eab). Next function is 0x1a8ee0."},
  "0x1a8ee0": {"end": "0x1a9129", "kind": "auto", "name": "unit_record_damage"},
  "0x1a9130": {"end": "0x1a91d6", "kind": "auto", "name": "unit_test_spawning"},
  "0x1a91e0": {"end": "0x1a91f9", "kind": "auto", "name": "unit_destroy"},
