@@ -1389,7 +1389,7 @@ void FUN_00181c20(void)
                   brightness;
               }
 
-              if (refl_idx == 0) {
+              if ((short)refl_idx == 0) {
                 brightness = anim_color[0];
               }
 
@@ -1497,7 +1497,7 @@ void FUN_00181c20(void)
                 }
 
                 /* Reflection position */
-                if (refl_idx == 0) {
+                if ((short)refl_idx == 0) {
                   flare_size_angle =
                     corona_rot + *(float *)((char *)refl + 0x20);
                   scale2d[0] = *(float *)(definition + 0xa0);

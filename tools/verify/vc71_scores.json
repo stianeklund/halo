@@ -39841,16 +39841,16 @@
     "FUN_00181c20": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 86.9,
+      "abi_modeled_mnemonic_pct": 88.5,
       "addr": "0x181c20",
       "end": "0x1824d2",
       "kind": "auto",
       "n_r": 655,
-      "opnd_percent": 67.8,
-      "raw_mnemonic_pct": 86.9,
+      "opnd_percent": 70.7,
+      "raw_mnemonic_pct": 88.5,
       "ref": "synth",
       "ref_sha": "d5bff362bb1865ba",
-      "score": 86.9,
+      "score": 88.5,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "FUN_001825d0": {
@@ -77851,16 +77851,16 @@
     "rasterizer_swizzle_compute_masks": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 77.2,
+      "abi_modeled_mnemonic_pct": 91.2,
       "addr": "0x182690",
       "end": "0x1827b1",
       "kind": "auto",
       "n_r": 102,
-      "opnd_percent": 54.9,
-      "raw_mnemonic_pct": 77.2,
+      "opnd_percent": 62.7,
+      "raw_mnemonic_pct": 91.2,
       "ref": "synth",
       "ref_sha": "51e8c35c9c0c68c8",
-      "score": 77.2,
+      "score": 91.2,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
     "rasterizer_swizzle_interleave_bits": {
@@ -86821,16 +86821,16 @@
     "unit_inventory_next_grenade": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 83.6,
+      "abi_modeled_mnemonic_pct": 96.8,
       "addr": "0x1a9980",
       "end": "0x1a9a29",
       "kind": "auto",
       "n_r": 62,
-      "opnd_percent": 59.7,
-      "raw_mnemonic_pct": 83.6,
+      "opnd_percent": 95.2,
+      "raw_mnemonic_pct": 96.8,
       "ref": "synth",
       "ref_sha": "8300275746bea394",
-      "score": 83.6,
+      "score": 96.8,
       "source": "src/halo/units/units.c"
     },
     "unit_inventory_next_weapon": {
@@ -86896,16 +86896,16 @@
     "unit_leap_begin": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 85.0,
+      "abi_modeled_mnemonic_pct": 90.5,
       "addr": "0x1b1c70",
       "end": "0x1b1cdf",
       "kind": "auto",
       "n_r": 41,
-      "opnd_percent": 80.0,
-      "raw_mnemonic_pct": 85.0,
+      "opnd_percent": 85.7,
+      "raw_mnemonic_pct": 90.5,
       "ref": "synth",
       "ref_sha": "358e04191dd7e38e",
-      "score": 85.0,
+      "score": 90.5,
       "source": "src/halo/units/units.c"
     },
     "unit_melee_attack_begin": {
