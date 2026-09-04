@@ -304,7 +304,7 @@ void matrix4x3_identity_with_position(float *out, float *position)
   out[2] = position[2];
 }
 
-void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
+void matrix4x3_rotation_from_axis_and_angle(float *out_matrix, float *axis, float sine, float cosine)
 {
   float xx;
   float yy;

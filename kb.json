@@ -4446,8 +4446,8 @@
     },
     {
      "addr": "0x7d0d0",
-          "decl": "uint32_t bitmap_format_to_a8r8g8b8(short format, void *mipmap_address, int pixel_index);",
-          "ported": true
+     "decl": "uint32_t bitmap_format_to_a8r8g8b8(short format, void *mipmap_address, int pixel_index);",
+     "ported": true
     },
     {
      "addr": "0x7d300",
@@ -10154,7 +10154,7 @@
    "functions": [
     {
      "addr": "0xc0bb0",
-     "decl": "void FUN_000c0bb0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_force_active_by_unit(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
@@ -21720,7 +21720,7 @@
     },
     {
      "addr": "0x1092d0",
-     "decl": "void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine);",
+     "decl": "void matrix4x3_rotation_from_axis_and_angle(float *out_matrix, float *axis, float sine, float cosine);",
      "ported": true
     },
     {
@@ -27854,9 +27854,9 @@
      "ported": false
     },
     {
-      "addr": "0x1a2290",
-      "decl": "char FUN_001a2290(int unit_handle@<edi>);",
-      "ported": true
+     "addr": "0x1a2290",
+     "decl": "char FUN_001a2290(int unit_handle@<edi>);",
+     "ported": true
     },
     {
      "addr": "0x1a2440",
@@ -29974,9 +29974,9 @@
     },
     {
      "addr": "0x1827c0",
-          "decl": "void rasterizer_swizzle_interleave_bits(short param_1, short param_2, short param_3, unsigned int param_4, unsigned int param_5, unsigned int param_6, unsigned int *param_7);",
-          "name": "rasterizer_swizzle_interleave_bits",
-          "ported": true
+     "decl": "void rasterizer_swizzle_interleave_bits(short param_1, short param_2, short param_3, unsigned int param_4, unsigned int param_5, unsigned int param_6, unsigned int *param_7);",
+     "name": "rasterizer_swizzle_interleave_bits",
+     "ported": true
     },
     {
      "addr": "0x182840",
@@ -34646,7 +34646,7 @@
     },
     {
      "addr": "0x57900",
-     "decl": "void FUN_00057900(int param_1, char param_2);",
+     "decl": "void ai_force_active_by_unit(int param_1, char param_2);",
      "ported": true
     },
     {
@@ -34949,10 +34949,10 @@
      "ported": true
     },
     {
-      "addr": "0x5a5a0",
-      "decl": "char encounter_link_activation(int encounter_handle, short link_encounter_index);",
-      "name": "encounter_link_activation",
-      "ported": true
+     "addr": "0x5a5a0",
+     "decl": "char encounter_link_activation(int encounter_handle, short link_encounter_index);",
+     "name": "encounter_link_activation",
+     "ported": true
     },
     {
      "addr": "0x5a640",
