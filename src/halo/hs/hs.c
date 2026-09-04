@@ -1,31 +1,31 @@
-/* 0xc0bb0 — HS script function handler: apply a change via FUN_00057900.
+/* 0xc0bb0 — HS script function handler: ai_force_active_by_unit.
  * Same family as 0xc0c70 (identical codegen; differs only in the dispatch
  * callee). Evaluates the macro arguments; on success the result block holds
  * a value at +0x0 (int) and a byte at +0x4 (verified against disassembly
  * 0xc0bb0-0xc0be7: XOR EDX,EDX; MOV DL,[EAX+0x4] — a narrow byte load,
- * matching FUN_00057900's `char` second parameter). Calls
- * FUN_00057900(result[0], *(char *)(result + 1)) then returns void to the
+ * matching ai_force_active_by_unit's `char` second parameter). Calls
+ * ai_force_active_by_unit(result[0], *(char *)(result + 1)) then returns void to the
  * HS thread via hs_return(thread_datum, 0).
  *
  * Callees (all ported):
  *   0xcc560 = hs_macro_function_evaluate(int16 function_index,
  *                                        int thread_datum, char init)
  *               -> result record* or NULL
- *   0x57900 = FUN_00057900(int param_1, char param_2) -> void
+ *   0x57900 = ai_force_active_by_unit(int param_1, char param_2) -> void
  *   0xcbf80 = hs_return(int thread_handle, int value) -> void
  *
  * ABI note: the single ADD ESP,0x10 at 0xc0be2 covers both the
- * FUN_00057900 call's 2 pushed args and hs_return's 2 pushed args
+ * ai_force_active_by_unit call's 2 pushed args and hs_return's 2 pushed args
  * (cdecl caller-side cleanup deferred across consecutive calls) — not a
  * mismatch against hs_return's 2-parameter declaration. */
-void FUN_000c0bb0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_force_active_by_unit(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_00057900(result[0], *(char *)(result + 1));
+    ai_force_active_by_unit(result[0], *(char *)(result + 1));
     hs_return(thread_datum, 0);
   }
 }
