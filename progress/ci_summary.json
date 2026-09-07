@@ -1,45 +1,52 @@
 {
-  "generated": "2026-09-06T03:29:48.450759+00:00",
+  "generated": "2026-09-07T03:27:41.562430+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-09-06T03:28:42Z",
+    "last_run_time": "2026-09-07T03:26:25Z",
     "last_commit": "a613ab54",
     "workflows": [
       {
         "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-09-06T03:28:42Z",
+        "created_at": "2026-09-07T03:26:25Z",
         "head_sha": "a613ab54",
-        "url": "https://github.com/stianeklund/halo/actions/runs/34009087318"
+        "url": "https://github.com/stianeklund/halo/actions/runs/34079649776"
       },
       {
         "name": "Equivalence Tests",
         "conclusion": "failure",
-        "created_at": "2026-09-06T01:40:56Z",
+        "created_at": "2026-09-07T01:38:45Z",
         "head_sha": "a613ab54",
-        "url": "https://github.com/stianeklund/halo/actions/runs/34004522545"
+        "url": "https://github.com/stianeklund/halo/actions/runs/34073685644"
+      },
+      {
+        "name": "Compiler Profile Calibration",
+        "conclusion": "success",
+        "created_at": "2026-09-06T09:58:43Z",
+        "head_sha": "a613ab54",
+        "url": "https://github.com/stianeklund/halo/actions/runs/34026127012"
       },
       {
         "name": "Runtime Oracle Tests",
         "conclusion": "failure",
-        "created_at": "2026-09-05T07:59:10Z",
+        "created_at": "2026-09-06T08:17:17Z",
         "head_sha": "a613ab54",
-        "url": "https://github.com/stianeklund/halo/actions/runs/33954017222"
+        "url": "https://github.com/stianeklund/halo/actions/runs/34021430280"
       },
       {
         "name": "Audit Gates",
         "conclusion": "failure",
-        "created_at": "2026-09-05T07:18:21Z",
+        "created_at": "2026-09-06T07:31:11Z",
         "head_sha": "a613ab54",
-        "url": "https://github.com/stianeklund/halo/actions/runs/33952177433"
+        "url": "https://github.com/stianeklund/halo/actions/runs/34019370127"
       },
       {
         "name": "pages-build-deployment",
         "conclusion": "success",
-        "created_at": "2026-09-05T03:35:58Z",
-        "head_sha": "9919b0d6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/33942301229"
+        "created_at": "2026-09-06T03:29:56Z",
+        "head_sha": "6f83edfc",
+        "url": "https://github.com/stianeklund/halo/actions/runs/34009135277"
       },
       {
         "name": ".github/workflows/main.yml",
