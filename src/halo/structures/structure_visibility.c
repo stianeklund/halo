@@ -49,11 +49,11 @@ reset_sky:
     *(uint8_t *)0x506789 = 1;
 }
 
-/* FUN_001966b0: scenario visibility cluster sweep.
+/* render_structure_visibility_subcluster_traversal (0x1966b0): scenario visibility cluster sweep.
  *   For each rendered cluster, walk its frustum-visible portals
  *   and mark referenced bitfield entries until a cap (0x4000) is hit.
  *   param_1 = scenario pointer (tag block base at +0x134 = clusters table). */
-void FUN_001966b0(int param_1)
+void render_structure_visibility_subcluster_traversal(int param_1)
 {
   short *local_8;
   int local_10;
@@ -120,7 +120,7 @@ void FUN_001966b0(int param_1)
   }
 }
 
-/* FUN_00196850: structure visibility SURFACE sweep (sibling of 0x1966b0,
+/* render_structure_visibility_surface_traversal (0x196850): structure visibility SURFACE sweep (sibling of 0x1966b0,
  * which does the cube/portal sweep).
  *   For every rendered cluster, walk cluster->surface_indices (a long buffer
  *   at +0x48, count at +0x44). The buffer is a sequence of runs; each run has
@@ -138,7 +138,7 @@ void FUN_001966b0(int param_1)
  *   which case the global default at 0x5065a4 is used -- identical selection
  *   to 0x1966b0. Ghidra's decompile drops both this block and the part
  *   element; do not trust it. */
-void FUN_00196850(int param_1)
+void render_structure_visibility_surface_traversal(int param_1)
 {
   short *rendered_cluster;
   void *plane_ctx;

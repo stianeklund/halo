@@ -25587,7 +25587,7 @@
     },
     {
      "addr": "0x196190",
-     "decl": "void FUN_00196190(float *center, float radius_x4, float *bounds6, int count, float *planes6);",
+     "decl": "void render_structure_shadows(float *center, float radius_x4, float *bounds6, int count, float *planes6);",
      "ported": true
     },
     {
@@ -25862,25 +25862,25 @@
     },
     {
      "addr": "0x1966b0",
-     "decl": "void FUN_001966b0(int param_1);",
+     "decl": "void render_structure_visibility_subcluster_traversal(int param_1);",
      "ported": true
     },
     {
      "addr": "0x196850",
-     "decl": "void FUN_00196850(int param_1);",
+     "decl": "void render_structure_visibility_surface_traversal(int param_1);",
      "ported": true
     },
     {
      "addr": "0x196a60",
-     "decl": "int FUN_00196a60(float *cull_bounds @<ecx>, float *bounds @<edx>);"
+     "decl": "int structure_visibility_cull_bounds_test(float *cull_bounds @<ecx>, float *bounds @<edx>);"
     },
     {
      "addr": "0x196b10",
-     "decl": "int FUN_00196b10(float *bounds @<eax>, int param_2, int param_3);"
+     "decl": "int structure_visibility_frustum_test(float *bounds @<eax>, int param_2, int param_3);"
     },
     {
      "addr": "0x196c90",
-     "decl": "short FUN_00196c90(int out_handles, short max_count, void *iter_first, void *iter_next, void *get_bounds, void *needs_update, void *mark);"
+     "decl": "short structure_visibility_cluster_objects_gather(int out_handles, short max_count, void *iter_first, void *iter_next, void *get_bounds, void *needs_update, void *mark);"
     },
     {
      "addr": "0x196d60",
