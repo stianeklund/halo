@@ -5600,7 +5600,7 @@ void FUN_00196060(int object_handle, float *position, float radius,
 }
 
 /*
- * FUN_00196190 (0x196190) — structures.obj
+ * render_structure_shadows (0x196190) — structures.obj
  *
  * render_structure_shadows: structure shadow render entry.  Sibling of
  * FUN_00196060 (diffuse lights) / FUN_00195f30 (specular): identical shape, but
@@ -5631,8 +5631,8 @@ void FUN_00196060(int object_handle, float *position, float radius,
  *   - center/bounds/planes are pointers passed through as dwords; radius is a
  *     float by value.  All calls cdecl, args pushed right-to-left.
  */
-void FUN_00196190(float *center, float radius_x4, float *bounds6, int count,
-                  float *planes6)
+void render_structure_shadows(float *center, float radius_x4, float *bounds6, int count,
+                              float *planes6)
 {
   char buffer[0x4000];
   short surface_count;
@@ -5760,8 +5760,8 @@ __declspec(noinline) void structure_runtime_decals_dispose(void)
  * Gathers de-duplicated surface/portal indices from a set of clusters into
  * out_buf, capped at max_count.  For every cluster in cluster_indices[] it
  * walks the cluster's sub-block (element+0x34), and for each sub-element that
- * passes both the cull test FUN_00196a60(element, bounds) and the visibility
- * test FUN_00196b10(element, arg_1c, arg_20) it iterates the element's index
+ * passes both the cull test structure_visibility_cull_bounds_test(element, bounds) and the visibility
+ * test structure_visibility_frustum_test(element, arg_1c, arg_20) it iterates the element's index
  * list (element+0x18, dword indices).  Each index is bit-tested against the
  * allowed-set bitvector at 0x5137d0; if allowed and not yet marked in the
  * caller-supplied seen_mask bitvector, it is marked and appended to out_buf.
@@ -5820,9 +5820,9 @@ int16_t FUN_00196fd0(int *out_buf, int16_t max_count, int unused_10,
           }
           element = (char *)tag_block_get_element((void *)sub_block,
                                                   (short)inner_index, 0x24);
-          cull = (short)FUN_00196a60((float *)element, bounds);
+          cull = (short)structure_visibility_cull_bounds_test((float *)element, bounds);
           if (cull != 0) {
-            cull = (short)FUN_00196b10((float *)element, arg_1c, arg_20);
+            cull = (short)structure_visibility_frustum_test((float *)element, arg_1c, arg_20);
             if (cull != 0) {
               idx_block = (int *)(element + 0x18);
               idx_ptr = (int *)tag_block_get_element((void *)idx_block, 0, 4);
@@ -5872,7 +5872,7 @@ int16_t FUN_00196fd0(int *out_buf, int16_t max_count, int unused_10,
  *
  * Resolves the leaf element (scenario+0xe0, stride 0x10), validates it, derives
  * child bounds via FUN_00196eb0, and (unless intersection==2) culls against the
- * cull bounds via FUN_00196a60/FUN_00196b10 taking the min classification.  If
+ * cull bounds via structure_visibility_cull_bounds_test/structure_visibility_frustum_test taking the min classification.  If
  * the leaf is at all visible it walks the leaf's surface run (scenario+0xec,
  * stride 8), and for each surface's cluster index sets a bit in the global
  * cluster visibility set at 0x5137d0 gated bitset and, if newly visible and not
@@ -5930,8 +5930,8 @@ int FUN_00197130(float *bounds, void *param_2, int *param_3, int count,
 
   cull_result = (short)intersection;
   if ((short)intersection != 2) {
-    int a = FUN_00196a60(cull_bounds, local_20);
-    int b = FUN_00196b10(local_20, param_8, param_9);
+    int a = structure_visibility_cull_bounds_test(cull_bounds, local_20);
+    int b = structure_visibility_frustum_test(local_20, param_8, param_9);
     cull_result = a;
     if ((short)b < (short)a) {
       cull_result = b;
@@ -6353,7 +6353,7 @@ char FUN_001975e0(void *ref, void *frustum, void *out)
  *     EBX across the FPU block), not fVar1; the decompiler mis-aliased EBX.
  *   - FUN_00196eb0 is a 3-arg call (bounds, fractions, out); its 3rd arg is the
  *     &local_24 push that tag_block_get_element left on the stack (this is the
- *     ADD ESP,0xc "anomaly"). FUN_00196b10 takes &bounds in @eax. */
+ *     ADD ESP,0xc "anomaly"). structure_visibility_frustum_test takes &bounds in @eax. */
 unsigned short FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
                             int *param_4, int param_5, float *center,
                             float radius, float *cull_bounds, int param_9,
@@ -6412,10 +6412,10 @@ unsigned short FUN_001978a0(int node_index, float *parent_bounds, void *param_3,
   FUN_00196eb0(parent_bounds, fractions, bounds);
 
   if ((short)mode != 2) {
-    mode = FUN_00196a60(cull_bounds, bounds);
+    mode = structure_visibility_cull_bounds_test(cull_bounds, bounds);
     if ((short)mode == 0)
       return (unsigned short)accum;
-    t = FUN_00196b10(bounds, param_9, param_10);
+    t = structure_visibility_frustum_test(bounds, param_9, param_10);
     if ((short)t == 2)
       param_9 = 0;
     if ((short)mode > (short)t)
@@ -6684,8 +6684,8 @@ void FUN_00198070(void)
  *   the scenario pointer, but is reused as the loop's bit_index inside the
  *   sweep and reloaded from [EBP-4] afterward.  Kept as two distinct C locals
  *   (scenario / bit_index).  The final structure_bsp record at
- *   tag_block_get_element(clusters,0,0x68)+0x34 selects FUN_001966b0 (!=0, has
- *   precomputed visibility) vs FUN_00196850 (==0, legacy path that emits the
+ *   tag_block_get_element(clusters,0,0x68)+0x34 selects render_structure_visibility_subcluster_traversal (!=0, has
+ *   precomputed visibility) vs render_structure_visibility_surface_traversal (==0, legacy path that emits the
  *   reimport warning).
  *
  *   __FILE__ = c:\halo\SOURCE\structures\structure_visibility.c */
@@ -6766,10 +6766,10 @@ void render_structure_visibility(void)
       }
       *(char *)0x4d8ed0 = '\x01';
     }
-    FUN_00196850(scenario);
+    render_structure_visibility_surface_traversal(scenario);
     return;
   }
-  FUN_001966b0(scenario);
+  render_structure_visibility_subcluster_traversal(scenario);
 }
 
 void structures_initialize(void)

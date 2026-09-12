@@ -108,9 +108,9 @@ double pow(double x, double y);
 #define CALL_FUN_007c490(a, b, c, d, e, f)                          \
   XCALL(0x7c490, void (*)(int, int, void *, void *, void *, float)) \
   (a, b, c, d, e, f)
-#define CALL_FUN_00196c90(a, b, c, d, e, f, g)                        \
-  XCALL(0x196c90,                                                     \
-        int (*)(void *, int, void *, void *, void *, void *, void *)) \
+#define CALL_structure_visibility_cluster_objects_gather(a, b, c, d, e, f, g) \
+  XCALL(0x196c90,                                                             \
+        int (*)(void *, int, void *, void *, void *, void *, void *))         \
   (a, b, c, d, e, f, g)
 #define CALL_FUN_00123470(a, b, c, d) \
   XCALL(0x123470, void (*)(void *, void *, int, void *))(a, b, c, d)
@@ -4843,7 +4843,7 @@ void FUN_0013b380(void)
   }
   *(int *)0x5a8d64 = *(int *)0x5a8d64 + 1;
   *(char *)0x5a8d60 = '\x01';
-  *(short *)0x5a8d68 = (short)CALL_FUN_00196c90(
+  *(short *)0x5a8d68 = (short)CALL_structure_visibility_cluster_objects_gather(
     (void *)0x5a8d6c, 0x80, (void *)0x1398b0, (void *)0x1398d0,
     (void *)0x13a340, (void *)0x139930, (void *)0x139990);
   if (*(char *)0x5a8d60 == '\0') {
