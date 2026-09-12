@@ -1502,7 +1502,7 @@ void FUN_00057850(unsigned int param_1, char param_2)
  * If AI trace (0x5aca59) is set, logs the HS thread name and the boolean.
  * 0x57900 / encounters.obj
  */
-void FUN_00057900(int param_1, char param_2)
+void ai_force_active_by_unit(int param_1, char param_2)
 {
   char *actor;
   char *encounter_def;

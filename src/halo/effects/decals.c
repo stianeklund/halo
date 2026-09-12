@@ -2083,7 +2083,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                   sine = x87_fsin(angle);
                   cosine = x87_fcos(angle);
 
-                  FUN_001092d0(rotation_matrix, axis, sine, cosine);
+                  matrix4x3_rotation_from_axis_and_angle(rotation_matrix, axis, sine, cosine);
 
                   rotated_origin[0] = basis[10] - best_start[0];
                   rotated_origin[1] = basis[11] - best_start[1];
