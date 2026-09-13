@@ -10489,98 +10489,117 @@
     },
     {
      "addr": "0xc1930",
-     "decl": "void FUN_000c1930(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_players_unzoom_all(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_players_unzoom_all"
     },
     {
      "addr": "0xc1950",
-     "decl": "void FUN_000c1950(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_enable_input(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_enable_input"
     },
     {
      "addr": "0xc1990",
-     "decl": "void FUN_000c1990(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_camera_control(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_camera_control"
     },
     {
      "addr": "0xc19e0",
-     "decl": "void FUN_000c19e0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_reset(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_reset"
     },
     {
      "addr": "0xc1a00",
-     "decl": "void FUN_000c1a00(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_jump(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_jump"
     },
     {
      "addr": "0xc1a30",
-     "decl": "void FUN_000c1a30(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_primary_trigger(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_primary_trigger"
     },
     {
      "addr": "0xc1a60",
-     "decl": "void FUN_000c1a60(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_grenade_trigger(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_grenade_trigger"
     },
     {
      "addr": "0xc1a90",
-     "decl": "void FUN_000c1a90(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_zoom(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_zoom"
     },
     {
      "addr": "0xc1ac0",
-     "decl": "void FUN_000c1ac0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_action(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_action"
     },
     {
      "addr": "0xc1af0",
-     "decl": "void FUN_000c1af0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_accept(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_accept"
     },
     {
      "addr": "0xc1b20",
-     "decl": "void FUN_000c1b20(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_back(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_back"
     },
     {
      "addr": "0xc1b50",
-     "decl": "void FUN_000c1b50(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_look_relative_up(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_look_relative_up"
     },
     {
      "addr": "0xc1b80",
-     "decl": "void FUN_000c1b80(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_look_relative_down(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_look_relative_down"
     },
     {
      "addr": "0xc1bb0",
-     "decl": "void FUN_000c1bb0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_look_relative_left(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_look_relative_left"
     },
     {
      "addr": "0xc1be0",
-     "decl": "void FUN_000c1be0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_look_relative_right(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_look_relative_right"
     },
     {
      "addr": "0xc1c10",
-     "decl": "void FUN_000c1c10(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_look_relative_all_directions(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_look_relative_all_directions"
     },
     {
      "addr": "0xc1c40",
-     "decl": "void FUN_000c1c40(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_action_test_move_relative_all_directions(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_action_test_move_relative_all_directions"
     },
     {
      "addr": "0xc1c70",
-     "decl": "void FUN_000c1c70(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_add_equipment(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_add_equipment"
     },
     {
      "addr": "0xc1cb0",
-     "decl": "void FUN_000c1cb0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_debug_teleport_player(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_debug_teleport_player"
     },
     {
      "addr": "0xc1cf0",

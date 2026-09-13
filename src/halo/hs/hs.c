@@ -1565,10 +1565,11 @@ void FUN_000c1900(int16_t function_index, int thread_datum, char init)
  *   0xb69d0 = players_unzoom_all(void)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c1930(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_players_unzoom_all(int16_t function_index, int thread_datum, char init)
 {
   players_unzoom_all();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc1950 — HS script function handler: enable/disable player input.
@@ -1597,7 +1598,7 @@ void FUN_000c1930(int16_t function_index, int thread_datum, char init)
  *   0xba6d0 = player_input_enable(bool)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c1950(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_enable_input(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -1607,6 +1608,7 @@ void FUN_000c1950(int16_t function_index, int thread_datum, char init)
     player_input_enable(*(char *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc1990 — HS script function handler: set the scripted-camera-control flag
@@ -1664,7 +1666,7 @@ void FUN_000c1950(int16_t function_index, int thread_datum, char init)
  *   0xb6430 = scripted_player_control_set_camera_control(bool)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c1990(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_camera_control(int16_t function_index, int thread_datum, char init)
 {
   int *result;
   int value;
@@ -1677,6 +1679,7 @@ void FUN_000c1990(int16_t function_index, int thread_datum, char init)
     *(char *)&value = *(char *)result;
     hs_return(thread_datum, value);
   }
+  return;
 }
 
 /* 0xc19e0 — HS script function handler: clears the recorded player control
@@ -1693,10 +1696,11 @@ void FUN_000c1990(int16_t function_index, int thread_datum, char init)
  * standard hs-evaluator signature shared by the sibling handlers but are
  * unused here.  There is no hs_macro_function_evaluate call, so this is the
  * no-argument variant (same shape as 0xc0cb0). */
-void FUN_000c19e0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_reset(int16_t function_index, int thread_datum, char init)
 {
   player_control_action_test_reset();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc1a00 — HS script function handler: reports whether the recorded player
@@ -1719,13 +1723,14 @@ void FUN_000c19e0(int16_t function_index, int thread_datum, char init)
  * reproduces that pair; a direct call-in-argument or a (unsigned char) widen
  * would emit MOVZX instead.  This is the same idiom as the sibling at
  * 0xc1990. */
-void FUN_000c1a00(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_jump(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_jump();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1a30 — HS script function handler: reports whether the recorded player
@@ -1749,13 +1754,14 @@ void FUN_000c1a00(int16_t function_index, int thread_datum, char init)
  * call-in-argument or a (unsigned char) widen would emit MOVZX instead.  This
  * is a BYTE store, unlike the WORD-store siblings at 0xc18d0/0xc1900.  Same
  * idiom as the adjacent handler at 0xc1a00. */
-void FUN_000c1a30(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_primary_trigger(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_primary_trigger();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1a60 — HS script function handler: reports whether the recorded player
@@ -1778,13 +1784,14 @@ void FUN_000c1a30(int16_t function_index, int thread_datum, char init)
  * The `*(char *)&value` store reproduces that pair; a direct
  * call-in-argument or a (unsigned char) widen would emit MOVZX instead.
  * Identical idiom to the adjacent handlers at 0xc1a00/0xc1a30. */
-void FUN_000c1a60(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_grenade_trigger(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_grenade_trigger();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1a90 — HS script function handler: reports whether the recorded player
@@ -1807,13 +1814,14 @@ void FUN_000c1a60(int16_t function_index, int thread_datum, char init)
  * The `*(char *)&value` store reproduces that pair; a direct
  * call-in-argument or a (unsigned char) widen would emit MOVZX instead.
  * Identical idiom to the adjacent handlers at 0xc1a00/0xc1a30/0xc1a60. */
-void FUN_000c1a90(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_zoom(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_zoom();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1ac0 — HS script function handler: reports whether the recorded player
@@ -1829,7 +1837,7 @@ void FUN_000c1a90(int16_t function_index, int thread_datum, char init)
  * EBP-0x4; no SUB ESP).  The body reads only [EBP+0xc] = thread_datum
  * (arg 2); function_index and init complete the standard hs-evaluator
  * signature shared by the sibling handlers but are unused here.  The Ghidra
- * `void FUN_000c1ac0(void)` prototype is wrong — the frame reads [EBP+0xc],
+ * `void hs_evaluate_player_action_test_action(void)` prototype is wrong — the frame reads [EBP+0xc],
  * which Ghidra surfaces as `in_stack_00000008`.
  *
  * The result local is zero-initialised as a full dword (MOV dword [EBP-4],0)
@@ -1840,13 +1848,14 @@ void FUN_000c1a90(int16_t function_index, int thread_datum, char init)
  * Push order at 0xc1ad9 (PUSH EAX ; PUSH ECX, ECX = [EBP+0xc]) confirms
  * thread_datum is hs_return's first argument.  Identical idiom to the
  * adjacent handlers at 0xc1a00/0xc1a30/0xc1a60/0xc1a90. */
-void FUN_000c1ac0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_action(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_action();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1af0 — HS script function handler: reports whether the recorded player
@@ -1862,7 +1871,7 @@ void FUN_000c1ac0(int16_t function_index, int thread_datum, char init)
  * EBP-0x4; no SUB ESP).  The body reads only [EBP+0xc] = thread_datum
  * (arg 2); function_index and init complete the standard hs-evaluator
  * signature shared by the sibling handlers but are unused here.  The Ghidra
- * `void FUN_000c1af0(void)` prototype is wrong — the frame reads [EBP+0xc],
+ * `void hs_evaluate_player_action_test_accept(void)` prototype is wrong — the frame reads [EBP+0xc],
  * which Ghidra surfaces as `in_stack_00000008`.
  *
  * The result local is zero-initialised as a full dword (MOV dword [EBP-4],0)
@@ -1873,13 +1882,14 @@ void FUN_000c1ac0(int16_t function_index, int thread_datum, char init)
  * Push order at 0xc1b09 (PUSH EAX ; PUSH ECX, ECX = [EBP+0xc]) confirms
  * thread_datum is hs_return's first argument.  Identical idiom to the
  * adjacent handlers at 0xc1a00/0xc1a30/0xc1a60/0xc1a90/0xc1ac0. */
-void FUN_000c1af0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_accept(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_accept();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1b20 — HS script function handler: reports whether the recorded player
@@ -1895,7 +1905,7 @@ void FUN_000c1af0(int16_t function_index, int thread_datum, char init)
  * EBP-0x4; no SUB ESP).  The body reads only [EBP+0xc] = thread_datum
  * (arg 2); function_index and init complete the standard hs-evaluator
  * signature shared by the sibling handlers but are unused here.  The Ghidra
- * `void FUN_000c1b20(void)` prototype is wrong — the frame reads [EBP+0xc],
+ * `void hs_evaluate_player_action_test_back(void)` prototype is wrong — the frame reads [EBP+0xc],
  * which Ghidra surfaces as `in_stack_00000008`.  No ADD ESP follows the
  * 0xb6ad0 CALL, confirming player_control_action_test_back takes no args.
  *
@@ -1908,13 +1918,14 @@ void FUN_000c1af0(int16_t function_index, int thread_datum, char init)
  * confirms thread_datum is hs_return's first argument, and the ADD ESP,0x8 at
  * 0xc1b40 confirms hs_return's two cdecl args.  Identical idiom to the
  * adjacent handlers at 0xc1a00/0xc1a30/0xc1a60/0xc1a90/0xc1ac0/0xc1af0. */
-void FUN_000c1b20(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_back(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_back();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1b50 — HS script function handler: reports whether the recorded player
@@ -1930,7 +1941,7 @@ void FUN_000c1b20(int16_t function_index, int thread_datum, char init)
  * EBP-0x4; no SUB ESP).  The body reads only [EBP+0xc] = thread_datum
  * (arg 2); function_index and init complete the standard hs-evaluator
  * signature shared by the sibling handlers but are unused here.  The Ghidra
- * `void FUN_000c1b50(void)` prototype is wrong — the frame reads [EBP+0xc],
+ * `void hs_evaluate_player_action_test_look_relative_up(void)` prototype is wrong — the frame reads [EBP+0xc],
  * which Ghidra surfaces as `in_stack_00000008`, and Ghidra's `extraout_AL` is
  * the AL return of the predicate, not a register argument.  No ADD ESP
  * follows the 0xb6bb0 CALL, confirming the predicate takes no args.
@@ -1944,13 +1955,14 @@ void FUN_000c1b20(int16_t function_index, int thread_datum, char init)
  * hs_return's first argument, and the trailing ADD ESP,0x8 confirms
  * hs_return's two cdecl args.  Identical idiom to the adjacent handlers at
  * 0xc1a00/0xc1a30/0xc1a60/0xc1a90/0xc1ac0/0xc1af0/0xc1b20. */
-void FUN_000c1b50(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_look_relative_up(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_look_relative_up();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1b80 — HS script function handler: reports whether the recorded player
@@ -1966,7 +1978,7 @@ void FUN_000c1b50(int16_t function_index, int thread_datum, char init)
  * EBP-0x4; no SUB ESP).  The body reads only [EBP+0xc] = thread_datum
  * (arg 2); function_index and init complete the standard hs-evaluator
  * signature shared by the sibling handlers but are unused here.  The Ghidra
- * `void FUN_000c1b80(void)` prototype is wrong — the frame reads [EBP+0xc],
+ * `void hs_evaluate_player_action_test_look_relative_down(void)` prototype is wrong — the frame reads [EBP+0xc],
  * which Ghidra surfaces as `in_stack_00000008`, and Ghidra's `extraout_AL` is
  * the AL return of the predicate, not a register argument.  No ADD ESP
  * follows the 0xb6bc0 CALL, confirming the predicate takes no args.
@@ -1981,13 +1993,14 @@ void FUN_000c1b50(int16_t function_index, int thread_datum, char init)
  * hs_return's two cdecl args.  Identical idiom to the adjacent handlers at
  * 0xc1a00/0xc1a30/0xc1a60/0xc1a90/0xc1ac0/0xc1af0/0xc1b20/0xc1b50, completing
  * the look-relative direction quartet (left/right/up/down). */
-void FUN_000c1b80(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_look_relative_down(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_look_relative_down();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1bb0 - HaloScript evaluator for the "look relative left" control test.
@@ -2002,7 +2015,7 @@ void FUN_000c1b80(int16_t function_index, int thread_datum, char init)
  * EBP-0x4; no SUB ESP).  The body reads only [EBP+0xc] = thread_datum
  * (arg 2); function_index and init complete the standard hs-evaluator
  * signature shared by the sibling handlers but are unused here.  The Ghidra
- * `void FUN_000c1bb0(void)` prototype is wrong — the frame reads [EBP+0xc],
+ * `void hs_evaluate_player_action_test_look_relative_left(void)` prototype is wrong — the frame reads [EBP+0xc],
  * which Ghidra surfaces as `in_stack_00000008`, and Ghidra's `extraout_AL` is
  * the AL return of the predicate, not a register argument.  No ADD ESP
  * follows the 0xb6b90 CALL, confirming the predicate takes no args.
@@ -2018,13 +2031,14 @@ void FUN_000c1b80(int16_t function_index, int thread_datum, char init)
  * hs_macro_function_evaluate call and no NULL-result check — the body
  * contains exactly two CALLs.  Identical idiom to the adjacent handlers at
  * 0xc1a00 through 0xc1b80. */
-void FUN_000c1bb0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_look_relative_left(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_look_relative_left();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1be0 - HaloScript evaluator for the "look relative right" control test.
@@ -2040,7 +2054,7 @@ void FUN_000c1bb0(int16_t function_index, int thread_datum, char init)
  * EBP-0x4; no SUB ESP).  The body reads only [EBP+0xc] = thread_datum
  * (arg 2); function_index and init complete the standard hs-evaluator
  * signature shared by the sibling handlers but are unused here.  The Ghidra
- * `void FUN_000c1be0(void)` prototype is wrong — the frame reads [EBP+0xc],
+ * `void hs_evaluate_player_action_test_look_relative_right(void)` prototype is wrong — the frame reads [EBP+0xc],
  * which Ghidra surfaces as `in_stack_00000008`, and Ghidra's `extraout_AL` is
  * the AL return of the predicate, not a register argument.  No ADD ESP
  * follows the 0xb6ba0 CALL, confirming the predicate takes no args.
@@ -2056,13 +2070,14 @@ void FUN_000c1bb0(int16_t function_index, int thread_datum, char init)
  * hs_macro_function_evaluate call and no NULL-result check — the body
  * contains exactly two CALLs.  Completes the look-relative direction quartet
  * (left/right/up/down) at 0xc1a00 through 0xc1be0. */
-void FUN_000c1be0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_look_relative_right(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)player_control_action_test_look_relative_right();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1c10 — HS script function handler: reports whether the recorded player
@@ -2079,7 +2094,7 @@ void FUN_000c1be0(int16_t function_index, int thread_datum, char init)
  * EBP-0x4; no SUB ESP).  The body reads only [EBP+0xc] = thread_datum
  * (arg 2); function_index and init complete the standard hs-evaluator
  * signature shared by the sibling handlers but are unused here.  The Ghidra
- * `void FUN_000c1c10(void)` prototype is wrong — the frame reads [EBP+0xc],
+ * `void hs_evaluate_player_action_test_look_relative_all_directions(void)` prototype is wrong — the frame reads [EBP+0xc],
  * which Ghidra surfaces as `in_stack_00000008`, and Ghidra's `extraout_AL` is
  * the AL return of the predicate, not a register argument.  No ADD ESP
  * follows the 0xb6b70 CALL, confirming the predicate takes no args.
@@ -2098,7 +2113,7 @@ void FUN_000c1be0(int16_t function_index, int thread_datum, char init)
  * no hs_macro_function_evaluate call and no NULL-result check — the body
  * contains exactly two CALLs.  Follows the look-relative direction quartet at
  * 0xc1a00 through 0xc1be0 with the any-direction aggregate. */
-void FUN_000c1c10(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_look_relative_all_directions(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
@@ -2106,6 +2121,7 @@ void FUN_000c1c10(int16_t function_index, int thread_datum, char init)
   *(char *)&value =
     (char)player_control_action_test_look_relative_all_directions();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1c40 — HS script-function handler: query whether the local player is
@@ -2136,7 +2152,7 @@ void FUN_000c1c10(int16_t function_index, int thread_datum, char init)
  * hs_return's two cdecl args.  Like 0xc1bb0/0xc1be0/0xc1c10 this handler has
  * no hs_macro_function_evaluate call and no NULL-result check — the body
  * contains exactly two CALLs. */
-void FUN_000c1c40(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_action_test_move_relative_all_directions(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
@@ -2144,6 +2160,7 @@ void FUN_000c1c40(int16_t function_index, int thread_datum, char init)
   *(char *)&value =
     (char)player_control_action_test_move_relative_all_directions();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc1c70 — HS script-function handler for `player_add_equipment`.  Evaluates
@@ -2175,7 +2192,7 @@ void FUN_000c1c40(int16_t function_index, int thread_datum, char init)
  *
  * Cleanup for both calls is coalesced into a single ADD ESP,0x14 (0xc + 0x8)
  * after the hs_return CALL — ordinary MSVC codegen, not a stack imbalance. */
-void FUN_000c1c70(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_add_equipment(int16_t function_index, int thread_datum, char init)
 {
   int *args;
 
@@ -2187,14 +2204,14 @@ void FUN_000c1c70(int16_t function_index, int thread_datum, char init)
   return;
 }
 
-/* FUN_000c1cb0 @ 0x000c1cb0 — HaloScript builtin handler: evaluate the script
+/* hs_evaluate_debug_teleport_player @ 0x000c1cb0 — HaloScript builtin handler: evaluate the script
  * function's arguments and, on a non-NULL evaluation record, teleport a
  * player, then commit a 0 result to the calling HS thread.
  *
  * ABI (verified against the disassembly at 0xc1cb0): cdecl, plain RET.  The
  * frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no locals and no SUB ESP; ESI is
  * the only callee-saved register used and caches thread_datum so it can be
- * reused as hs_return's first argument.  Ghidra's `void FUN_000c1cb0(void)`
+ * reused as hs_return's first argument.  Ghidra's `void hs_evaluate_debug_teleport_player(void)`
  * prototype came from the stale kb declaration, which is why it reported the
  * parameters as in_stack_00000004/8/c; the real slots are [EBP+0x8] =
  * function_index (int16, arrives in ECX), [EBP+0xc] = thread_datum,
@@ -2216,7 +2233,7 @@ void FUN_000c1c70(int16_t function_index, int thread_datum, char init)
  * ADD ESP,0x10 (0x8 + 0x8) — ordinary MSVC adjacent-call codegen, not a stack
  * imbalance, and the reason the ARG_COUNT enrichment hazard reported against
  * hs_return (cleanup=4 vs decl=2) is a false positive. */
-void FUN_000c1cb0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_debug_teleport_player(int16_t function_index, int thread_datum, char init)
 {
   char *args;
 
@@ -4367,7 +4384,7 @@ void FUN_000c26d0(int16_t function_index, int thread_datum, char init)
 /* 0xc26f0 — core-load-by-name HaloScript function evaluator.  Evaluates the
  * script function's arguments and, on a non-NULL evaluation record, loads the
  * named core, then commits a 0 result to the calling script thread.  Same
- * shape as FUN_000c1cb0 at 0xc1cb0 (evaluate / null-check / one side-effect
+ * shape as hs_evaluate_debug_teleport_player at 0xc1cb0 (evaluate / null-check / one side-effect
  * callee reading the record / hs_return) with the side-effect callee and the
  * record field width swapped.
  *
