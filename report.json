@@ -43,8 +43,8 @@
     }
   },
   "meta": {
-    "timestamp": "2026-09-13T13:43:42.941605+02:00",
-    "commit": "6b14f020973",
+    "timestamp": "2026-09-13T14:27:16.928420+02:00",
+    "commit": "51257b3c949",
     "branch": "main",
     "tool_version": "1.0.0"
   },
@@ -59618,7 +59618,7 @@
         },
         {
           "address": "0x196190",
-          "name": "FUN_00196190",
+          "name": "render_structure_shadows",
           "size": 246,
           "status": "unknown",
           "ported": true,
@@ -164921,8 +164921,8 @@
           "size": 143,
           "status": "ported",
           "ported": true,
-          "match_percent": 86.0,
-          "opnd_percent": 79.1,
+          "match_percent": 89.4,
+          "opnd_percent": 82.4,
           "vc71_flagged": null,
           "equiv_class": null,
           "equiv_coverage": null,
@@ -165524,8 +165524,8 @@
         "bytes_total": 17697,
         "bytes_ported": 9446,
         "bytes_percent": 53.38,
-        "match_avg": 81.8,
-        "match_weighted": 80.1,
+        "match_avg": 82.0,
+        "match_weighted": 80.2,
         "match_scored_count": 18,
         "match_scored_bytes": 9446,
         "match_coverage_percent": 100.0,
