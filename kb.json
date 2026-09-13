@@ -10938,73 +10938,87 @@
     },
     {
      "addr": "0xc2840",
-     "decl": "void FUN_000c2840(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_sound_impulse_start(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_sound_impulse_start"
     },
     {
      "addr": "0xc2880",
-     "decl": "void FUN_000c2880(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_sound_impulse_time(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_sound_impulse_time"
     },
     {
      "addr": "0xc28c0",
-     "decl": "void FUN_000c28c0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_sound_impulse_stop(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_sound_impulse_stop"
     },
     {
      "addr": "0xc2900",
-     "decl": "void FUN_000c2900(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_sound_looping_predict(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_sound_looping_predict"
     },
     {
      "addr": "0xc2940",
-     "decl": "void FUN_000c2940(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_sound_looping_start(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_sound_looping_start"
     },
     {
      "addr": "0xc2980",
-     "decl": "void FUN_000c2980(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_sound_looping_stop(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_sound_looping_stop"
     },
     {
      "addr": "0xc29c0",
-     "decl": "void FUN_000c29c0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_sound_looping_set_scale(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_sound_looping_set_scale"
     },
     {
      "addr": "0xc2a00",
-     "decl": "void FUN_000c2a00(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_sound_looping_set_alternate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_sound_looping_set_alternate"
     },
     {
      "addr": "0xc2a40",
-     "decl": "void FUN_000c2a40(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_debug_sounds_enable(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_debug_sounds_enable"
     },
     {
      "addr": "0xc2a80",
-     "decl": "void FUN_000c2a80(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_debug_sounds_distances(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_debug_sounds_distances"
     },
     {
      "addr": "0xc2ad0",
-     "decl": "void FUN_000c2ad0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_debug_sounds_wet(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_debug_sounds_wet"
     },
     {
      "addr": "0xc2b10",
-     "decl": "void FUN_000c2b10(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_sound_class_set_gain(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_sound_class_set_gain"
     },
     {
      "addr": "0xc2b50",
-     "decl": "void FUN_000c2b50(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_sound_enable(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_sound_enable"
     },
     {
      "addr": "0xc2b90",
-     "decl": "void FUN_000c2b90(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_vehicle_hover(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_vehicle_hover"
     },
     {
      "addr": "0xc2bd0",

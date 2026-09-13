@@ -4714,11 +4714,11 @@ void hs_evaluate_game_reverted(int16_t function_index, int thread_datum, char in
  * 0xc2877 (0xc for scripted_sound_new + 0x8 for hs_return); a naive cdecl
  * reading of that single cleanup mis-sizes either call's argument list.
  *
- * kb note: the prior decl was the placeholder `void FUN_000c2840(void);`,
+ * kb note: the prior decl was the placeholder `void hs_evaluate_sound_impulse_start(void);`,
  * which contradicts the reads of [EBP+0x8]/[EBP+0xc]/[EBP+0x10]; it is
  * corrected to the 3-argument evaluator signature shared with the ported
  * neighbours at 0xc2810/0xc2880. */
-void FUN_000c2840(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_sound_impulse_start(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -4728,6 +4728,7 @@ void FUN_000c2840(int16_t function_index, int thread_datum, char init)
     scripted_sound_new(result[0], result[1], *(float *)(result + 2));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2880 — HS script function handler: scripted-sound time query.
@@ -4742,7 +4743,7 @@ void FUN_000c2840(int16_t function_index, int thread_datum, char init)
  * Note the original coalesces both callee cleanups into one `add esp,0xc` at
  * 0xc28ab; a naive cdecl reading of that makes hs_return look like it takes 3
  * stack args, but it takes 2. */
-void FUN_000c2880(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_sound_impulse_time(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -4751,6 +4752,7 @@ void FUN_000c2880(int16_t function_index, int thread_datum, char init)
   if (result != NULL) {
     hs_return(thread_datum, scripted_sound_time(result[0]));
   }
+  return;
 }
 
 /* 0xc28c0 — HS script function handler: stop a scripted sound.
@@ -4763,7 +4765,7 @@ void FUN_000c2880(int16_t function_index, int thread_datum, char init)
  * ABI (verified against disassembly 0xc28c0-0xc28f1, 50 bytes): cdecl, frame
  * is PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and no `sub esp`.  ESI
  * holds thread_datum ([EBP+0xc]) across both calls.  Ghidra's
- * `void FUN_000c28c0(void)` prototype is wrong — the three `in_stack_*`
+ * `void hs_evaluate_sound_impulse_stop(void)` prototype is wrong — the three `in_stack_*`
  * phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard hs-evaluator triple;
  * the push order is PUSH EAX(init); PUSH ESI(thread_datum); PUSH ECX(index).
  *
@@ -4779,8 +4781,8 @@ void FUN_000c2880(int16_t function_index, int thread_datum, char init)
  * (1 + 2 = 3 dwords) — it is not evidence of a 3-argument hs_return.
  *
  * hs_macro_function_evaluate is declared returning `int` in kb.json but is
- * used here as a pointer, so it is cast (same as FUN_000c2840/FUN_000c2880). */
-void FUN_000c28c0(int16_t function_index, int thread_datum, char init)
+ * used here as a pointer, so it is cast (same as hs_evaluate_sound_impulse_start/hs_evaluate_sound_impulse_time). */
+void hs_evaluate_sound_impulse_stop(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -4790,6 +4792,7 @@ void FUN_000c28c0(int16_t function_index, int thread_datum, char init)
     scripted_sound_stop(result[0]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2900 — HS script function handler: predict (pre-roll) a scripted foley.
@@ -4802,7 +4805,7 @@ void FUN_000c28c0(int16_t function_index, int thread_datum, char init)
  * ABI (verified against disassembly 0xc2900-0xc2931, 50 bytes): cdecl, plain
  * RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no locals, no `sub esp`, no
  * _chkstk, no SEH.  ESI holds thread_datum ([EBP+0xc]) across both calls.
- * Ghidra's `void FUN_000c2900(void)` prototype is wrong: the three
+ * Ghidra's `void hs_evaluate_sound_looping_predict(void)` prototype is wrong: the three
  * `in_stack_*` phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard
  * hs-evaluator triple.  Push order at the evaluator call is
  * PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=thread_datum);
@@ -4822,8 +4825,8 @@ void FUN_000c28c0(int16_t function_index, int thread_datum, char init)
  *
  * hs_macro_function_evaluate is declared returning `int` in kb.json but its
  * EAX result is dereferenced here, so it is cast to a pointer (same as
- * FUN_000c2840/FUN_000c2880/FUN_000c28c0). */
-void FUN_000c2900(int16_t function_index, int thread_datum, char init)
+ * hs_evaluate_sound_impulse_start/hs_evaluate_sound_impulse_time/hs_evaluate_sound_impulse_stop). */
+void hs_evaluate_sound_looping_predict(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -4833,6 +4836,7 @@ void FUN_000c2900(int16_t function_index, int thread_datum, char init)
     scripted_foley_predict(result[0]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2940 — HS script function handler: start a looping sound.
@@ -4845,7 +4849,7 @@ void FUN_000c2900(int16_t function_index, int thread_datum, char init)
  * ABI (verified against disassembly 0xc2940-0xc297d, 29 instructions): cdecl,
  * plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no locals, no
  * `sub esp`, no _chkstk, no SEH.  ESI holds thread_datum ([EBP+0xc]) across
- * both calls.  Ghidra's `void FUN_000c2940(void)` prototype is wrong: its
+ * both calls.  Ghidra's `void hs_evaluate_sound_looping_start(void)` prototype is wrong: its
  * three `in_stack_*` phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard
  * hs-evaluator triple.  Push order at the evaluator call is
  * PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=thread_datum);
@@ -4865,7 +4869,7 @@ void FUN_000c2900(int16_t function_index, int thread_datum, char init)
  * BOTH calls (0xc for sound_looping_start + 0x8 for hs_return); a naive cdecl
  * reading of that one cleanup makes hs_return look like it takes 5 stack
  * args, but it takes 2. */
-void FUN_000c2940(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_sound_looping_start(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -4875,6 +4879,7 @@ void FUN_000c2940(int16_t function_index, int thread_datum, char init)
     sound_looping_start(result[0], result[1], *(float *)(result + 2));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2980 — HS script function handler: stop a looping sound.
@@ -4888,7 +4893,7 @@ void FUN_000c2940(int16_t function_index, int thread_datum, char init)
  * ABI (verified against disassembly 0xc2980-0xc29b1, 50 bytes): cdecl, plain
  * RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no locals, no `sub esp`, no
  * _chkstk, no SEH, no FPU.  ESI holds thread_datum ([EBP+0xc]) across both
- * calls.  Ghidra's `void FUN_000c2980(void)` prototype is wrong: its three
+ * calls.  Ghidra's `void hs_evaluate_sound_looping_stop(void)` prototype is wrong: its three
  * `in_stack_*` phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard
  * hs-evaluator triple.  Push order at the evaluator call is
  * PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=thread_datum);
@@ -4905,7 +4910,7 @@ void FUN_000c2940(int16_t function_index, int thread_datum, char init)
  * that one cleanup makes hs_return look like it takes 3 stack args, but it
  * takes 2.  The call-site audit's ARG_COUNT warning here is that false
  * positive. */
-void FUN_000c2980(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_sound_looping_stop(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -4915,6 +4920,7 @@ void FUN_000c2980(int16_t function_index, int thread_datum, char init)
     sound_looping_stop(result[0]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc29c0 — HS script function handler: set a scripted looping sound's scale.
@@ -4930,7 +4936,7 @@ void FUN_000c2980(int16_t function_index, int thread_datum, char init)
  * ABI (verified against the same disassembly): cdecl, plain RET, frame is
  * PUSH EBP; MOV EBP,ESP; PUSH ESI — no locals, no `sub esp`, no _chkstk, no
  * SEH.  ESI holds thread_datum ([EBP+0xc]) across both calls.  Ghidra's
- * `void FUN_000c29c0(void)` prototype is wrong: its three `in_stack_*`
+ * `void hs_evaluate_sound_looping_set_scale(void)` prototype is wrong: its three `in_stack_*`
  * phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard hs-evaluator
  * triple.  Push order at the evaluator call is PUSH EAX([EBP+0x10]=init);
  * PUSH ESI([EBP+0xc]=thread_datum); PUSH ECX([EBP+8]=function_index) —
@@ -4953,7 +4959,7 @@ void FUN_000c2980(int16_t function_index, int thread_datum, char init)
  * Structural ~94% ceiling shared with the 0xc0d10/0xc2940 float twins: our
  * VC71 /O2 build copies the untouched float argument via integer MOV/PUSH
  * instead of the original's FLD/FSTP — bit-exact either way. */
-void FUN_000c29c0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_sound_looping_set_scale(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -4963,10 +4969,11 @@ void FUN_000c29c0(int16_t function_index, int thread_datum, char init)
     scripted_looping_sound_set_scale(result[0], *(float *)(result + 1));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* HaloScript handler shim for the looping-sound "set alternate" macro
- * function — the boolean twin of FUN_000c29c0 (set-scale) directly above.
+ * function — the boolean twin of hs_evaluate_sound_looping_set_scale (set-scale) directly above.
  * Evaluates the macro arguments; on a non-null result block the pair is
  * {int looping_sound_handle; bool alternate}, then returns 0 to the script
  * thread.
@@ -4981,7 +4988,7 @@ void FUN_000c29c0(int16_t function_index, int thread_datum, char init)
  *
  * ABI: cdecl, plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no
  * locals, no `sub esp`, no _chkstk, no FPU.  ESI holds thread_datum
- * ([EBP+0xc]) across both trailing calls.  Ghidra's `void FUN_000c2a00(void)`
+ * ([EBP+0xc]) across both trailing calls.  Ghidra's `void hs_evaluate_sound_looping_set_alternate(void)`
  * prototype is wrong: its three `in_stack_*` phantoms are [EBP+8] /
  * [EBP+0xc] / [EBP+0x10], the standard hs-evaluator triple.  Push order at
  * the evaluator is PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=
@@ -4999,7 +5006,7 @@ void FUN_000c29c0(int16_t function_index, int thread_datum, char init)
  * reading of that one cleanup makes hs_return look like it takes 4 stack
  * args, but it takes 2.  The call-site audit's ARG_COUNT warning here is
  * that false positive. */
-void FUN_000c2a00(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_sound_looping_set_alternate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5009,6 +5016,7 @@ void FUN_000c2a00(int16_t function_index, int thread_datum, char init)
     scripted_looping_sound_set_alternate(result[0], *(bool *)(result + 1));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* HaloScript handler shim for the "debug sound classes" macro function.
@@ -5030,7 +5038,7 @@ void FUN_000c2a00(int16_t function_index, int thread_datum, char init)
  *
  * ABI: cdecl, plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no
  * locals, no `sub esp`, no _chkstk, no FPU.  ESI holds thread_datum
- * ([EBP+0xc]) across both trailing calls.  Ghidra's `void FUN_000c2a40(void)`
+ * ([EBP+0xc]) across both trailing calls.  Ghidra's `void hs_evaluate_debug_sounds_enable(void)`
  * prototype is wrong: its three `in_stack_*` phantoms are [EBP+8] /
  * [EBP+0xc] / [EBP+0x10], the standard hs-evaluator triple.  Push order at
  * the evaluator is PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=
@@ -5042,7 +5050,7 @@ void FUN_000c2a00(int16_t function_index, int thread_datum, char init)
  * cdecl reading of that one cleanup makes hs_return look like it takes 4
  * stack args, but it takes 2.  The call-site audit's ARG_COUNT warning
  * here is that false positive. */
-void FUN_000c2a40(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_debug_sounds_enable(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5052,6 +5060,7 @@ void FUN_000c2a40(int16_t function_index, int thread_datum, char init)
     debug_sound_classes_enable((char *)result[0], *(char *)(result + 1));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2a80 — HS macro handler: forward a sound-class pattern and two raw
@@ -5059,7 +5068,7 @@ void FUN_000c2a40(int16_t function_index, int thread_datum, char init)
  * float b; }; the FLD/FSTP pairs at 0xc29c/0xc2a8 prove +4/+8 are floats. */
 void debug_sound_classes_set_distances(char *pattern, float dist1, float dist2);
 
-void FUN_000c2a80(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_debug_sounds_distances(int16_t function_index, int thread_datum, char init)
 {
   float *result;
 
@@ -5070,6 +5079,7 @@ void FUN_000c2a80(int16_t function_index, int thread_datum, char init)
                                       result[2]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2ad0 — HS script function handler: set the wet (reverb send) level for
@@ -5092,7 +5102,7 @@ void FUN_000c2a80(int16_t function_index, int thread_datum, char init)
  * ABI: cdecl, plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no
  * locals, no `sub esp`, no _chkstk, and the only x87 use is the FLD/FSTP
  * argument pass (no arithmetic).  ESI holds thread_datum ([EBP+0xc]) across
- * both trailing calls.  Ghidra's `void FUN_000c2ad0(void)` prototype is
+ * both trailing calls.  Ghidra's `void hs_evaluate_debug_sounds_wet(void)` prototype is
  * wrong: its three `in_stack_*` phantoms are [EBP+8] / [EBP+0xc] /
  * [EBP+0x10], the standard hs-evaluator triple.  Push order at the evaluator
  * is PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=thread_datum); PUSH
@@ -5103,8 +5113,8 @@ void FUN_000c2a80(int16_t function_index, int thread_datum, char init)
  * calls (0x8 for debug_sound_classes_set_wet + 0x8 for hs_return); a naive
  * cdecl reading of that one cleanup makes hs_return look like it takes 4
  * stack args, but it takes 2.  The call-site audit's ARG_COUNT warning here
- * is that false positive (same as FUN_000c22a0 / FUN_000c2a40). */
-void FUN_000c2ad0(int16_t function_index, int thread_datum, char init)
+ * is that false positive (same as FUN_000c22a0 / hs_evaluate_debug_sounds_enable). */
+void hs_evaluate_debug_sounds_wet(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5114,10 +5124,11 @@ void FUN_000c2ad0(int16_t function_index, int thread_datum, char init)
     debug_sound_classes_set_wet((char *)result[0], *(float *)(result + 1));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* HaloScript handler shim for the "set music volume" macro function — the
- * three-field cousin of FUN_000c2ad0 (debug_sound_classes_set_wet) directly
+ * three-field cousin of hs_evaluate_debug_sounds_wet (debug_sound_classes_set_wet) directly
  * above.  Evaluates the macro arguments; on a non-null result block the
  * triple is {const char *sound_name; float volume; uint16 transition_ticks},
  * then returns 0 to the script thread.
@@ -5139,7 +5150,7 @@ void FUN_000c2ad0(int16_t function_index, int thread_datum, char init)
  *
  * ABI: cdecl, plain RET, frame is PUSH EBP; MOV EBP,ESP; PUSH ESI — no
  * locals, no `sub esp`, no _chkstk.  ESI holds thread_datum ([EBP+0xc])
- * across both trailing calls.  Ghidra's `void FUN_000c2b10(void)` prototype
+ * across both trailing calls.  Ghidra's `void hs_evaluate_sound_class_set_gain(void)` prototype
  * is wrong: its three `in_stack_*` phantoms are [EBP+8] / [EBP+0xc] /
  * [EBP+0x10], the standard hs-evaluator triple.  Push order at the evaluator
  * is PUSH EAX([EBP+0x10]=init); PUSH ESI([EBP+0xc]=thread_datum); PUSH
@@ -5150,8 +5161,8 @@ void FUN_000c2ad0(int16_t function_index, int thread_datum, char init)
  * calls (0xc for game_sound_set_music_volume + 0x8 for hs_return); a naive
  * cdecl reading of that one cleanup makes hs_return look like it takes 5
  * stack args, but it takes 2.  The call-site audit's ARG_COUNT warning here
- * is that false positive (same as FUN_000c2ad0 / FUN_000c29c0). */
-void FUN_000c2b10(int16_t function_index, int thread_datum, char init)
+ * is that false positive (same as hs_evaluate_debug_sounds_wet / hs_evaluate_sound_looping_set_scale). */
+void hs_evaluate_sound_class_set_gain(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5162,6 +5173,7 @@ void FUN_000c2b10(int16_t function_index, int thread_datum, char init)
                                 *(uint16_t *)(result + 2));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2b50 — HS script function handler: enable or disable sound output.
@@ -5169,7 +5181,7 @@ void FUN_000c2b10(int16_t function_index, int thread_datum, char init)
  * byte at +0x0.  Calls sound_enable(value) then returns void to the HS thread
  * via hs_return(thread_datum, 0).  The +0x0 read is a zero-extended byte load
  * (XOR EDX,EDX / MOV DL,[EAX] / PUSH EDX), hence the unsigned bool cast. */
-void FUN_000c2b50(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_sound_enable(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5179,6 +5191,7 @@ void FUN_000c2b50(int16_t function_index, int thread_datum, char init)
     sound_enable(*(bool *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2b90 — HS script function handler: apply a byte-valued setting to a
@@ -5193,7 +5206,7 @@ void FUN_000c2b50(int16_t function_index, int thread_datum, char init)
  * ABI (verified against disassembly 0xc2b90-0xc2bc8): cdecl, plain RET, no
  * locals/FPU/SEH.  The single `ADD ESP,0x10` after the two 2-arg calls is a
  * merged cdecl cleanup (8+8), not a 4-arg call — do not widen hs_return. */
-void FUN_000c2b90(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_vehicle_hover(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5203,6 +5216,7 @@ void FUN_000c2b90(int16_t function_index, int thread_datum, char init)
     FUN_001b5610(result[0], *(unsigned char *)(result + 1));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* HaloScript handler: evaluate the macro function's single argument block and
@@ -5809,7 +5823,7 @@ void FUN_000c2f10(int16_t function_index, int thread_datum, char init)
  * calls (0x4 for errors_overflow_suppression_enable + 0x8 for hs_return); a
  * naive cdecl reading of that one cleanup makes hs_return look like it takes 3
  * stack args, but it takes 2.  The call-site audit's ARG_COUNT warning here is
- * that false positive (same as FUN_000c2a00 / FUN_000c2b10 above).
+ * that false positive (same as hs_evaluate_sound_looping_set_alternate / hs_evaluate_sound_class_set_gain above).
  *
  * Callees (all cdecl, ported, no register args):
  *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
