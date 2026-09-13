@@ -11701,8 +11701,9 @@
     },
     {
      "addr": "0xc5960",
-     "decl": "void FUN_000c5960(int datum_index @<eax>);",
-     "ported": true
+     "decl": "void hs_compile_resolve_predicate(int datum_index@<eax>);",
+     "ported": true,
+     "name": "hs_compile_resolve_predicate"
     },
     {
      "addr": "0xc5a20",
@@ -11841,13 +11842,15 @@
     },
     {
      "addr": "0xc71c0",
-     "decl": "void FUN_000c71c0(int datum_index@<eax>, char **cursor@<esi>);",
-     "ported": true
+     "decl": "void hs_parse_atom(int datum_index@<eax>, char **cursor@<esi>);",
+     "ported": true,
+     "name": "hs_parse_atom"
     },
     {
      "addr": "0xc72b0",
-     "decl": "void FUN_000c72b0(char **cursor@<esi>);",
-     "ported": true
+     "decl": "void hs_skip_whitespace(char **cursor@<esi>);",
+     "ported": true,
+     "name": "hs_skip_whitespace"
     },
     {
      "addr": "0xc73a0",
@@ -11861,8 +11864,9 @@
     },
     {
      "addr": "0xc7b10",
-     "decl": "void FUN_000c7b10(int datum_index);",
-     "ported": true
+     "decl": "void hs_syntax_node_reintern_strings(int datum_index);",
+     "ported": true,
+     "name": "hs_syntax_node_reintern_strings"
     },
     {
      "addr": "0xc7be0",
@@ -11871,8 +11875,9 @@
     },
     {
      "addr": "0xc7ca0",
-     "decl": "void FUN_000c7ca0(char **cursor, int datum_index);",
-     "ported": true
+     "decl": "void hs_parse_parenthesized_expression(char **cursor, int datum_index);",
+     "ported": true,
+     "name": "hs_parse_parenthesized_expression"
     },
     {
      "addr": "0xc7d80",

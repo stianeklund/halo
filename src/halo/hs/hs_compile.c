@@ -105,7 +105,9 @@ bool FUN_000c5840(int datum_index)
  * on the predicate's name string. Sets the is_script flag (bit 1) if
  * resolved as a script.
  */
-void FUN_000c5960(int datum_index)
+void hs_compile_resolve_predicate(
+  int datum_index
+)
 {
   char *node;
   char *node2;
@@ -117,14 +119,16 @@ void FUN_000c5960(int datum_index)
 
   if (*(int16_t *)(predicate + 0x4) != 2) {
     int16_t fn_idx;
-    char *name = (char *)(*(int *)(predicate + 0xc) + *(int *)0x46b6e8);
+    int16_t script_idx;
+    char *name;
 
+    name = (char *)(*(int *)(predicate + 0xc) + *(int *)0x46b6e8);
     fn_idx = hs_find_function_by_name(name);
     *(int16_t *)(node + 0x2) = fn_idx;
     *(int16_t *)(predicate + 0x4) = 2;
 
     if (*(int16_t *)(node + 0x2) == -1) {
-      int16_t script_idx = hs_find_script_by_name(name);
+      script_idx = hs_find_script_by_name(name);
       *(int16_t *)(node + 0x2) = script_idx;
       if (script_idx != -1) {
         *(uint8_t *)(node + 0x6) |= 2;
@@ -142,6 +146,7 @@ void FUN_000c5960(int datum_index)
   }
 
   *(int16_t *)(node + 0x2) = *(int16_t *)(predicate + 0x2);
+  return;
 }
 
 /* 0xc5a20 — Compile a boolean literal expression. Compares the source string
@@ -1293,7 +1298,10 @@ found_script_type:
  * Quoted strings: scan to closing '"', null-terminate, report unterminated.
  * Bare tokens: scan until ')', ';', whitespace, or NUL.
  * Both paths lowercase the result via csstr_tolower. */
-void FUN_000c71c0(int datum_index, char **cursor)
+void hs_parse_atom(
+  int datum_index,
+  char **cursor
+)
 {
   char *node;
   char *p;
@@ -1338,13 +1346,16 @@ void FUN_000c71c0(int datum_index, char **cursor)
   }
 done:
   csstr_tolower(*(char **)0x46b6e8 + *(int *)(node + 0xc));
+  return;
 }
 
 /* 0xc72b0 — Skip whitespace and comments in the HS source buffer. Advances
  * the cursor past spaces/tabs (0x27bb78 table), newlines (0x27bb7c table),
  * single-line comments (;...newline), and block comments (;*...*;).
  * Sets error at 0x46b6fc for unterminated block comments. */
-void FUN_000c72b0(char **cursor)
+void hs_skip_whitespace(
+  char **cursor
+)
 {
   char *p;
   char ch;
@@ -1409,8 +1420,9 @@ void FUN_000c72b0(char **cursor)
     }
     continue;
   skip_char:
-    *cursor = p + 1;
+    (*cursor)++;
   } while (state != 3);
+  return;
 }
 
 bool FUN_000c73a0(int datum_index)
@@ -1575,7 +1587,7 @@ bool FUN_000c74c0(int datum_index)
   }
 
   /* Resolve expression name: function_index written into node+0x2. */
-  FUN_000c5960(datum_index);
+  hs_compile_resolve_predicate(datum_index);
 
   fn_idx = *(int16_t *)(node + 0x2);
   if (fn_idx == -1) {
@@ -1684,7 +1696,9 @@ bool FUN_000c74c0(int datum_index)
  *   - If type != 2 but flag bit 2 is set or type >= 9: same re-intern of
  *     node+0xc + compiled_source_base into node+0xc.
  */
-void FUN_000c7b10(int datum_index)
+void hs_syntax_node_reintern_strings(
+  int datum_index
+)
 {
   char *node;
   char *node2;
@@ -1721,11 +1735,12 @@ void FUN_000c7b10(int datum_index)
     child = *(int *)(node + 0x10);
     while (child != -1) {
       char *child_node;
-      FUN_000c7b10(child);
+      hs_syntax_node_reintern_strings(child);
       child_node = (char *)datum_get(*(data_t **)0x5aa6c8, child);
       child = *(int *)(child_node + 0x8);
     }
   }
+  return;
 }
 
 /* 0xc7be0 — Allocate and initialize a new HS syntax node, then dispatch to
@@ -1758,11 +1773,11 @@ int FUN_000c7be0(char **cursor)
 
   node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
   if (*(uint8_t *)(node + 0x6) & 1) {
-    FUN_000c71c0(datum_index, cursor);
+    hs_parse_atom(datum_index, cursor);
     return datum_index;
   }
 
-  FUN_000c7ca0(cursor, datum_index);
+  hs_parse_parenthesized_expression(cursor, datum_index);
   return datum_index;
 }
 
@@ -1771,7 +1786,10 @@ int FUN_000c7be0(char **cursor)
  * via FUN_000c7be0, and chain them via each node's next_node field (+0x8).
  * Stops at ')' (null-terminates it) or NUL (unmatched paren error).
  * Sets "this expression is empty." if no children were parsed. */
-void FUN_000c7ca0(char **cursor, int datum_index)
+void hs_parse_parenthesized_expression(
+  char **cursor,
+  int datum_index
+)
 {
   char *node;
   char *pre_ws;
@@ -1787,7 +1805,7 @@ void FUN_000c7ca0(char **cursor, int datum_index)
   if (*(char **)0x46b6fc == 0) {
     do {
       pre_ws = *cursor;
-      FUN_000c72b0(cursor);
+      hs_skip_whitespace(cursor);
       if (*cursor != pre_ws)
         *pre_ws = '\0';
 
@@ -1816,6 +1834,7 @@ void FUN_000c7ca0(char **cursor, int datum_index)
     *(const char **)0x46b6fc = "this expression is empty.";
     *(int *)0x46b700 = *(int *)(node + 0xc);
   }
+  return;
 }
 
 /* Type-check an HS syntax node (0xc7d80).
@@ -2372,7 +2391,7 @@ void hs_compile_recompile_scripts(void)
       while ((int)i < *(int *)((char *)scenario + 0x4a8)) {
         void *elem = tag_block_get_element(
           (void *)((char *)global_scenario_get() + 0x4a8), (int)i, 0x5c);
-        FUN_000c7b10(*(int *)((char *)elem + 0x28));
+        hs_syntax_node_reintern_strings(*(int *)((char *)elem + 0x28));
         i++;
       }
     }
@@ -2384,7 +2403,7 @@ void hs_compile_recompile_scripts(void)
       int16_t i = 0;
       while ((int)i < *(int *)block) {
         void *elem = tag_block_get_element(block, (int)i, 0x5c);
-        FUN_000c7b10(*(int *)((char *)elem + 0x24));
+        hs_syntax_node_reintern_strings(*(int *)((char *)elem + 0x24));
         i++;
       }
     }

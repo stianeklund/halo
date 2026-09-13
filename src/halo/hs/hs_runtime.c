@@ -904,7 +904,7 @@ int hs_compile(int source_length, const char *source, int *error_info,
     *error_text = NULL;
     cursor = (char *)((int)node1_ptr + base_offset);
     *(int *)0x46b700 = -1;
-    FUN_000c72b0(&cursor);
+    hs_skip_whitespace(&cursor);
     if (*cursor != '\0') {
       expr_datum = FUN_000c7be0(&cursor);
       if (*(int *)0x46b6fc == 0) {
@@ -951,7 +951,7 @@ int hs_compile(int source_length, const char *source, int *error_info,
  * source file.
  *
  * 0xc5730 = hs_compile_source_setup (@EDI=source_file_size, stack: source_ptr)
- * 0xc72b0 = skip_whitespace (@ESI=&cursor)
+ * 0xc72b0 = hs_skip_whitespace (@ESI=&cursor)
  * 0xc7be0 = hs_parse_expression (@EAX=&cursor, returns datum index)
  */
 bool hs_compile_source(int source_file_size, void *source_ptr,
@@ -973,14 +973,14 @@ bool hs_compile_source(int source_file_size, void *source_ptr,
   *error_text = NULL;
   *(int *)0x46b700 = -1;
 
-  FUN_000c72b0(&cursor);
+  hs_skip_whitespace(&cursor);
 
   do {
     if (*cursor == '\0')
       return true;
 
     expr_datum = FUN_000c7be0(&cursor);
-    FUN_000c72b0(&cursor);
+    hs_skip_whitespace(&cursor);
 
     if (*(char **)0x46b6fc != NULL)
       break;
