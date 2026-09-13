@@ -21,17 +21,20 @@ In Halo CE Xbox debug build 2276 (`cachebeta.xbe`), all HaloScript functions are
 
 ```c
 struct hs_function_definition {
-    int16_t return_type;
-    int16_t flags;
-    const char *name;             // Pointer to script command string in .rdata
-    void (*exec_proc)(int16_t fn_idx, int thread_datum, char init); // Dispatch evaluator
-    const char *help_string;      // Pointer to developer help string in .rdata
-    int16_t param_count;
-    int16_t param_types[8];
+    int16_t return_type;          // +0x00
+    int16_t flags;                // +0x02
+    const char *name;             // +0x04 - Pointer to script command string in .rdata
+    int32_t field_08;             // +0x08 - unknown; constant 0x000c7e50 across all 39 entries, purpose unverified
+    void (*exec_proc)(int16_t fn_idx, int thread_datum, char init); // +0x0c - Dispatch evaluator
+    const char *help_string;      // +0x10 - Pointer to developer help string in .rdata
+    int16_t param_count;          // +0x14
+    int16_t param_types[];        // +0x16 - variable-length, sized by param_count (NOT a fixed [8])
 };
 ```
 
-Each entry's `exec_proc` function pointer points directly to the compiled dispatch handler in `hs.obj`.
+Corrected 2026-09-13: an earlier draft of this table placed `exec_proc` at `+0x8` and described a fixed `param_types[8]` tail. A live-binary re-derivation (reading each of the 39 descriptor structs directly out of `cachebeta.xbe`) confirmed the layout above instead: `exec_proc` is at `+0xc`, `help_string` at `+0x10`, and the trailing parameter-type array is variable-length (e.g. `ai_reconnect` at index 219 takes 0 parameters and its descriptor is only 28 bytes, with no room for 8 slots). The `+0x8` field's role is unproven — it holds the same constant (`0x000c7e50`) in every one of these 39 entries and is left as `field_08` per this repo's naming-confidence doctrine rather than guessed at.
+
+Each entry's `exec_proc` function pointer points directly to the compiled dispatch handler in `hs.obj`; all 39 VAs and script-command name strings in the table below were confirmed against a live read of the binary, index by index. `help_string` values were also confirmed for the entries spot-checked in review — some quotes in the table are verbatim truncations of a longer string rather than the full text.
 Because Bungie compiled both the command names (`name`) and the documentation strings (`help_string`) into `.rdata`, resolving each entry's `exec_proc` gives **100% authentic, authoritatively named Bungie symbols**.
 
 ---
