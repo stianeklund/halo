@@ -3939,13 +3939,14 @@ void FUN_000c24c0(int16_t function_index, int thread_datum, char init)
  * at the second call (PUSH 0x0 then PUSH EAX, ADD ESP,0x8) confirms
  * hs_return(thread_datum, 0), not (0, thread_datum).
  *
- * kb note: the prior decl was `void FUN_000c24e0(void);`, which contradicts
+ * kb note: the prior decl was `void hs_evaluate_game_won(void);`, which contradicts
  * the MOV EAX,[EBP+0xc] at 0xc24e8; it is corrected to the 3-argument
  * evaluator signature with this lift. */
-void FUN_000c24e0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_won(int16_t function_index, int thread_datum, char init)
 {
   main_won_map();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc2500 — HS script function handler: invoke the main-loop transition
@@ -3960,10 +3961,11 @@ void FUN_000c24e0(int16_t function_index, int thread_datum, char init)
  * body reads only [EBP+0xc] = thread_datum (arg 2); function_index and init
  * complete the standard hs-evaluator signature (matches 0xc0cb0 / 0xc24e0)
  * but are unused in this body. */
-void FUN_000c2500(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_lost(int16_t function_index, int thread_datum, char init)
 {
   FUN_00100380();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc2520 — HS script function handler: query whether the game is currently
@@ -3985,13 +3987,14 @@ void FUN_000c2500(int16_t function_index, int thread_datum, char init)
  * The single 4-byte local (frame is `PUSH ECX`) is zeroed as a full dword
  * BEFORE the call, then only its low byte is overwritten with AL — the
  * type-pun widening idiom, not a movzx conversion. */
-void FUN_000c2520(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_safe_to_save(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(bool *)&value = game_safe_to_save();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc2550 — HS script function handler: query whether the game world is
@@ -4016,13 +4019,14 @@ void FUN_000c2520(int16_t function_index, int thread_datum, char init)
  * full dword BEFORE the call, then only its low byte is overwritten with AL
  * — the type-pun widening idiom, not a movzx conversion.  Declaring the local
  * as bool/char would drop the dword zeroing and lose the match. */
-void FUN_000c2550(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_all_quiet(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(bool *)&value = game_all_quiet();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc2580 — HS script function handler: query whether the game is currently
@@ -4050,13 +4054,14 @@ void FUN_000c2550(int16_t function_index, int thread_datum, char init)
  * EAX,[EBP-4]) — the type-pun widening idiom, not a movzx conversion.
  * Declaring the local as bool/char would drop the dword zeroing and lose the
  * match. */
-void FUN_000c2580(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_safe_to_speak(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(bool *)&value = game_safe_to_speak();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc25b0 — HS script function handler: query whether the current game is
@@ -4089,13 +4094,14 @@ void FUN_000c2580(int16_t function_index, int thread_datum, char init)
  * scheduling, not argument order.  Push order is PUSH EAX (value) then PUSH
  * ECX (thread_datum), so under cdecl right-to-left the call is
  * hs_return(thread_datum, value). */
-void FUN_000c25b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_is_cooperative(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(bool *)&value = game_is_cooperative();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc25e0 — HaloScript handler: save the map (safe/deferred variant) and
@@ -4128,10 +4134,11 @@ void FUN_000c25b0(int16_t function_index, int thread_datum, char init)
  *   0x100330 = main_save_map_safe(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c25e0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_save(int16_t function_index, int thread_datum, char init)
 {
   main_save_map_safe();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc2600 — HaloScript evaluator that cancels an in-progress save, then
@@ -4149,10 +4156,11 @@ void FUN_000c25e0(int16_t function_index, int thread_datum, char init)
  * wrongly pass function_index here. function_index and init are unused in
  * this body but complete the uniform hs-evaluator signature (matches the
  * sibling evaluators throughout this TU, e.g. 0xc0cb0 and 0xc25e0). */
-void FUN_000c2600(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_save_cancel(int16_t function_index, int thread_datum, char init)
 {
   main_save_cancel();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc2620 — HaloScript handler: request a map save with the save timeout
@@ -4185,15 +4193,16 @@ void FUN_000c2600(int16_t function_index, int thread_datum, char init)
  *   0x101ec0 = main_save_map_no_timeout(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c2620(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_save_no_timeout(int16_t function_index, int thread_datum, char init)
 {
   main_save_map_no_timeout();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* hs script-function handler: unconditionally saves the map via the nonsafe
  * path, then returns 0 to the calling script thread.  Structural twin of
- * FUN_000c2620 directly above with the save callee swapped from
+ * hs_evaluate_game_save_no_timeout directly above with the save callee swapped from
  * main_save_map_no_timeout to main_save_map_nonsafe; the whole body is 10
  * instructions.
  *
@@ -4220,16 +4229,17 @@ void FUN_000c2620(int16_t function_index, int thread_datum, char init)
  * Ghidra mis-prototypes this as void(void) and surfaces the [EBP+0xc] read as
  * the phantom local `in_stack_00000008`; taking that at face value would pass
  * function_index as the thread handle.  The kb decl was widened from
- * `void FUN_000c2640(void);` with this lift.
+ * `void hs_evaluate_game_save_totally_unsafe(void);` with this lift.
  *
  * Callees (both cdecl, ported, no register args):
  *   0x100300 = main_save_map_nonsafe(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c2640(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_save_totally_unsafe(int16_t function_index, int thread_datum, char init)
 {
   main_save_map_nonsafe();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc2660 — HS script function handler: reports whether a map save is
@@ -4239,7 +4249,7 @@ void FUN_000c2640(int16_t function_index, int thread_datum, char init)
  * Ghidra mis-prototypes this as void(void) and surfaces the [EBP+0xc] read as
  * the phantom local `in_stack_00000008`; taking that at face value would pass
  * function_index as the thread handle.  The kb decl was widened from
- * `void FUN_000c2660(void);` with this lift.  The `extraout_AL` Ghidra reports
+ * `void hs_evaluate_game_saving(void);` with this lift.  The `extraout_AL` Ghidra reports
  * is main_saving_map's bool-in-AL return, NOT a register argument.
  *
  * Callees (both cdecl, no register args, both ported):
@@ -4260,13 +4270,14 @@ void FUN_000c2640(int16_t function_index, int thread_datum, char init)
  * EAX,[EBP-4] / PUSH EAX).  The `*(char *)&value` store reproduces that pair;
  * a direct call-in-argument or a (unsigned char) widen would emit MOVZX
  * instead.  Same idiom as the siblings at 0xc1a00 / 0xc1a30. */
-void FUN_000c2660(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_saving(int16_t function_index, int thread_datum, char init)
 {
   int value;
 
   value = 0;
   *(char *)&value = (char)main_saving_map();
   hs_return(thread_datum, value);
+  return;
 }
 
 /* 0xc2690 — map-revert HaloScript function evaluator.  Runs main_revert_map()
@@ -4274,7 +4285,7 @@ void FUN_000c2660(int16_t function_index, int thread_datum, char init)
  * void-returning script builtin).  Structurally identical to FUN_000c0cb0 at
  * 0xc0cb0 with the side-effect callee swapped.
  *
- * kb.json carried the placeholder decl `void FUN_000c2690(void);`; widened to
+ * kb.json carried the placeholder decl `void hs_evaluate_game_revert(void);`; widened to
  * the standard hs-evaluator triple with this lift, since the body reads the
  * stack argument at [EBP+0xc].
  *
@@ -4291,19 +4302,20 @@ void FUN_000c2660(int16_t function_index, int thread_datum, char init)
  * handlers but are unused in this body.  hs_return's pushes are PUSH 0x0 (the
  * value) then PUSH EAX (=[EBP+0xc], the thread), so the first PUSH is the last
  * C argument; ADD ESP,0x8 confirms exactly 2 args. */
-void FUN_000c2690(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_revert(int16_t function_index, int thread_datum, char init)
 {
   main_revert_map();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc26b0 — core-save/load HaloScript function evaluator.  Runs
  * main_load_core() for its side effect, then commits a 0 result to the calling
  * script thread (a void-returning script builtin).  Structurally identical to
- * FUN_000c2690 directly above and to FUN_000c0cb0 at 0xc0cb0, with the
+ * hs_evaluate_game_revert directly above and to FUN_000c0cb0 at 0xc0cb0, with the
  * side-effect callee swapped.
  *
- * kb.json carried the placeholder decl `void FUN_000c26b0(void);`; widened to
+ * kb.json carried the placeholder decl `void hs_evaluate_core_load(void);`; widened to
  * the standard hs-evaluator triple with this lift, since the body reads the
  * stack argument at [EBP+0xc].  Under the void(void) decl Ghidra surfaced the
  * read as the artifact local `in_stack_00000008`.
@@ -4324,19 +4336,20 @@ void FUN_000c2690(int16_t function_index, int thread_datum, char init)
  * ADD ESP,0x8 confirms exactly 2 args.  No FPU ops and no conditional jumps —
  * there is no null-check branch here, unlike the hs_macro_function_evaluate
  * shape at 0xc0c30. */
-void FUN_000c26b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_core_load(int16_t function_index, int thread_datum, char init)
 {
   main_load_core();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc26d0 — core-load-at-startup HaloScript function evaluator.  Runs
  * main_load_core_at_startup() for its side effect, then commits a 0 result to
  * the calling script thread (a void-returning script builtin).  Structurally
- * identical to FUN_000c26b0 directly above and to FUN_000c0cb0 at 0xc0cb0,
+ * identical to hs_evaluate_core_load directly above and to FUN_000c0cb0 at 0xc0cb0,
  * with the side-effect callee swapped.
  *
- * kb.json carried the placeholder decl `void FUN_000c26d0(void);`; widened to
+ * kb.json carried the placeholder decl `void hs_evaluate_core_load_at_startup(void);`; widened to
  * the standard hs-evaluator triple with this lift, since the body reads the
  * stack argument at [EBP+0xc].  Under the void(void) decl Ghidra surfaced the
  * read as the artifact local `in_stack_00000008`.
@@ -4358,10 +4371,11 @@ void FUN_000c26b0(int16_t function_index, int thread_datum, char init)
  * there is no null-check branch here, and no call to
  * hs_macro_function_evaluate, so no argument evaluation belongs in this
  * body. */
-void FUN_000c26d0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_core_load_at_startup(int16_t function_index, int thread_datum, char init)
 {
   main_load_core_at_startup();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc26f0 — core-load-by-name HaloScript function evaluator.  Evaluates the
@@ -4371,7 +4385,7 @@ void FUN_000c26d0(int16_t function_index, int thread_datum, char init)
  * callee reading the record / hs_return) with the side-effect callee and the
  * record field width swapped.
  *
- * kb.json carried the placeholder decl `void FUN_000c26f0(void);`; widened to
+ * kb.json carried the placeholder decl `void hs_evaluate_core_load_name(void);`; widened to
  * the standard hs-evaluator triple with this lift, since the body reads all
  * three stack slots.  Under the void(void) decl Ghidra surfaced them as the
  * artifact locals in_stack_00000004/8/c — those are ordinary stack parameters,
@@ -4411,7 +4425,7 @@ void FUN_000c26d0(int16_t function_index, int thread_datum, char init)
  *
  * No FPU ops, no local buffers, and no struct offsets beyond the char* field
  * at record +0. */
-void FUN_000c26f0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_core_load_name(int16_t function_index, int thread_datum, char init)
 {
   char *args;
 
@@ -4427,12 +4441,12 @@ void FUN_000c26f0(int16_t function_index, int thread_datum, char init)
  * Evaluates the script function's arguments and, on a non-NULL evaluation
  * record, requests the named core be loaded at the next startup, then commits
  * a 0 (void) result to the calling script thread.  Structurally identical to
- * the immediately-preceding sibling FUN_000c26f0 at 0xc26f0 (evaluate /
+ * the immediately-preceding sibling hs_evaluate_core_load_name at 0xc26f0 (evaluate /
  * null-check / one side-effect callee reading record +0 as a char* / hs_return)
  * with only the side-effect callee swapped from main_load_core_name to
  * main_load_core_name_at_startup.
  *
- * kb.json carried the placeholder decl `void FUN_000c2730(void);`; widened to
+ * kb.json carried the placeholder decl `void hs_evaluate_core_load_name_at_startup(void);`; widened to
  * the standard hs-evaluator triple with this lift, since the body reads all
  * three stack slots.  Under the void(void) decl Ghidra surfaced them as the
  * artifact locals in_stack_00000004/8/c — those are ordinary stack parameters,
@@ -4473,7 +4487,7 @@ void FUN_000c26f0(int16_t function_index, int thread_datum, char init)
  *
  * No FPU ops, no local buffers, and no struct offsets beyond the char* field
  * at record +0. */
-void FUN_000c2730(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_core_load_name_at_startup(int16_t function_index, int thread_datum, char init)
 {
   char *args;
 
@@ -4493,7 +4507,7 @@ void FUN_000c2730(int16_t function_index, int thread_datum, char init)
  * FUN_000c0cb0 at 0xc0cb0 with the side-effect callee swapped from
  * FUN_00057c60 to main_save_core.
  *
- * kb.json carried the placeholder decl `void FUN_000c2770(void);`; widened to
+ * kb.json carried the placeholder decl `void hs_evaluate_core_save(void);`; widened to
  * the standard hs-evaluator triple with this lift, since the body reads
  * [EBP+0xc].  Under the void(void) decl Ghidra surfaced that slot as the
  * artifact local in_stack_00000008 — an ordinary stack parameter, NOT a
@@ -4516,21 +4530,22 @@ void FUN_000c2730(int16_t function_index, int thread_datum, char init)
  *              first PUSH is the last C argument; ADD ESP,0x8 confirms 2 args.
  *
  * No FPU ops, no local buffers, no struct access. */
-void FUN_000c2770(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_core_save(int16_t function_index, int thread_datum, char init)
 {
   main_save_core();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc2790 — core-save-by-name HaloScript function evaluator.  Evaluates the
  * script function's arguments and, on a non-NULL evaluation record, saves the
  * core under the named file, then commits a 0 (void) result to the calling
  * script thread.  Structurally identical to the load-by-name siblings
- * FUN_000c26f0 at 0xc26f0 and FUN_000c2730 at 0xc2730 (evaluate / null-check /
+ * hs_evaluate_core_load_name at 0xc26f0 and hs_evaluate_core_load_name_at_startup at 0xc2730 (evaluate / null-check /
  * one side-effect callee reading record +0 as a char* / hs_return) with only
  * the side-effect callee swapped to main_save_core_name.
  *
- * kb.json carried the placeholder decl `void FUN_000c2790(void);`; widened to
+ * kb.json carried the placeholder decl `void hs_evaluate_core_save_name(void);`; widened to
  * the standard hs-evaluator triple with this lift, since the body reads all
  * three stack slots.  Under the void(void) decl Ghidra surfaced them as the
  * artifact locals in_stack_00000004/8/c — those are ordinary stack parameters,
@@ -4572,7 +4587,7 @@ void FUN_000c2770(int16_t function_index, int thread_datum, char init)
  *
  * No FPU ops, no local buffers, and no struct offsets beyond the char* field
  * at record +0. */
-void FUN_000c2790(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_core_save_name(int16_t function_index, int thread_datum, char init)
 {
   char *args;
 
@@ -4596,7 +4611,7 @@ void FUN_000c2790(int16_t function_index, int thread_datum, char init)
  *
  * ABI (verified against disassembly 0xc27d0-0xc2805): cdecl, plain RET. Frame
  * is PUSH EBP / MOV EBP,ESP / PUSH ESI; the params are pure stack slots that
- * Ghidra drops entirely (it reports `void FUN_000c27d0(void)` with
+ * Ghidra drops entirely (it reports `void hs_evaluate_game_skip_ticks(void)` with
  * in_stack_* locals):
  *   [EBP+0x8]  = function_index (int16), loaded into ECX
  *   [EBP+0xc]  = thread_datum, held in ESI across both calls
@@ -4621,7 +4636,7 @@ void FUN_000c2790(int16_t function_index, int thread_datum, char init)
  *
  * No FPU ops, no local buffers, and no struct offsets beyond the int16 field
  * at record +0. */
-void FUN_000c27d0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_skip_ticks(int16_t function_index, int thread_datum, char init)
 {
   unsigned short *result;
 
@@ -4631,6 +4646,7 @@ void FUN_000c27d0(int16_t function_index, int thread_datum, char init)
     main_skip(*result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2810 — HS script function handler: query whether the game state was
@@ -4660,10 +4676,10 @@ void FUN_000c27d0(int16_t function_index, int thread_datum, char init)
  * [EBP+0xc], ADD ESP,0x8) confirms hs_return(thread_datum, value), not
  * (value, thread_datum).
  *
- * kb note: the prior decl was the placeholder `void FUN_000c2810(void);`,
+ * kb note: the prior decl was the placeholder `void hs_evaluate_game_reverted(void);`,
  * which contradicts the MOV ECX,[EBP+0xc] at 0xc2820; it is corrected to the
  * 3-argument evaluator signature with this lift. */
-void FUN_000c2810(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_reverted(int16_t function_index, int thread_datum, char init)
 {
   union {
     int i;
@@ -4673,6 +4689,7 @@ void FUN_000c2810(int16_t function_index, int thread_datum, char init)
   value.i = 0;
   value.b = game_state_reverted();
   hs_return(thread_datum, value.i);
+  return;
 }
 
 /* 0xc2840 — HS script function handler: start a scripted sound.

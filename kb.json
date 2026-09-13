@@ -10816,105 +10816,125 @@
     },
     {
      "addr": "0xc24e0",
-     "decl": "void FUN_000c24e0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_won(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_won"
     },
     {
      "addr": "0xc2500",
-     "decl": "void FUN_000c2500(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_lost(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_lost"
     },
     {
      "addr": "0xc2520",
-     "decl": "void FUN_000c2520(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_safe_to_save(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_safe_to_save"
     },
     {
      "addr": "0xc2550",
-     "decl": "void FUN_000c2550(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_all_quiet(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_all_quiet"
     },
     {
      "addr": "0xc2580",
-     "decl": "void FUN_000c2580(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_safe_to_speak(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_safe_to_speak"
     },
     {
      "addr": "0xc25b0",
-     "decl": "void FUN_000c25b0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_is_cooperative(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_is_cooperative"
     },
     {
      "addr": "0xc25e0",
-     "decl": "void FUN_000c25e0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_game_save(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_game_save"
     },
     {
      "addr": "0xc2600",
-     "decl": "void FUN_000c2600(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_game_save_cancel(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_game_save_cancel"
     },
     {
      "addr": "0xc2620",
-     "decl": "void FUN_000c2620(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_save_no_timeout(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_save_no_timeout"
     },
     {
      "addr": "0xc2640",
-     "decl": "void FUN_000c2640(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_save_totally_unsafe(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_save_totally_unsafe"
     },
     {
      "addr": "0xc2660",
-     "decl": "void FUN_000c2660(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_saving(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_saving"
     },
     {
      "addr": "0xc2690",
-     "decl": "void FUN_000c2690(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_revert(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_revert"
     },
     {
      "addr": "0xc26b0",
-     "decl": "void FUN_000c26b0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_core_load(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_core_load"
     },
     {
      "addr": "0xc26d0",
-     "decl": "void FUN_000c26d0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_core_load_at_startup(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_core_load_at_startup"
     },
     {
      "addr": "0xc26f0",
-     "decl": "void FUN_000c26f0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_core_load_name(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_core_load_name"
     },
     {
      "addr": "0xc2730",
-     "decl": "void FUN_000c2730(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_core_load_name_at_startup(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_core_load_name_at_startup"
     },
     {
      "addr": "0xc2770",
-     "decl": "void FUN_000c2770(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_core_save(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_core_save"
     },
     {
      "addr": "0xc2790",
-     "decl": "void FUN_000c2790(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_core_save_name(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_core_save_name"
     },
     {
      "addr": "0xc27d0",
-     "decl": "void FUN_000c27d0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_skip_ticks(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_skip_ticks"
     },
     {
      "addr": "0xc2810",
-     "decl": "void FUN_000c2810(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_game_reverted(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_game_reverted"
     },
     {
      "addr": "0xc2840",
