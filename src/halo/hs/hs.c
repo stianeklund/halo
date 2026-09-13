@@ -2265,7 +2265,7 @@ void hs_evaluate_map_reset(int16_t function_index, int thread_datum, char init)
  * ABI (verified against disassembly 0xc1d10-0xc1d40): cdecl, frame is
  * PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and no `sub esp`.  ESI holds
  * thread_datum ([EBP+0xc]) across all three calls.  Ghidra's
- * `void 0xc1d10(void)` prototype is wrong — the three `in_stack_*`
+ * `void FUN_000c1d10(void)` prototype is wrong — the three `in_stack_*`
  * phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], i.e. the standard hs-evaluator
  * argument triple.
  *
@@ -2305,7 +2305,7 @@ void hs_evaluate_map_name(int16_t function_index, int thread_datum, char init)
  * ABI (verified against disassembly 0xc1d50-0xc1d80): cdecl, frame is
  * PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and no `sub esp`.  ESI is
  * loaded once at 0xc1d5a and holds thread_datum ([EBP+0xc]) across the body.
- * Ghidra's `void 0xc1d50(void)` prototype is wrong — the three
+ * Ghidra's `void FUN_000c1d50(void)` prototype is wrong — the three
  * `in_stack_*` phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], i.e. the standard
  * hs-evaluator argument triple.
  *
@@ -2390,7 +2390,7 @@ void hs_evaluate_game_difficulty_set(int16_t function_index, int thread_datum, c
  * FPU.  Frame is PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and no
  * `sub esp`.  ESI is loaded from [EBP+0xc] before the first call and holds
  * thread_datum across the whole body, which is why the same value feeds both
- * hs_macro_function_evaluate and hs_return.  Ghidra's `void 0xc1dd0(void)`
+ * hs_macro_function_evaluate and hs_return.  Ghidra's `void FUN_000c1dd0(void)`
  * prototype comes from the stale kb declaration; the three `in_stack_*`
  * phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard hs-evaluator triple.
  *

@@ -23,17 +23,20 @@ In Halo CE Xbox debug build 2276 (`cachebeta.xbe`), all HaloScript functions are
 
 ```c
 struct hs_function_definition {
-    int16_t return_type;
-    int16_t flags;
-    const char *name;             // Pointer to script command string in .rdata
-    void (*exec_proc)(int16_t fn_idx, int thread_datum, char init); // Dispatch evaluator
-    const char *help_string;      // Pointer to developer help string in .rdata
-    int16_t param_count;
-    int16_t param_types[8];
+    int16_t return_type;          // +0x00
+    int16_t flags;                // +0x02
+    const char *name;             // +0x04 - Pointer to script command string in .rdata
+    int32_t field_08;             // +0x08 - unknown; constant 0x000c7e50 across every entry in this table, purpose unverified
+    void (*exec_proc)(int16_t fn_idx, int thread_datum, char init); // +0x0c - Dispatch evaluator
+    const char *help_string;      // +0x10 - Pointer to developer help string in .rdata
+    int16_t param_count;          // +0x14
+    int16_t param_types[];        // +0x16 - variable-length, sized by param_count (NOT a fixed [8])
 };
 ```
 
-Each entry's `exec_proc` function pointer points directly to the compiled dispatch handler in `hs.obj`.
+Corrected 2026-09-13: an earlier draft of this table placed `exec_proc` at `+0x8` and described a fixed `param_types[8]` tail. A live-binary re-derivation (reading each of these 24 descriptor structs directly out of `cachebeta.xbe`, cross-checked against the same table region used by sibling PRs #4 and #7) confirmed the layout above instead: `exec_proc` is at `+0xc` and `help_string` at `+0x10`. The `+0x8` field's role is unproven — it holds the same constant (`0x000c7e50`) in every entry checked and is left as `field_08` per this repo's naming-confidence doctrine rather than guessed at.
+
+Each entry's `exec_proc` function pointer points directly to the compiled dispatch handler in `hs.obj`; all 24 VAs, script-command name strings, and help strings in the table below were independently confirmed against a live read of the binary, entry by entry.
 Because Bungie compiled both the command names (`name`) and the developer documentation strings (`help_string`) into `.rdata`, resolving each entry's `exec_proc` yields **100% authentic, authoritatively named Bungie symbols** without any speculative naming.
 
 ---
@@ -98,7 +101,7 @@ Parameter arguments passed to scripts are unpacked via `hs_macro_function_evalua
 - **`hs_evaluate_game_time` (`0xc18b0`)**: Calls `game_time_get()` (`0xb5aa0`) and returns elapsed simulation ticks to the script thread.
 
 ### Group 4: Difficulty Query & Configuration (`0xc18d0`–`0xc1900`, `0xc1d90`)
-- **`hs_evaluate_game_difficulty_get` (`0xc18d0`)**: Invokes `game_difficulty_level_get_ignore_easy()` (`0xa7480`), which maps "Easy" difficulty up to "Normal" (a classic Bungie Easter egg behavior noted in the help string). Preserves zero-extension of the 16-bit return value into 32-bit `value` slot.
+- **`hs_evaluate_game_difficulty_get` (`0xc18d0`)**: Invokes `game_difficulty_level_get_ignore_easy()` (`0xa7470`), which maps "Easy" difficulty up to "Normal" (a classic Bungie Easter egg behavior noted in the help string). Preserves zero-extension of the 16-bit return value into 32-bit `value` slot.
 - **`hs_evaluate_game_difficulty_get_real` (`0xc1900`)**: Invokes `game_difficulty_level_get()` (`0xa7460`), returning the unmasked authentic difficulty level (0=Easy, 1=Normal, 2=Heroic, 3=Legendary). Zero-extended into 32 bits.
 - **`hs_evaluate_game_difficulty_set` (`0xc1d90`)**: Unpacks target difficulty short `*(short *)result` and invokes `main_set_difficulty(diff)` (`0x1003d0`) for subsequent map loads.
 
