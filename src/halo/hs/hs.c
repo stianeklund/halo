@@ -8696,10 +8696,10 @@ int16_t hs_find_function_by_name(const char *name)
 /* 0xc4010 — Comparator over an array of `char *` (qsort/bsearch shape).
  * Both arguments are pointers into that array, so each is dereferenced once
  * before the case-insensitive compare.  Ghidra prototypes this as
- * `void FUN_000c4010(void)` and drops the implicit EAX return: the function
+ * `void(void)` and drops the implicit EAX return: the function
  * has no epilogue of its own beyond POP EBP/RET, so crt_stricmp's EAX falls
  * through as the return value. */
-int FUN_000c4010(const char **a, const char **b)
+int hs_tokens_compare(const char **a, const char **b)
 {
   return crt_stricmp(*a, *b);
 }
@@ -8718,7 +8718,7 @@ int FUN_000c4010(const char **a, const char **b)
  *
  * Count and capacity are int16 (MOV AX / CMP AX / INC AX), and the array index
  * is the sign-extended count (MOVSX ECX,AX). */
-static void FUN_000c4030(const char *name)
+void hs_tokens_add(const char *name)
 {
   int16_t count;
 
@@ -8739,6 +8739,7 @@ static void FUN_000c4030(const char *name)
       *(int16_t *)0x46b6c8 = (int16_t)(count + 1);
     }
   }
+  return;
 }
 
 /* 0xc40b0 — Enumerate a half-open range of an array of `char *` names into the
@@ -8758,14 +8759,14 @@ static void FUN_000c4030(const char *name)
  *
  * The walking pointer is built once from the sign-extended start index
  * (`MOVSX EDX,CX` / `LEA EDI,[ESI+EDX*4]`), and the loop is the same
- * countdown shape as FUN_000c41b0: `MOV ESI,[EDI]` (the @<esi> argument to
- * FUN_000c4030) / `CALL` / `ADD EDI,4` / `DEC EBX` / `JNZ`.  There is no NULL
+ * countdown shape as hs_tokens_enumerate_types: `MOV ESI,[EDI]` (the @<esi> argument to
+ * hs_tokens_add) / `CALL` / `ADD EDI,4` / `DEC EBX` / `JNZ`.  There is no NULL
  * test on the slots — every entry in the range is passed through.
  *
  * What the names are, and what the two indices select, is not established by
  * this function alone; only the half-open range, the 4-byte stride, and that
- * FUN_000c4030 treats each slot as a NUL-terminated name are proven here. */
-void FUN_000c40b0(int16_t end_index, int16_t start_index, const char **names)
+ * hs_tokens_add treats each slot as a NUL-terminated name are proven here. */
+void hs_tokens_enumerate_range(int16_t end_index, int16_t start_index, const char **names)
 {
   const char **name;
   unsigned int remaining;
@@ -8774,23 +8775,25 @@ void FUN_000c40b0(int16_t end_index, int16_t start_index, const char **names)
     name = names + start_index;
     remaining = (unsigned int)(uint16_t)(end_index - start_index);
     do {
-      FUN_000c4030(*name);
+      hs_tokens_add(*name);
       name++;
       remaining--;
     } while (remaining != 0);
   }
+  return;
 }
 
 /* 0xc40f0 — Enumerate names embedded in a tag block. */
-void FUN_000c40f0(void *block, int16_t name_offset, int element_size)
+void hs_tokens_enumerate_tag_block(void *block, int16_t name_offset, int element_size)
 {
   int16_t index;
   const char *name;
 
   for (index = 0; (int)index < *(int *)block; index++) {
     name = (const char *)tag_block_get_element(block, (int)index, element_size);
-    FUN_000c4030(name + name_offset);
+    hs_tokens_add(name + name_offset);
   }
+  return;
 }
 
 /* 0xc4130 — Enumerate one scenario-resident tag_block into the active token
@@ -8801,17 +8804,17 @@ void FUN_000c40f0(void *block, int16_t name_offset, int element_size)
  * `block_offset` is a byte offset from the scenario tag base to the tag_block
  * header (MOVSX word ptr [EBP+8] then ADD to global_scenario_get()'s EAX, so
  * it is a signed 16-bit value used in pointer arithmetic).  It is handed to
- * FUN_000c40f0 in EBX (MOV EBX,EAX immediately before the CALL); the two
+ * hs_tokens_enumerate_tag_block in EBX (MOV EBX,EAX immediately before the CALL); the two
  * stack arguments are pushed EDX-then-ECX, i.e. name_offset first and
  * element_size second in source order.
  *
  * `name_offset` is only forwarded, never used in arithmetic here, so it is
- * read as a plain dword (MOV ECX,[EBP+0xc]); FUN_000c40f0 is the one that
+ * read as a plain dword (MOV ECX,[EBP+0xc]); hs_tokens_enumerate_tag_block is the one that
  * narrows it (MOVSX word ptr [EBP+8]) before adding it to each element.
  *
  * Guarded by the scenario tag index at 0x326a08, exactly like the other
  * scenario readers in this file. */
-void FUN_000c4130(int16_t block_offset, int16_t name_offset, int element_size)
+void hs_tokens_enumerate_scenario_tag_block(int16_t block_offset, int16_t name_offset, int element_size)
 {
   void *block;
 
@@ -8822,22 +8825,24 @@ void FUN_000c4130(int16_t block_offset, int16_t name_offset, int element_size)
      * first argument, where MSVC's right-to-left argument evaluation would
      * sink the call below the pushes. */
     block = (char *)global_scenario_get() + block_offset;
-    FUN_000c40f0(block, name_offset, element_size);
+    hs_tokens_enumerate_tag_block(block, name_offset, element_size);
   }
+  return;
 }
 
 /* 0xc4160 — Add the two fixed command names to the active token enumeration.
- * Each literal is loaded directly into ESI before calling FUN_000c4030. */
-void FUN_000c4160(void)
+ * Each literal is loaded directly into ESI before calling hs_tokens_add. */
+void hs_tokens_enumerate_fixed_commands(void)
 {
-  FUN_000c4030((const char *)0x25bb40);
-  FUN_000c4030((const char *)0x27b978);
+  hs_tokens_add((const char *)0x25bb40);
+  hs_tokens_add((const char *)0x27b978);
+  return;
 }
 
 /* 0xc4180 — Add all five name pointers in the fixed table at 0x2f156c.
  * The original walks the table with EDI and counts down EBX; no slot is
  * skipped or tested for NULL. */
-void FUN_000c4180(void)
+void hs_tokens_enumerate_special_forms(void)
 {
   const char **name;
   int remaining;
@@ -8845,26 +8850,27 @@ void FUN_000c4180(void)
   name = (const char **)0x2f156c;
   remaining = 5;
   do {
-    FUN_000c4030(*name);
+    hs_tokens_add(*name);
     name++;
     remaining--;
   } while (remaining != 0);
+  return;
 }
 
 /* 0xc41b0 — Enumerate a fixed 0x2d-entry table of `char *` names at 0x2f14b8
  * into the active token enumeration.  One of the per-type enumerator thunks in
  * the table at 0x2f2208 (see hs_tokens_enumerate below); it takes no arguments
- * and reads the enumeration state through the globals FUN_000c4030 owns.
+ * and reads the enumeration state through the globals hs_tokens_add owns.
  *
  * The original is a countdown loop over a walking pointer: `MOV EDI,0x2f14b8`
  * / `MOV EBX,0x2d`, then per iteration `MOV ESI,[EDI]` (the @<esi> argument to
- * FUN_000c4030) / `CALL` / `ADD EDI,4` / `DEC EBX` / `JNZ`.  There is no
+ * hs_tokens_add) / `CALL` / `ADD EDI,4` / `DEC EBX` / `JNZ`.  There is no
  * bounds or NULL test on the table entries — every slot is passed through.
  *
  * What the 0x2d names are is unproven from this function alone; only their
- * count, stride, and that FUN_000c4030 treats each as a NUL-terminated name
+ * count, stride, and that hs_tokens_add treats each as a NUL-terminated name
  * are established here. */
-void FUN_000c41b0(void)
+void hs_tokens_enumerate_types(void)
 {
   const char **name;
   int remaining;
@@ -8872,17 +8878,18 @@ void FUN_000c41b0(void)
   name = (const char **)0x2f14b8;
   remaining = 0x2d;
   do {
-    FUN_000c4030(*name);
+    hs_tokens_add(*name);
     name++;
     remaining--;
   } while (remaining != 0);
+  return;
 }
 
 /* 0xc41e0 — Enumerate the names of all 0x1a2 hs built-in functions into the
  * active token enumeration.  One of the per-type enumerator thunks in the
  * table at 0x2f2208 (see hs_tokens_enumerate below); like the others it takes
  * no arguments and reads the enumeration state through the globals
- * FUN_000c4030 owns.
+ * hs_tokens_add owns.
  *
  * hs_function_table_get (0xc3d00) is inlined here: the body carries that
  * function's own assert text, file and line (0x20a) verbatim, and its bounds
@@ -8892,10 +8899,10 @@ void FUN_000c41b0(void)
  * int16 throughout (DI, not EDI, is compared); MSVC strength-reduces the
  * table indexing into the walking pointer in EBX.
  *
- * The name passed to FUN_000c4030 is descriptor+4 (`MOV EAX,[EBX]` /
+ * The name passed to hs_tokens_add is descriptor+4 (`MOV EAX,[EBX]` /
  * `MOV ESI,[EAX+4]`), the same field the by-name search at 0xc3fc0 compares
  * against. */
-void FUN_000c41e0(void)
+void hs_tokens_enumerate_functions(void)
 {
   int16_t i;
 
@@ -8906,8 +8913,9 @@ void FUN_000c41e0(void)
         "c:\\halo\\SOURCE\\hs\\hs.c", 0x20a, 1);
       system_exit(-1);
     }
-    FUN_000c4030(*(const char **)((char *)((void **)0x2f1588)[i] + 4));
+    hs_tokens_add(*(const char **)((char *)((void **)0x2f1588)[i] + 4));
   }
+  return;
 }
 
 /* 0xc4580 — Collect every hs token name matching a prefix into `tokens`.
@@ -8958,7 +8966,7 @@ int16_t hs_tokens_enumerate(const char *prefix, uint32_t type_mask,
   /* Count reaches qsort sign-extended (MOVSX) but is returned as a plain
    * 16-bit load, so keep both reads narrow. */
   qsort((void *)tokens, (size_t) * (int16_t *)0x46b6c8, 4,
-        (int (*)(const void *, const void *))FUN_000c4010);
+        (int (*)(const void *, const void *))hs_tokens_compare);
   *(char ***)0x46b6d0 = NULL;
   return *(int16_t *)0x46b6c8;
 }
@@ -9026,13 +9034,13 @@ bool hs_load_source_file(void *file_ref)
  * reference is expanded with flag 4 (name only) into its own 256-byte stack
  * buffer, then the two names are compared case-insensitively.
  *
- * Ghidra prototypes this as `void FUN_000c4770(void)` and drops both stack
+ * Ghidra prototypes this as `void(void)` and drops both stack
  * params (read as MOV ECX,[EBP+8] / MOV EAX,[EBP+0xc]) plus the implicit EAX
  * return: there is no write to EAX after CALL crt_stricmp, so its result falls
  * straight through the MOV ESP,EBP / POP EBP / RET epilogue.  Same shape as the
- * sibling comparator FUN_000c4010 above.  Argument order is load-bearing for
+ * sibling comparator hs_tokens_compare above.  Argument order is load-bearing for
  * the sort direction: the first parameter's name is crt_stricmp's first arg. */
-int FUN_000c4770(file_ref_t *a, file_ref_t *b)
+int hs_file_reference_compare(file_ref_t *a, file_ref_t *b)
 {
   char name_a[256];
   char name_b[256];
@@ -9098,7 +9106,7 @@ bool hs_needs_recompile(void)
 
   /* Sort the results by name using the comparison callback at 0xc4770 */
   qsort((void *)results, (int)(int16_t)count, 0x10c,
-        (int (*)(const void *, const void *))FUN_000c4770);
+        (int (*)(const void *, const void *))hs_file_reference_compare);
 
   if ((int16_t)count > 0) {
     ebx_ptr = results;
@@ -9245,7 +9253,7 @@ cleanup:
  * The loop counter is int16_t: INC EBX advances the full register but the
  * bound test at 000c4ac5 is CMP BX, and the index is re-sign-extended
  * (MOVSX EDX,BX) before scaling. */
-void FUN_000c4a40(int16_t function_index, char *buffer)
+void hs_function_format_usage(int16_t function_index, char *buffer)
 {
   char *desc;
   const char *usage;
@@ -9270,12 +9278,13 @@ void FUN_000c4a40(int16_t function_index, char *buffer)
   }
 
   FUN_0008dc30(buffer, ")");
+  return;
 }
 
 /* 0xc4ae0 — Copy the string at a script-function descriptor's field_10 into a
  * caller-supplied buffer.
  *
- * Companion to FUN_000c4a40 (which formats the usage signature): this one just
+ * Companion to hs_function_format_usage (which formats the usage signature): this one just
  * hands back one already-formed string from the same descriptor.  What field_10
  * holds is not proven here — the descriptor's name is at +0x4 and its usage
  * string at +0x14, so +0x10 is a third, distinct char* — so it is left
@@ -9284,17 +9293,18 @@ void FUN_000c4a40(int16_t function_index, char *buffer)
  * ABI (000c4ae0..000c4afa): the function index arrives in EAX (PUSH EAX at
  * 000c4ae3 forwards it as hs_function_table_get's single cdecl argument), while
  * the destination buffer is a real stack parameter at [EBP+8].  Ghidra
- * prototypes this `void FUN_000c4ae0(void)` and drops both.
+ * prototypes this `void(void)` and drops both.
  *
  * The ADD ESP,0xc at 000c4af6 is one combined cdecl cleanup for
  * hs_function_table_get (0x4) plus csstrcpy (0x8) — not a 3-argument call.
  * csstrcpy's char* return is discarded. */
-void FUN_000c4ae0(int16_t function_index, char *buffer)
+void hs_function_get_help(int16_t function_index, char *buffer)
 {
   char *desc;
 
   desc = (char *)hs_function_table_get(function_index);
   csstrcpy(buffer, *(const char **)(desc + 0x10));
+  return;
 }
 
 /* 0xc4b00 — Look up a scenario script by name and start its thread.
@@ -9337,17 +9347,18 @@ bool hs_evaluate_by_name(const char *name)
 /* 0xc4b40 — HS console command handler: set the recompile flag.
  * Sets the global recompile flag at 0x46b6d8 to 1, then returns void
  * to the HS thread via hs_return(thread_datum, 0). */
-void FUN_000c4b40(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_script_recompile(int16_t function_index, int thread_datum, char init)
 {
   *(uint8_t *)0x46b6d8 = 1;
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc4b60 — HS script function handler: random integer in range.
  * Evaluates the macro arguments to get (min, max) short values from the
  * hs_macro_function_evaluate result. Advances the global random seed and
  * returns a random value in [min, max] to the HS thread. */
-void FUN_000c4b60(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_random_range(int16_t function_index, int thread_datum, char init)
 {
   short *result;
   int16_t value;
@@ -9359,6 +9370,7 @@ void FUN_000c4b60(int16_t function_index, int thread_datum, char init)
                          result[0], result[2]);
     hs_return(thread_datum, (int)value);
   }
+  return;
 }
 
 /* 0xc4bb0 — HS script function handler: random real in range.
@@ -9371,7 +9383,7 @@ void FUN_000c4b60(int16_t function_index, int thread_datum, char init)
  * integer conversion: the original does FSTP [EBP-8]; MOV EDX,[EBP-8];
  * PUSH EDX.  There is no _ftol2 / truncation anywhere in the reference, so
  * the value is staged through a union rather than cast. */
-void FUN_000c4bb0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_real_random_range(int16_t function_index, int thread_datum, char init)
 {
   float *result;
   union {
@@ -9386,6 +9398,7 @@ void FUN_000c4bb0(int16_t function_index, int thread_datum, char init)
       random_real_range(get_global_random_seed_address(), result[0], result[1]);
     hs_return(thread_datum, value.bits);
   }
+  return;
 }
 
 /* Load scenario scripts from the scenario tag.  Allocates a fresh syntax
@@ -9532,7 +9545,7 @@ void hs_help(const char *name)
 
   function_index = hs_find_function_by_name(name);
   if (function_index != -1) {
-    FUN_000c4a40(function_index, buffer);
+    hs_function_format_usage(function_index, buffer);
     console_printf(0, buffer);
     function = (char *)hs_function_table_get(function_index);
     csstrcpy(buffer, *(const char **)(function + 0x10));
@@ -9544,7 +9557,7 @@ void hs_help(const char *name)
  * text to "hs_doc.txt".
  *
  * Two records are written per table entry: the calling signature produced by
- * FUN_000c4a40 (index in EAX, buffer in ESI — `MOV EAX,EDI` /
+ * hs_function_format_usage (index in EAX, buffer in ESI — `MOV EAX,EDI` /
  * `LEA ESI,[EBP-0x804]` at 000c4ef2/000c4eec), then the descriptor's
  * field_10 string copied with csstrcpy.  Both go through the same 2048-byte
  * stack buffer (frame is SUB ESP,0x804 = the buffer plus the 4-byte table
@@ -9553,7 +9566,7 @@ void hs_help(const char *name)
  * hs_function_table_get (0xc3d00) is inlined TWICE per iteration: its assert
  * text, file and line (0x20a) appear verbatim at 000c4ecc and 000c4f1a.  The
  * first inlined copy's table load is dead-code-eliminated — only its bounds
- * test survives, ahead of the FUN_000c4a40 call; the second one's load feeds
+ * test survives, ahead of the hs_function_format_usage call; the second one's load feeds
  * the csstrcpy source (`MOV ECX,[ESI]` / `MOV EDX,[ECX+0x10]`).  MSVC
  * strength-reduces the indexing into the walking cursor (`ADD ESI,4`).
  *
@@ -9576,7 +9589,7 @@ void hs_doc(void)
         "c:\\halo\\SOURCE\\hs\\hs.c", 0x20a, 1);
       system_exit(-1);
     }
-    FUN_000c4a40(function_index, buffer);
+    hs_function_format_usage(function_index, buffer);
     crt_fprintf(file, "%s\r\n", buffer);
 
     if (function_index < 0 || function_index >= 0x1a2) {
@@ -9597,10 +9610,11 @@ void hs_doc(void)
 /* 0xc4ff0 — HS console command handler: print documentation.
  * Calls hs_doc() to dump HaloScript documentation to the console,
  * then returns void to the HS thread. */
-void FUN_000c4ff0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_script_doc(int16_t function_index, int thread_datum, char init)
 {
   hs_doc();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc5010 — HS console command handler: context-sensitive help.
@@ -9608,7 +9622,7 @@ void FUN_000c4ff0(int16_t function_index, int thread_datum, char init)
  * evaluation succeeds (non-zero return), forwards the result record's first
  * dword to hs_help (MOV EDX,[EAX]; PUSH EDX at 0xc502c before the CALL; the
  * callee reads it at [EBP+8]) and returns void to the HS thread. */
-void FUN_000c5010(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_help(int16_t function_index, int thread_datum, char init)
 {
   int result;
 
@@ -9617,6 +9631,7 @@ void FUN_000c5010(int16_t function_index, int thread_datum, char init)
     hs_help((const char *)(uintptr_t) * (int *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* Initialize the scripting engine: validate type names, set up
@@ -9818,7 +9833,7 @@ post_eval:
  * NOTE: the `result_is_empty != NONE` test below is dead in the original
  * (SETZ CL; CMP ECX,-1; JZ 0xc553d can never be taken, so the "needs a
  * result" diagnostic is unreachable).  Transcribed literally. */
-int FUN_000c5310(int source_node, int arg_node)
+int hs_parse_cond_clauses(int source_node, int arg_node)
 {
   char *new_datum;
   char *arg_datum;
@@ -9868,7 +9883,7 @@ int FUN_000c5310(int source_node, int arg_node)
           node_b = (char *)datum_get(*(data_t *volatile *)0x5aa6c8, index_b);
           arg_datum =
             (char *)datum_get(*(data_t *volatile *)0x5aa6c8, arg_node);
-          result = FUN_000c5310(
+          result = hs_parse_cond_clauses(
             source_node, *((int *)((char *)datum_get(
                                      *(data_t *volatile *)0x5aa6c8, arg_node) +
                                    8)));
@@ -9936,8 +9951,8 @@ int FUN_000c5310(int source_node, int arg_node)
  * `expected_count` is BX.  SI/BX are intentionally int16_t because the
  * original uses `CMP SI,BX` and `MOVSX ECX,SI` for the output index.
  */
-bool FUN_000c55d0(const char *function_name, int *argument_nodes,
-                  int syntax_node, int16_t expected_count)
+bool hs_syntax_get_arguments(const char *function_name, int *argument_nodes,
+                             int syntax_node, int16_t expected_count)
 {
   char *node;
   int argument_node;

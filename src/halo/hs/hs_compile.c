@@ -2112,7 +2112,7 @@ bool hs_parse_if(int16_t function_index, int datum_index)
 }
 
 /* 0xc82e0 — Parse the (cond (<condition> <result>) ...) special form.
- * FUN_000c5310 rewrites the clause list into an equivalent nest of (if ...)
+ * hs_parse_cond_clauses rewrites the clause list into an equivalent nest of (if ...)
  * expressions and returns the datum index of the replacement head, or -1 when
  * a clause was malformed or a syntax node could not be allocated.  On success
  * the replacement's 20-byte payload is copied over the original call node so
@@ -2147,7 +2147,7 @@ bool hs_parse_cond(int16_t function_index, int datum_index)
   result = false;
   node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
   node = (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
-  replacement_index = FUN_000c5310(datum_index, *(int *)(node + 0x8));
+  replacement_index = hs_parse_cond_clauses(datum_index, *(int *)(node + 0x8));
 
   if (replacement_index != -1) {
     expression = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);

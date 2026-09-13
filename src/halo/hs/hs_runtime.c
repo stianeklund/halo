@@ -363,9 +363,9 @@ bool FUN_000c8720(int16_t function_index, int expression_index)
  *     only legal function indices are 0xd and 0xe.
  *   - 0xc88f1 calls hs_function_table_get with the incoming dword parameter
  *     (compared as SI), and [EAX+4] of the returned definition is the function
- *     name pointer passed as FUN_000c55d0's first argument.
+ *     name pointer passed as hs_syntax_get_arguments's first argument.
  *   - LEA EAX,[EBP-0xc]; PUSH EAX at 0xc88ec passes a two-element local array
- *     as FUN_000c55d0's argument_nodes, with EDI = [EBP+0xc] (the expression
+ *     as hs_syntax_get_arguments's argument_nodes, with EDI = [EBP+0xc] (the expression
  *     node) and EBX = 2 (two expected arguments).  ADD ESP,8 + POP EBX at
  *     0xc890a/0xc890f confirm two stack arguments plus the EBX register
  *     argument.
@@ -407,7 +407,7 @@ bool FUN_000c88b0(int function_index, int expression_index)
     system_exit(-1);
   }
 
-  if (FUN_000c55d0(*(const char **)((char *)hs_function_table_get(
+  if (hs_syntax_get_arguments(*(const char **)((char *)hs_function_table_get(
                                       (int16_t)function_index) +
                                     4),
                    argument_nodes, expression_index, 2)) {
@@ -451,13 +451,13 @@ bool FUN_000c88b0(int function_index, int expression_index)
  *   - Returns bool in AL: the accept flag byte at [EBP-1] is zeroed at
  *     0xc89d0, set to 1 at 0xc8b78, and reloaded into AL at 0xc8b7c.
  *
- * Argument collection: FUN_000c55d0 takes the callee name and the output
+ * Argument collection: hs_syntax_get_arguments takes the callee name and the output
  * array on the stack, the expression index in EDI, and the expected count in
  * BX (2, set at 0xc8a10).  The two stack pushes straddle the
  * hs_function_table_get call — the output pointer is pushed at 0xc89ff and
  * only the name push is reclaimed by the ADD ESP,0x4 at 0xc8a0c — so the
  * output is one contiguous int[2] based at [EBP-0xc], not two separate
- * locals.  FUN_000c55d0 indexes it as argument_nodes[0..1].
+ * locals.  hs_syntax_get_arguments indexes it as argument_nodes[0..1].
  *
  * Type unification: whichever operand is already typed donates its type to
  * the other, but only when that type is in an accepted range.  Each retry
@@ -518,7 +518,7 @@ bool FUN_000c89c0(int function_index, int expression_index)
     system_exit(-1);
   }
 
-  if (FUN_000c55d0(*(const char **)((char *)hs_function_table_get(
+  if (hs_syntax_get_arguments(*(const char **)((char *)hs_function_table_get(
                                       (int16_t)function_index) +
                                     4),
                    argument_nodes, expression_index, 2)) {
@@ -711,9 +711,9 @@ bool hs_sleep_until_parse(int16_t function_index, int expression_index)
  *     ("c:\halo\source\hs\hs_library_internal_compile.h", line 0x25d), so the
  *     only legal function index is 0x15.
  *   - LEA EAX,[EBP+8]; PUSH EAX at 0xc8d64 passes the address of the *first
- *     stack parameter* as the argument_nodes array of FUN_000c55d0, with
+ *     stack parameter* as the argument_nodes array of hs_syntax_get_arguments, with
  *     EDI = [EBP+0xc] (the expression node) and EBX = 1 (one expected
- *     argument).  FUN_000c55d0 writes the argument node handle over that
+ *     argument).  hs_syntax_get_arguments writes the argument node handle over that
  *     slot, which is why 0xc8d8a reloads [EBP+8] as the argument handle
  *     rather than as the function index.  The full 32-bit datum handle
  *     (salt<<16 | index) is what is stored and reloaded.
@@ -748,7 +748,7 @@ bool FUN_000c8d30(int function_index, int script_node)
 
   /* &function_index is the one-element argument_nodes array: the callee
    * overwrites the incoming first parameter slot with the argument handle. */
-  if (FUN_000c55d0(
+  if (hs_syntax_get_arguments(
         *(const char **)((char *)hs_function_table_get((int16_t)fn_idx) + 4),
         &function_index, script_node, 1)) {
     node = (char *)datum_get(*(data_t **)0x5aa6c8, function_index);

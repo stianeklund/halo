@@ -273,7 +273,7 @@ static void run_hs_parser_cases(char *buf)
   run_hs_parse_case("or_two", "(or true false)", buf);
 
   /* hs_parse_cond: the in-place replacement (taken path), the empty clause
-   * list, and a malformed clause that makes FUN_000c5310 fail so the call
+   * list, and a malformed clause that makes hs_parse_cond_clauses fail so the call
    * node must be left completely untouched. */
   run_hs_parse_case("cond_empty", "(cond)", buf);
   run_hs_parse_case("cond_pair", "(cond (true false))", buf);
@@ -318,7 +318,7 @@ typedef struct dual_hs_wake_result {
 /* Call one wake-parse implementation with the original's cdecl frame and
  * recover the first argument slot afterwards.
  *
- * FUN_000c55d0 writes the argument node handle into the caller's outgoing
+ * hs_syntax_get_arguments writes the argument node handle into the caller's outgoing
  * argument area (the wake parser passes &function_index as its one-element
  * argument_nodes array), so a plain C call cannot observe the write: the
  * pushes, the call and the slot read have to be written out.  Every operand
@@ -535,7 +535,7 @@ static void run_dual_oracle_tests(void)
       csmemset(scenario, 0, sizeof(dual_hs_wake_scenario));
       csmemset(script, 0, sizeof(dual_hs_wake_script));
 
-      /* No scenario installed: the argument-count collector in FUN_000c55d0
+      /* No scenario installed: the argument-count collector in hs_syntax_get_arguments
        * reports before anything reads the scenario. */
       dual_hs_wake_check_case("wake_no_args", 0, buf, &passed, &total);
       dual_hs_wake_check_case("wake_two_args", 2, buf, &passed, &total);
