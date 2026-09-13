@@ -7335,7 +7335,7 @@ void hs_evaluate_rasterizer_lights_reset_for_new_map(int16_t function_index, int
   return;
 }
 
-/* 0xc3620 — HaloScript function handler: forward one evaluated (uint16, float)
+/* hs_evaluate_script_screen_effect_set_value (0xc3620) — HaloScript function handler: forward one evaluated (uint16, float)
  * pair to the routine at 0x17d9a0.
  *
  * Same shape as the sibling handler at 0xc3660: it drives
@@ -7345,7 +7345,7 @@ void hs_evaluate_rasterizer_lights_reset_for_new_map(int16_t function_index, int
  * argument widths differ, so neither the target nor this handler gets a
  * semantic name.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3620(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three stack arguments as `in_stack_00000004/8/c` — the tell for dropped
  * cdecl stack params, not for register arguments; this function takes none.
  * Real frame offsets:
@@ -7399,7 +7399,7 @@ void hs_evaluate_rasterizer_lights_reset_for_new_map(int16_t function_index, int
  *   0x17d9a0 = FUN_0017d9a0(int, float)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c3620(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_script_screen_effect_set_value(int16_t function_index, int thread_datum, char init)
 {
   unsigned short *result;
 
@@ -7409,9 +7409,10 @@ void FUN_000c3620(int16_t function_index, int thread_datum, char init)
     FUN_0017d9a0(result[0], ((float *)result)[1]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc3660 — HaloScript function handler: forward one evaluated boolean-ish
+/* hs_evaluate_cinematic_screen_effect_start (0xc3660) — HaloScript function handler: forward one evaluated boolean-ish
  * byte argument to the rasterizer-sprites routine at 0x17da00.
  *
  * Structurally identical to the scripted_hud handlers at 0xc34d0/0xc3510: it
@@ -7421,7 +7422,7 @@ void FUN_000c3620(int16_t function_index, int thread_datum, char init)
  * (0x17da00, in rasterizer_sprites.obj).  What that routine does is not
  * established here, so neither it nor this handler is given a semantic name.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3660(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three stack arguments as `in_stack_00000004/8/c` — those names are the tell
  * for dropped cdecl stack params, NOT for register arguments; this function
  * takes none.  Real frame offsets:
@@ -7464,7 +7465,7 @@ void FUN_000c3620(int16_t function_index, int thread_datum, char init)
  *   0x17da00 = FUN_0017da00(char)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3660(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_cinematic_screen_effect_start(int16_t function_index, int thread_datum, char init)
 {
   unsigned char *result;
 
@@ -7474,6 +7475,7 @@ void FUN_000c3660(int16_t function_index, int thread_datum, char init)
     FUN_0017da00(result[0]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc36a0 — HaloScript function handler for the script builtin
@@ -7560,7 +7562,7 @@ struct hs_convolution_result {
 void FUN_0017da40(int16_t field_00, uint16_t field_04, float field_08,
                   float field_0c, float field_10);
 
-void FUN_000c36a0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_cinematic_screen_effect_set_convolution(int16_t function_index, int thread_datum, char init)
 {
   struct hs_convolution_result *result;
 
@@ -7571,9 +7573,10 @@ void FUN_000c36a0(int16_t function_index, int thread_datum, char init)
                  result->field_0c, result->field_10);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc3700 — HaloScript function handler for the script builtin
+/* hs_evaluate_cinematic_screen_effect_set_filter (0xc3700) — HaloScript function handler for the script builtin
  * "cinematic_screen_effect_set_filter" ("sets the filter effect").
  *
  * Script-function table record at 0x2725c4 (its +0x0c evaluate slot at
@@ -7594,7 +7597,7 @@ void FUN_000c36a0(int16_t function_index, int thread_datum, char init)
  * non-NULL evaluated-argument block, forward six values to FUN_0017dab0
  * before completing the thread with a 0 result.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3700(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three cdecl stack slots as in_stack_00000004/8/c — the tell for dropped
  * cdecl stack params, not for register arguments; this function takes none.
  * Real frame offsets:
@@ -7682,7 +7685,7 @@ void FUN_000c36a0(int16_t function_index, int thread_datum, char init)
  *   0x17dab0 = FUN_0017dab0(int, float, float, float, char, float)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c3700(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_cinematic_screen_effect_set_filter(int16_t function_index, int thread_datum, char init)
 {
   volatile float *result;
 
@@ -7693,11 +7696,12 @@ void FUN_000c3700(int16_t function_index, int thread_datum, char init)
                  *(unsigned char *)(result + 4), result[5]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc3760 — HS macro handler: forward { int, float, float } to 0x17db20.
+/* hs_evaluate_cinematic_screen_effect_set_filter_desaturation_tint (0xc3760) — HS macro handler: forward { int, float, float } to 0x17db20.
  * Both scalar fields are raw IEEE-754 record dwords (+4/+8). */
-void FUN_000c3760(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_cinematic_screen_effect_set_filter_desaturation_tint(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -7708,13 +7712,14 @@ void FUN_000c3760(int16_t function_index, int thread_datum, char init)
                  *(float *)((char *)result + 8));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc37b0 — HaloScript function handler: evaluate this call's script arguments,
+/* hs_evaluate_cinematic_screen_effect_set_video (0xc37b0) — HaloScript function handler: evaluate this call's script arguments,
  * then forward the two evaluated values to rasterizer_screen_effect_set_video
  * and commit a void result to the calling thread.
  *
- * Ghidra mis-prototypes this as `void FUN_000c37b0(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three cdecl stack slots as in_stack_00000004/8/c.  Those are ordinary stack
  * parameters, not register arguments; the kb decl is widened to the uniform
  * handler shape every sibling in this TU uses:
@@ -7751,7 +7756,7 @@ void FUN_000c3760(int16_t function_index, int thread_datum, char init)
  *   0x17db40 = rasterizer_screen_effect_set_video(int, float)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c37b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_cinematic_screen_effect_set_video(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -7762,9 +7767,10 @@ void FUN_000c37b0(int16_t function_index, int thread_datum, char init)
                                        *(float *)(result + 1));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc37f0 — HaloScript function handler: invoke the 0x17dc60 thunk.
+/* hs_evaluate_cinematic_screen_effect_stop (0xc37f0) — HaloScript function handler: invoke the 0x17dc60 thunk.
  *
  * Structurally identical to the 0xc3550/0xc3570 handlers above: it takes no
  * HaloScript arguments, so it skips the 0xcc560 hs_macro_function_evaluate
@@ -7772,7 +7778,7 @@ void FUN_000c37b0(int16_t function_index, int thread_datum, char init)
  * the script thread.  What 0x17dc60 does is not established here, so neither
  * it nor this handler is given a semantic name.
  *
- * Ghidra mis-prototypes this as `void FUN_000c37f0(void)` and surfaces the one
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the one
  * stack argument it can see as `in_stack_00000008`; that label is misleading —
  * the MOV reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which is
  * thread_datum under the handler convention every sibling in this TU uses:
@@ -7802,17 +7808,18 @@ void FUN_000c37b0(int16_t function_index, int thread_datum, char init)
  *   0x17dc60 = FUN_0017dc60(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c37f0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_cinematic_screen_effect_stop(int16_t function_index, int thread_datum, char init)
 {
   FUN_0017dc60();
   hs_return(thread_datum, 0);
+  return;
 }
 
-/* 0xc3810 — HaloScript function handler: evaluate this call's script
+/* hs_evaluate_cinematic_set_near_clip_distance (0xc3810) — HaloScript function handler: evaluate this call's script
  * arguments, then forward the first evaluated argument to FUN_0017dec0 and
  * commit a void result to the calling thread.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3810(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three cdecl stack slots as `in_stack_00000004/8/c`.  Those labels are slot
  * offsets, not argument indices; the reads are [EBP+8], [EBP+0xc] and
  * [EBP+0x10], i.e. the standard three-parameter hs handler shape used by every
@@ -7856,7 +7863,7 @@ void FUN_000c37f0(int16_t function_index, int thread_datum, char init)
  *   0x17dec0 = FUN_0017dec0(int)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c3810(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_cinematic_set_near_clip_distance(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -7866,12 +7873,13 @@ void FUN_000c3810(int16_t function_index, int thread_datum, char init)
     FUN_0017dec0(*result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* HaloScript macro handler: run the saved-game refresh at 0x1c58f0, then
+/* hs_evaluate_enumerate_memory_units (0xc3850) — HaloScript macro handler: run the saved-game refresh at 0x1c58f0, then
  * return 0 to the calling script thread.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3850(void)` and surfaces the one
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the one
  * stack argument it can see as `in_stack_00000008`; that label is misleading —
  * the MOV at 0xc3858 reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which
  * is thread_datum under the handler convention every sibling in this TU uses.
@@ -7886,7 +7894,7 @@ void FUN_000c3810(int16_t function_index, int thread_datum, char init)
  * `PUSH EBP / MOV EBP,ESP` — no callee-saved registers, no locals, no _chkstk,
  * no buffers.  The `ADD ESP,0x8` at 0xc3863 is the cleanup for the single
  * two-argument hs_return call only; it is not a merged cleanup, so there is no
- * ARG_COUNT ambiguity here (contrast FUN_000c3810 above).  Push order at
+ * ARG_COUNT ambiguity here (contrast hs_evaluate_cinematic_set_near_clip_distance above).  Push order at
  * 0xc385b-0xc385d is PUSH 0 then PUSH EAX; first push is the last C argument,
  * giving hs_return(thread_datum, 0), not the reverse.
  *
@@ -7896,19 +7904,20 @@ void FUN_000c3810(int16_t function_index, int thread_datum, char init)
  *   0x1c58f0 = FUN_001c58f0(void) — thin wrapper onto FUN_001c5010
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c3850(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_enumerate_memory_units(int16_t function_index, int thread_datum, char init)
 {
   FUN_001c58f0();
   hs_return(thread_datum, 0);
+  return;
 }
 
-/* HaloScript macro handler: invoke the routine at 0x1c4f30, then return 0 to
+/* hs_evaluate_delete_save_game_files (0xc3870) — HaloScript macro handler: invoke the routine at 0x1c4f30, then return 0 to
  * the calling script thread.  What 0x1c4f30 actually does is not established
  * from the binary here (it is unported, takes no arguments, and returns
  * nothing), so it is deliberately left as FUN_001c4f30 rather than given a
  * speculative name.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3870(void)` and surfaces the one
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the one
  * stack argument it can see as `in_stack_00000008`; that label is misleading —
  * the MOV at 0xc3878 reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which
  * is thread_datum under the handler convention every sibling in this TU uses.
@@ -7918,7 +7927,7 @@ void FUN_000c3850(int16_t function_index, int thread_datum, char init)
  * happens to touch: the dispatcher calls every handler in the table uniformly,
  * and unread trailing cdecl params emit no code, so a narrower decl would buy
  * nothing and misstate the ABI.  Structurally this is byte-for-byte the same
- * shape as FUN_000c3850 immediately above, differing only in the dispatch
+ * shape as hs_evaluate_enumerate_memory_units immediately above, differing only in the dispatch
  * target.
  *
  * ABI (verified 0xc3870-0xc3887, 24 bytes): cdecl, plain RET.  Frame is a bare
@@ -7938,19 +7947,20 @@ void FUN_000c3850(int16_t function_index, int thread_datum, char init)
  *   0x1c4f30 = FUN_001c4f30(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c3870(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_delete_save_game_files(int16_t function_index, int thread_datum, char init)
 {
   FUN_001c4f30();
   hs_return(thread_datum, 0);
+  return;
 }
 
-/* HaloScript function handler at 0xc3890: invokes the zero-argument routine
+/* hs_evaluate_fast_setup_network_server (0xc3890) — HaloScript function handler at 0xc3890: invokes the zero-argument routine
  * player_ui_fast_setup_network_server (0xe0cd0) and then completes the calling
  * script thread with the value 0.  The handler itself has no return value; the
  * script-visible result is delivered through hs_return, as in every sibling
  * handler in this table.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3890(void)` and surfaces the one
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the one
  * stack argument it can see as `in_stack_00000008`; that label is misleading —
  * the MOV at 0xc3898 reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which
  * is thread_datum under the handler convention every sibling in this TU uses.
@@ -7960,7 +7970,7 @@ void FUN_000c3870(int16_t function_index, int thread_datum, char init)
  * touch: the dispatcher calls every handler in the table uniformly, and unread
  * trailing cdecl params emit no code, so a narrower decl would buy nothing and
  * misstate the ABI.  Structurally this is byte-for-byte the same shape as
- * FUN_000c3870 immediately above, differing only in the dispatch target.
+ * hs_evaluate_delete_save_game_files immediately above, differing only in the dispatch target.
  *
  * ABI (verified 0xc3890-0xc38a7, 24 bytes): cdecl, plain RET.  Frame is a bare
  * `PUSH EBP / MOV EBP,ESP` — no `SUB ESP`, no callee-saved registers, no
@@ -7979,23 +7989,24 @@ void FUN_000c3870(int16_t function_index, int thread_datum, char init)
  *   0xe0cd0  = player_ui_fast_setup_network_server(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c3890(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_fast_setup_network_server(int16_t function_index, int thread_datum, char init)
 {
   player_ui_fast_setup_network_server();
   hs_return(thread_datum, 0);
+  return;
 }
 
-/* 0xc38b0 — HaloScript builtin that activates all solo (campaign) levels in
+/* hs_evaluate_profile_unlock_solo_levels (0xc38b0) — HaloScript builtin that activates all solo (campaign) levels in
  * the player-UI level table, then commits a 0 result to the calling script
  * thread (a void-returning script builtin).
  *
- * Ghidra mis-prototypes this as `void FUN_000c38b0(void)` — that prototype is
+ * Ghidra mis-prototypes this as `void(void)` — that prototype is
  * echoed from the stale kb.json decl, not derived from the code.  The body
  * reads [EBP+0x0C], i.e. the SECOND stack argument, so the real shape is the
  * standard three-argument hs-evaluator signature used throughout this TU.
  * Ghidra surfaces the [EBP+0x0C] read as a bogus `in_stack_00000008` local
  * precisely because its prototype has no parameters to attribute it to.
- * Structurally this is byte-for-byte the same shape as FUN_000c3890
+ * Structurally this is byte-for-byte the same shape as hs_evaluate_fast_setup_network_server
  * immediately above, differing only in the dispatch target.
  *
  * ABI (verified 0xc38b0-0xc38c7, 24 bytes): cdecl, plain RET.  Frame is a bare
@@ -8019,13 +8030,14 @@ void FUN_000c3890(int16_t function_index, int thread_datum, char init)
  *   0xe0fd0  = player_ui_activate_all_solo_levels(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c38b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_profile_unlock_solo_levels(int16_t function_index, int thread_datum, char init)
 {
   player_ui_activate_all_solo_levels();
   hs_return(thread_datum, 0);
+  return;
 }
 
-/* 0xc38d0 (hs.obj) — HaloScript handler for the script command
+/* hs_evaluate_player0_look_invert_pitch (0xc38d0) (hs.obj) — HaloScript handler for the script command
  * "player0_look_invert_pitch" (help text "invert player0's look").  Identified
  * from the hs_function_definition record at 0x2726dc, whose evaluate slot
  * (+0x0c) is the only reference to this address in the XBE: return_type = 4
@@ -8070,7 +8082,7 @@ void FUN_000c38b0(int16_t function_index, int thread_datum, char init)
  *   0xe1770 = FUN_000e1770(invert)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c38d0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player0_look_invert_pitch(int16_t function_index, int thread_datum, char init)
 {
   char *result;
 
@@ -8083,11 +8095,11 @@ void FUN_000c38d0(int16_t function_index, int thread_datum, char init)
   return;
 }
 
-/* HaloScript function handler at 0xc3910: queries the zero-argument predicate
+/* hs_evaluate_player0_look_pitch_is_inverted (0xc3910) — HaloScript function handler at 0xc3910: queries the zero-argument predicate
  * player0_look_pitch_is_inverted (0xe1050) and completes the calling script
  * thread with that boolean as the script-visible result.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3910(void)` and surfaces the one
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the one
  * stack slot it can see as `in_stack_00000008`; that label is misleading — the
  * MOV at 0xc3920 reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which is
  * thread_datum under the handler convention every sibling in this TU uses.
@@ -8105,7 +8117,7 @@ void FUN_000c38d0(int16_t function_index, int thread_datum, char init)
  * there is no ARG_COUNT ambiguity.  Push order at 0xc3929-0xc392a is PUSH EAX
  * (the result) then PUSH ECX (thread_datum); the first push is the last C
  * argument, giving hs_return(thread_datum, result), not the reverse.  Unlike
- * FUN_000c38d0 there is no NULL check — hs_return is unconditional.
+ * hs_evaluate_player0_look_invert_pitch there is no NULL check — hs_return is unconditional.
  *
  * The result slot is written at TWO widths and that is load-bearing:
  *   0xc3914  MOV dword ptr [EBP-4],0   <- whole slot zeroed
@@ -8129,17 +8141,18 @@ void FUN_000c38d0(int16_t function_index, int thread_datum, char init)
  *   0xe1050 = player0_look_pitch_is_inverted(void) -> bool in AL
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3910(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player0_look_pitch_is_inverted(int16_t function_index, int thread_datum, char init)
 {
   int result;
 
   result = 0;
   *(unsigned char *)&result = player0_look_pitch_is_inverted();
   hs_return(thread_datum, result);
+  return;
 }
 
-/* 0xc3940 — HaloScript function evaluator that returns a player0 control
- * setting as a boolean script result.  Direct sibling of 0xc3910 above: it
+/* hs_evaluate_player0_joystick_set_is_normal (0xc3940) — HaloScript function evaluator that returns a player0 control
+ * setting as a boolean script result.  Direct sibling of hs_evaluate_player0_look_pitch_is_inverted above: it
  * calls the byte-returning accessor at 0xe1060 and commits the result to the
  * calling script thread.
  *
@@ -8162,16 +8175,17 @@ void FUN_000c3910(int16_t function_index, int thread_datum, char init)
  *   0xe1060 = FUN_000e1060(void) -> bool in AL
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3940(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player0_joystick_set_is_normal(int16_t function_index, int thread_datum, char init)
 {
   int result;
 
   result = 0;
   *(unsigned char *)&result = FUN_000e1060();
   hs_return(thread_datum, result);
+  return;
 }
 
-/* 0xc3970 — HaloScript function handler: writes a single byte setting taken
+/* hs_evaluate_ui_widget_show_path (0xc3970) — HaloScript function handler: writes a single byte setting taken
  * from the evaluated macro-argument block.  Standard hs evaluator shape:
  * hs_macro_function_evaluate(function_index, thread_datum, init) returns the
  * argument block (NULL on failure/deferral), and on success the FIRST BYTE of
@@ -8200,7 +8214,7 @@ void FUN_000c3940(int16_t function_index, int thread_datum, char init)
  * The single `ADD ESP,0xc` at 0xc399e is MSVC coalescing the cleanup for the
  * 0xe3ca0 push and hs_return's two pushes; hs_return still takes 2 args.
  */
-void FUN_000c3970(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ui_widget_show_path(int16_t function_index, int thread_datum, char init)
 {
   unsigned char *result;
 
@@ -8210,9 +8224,10 @@ void FUN_000c3970(int16_t function_index, int thread_datum, char init)
     ui_widget_debug_show_path(result[0]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* HS script function handler: display a scenario help message.
+/* hs_evaluate_display_scenario_help (0xc39b0) — HS script function handler: display a scenario help message.
  *
  * Evaluates the macro arguments; on success the returned block holds the
  * help/string index as an int16 at +0x0.  0xc39cc-0xc39d1 emit
@@ -8222,7 +8237,7 @@ void FUN_000c3970(int16_t function_index, int thread_datum, char init)
  *
  * The single `ADD ESP,0xc` at 0xc39df is MSVC coalescing the cleanup for the
  * 0xe8e20 push and hs_return's two pushes; hs_return still takes 2 args. */
-void FUN_000c39b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_display_scenario_help(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -8232,9 +8247,10 @@ void FUN_000c39b0(int16_t function_index, int thread_datum, char init)
     ui_widget_display_scenario_help(*(short *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* HS script function handler: no-argument builtin that performs a single
+/* hs_evaluate_network_game_start_now (0xc39f0) — HS script function handler: no-argument builtin that performs a single
  * engine action and returns void to the calling script thread.
  *
  * Unlike its siblings this stub never calls hs_macro_function_evaluate — it
@@ -8242,20 +8258,21 @@ void FUN_000c39b0(int16_t function_index, int thread_datum, char init)
  *   CALL 0x0012a7a0            ; plain cdecl void(void), no arguments
  *   MOV EAX,[EBP+0xc]          ; SECOND stack slot = thread_datum
  *   PUSH 0x0 / PUSH EAX / CALL hs_return / ADD ESP,0x8
- * Ghidra mis-prototypes it as `void FUN_000c39f0(void)` and reports the
+ * Ghidra mis-prototypes it as `void(void)` and reports the
  * hs_return argument as `in_stack_00000008` ([EBP+8]); the disassembly loads
  * from [EBP+0xc], so the value forwarded is the second cdecl argument.  The
  * parameter list is the hs builtin triple used by every sibling in this file;
  * `function_index` and `init` are unread here (this builtin ignores the init
  * pass), which is why the frame is the bare PUSH EBP / MOV EBP,ESP with no
  * locals and no `sub esp`. */
-void FUN_000c39f0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_network_game_start_now(int16_t function_index, int thread_datum, char init)
 {
   FUN_0012a7a0();
   hs_return(thread_datum, 0);
+  return;
 }
 
-/* 0xc3a10 — HS built-in evaluator, sibling of FUN_000c39f0 above.  Evaluates a
+/* hs_evaluate_xbox_set_machine_name (0xc3a10) — HS built-in evaluator, sibling of hs_evaluate_network_game_start_now above.  Evaluates a
  * single macro-function argument via hs_macro_function_evaluate; while that
  * returns NULL the evaluation is still pending and nothing is committed on this
  * call.  Once it yields a non-NULL result record, the first dword of the record
@@ -8269,7 +8286,7 @@ void FUN_000c39f0(int16_t function_index, int thread_datum, char init)
  *   param3 @ EBP+0x10 = init (char), loaded into EAX
  * Frame is PUSH EBP / MOV EBP,ESP / PUSH ESI — no locals, no `sub esp`.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3a10(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three arguments as in_stack_00000004/8/c phantoms.
  *
  * Callees (all in kb.json):
@@ -8282,7 +8299,7 @@ void FUN_000c39f0(int16_t function_index, int thread_datum, char init)
  * The single ADD ESP,0xc at 0xc3a3c coalesces the cleanup for both tail calls
  * (1 dword + 2 dwords); the ARG_COUNT hazard this raises on hs_return is a
  * false positive — the disassembly shows exactly two pushes for it. */
-void FUN_000c3a10(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_xbox_set_machine_name(int16_t function_index, int thread_datum, char init)
 {
   const char **record;
 
@@ -8292,6 +8309,7 @@ void FUN_000c3a10(int16_t function_index, int thread_datum, char init)
     xbox_set_machine_name(*record);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc3a50 — merge the HaloScript source-file block of one scenario tag into

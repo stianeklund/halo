@@ -11281,98 +11281,117 @@
     },
     {
      "addr": "0xc3620",
-     "decl": "void FUN_000c3620(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_script_screen_effect_set_value(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_script_screen_effect_set_value"
     },
     {
      "addr": "0xc3660",
-     "decl": "void FUN_000c3660(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_cinematic_screen_effect_start(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_cinematic_screen_effect_start"
     },
     {
      "addr": "0xc36a0",
-     "decl": "void FUN_000c36a0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_cinematic_screen_effect_set_convolution(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_cinematic_screen_effect_set_convolution"
     },
     {
      "addr": "0xc3700",
-     "decl": "void FUN_000c3700(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_cinematic_screen_effect_set_filter(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_cinematic_screen_effect_set_filter"
     },
     {
      "addr": "0xc3760",
-     "decl": "void FUN_000c3760(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_cinematic_screen_effect_set_filter_desaturation_tint(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_cinematic_screen_effect_set_filter_desaturation_tint"
     },
     {
      "addr": "0xc37b0",
-     "decl": "void FUN_000c37b0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_cinematic_screen_effect_set_video(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_cinematic_screen_effect_set_video"
     },
     {
      "addr": "0xc37f0",
-     "decl": "void FUN_000c37f0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_cinematic_screen_effect_stop(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_cinematic_screen_effect_stop"
     },
     {
      "addr": "0xc3810",
-     "decl": "void FUN_000c3810(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_cinematic_set_near_clip_distance(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_cinematic_set_near_clip_distance"
     },
     {
      "addr": "0xc3850",
-     "decl": "void FUN_000c3850(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_enumerate_memory_units(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_enumerate_memory_units"
     },
     {
      "addr": "0xc3870",
-     "decl": "void FUN_000c3870(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_delete_save_game_files(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_delete_save_game_files"
     },
     {
      "addr": "0xc3890",
-     "decl": "void FUN_000c3890(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_fast_setup_network_server(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_fast_setup_network_server"
     },
     {
      "addr": "0xc38b0",
-     "decl": "void FUN_000c38b0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_profile_unlock_solo_levels(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_profile_unlock_solo_levels"
     },
     {
      "addr": "0xc38d0",
-     "decl": "void FUN_000c38d0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player0_look_invert_pitch(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player0_look_invert_pitch"
     },
     {
      "addr": "0xc3910",
-     "decl": "void FUN_000c3910(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player0_look_pitch_is_inverted(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player0_look_pitch_is_inverted"
     },
     {
      "addr": "0xc3940",
-     "decl": "void FUN_000c3940(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player0_joystick_set_is_normal(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player0_joystick_set_is_normal"
     },
     {
      "addr": "0xc3970",
-     "decl": "void FUN_000c3970(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_ui_widget_show_path(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_ui_widget_show_path"
     },
     {
      "addr": "0xc39b0",
-     "decl": "void FUN_000c39b0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_display_scenario_help(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_display_scenario_help"
     },
     {
      "addr": "0xc39f0",
-     "decl": "void FUN_000c39f0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_network_game_start_now(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_network_game_start_now"
     },
     {
      "addr": "0xc3a10",
-     "decl": "void FUN_000c3a10(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_xbox_set_machine_name(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_xbox_set_machine_name"
     },
     {
      "addr": "0xc3a50",

@@ -3773,6 +3773,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x82310": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x82410": {
       "kind": "function",
       "status": "ported"
@@ -7695,6 +7699,10 @@
         "The semantic meaning of the record[0] field forwarded to FUN_000572c0 is unknown; it is read as a full 32-bit dword at offset +0x0 with no sign or zero extension, and FUN_000572c0 remains an unnamed FUN_ placeholder."
       ]
     },
+    "0xc0bb0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc0e50": {
       "kind": "function",
       "status": "ported",
@@ -7935,23 +7943,47 @@
         "kb.json decl for callee 0x93030 cinematic_suppress_bsp_object_creation was corrected from (void) to (unsigned char suppress) by this lift; the PUSH EDX at 0xc24a4 is the binary evidence and this handler is currently its only in-tree caller."
       ]
     },
+    "0xc24e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc2500": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameters function_index and init are unread by the body (only [EBP+0xc] is loaded); their presence in the signature is inferred from the shared hs-evaluator triple used by sibling handlers 0xc0cb0 and 0xc24e0, not from any instruction in this function."
       ]
     },
+    "0xc2520": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2580": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc25b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc25e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc2600": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameters function_index (int16_t) and init (char) are unused in this body; they are inferred from the uniform HaloScript evaluator signature shared by every sibling in hs.obj (e.g. 0xc0cb0, 0xc25e0), not from any read in 0xc2600 itself."
       ]
     },
     "0xc2620": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The 3-parameter hs-evaluator signature (int16_t function_index, int thread_datum, char init) is inferred from the sibling handlers 0xc25b0/0xc25e0/0xc2600 in this TU, since only [EBP+0xc] (thread_datum) is read by this body."
       ],
@@ -7959,9 +7991,13 @@
         "function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read by this body, so an ignored cdecl parameter emits no code and the disassembly alone cannot prove 3 parameters rather than 2; the shared HaloScript dispatch table arbitrates the count."
       ]
     },
+    "0xc2640": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc2660": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameters function_index (EBP+8) and init (EBP+0x10) are never read by the body; they are inferred from the shared hs-evaluator signature used by every sibling handler in hs.obj, not from binary reads in this function."
       ],
@@ -7969,16 +8005,52 @@
         "The HaloScript builtin name this evaluator is registered under is unproven; the function is unnamed (FUN_000c2660) because no string or function-table evidence was inspected, only that it forwards main_saving_map's bool to hs_return."
       ]
     },
+    "0xc2690": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc26b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc26d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc26f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2730": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2770": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2790": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc27d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc2810": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameters function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read in this body; the 3-argument signature is inferred from the uniform hs-evaluator dispatch shape shared with the ported neighbours at 0xc2400-0xc27d0, not from a use inside 0xc2810 itself."
       ]
     },
+    "0xc2840": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc2880": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The hs_macro_function_evaluate result block for 0xc2880 holds a single dword handle at +0x0; unlike the 0xc0c30/0xc0c70 siblings there is no narrow +0x4 field, so the block size beyond +0x4 is unknown."
       ],
@@ -7986,9 +8058,13 @@
         "The widened kb decl int scripted_sound_time(int handle) is proven by the disasm (one stack arg, EAX consumed as the return) but the param name handle is descriptive only; what kind of datum the handle refers to (sound, object, or scripted-sound-block index) is unproven."
       ]
     },
+    "0xc28c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc2900": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The parameter name 'handle' given to scripted_foley_predict (0x1c75a0) is inferred by analogy to the sibling game_sound.obj entries scripted_sound_stop (0x1c7550) and scripted_sound_time (0x1c7500), which take an int handle read from the same +0x0 slot of the evaluated hs argument block; the disassembly at 0xc291f proves only that one dword is pushed."
       ],
@@ -7998,10 +8074,26 @@
     },
     "0xc2940": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The result-block field at +0x8 is a genuine 32-bit float (FLD dword ptr [EAX+8]), so it is read as *(float *)(result + 2); Ghidra's (float)piVar1[2] would emit FILD and corrupt the scale."
       ]
+    },
+    "0xc2980": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc29c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2a00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2a40": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc2a80": {
       "kind": "function",
@@ -8025,6 +8117,82 @@
         "The two forwarded floats are lowered by cl.exe 7.1 as integer dword GPR copies where the reference uses FLD/FSTP, capping VC71 at 83.6% (27/28); the divergence is bit-exact, but no C spelling has been found that reproduces the reference x87 marshalling.",
         "The VC71 match is capped at 83.6 percent (27 candidate against 28 reference instructions) by the documented float-argument lowering cap: cl.exe 7.1 copies the two forwarded float lvalues through GPRs while the reference uses SUB ESP plus FLD/FSTP, a bit-exact substitution, and the entire non-equal diff is that one marshalling sequence."
       ]
+    },
+    "0xc2ad0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2b10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2b50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2b90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2bd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2c20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2c70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2cd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2d20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2d70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2dc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2e10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2e50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2e90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2ed0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2f10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2f30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2f70": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc2f90": {
       "kind": "function",
@@ -8079,22 +8247,110 @@
         "The parameter names a/yaw/pitch on scripted_player_effect_set_rotation are placeholders with no binary evidence; only the types (int, float, float) and their order are proven."
       ]
     },
+    "0xc3030": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3070": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc30b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc30f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3130": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3170": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc31b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc31f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc3230": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The ADD ESP,0xc at 0xc325e is MSVC's merged cleanup for FUN_000d7530 (1 dword) plus hs_return (2 dwords); hs_return remains a 2-argument cdecl and the ARG_COUNT cleanup=3 hazard on it is a false positive."
       ]
     },
     "0xc3270": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The three cdecl stack parameters (int16_t function_index, int thread_datum, char init) were inferred from the [EBP+0x8]/[EBP+0xc]/[EBP+0x10] loads and the already-confirmed hs_macro_function_evaluate signature; Ghidra had prototyped the function as void(void) with phantom in_stack_* locals."
       ],
       "uncertain": [
         "The semantic role of FUN_000d8b90 and of the record byte at offset +0x0 that is passed to it remains unnamed; only its width (BYTE, zero-extended via XOR EDX,EDX + MOV DL) is confirmed."
       ]
+    },
+    "0xc32b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc32d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3310": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3350": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3390": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc33d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3420": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3460": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc34a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc34d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3510": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3590": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc35b0": {
       "kind": "function",
@@ -8111,15 +8367,23 @@
         "VC71 match is capped at 78.0 percent by the cl.exe 7.1 float-arg lowering cap: the reference marshals the three forwarded float lvalues with FLD/FSTP into slots reserved by SUB ESP 0xc while VC71 emits bit-exact integer dword copies through GPRs, and all 29 other instructions are equal."
       ]
     },
+    "0xc3600": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc3620": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Callee 0x17d9a0's parameter widths are read from its own prologue in the pristine XBE (mov ax,word [ebp+8] / test ax,ax / jl / cmp ax,4 / jge, then fld dword [ebp+0xc] / fstp dword [ecx+eax*4+0x64]), so its kb decl was corrected from void(void) to void FUN_0017d9a0(int16_t, float) with a signed 16-bit first formal range-checked to 0..3."
       ],
       "uncertain": [
         "The evaluated-argument record's field names are unproven: +0x00 is read as a zero-extended uint16 and +0x04 as a float lvalue, but the record's struct identity is not established, so the fields are accessed through an unsigned short pointer rather than a named type."
       ]
+    },
+    "0xc3660": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc36a0": {
       "kind": "function",
@@ -8135,7 +8399,7 @@
     },
     "0xc3700": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The 0xcc560 result is treated as a pointer to an evaluated-argument block whose fields are forwarded verbatim; the block's semantic meaning (what the int handle at +0x00 and the five trailing values represent) is not established, so neither this handler nor FUN_0017dab0 is given a semantic name.",
         "The script-function table at 0x2725c4 names this handler cinematic_screen_effect_set_filter, has six parameter types (real, real, real, real, boolean, real), and identifies it as a void handler."
@@ -8157,16 +8421,48 @@
         "The consumer at 0x17db20 is unported and unnamed; its widened decl (int, float, float) is derived solely from this single call site, so the int parameter's true width and the two floats' semantic roles are unproven."
       ]
     },
+    "0xc37b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc37f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3810": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3850": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3870": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc3890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc38b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc38d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc3910": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameters function_index ([EBP+0x08]) and init ([EBP+0x10]) are never read by this body; the three-parameter (int16_t function_index, int thread_datum, char init) shape is inferred from the uniform hs builtin dispatcher convention shared by every sibling handler in hs.obj, not from loads in this function."
       ]
     },
     "0xc3940": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The three-argument hs-evaluator prototype void(int16_t function_index, int thread_datum, char init) is taken from the hs.obj sibling convention (0xc0cb0, 0xc3910) rather than from this body, which reads only [EBP+0xc]; function_index and init are never referenced and the plain RET plus the caller-side ADD ESP,8 confirm cdecl.",
         "The kb.json prototype for the callee at 0xe1060 was widened from void(void) to unsigned char(void): its body is MOV AL,[0x46bf09] / TEST AL,AL / JE / CMP AL,1 / JE / XOR EAX,EAX / RET with a MOV EAX,1 arm, so it yields 1 when the setting byte is 0 or 1 and 0 otherwise, and 0xc3953 consumes AL immediately; unsigned char follows the precedent of the adjacent accessor 0xe1050."
@@ -8177,7 +8473,7 @@
     },
     "0xc3970": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Callee 0xe3ca0 takes exactly one zero-extended byte argument: the call site emits XOR EDX,EDX / MOV DL,[EAX] / PUSH EDX and the callee body is PUSH EBP / MOV EBP,ESP / MOV AL,[EBP+8] / MOV byte ptr [0x46cc84],AL / POP EBP / RET, so its kb.json decl was widened from void(void) to void(unsigned char)."
       ],
@@ -8187,7 +8483,7 @@
     },
     "0xc39b0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The returned block from hs_macro_function_evaluate is treated as a pointer even though its kb declaration returns int; the +0x0 field is inferred to be the help/string index because XOR EDX,EDX / MOV DX,word ptr [EAX] is a zero-extending 16-bit load feeding ui_widget_display_scenario_help's single int16 parameter."
       ],
@@ -8197,14 +8493,14 @@
     },
     "0xc39f0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameter list (int16_t function_index, int thread_datum, char init) is the uniform hs builtin triple shared by every sibling in hs.c; only [EBP+0xc] (thread_datum) is read by this body, so function_index and init are inferred from family convention rather than from this function's own code."
       ]
     },
     "0xc3a10": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The result of hs_macro_function_evaluate is typed const char ** here because MOV EDX,[EAX]; PUSH EDX at 0xc3a2d forwards the first dword of the record to xbox_set_machine_name, whose kb decl takes a const char *."
       ],
@@ -10267,6 +10563,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xf0250": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xf0430": {
       "kind": "function",
       "status": "ported"
@@ -10292,6 +10592,10 @@
       "status": "ported"
     },
     "0xf24b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xf2560": {
       "kind": "function",
       "status": "ported"
     },
@@ -15954,6 +16258,10 @@
         "The float search offset in the final cluster-resolution loop (1.5258789e-05 doubling to 1.0) is allocated by MSVC into the dead parameter home slot [EBP+8]; VC71 does not reproduce that slot reuse from C source, which contributes part of the residual frame divergence."
       ]
     },
+    "0x196190": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x196290": {
       "kind": "function",
       "status": "ported",
@@ -18452,6 +18760,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c88a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c88c0": {
       "kind": "function",
       "status": "ported"
@@ -18734,6 +19046,26 @@
       "status": "ported"
     },
     "0x1cb8e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cb8f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cb960": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cb980": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cb990": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1cb9b0": {
       "kind": "function",
       "status": "ported"
     },
