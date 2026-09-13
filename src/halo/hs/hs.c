@@ -5238,7 +5238,7 @@ void hs_evaluate_vehicle_hover(int16_t function_index, int thread_datum, char in
  * thread_datum across the body, plain RET.  The trailing `ADD ESP,0xc` is a
  * merged cdecl cleanup covering the 1-arg scripted_show_hud call plus the
  * 2-arg hs_return call (4+8) — do not read it as a 3-arg hs_return. */
-void FUN_000c2bd0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_show_hud(int16_t function_index, int thread_datum, char init)
 {
   union {
     char boolean_value;
@@ -5253,12 +5253,13 @@ void FUN_000c2bd0(int16_t function_index, int thread_datum, char init)
     value.boolean_value = scripted_show_hud(*(unsigned char *)result);
     hs_return(thread_datum, value.long_value);
   }
+  return;
 }
 
 /* 0xc2c20 — HaloScript handler: evaluate the macro function's single argument
  * block and forward its first byte to scripted_show_hud_help_text, returning
  * that call's result to the calling script thread.  Structurally identical to
- * the immediately preceding handler FUN_000c2bd0, differing only in the callee.
+ * the immediately preceding handler hs_evaluate_show_hud, differing only in the callee.
  *
  * Argument deref is a zero-extended BYTE load (`XOR EDX,EDX ; MOV DL,[EAX]`),
  * so the argument block's first field is read as unsigned char, not a dword.
@@ -5276,7 +5277,7 @@ void FUN_000c2bd0(int16_t function_index, int thread_datum, char init)
  * 0xc2c5b is a merged cdecl cleanup covering the 1-arg
  * scripted_show_hud_help_text call plus the 2-arg hs_return call (4+8) — do
  * not read it as a 3-arg hs_return. */
-void FUN_000c2c20(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_show_hud_help_text(int16_t function_index, int thread_datum, char init)
 {
   union {
     char boolean_value;
@@ -5291,6 +5292,7 @@ void FUN_000c2c20(int16_t function_index, int thread_datum, char init)
     value.boolean_value = scripted_show_hud_help_text(*(unsigned char *)result);
     hs_return(thread_datum, value.long_value);
   }
+  return;
 }
 
 /* 0xc2c70 — HS script function handler: set the HUD's flashing state.
@@ -5306,7 +5308,7 @@ void FUN_000c2c20(int16_t function_index, int thread_datum, char init)
  * RET, no locals/FPU/SEH.  The single `ADD ESP,0xc` at 0xc2c9e is a merged
  * cdecl cleanup covering the 1-arg scripted_hud_set_flashing_state call plus
  * the 2-arg hs_return call (4+8) — do not read it as a 3-arg hs_return. */
-void FUN_000c2c70(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_enable_hud_help_flash(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5316,6 +5318,7 @@ void FUN_000c2c70(int16_t function_index, int thread_datum, char init)
     scripted_hud_set_flashing_state(*(unsigned char *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2cb0 — HS script function handler: restart the HUD's flash cycle.
@@ -5332,15 +5335,16 @@ void FUN_000c2c70(int16_t function_index, int thread_datum, char init)
  * cleanup for the single 2-arg hs_return call — scripted_hud_restart_flashing
  * takes no arguments and contributes nothing to it.
  *
- * Ghidra types this `void FUN_000c2cb0(void)` and surfaces the [EBP+0xc] read
+ * Ghidra types this function (0xc2cb0) as `void(void)` and surfaces the [EBP+0xc] read
  * as a phantom `in_stack_00000008`; the real prototype is the standard HS
  * script-function ABI shared by every sibling in this file
  * ([EBP+8]=function_index, [EBP+0xc]=thread_datum, [EBP+0x10]=init), of which
  * only thread_datum is used here. */
-void FUN_000c2cb0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_help_flash_restart(int16_t function_index, int thread_datum, char init)
 {
   scripted_hud_restart_flashing();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc2cd0 (hs.obj) — HaloScript function handler: set an object nav point for
@@ -5383,7 +5387,7 @@ void FUN_000c2cb0(int16_t function_index, int thread_datum, char init)
  *   POP ESI; POP EBP; RET
  *
  * Decompiler traps corrected here:
- *   - Ghidra prototypes this `void FUN_000c2cd0(void)` and surfaces the three
+ *   - Ghidra prototypes this function (0xc2cd0) as `void(void)` and surfaces the three
  *     frame reads as `in_stack_*` phantoms; the real prototype is the standard
  *     HS script-function ABI shared by every sibling in this file.
  *   - Push-then-fstp: Ghidra renders arg 4 as `*(int *)(puVar1 + 6)`, i.e. the
@@ -5400,7 +5404,7 @@ void FUN_000c2cb0(int16_t function_index, int thread_datum, char init)
  *   0xd6490 = FUN_000d6490(nav_type_value, unit_handle, object_handle, real)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c2cd0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_activate_nav_point_flag(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5411,6 +5415,7 @@ void FUN_000c2cd0(int16_t function_index, int thread_datum, char init)
                  *(float *)(result + 3));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2d20 (hs.obj) — HaloScript function handler: set an ENEMY nav point for
@@ -5457,7 +5462,7 @@ void FUN_000c2cd0(int16_t function_index, int thread_datum, char init)
  * that 3-byte difference.
  *
  * Decompiler traps corrected here:
- *   - Ghidra prototypes this `void FUN_000c2d20(void)` and surfaces the three
+ *   - Ghidra prototypes this function (0xc2d20) as `void(void)` and surfaces the three
  *     frame reads as `in_stack_*` phantoms; kb.json inherited that wrong
  *     `(void)` declaration.  The real prototype is the standard HS
  *     script-function ABI shared by every sibling in this file
@@ -5475,7 +5480,7 @@ void FUN_000c2cd0(int16_t function_index, int thread_datum, char init)
  *   0xd64c0 = FUN_000d64c0(nav_type_value, unit_handle, param_3, real)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c2d20(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_activate_nav_point_object(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5486,6 +5491,7 @@ void FUN_000c2d20(int16_t function_index, int thread_datum, char init)
                  *(float *)(result + 3));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2d70 — HS script function handler `activate_team_nav_point_flag`
@@ -5494,7 +5500,7 @@ void FUN_000c2d20(int16_t function_index, int thread_datum, char init)
  * Evaluate the macro arguments and forward the resulting nav-point record to
  * FUN_000d6220, then commit a void (0) return to the calling thread.
  *
- * Exact twin of FUN_000c2dc0 (`activate_team_nav_point_object`) below; the
+ * Exact twin of hs_evaluate_activate_team_nav_point_object (`activate_team_nav_point_object`) below; the
  * only difference is the +0x08 field, which the flag variant reads as a
  * zero-extended 16-bit cutscene-flag index instead of a full 32-bit object
  * handle — matching FUN_000d6220's `short` 3rd parameter.
@@ -5532,7 +5538,7 @@ void FUN_000c2d20(int16_t function_index, int thread_datum, char init)
  * (the ARG_COUNT "cleanup=6" hazard is that merged cleanup, a false
  * positive).
  */
-void FUN_000c2d70(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_activate_team_nav_point_flag(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5543,6 +5549,7 @@ void FUN_000c2d70(int16_t function_index, int thread_datum, char init)
                  *(uint16_t *)(result + 2), result[3]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2dc0 — HS script function handler: evaluate the macro arguments and
@@ -5581,7 +5588,7 @@ void FUN_000c2d70(int16_t function_index, int thread_datum, char init)
  * The single `ADD ESP,0x18` at 000c2e01 cleans up BOTH the 4 pushes for
  * FUN_000d6250 and the 2 pushes for hs_return; hs_return still takes 2 args.
  */
-void FUN_000c2dc0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_activate_team_nav_point_object(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5592,6 +5599,7 @@ void FUN_000c2dc0(int16_t function_index, int thread_datum, char init)
                  result[3]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2e10 — HS script function handler: evaluate the macro arguments and
@@ -5616,7 +5624,7 @@ void FUN_000c2dc0(int16_t function_index, int thread_datum, char init)
  * Note: the single `ADD ESP,0x10` at 000c2e43 cleans up BOTH the 2 pushes for
  * FUN_000d64f0 and the 2 pushes for hs_return — hs_return really takes 2 args.
  */
-void FUN_000c2e10(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_deactivate_nav_point_flag(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5626,6 +5634,7 @@ void FUN_000c2e10(int16_t function_index, int thread_datum, char init)
     FUN_000d64f0(result[0], *(uint16_t *)(result + 1));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2e50 — HaloScript function handler: clear a unit's player enemy nav
@@ -5651,7 +5660,7 @@ void FUN_000c2e10(int16_t function_index, int thread_datum, char init)
  * `ADD ESP,0x10` at 000c2e80 is shared cleanup for BOTH 2-arg calls
  * (FUN_000d6520 and hs_return) — hs_return really takes 2 args.
  */
-void FUN_000c2e50(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_deactivate_nav_point_object(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5661,6 +5670,7 @@ void FUN_000c2e50(int16_t function_index, int thread_datum, char init)
     FUN_000d6520(result[0], result[1]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2e90 — HS script function handler: evaluate the macro arguments and
@@ -5692,7 +5702,7 @@ void FUN_000c2e50(int16_t function_index, int thread_datum, char init)
  * (FUN_000d6450 and hs_return) — hs_return really takes 2 args, and the second
  * one is the literal 0, not a forwarded result (FUN_000d6450 returns void).
  */
-void FUN_000c2e90(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_deactivate_team_nav_point_flag(int16_t function_index, int thread_datum, char init)
 {
   short *result;
 
@@ -5702,6 +5712,7 @@ void FUN_000c2e90(int16_t function_index, int thread_datum, char init)
     FUN_000d6450((int)*result, *(uint16_t *)(result + 2));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2ed0 — HS script function handler: evaluate the macro arguments and
@@ -5734,7 +5745,7 @@ void FUN_000c2e90(int16_t function_index, int thread_datum, char init)
  * — hs_return really takes 2 args, and the second one is the literal 0, not a
  * forwarded result (FUN_000d6470 returns void).
  */
-void FUN_000c2ed0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_deactivate_team_nav_point_object(int16_t function_index, int thread_datum, char init)
 {
   short *result;
 
@@ -5744,6 +5755,7 @@ void FUN_000c2ed0(int16_t function_index, int thread_datum, char init)
     FUN_000d6470((int)*result, *(int *)(result + 2));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2f10 — HaloScript handler: show the debug terminal, then complete the
@@ -6972,7 +6984,7 @@ void FUN_000c3460(int16_t function_index, int thread_datum, char init)
  * word-into-zeroed-dword shape; a plain
  * `hs_return(thread_datum, scripted_hud_get_timer_ticks())` would drop the
  * pre-call zeroing and promote with MOVSX/MOVZX instead.  Same idiom as
- * FUN_000c2bd0 at 0xc2bd0, with a word member rather than a byte one.
+ * hs_evaluate_show_hud at 0xc2bd0, with a word member rather than a byte one.
  *
  * ABI (verified against disassembly 0xc34a0-0xc34c7): cdecl, plain RET.  Frame
  * is `PUSH EBP / MOV EBP,ESP / PUSH ECX` — one 4-byte local, no _chkstk, no
