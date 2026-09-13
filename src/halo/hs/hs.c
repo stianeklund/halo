@@ -350,7 +350,7 @@ void hs_evaluate_ai_follow_target_disable(int16_t function_index, int thread_dat
  * ptr) 0x58390 = FUN_00058390(uint) -> void 0xcbf80 = hs_return(int
  * thread_handle, int value) -> void [ported]
  */
-void FUN_000c0f50(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_follow_target_players(int16_t function_index, int thread_datum, char init)
 {
   unsigned int *result;
 
@@ -369,7 +369,7 @@ void FUN_000c0f50(int16_t function_index, int thread_datum, char init)
  * FUN_00058410 with the first two evaluated argument dwords, then commits a
  * zero result to the thread via hs_return. While arguments are still being
  * evaluated the return is null and nothing is dispatched this tick. */
-void FUN_000c0f90(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_follow_target_unit(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -393,7 +393,7 @@ void FUN_000c0f90(int16_t function_index, int thread_datum, char init)
  * 0x584a0 FUN_000584a0(unsigned int, int), 0xcbf80 hs_return(thread, value).
  * Both result fields are full dwords here (decompile shows *puVar1 and
  * puVar1[1] as undefined4) — not a narrow int16/char variant. */
-void FUN_000c0fd0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_follow_target_ai(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -414,7 +414,7 @@ void FUN_000c0fd0(int16_t function_index, int thread_datum, char init)
  * then commits a zero result to the thread via hs_return. While arguments are
  * still being evaluated the return is null and nothing is dispatched this tick.
  */
-void FUN_000c1010(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_follow_distance(int16_t function_index, int thread_datum, char init)
 {
   unsigned int *result;
 
@@ -434,7 +434,7 @@ void FUN_000c1010(int16_t function_index, int thread_datum, char init)
  * passes it to the native builtin FUN_00058640, then commits a zero result to
  * the thread via hs_return. While arguments are still being evaluated the
  * return is null and nothing is dispatched this tick. */
-void FUN_000c1050(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_conversation_stop(int16_t function_index, int thread_datum, char init)
 {
   unsigned short *result;
 
@@ -454,7 +454,7 @@ void FUN_000c1050(int16_t function_index, int thread_datum, char init)
  * FUN_000586a0, then commits a zero result to the thread via hs_return. While
  * arguments are still being evaluated the return is null and nothing is
  * dispatched this tick. */
-void FUN_000c1090(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_conversation_advance(int16_t function_index, int thread_datum, char init)
 {
   unsigned short *result;
 
@@ -478,7 +478,7 @@ void FUN_000c1090(int16_t function_index, int thread_datum, char init)
  * FUN_00058720(unsigned int, int) 0xcbf80 = hs_return(int thread_handle, int
  * value)
  */
-void FUN_000c10d0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_link_activation(int16_t function_index, int thread_datum, char init)
 {
   int *result_ptr;
 
@@ -503,7 +503,7 @@ void FUN_000c10d0(int16_t function_index, int thread_datum, char init)
  * thread_datum, char init) 0x587d0 = FUN_000587d0(int, int)  (ai_berserk script
  * command) 0xcbf80 = hs_return(int thread_handle, int value)
  */
-void FUN_000c1110(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_berserk(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -533,7 +533,7 @@ void FUN_000c1110(int16_t function_index, int thread_datum, char init)
  * thread_datum, char init) 0x58860 = FUN_00058860(int encounter_handle, int
  * team) 0xcbf80 = hs_return(int thread_handle, int value)
  */
-void FUN_000c1150(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_set_team(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -561,7 +561,7 @@ void FUN_000c1150(int16_t function_index, int thread_datum, char init)
  * thread_datum, char init) 0x57030 = FUN_00057030(int param_1, char param_2)
  * 0xcbf80 = hs_return(int thread_handle, int value)
  */
-void FUN_000c1190(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_allow_charge(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -587,7 +587,7 @@ void FUN_000c1190(int16_t function_index, int thread_datum, char init)
  * thread_datum, char init) 0x588d0 = FUN_000588d0(int param_1, char param_2)
  *   0xcbf80 = hs_return(int thread_handle, int value)
  */
-void FUN_000c11d0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_allow_dormant(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
