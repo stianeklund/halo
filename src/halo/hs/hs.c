@@ -5783,17 +5783,18 @@ void hs_evaluate_deactivate_team_nav_point_object(int16_t function_index, int th
  * arbitrate the uniform hs-evaluator triple.  Ghidra mis-prototypes this as
  * void(void) and surfaces the [EBP+0xc] read as the phantom local
  * `in_stack_00000008`; taking that at face value would pass function_index as
- * the thread handle.  The kb decl was widened from `void FUN_000c2f10(void);`
+ * the thread handle.  The kb decl was widened from `void(void);`
  * with this lift.
  *
  * Callees (both cdecl, ported, no register args):
  *   0xe34a0 = terminal_show(void)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c2f10(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_cls(int16_t function_index, int thread_datum, char init)
 {
   terminal_show();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* HaloScript handler shim for the error-overflow-suppression macro function —
@@ -5819,7 +5820,7 @@ void FUN_000c2f10(int16_t function_index, int thread_datum, char init)
  * cdecl pushes right-to-left, so the last push is the first C argument: the
  * evaluator call is (function_index, thread_datum, init), matching its kb decl
  * with no operand swap.  Ghidra mis-prototypes this function as
- * `void FUN_000c2f30(void)` and therefore reports the three parameters as
+ * `void(void)` and therefore reports the three parameters as
  * phantom `in_stack_*` locals whose offsets are all 4 too low; the kb decl was
  * widened from that void(void) form with this lift.  Taking Ghidra's offsets at
  * face value would pass function_index as the thread handle.
@@ -5842,7 +5843,7 @@ void FUN_000c2f10(int16_t function_index, int thread_datum, char init)
  *   0x8f210 = errors_overflow_suppression_enable(suppress)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c2f30(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_error_overflow_suppression(int16_t function_index, int thread_datum, char init)
 {
   bool *result;
 
@@ -5852,6 +5853,7 @@ void FUN_000c2f30(int16_t function_index, int thread_datum, char init)
     errors_overflow_suppression_enable(*result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* Zero-argument HaloScript builtin handler.  Structural twin of
@@ -5869,7 +5871,7 @@ void FUN_000c2f30(int16_t function_index, int thread_datum, char init)
  *   ADD ESP,0x8                  ; cdecl cleanup, 2 dwords
  *   POP EBP; RET                 ; plain cdecl RET, no RET n
  *
- * Ghidra mis-prototypes this as `void FUN_000c2f70(void)` and reports the
+ * Ghidra mis-prototypes this as `void(void)` and reports the
  * [EBP+0xc] read as the phantom local `in_stack_00000008`; that name says
  * +8 but the MOV reads +0xc.  EBP+0x8 is function_index (never read),
  * EBP+0xc is thread_datum.  The kb decl was widened from that void(void)
@@ -5880,16 +5882,17 @@ void FUN_000c2f30(int16_t function_index, int thread_datum, char init)
  *   0x1954d0 = FUN_001954d0(void)               (still unnamed in kb.json)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c2f70(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_structure_lens_flares_place(int16_t function_index, int thread_datum, char init)
 {
   FUN_001954d0();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc2f90 — HS macro handler: forward { int, float, float } to the
  * scripted-player translation consumer. The float values are raw record
  * fields (+4 and +8), proven by the two push-then-FSTP argument slots. */
-void FUN_000c2f90(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_effect_set_max_translation(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5901,11 +5904,12 @@ void FUN_000c2f90(int16_t function_index, int thread_datum, char init)
                                            *(float *)((char *)result + 8));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc2fe0 — HS macro handler: forward { int, float, float } to the
  * scripted-player rotation consumer. */
-void FUN_000c2fe0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_effect_set_max_rotation(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5917,12 +5921,13 @@ void FUN_000c2fe0(int16_t function_index, int thread_datum, char init)
                                         *(float *)((char *)result + 8));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc3030 — HaloScript macro-function handler that forwards an evaluated
  * argument record to the scripted-player-effect rumble routine.  Same three
  * parameter dispatch shape as every other handler in this table; Ghidra
- * models it as `void FUN_000c3030(void)` and reports the three cdecl stack
+ * models it as `void(void)` and reports the three cdecl stack
  * parameters as phantom `in_stack_*` locals, so the kb decl was widened from
  * that void(void) form with this lift.
  *
@@ -5964,7 +5969,7 @@ void FUN_000c2fe0(int16_t function_index, int thread_datum, char init)
  *   0xa2920 = scripted_player_effect_set_rumble(int, float)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3030(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_effect_set_max_rumble(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -5975,13 +5980,14 @@ void FUN_000c3030(int16_t function_index, int thread_datum, char init)
                                       *(float *)((char *)result + 4));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc3070 — HaloScript macro-function handler that forwards an evaluated
  * argument record to the scripted-player-effect start routine.  Instruction
  * for instruction this is the twin of 0xc3030 above; only the consumer call
  * target differs (0xa2df0 here vs 0xa2920 there).  Ghidra models it as
- * `void FUN_000c3070(void)` and reports the three cdecl stack parameters as
+ * `void(void)` and reports the three cdecl stack parameters as
  * phantom `in_stack_*` locals, so the kb decl was widened from that void(void)
  * form with this lift.
  *
@@ -6035,7 +6041,7 @@ void FUN_000c3030(int16_t function_index, int thread_datum, char init)
  *   0xa2df0 = scripted_player_effect_start(int, float)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3070(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_effect_start(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -6045,6 +6051,7 @@ void FUN_000c3070(int16_t function_index, int thread_datum, char init)
     scripted_player_effect_start(result[0], *(float *)((char *)result + 4));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc30b0 — HaloScript macro-function handler that forwards an evaluated
@@ -6052,7 +6059,7 @@ void FUN_000c3070(int16_t function_index, int thread_datum, char init)
  * 0xc3030 and 0xc3070 above; only the consumer call target (0xa2e40) and its
  * argument count differ — stop takes the record's +0 int and nothing else, so
  * there is no float and therefore no push-then-fstp pair here.  Ghidra models
- * this as `void FUN_000c30b0(void)` and reports the three cdecl stack
+ * this as `void(void)` and reports the three cdecl stack
  * parameters as phantom `in_stack_*` locals, so the kb decl was widened from
  * that void(void) form with this lift.
  *
@@ -6103,7 +6110,7 @@ void FUN_000c3070(int16_t function_index, int thread_datum, char init)
  *   0xa2e40 = scripted_player_effect_stop(int)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c30b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_player_effect_stop(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -6113,15 +6120,16 @@ void FUN_000c30b0(int16_t function_index, int thread_datum, char init)
     scripted_player_effect_stop(result[0]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* FUN_000c30f0 (0xc30f0) — HaloScript function handler: toggle HUD visibility.
+/* 0xc30f0 — HaloScript function handler: toggle HUD health visibility.
  *
  * Evaluates the macro's single argument; on success the result block holds a
  * boolean BYTE at +0x0, which is handed to FUN_000d7440 (show_hud), then the
  * thread is resumed with hs_return(thread_datum, 0).
  *
- * Ghidra mis-prototypes this as `void FUN_000c30f0(void)` and reports the three
+ * Ghidra mis-prototypes this as `void(void)` and reports the three
  * cdecl stack parameters as phantom `in_stack_*` locals, so the kb decl was
  * widened from that void(void) form with this lift.
  *
@@ -6176,7 +6184,7 @@ void FUN_000c30b0(int16_t function_index, int thread_datum, char init)
  *   0xd7440 = FUN_000d7440(char)  — show_hud
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c30f0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_show_health(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -6186,13 +6194,14 @@ void FUN_000c30f0(int16_t function_index, int thread_datum, char init)
     FUN_000d7440(*(unsigned char *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc3130 — HaloScript function evaluator wrapper.  Evaluates the call's
  * argument expressions via hs_macro_function_evaluate; when that returns a
  * non-NULL record pointer, feeds the record's first BYTE to FUN_000d7470 and
  * commits a 0 result to the calling script thread.  Structurally identical to
- * FUN_000c30f0 at 0xc30f0 with the consumer swapped from 0xd7440 to 0xd7470.
+ * hs_evaluate_hud_show_health at 0xc30f0 with the consumer swapped from 0xd7440 to 0xd7470.
  *
  * Disassembly (0xc3130-0xc3163, 24 instructions):
  *   PUSH EBP; MOV EBP,ESP; PUSH ESI  ; no `SUB ESP` — one local only
@@ -6215,7 +6224,7 @@ void FUN_000c30f0(int16_t function_index, int thread_datum, char init)
  *                                    ; hs_return is benign — it really takes 2.
  *   POP ESI; POP EBP; RET            ; plain RET — cdecl, caller cleans
  *
- * ABI: the kb decl was widened from `void FUN_000c3130(void);`.  Ghidra's
+ * ABI: the kb decl was widened from `void(void);`.  Ghidra's
  * (void) prototype surfaces the three real cdecl stack arguments as the phantom
  * locals in_stack_00000004/8/c.  Only one local (`result`) is declared,
  * matching the zero-`sub esp` frame.
@@ -6226,7 +6235,7 @@ void FUN_000c30f0(int16_t function_index, int thread_datum, char init)
  *   0xd7470 = FUN_000d7470(char)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3130(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_blink_health(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -6236,13 +6245,14 @@ void FUN_000c3130(int16_t function_index, int thread_datum, char init)
     FUN_000d7470(*(unsigned char *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc3170 — HaloScript function evaluator taking a single byte-wide argument.
  * Evaluates the macro argument block; on success the block holds one byte at
  * +0x0, which is handed to FUN_000d74a0, then a 0 result is committed to the
  * calling script thread (a void-returning script builtin).  Structurally
- * identical to FUN_000c3130 at 0xc3130 with the side-effect callee swapped
+ * identical to hs_evaluate_hud_blink_health at 0xc3130 with the side-effect callee swapped
  * from FUN_000d7470 to FUN_000d74a0.
  *
  * Disassembly (0xc3170-0xc31a3, 24 instructions):
@@ -6272,7 +6282,7 @@ void FUN_000c3130(int16_t function_index, int thread_datum, char init)
  *                                    ; hs_return is benign — it really takes 2.
  *   POP ESI; POP EBP; RET            ; plain RET — cdecl, caller cleans
  *
- * ABI: the kb decl was widened from `void FUN_000c3170(void);`.  Ghidra's
+ * ABI: the kb decl was widened from `void(void);`.  Ghidra's
  * (void) prototype surfaces the three real cdecl stack arguments as the phantom
  * locals in_stack_00000004/8/c.  Only one local (`result`) is declared,
  * matching the zero-`sub esp` frame.
@@ -6283,7 +6293,7 @@ void FUN_000c3130(int16_t function_index, int thread_datum, char init)
  *   0xd74a0 = FUN_000d74a0(char)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3170(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_show_shield(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -6293,6 +6303,7 @@ void FUN_000c3170(int16_t function_index, int thread_datum, char init)
     FUN_000d74a0(*(unsigned char *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc31b0 — HaloScript function handler in the scripted-HUD family.  Evaluates
@@ -6330,7 +6341,7 @@ void FUN_000c3170(int16_t function_index, int thread_datum, char init)
  *                                    ; for hs_return is 2.
  *   POP ESI; POP EBP; RET            ; plain RET — cdecl, caller cleans
  *
- * ABI: the kb decl was widened from `void FUN_000c31b0(void);` to the uniform
+ * ABI: the kb decl was widened from `void(void);` to the uniform
  * three-parameter hs handler shape used by every sibling in this TU.  Ghidra's
  * (void) prototype surfaces the real cdecl stack arguments as the phantom
  * locals in_stack_00000004/8/c — that is the tell for dropped stack params,
@@ -6345,7 +6356,7 @@ void FUN_000c3170(int16_t function_index, int thread_datum, char init)
  *   0xd74d0 = FUN_000d74d0(char)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c31b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_blink_shield(int16_t function_index, int thread_datum, char init)
 {
   unsigned char *result;
 
@@ -6355,17 +6366,18 @@ void FUN_000c31b0(int16_t function_index, int thread_datum, char init)
     FUN_000d74d0(result[0]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc31f0 — HaloScript function handler: evaluate the macro argument and hand
  * its single-byte result to FUN_000d7500, then complete the script thread.
  *
- * Byte-shape twin of the immediately preceding FUN_000c31b0 at 0xc31b0 (same
+ * Byte-shape twin of the immediately preceding hs_evaluate_hud_blink_shield at 0xc31b0 (same
  * frame, same three-callee sequence); only the dispatch target differs
  * (0xd74d0 -> 0xd7500).  0xd7500 has no binary-backed semantic name yet, so it
  * stays FUN_000d7500 per naming-confidence.
  *
- * Ghidra mis-prototypes this as `void FUN_000c31f0(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three stack arguments as `in_stack_00000004/8/c`.  Those labels are
  * misnumbered by one slot and are the tell for dropped cdecl stack params, NOT
  * for register arguments — this function takes none.  Parameter positions come
@@ -6406,7 +6418,7 @@ void FUN_000c31b0(int16_t function_index, int thread_datum, char init)
  *   0xd7500 = FUN_000d7500(char)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c31f0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_show_motion_sensor(int16_t function_index, int thread_datum, char init)
 {
   unsigned char *result;
 
@@ -6416,13 +6428,14 @@ void FUN_000c31f0(int16_t function_index, int thread_datum, char init)
     FUN_000d7500(result[0]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc3230 — HaloScript function handler: forward one byte-wide argument to
  * FUN_000d7530 (hud_messaging.c).  Evaluates the macro-function arguments, and
  * on success reads a single zero-extended BYTE from the result block at +0x0,
  * hands it to FUN_000d7530, then commits a 0 result to the calling script
- * thread.  Instruction-for-instruction the twin of FUN_000c3130 at 0xc3130
+ * thread.  Instruction-for-instruction the twin of hs_evaluate_hud_blink_health at 0xc3130
  * above; only the side-effect callee differs (0xd7470 -> 0xd7530).
  *
  * Disassembly (0xc3230-0xc3263, 24 instructions):
@@ -6447,7 +6460,7 @@ void FUN_000c31f0(int16_t function_index, int thread_datum, char init)
  *                                    ; hs_return is benign — it really takes 2.
  *   POP ESI; POP EBP; RET            ; plain RET — cdecl, caller cleans
  *
- * ABI: the kb decl was widened from `void FUN_000c3230(void);`.  Ghidra's
+ * ABI: the kb decl was widened from `void(void);`.  Ghidra's
  * (void) prototype surfaces the three real cdecl stack arguments as the phantom
  * locals in_stack_00000004/8/c.  ESI is properly saved and restored, so there
  * is no callee-saved hazard.
@@ -6458,7 +6471,7 @@ void FUN_000c31f0(int16_t function_index, int thread_datum, char init)
  *   0xd7530 = FUN_000d7530(char)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3230(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_blink_motion_sensor(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -6468,13 +6481,14 @@ void FUN_000c3230(int16_t function_index, int thread_datum, char init)
     FUN_000d7530(*(unsigned char *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc3270 — HaloScript function evaluator wrapper.  Evaluates the call's
  * argument expressions via hs_macro_function_evaluate; when that returns a
  * non-NULL record pointer, feeds the record's first BYTE to FUN_000d8b90 and
  * commits a 0 result to the calling script thread.  Structural twin of
- * FUN_000c30f0 at 0xc30f0 with the consumer swapped from 0xd7440 to 0xd8b90.
+ * hs_evaluate_hud_show_health at 0xc30f0 with the consumer swapped from 0xd7440 to 0xd8b90.
  *
  * Disassembly (0xc3270-0xc32a3, 24 instructions):
  *   PUSH EBP; MOV EBP,ESP            ; no `SUB ESP` — zero stack locals
@@ -6500,7 +6514,7 @@ void FUN_000c3230(int16_t function_index, int thread_datum, char init)
  *                                    ; ZERO-extended (movzx idiom), hence
  *                                    ; `*(unsigned char *)result`; plain `char`
  *                                    ; is signed here and would emit MOVSX.
- *                                    ; The neighbouring FUN_000c32d0 reads a
+ *                                    ; The neighbouring hs_evaluate_hud_set_help_text reads a
  *                                    ; WORD at this same +0x0 — do not copy
  *                                    ; that variant here.
  *   PUSH EDX                         ; ...the consumer call's ONE argument
@@ -6518,7 +6532,7 @@ void FUN_000c3230(int16_t function_index, int thread_datum, char init)
  *                                    ; args" here; that is a false positive.
  *   POP ESI; POP EBP; RET            ; no `RET n` — cdecl, caller cleans
  *
- * ABI: the kb decl was widened from `void FUN_000c3270(void);`.  Ghidra
+ * ABI: the kb decl was widened from `void(void);`.  Ghidra
  * surfaces the three cdecl stack parameters as phantom `in_stack_*` locals
  * under that void(void) prototype; they must be declared or the frame and the
  * [EBP+0x8]/[EBP+0xc]/[EBP+0x10] loads diverge.  Only one local (`result`) is
@@ -6531,7 +6545,7 @@ void FUN_000c3230(int16_t function_index, int thread_datum, char init)
  *   0xd8b90 = FUN_000d8b90(char)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3270(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_show_crosshair(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -6541,6 +6555,7 @@ void FUN_000c3270(int16_t function_index, int thread_datum, char init)
     FUN_000d8b90(*(unsigned char *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc32b0 — HaloScript function evaluator that clears the scripted HUD message
@@ -6561,7 +6576,7 @@ void FUN_000c3270(int16_t function_index, int thread_datum, char init)
  *   ADD ESP,0x8                      ; cdecl cleanup, exactly 2 args
  *   POP EBP; RET                     ; plain RET — cdecl, caller cleans
  *
- * ABI: the kb decl was widened from `void FUN_000c32b0(void);`.  The body's
+ * ABI: the kb decl was widened from `void(void);`.  The body's
  * only real read is [EBP+0xc], i.e. the SECOND stack argument — Ghidra
  * surfaces that as the phantom local `in_stack_00000008` under the (void)
  * prototype.  function_index and init complete the standard hs-evaluator
@@ -6572,13 +6587,14 @@ void FUN_000c3270(int16_t function_index, int thread_datum, char init)
  *   0xd5120 = scripted_hud_messages_clear(void)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c32b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_clear_messages(int16_t function_index, int thread_datum, char init)
 {
   scripted_hud_messages_clear();
   hs_return(thread_datum, 0);
+  return;
 }
 
-/* FUN_000c32d0 (0xc32d0) — HaloScript function handler: set the scripted HUD
+/* hs_evaluate_hud_set_help_text (0xc32d0) — HaloScript function handler: set the scripted HUD
  * state message.
  *
  * Instruction-for-instruction the twin of FUN_000c30f0 at 0xc30f0 above: same
@@ -6586,7 +6602,7 @@ void FUN_000c32b0(int16_t function_index, int thread_datum, char init)
  * differ — the record field read at +0x0 is a WORD here (not a BYTE), and the
  * consumer is scripted_hud_set_state_message (0xd46f0) instead of 0xd7440.
  *
- * Ghidra mis-prototypes this as `void FUN_000c32d0(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three cdecl stack parameters as phantom `in_stack_*` locals; the kb decl was
  * widened from that void(void) form with this lift.
  *
@@ -6649,7 +6665,7 @@ void FUN_000c32b0(int16_t function_index, int thread_datum, char init)
  *   0xd46f0 = scripted_hud_set_state_message(short)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c32d0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_set_help_text(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -6659,14 +6675,15 @@ void FUN_000c32d0(int16_t function_index, int thread_datum, char init)
     scripted_hud_set_state_message(*(unsigned short *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* HaloScript function handler: set the scripted HUD objective.
+/* hs_evaluate_hud_set_objective_text (0xc3310) — HaloScript function handler: set the scripted HUD objective.
  *
- * Structural twin of FUN_000c32d0 above; only the action callee differs
+ * Structural twin of hs_evaluate_hud_set_help_text above; only the action callee differs
  * (0xd47c0 scripted_hud_set_objective instead of 0xd46f0
  * scripted_hud_set_state_message).  As there, the kb decl was a stale
- * `void FUN_000c3310(void);` and Ghidra surfaces the three cdecl stack
+ * `void(void);` and Ghidra surfaces the three cdecl stack
  * parameters as `in_stack_00000004/8/c`; they are plain stack args at
  * ebp+8/+0xc/+0x10, NOT register arguments.
  *
@@ -6703,7 +6720,7 @@ void FUN_000c32d0(int16_t function_index, int thread_datum, char init)
  *   0xd47c0 = scripted_hud_set_objective(short)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3310(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_set_objective_text(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -6713,6 +6730,7 @@ void FUN_000c3310(int16_t function_index, int thread_datum, char init)
     scripted_hud_set_objective(*(unsigned short *)result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
 /* 0xc3350 — HaloScript function handler: set the scripted HUD timer time.

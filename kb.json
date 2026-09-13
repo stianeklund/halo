@@ -11095,93 +11095,111 @@
     },
     {
      "addr": "0xc2f10",
-     "decl": "void FUN_000c2f10(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_cls(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_cls"
     },
     {
      "addr": "0xc2f30",
-     "decl": "void FUN_000c2f30(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_error_overflow_suppression(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_error_overflow_suppression"
     },
     {
      "addr": "0xc2f70",
-     "decl": "void FUN_000c2f70(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_structure_lens_flares_place(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_structure_lens_flares_place"
     },
     {
      "addr": "0xc2f90",
-     "decl": "void FUN_000c2f90(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_effect_set_max_translation(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_effect_set_max_translation"
     },
     {
      "addr": "0xc2fe0",
-     "decl": "void FUN_000c2fe0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_effect_set_max_rotation(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_effect_set_max_rotation"
     },
     {
      "addr": "0xc3030",
-     "decl": "void FUN_000c3030(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_effect_set_max_rumble(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_effect_set_max_rumble"
     },
     {
      "addr": "0xc3070",
-     "decl": "void FUN_000c3070(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_effect_start(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_effect_start"
     },
     {
      "addr": "0xc30b0",
-     "decl": "void FUN_000c30b0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_player_effect_stop(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_player_effect_stop"
     },
     {
      "addr": "0xc30f0",
-     "decl": "void FUN_000c30f0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_show_health(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_show_health"
     },
     {
      "addr": "0xc3130",
-     "decl": "void FUN_000c3130(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_blink_health(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_blink_health"
     },
     {
      "addr": "0xc3170",
-     "decl": "void FUN_000c3170(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_show_shield(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_show_shield"
     },
     {
      "addr": "0xc31b0",
-     "decl": "void FUN_000c31b0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_blink_shield(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_blink_shield"
     },
     {
      "addr": "0xc31f0",
-     "decl": "void FUN_000c31f0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_show_motion_sensor(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_show_motion_sensor"
     },
     {
      "addr": "0xc3230",
-     "decl": "void FUN_000c3230(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_blink_motion_sensor(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_blink_motion_sensor"
     },
     {
      "addr": "0xc3270",
-     "decl": "void FUN_000c3270(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_show_crosshair(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_show_crosshair"
     },
     {
      "addr": "0xc32b0",
-     "decl": "void FUN_000c32b0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_clear_messages(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_clear_messages"
     },
     {
      "addr": "0xc32d0",
-     "decl": "void FUN_000c32d0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_set_help_text(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_set_help_text"
     },
     {
      "addr": "0xc3310",
-     "decl": "void FUN_000c3310(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_set_objective_text(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_set_objective_text"
     },
     {
      "addr": "0xc3350",
