@@ -44,7 +44,7 @@ void hs_evaluate_ai_force_active_by_unit(int16_t function_index, int thread_datu
  *               -> result record* or NULL
  *   0x579d0 = FUN_000579d0(int encounter_handle, short return_state) -> void
  *   0xcbf80 = hs_return(int thread_handle, int value) -> void */
-void FUN_000c0bf0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_set_return_state(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -61,7 +61,7 @@ void FUN_000c0bf0(int16_t function_index, int thread_datum, char init)
  * encounter handle at +0x0 (int) and a state value at +0x4 (int16). Calls
  * FUN_00057aa0(encounter_handle, state) then returns void to the HS thread
  * via hs_return(thread_datum, 0). The +0x4 read is a narrow int16 load. */
-void FUN_000c0c30(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_set_current_state(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -79,7 +79,7 @@ void FUN_000c0c30(int16_t function_index, int thread_datum, char init)
  * FUN_00057c70(encounter_handle, value) then returns void to the HS thread
  * via hs_return(thread_datum, 0). The +0x4 read is a narrow byte (char) load
  * — result is int*, so (result + 1) = +4 bytes, cast to char*. */
-void FUN_000c0c70(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_playfight(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -103,7 +103,7 @@ void FUN_000c0c70(int16_t function_index, int thread_datum, char init)
  * body reads only [EBP+0xc] = thread_datum (arg 2); function_index and init
  * complete the standard hs-evaluator signature (matches 0xc0c30) but are
  * unused in this body. */
-void FUN_000c0cb0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_reconnect(int16_t function_index, int thread_datum, char init)
 {
   FUN_00057c60();
   hs_return(thread_datum, 0);
@@ -115,7 +115,7 @@ void FUN_000c0cb0(int16_t function_index, int thread_datum, char init)
  * macro arguments; on success the result block holds a handle at +0x0 and a
  * value at +0x4. Calls FUN_00057d00(handle, value) then returns void to the
  * HS thread via hs_return(thread_datum, 0). */
-void FUN_000c0cd0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_vehicle_encounter(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -146,7 +146,7 @@ struct hs_handle_distance_result {
   float distance; /* +0x4 */
 };
 
-void FUN_000c0d10(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_vehicle_enterable_distance(int16_t function_index, int thread_datum, char init)
 {
   struct hs_handle_distance_result *result;
 
@@ -166,7 +166,7 @@ void FUN_000c0d10(int16_t function_index, int thread_datum, char init)
  * matching FUN_00057fd0's `short` second parameter). Calls
  * FUN_00057fd0(handle, state) then returns void to the HS thread via
  * hs_return(thread_datum, 0). */
-void FUN_000c0d50(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_vehicle_enterable_team(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -185,7 +185,7 @@ void FUN_000c0d50(int16_t function_index, int thread_datum, char init)
  * FUN_00058020's `short` second parameter, and the decompile reads the field
  * as a 16-bit load). Calls FUN_00058020(handle, state) then returns void to
  * the HS thread via hs_return(thread_datum, 0). */
-void FUN_000c0d90(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_vehicle_enterable_actor_type(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -204,7 +204,7 @@ void FUN_000c0d90(int16_t function_index, int thread_datum, char init)
  * an undefined4* — a 4-byte load — matching FUN_00058070's `int` second
  * parameter). Calls FUN_00058070(handle, value) then returns void to the
  * HS thread via hs_return(thread_datum, 0). */
-void FUN_000c0dd0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_vehicle_enterable_actors(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -223,7 +223,7 @@ void FUN_000c0dd0(int16_t function_index, int thread_datum, char init)
  * FUN_00058110 — no second field is read. Evaluates the macro arguments; on
  * success calls FUN_00058110(*result) then returns void to the HS thread via
  * hs_return(thread_datum, 0). */
-void FUN_000c0e10(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_vehicle_enterable_disable(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -242,7 +242,7 @@ void FUN_000c0e10(int16_t function_index, int thread_datum, char init)
  * int32 (puVar1[1] on an undefined4* — a 4-byte load — matching
  * FUN_000581b0's `int` second parameter). Calls FUN_000581b0(handle, value)
  * then returns void to the HS thread via hs_return(thread_datum, 0). */
-void FUN_000c0e50(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_look_at_object(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -260,7 +260,7 @@ void FUN_000c0e50(int16_t function_index, int thread_datum, char init)
  * the result block and passes that value to FUN_00058220 (a dispose/release
  * helper). On success calls FUN_00058220(result[0]) then returns void to the
  * HS thread via hs_return(thread_datum, 0). */
-void FUN_000c0e90(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_stop_looking(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -289,7 +289,7 @@ void FUN_000c0e90(int16_t function_index, int thread_datum, char init)
  * byte at +0x4. The second arg to FUN_00058270 is a single BYTE (char-width),
  * NOT a dword. thread_datum is forwarded unchanged to both callees.
  */
-void FUN_000c0ed0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_automatic_migration_target(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -318,7 +318,7 @@ void FUN_000c0ed0(int16_t function_index, int thread_datum, char init)
  * ptr) 0x58310 = FUN_00058310(uint) -> void 0xcbf80 = hs_return(int
  * thread_handle, int value) -> void [ported]
  */
-void FUN_000c0f10(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_follow_target_disable(int16_t function_index, int thread_datum, char init)
 {
   unsigned int *result;
 

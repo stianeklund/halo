@@ -10200,72 +10200,72 @@
     },
     {
      "addr": "0xc0bf0",
-     "decl": "void FUN_000c0bf0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_set_return_state(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0c30",
-     "decl": "void FUN_000c0c30(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_set_current_state(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0c70",
-     "decl": "void FUN_000c0c70(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_playfight(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0cb0",
-     "decl": "void FUN_000c0cb0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_reconnect(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0cd0",
-     "decl": "void FUN_000c0cd0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_vehicle_encounter(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0d10",
-     "decl": "void FUN_000c0d10(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_vehicle_enterable_distance(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0d50",
-     "decl": "void FUN_000c0d50(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_vehicle_enterable_team(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0d90",
-     "decl": "void FUN_000c0d90(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_vehicle_enterable_actor_type(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0dd0",
-     "decl": "void FUN_000c0dd0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_vehicle_enterable_actors(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0e10",
-     "decl": "void FUN_000c0e10(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_vehicle_enterable_disable(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0e50",
-     "decl": "void FUN_000c0e50(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_look_at_object(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0e90",
-     "decl": "void FUN_000c0e90(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_stop_looking(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0ed0",
-     "decl": "void FUN_000c0ed0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_automatic_migration_target(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc0f10",
-     "decl": "void FUN_000c0f10(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_follow_target_disable(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
