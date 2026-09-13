@@ -6310,7 +6310,7 @@ void hs_evaluate_hud_show_shield(int16_t function_index, int thread_datum, char 
  * its macro argument; on success the returned result block holds a single
  * boolean/byte in its first HS argument slot, which is handed to FUN_000d74d0,
  * then the script thread is completed with hs_return(thread_datum, 0).
- * Structural twin of FUN_000c34d0 at 0xc34d0 with the action callee swapped.
+ * Structural twin of hs_evaluate_time_code_show at 0xc34d0 with the action callee swapped.
  *
  * Disassembly (0xc31b0-0xc31e3, 52 bytes, 24 instructions):
  *   PUSH EBP; MOV EBP,ESP; PUSH ESI  ; no `SUB ESP`, no _chkstk — zero locals;
@@ -6733,9 +6733,9 @@ void hs_evaluate_hud_set_objective_text(int16_t function_index, int thread_datum
   return;
 }
 
-/* 0xc3350 — HaloScript function handler: set the scripted HUD timer time.
+/* hs_evaluate_hud_set_timer_time (0xc3350) — HaloScript function handler: set the scripted HUD timer time.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3350(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
  * the standard hs handler shape used by every sibling in this TU.
  *
@@ -6768,7 +6768,7 @@ void hs_evaluate_hud_set_objective_text(int16_t function_index, int thread_datum
  *   0xd4860 = scripted_hud_set_timer_time(short, short)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3350(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_set_timer_time(int16_t function_index, int thread_datum, char init)
 {
   short *result;
 
@@ -6778,16 +6778,17 @@ void FUN_000c3350(int16_t function_index, int thread_datum, char init)
     scripted_hud_set_timer_time(result[0], *(unsigned short *)(result + 2));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc3390 — HaloScript function handler: set the scripted HUD timer warning
+/* hs_evaluate_hud_set_timer_warning_time (0xc3390) — HaloScript function handler: set the scripted HUD timer warning
  * cutoff.
  *
- * Structurally identical to FUN_000c3350 (0xc3350); the only difference is the
+ * Structurally identical to hs_evaluate_hud_set_timer_time (0xc3350); the only difference is the
  * consumer callee (0xd48e0 scripted_hud_set_timer_warning_cutoff here vs
  * 0xd4860 scripted_hud_set_timer_time there).
  *
- * Ghidra mis-prototypes this as `void FUN_000c3390(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
  * the standard hs handler shape used by every sibling in this TU.  Those
  * `in_stack_*` names are the tell for dropped cdecl stack params, NOT for
@@ -6819,7 +6820,7 @@ void FUN_000c3350(int16_t function_index, int thread_datum, char init)
  *   0xd48e0 = scripted_hud_set_timer_warning_cutoff(short, short)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3390(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_set_timer_warning_time(int16_t function_index, int thread_datum, char init)
 {
   short *result;
 
@@ -6830,11 +6831,12 @@ void FUN_000c3390(int16_t function_index, int thread_datum, char init)
                                           *(unsigned short *)(result + 2));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc33d0 — HaloScript function handler: set the scripted HUD timer position.
+/* hs_evaluate_hud_set_timer_position (0xc33d0) — HaloScript function handler: set the scripted HUD timer position.
  *
- * Ghidra mis-prototypes this as `void FUN_000c33d0(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
  * the standard hs handler shape used by every sibling in this TU.  Those
  * `in_stack_*` names are the tell for dropped cdecl stack params, NOT for
@@ -6850,7 +6852,7 @@ void FUN_000c3390(int16_t function_index, int thread_datum, char init)
  *   0xc33ec  XOR EDX,EDX / MOV DX, word ptr [EAX+0x8]  ; ZERO-extended -> arg3
  *   0xc33f2  XOR ECX,ECX / MOV CX, word ptr [EAX+0x4]  ; ZERO-extended -> arg2
  *   0xc33f9  XOR EDX,EDX / MOV DX, word ptr [EAX]      ; ZERO-extended -> arg1
- * All three are UNSIGNED, whereas FUN_000c3350/FUN_000c3390 sign-extend their
+ * All three are UNSIGNED, whereas hs_evaluate_hud_set_timer_time/hs_evaluate_hud_set_timer_warning_time sign-extend their
  * +0x0 field with MOVSX.  Copying those siblings' `result[0]` for arg1 would
  * emit MOVSX here and is a silent bug the hazard scanner would not flag.
  *
@@ -6876,7 +6878,7 @@ void FUN_000c3390(int16_t function_index, int thread_datum, char init)
  *   0xd4900 = scripted_hud_set_timer_position(short, short, short)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c33d0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_set_timer_position(int16_t function_index, int thread_datum, char init)
 {
   short *result;
 
@@ -6888,17 +6890,18 @@ void FUN_000c33d0(int16_t function_index, int thread_datum, char init)
                                     *(unsigned short *)(result + 4));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc3420 — HaloScript function handler: show/hide the scripted HUD timer.
+/* hs_evaluate_show_hud_timer (0xc3420) — HaloScript function handler: show/hide the scripted HUD timer.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3420(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
  * the standard hs handler shape used by every sibling in this TU.  Those
  * `in_stack_*` names are the tell for dropped cdecl stack params, NOT for
  * register arguments — this function takes none.
  *
- * Byte-shape twin of FUN_000c3230/FUN_000c3270 (same frame, same three-callee
+ * Byte-shape twin of hs_evaluate_hud_blink_motion_sensor/hs_evaluate_hud_show_crosshair (same frame, same three-callee
  * shape); only the consumer differs (0xd4960 here).
  *
  * Narrow-load signedness is load-bearing and comes from the disassembly, not
@@ -6924,7 +6927,7 @@ void FUN_000c33d0(int16_t function_index, int thread_datum, char init)
  *   0xd4960 = scripted_hud_show_timer(unsigned char)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3420(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_show_hud_timer(int16_t function_index, int thread_datum, char init)
 {
   unsigned char *result;
 
@@ -6934,17 +6937,18 @@ void FUN_000c3420(int16_t function_index, int thread_datum, char init)
     scripted_hud_show_timer(*result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc3460 — HaloScript function handler: pause/resume the scripted HUD timer.
+/* hs_evaluate_pause_hud_timer (0xc3460) — HaloScript function handler: pause/resume the scripted HUD timer.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3460(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
  * the standard hs handler shape used by every sibling in this TU.  Those
  * `in_stack_*` names are the tell for dropped cdecl stack params, NOT for
  * register arguments — this function takes none.
  *
- * Byte-shape twin of FUN_000c3420 (same frame, same three-callee shape); only
+ * Byte-shape twin of hs_evaluate_show_hud_timer (same frame, same three-callee shape); only
  * the consumer differs (0xd4980 here rather than 0xd4960).
  *
  * Narrow-load signedness is load-bearing and comes from the disassembly, not
@@ -6970,7 +6974,7 @@ void FUN_000c3420(int16_t function_index, int thread_datum, char init)
  *   0xd4980 = scripted_hud_pause_timer(char)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3460(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_pause_hud_timer(int16_t function_index, int thread_datum, char init)
 {
   unsigned char *result;
 
@@ -6980,15 +6984,16 @@ void FUN_000c3460(int16_t function_index, int thread_datum, char init)
     scripted_hud_pause_timer(*result);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc34a0 — HaloScript function handler: return the scripted HUD timer's
+/* hs_evaluate_hud_get_timer_ticks (0xc34a0) — HaloScript function handler: return the scripted HUD timer's
  * remaining tick count to the calling script thread.
  *
  * Takes no script arguments (there is no hs_macro_function_evaluate call and
  * no guard); it simply queries the timer and commits the result.
  *
- * Ghidra mis-prototypes this as `void FUN_000c34a0(void)` and surfaces the one
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the one
  * stack argument it does read as `in_stack_00000008` ([EBP+0xc] = arg 2).  The
  * kb decl was widened to the standard hs handler shape used by every sibling in
  * this TU; function_index and init are unread here, exactly as in FUN_000c0cb0
@@ -7014,7 +7019,7 @@ void FUN_000c3460(int16_t function_index, int thread_datum, char init)
  *   0xd49d0 = scripted_hud_get_timer_ticks(void) -> short
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c34a0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_hud_get_timer_ticks(int16_t function_index, int thread_datum, char init)
 {
   union {
     short short_value;
@@ -7024,11 +7029,12 @@ void FUN_000c34a0(int16_t function_index, int thread_datum, char init)
   value.long_value = 0;
   value.short_value = scripted_hud_get_timer_ticks();
   hs_return(thread_datum, value.long_value);
+  return;
 }
 
-/* 0xc34d0 — HaloScript function handler: show/hide the scripted HUD time code.
+/* hs_evaluate_time_code_show (0xc34d0) — HaloScript function handler: show/hide the scripted HUD time code.
  *
- * Ghidra mis-prototypes this as `void FUN_000c34d0(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
  * the standard hs handler shape used by every sibling in this TU.  Those
  * `in_stack_*` names are the tell for dropped cdecl stack params, NOT for
@@ -7058,7 +7064,7 @@ void FUN_000c34a0(int16_t function_index, int thread_datum, char init)
  *   0xd4a20 = scripted_hud_time_code_show(bool)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c34d0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_time_code_show(int16_t function_index, int thread_datum, char init)
 {
   unsigned char *result;
 
@@ -7068,15 +7074,16 @@ void FUN_000c34d0(int16_t function_index, int thread_datum, char init)
     scripted_hud_time_code_show(result[0]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc3510 — HaloScript function handler: start the scripted HUD time code.
+/* hs_evaluate_time_code_start (0xc3510) — HaloScript function handler: start the scripted HUD time code.
  *
  * Byte-for-byte the same shape as the preceding handler at 0xc34d0, differing
  * only in the dispatch target (0xd4a50 scripted_hud_time_code_start instead of
  * 0xd4a20 scripted_hud_time_code_show).
  *
- * Ghidra mis-prototypes this as `void FUN_000c3510(void)` and surfaces the
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the
  * three stack arguments as `in_stack_00000004/8/c`; the kb decl was widened to
  * the standard hs handler shape used by every sibling in this TU.  Those
  * `in_stack_*` names are the tell for dropped cdecl stack params, NOT for
@@ -7110,7 +7117,7 @@ void FUN_000c34d0(int16_t function_index, int thread_datum, char init)
  *   0xd4a50 = scripted_hud_time_code_start(bool)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3510(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_time_code_start(int16_t function_index, int thread_datum, char init)
 {
   unsigned char *result;
 
@@ -7120,16 +7127,17 @@ void FUN_000c3510(int16_t function_index, int thread_datum, char init)
     scripted_hud_time_code_start(result[0]);
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc3550 — HaloScript function handler: reset the scripted HUD time code.
+/* hs_evaluate_time_code_reset (0xc3550) — HaloScript function handler: reset the scripted HUD time code.
  *
  * The last member of the scripted_hud handler run, and the only one that takes
  * no HaloScript arguments: because there is nothing to evaluate it skips the
  * 0xcc560 hs_macro_function_evaluate call entirely and unconditionally invokes
  * the dispatch target, then completes the script thread.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3550(void)` and surfaces the one
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the one
  * stack argument it can see as `in_stack_00000008`; that label is misleading —
  * the MOV reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which is
  * thread_datum under the handler convention every sibling in this TU uses:
@@ -7159,15 +7167,16 @@ void FUN_000c3510(int16_t function_index, int thread_datum, char init)
  *   0xd4a90 = scripted_hud_time_code_reset(void)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c3550(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_time_code_reset(int16_t function_index, int thread_datum, char init)
 {
   scripted_hud_time_code_reset();
   hs_return(thread_datum, 0);
+  return;
 }
 
-/* 0xc3570 — HaloScript function handler: invoke the rasterizer-decals thunk.
+/* hs_evaluate_rasterizer_decals_flush (0xc3570) — HaloScript function handler: invoke the rasterizer-decals thunk.
  *
- * Structurally identical to the 0xc3550 handler above: it takes no HaloScript
+ * Structurally identical to the hs_evaluate_time_code_reset handler above: it takes no HaloScript
  * arguments, so it skips the 0xcc560 hs_macro_function_evaluate call entirely,
  * unconditionally invokes its dispatch target, then completes the script
  * thread.  The target here is 0x17cac0, a 0-argument tail-call thunk into the
@@ -7177,7 +7186,7 @@ void FUN_000c3550(int16_t function_index, int thread_datum, char init)
  * decals routine does is not established here, so neither it nor this handler
  * is given a semantic name.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3570(void)` and surfaces the one
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the one
  * stack argument it can see as `in_stack_00000008`; that label is misleading —
  * the MOV reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which is
  * thread_datum under the handler convention every sibling in this TU uses:
@@ -7208,22 +7217,23 @@ void FUN_000c3550(int16_t function_index, int thread_datum, char init)
  *   0x17cac0 = FUN_0017cac0(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c3570(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_rasterizer_decals_flush(int16_t function_index, int thread_datum, char init)
 {
   FUN_0017cac0();
   hs_return(thread_datum, 0);
+  return;
 }
 
-/* 0xc3590 — HaloScript function handler: invoke the 0x17ed30 thunk.
+/* hs_evaluate_rasterizer_fps_accumulate (0xc3590) — HaloScript function handler: invoke the 0x17ed30 thunk.
  *
  * Third member of the no-argument handler run that begins at 0xc3550: it takes
  * no HaloScript arguments, so it skips the hs_macro_function_evaluate call
  * entirely, unconditionally invokes its dispatch target, then completes the
  * script thread.  The target here is 0x17ed30, which is unnamed and unported;
- * it is NOT the 0xd4a90 scripted_hud_time_code_reset that the 0xc3550 twin
+ * it is NOT the 0xd4a90 scripted_hud_time_code_reset that the hs_evaluate_time_code_reset twin
  * calls, so no semantic name is assigned to either the callee or this handler.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3590(void)` and surfaces the one
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the one
  * stack argument it can see as `in_stack_00000008`; that label is misleading —
  * the MOV reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which is
  * thread_datum under the handler convention every sibling in this TU uses:
@@ -7254,16 +7264,17 @@ void FUN_000c3570(int16_t function_index, int thread_datum, char init)
  *   0x17ed30 = FUN_0017ed30(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c3590(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_rasterizer_fps_accumulate(int16_t function_index, int thread_datum, char init)
 {
   FUN_0017ed30();
   hs_return(thread_datum, 0);
+  return;
 }
 
-/* 0xc35b0 — HS macro handler: forward { int, float, float, float } to
+/* hs_evaluate_rasterizer_model_ambient_reflection_tint (0xc35b0) — HS macro handler: forward { int, float, float, float } to
  * 0x16b270. Disassembly reads the three float dwords at +4/+8/+c with
  * FLD/FSTP, so these must not be numerically converted from int. */
-void FUN_000c35b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_rasterizer_model_ambient_reflection_tint(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -7275,18 +7286,19 @@ void FUN_000c35b0(int16_t function_index, int thread_datum, char init)
                  *(float *)((char *)result + 12));
     hs_return(thread_datum, 0);
   }
+  return;
 }
 
-/* 0xc3600 — HaloScript function handler: invoke the 0x181150 dispatch target.
+/* hs_evaluate_rasterizer_lights_reset_for_new_map (0xc3600) — HaloScript function handler: invoke the 0x181150 dispatch target.
  *
- * Same one-shot handler shape as the 0xc3550/0xc3570/0xc3590 siblings above:
+ * Same one-shot handler shape as the preceding no-argument siblings above:
  * it takes no HaloScript arguments, so it skips the 0xcc560
  * hs_macro_function_evaluate call entirely, unconditionally invokes its
  * 0-argument dispatch target, then completes the script thread.  What the
  * target at 0x181150 does is not established here, so it keeps its kb name
  * rather than being given a semantic one.
  *
- * Ghidra mis-prototypes this as `void FUN_000c3600(void)` and surfaces the one
+ * Ghidra mis-prototypes this as `void(void)` and surfaces the one
  * stack argument it can see as `in_stack_00000008`; that label is misleading —
  * the MOV reads [EBP+0x0C], i.e. the SECOND cdecl stack slot, which is
  * thread_datum under the handler convention every sibling in this TU uses:
@@ -7316,10 +7328,11 @@ void FUN_000c35b0(int16_t function_index, int thread_datum, char init)
  *   0x181150 = FUN_00181150(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c3600(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_rasterizer_lights_reset_for_new_map(int16_t function_index, int thread_datum, char init)
 {
   FUN_00181150();
   hs_return(thread_datum, 0);
+  return;
 }
 
 /* 0xc3620 — HaloScript function handler: forward one evaluated (uint16, float)
@@ -7807,7 +7820,7 @@ void FUN_000c37f0(int16_t function_index, int thread_datum, char init)
  *   [EBP+0x08] arg1 int16_t function_index -> ECX
  *   [EBP+0x0c] arg2 int     thread_datum   -> ESI (held across both calls)
  *   [EBP+0x10] arg3 char    init           -> EAX
- * The kb decl was widened to that shape, matching FUN_000c3550 at 0xc3550.
+ * The kb decl was widened to that shape, matching hs_evaluate_time_code_reset at 0xc3550.
  *
  * Two decompiler drops are corrected here, both verified against the
  * disassembly at 0xc3810-0xc3841:
@@ -7815,7 +7828,7 @@ void FUN_000c37f0(int16_t function_index, int thread_datum, char init)
  * 1. hs_macro_function_evaluate is declared `int` in kb.json but the result is
  *    DEREFERENCED before use (`MOV EDX,dword ptr [EAX]` at 0xc382c) — it is a
  *    pointer to the evaluated-argument block.  A full 32-bit load, so the
- *    element is `int`, not a narrow field (contrast FUN_000c3460 at 0xc3460,
+ *    element is `int`, not a narrow field (contrast hs_evaluate_pause_hud_timer at 0xc3460,
  *    which does a byte load and therefore holds the result as `unsigned
  * char*`). Cast at the call site, as the siblings in this TU do.
  *
@@ -7866,7 +7879,7 @@ void FUN_000c3810(int16_t function_index, int thread_datum, char init)
  * the two slots the body happens to touch: the dispatcher calls every handler
  * in the table uniformly, and unread trailing cdecl params emit no code, so a
  * narrower decl would buy nothing and misstate the ABI.  Structurally this is
- * byte-for-byte the same shape as FUN_000c3550 at 0xc3550, differing only in
+ * byte-for-byte the same shape as hs_evaluate_time_code_reset at 0xc3550, differing only in
  * the dispatch target.
  *
  * ABI (verified 0xc3850-0xc3867, 24 bytes): cdecl, plain RET.  Frame is a bare

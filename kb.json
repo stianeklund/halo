@@ -11203,68 +11203,81 @@
     },
     {
      "addr": "0xc3350",
-     "decl": "void FUN_000c3350(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_set_timer_time(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_set_timer_time"
     },
     {
      "addr": "0xc3390",
-     "decl": "void FUN_000c3390(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_set_timer_warning_time(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_set_timer_warning_time"
     },
     {
      "addr": "0xc33d0",
-     "decl": "void FUN_000c33d0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_set_timer_position(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_set_timer_position"
     },
     {
      "addr": "0xc3420",
-     "decl": "void FUN_000c3420(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_show_hud_timer(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_show_hud_timer"
     },
     {
      "addr": "0xc3460",
-     "decl": "void FUN_000c3460(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_pause_hud_timer(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_pause_hud_timer"
     },
     {
      "addr": "0xc34a0",
-     "decl": "void FUN_000c34a0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_hud_get_timer_ticks(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_hud_get_timer_ticks"
     },
     {
      "addr": "0xc34d0",
-     "decl": "void FUN_000c34d0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_time_code_show(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_time_code_show"
     },
     {
      "addr": "0xc3510",
-     "decl": "void FUN_000c3510(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_time_code_start(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_time_code_start"
     },
     {
      "addr": "0xc3550",
-     "decl": "void FUN_000c3550(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_time_code_reset(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_time_code_reset"
     },
     {
      "addr": "0xc3570",
-     "decl": "void FUN_000c3570(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_rasterizer_decals_flush(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_rasterizer_decals_flush"
     },
     {
      "addr": "0xc3590",
-     "decl": "void FUN_000c3590(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_rasterizer_fps_accumulate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_rasterizer_fps_accumulate"
     },
     {
      "addr": "0xc35b0",
-     "decl": "void FUN_000c35b0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_rasterizer_model_ambient_reflection_tint(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_rasterizer_model_ambient_reflection_tint"
     },
     {
      "addr": "0xc3600",
-     "decl": "void FUN_000c3600(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_rasterizer_lights_reset_for_new_map(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_rasterizer_lights_reset_for_new_map"
     },
     {
      "addr": "0xc3620",
