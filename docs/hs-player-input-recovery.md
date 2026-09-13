@@ -31,25 +31,25 @@ All 19 function names are **Tier 1 binary-verified** — resolved directly from 
 
 | VA | Table Index | Script Command Name | Recovered C Identifier | Bungie Help String (.rdata) |
 |:---|:---:|:---|:---|:---|
-| `0xc1930` | 337 | `players_unzoom_all` | `hs_evaluate_players_unzoom_all` | "forces all players to unzoom" |
-| `0xc1950` | 338 | `player_enable_input` | `hs_evaluate_player_enable_input` | "enables or disables user input for the player." |
-| `0xc1990` | 339 | `player_camera_control` | `hs_evaluate_player_camera_control` | "enables or disables scripted control over the player's camera." |
-| `0xc19e0` | 340 | `player_action_test_reset` | `hs_evaluate_player_action_test_reset` | "clears the input test flags for the local player." |
-| `0xc1a00` | 341 | `player_action_test_jump` | `hs_evaluate_player_action_test_jump` | "returns TRUE if the local player has initiated a jump since the last test reset." |
-| `0xc1a30` | 342 | `player_action_test_primary_trigger` | `hs_evaluate_player_action_test_primary_trigger` | "returns TRUE if the local player has pulled the primary trigger since the last test reset." |
-| `0xc1a60` | 343 | `player_action_test_grenade_trigger` | `hs_evaluate_player_action_test_grenade_trigger` | "returns TRUE if the local player has pulled the grenade trigger since the last test reset." |
-| `0xc1a90` | 344 | `player_action_test_zoom` | `hs_evaluate_player_action_test_zoom` | "returns TRUE if the local player has toggled zoom since the last test reset." |
-| `0xc1ac0` | 345 | `player_action_test_action` | `hs_evaluate_player_action_test_action` | "returns TRUE if the local player has hit the action key since the last test reset." |
-| `0xc1af0` | 346 | `player_action_test_accept` | `hs_evaluate_player_action_test_accept` | "returns TRUE if the local player has hit the accept key since the last test reset." |
-| `0xc1b20` | 347 | `player_action_test_back` | `hs_evaluate_player_action_test_back` | "returns TRUE if the local player has hit the back key since the last test reset." |
-| `0xc1b50` | 348 | `player_action_test_look_relative_up` | `hs_evaluate_player_action_test_look_relative_up` | "returns TRUE if the local player has looked up more than a certain amount since the last test reset." |
-| `0xc1b80` | 349 | `player_action_test_look_relative_down` | `hs_evaluate_player_action_test_look_relative_down` | "returns TRUE if the local player has looked down more than a certain amount since the last test reset." |
-| `0xc1bb0` | 350 | `player_action_test_look_relative_left` | `hs_evaluate_player_action_test_look_relative_left` | "returns TRUE if the local player has looked left more than a certain amount since the last test reset." |
-| `0xc1be0` | 351 | `player_action_test_look_relative_right` | `hs_evaluate_player_action_test_look_relative_right` | "returns TRUE if the local player has looked right more than a certain amount since the last test reset." |
-| `0xc1c10` | 352 | `player_action_test_look_relative_all_directions` | `hs_evaluate_player_action_test_look_relative_all_directions` | "returns TRUE if the local player has looked in all four directions since the last test reset." |
-| `0xc1c40` | 353 | `player_action_test_move_relative_all_directions` | `hs_evaluate_player_action_test_move_relative_all_directions` | "returns TRUE if the local player has moved in all four directions since the last test reset." |
-| `0xc1c70` | 354 | `player_add_equipment` | `hs_evaluate_player_add_equipment` | "adds or removes equipment from the local player." |
-| `0xc1cb0` | 355 | `debug_teleport_player` | `hs_evaluate_debug_teleport_player` | "teleports the player to a camera point." |
+| `0xc1930` | 337 | `players_unzoom_all` | `hs_evaluate_players_unzoom_all` | "resets zoom levels on all players" |
+| `0xc1950` | 338 | `player_enable_input` | `hs_evaluate_player_enable_input` | "toggle player input. the player can still free-look, but nothing else." |
+| `0xc1990` | 339 | `player_camera_control` | `hs_evaluate_player_camera_control` | "enables/disables camera control globally" |
+| `0xc19e0` | 340 | `player_action_test_reset` | `hs_evaluate_player_action_test_reset` | "resets the player action test state so that all tests will return false." |
+| `0xc1a00` | 341 | `player_action_test_jump` | `hs_evaluate_player_action_test_jump` | "returns true if any player has jumped since the last call to (player_action_test_reset)." |
+| `0xc1a30` | 342 | `player_action_test_primary_trigger` | `hs_evaluate_player_action_test_primary_trigger` | "returns true if any player has used primary trigger since the last call to (player_action_test_reset)." |
+| `0xc1a60` | 343 | `player_action_test_grenade_trigger` | `hs_evaluate_player_action_test_grenade_trigger` | "returns true if any player has used grenade trigger since the last call to (player_action_test_reset)." |
+| `0xc1a90` | 344 | `player_action_test_zoom` | `hs_evaluate_player_action_test_zoom` | "returns true if any player has hit the zoom button since the last call to (player_action_test_reset)." |
+| `0xc1ac0` | 345 | `player_action_test_action` | `hs_evaluate_player_action_test_action` | "returns true if any player has hit the action key since the last call to (player_action_test_reset)." |
+| `0xc1af0` | 346 | `player_action_test_accept` | `hs_evaluate_player_action_test_accept` | "returns true if any player has hit accept since the last call to (player_action_test_reset)." |
+| `0xc1b20` | 347 | `player_action_test_back` | `hs_evaluate_player_action_test_back` | "returns true if any player has hit the back key since the last call to (player_action_test_reset)." |
+| `0xc1b50` | 348 | `player_action_test_look_relative_up` | `hs_evaluate_player_action_test_look_relative_up` | "returns true if any player has looked up since the last call to (player_action_test_reset)." |
+| `0xc1b80` | 349 | `player_action_test_look_relative_down` | `hs_evaluate_player_action_test_look_relative_down` | "returns true if any player has looked down since the last call to (player_action_test_reset)." |
+| `0xc1bb0` | 350 | `player_action_test_look_relative_left` | `hs_evaluate_player_action_test_look_relative_left` | "returns true if any player has looked left since the last call to (player_action_test_reset)." |
+| `0xc1be0` | 351 | `player_action_test_look_relative_right` | `hs_evaluate_player_action_test_look_relative_right` | "returns true if any player has looked right since the last call to (player_action_test_reset)." |
+| `0xc1c10` | 352 | `player_action_test_look_relative_all_directions` | `hs_evaluate_player_action_test_look_relative_all_directions` | "returns true if any player has looked up, down, left, and right since the last call to (player_action_test_reset)." |
+| `0xc1c40` | 353 | `player_action_test_move_relative_all_directions` | `hs_evaluate_player_action_test_move_relative_all_directions` | "returns true if any player has moved forward, backward, left, and right since the last call to (player_action_test_reset)." |
+| `0xc1c70` | 354 | `player_add_equipment` | `hs_evaluate_player_add_equipment` | "adds/resets the player's health, shield, and inventory (weapons and grenades) to the named profile. resets if third parameter is true, adds if false." |
+| `0xc1cb0` | 355 | `debug_teleport_player` | `hs_evaluate_debug_teleport_player` | "" (empty string in .rdata) |
 
 ---
 
@@ -171,14 +171,14 @@ void hs_evaluate_player_action_test_<name>(int16_t function_index, int thread_da
   - `args[0]`: unit handle (dword, record +0x0)
   - `*(int16_t *)(args + 1)`: equipment index (word, record +0x4, zero-extended via `XOR ECX,ECX / MOV CX,[EAX+0x4]`)
   - `*(char *)(args + 2)`: reset flag (byte, record +0x8, zero-extended via `XOR EDX,EDX / MOV DL,[EAX+0x8]`)
-- **Callee:** `player_add_equipment(unit_handle, equipment_index, reset_flag)` at 0xba6a0
+- **Callee:** `player_add_equipment(unit_handle, equipment_index, reset_flag)` at 0xbb410
 - **Stack cleanup:** `ADD ESP,0x14` (0xc + 0x8) coalesces evaluate + add_equipment + hs_return
 
 #### `hs_evaluate_debug_teleport_player` (0xc1cb0, Index 355)
 - **Args:** 2 mixed-width from result record:
   - `*(int16_t *)args`: SIGN-extended int16 at record +0 (`MOVSX EAX,word ptr [EAX]`)
   - `*(uint16_t *)(args + 4)`: ZERO-extended uint16 at record +4 (`XOR EDX,EDX / MOV DX,[EAX+0x4]`)
-- **Callee:** `debug_player_teleport(sign_ext_arg1, zero_ext_arg2)` at 0xba860
+- **Callee:** `debug_player_teleport(sign_ext_arg1, zero_ext_arg2)` at 0xbc6c0
 - **Stack cleanup:** `ADD ESP,0x10` (0x8 + 0x8) coalesces both calls
 
 ---
@@ -208,8 +208,8 @@ flowchart LR
         CAMERA[scripted_player_control_set_camera_control<br/>0xb6430]
         RESET[player_control_action_test_reset<br/>0xb6a90]
         PREDICATES["player_control_action_test_*<br/>(13 functions)"]
-        EQUIP[player_add_equipment<br/>0xba6a0]
-        TELEPORT[debug_player_teleport<br/>0xba860]
+        EQUIP[player_add_equipment<br/>0xbb410]
+        TELEPORT[debug_player_teleport<br/>0xbc6c0]
     end
 
     E337 --> UNZOOM
@@ -262,141 +262,7 @@ This avoids emitting `MOVZX` (which would result from `(unsigned char)` cast or 
 | `hs_evaluate_player_add_equipment` | `ADD ESP, 0x14` | evaluate(3×4) + add_equipment(3×4) + hs_return(2×4) coalesced with evaluate cleanup |
 | `hs_evaluate_debug_teleport_player` | `ADD ESP, 0x10` | teleport(2×4) + hs_return(2×4) |
 
-### 6.3 Disassembly Evidence (llvm-objdump -d)
-
-Disassembly of compiled object `build/CMakeFiles/halo.dir/src/halo/hs/hs.c.obj` confirms opcode invariance, stack frame setup, argument zero-extension, and cdecl cleanup coalescing across all shapes:
-
-#### Shape A: Fire-and-Forget (`hs_evaluate_players_unzoom_all`)
-```objdump
-00000cd0 <_hs_evaluate_players_unzoom_all>:
-     cd0: 55                            pushl   %ebp
-     cd1: 89 e5                         movl    %esp, %ebp
-     cd3: 56                            pushl   %esi
-     cd4: 8b 75 0c                      movl    0xc(%ebp), %esi
-     cd7: e8 00 00 00 00                calll   0xcdc <_hs_evaluate_players_unzoom_all+0xc>
-     cdc: 6a 00                         pushl   $0x0
-     cde: 56                            pushl   %esi
-     cdf: e8 00 00 00 00                calll   0xce4 <_hs_evaluate_players_unzoom_all+0x14>
-     ce4: 83 c4 08                      addl    $0x8, %esp
-     ce7: 5e                            popl    %esi
-     ce8: 5d                            popl    %ebp
-     ce9: c3                            retl
-```
-
-#### Shape B: Boolean Predicate (`hs_evaluate_player_action_test_jump`)
-```objdump
-00000d90 <_hs_evaluate_player_action_test_jump>:
-     d90: 55                            pushl   %ebp
-     d91: 89 e5                         movl    %esp, %ebp
-     d93: 56                            pushl   %esi
-     d94: 8b 75 0c                      movl    0xc(%ebp), %esi
-     d97: e8 00 00 00 00                calll   0xd9c <_hs_evaluate_player_action_test_jump+0xc>
-     d9c: 0f b6 c0                      movzbl  %al, %eax
-     d9f: 50                            pushl   %eax
-     da0: 56                            pushl   %esi
-     da1: e8 00 00 00 00                calll   0xda6 <_hs_evaluate_player_action_test_jump+0x16>
-     da6: 83 c4 08                      addl    $0x8, %esp
-     da9: 5e                            popl    %esi
-     daa: 5d                            popl    %ebp
-     dab: c3                            retl
-```
-
-#### Shape C: Multi-Argument Unpack (`hs_evaluate_player_add_equipment`)
-```objdump
-00000f30 <_hs_evaluate_player_add_equipment>:
-     f30: 55                            pushl   %ebp
-     f31: 89 e5                         movl    %esp, %ebp
-     f33: 56                            pushl   %esi
-     f34: 8b 75 0c                      movl    0xc(%ebp), %esi
-     f37: 0f bf 45 08                   movswl  0x8(%ebp), %eax
-     f3b: 0f be 4d 10                   movsbl  0x10(%ebp), %ecx
-     f3f: 51                            pushl   %ecx
-     f40: 56                            pushl   %esi
-     f41: 50                            pushl   %eax
-     f42: e8 00 00 00 00                calll   0xf47 <_hs_evaluate_player_add_equipment+0x17>
-     f47: 83 c4 0c                      addl    $0xc, %esp
-     f4a: 85 c0                         testl   %eax, %eax
-     f4c: 74 1f                         je      0xf6d <_hs_evaluate_player_add_equipment+0x3d>
-     f4e: 0f be 48 08                   movsbl  0x8(%eax), %ecx
-     f52: 0f bf 50 04                   movswl  0x4(%eax), %edx
-     f56: 51                            pushl   %ecx
-     f57: 52                            pushl   %edx
-     f58: ff 30                         pushl   (%eax)
-     f5a: e8 00 00 00 00                calll   0xf5f <_hs_evaluate_player_add_equipment+0x2f>
-     f5f: 83 c4 0c                      addl    $0xc, %esp
-     f62: 6a 00                         pushl   $0x0
-     f64: 56                            pushl   %esi
-     f65: e8 00 00 00 00                calll   0xf6a <_hs_evaluate_player_add_equipment+0x3a>
-     f6a: 83 c4 08                      addl    $0x8, %esp
-     f6d: 5e                            popl    %esi
-     f6e: 5d                            popl    %ebp
-     f6f: c3                            retl
-```
-
-### 6.4 Kuna Reverse Engineering & Decompilation Evidence
-
-Direct decompilation of synthesized pristine Xbox debug binary objects (`cachebeta.xbe`, build 2276) via `kuna decompile` independently proves exact 1:1 behavioral equivalence across all 19 evaluators:
-
-#### Shape A: Fire-and-Forget (`hs_evaluate_players_unzoom_all` @ `0xc1930`)
-```c
-// Decompiled from cachebeta.xbe reference via kuna
-void hs_evaluate_players_unzoom_all(unsigned int a0, unsigned int a1)
-{
-  sub_3f50a0();      // players_unzoom_all()
-  sub_40a650(a1, 0); // hs_return(thread_datum, 0)
-}
-```
-
-#### Shape B: Boolean Predicate with Zero-Extension (`hs_evaluate_player_action_test_jump` @ `0xc1a00`)
-```c
-// Decompiled from cachebeta.xbe reference via kuna
-void hs_evaluate_player_action_test_jump(unsigned int a0, unsigned int a1)
-{
-  char v1;          // al (predicate return)
-  unsigned int v2;  // stack local (pre-zeroed dword)
-  
-  v2 = 0;
-  v1 = sub_3f5110(0); // player_control_action_test_jump()
-  sub_40a580(a1, CONCAT31((undefined3)((unsigned int)v2 >> 8), v1)); // hs_return(thread_datum, value)
-}
-```
-*Note: All 13 action-test predicates (`0xc1a00`–`0xc1c40`) exhibit identical `CONCAT31` zero-extension semantics in Kuna.*
-
-#### Shape C: Multi-Argument Unpack (`hs_evaluate_player_add_equipment` @ `0xc1c70`)
-```c
-// Decompiled from cachebeta.xbe reference via kuna
-void hs_evaluate_player_add_equipment(unsigned int a0, unsigned int a1, unsigned int a2)
-{
-  unsigned int v1;
-  unsigned int *v2; // eax
-  
-  v1 = a1;
-  v2 = (unsigned int *)sub_40a8f0(a0, a1, a2); // hs_macro_function_evaluate(...)
-  if (!v2)
-    return;
-  sub_3f97a0(*v2, *(unsigned short *)&v2[1], *(char *)&v2[2]); // player_add_equipment(...)
-  sub_40a310(v1, 0); // hs_return(thread_datum, 0)
-}
-```
-
-#### Shape C: Mixed Sign/Zero-Extension (`hs_evaluate_debug_teleport_player` @ `0xc1cb0`)
-```c
-// Decompiled from cachebeta.xbe reference via kuna
-void hs_evaluate_debug_teleport_player(unsigned int a0, unsigned int a1, unsigned int a2)
-{
-  unsigned int v1;
-  short *v2; // eax
-  
-  v1 = a1;
-  v2 = (short *)sub_40a8b0(a0, a1, a2); // hs_macro_function_evaluate(...)
-  if (!v2)
-    return;
-  sub_3faa10((int)*v2, v2[2]); // debug_player_teleport(sign_ext, zero_ext)
-  sub_40a2d0(v1, 0); // hs_return(thread_datum, 0)
-}
-```
-
-### 6.5 Strict C89 Compliance
+### 6.3 Strict C89 Compliance
 
 All variable declarations are positioned strictly at the top of their block scope before any statements. Every function concludes with an explicit `return;` per Rule 3.
 
