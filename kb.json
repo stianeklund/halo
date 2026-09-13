@@ -10414,77 +10414,77 @@
     },
     {
      "addr": "0xc1640",
-     "decl": "void FUN_000c1640(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_camera_control(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc1680",
-     "decl": "void FUN_000c1680(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_camera_set(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc16c0",
-     "decl": "void FUN_000c16c0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_camera_set_relative(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1700",
-     "decl": "void FUN_000c1700(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_camera_set_animation(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1740",
-     "decl": "void FUN_000c1740(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_camera_set_first_person(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1780",
-     "decl": "void FUN_000c1780(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_camera_set_dead(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc17c0",
-     "decl": "void FUN_000c17c0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_camera_time(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc17f0",
-     "decl": "void FUN_000c17f0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_debug_camera_save(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc1810",
-     "decl": "void FUN_000c1810(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_debug_camera_load(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc1830",
-     "decl": "void FUN_000c1830(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_game_speed(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc1870",
-     "decl": "void FUN_000c1870(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_game_variant(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc18b0",
-     "decl": "void FUN_000c18b0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_game_time(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc18d0",
-     "decl": "void FUN_000c18d0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_game_difficulty_get(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1900",
-     "decl": "void FUN_000c1900(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_game_difficulty_get_real(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
@@ -10584,52 +10584,52 @@
     },
     {
      "addr": "0xc1cf0",
-     "decl": "void FUN_000c1cf0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_map_reset(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1d10",
-     "decl": "void FUN_000c1d10(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_map_name(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1d50",
-     "decl": "void FUN_000c1d50(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_multiplayer_map_name(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1d90",
-     "decl": "void FUN_000c1d90(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_game_difficulty_set(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1dd0",
-     "decl": "void FUN_000c1dd0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_crash(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1e10",
-     "decl": "void FUN_000c1e10(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_switch_bsp(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1e50",
-     "decl": "void FUN_000c1e50(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_structure_bsp_index(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1e80",
-     "decl": "void FUN_000c1e80(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_version(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1ea0",
-     "decl": "void FUN_000c1ea0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_playback(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1ec0",
-     "decl": "void FUN_000c1ec0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_texture_cache_flush(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {

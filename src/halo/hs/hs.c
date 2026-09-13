@@ -1116,7 +1116,7 @@ void FUN_000c15f0(int16_t function_index, int thread_datum, char init)
  *   0x86cb0 = director_script_camera(int) — receives the +0x0 byte,
  * zero-extended 0xcbf80 = hs_return(int thread_datum, int value)
  */
-void FUN_000c1640(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_camera_control(int16_t function_index, int thread_datum, char init)
 {
   unsigned char *result;
 
@@ -1140,7 +1140,7 @@ void FUN_000c1640(int16_t function_index, int thread_datum, char init)
  *   0x85260 = FUN_00085260 (short arg0, short arg1)
  *   0xcbf80 = hs_return (int thread_datum, int value)
  */
-void FUN_000c1680(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_camera_set(int16_t function_index, int thread_datum, char init)
 {
   short *result;
 
@@ -1172,7 +1172,7 @@ void FUN_000c1680(int16_t function_index, int thread_datum, char init)
  *   0x85180 = FUN_00085180(short +0x0, short +0x4, int +0x8)
  *   0xcbf80 = hs_return(int thread_datum, int value)
  */
-void FUN_000c16c0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_camera_set_relative(int16_t function_index, int thread_datum, char init)
 {
   unsigned short *result;
 
@@ -1190,7 +1190,7 @@ void FUN_000c16c0(int16_t function_index, int thread_datum, char init)
  * with those two fields, then returns void to the HS thread via
  * hs_return(thread_datum, 0). Matches the byte pattern of the sibling HS
  * handlers in this TU. */
-void FUN_000c1700(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_camera_set_animation(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -1207,7 +1207,7 @@ void FUN_000c1700(int16_t function_index, int thread_datum, char init)
  * an int at +0x0 (result[0]); calls FUN_000850d0(result[0]), then returns void
  * to the HS thread via hs_return(thread_datum, 0). Matches the byte pattern of
  * the sibling HS handlers in this TU. */
-void FUN_000c1740(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_camera_set_first_person(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -1226,7 +1226,7 @@ void FUN_000c1740(int16_t function_index, int thread_datum, char init)
  * 0xc0dd0 twins which also read result[1].  On success calls
  * FUN_00085110(result[0]), then returns void to the HS thread via
  * hs_return(thread_datum, 0). */
-void FUN_000c1780(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_camera_set_dead(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -1263,7 +1263,7 @@ void FUN_000c1780(int16_t function_index, int thread_datum, char init)
  *   0x853a0 = FUN_000853a0(void) -> int (low word consumed in AX)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c17c0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_camera_time(int16_t function_index, int thread_datum, char init)
 {
   union {
     int i;
@@ -1302,7 +1302,7 @@ void FUN_000c17c0(int16_t function_index, int thread_datum, char init)
  *   0x86360 = director_save_camera(void)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c17f0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_debug_camera_save(int16_t function_index, int thread_datum, char init)
 {
   director_save_camera();
   hs_return(thread_datum, 0);
@@ -1332,7 +1332,7 @@ void FUN_000c17f0(int16_t function_index, int thread_datum, char init)
  *   0x86900 = director_load_camera(void)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c1810(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_debug_camera_load(int16_t function_index, int thread_datum, char init)
 {
   director_load_camera();
   hs_return(thread_datum, 0);
@@ -1371,7 +1371,7 @@ void FUN_000c1810(int16_t function_index, int thread_datum, char init)
  *   0xb5d00 = game_time_set_speed(float)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c1830(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_speed(int16_t function_index, int thread_datum, char init)
 {
   float *result;
 
@@ -1418,7 +1418,7 @@ void FUN_000c1830(int16_t function_index, int thread_datum, char init)
  *   0xa78e0 = game_set_game_variant_from_name(const char *)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c1870(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_variant(int16_t function_index, int thread_datum, char init)
 {
   char **result;
 
@@ -1462,7 +1462,7 @@ void FUN_000c1870(int16_t function_index, int thread_datum, char init)
  *   0xb5aa0 = game_time_get(void)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c18b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_time(int16_t function_index, int thread_datum, char init)
 {
   hs_return(thread_datum, game_time_get());
 }
@@ -1497,7 +1497,7 @@ void FUN_000c18b0(int16_t function_index, int thread_datum, char init)
  *             only the low word of which is stored here
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c18d0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_difficulty_get(int16_t function_index, int thread_datum, char init)
 {
   int32_t value;
 
@@ -1533,7 +1533,7 @@ void FUN_000c18d0(int16_t function_index, int thread_datum, char init)
  *   0xa7460 = game_difficulty_level_get(void) — returns int16_t in AX
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c1900(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_difficulty_get_real(int16_t function_index, int thread_datum, char init)
 {
   int32_t value;
 
@@ -2242,7 +2242,7 @@ void FUN_000c1cb0(int16_t function_index, int thread_datum, char init)
  *
  * Push order at 0xc1cfb is PUSH 0x0 then PUSH EAX, so under cdecl (first PUSH
  * is the last C argument) the call is hs_return(thread_datum, 0). */
-void FUN_000c1cf0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_map_reset(int16_t function_index, int thread_datum, char init)
 {
   main_reset_map();
   hs_return(thread_datum, 0);
@@ -2265,7 +2265,7 @@ void FUN_000c1cf0(int16_t function_index, int thread_datum, char init)
  * ABI (verified against disassembly 0xc1d10-0xc1d40): cdecl, frame is
  * PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and no `sub esp`.  ESI holds
  * thread_datum ([EBP+0xc]) across all three calls.  Ghidra's
- * `void FUN_000c1d10(void)` prototype is wrong — the three `in_stack_*`
+ * `void 0xc1d10(void)` prototype is wrong — the three `in_stack_*`
  * phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], i.e. the standard hs-evaluator
  * argument triple.
  *
@@ -2278,7 +2278,7 @@ void FUN_000c1cf0(int16_t function_index, int thread_datum, char init)
  *
  * hs_macro_function_evaluate is declared returning `int` in kb.json but is
  * used here as a pointer, so it is cast (same as FUN_000c0ed0/FUN_000c0f10). */
-void FUN_000c1d10(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_map_name(int16_t function_index, int thread_datum, char init)
 {
   char **result;
 
@@ -2305,7 +2305,7 @@ void FUN_000c1d10(int16_t function_index, int thread_datum, char init)
  * ABI (verified against disassembly 0xc1d50-0xc1d80): cdecl, frame is
  * PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and no `sub esp`.  ESI is
  * loaded once at 0xc1d5a and holds thread_datum ([EBP+0xc]) across the body.
- * Ghidra's `void FUN_000c1d50(void)` prototype is wrong — the three
+ * Ghidra's `void 0xc1d50(void)` prototype is wrong — the three
  * `in_stack_*` phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], i.e. the standard
  * hs-evaluator argument triple.
  *
@@ -2325,7 +2325,7 @@ void FUN_000c1d10(int16_t function_index, int thread_datum, char init)
  *
  * hs_macro_function_evaluate is declared returning `int` in kb.json but is
  * used here as a pointer, so it is cast (same as FUN_000c1d10). */
-void FUN_000c1d50(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_multiplayer_map_name(int16_t function_index, int thread_datum, char init)
 {
   char **result;
 
@@ -2359,7 +2359,7 @@ void FUN_000c1d50(int16_t function_index, int thread_datum, char init)
  *
  * hs_macro_function_evaluate is declared returning `int` in kb.json but is
  * used here as a pointer, so it is cast (same as FUN_000c1d50). */
-void FUN_000c1d90(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_game_difficulty_set(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -2390,7 +2390,7 @@ void FUN_000c1d90(int16_t function_index, int thread_datum, char init)
  * FPU.  Frame is PUSH EBP; MOV EBP,ESP; PUSH ESI with no locals and no
  * `sub esp`.  ESI is loaded from [EBP+0xc] before the first call and holds
  * thread_datum across the whole body, which is why the same value feeds both
- * hs_macro_function_evaluate and hs_return.  Ghidra's `void FUN_000c1dd0(void)`
+ * hs_macro_function_evaluate and hs_return.  Ghidra's `void 0xc1dd0(void)`
  * prototype comes from the stale kb declaration; the three `in_stack_*`
  * phantoms are [EBP+8]/[EBP+0xc]/[EBP+0x10], the standard hs-evaluator triple.
  *
@@ -2415,7 +2415,7 @@ void FUN_000c1d90(int16_t function_index, int thread_datum, char init)
  *
  * hs_macro_function_evaluate is declared returning `int` in kb.json but is
  * used here as a pointer, so it is cast (same as FUN_000c1d50). */
-void FUN_000c1dd0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_crash(int16_t function_index, int thread_datum, char init)
 {
   char **result;
 
@@ -2457,7 +2457,7 @@ void FUN_000c1dd0(int16_t function_index, int thread_datum, char init)
  *
  * hs_macro_function_evaluate is declared returning `int` in kb.json but is
  * used here as a pointer, so it is cast (same as FUN_000c1d90). */
-void FUN_000c1e10(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_switch_bsp(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
@@ -2500,7 +2500,7 @@ void FUN_000c1e10(int16_t function_index, int thread_datum, char init)
  *   0x18f080 = global_structure_bsp_index_get(void) — returns int16_t in AX
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c1e50(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_structure_bsp_index(int16_t function_index, int thread_datum, char init)
 {
   int32_t value;
 
@@ -2535,7 +2535,7 @@ void FUN_000c1e50(int16_t function_index, int thread_datum, char init)
  *   0x101cc0 = main_print_version(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c1e80(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_version(int16_t function_index, int thread_datum, char init)
 {
   main_print_version();
   hs_return(thread_datum, 0);
@@ -2567,7 +2567,7 @@ void FUN_000c1e80(int16_t function_index, int thread_datum, char init)
  *   0x1006e0 = main_set_game_connection_to_film_playback(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c1ea0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_playback(int16_t function_index, int thread_datum, char init)
 {
   main_set_game_connection_to_film_playback();
   hs_return(thread_datum, 0);
@@ -2600,7 +2600,7 @@ void FUN_000c1ea0(int16_t function_index, int thread_datum, char init)
  *   0x1bed30 = texture_cache_flush(void)   [not yet ported; called via thunk]
  *   0xcbf80  = hs_return(thread_handle, value)
  */
-void FUN_000c1ec0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_texture_cache_flush(int16_t function_index, int thread_datum, char init)
 {
   texture_cache_flush();
   hs_return(thread_datum, 0);
