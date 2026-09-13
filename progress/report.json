@@ -43,8 +43,8 @@
     }
   },
   "meta": {
-    "timestamp": "2026-09-13T11:58:49.751977+02:00",
-    "commit": "4268ad77adb",
+    "timestamp": "2026-09-13T12:23:00.964731+02:00",
+    "commit": "f3a9d9f4f0e",
     "branch": "main",
     "tool_version": "1.0.0"
   },
@@ -17321,7 +17321,7 @@
       "functions": [
         {
           "address": "0xc0bb0",
-          "name": "FUN_000c0bb0",
+          "name": "hs_evaluate_ai_force_active_by_unit",
           "size": 56,
           "status": "unknown",
           "ported": true,
@@ -84405,7 +84405,7 @@
         },
         {
           "address": "0x57900",
-          "name": "FUN_00057900",
+          "name": "ai_force_active_by_unit",
           "size": 196,
           "status": "ported",
           "ported": true,
