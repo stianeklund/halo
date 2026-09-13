@@ -615,7 +615,7 @@ void hs_evaluate_ai_allow_dormant(int16_t function_index, int thread_datum, char
  *   0x556f0 = FUN_000556f0(unsigned int ai_ref) -> bool
  *   0xcbf80 = hs_return(int thread_handle, int value)
  */
-void FUN_000c1210(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_is_attacking(int16_t function_index, int thread_datum, char init)
 {
   unsigned int *result;
   /* volatile forces the AL->stack spill+reload MSVC emits for the bool
@@ -651,7 +651,7 @@ void FUN_000c1210(int16_t function_index, int thread_datum, char init)
  *             result in AX
  *   0xcbf80 = hs_return(int thread_handle, int value)
  */
-void FUN_000c1260(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_command_list_status(int16_t function_index, int thread_datum, char init)
 {
   int *result;
   union {
@@ -677,7 +677,7 @@ void FUN_000c1260(int16_t function_index, int thread_datum, char init)
  * value.i = 0 clears the full 4-byte slot, value.s writes only the low word,
  * so the value passed to hs_return is the short in the low 16 bits with a
  * zeroed upper half (NOT a sign-extended short). */
-void FUN_000c12b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_going_to_vehicle(int16_t function_index, int thread_datum, char init)
 {
   int *result;
   union {
@@ -714,7 +714,7 @@ void FUN_000c12b0(int16_t function_index, int thread_datum, char init)
  * low word (MOV [EBP-4],AX) from FUN_00055660's return, then reloads the full
  * dword — so the high 16 bits stay 0. Modeled here with a int/uint16 union.
  */
-void FUN_000c1300(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_living_count(int16_t function_index, int thread_datum, char init)
 {
   int *result_ptr;
   union {
@@ -754,7 +754,7 @@ void FUN_000c1300(int16_t function_index, int thread_datum, char init)
  * is a type-pun, modeled here with a float/int union — a numeric (int)f cast
  * would truncate the value and commit the wrong bits.
  */
-void FUN_000c1350(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_living_fraction(int16_t function_index, int thread_datum, char init)
 {
   int *result_ptr;
   union {
@@ -795,7 +795,7 @@ void FUN_000c1350(int16_t function_index, int thread_datum, char init)
  * is a type-pun, modeled here with a float/int union — a numeric (int)f cast
  * would truncate the value and commit the wrong bits.
  */
-void FUN_000c1390(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_strength(int16_t function_index, int thread_datum, char init)
 {
   int *result_ptr;
   union {
@@ -821,7 +821,7 @@ void FUN_000c1390(int16_t function_index, int thread_datum, char init)
  *   0xcc560 = hs_macro_function_evaluate -> void* (record ptr, null on fail)
  *   0x55620 = FUN_00055620 (unsigned ai_ref) -> int (narrowed to int16)
  *   0xcbf80 = hs_return (thread_datum, value) */
-void FUN_000c13d0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_swarm_count(int16_t function_index, int thread_datum, char init)
 {
   int *result;
   int value = 0;
@@ -857,7 +857,7 @@ void FUN_000c13d0(int16_t function_index, int thread_datum, char init)
  *   0x55640 = FUN_00055640(ai_ref) -> int (low 16 bits consumed)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c1420(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_nonswarm_count(int16_t function_index, int thread_datum, char init)
 {
   int result;
   union {
@@ -891,7 +891,7 @@ void FUN_000c1420(int16_t function_index, int thread_datum, char init)
  *   0x547c0 = FUN_000547c0(encounter_handle) -> int
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c1470(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_actors(int16_t function_index, int thread_datum, char init)
 {
   int result;
   int value;
@@ -925,7 +925,7 @@ void FUN_000c1470(int16_t function_index, int thread_datum, char init)
  *   0x57bc0 = FUN_00057bc0(encounter_handle) -> short (low 16 bits consumed)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c14b0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_status(int16_t function_index, int thread_datum, char init)
 {
   int result;
   union {
@@ -966,7 +966,7 @@ void FUN_000c14b0(int16_t function_index, int thread_datum, char init)
  *   0x585d0 = FUN_000585d0(uint16 field) -> int (low byte consumed in AL)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c1500(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_conversation(int16_t function_index, int thread_datum, char init)
 {
   int result;
   union {
@@ -1009,7 +1009,7 @@ void FUN_000c1500(int16_t function_index, int thread_datum, char init)
  *   0x58700 = FUN_00058700(uint16 field) -> int (low word consumed in AX)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
-void FUN_000c1550(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_conversation_line(int16_t function_index, int thread_datum, char init)
 {
   int result;
   union {
@@ -1042,7 +1042,7 @@ void FUN_000c1550(int16_t function_index, int thread_datum, char init)
  * was pre-initialized to 0, then the full dword is passed to hs_return.
  * Inferred: param widths treated as int/undefined4 (caller uses dword loads).
  */
-void FUN_000c15a0(int function_index, int thread_datum, int init)
+void hs_evaluate_ai_conversation_status(int function_index, int thread_datum, int init)
 {
   unsigned short *result;
   int value;
@@ -1084,7 +1084,7 @@ void FUN_000c15a0(int function_index, int thread_datum, int init)
  * int16 b) -> bool (low byte consumed in AL) 0xcbf80 = hs_return(int
  * thread_handle, int value)
  */
-void FUN_000c15f0(int16_t function_index, int thread_datum, char init)
+void hs_evaluate_ai_allegiance_broken(int16_t function_index, int thread_datum, char init)
 {
   int *result;
   union {

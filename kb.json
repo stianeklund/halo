@@ -10336,80 +10336,80 @@
     },
     {
      "addr": "0xc1210",
-     "decl": "void FUN_000c1210(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_is_attacking(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc1260",
-     "decl": "void FUN_000c1260(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_command_list_status(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc12b0",
-     "decl": "void FUN_000c12b0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_going_to_vehicle(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1300",
-     "decl": "void FUN_000c1300(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_living_count(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc1350",
-     "decl": "void FUN_000c1350(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_living_fraction(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc1390",
-     "decl": "void FUN_000c1390(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_strength(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc13d0",
-     "decl": "void FUN_000c13d0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_swarm_count(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1420",
-     "decl": "void FUN_000c1420(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_nonswarm_count(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
      "addr": "0xc1470",
-     "decl": "void FUN_000c1470(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_actors(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc14b0",
-     "decl": "void FUN_000c14b0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_status(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc1500",
-     "decl": "void FUN_000c1500(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_conversation(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc1550",
-     "decl": "void FUN_000c1550(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_conversation_line(int16_t function_index, int thread_datum, char init);",
      "ported": true,
      "source_path": "src/halo/hs/hs.c"
     },
     {
      "addr": "0xc15a0",
-     "decl": "void FUN_000c15a0(int function_index, int thread_datum, int init);",
+     "decl": "void hs_evaluate_ai_conversation_status(int function_index, int thread_datum, int init);",
      "ported": true
     },
     {
      "addr": "0xc15f0",
-     "decl": "void FUN_000c15f0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_allegiance_broken(int16_t function_index, int thread_datum, char init);",
      "ported": true
     },
     {
