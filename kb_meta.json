@@ -7836,29 +7836,45 @@
     },
     "0xc1ee0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameters function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read by this body; the 3-parameter hs-evaluator signature is inferred from the TU-wide convention shared by sibling handlers FUN_000c1e50/1e80/1ea0/1ec0, not from this function's own disassembly, which only reads thread_datum at [EBP+0xc]."
       ]
     },
+    "0xc1f00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1f20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc1f40": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Result record field +0x0 is typed const char* rather than an int handle because the sole consumer, debug_dump_memory_for_file (0x8eb80), is declared in kb.json as taking a const char* tag_filter; the disassembly only shows MOV EDX,[EAX] followed by a PUSH, which is width-agnostic.",
         "The call-site audit ARG_COUNT finding claiming hs_return has cleanup=3 versus decl=2 is a false positive: MSVC coalesced the one-dword cleanup for debug_dump_memory_for_file and the two-dword cleanup for hs_return into a single ADD ESP,0xc at 0xc1f6c."
       ]
     },
+    "0xc1f80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc1fa0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameters function_index ([EBP+0x8]) and init ([EBP+0x10]) are never read by this body; the 3-arg hs-evaluator signature is inferred from the identical already-ported siblings FUN_000c1f00/FUN_000c1f20/FUN_000c0cb0 rather than from reads in this function."
       ]
     },
+    "0xc1fc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc2000": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Callee 0x90860 (profile_sections_activate) takes one cdecl pointer argument, not zero as the previous kb decl claimed; evidence is MOV EDX,[EAX]/PUSH EDX at 0xc201f plus MOV EDI,[EBP+8] in 0x90860's own prologue, and the kb decl was corrected accordingly."
       ],
@@ -7868,22 +7884,26 @@
     },
     "0xc2040": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "hs_macro_function_evaluate (0xcc560) is declared int-returning in kb.json but actually returns a pointer to an evaluation record; the pointer nature is inferred from TEST EAX,EAX followed by MOV EDX,[EAX] and is handled by casting at the call site rather than widening the callee decl.",
         "The kb decl for profile_sections_deactivate (0x90880) was corrected from void(void) to void(const char *substring) because 0x90880 forwards its single stack argument in EDI to the shared worker 0x907c0, which string-compares it against the profile-section name table at 0x3361b4, matching the const char * decl already present on its activate twin 0x90860."
       ]
     },
+    "0xc2080": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc20c0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Handler identity 'debug_pvs' is inferred from the callee 0x1965d0 only; unlike the 0xc2080 sibling, the hs_function_definition record (name/return_type/param_types) for this handler was not read, so the builtin's script-level name and declared parameter type are unconfirmed."
       ]
     },
     "0xc2100": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Script-function record at 0x271990 identifies this handler as the HaloScript command radiosity_start (return_type 4=void, num_params 0, parse 0xc7e50, help 'starts radiosity computation.'); the symbol keeps its address name because the record name identifies the script command, not the wrapper.",
         "The three-parameter evaluator signature (int16_t function_index, int thread_datum, char init) is inferred from the hs.obj family convention: only [EBP+0xc] is read, so cdecl codegen cannot distinguish two parameters from three, and every ported sibling in hs.c uses the three-parameter form."
@@ -7892,16 +7912,44 @@
         "The handler performs no side effect of its own beyond completing the script thread with 0, so whether radiosity computation is started elsewhere or was compiled out of this debug build is not established from the binary."
       ]
     },
+    "0xc2120": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc2140": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "uncertain": [
         "Which HaloScript command's table record points at 0xc2140 is not established: the body has no side-effect CALL and no hs_macro_function_evaluate, so nothing in the function identifies the command name."
       ]
     },
+    "0xc2160": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2180": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc21a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc21e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2220": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2260": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc22a0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Result block from hs_macro_function_evaluate at 0xc22a0 is {+0x00 int handle, +0x04 float, +0x08 float, +0x0c uint16}; field types are inferred from the load instructions (FLD dword for the two floats, XOR EDX/MOV DX for the zero-extended 16-bit field), not from a struct definition.",
         "VC71 scores 85.2 percent (30 of 31 insns) and the entire residual is the documented float memory-argument codegen cap: the reference emits flds/subl/fstps/flds/fstps while VC71 emits two integer movl, so this is a structural cap and not a lift defect."
@@ -7910,16 +7958,36 @@
         "The kb decl for callee 0xa2970 player_effect_screen_fade_in was corrected from void(void) to (int, float, float, uint16_t) purely from this call site's push sequence; 0xa2970 is not ported and its body was not analysed, so the parameter names effect_definition/scale_a/scale_b/flags_or_index are placeholders and only the widths and order are binary-confirmed."
       ]
     },
+    "0xc22f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2340": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2360": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc2380": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc23a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc23c0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The kb decl for callee cinematic_show_letterbox (0x92e90) was corrected from void(void) to void(char show) because the disassembly zero-extends the byte at result+0x0 into EDX and pushes it before the CALL; its 4-byte cleanup is merged into the ADD ESP,0xc that follows hs_return."
       ]
     },
     "0xc2400": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "hs_macro_function_evaluate (0xcc560) is declared returning int in kb.json but this call site dereferences EAX as a 16-bit pointer (XOR EDX,EDX; MOV DX,word ptr [EAX]) after a NULL test, so its real return is a pointer to the evaluated script value; the cast is applied locally because other callers share the decl.",
         "FUN_00093640 (0x93640) takes exactly one stack argument: the merged ADD ESP,0xc at 0xc242f covers its single PUSH EDX plus hs_return's two pushes, so its kb decl was corrected from void(void) to void(int); the resulting ARG_COUNT warning on hs_return is a false positive from that merge."
@@ -7927,7 +7995,7 @@
     },
     "0xc2440": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "kb decl for callee 0x930b0 cinematic_set_title_delayed was corrected from void(void) to (int index, float value); arg1 width is inferred as int (not int16_t) by analogy with the identically-shaped sibling call FUN_00093640(int) at 0xc2400, since the PUSH EDX at the call site cannot distinguish the two."
       ],
@@ -7937,11 +8005,15 @@
     },
     "0xc2480": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The result-record field at +0x0 is an unsigned 8-bit flag: the original emits XOR EDX,EDX / MOV DL,byte ptr [EAX] (zero extension), so a signed char or int load would be wrong.",
         "kb.json decl for callee 0x93030 cinematic_suppress_bsp_object_creation was corrected from (void) to (unsigned char suppress) by this lift; the PUSH EDX at 0xc24a4 is the binary evidence and this handler is currently its only in-tree caller."
       ]
+    },
+    "0xc24c0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc24e0": {
       "kind": "function",

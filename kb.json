@@ -10634,185 +10634,216 @@
     },
     {
      "addr": "0xc1ee0",
-     "decl": "void FUN_000c1ee0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_sound_cache_flush(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_sound_cache_flush"
     },
     {
      "addr": "0xc1f00",
-     "decl": "void FUN_000c1f00(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_debug_memory(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_debug_memory"
     },
     {
      "addr": "0xc1f20",
-     "decl": "void FUN_000c1f20(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_debug_memory_by_file(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_debug_memory_by_file"
     },
     {
      "addr": "0xc1f40",
-     "decl": "void FUN_000c1f40(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_debug_memory_for_file(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_debug_memory_for_file"
     },
     {
      "addr": "0xc1f80",
-     "decl": "void FUN_000c1f80(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_debug_tags(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_debug_tags"
     },
     {
      "addr": "0xc1fa0",
-     "decl": "void FUN_000c1fa0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_profile_reset(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_profile_reset"
     },
     {
      "addr": "0xc1fc0",
-     "decl": "void FUN_000c1fc0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_profile_dump(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_profile_dump"
     },
     {
      "addr": "0xc2000",
-     "decl": "void FUN_000c2000(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_profile_activate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_profile_activate"
     },
     {
      "addr": "0xc2040",
-     "decl": "void FUN_000c2040(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_profile_deactivate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_profile_deactivate"
     },
     {
      "addr": "0xc2080",
-     "decl": "void FUN_000c2080(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_profile_graph_toggle(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_profile_graph_toggle"
     },
     {
      "addr": "0xc20c0",
-     "decl": "void FUN_000c20c0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_debug_pvs(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_debug_pvs"
     },
     {
      "addr": "0xc2100",
-     "decl": "void FUN_000c2100(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_radiosity_start(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_radiosity_start"
     },
     {
      "addr": "0xc2120",
-     "decl": "void FUN_000c2120(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_radiosity_save(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_radiosity_save"
     },
     {
      "addr": "0xc2140",
-     "decl": "void FUN_000c2140(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_radiosity_debug_point(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_radiosity_debug_point"
     },
     {
      "addr": "0xc2160",
-     "decl": "void FUN_000c2160(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_lines(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_ai_lines"
     },
     {
      "addr": "0xc2180",
-     "decl": "void FUN_000c2180(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_debug_sound_point_set(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_ai_debug_sound_point_set"
     },
     {
      "addr": "0xc21a0",
-     "decl": "void FUN_000c21a0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_debug_vocalize(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_ai_debug_vocalize"
     },
     {
      "addr": "0xc21e0",
-     "decl": "void FUN_000c21e0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_debug_teleport_to(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_ai_debug_teleport_to"
     },
     {
      "addr": "0xc2220",
-     "decl": "void FUN_000c2220(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_debug_speak(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_ai_debug_speak"
     },
     {
      "addr": "0xc2260",
-     "decl": "void FUN_000c2260(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_ai_debug_speak_list(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_ai_debug_speak_list"
     },
     {
      "addr": "0xc22a0",
-     "decl": "void FUN_000c22a0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_fade_in(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_fade_in"
     },
     {
      "addr": "0xc22f0",
-     "decl": "void FUN_000c22f0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_fade_out(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_fade_out"
     },
     {
      "addr": "0xc2340",
-     "decl": "void FUN_000c2340(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_cinematic_start(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_cinematic_start"
     },
     {
      "addr": "0xc2360",
-     "decl": "void FUN_000c2360(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_cinematic_stop(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_cinematic_stop"
     },
     {
      "addr": "0xc2380",
-     "decl": "void FUN_000c2380(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_cinematic_skip_start_internal(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_cinematic_skip_start_internal"
     },
     {
      "addr": "0xc23a0",
-     "decl": "void FUN_000c23a0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_cinematic_skip_stop_internal(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_cinematic_skip_stop_internal"
     },
     {
      "addr": "0xc23c0",
-     "decl": "void FUN_000c23c0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_cinematic_show_letterbox(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_cinematic_show_letterbox"
     },
     {
      "addr": "0xc2400",
-     "decl": "void FUN_000c2400(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_cinematic_set_title(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_cinematic_set_title"
     },
     {
      "addr": "0xc2440",
-     "decl": "void FUN_000c2440(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_cinematic_set_title_delayed(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_cinematic_set_title_delayed"
     },
     {
      "addr": "0xc2480",
-     "decl": "void FUN_000c2480(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_evaluate_cinematic_suppress_bsp_object_creation(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_evaluate_cinematic_suppress_bsp_object_creation"
     },
     {
      "addr": "0xc24c0",
-     "decl": "void FUN_000c24c0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_evaluate_attract_mode_start(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_evaluate_attract_mode_start"
     },
     {
      "addr": "0xc24e0",
