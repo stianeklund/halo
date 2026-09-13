@@ -7512,6 +7512,7 @@ void FUN_0005dc00(int encounter_handle)
     if (encounter_handle == -1) {
       actor_handle = *(int *)(*(int *)0x632574 + 8);
     } else {
+      encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
       actor_handle = *(int *)(encounter + 0x14);
     }
   }

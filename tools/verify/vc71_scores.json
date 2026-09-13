@@ -7155,21 +7155,6 @@
       "score": 88.9,
       "source": "src/halo/ai/encounters.c"
     },
-    "FUN_00057900": {
-      "abi_model": "raw",
-      "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 92.9,
-      "addr": "0x57900",
-      "end": "0x579c4",
-      "kind": "auto",
-      "n_r": 70,
-      "opnd_percent": 74.3,
-      "raw_mnemonic_pct": 92.9,
-      "ref": "synth",
-      "ref_sha": "aca6c35d6c5f7983",
-      "score": 92.9,
-      "source": "src/halo/ai/encounters.c"
-    },
     "FUN_000579d0": {
       "abi_model": "raw",
       "abi_model_items": 0,
@@ -7968,16 +7953,16 @@
     "FUN_0005dc00": {
       "abi_model": "raw",
       "abi_model_items": 0,
-      "abi_modeled_mnemonic_pct": 84.6,
+      "abi_modeled_mnemonic_pct": 83.5,
       "addr": "0x5dc00",
       "end": "0x5ddb4",
       "kind": "auto",
       "n_r": 141,
-      "opnd_percent": 50.9,
-      "raw_mnemonic_pct": 84.6,
+      "opnd_percent": 54.7,
+      "raw_mnemonic_pct": 83.5,
       "ref": "synth",
       "ref_sha": "69179019b3a2fd84",
-      "score": 84.6,
+      "score": 83.5,
       "source": "src/halo/ai/encounters.c"
     },
     "FUN_0005de80": {
@@ -52437,6 +52422,21 @@
       "ref_sha": "80c8652500f938fc",
       "score": 100.0,
       "source": "src/halo/ai/ai.c"
+    },
+    "ai_force_active_by_unit": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 92.9,
+      "addr": "0x57900",
+      "end": "0x579c4",
+      "kind": "auto",
+      "n_r": 70,
+      "opnd_percent": 74.3,
+      "raw_mnemonic_pct": 92.9,
+      "ref": "synth",
+      "ref_sha": "aca6c35d6c5f7983",
+      "score": 92.9,
+      "source": "src/halo/ai/encounters.c"
     },
     "ai_get_major_upgrade_chance": {
       "abi_model": "raw",
