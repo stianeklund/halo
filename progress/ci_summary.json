@@ -1,75 +1,68 @@
 {
-  "generated": "2026-09-13T03:38:11.141776+00:00",
+  "generated": "2026-09-13T09:58:49.280704+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-09-13T03:37:04Z",
-    "last_commit": "a613ab54",
+    "last_run_time": "2026-09-13T09:58:37Z",
+    "last_commit": "6f8f0716",
     "workflows": [
-      {
-        "name": "Progress Report",
-        "conclusion": "",
-        "created_at": "2026-09-13T03:37:04Z",
-        "head_sha": "a613ab54",
-        "url": "https://github.com/stianeklund/halo/actions/runs/34735928226"
-      },
-      {
-        "name": "Equivalence Tests",
-        "conclusion": "failure",
-        "created_at": "2026-09-13T01:49:15Z",
-        "head_sha": "a613ab54",
-        "url": "https://github.com/stianeklund/halo/actions/runs/34731477787"
-      },
-      {
-        "name": ".github/workflows/main.yml",
-        "conclusion": "action_required",
-        "created_at": "2026-09-12T19:48:44Z",
-        "head_sha": "5763bef5",
-        "url": "https://github.com/stianeklund/halo/actions/runs/34715249340"
-      },
       {
         "name": "Audit Gates",
         "conclusion": "action_required",
-        "created_at": "2026-09-12T19:48:44Z",
-        "head_sha": "5763bef5",
-        "url": "https://github.com/stianeklund/halo/actions/runs/34715249330"
+        "created_at": "2026-09-13T09:58:37Z",
+        "head_sha": "6f8f0716",
+        "url": "https://github.com/stianeklund/halo/actions/runs/34750649625"
+      },
+      {
+        "name": "Equivalence Tests",
+        "conclusion": "action_required",
+        "created_at": "2026-09-13T09:58:37Z",
+        "head_sha": "6f8f0716",
+        "url": "https://github.com/stianeklund/halo/actions/runs/34750649513"
       },
       {
         "name": "Snapshot Verification",
         "conclusion": "action_required",
-        "created_at": "2026-09-12T19:48:44Z",
-        "head_sha": "5763bef5",
-        "url": "https://github.com/stianeklund/halo/actions/runs/34715249322"
+        "created_at": "2026-09-13T09:58:37Z",
+        "head_sha": "6f8f0716",
+        "url": "https://github.com/stianeklund/halo/actions/runs/34750649508"
+      },
+      {
+        "name": ".github/workflows/main.yml",
+        "conclusion": "action_required",
+        "created_at": "2026-09-13T09:58:37Z",
+        "head_sha": "6f8f0716",
+        "url": "https://github.com/stianeklund/halo/actions/runs/34750649506"
       },
       {
         "name": "Runtime Oracle Tests",
-        "conclusion": "failure",
-        "created_at": "2026-09-12T08:17:43Z",
-        "head_sha": "a613ab54",
-        "url": "https://github.com/stianeklund/halo/actions/runs/34682898560"
+        "conclusion": "",
+        "created_at": "2026-09-13T08:42:00Z",
+        "head_sha": "4268ad77",
+        "url": "https://github.com/stianeklund/halo/actions/runs/34748338618"
+      },
+      {
+        "name": "Progress Report",
+        "conclusion": "",
+        "created_at": "2026-09-13T08:15:07Z",
+        "head_sha": "4268ad77",
+        "url": "https://github.com/stianeklund/halo/actions/runs/34747216114"
       },
       {
         "name": "pages-build-deployment",
         "conclusion": "success",
-        "created_at": "2026-09-12T03:45:26Z",
-        "head_sha": "4f78d44a",
-        "url": "https://github.com/stianeklund/halo/actions/runs/34671225263"
-      },
-      {
-        "name": "Compiler Profile Calibration",
-        "conclusion": "success",
-        "created_at": "2026-09-06T09:58:43Z",
-        "head_sha": "a613ab54",
-        "url": "https://github.com/stianeklund/halo/actions/runs/34026127012"
+        "created_at": "2026-09-13T03:38:22Z",
+        "head_sha": "7eea106c",
+        "url": "https://github.com/stianeklund/halo/actions/runs/34735977971"
       }
     ]
   },
   "equivalence": {
-    "tested": 984,
-    "high_confidence": 319,
-    "moderate_confidence": 187,
-    "weak_coverage": 226,
-    "avg_coverage": 56.5
+    "tested": 1052,
+    "high_confidence": 339,
+    "moderate_confidence": 221,
+    "weak_coverage": 232,
+    "avg_coverage": 56.3
   },
   "snapshot": null
 }
