@@ -393,7 +393,9 @@ void matrix4x3_identity_with_position(float *out, float *position)
   out[2] = position[2];
 }
 
-void matrix4x3_rotation_from_axis_and_angle(float *out_matrix, float *axis, float sine, float cosine)
+/* 0x1092d0 — build a 4x3 Rodrigues rotation matrix from an axis and
+ * precomputed sine/cosine values. */
+void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
 {
   float xx;
   float yy;

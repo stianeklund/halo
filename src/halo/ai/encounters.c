@@ -1494,7 +1494,7 @@ void FUN_00057850(unsigned int param_1, char param_2)
 }
 
 /*
- * FUN_00057900 — ai_force_active_by_unit.
+ * ai_force_active_by_unit (0x57900).
  * Sets the "force active" flag on a unit's actor. If the actor belongs to an
  * encounter (i.e. actor+9 is zero), logs an error telling the user to use
  * ai_force_active on the encounter directly instead.

@@ -21829,7 +21829,7 @@
     },
     {
      "addr": "0x1092d0",
-     "decl": "void matrix4x3_rotation_from_axis_and_angle(float *out_matrix, float *axis, float sine, float cosine);",
+     "decl": "void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine);",
      "ported": true
     },
     {
