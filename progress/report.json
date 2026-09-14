@@ -43,8 +43,8 @@
     }
   },
   "meta": {
-    "timestamp": "2026-09-14T10:29:21.905821+02:00",
-    "commit": "238704cae57",
+    "timestamp": "2026-09-14T11:35:29.434417+02:00",
+    "commit": "a3e1b6e9d60",
     "branch": "main",
     "tool_version": "1.0.0"
   },
@@ -18736,7 +18736,7 @@
         },
         {
           "address": "0xc1930",
-          "name": "FUN_000c1930",
+          "name": "hs_evaluate_players_unzoom_all",
           "size": 24,
           "status": "unknown",
           "ported": true,
@@ -18761,7 +18761,7 @@
         },
         {
           "address": "0xc1950",
-          "name": "FUN_000c1950",
+          "name": "hs_evaluate_player_enable_input",
           "size": 52,
           "status": "unknown",
           "ported": true,
@@ -18786,7 +18786,7 @@
         },
         {
           "address": "0xc1990",
-          "name": "FUN_000c1990",
+          "name": "hs_evaluate_player_camera_control",
           "size": 67,
           "status": "unknown",
           "ported": true,
@@ -18811,7 +18811,7 @@
         },
         {
           "address": "0xc19e0",
-          "name": "FUN_000c19e0",
+          "name": "hs_evaluate_player_action_test_reset",
           "size": 24,
           "status": "unknown",
           "ported": true,
@@ -18836,7 +18836,7 @@
         },
         {
           "address": "0xc1a00",
-          "name": "FUN_000c1a00",
+          "name": "hs_evaluate_player_action_test_jump",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -18861,7 +18861,7 @@
         },
         {
           "address": "0xc1a30",
-          "name": "FUN_000c1a30",
+          "name": "hs_evaluate_player_action_test_primary_trigger",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -18886,7 +18886,7 @@
         },
         {
           "address": "0xc1a60",
-          "name": "FUN_000c1a60",
+          "name": "hs_evaluate_player_action_test_grenade_trigger",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -18911,7 +18911,7 @@
         },
         {
           "address": "0xc1a90",
-          "name": "FUN_000c1a90",
+          "name": "hs_evaluate_player_action_test_zoom",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -18936,7 +18936,7 @@
         },
         {
           "address": "0xc1ac0",
-          "name": "FUN_000c1ac0",
+          "name": "hs_evaluate_player_action_test_action",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -18961,7 +18961,7 @@
         },
         {
           "address": "0xc1af0",
-          "name": "FUN_000c1af0",
+          "name": "hs_evaluate_player_action_test_accept",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -18986,7 +18986,7 @@
         },
         {
           "address": "0xc1b20",
-          "name": "FUN_000c1b20",
+          "name": "hs_evaluate_player_action_test_back",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -19011,7 +19011,7 @@
         },
         {
           "address": "0xc1b50",
-          "name": "FUN_000c1b50",
+          "name": "hs_evaluate_player_action_test_look_relative_up",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -19036,7 +19036,7 @@
         },
         {
           "address": "0xc1b80",
-          "name": "FUN_000c1b80",
+          "name": "hs_evaluate_player_action_test_look_relative_down",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -19061,7 +19061,7 @@
         },
         {
           "address": "0xc1bb0",
-          "name": "FUN_000c1bb0",
+          "name": "hs_evaluate_player_action_test_look_relative_left",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -19086,7 +19086,7 @@
         },
         {
           "address": "0xc1be0",
-          "name": "FUN_000c1be0",
+          "name": "hs_evaluate_player_action_test_look_relative_right",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -19111,7 +19111,7 @@
         },
         {
           "address": "0xc1c10",
-          "name": "FUN_000c1c10",
+          "name": "hs_evaluate_player_action_test_look_relative_all_directions",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -19136,7 +19136,7 @@
         },
         {
           "address": "0xc1c40",
-          "name": "FUN_000c1c40",
+          "name": "hs_evaluate_player_action_test_move_relative_all_directions",
           "size": 39,
           "status": "unknown",
           "ported": true,
@@ -19161,7 +19161,7 @@
         },
         {
           "address": "0xc1c70",
-          "name": "FUN_000c1c70",
+          "name": "hs_evaluate_player_add_equipment",
           "size": 63,
           "status": "unknown",
           "ported": true,
@@ -19186,7 +19186,7 @@
         },
         {
           "address": "0xc1cb0",
-          "name": "FUN_000c1cb0",
+          "name": "hs_evaluate_debug_teleport_player",
           "size": 58,
           "status": "unknown",
           "ported": true,
