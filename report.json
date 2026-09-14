@@ -43,8 +43,8 @@
     }
   },
   "meta": {
-    "timestamp": "2026-09-14T04:24:56.432790+02:00",
-    "commit": "474439cb46c",
+    "timestamp": "2026-09-14T10:12:47.498367+02:00",
+    "commit": "c177c8cb26b",
     "branch": "main",
     "tool_version": "1.0.0"
   },
@@ -17411,7 +17411,7 @@
         },
         {
           "address": "0xc0bf0",
-          "name": "FUN_000c0bf0",
+          "name": "hs_evaluate_ai_set_return_state",
           "size": 57,
           "status": "unknown",
           "ported": true,
@@ -17436,7 +17436,7 @@
         },
         {
           "address": "0xc0c30",
-          "name": "FUN_000c0c30",
+          "name": "hs_evaluate_ai_set_current_state",
           "size": 57,
           "status": "unknown",
           "ported": true,
@@ -17461,7 +17461,7 @@
         },
         {
           "address": "0xc0c70",
-          "name": "FUN_000c0c70",
+          "name": "hs_evaluate_ai_playfight",
           "size": 56,
           "status": "unknown",
           "ported": true,
@@ -17486,7 +17486,7 @@
         },
         {
           "address": "0xc0cb0",
-          "name": "FUN_000c0cb0",
+          "name": "hs_evaluate_ai_reconnect",
           "size": 24,
           "status": "unknown",
           "ported": true,
@@ -17511,7 +17511,7 @@
         },
         {
           "address": "0xc0cd0",
-          "name": "FUN_000c0cd0",
+          "name": "hs_evaluate_ai_vehicle_encounter",
           "size": 54,
           "status": "unknown",
           "ported": true,
@@ -17536,7 +17536,7 @@
         },
         {
           "address": "0xc0d10",
-          "name": "FUN_000c0d10",
+          "name": "hs_evaluate_ai_vehicle_enterable_distance",
           "size": 57,
           "status": "unknown",
           "ported": true,
@@ -17561,7 +17561,7 @@
         },
         {
           "address": "0xc0d50",
-          "name": "FUN_000c0d50",
+          "name": "hs_evaluate_ai_vehicle_enterable_team",
           "size": 57,
           "status": "unknown",
           "ported": true,
@@ -17586,7 +17586,7 @@
         },
         {
           "address": "0xc0d90",
-          "name": "FUN_000c0d90",
+          "name": "hs_evaluate_ai_vehicle_enterable_actor_type",
           "size": 57,
           "status": "unknown",
           "ported": true,
@@ -17611,7 +17611,7 @@
         },
         {
           "address": "0xc0dd0",
-          "name": "FUN_000c0dd0",
+          "name": "hs_evaluate_ai_vehicle_enterable_actors",
           "size": 54,
           "status": "unknown",
           "ported": true,
@@ -17636,7 +17636,7 @@
         },
         {
           "address": "0xc0e10",
-          "name": "FUN_000c0e10",
+          "name": "hs_evaluate_ai_vehicle_enterable_disable",
           "size": 50,
           "status": "unknown",
           "ported": true,
@@ -17661,7 +17661,7 @@
         },
         {
           "address": "0xc0e50",
-          "name": "FUN_000c0e50",
+          "name": "hs_evaluate_ai_look_at_object",
           "size": 54,
           "status": "ported",
           "ported": true,
@@ -17686,7 +17686,7 @@
         },
         {
           "address": "0xc0e90",
-          "name": "FUN_000c0e90",
+          "name": "hs_evaluate_ai_stop_looking",
           "size": 50,
           "status": "unknown",
           "ported": true,
@@ -17711,7 +17711,7 @@
         },
         {
           "address": "0xc0ed0",
-          "name": "FUN_000c0ed0",
+          "name": "hs_evaluate_ai_automatic_migration_target",
           "size": 56,
           "status": "unknown",
           "ported": true,
@@ -17736,7 +17736,7 @@
         },
         {
           "address": "0xc0f10",
-          "name": "FUN_000c0f10",
+          "name": "hs_evaluate_ai_follow_target_disable",
           "size": 50,
           "status": "unknown",
           "ported": true,
@@ -17761,7 +17761,7 @@
         },
         {
           "address": "0xc0f50",
-          "name": "FUN_000c0f50",
+          "name": "hs_evaluate_ai_follow_target_players",
           "size": 50,
           "status": "unknown",
           "ported": true,
@@ -17786,7 +17786,7 @@
         },
         {
           "address": "0xc0f90",
-          "name": "FUN_000c0f90",
+          "name": "hs_evaluate_ai_follow_target_unit",
           "size": 54,
           "status": "unknown",
           "ported": true,
@@ -17811,7 +17811,7 @@
         },
         {
           "address": "0xc0fd0",
-          "name": "FUN_000c0fd0",
+          "name": "hs_evaluate_ai_follow_target_ai",
           "size": 54,
           "status": "unknown",
           "ported": true,
@@ -17836,7 +17836,7 @@
         },
         {
           "address": "0xc1010",
-          "name": "FUN_000c1010",
+          "name": "hs_evaluate_ai_follow_distance",
           "size": 57,
           "status": "unknown",
           "ported": true,
@@ -17861,7 +17861,7 @@
         },
         {
           "address": "0xc1050",
-          "name": "FUN_000c1050",
+          "name": "hs_evaluate_ai_conversation_stop",
           "size": 53,
           "status": "unknown",
           "ported": true,
@@ -17886,7 +17886,7 @@
         },
         {
           "address": "0xc1090",
-          "name": "FUN_000c1090",
+          "name": "hs_evaluate_ai_conversation_advance",
           "size": 53,
           "status": "unknown",
           "ported": true,
@@ -17911,7 +17911,7 @@
         },
         {
           "address": "0xc10d0",
-          "name": "FUN_000c10d0",
+          "name": "hs_evaluate_ai_link_activation",
           "size": 54,
           "status": "unknown",
           "ported": true,
@@ -17936,7 +17936,7 @@
         },
         {
           "address": "0xc1110",
-          "name": "FUN_000c1110",
+          "name": "hs_evaluate_ai_berserk",
           "size": 56,
           "status": "unknown",
           "ported": true,
@@ -17961,7 +17961,7 @@
         },
         {
           "address": "0xc1150",
-          "name": "FUN_000c1150",
+          "name": "hs_evaluate_ai_set_team",
           "size": 57,
           "status": "unknown",
           "ported": true,
@@ -17986,7 +17986,7 @@
         },
         {
           "address": "0xc1190",
-          "name": "FUN_000c1190",
+          "name": "hs_evaluate_ai_allow_charge",
           "size": 56,
           "status": "unknown",
           "ported": true,
@@ -18011,7 +18011,7 @@
         },
         {
           "address": "0xc11d0",
-          "name": "FUN_000c11d0",
+          "name": "hs_evaluate_ai_allow_dormant",
           "size": 56,
           "status": "unknown",
           "ported": true,
@@ -18036,7 +18036,7 @@
         },
         {
           "address": "0xc1210",
-          "name": "FUN_000c1210",
+          "name": "hs_evaluate_ai_is_attacking",
           "size": 65,
           "status": "unknown",
           "ported": true,
@@ -18061,7 +18061,7 @@
         },
         {
           "address": "0xc1260",
-          "name": "FUN_000c1260",
+          "name": "hs_evaluate_ai_command_list_status",
           "size": 66,
           "status": "unknown",
           "ported": true,
@@ -18086,7 +18086,7 @@
         },
         {
           "address": "0xc12b0",
-          "name": "FUN_000c12b0",
+          "name": "hs_evaluate_ai_going_to_vehicle",
           "size": 66,
           "status": "unknown",
           "ported": true,
@@ -18111,7 +18111,7 @@
         },
         {
           "address": "0xc1300",
-          "name": "FUN_000c1300",
+          "name": "hs_evaluate_ai_living_count",
           "size": 66,
           "status": "unknown",
           "ported": true,
@@ -18136,7 +18136,7 @@
         },
         {
           "address": "0xc1350",
-          "name": "FUN_000c1350",
+          "name": "hs_evaluate_ai_living_fraction",
           "size": 58,
           "status": "unknown",
           "ported": true,
@@ -18161,7 +18161,7 @@
         },
         {
           "address": "0xc1390",
-          "name": "FUN_000c1390",
+          "name": "hs_evaluate_ai_strength",
           "size": 58,
           "status": "unknown",
           "ported": true,
@@ -18186,7 +18186,7 @@
         },
         {
           "address": "0xc13d0",
-          "name": "FUN_000c13d0",
+          "name": "hs_evaluate_ai_swarm_count",
           "size": 66,
           "status": "unknown",
           "ported": true,
@@ -18211,7 +18211,7 @@
         },
         {
           "address": "0xc1420",
-          "name": "FUN_000c1420",
+          "name": "hs_evaluate_ai_nonswarm_count",
           "size": 66,
           "status": "unknown",
           "ported": true,
@@ -18236,7 +18236,7 @@
         },
         {
           "address": "0xc1470",
-          "name": "FUN_000c1470",
+          "name": "hs_evaluate_ai_actors",
           "size": 49,
           "status": "unknown",
           "ported": true,
@@ -18261,7 +18261,7 @@
         },
         {
           "address": "0xc14b0",
-          "name": "FUN_000c14b0",
+          "name": "hs_evaluate_ai_status",
           "size": 66,
           "status": "unknown",
           "ported": true,
@@ -18286,7 +18286,7 @@
         },
         {
           "address": "0xc1500",
-          "name": "FUN_000c1500",
+          "name": "hs_evaluate_ai_conversation",
           "size": 68,
           "status": "unknown",
           "ported": true,
@@ -18311,7 +18311,7 @@
         },
         {
           "address": "0xc1550",
-          "name": "FUN_000c1550",
+          "name": "hs_evaluate_ai_conversation_line",
           "size": 69,
           "status": "unknown",
           "ported": true,
@@ -18336,7 +18336,7 @@
         },
         {
           "address": "0xc15a0",
-          "name": "FUN_000c15a0",
+          "name": "hs_evaluate_ai_conversation_status",
           "size": 69,
           "status": "unknown",
           "ported": true,
@@ -18361,7 +18361,7 @@
         },
         {
           "address": "0xc15f0",
-          "name": "FUN_000c15f0",
+          "name": "hs_evaluate_ai_allegiance_broken",
           "size": 73,
           "status": "unknown",
           "ported": true,
