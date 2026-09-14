@@ -43,8 +43,8 @@
     }
   },
   "meta": {
-    "timestamp": "2026-09-14T10:12:47.498367+02:00",
-    "commit": "c177c8cb26b",
+    "timestamp": "2026-09-14T10:29:21.905821+02:00",
+    "commit": "238704cae57",
     "branch": "main",
     "tool_version": "1.0.0"
   },
@@ -18386,7 +18386,7 @@
         },
         {
           "address": "0xc1640",
-          "name": "FUN_000c1640",
+          "name": "hs_evaluate_camera_control",
           "size": 52,
           "status": "unknown",
           "ported": true,
@@ -18411,7 +18411,7 @@
         },
         {
           "address": "0xc1680",
-          "name": "FUN_000c1680",
+          "name": "hs_evaluate_camera_set",
           "size": 58,
           "status": "unknown",
           "ported": true,
@@ -18436,7 +18436,7 @@
         },
         {
           "address": "0xc16c0",
-          "name": "FUN_000c16c0",
+          "name": "hs_evaluate_camera_set_relative",
           "size": 64,
           "status": "unknown",
           "ported": true,
@@ -18461,7 +18461,7 @@
         },
         {
           "address": "0xc1700",
-          "name": "FUN_000c1700",
+          "name": "hs_evaluate_camera_set_animation",
           "size": 54,
           "status": "unknown",
           "ported": true,
@@ -18486,7 +18486,7 @@
         },
         {
           "address": "0xc1740",
-          "name": "FUN_000c1740",
+          "name": "hs_evaluate_camera_set_first_person",
           "size": 50,
           "status": "unknown",
           "ported": true,
@@ -18511,7 +18511,7 @@
         },
         {
           "address": "0xc1780",
-          "name": "FUN_000c1780",
+          "name": "hs_evaluate_camera_set_dead",
           "size": 50,
           "status": "unknown",
           "ported": true,
@@ -18536,7 +18536,7 @@
         },
         {
           "address": "0xc17c0",
-          "name": "FUN_000c17c0",
+          "name": "hs_evaluate_camera_time",
           "size": 40,
           "status": "unknown",
           "ported": true,
@@ -18561,7 +18561,7 @@
         },
         {
           "address": "0xc17f0",
-          "name": "FUN_000c17f0",
+          "name": "hs_evaluate_debug_camera_save",
           "size": 24,
           "status": "unknown",
           "ported": true,
@@ -18586,7 +18586,7 @@
         },
         {
           "address": "0xc1810",
-          "name": "FUN_000c1810",
+          "name": "hs_evaluate_debug_camera_load",
           "size": 24,
           "status": "unknown",
           "ported": true,
@@ -18611,7 +18611,7 @@
         },
         {
           "address": "0xc1830",
-          "name": "FUN_000c1830",
+          "name": "hs_evaluate_game_speed",
           "size": 50,
           "status": "unknown",
           "ported": true,
@@ -18636,7 +18636,7 @@
         },
         {
           "address": "0xc1870",
-          "name": "FUN_000c1870",
+          "name": "hs_evaluate_game_variant",
           "size": 50,
           "status": "unknown",
           "ported": true,
@@ -18661,7 +18661,7 @@
         },
         {
           "address": "0xc18b0",
-          "name": "FUN_000c18b0",
+          "name": "hs_evaluate_game_time",
           "size": 23,
           "status": "unknown",
           "ported": true,
@@ -18686,7 +18686,7 @@
         },
         {
           "address": "0xc18d0",
-          "name": "FUN_000c18d0",
+          "name": "hs_evaluate_game_difficulty_get",
           "size": 40,
           "status": "unknown",
           "ported": true,
@@ -18711,7 +18711,7 @@
         },
         {
           "address": "0xc1900",
-          "name": "FUN_000c1900",
+          "name": "hs_evaluate_game_difficulty_get_real",
           "size": 40,
           "status": "unknown",
           "ported": true,
@@ -19211,7 +19211,7 @@
         },
         {
           "address": "0xc1cf0",
-          "name": "FUN_000c1cf0",
+          "name": "hs_evaluate_map_reset",
           "size": 24,
           "status": "unknown",
           "ported": true,
@@ -19236,7 +19236,7 @@
         },
         {
           "address": "0xc1d10",
-          "name": "FUN_000c1d10",
+          "name": "hs_evaluate_map_name",
           "size": 50,
           "status": "unknown",
           "ported": true,
@@ -19261,7 +19261,7 @@
         },
         {
           "address": "0xc1d50",
-          "name": "FUN_000c1d50",
+          "name": "hs_evaluate_multiplayer_map_name",
           "size": 50,
           "status": "unknown",
           "ported": true,
@@ -19286,7 +19286,7 @@
         },
         {
           "address": "0xc1d90",
-          "name": "FUN_000c1d90",
+          "name": "hs_evaluate_game_difficulty_set",
           "size": 53,
           "status": "unknown",
           "ported": true,
@@ -19311,7 +19311,7 @@
         },
         {
           "address": "0xc1dd0",
-          "name": "FUN_000c1dd0",
+          "name": "hs_evaluate_crash",
           "size": 50,
           "status": "unknown",
           "ported": true,
@@ -19336,7 +19336,7 @@
         },
         {
           "address": "0xc1e10",
-          "name": "FUN_000c1e10",
+          "name": "hs_evaluate_switch_bsp",
           "size": 53,
           "status": "unknown",
           "ported": true,
@@ -19361,7 +19361,7 @@
         },
         {
           "address": "0xc1e50",
-          "name": "FUN_000c1e50",
+          "name": "hs_evaluate_structure_bsp_index",
           "size": 40,
           "status": "unknown",
           "ported": true,
@@ -19386,7 +19386,7 @@
         },
         {
           "address": "0xc1e80",
-          "name": "FUN_000c1e80",
+          "name": "hs_evaluate_version",
           "size": 24,
           "status": "unknown",
           "ported": true,
@@ -19411,7 +19411,7 @@
         },
         {
           "address": "0xc1ea0",
-          "name": "FUN_000c1ea0",
+          "name": "hs_evaluate_playback",
           "size": 24,
           "status": "unknown",
           "ported": true,
@@ -19436,7 +19436,7 @@
         },
         {
           "address": "0xc1ec0",
-          "name": "FUN_000c1ec0",
+          "name": "hs_evaluate_texture_cache_flush",
           "size": 24,
           "status": "unknown",
           "ported": true,
