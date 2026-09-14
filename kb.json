@@ -399,7 +399,7 @@
   "name": "ai_communication_event",
   "obj": "ai.obj",
   "ported": false,
-  "comment": "[NAME: FUN_00046f10 — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03] [NAME: ai_communication_event — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+  "comment": "[NAME: FUN_00046f10 \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03] [NAME: ai_communication_event \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
  },
  "0x803d0": {
   "addr": "0x803d0",
@@ -921,7 +921,7 @@
     },
     {
      "addr": "0x1dbdec",
-     "comment": "LIBCMT _except_handler3 — VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
+     "comment": "LIBCMT _except_handler3 \u2014 VC7 frame-based SEH dispatcher (installed by __SEH_prolog @0x1dd5c8). Referenced by clang's __try/__except lowering in FUN_001d6ca8/FUN_001d703b; resolves to the original runtime via forwarding thunk.",
      "decl": "int __cdecl _except_handler3(void *ExceptionRecord, void *EstablisherFrame, void *ContextRecord, void *DispatcherContext);"
     },
     {
@@ -4069,7 +4069,7 @@
      "addr": "0x425c0",
      "decl": "void ai_handle_spatial_effect(int object_handle, float *position, short effect_type, short volume, short count);",
      "ported": true,
-     "comment": "[NAME: ai_handle_spatial_effect — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: ai_handle_spatial_effect \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x41590",
@@ -6743,7 +6743,7 @@
     {
      "addr": "0x85b60",
      "decl": "void dead_camera_new(void);",
-     "comment": "[NAME: dead_camera_new — CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]"
+     "comment": "[NAME: dead_camera_new \u2014 CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0x85c80",
@@ -7036,7 +7036,7 @@
     {
      "addr": "0x9ca70",
      "decl": "void effects_information_get(int effect_ptr@<ebx>, uint32_t flags_hi@<edi>, unsigned int *seed, float *velocity_out, float min_val, float max_val, uint32_t flags_lo);",
-     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) — callers pass these in registers; all known callers inlined",
+     "note": "hidden reg deps (EDI=flags_hi, EBX=effect_ptr) \u2014 callers pass these in registers; all known callers inlined",
      "ported": true
     },
     {
@@ -7097,7 +7097,7 @@
     {
      "addr": "0x9dcf0",
      "decl": "void FUN_0009dcf0(float *position, void *effect, void *location, void *part, float *forward, float *up, float scale);",
-     "note": "4 reg args (EAX,EDX,ECX,ESI) — inlined into FUN_0009e310, cannot be thunked separately",
+     "note": "4 reg args (EAX,EDX,ECX,ESI) \u2014 inlined into FUN_0009e310, cannot be thunked separately",
      "ported": true
     },
     {
@@ -7604,7 +7604,7 @@
     {
      "addr": "0x199d40",
      "decl": "void datastore_read(void);",
-     "comment": "[NAME: datastore_read — CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
+     "comment": "[NAME: datastore_read \u2014 CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0x19a020",
@@ -11710,13 +11710,15 @@
     },
     {
      "addr": "0xc57d0",
-     "decl": "int FUN_000c57d0(char *str@<ebx>);",
-     "ported": true
+     "decl": "int hs_find_string_constant(char *str@<ebx>);",
+     "ported": true,
+     "name": "hs_find_string_constant"
     },
     {
      "addr": "0xc5840",
-     "decl": "bool FUN_000c5840(int datum_index @<eax>);",
-     "ported": true
+     "decl": "bool hs_parse_variable(int datum_index @<eax>);",
+     "ported": true,
+     "name": "hs_parse_variable"
     },
     {
      "addr": "0xc5960",
@@ -11726,33 +11728,39 @@
     },
     {
      "addr": "0xc5a20",
-     "decl": "bool FUN_000c5a20(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_boolean(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_boolean"
     },
     {
      "addr": "0xc5b50",
-     "decl": "bool FUN_000c5b50(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_real(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_real"
     },
     {
      "addr": "0xc5c40",
-     "decl": "bool FUN_000c5c40(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_integer(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_integer"
     },
     {
      "addr": "0xc5d60",
-     "decl": "bool FUN_000c5d60(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_string(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_string"
     },
     {
      "addr": "0xc5de0",
-     "decl": "bool FUN_000c5de0(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_script(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_script"
     },
     {
      "addr": "0xc5e90",
-     "decl": "bool FUN_000c5e90(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_tag_reference(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_tag_reference"
     },
     {
      "addr": "0xc5f60",
@@ -11761,83 +11769,99 @@
     },
     {
      "addr": "0xc6130",
-     "decl": "bool FUN_000c6130(int datum_index @<eax>, void *tag_block @<ebx>, int element_size @<edi>, short offset);",
-     "ported": true
+     "decl": "bool hs_parse_scenario_datum(int datum_index @<eax>, void *tag_block @<ebx>, int element_size @<edi>, short offset);",
+     "ported": true,
+     "name": "hs_parse_scenario_datum"
     },
     {
      "addr": "0xc6230",
-     "decl": "bool FUN_000c6230(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_trigger_volume(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_trigger_volume"
     },
     {
      "addr": "0xc62a0",
-     "decl": "bool FUN_000c62a0(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_cutscene_flag(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_cutscene_flag"
     },
     {
      "addr": "0xc6310",
-     "decl": "bool FUN_000c6310(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_cutscene_camera_point(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_cutscene_camera_point"
     },
     {
      "addr": "0xc6380",
-     "decl": "bool FUN_000c6380(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_cutscene_title(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_cutscene_title"
     },
     {
      "addr": "0xc63f0",
-     "decl": "bool FUN_000c63f0(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_cutscene_recording(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_cutscene_recording"
     },
     {
      "addr": "0xc6460",
-     "decl": "bool FUN_000c6460(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_device_group(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_device_group"
     },
     {
      "addr": "0xc64d0",
-     "decl": "bool FUN_000c64d0(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_ai(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_ai"
     },
     {
      "addr": "0xc6580",
-     "decl": "bool FUN_000c6580(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_ai_command_list(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_ai_command_list"
     },
     {
      "addr": "0xc65f0",
-     "decl": "bool FUN_000c65f0(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_starting_profile(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_starting_profile"
     },
     {
      "addr": "0xc6660",
-     "decl": "bool FUN_000c6660(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_conversation(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_conversation"
     },
     {
      "addr": "0xc66d0",
-     "decl": "bool FUN_000c66d0(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_object_name(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_object_name"
     },
     {
      "addr": "0xc6810",
-     "decl": "bool FUN_000c6810(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_object(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_object"
     },
     {
      "addr": "0xc68b0",
-     "decl": "bool FUN_000c68b0(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_navpoint(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_navpoint"
     },
     {
      "addr": "0xc6940",
-     "decl": "bool FUN_000c6940(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_hud_message(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_hud_message"
     },
     {
      "addr": "0xc69d0",
-     "decl": "bool FUN_000c69d0(int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_object_list(int datum_index);",
+     "ported": true,
+     "name": "hs_parse_object_list"
     },
     {
      "addr": "0xc6a30",
@@ -11846,18 +11870,21 @@
     },
     {
      "addr": "0xc6a70",
-     "decl": "int FUN_000c6a70(char *str @<eax>);",
-     "ported": true
+     "decl": "int hs_concatenate_string_constant(char *str @<eax>);",
+     "ported": true,
+     "name": "hs_concatenate_string_constant"
     },
     {
      "addr": "0xc6b00",
-     "decl": "bool FUN_000c6b00(int datum_index);",
-     "ported": true
+     "decl": "bool hs_add_global(int datum_index);",
+     "ported": true,
+     "name": "hs_add_global"
     },
     {
      "addr": "0xc6d90",
-     "decl": "bool FUN_000c6d90(int datum_index);",
-     "ported": true
+     "decl": "bool hs_add_script(int datum_index);",
+     "ported": true,
+     "name": "hs_add_script"
     },
     {
      "addr": "0xc71c0",
@@ -11873,13 +11900,15 @@
     },
     {
      "addr": "0xc73a0",
-     "decl": "bool FUN_000c73a0(int datum_index @<edi>);",
-     "ported": true
+     "decl": "bool hs_parse_primitive(int datum_index @<edi>);",
+     "ported": true,
+     "name": "hs_parse_primitive"
     },
     {
      "addr": "0xc74c0",
-     "decl": "bool FUN_000c74c0(int datum_index @<ebx>);",
-     "ported": true
+     "decl": "bool hs_parse_nonprimitive(int datum_index @<ebx>);",
+     "ported": true,
+     "name": "hs_parse_nonprimitive"
     },
     {
      "addr": "0xc7b10",
@@ -11889,8 +11918,9 @@
     },
     {
      "addr": "0xc7be0",
-     "decl": "int FUN_000c7be0(char **cursor@<eax>);",
-     "ported": true
+     "decl": "int hs_tokenize(char **cursor@<eax>);",
+     "ported": true,
+     "name": "hs_tokenize"
     },
     {
      "addr": "0xc7ca0",
@@ -11930,8 +11960,9 @@
     },
     {
      "addr": "0xc85b0",
-     "decl": "bool FUN_000c85b0(int16_t function_index, int datum_index);",
-     "ported": true
+     "decl": "bool hs_parse_logical(int16_t function_index, int datum_index);",
+     "ported": true,
+     "name": "hs_parse_logical"
     },
     {
      "addr": "0xc93f0",
@@ -11952,18 +11983,21 @@
     },
     {
      "addr": "0xc8720",
-     "decl": "bool FUN_000c8720(int16_t function_index, int expression_index);",
-     "ported": true
+     "decl": "bool hs_parse_arithmetic(int16_t function_index, int expression_index);",
+     "ported": true,
+     "name": "hs_parse_arithmetic"
     },
     {
      "addr": "0xc88b0",
-     "decl": "bool FUN_000c88b0(int function_index, int expression_index);",
-     "ported": true
+     "decl": "bool hs_parse_equality(int function_index, int expression_index);",
+     "ported": true,
+     "name": "hs_parse_equality"
     },
     {
      "addr": "0xc89c0",
-     "decl": "bool FUN_000c89c0(int function_index, int expression_index);",
-     "ported": true
+     "decl": "bool hs_parse_inequality(int function_index, int expression_index);",
+     "ported": true,
+     "name": "hs_parse_inequality"
     },
     {
      "addr": "0xc8b90",
@@ -11977,8 +12011,9 @@
     },
     {
      "addr": "0xc8d30",
-     "decl": "bool FUN_000c8d30(int function_index, int script_node);",
-     "ported": true
+     "decl": "bool hs_parse_wake(int function_index, int script_node);",
+     "ported": true,
+     "name": "hs_parse_wake"
     },
     {
      "addr": "0xc8e00",
@@ -11990,8 +12025,9 @@
     },
     {
      "addr": "0xc8f40",
-     "decl": "bool FUN_000c8f40(int16_t function_index, int expression_index);",
-     "ported": true
+     "decl": "bool hs_parse_debug_string(int16_t function_index, int expression_index);",
+     "ported": true,
+     "name": "hs_parse_debug_string"
     },
     {
      "addr": "0xc9050",
@@ -12010,33 +12046,39 @@
     },
     {
      "addr": "0xc95c0",
-     "decl": "unsigned char FUN_000c95c0(unsigned char value);",
-     "ported": true
+     "decl": "unsigned char hs_not(unsigned char value);",
+     "ported": true,
+     "name": "hs_not"
     },
     {
      "addr": "0xc95d0",
-     "decl": "void FUN_000c95d0(int param_1);",
-     "ported": true
+     "decl": "void hs_print(int param_1);",
+     "ported": true,
+     "name": "hs_print"
     },
     {
      "addr": "0xc95f0",
-     "decl": "int FUN_000c95f0(void);",
-     "ported": true
+     "decl": "int hs_players(void);",
+     "ported": true,
+     "name": "hs_players"
     },
     {
      "addr": "0xc9650",
-     "decl": "unsigned char FUN_000c9650(int16_t bit_index, int object_list, int state);",
-     "ported": true
+     "decl": "unsigned char hs_trigger_volume_test_objects(int16_t bit_index, int object_list, int state);",
+     "ported": true,
+     "name": "hs_trigger_volume_test_objects"
     },
     {
      "addr": "0xc9700",
-     "decl": "char FUN_000c9700(int param_1, int param_2, float param_3);",
-     "ported": true
+     "decl": "char hs_unit_can_see_object(int param_1, int param_2, float param_3);",
+     "ported": true,
+     "name": "hs_unit_can_see_object"
     },
     {
      "addr": "0xc9770",
-     "decl": "unsigned char FUN_000c9770(int arg0, int arg1, float arg2);",
-     "ported": true
+     "decl": "unsigned char hs_objects_can_see_object(int arg0, int arg1, float arg2);",
+     "ported": true,
+     "name": "hs_objects_can_see_object"
     },
     {
      "addr": "0xc97f0",
@@ -12044,8 +12086,9 @@
     },
     {
      "addr": "0xc9840",
-     "decl": "unsigned char FUN_000c9840(int arg0, short flag_index, float arg2);",
-     "ported": true
+     "decl": "unsigned char hs_objects_can_see_flag(int arg0, short flag_index, float arg2);",
+     "ported": true,
+     "name": "hs_objects_can_see_flag"
     },
     {
      "addr": "0xc98e0",
@@ -12054,23 +12097,27 @@
     },
     {
      "addr": "0xc9990",
-     "decl": "void FUN_000c9990(int16_t index);",
-     "ported": true
+     "decl": "void hs_object_create(int16_t index);",
+     "ported": true,
+     "name": "hs_object_create"
     },
     {
      "addr": "0xc99e0",
-     "decl": "void FUN_000c99e0(int datum);",
-     "ported": true
+     "decl": "void hs_object_destroy(int datum);",
+     "ported": true,
+     "name": "hs_object_destroy"
     },
     {
      "addr": "0xc9a20",
-     "decl": "void FUN_000c9a20(int16_t index);",
-     "ported": true
+     "decl": "void hs_object_destroy_by_name(int16_t index);",
+     "ported": true,
+     "name": "hs_object_destroy_by_name"
     },
     {
      "addr": "0xc9a50",
-     "decl": "void FUN_000c9a50(void);",
-     "ported": true
+     "decl": "void hs_object_destroy_all(void);",
+     "ported": true,
+     "name": "hs_object_destroy_all"
     },
     {
      "addr": "0xc9b10",
@@ -12079,63 +12126,75 @@
     },
     {
      "addr": "0xc9b90",
-     "decl": "void FUN_000c9b90(int substring);",
-     "ported": true
+     "decl": "void hs_object_create_containing(int substring);",
+     "ported": true,
+     "name": "hs_object_create_containing"
     },
     {
      "addr": "0xc9bb0",
-     "decl": "void FUN_000c9bb0(int substring);",
-     "ported": true
+     "decl": "void hs_object_destroy_containing(int substring);",
+     "ported": true,
+     "name": "hs_object_destroy_containing"
     },
     {
      "addr": "0xc9bd0",
-     "decl": "int FUN_000c9bd0(int object_list, short index);",
-     "ported": true
+     "decl": "int hs_object_list_get_element(int object_list, short index);",
+     "ported": true,
+     "name": "hs_object_list_get_element"
     },
     {
      "addr": "0xc9c10",
-     "decl": "void FUN_000c9c10(int object_handle, float fraction);",
-     "ported": true
+     "decl": "void hs_object_set_shield(int object_handle, float fraction);",
+     "ported": true,
+     "name": "hs_object_set_shield"
     },
     {
      "addr": "0xc9c80",
-     "decl": "void FUN_000c9c80(int object_handle, int region_name, int permutation_name);",
-     "ported": true
+     "decl": "void hs_object_set_permutation(int object_handle, int region_name, int permutation_name);",
+     "ported": true,
+     "name": "hs_object_set_permutation"
     },
     {
      "addr": "0xc9d40",
-     "decl": "void FUN_000c9d40(int object_list);",
-     "ported": true
+     "decl": "void hs_objects_predict(int object_list);",
+     "ported": true,
+     "name": "hs_objects_predict"
     },
     {
      "addr": "0xc9d80",
-     "decl": "void FUN_000c9d80(int tag_index);",
-     "ported": true
+     "decl": "void hs_objects_delete_by_definition(int tag_index);",
+     "ported": true,
+     "name": "hs_objects_delete_by_definition"
     },
     {
      "addr": "0xc9de0",
-     "decl": "void FUN_000c9de0(int effect_tag_index, short flag_index);",
-     "ported": true
+     "decl": "void hs_effect_new(int effect_tag_index, short flag_index);",
+     "ported": true,
+     "name": "hs_effect_new"
     },
     {
      "addr": "0xc9e50",
-     "decl": "void FUN_000c9e50(int effect_tag_index, int object_handle, int marker_name);",
-     "ported": true
+     "decl": "void hs_effect_new_from_object_marker(int effect_tag_index, int object_handle, int marker_name);",
+     "ported": true,
+     "name": "hs_effect_new_from_object_marker"
     },
     {
      "addr": "0xc9ec0",
-     "decl": "void FUN_000c9ec0(int damage_effect_tag_index, short flag_index);",
-     "ported": true
+     "decl": "void hs_damage_new(int damage_effect_tag_index, short flag_index);",
+     "ported": true,
+     "name": "hs_damage_new"
     },
     {
      "addr": "0xc9f30",
-     "decl": "void FUN_000c9f30(int damage_effect_tag_index, int object_handle);",
-     "ported": true
+     "decl": "void hs_damage_object(int damage_effect_tag_index, int object_handle);",
+     "ported": true,
+     "name": "hs_damage_object"
     },
     {
      "addr": "0xc9f90",
-     "decl": "void *FUN_000c9f90(const char *sound_name @<esi>);",
-     "ported": true
+     "decl": "void *hs_sound_get_gain_reference(const char *sound_name @<esi>);",
+     "ported": true,
+     "name": "hs_sound_get_gain_reference"
     },
     {
      "addr": "0xca010",
@@ -12147,18 +12206,21 @@
     },
     {
      "addr": "0xca050",
-     "decl": "unsigned char FUN_000ca050(int16_t bit_index, int object_list);",
-     "ported": true
+     "decl": "unsigned char hs_trigger_volume_test_objects_all(int16_t bit_index, int object_list);",
+     "ported": true,
+     "name": "hs_trigger_volume_test_objects_all"
     },
     {
      "addr": "0xca0f0",
-     "decl": "unsigned char FUN_000ca0f0(int16_t, int);",
-     "ported": true
+     "decl": "unsigned char hs_trigger_volume_test_objects_any(int16_t, int);",
+     "ported": true,
+     "name": "hs_trigger_volume_test_objects_any"
     },
     {
      "addr": "0xca110",
-     "decl": "void FUN_000ca110(int16_t index);",
-     "ported": true
+     "decl": "void hs_object_create_anew(int16_t index);",
+     "ported": true,
+     "name": "hs_object_create_anew"
     },
     {
      "addr": "0xca140",
@@ -12170,8 +12232,9 @@
     },
     {
      "addr": "0xca3f0",
-     "decl": "void FUN_000ca3f0(int a, int b);",
-     "ported": true
+     "decl": "void hs_object_teleport(int a, int b);",
+     "ported": true,
+     "name": "hs_object_teleport"
     },
     {
      "addr": "0xca410",
@@ -12179,43 +12242,51 @@
     },
     {
      "addr": "0xca430",
-     "decl": "void FUN_000ca430(int cluster_index, int param_2);",
-     "ported": true
+     "decl": "void hs_teleport_players_not_in_trigger_volume(int cluster_index, int param_2);",
+     "ported": true,
+     "name": "hs_teleport_players_not_in_trigger_volume"
     },
     {
      "addr": "0xca4e0",
-     "decl": "void FUN_000ca4e0(int16_t type, bool value, char *buffer);",
-     "ported": true
+     "decl": "void hs_inspect_boolean(int16_t type, bool value, char *buffer);",
+     "ported": true,
+     "name": "hs_inspect_boolean"
     },
     {
      "addr": "0xca530",
-     "decl": "void FUN_000ca530(int16_t type, float value, char *buffer);",
-     "ported": true
+     "decl": "void hs_inspect_real(int16_t type, float value, char *buffer);",
+     "ported": true,
+     "name": "hs_inspect_real"
     },
     {
      "addr": "0xca580",
-     "decl": "void FUN_000ca580(int16_t type, int16_t value, char *buffer);",
-     "ported": true
+     "decl": "void hs_inspect_short_integer(int16_t type, int16_t value, char *buffer);",
+     "ported": true,
+     "name": "hs_inspect_short_integer"
     },
     {
      "addr": "0xca5d0",
-     "decl": "void FUN_000ca5d0(int16_t type, long value, char *buffer);",
-     "ported": true
+     "decl": "void hs_inspect_long_integer(int16_t type, long value, char *buffer);",
+     "ported": true,
+     "name": "hs_inspect_long_integer"
     },
     {
      "addr": "0xca620",
-     "decl": "void FUN_000ca620(int16_t type, const char *value, char *buffer);",
-     "ported": true
+     "decl": "void hs_inspect_string(int16_t type, const char *value, char *buffer);",
+     "ported": true,
+     "name": "hs_inspect_string"
     },
     {
      "addr": "0xca670",
-     "decl": "void FUN_000ca670(int16_t type, int16_t enum_value, char *buffer);",
-     "ported": true
+     "decl": "void hs_inspect_enum(int16_t type, int16_t enum_value, char *buffer);",
+     "ported": true,
+     "name": "hs_inspect_enum"
     },
     {
      "addr": "0xca700",
-     "decl": "void FUN_000CA700(void);",
-     "ported": true
+     "decl": "void hs_runtime_initialize(void);",
+     "ported": true,
+     "name": "hs_runtime_initialize"
     },
     {
      "addr": "0xca800",
@@ -12234,8 +12305,9 @@
     },
     {
      "addr": "0xcaa30",
-     "decl": "void FUN_000caa30(int thread_handle@<esi>);",
-     "ported": true
+     "decl": "void hs_thread_delete(int thread_handle@<esi>);",
+     "ported": true,
+     "name": "hs_thread_delete"
     },
     {
      "addr": "0xcaa80",
@@ -12263,8 +12335,9 @@
     },
     {
      "addr": "0xcada0",
-     "decl": "int FUN_000cada0(int16_t script_index@<edi>);",
-     "ported": true
+     "decl": "int hs_find_thread_by_script(int16_t script_index@<edi>);",
+     "ported": true,
+     "name": "hs_find_thread_by_script"
     },
     {
      "addr": "0xcae00",
@@ -12272,13 +12345,15 @@
     },
     {
      "addr": "0xcae80",
-     "decl": "int FUN_000cae80(int param_1);",
-     "ported": true
+     "decl": "int hs_long_to_boolean(int param_1);",
+     "ported": true,
+     "name": "hs_long_to_boolean"
     },
     {
      "addr": "0xcaea0",
-     "decl": "int FUN_000caea0(int param_1);",
-     "ported": true
+     "decl": "int hs_short_to_boolean(int param_1);",
+     "ported": true,
+     "name": "hs_short_to_boolean"
     },
     {
      "addr": "0xcaec0",
@@ -12294,8 +12369,9 @@
     },
     {
      "addr": "0xcaf20",
-     "decl": "int FUN_000caf20(int16_t param_1);",
-     "ported": true
+     "decl": "int hs_enum_to_real(int16_t param_1);",
+     "ported": true,
+     "name": "hs_enum_to_real"
     },
     {
      "addr": "0xcaf40",
@@ -12311,13 +12387,15 @@
     },
     {
      "addr": "0xcaf80",
-     "decl": "int FUN_000caf80(int16_t index);",
-     "ported": true
+     "decl": "int hs_object_name_to_object_list(int16_t index);",
+     "ported": true,
+     "name": "hs_object_name_to_object_list"
     },
     {
      "addr": "0xcafc0",
-     "decl": "int FUN_000cafc0(int object_handle);",
-     "ported": true
+     "decl": "int hs_object_to_object_list(int object_handle);",
+     "ported": true,
+     "name": "hs_object_to_object_list"
     },
     {
      "addr": "0xcaff0",
@@ -12336,13 +12414,15 @@
     },
     {
      "addr": "0xcb230",
-     "decl": "void FUN_000cb230(int loop_var@<edi>);",
-     "ported": true
+     "decl": "void hs_global_reconcile_read(int loop_var@<edi>);",
+     "ported": true,
+     "name": "hs_global_reconcile_read"
     },
     {
      "addr": "0xcb7b0",
-     "decl": "void FUN_000cb7b0(int loop_var@<ebx>);",
-     "ported": true
+     "decl": "void hs_global_reconcile_write(int loop_var@<ebx>);",
+     "ported": true,
+     "name": "hs_global_reconcile_write"
     },
     {
      "addr": "0xcb940",
@@ -12373,8 +12453,9 @@
     },
     {
      "addr": "0xcc0a0",
-     "decl": "int FUN_000cc0a0(int16_t global_ref@<eax>);",
-     "ported": true
+     "decl": "int hs_global_evaluate(int16_t global_ref@<eax>);",
+     "ported": true,
+     "name": "hs_global_evaluate"
     },
     {
      "addr": "0xcc0e0",
@@ -12383,18 +12464,21 @@
     },
     {
      "addr": "0xcc1d0",
-     "decl": "void FUN_000cc1d0(int thread_handle@<eax>, int expression_index, void *dest_ptr);",
-     "ported": true
+     "decl": "void hs_evaluate(int thread_handle@<eax>, int expression_index, void *dest_ptr);",
+     "ported": true,
+     "name": "hs_evaluate"
     },
     {
      "addr": "0xcc340",
-     "decl": "void FUN_000cc340(int16_t script_index@<ax>, int thread_handle@<esi>, char init);",
-     "ported": true
+     "decl": "void hs_script_evaluate(int16_t script_index@<ax>, int thread_handle@<esi>, char init);",
+     "ported": true,
+     "name": "hs_script_evaluate"
     },
     {
      "addr": "0xcc3a0",
-     "decl": "int FUN_000cc3a0(int thread_datum@<eax>, int16_t param_count, int formal_params, char init);",
-     "ported": true
+     "decl": "int hs_arguments_evaluate(int thread_datum@<eax>, int16_t param_count, int formal_params, char init);",
+     "ported": true,
+     "name": "hs_arguments_evaluate"
     },
     {
      "addr": "0xcc560",
@@ -12468,8 +12552,9 @@
     },
     {
      "addr": "0xcd840",
-     "decl": "void FUN_000cd840(int thread_handle@<eax>);",
-     "ported": true
+     "decl": "void hs_thread_main(int thread_handle@<eax>);",
+     "ported": true,
+     "name": "hs_thread_main"
     },
     {
      "addr": "0xcdb30",
@@ -12522,13 +12607,15 @@
     },
     {
      "addr": "0xce1c0",
-     "decl": "void hs_runtime_initialize(void);",
-     "ported": true
+     "decl": "void object_lists_initialize_for_new_map(void);",
+     "ported": true,
+     "name": "object_lists_initialize_for_new_map"
     },
     {
      "addr": "0xce1e0",
-     "decl": "void hs_runtime_dispose(void);",
-     "ported": true
+     "decl": "void object_lists_dispose_from_old_map(void);",
+     "ported": true,
+     "name": "object_lists_dispose_from_old_map"
     },
     {
      "addr": "0xce200",
@@ -13672,7 +13759,7 @@
     {
      "addr": "0xe0110",
      "decl": "void interface_draw_bitmap_modulated_p32(void);",
-     "comment": "[NAME: interface_draw_bitmap_modulated_p32 — CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]"
+     "comment": "[NAME: interface_draw_bitmap_modulated_p32 \u2014 CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]"
     }
    ],
    "name": "interface.obj",
@@ -13780,7 +13867,7 @@
     {
      "addr": "0xf5900",
      "decl": "void virtual_keyboard_tab_left(void);",
-     "comment": "[NAME: virtual_keyboard_tab_left — CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
+     "comment": "[NAME: virtual_keyboard_tab_left \u2014 CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0xf5f10",
@@ -18615,27 +18702,31 @@
     },
     {
      "addr": "0xbdef0",
-     "decl": "void FUN_000bdef0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_not_evaluate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/game/players.c"
+     "source_path": "src/halo/game/players.c",
+     "name": "hs_not_evaluate"
     },
     {
      "addr": "0xbdf40",
-     "decl": "void FUN_000bdf40(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_print_evaluate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_print_evaluate"
     },
     {
      "addr": "0xbdf80",
-     "decl": "void FUN_000bdf80(int16_t function_index, int thread_handle);",
+     "decl": "void hs_players_evaluate(int16_t function_index, int thread_handle);",
      "ported": true,
-     "source_path": "src/halo/game/players.c"
+     "source_path": "src/halo/game/players.c",
+     "name": "hs_players_evaluate"
     },
     {
      "addr": "0xbdfa0",
-     "decl": "void FUN_000bdfa0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_teleport_players_not_in_trigger_volume_evaluate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_teleport_players_not_in_trigger_volume_evaluate"
     },
     {
      "addr": "0xbdfe0",
@@ -18645,72 +18736,85 @@
     },
     {
      "addr": "0xbe030",
-     "decl": "void FUN_000be030(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_trigger_volume_test_objects_any_evaluate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_trigger_volume_test_objects_any_evaluate"
     },
     {
      "addr": "0xbe080",
-     "decl": "void FUN_000be080(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_trigger_volume_test_objects_all_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_trigger_volume_test_objects_all_evaluate"
     },
     {
      "addr": "0xbe0d0",
-     "decl": "void FUN_000be0d0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_object_create_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_object_create_evaluate"
     },
     {
      "addr": "0xbe110",
-     "decl": "void FUN_000be110(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_object_destroy_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_object_destroy_evaluate"
     },
     {
      "addr": "0xbe150",
-     "decl": "void FUN_000be150(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_object_create_anew_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_object_create_anew_evaluate"
     },
     {
      "addr": "0xbe190",
-     "decl": "void FUN_000be190(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_object_create_containing_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_object_create_containing_evaluate"
     },
     {
      "addr": "0xbe1d0",
-     "decl": "void FUN_000be1d0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_object_create_anew_containing_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_object_create_anew_containing_evaluate"
     },
     {
      "addr": "0xbe210",
-     "decl": "void FUN_000be210(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_object_destroy_containing_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_object_destroy_containing_evaluate"
     },
     {
      "addr": "0xbe250",
-     "decl": "void FUN_000be250(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_object_destroy_all_evaluate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/game/players.c"
+     "source_path": "src/halo/game/players.c",
+     "name": "hs_object_destroy_all_evaluate"
     },
     {
      "addr": "0xbe270",
-     "decl": "void FUN_000be270(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_object_teleport_evaluate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/game/players.c"
+     "source_path": "src/halo/game/players.c",
+     "name": "hs_object_teleport_evaluate"
     },
     {
      "addr": "0xbe2b0",
-     "decl": "void FUN_000be2b0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_object_set_facing_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_object_set_facing_evaluate"
     },
     {
      "addr": "0xbe2f0",
-     "decl": "void FUN_000be2f0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_object_set_shield_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_object_set_shield_evaluate"
     },
     {
      "addr": "0xbe330",
-     "decl": "void FUN_000be330(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_object_set_permutation_evaluate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_object_set_permutation_evaluate"
     },
     {
      "addr": "0xbe3b0",
@@ -18725,47 +18829,55 @@
     },
     {
      "addr": "0xbe440",
-     "decl": "void FUN_000be440(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_effect_new_from_object_marker_evaluate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/game/players.c"
+     "source_path": "src/halo/game/players.c",
+     "name": "hs_effect_new_from_object_marker_evaluate"
     },
     {
      "addr": "0xbe480",
-     "decl": "void FUN_000be480(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_damage_new_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_damage_new_evaluate"
     },
     {
      "addr": "0xbe4c0",
-     "decl": "void FUN_000be4c0(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_damage_object_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_damage_object_evaluate"
     },
     {
      "addr": "0xbe500",
-     "decl": "void FUN_000be500(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_objects_can_see_object_evaluate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_objects_can_see_object_evaluate"
     },
     {
      "addr": "0xbe550",
-     "decl": "void FUN_000be550(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_objects_can_see_flag_evaluate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/game/players.c"
+     "source_path": "src/halo/game/players.c",
+     "name": "hs_objects_can_see_flag_evaluate"
     },
     {
      "addr": "0xbe5a0",
-     "decl": "void FUN_000be5a0(int16_t function_index, int thread_datum, char init);",
+     "decl": "void hs_objects_delete_by_definition_evaluate(int16_t function_index, int thread_datum, char init);",
      "ported": true,
-     "source_path": "src/halo/hs/hs.c"
+     "source_path": "src/halo/hs/hs.c",
+     "name": "hs_objects_delete_by_definition_evaluate"
     },
     {
      "addr": "0xbe5e0",
-     "decl": "void FUN_000be5e0(int16_t function_index, int thread_handle, char init);",
-     "ported": true
+     "decl": "void hs_sound_set_gain_evaluate(int16_t function_index, int thread_handle, char init);",
+     "ported": true,
+     "name": "hs_sound_set_gain_evaluate"
     },
     {
      "addr": "0xbe620",
-     "decl": "void FUN_000be620(int16_t function_index, int thread_handle, char init);",
-     "ported": true
+     "decl": "void hs_sound_get_gain_evaluate(int16_t function_index, int thread_handle, char init);",
+     "ported": true,
+     "name": "hs_sound_get_gain_evaluate"
     },
     {
      "addr": "0xbe660",
@@ -18879,8 +18991,8 @@
     },
     {
      "addr": "0xbeb70",
-     "decl": "void FUN_000beb70(int16_t function_index, int thread_datum, char init);",
-     "name": "FUN_000beb70",
+     "decl": "void hs_objects_predict_evaluate(int16_t function_index, int thread_datum, char init);",
+     "name": "hs_objects_predict_evaluate",
      "ported": true,
      "source_path": "src/halo/game/players.c"
     },
@@ -19581,8 +19693,9 @@
     },
     {
      "addr": "0xbe370",
-     "decl": "void FUN_000be370(int16_t function_index, int thread_datum, char init);",
-     "ported": true
+     "decl": "void hs_object_list_get_element_evaluate(int16_t function_index, int thread_datum, char init);",
+     "ported": true,
+     "name": "hs_object_list_get_element_evaluate"
     }
    ],
    "name": "players.obj",
@@ -19719,7 +19832,7 @@
     {
      "addr": "0x154a50",
      "decl": "int point_physics_update(int flags, int physics_tag_data, int *collision_location, int object_handle, float *position, float *velocity, float *force, float *collision_normal_out, int16_t *surface_index_out, float radius, float delta_time);",
-     "comment": "[NAME: point_physics_update — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: point_physics_update \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     }
    ],
    "name": "point_physics.obj",
@@ -23646,7 +23759,7 @@
     {
      "addr": "0x1c4850",
      "decl": "void enumerate_memory_units_test(void);",
-     "comment": "[NAME: enumerate_memory_units_test — CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]"
+     "comment": "[NAME: enumerate_memory_units_test \u2014 CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0x1c4990",
@@ -24120,7 +24233,7 @@
      "addr": "0x18ca40",
      "decl": "void render_sky(void);",
      "ported": true,
-     "comment": "[NAME: render_sky — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: render_sky \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x18cf10",
@@ -24146,7 +24259,7 @@
      "addr": "0x18d2c0",
      "decl": "void build_sprites_begin(uint32_t *param_1, int16_t param_2, uint32_t param_3, int param_4, uint32_t param_5);",
      "ported": true,
-     "comment": "[NAME: build_sprites_begin — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: build_sprites_begin \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x18d360",
@@ -25262,7 +25375,7 @@
      "addr": "0x1bab60",
      "decl": "void get_write_buffer_size(char *self@<eax>);",
      "ported": true,
-     "comment": "[NAME: get_write_buffer_size — CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
+     "comment": "[NAME: get_write_buffer_size \u2014 CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0x1bac00",
@@ -26180,7 +26293,7 @@
      "addr": "0x1963c0",
      "decl": "void structure_decals_update(uint32_t *old_cluster_visibility, uint32_t *new_cluster_visibility, int16_t cluster_count);",
      "ported": true,
-     "comment": "[NAME: structure_decals_update — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: structure_decals_update \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     }
    ],
    "name": "structure_runtime_decals.obj",
@@ -27365,12 +27478,12 @@
     {
      "addr": "0xeb710",
      "decl": "void netgame_join_player(void);",
-     "comment": "[NAME: netgame_join_player — CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
+     "comment": "[NAME: netgame_join_player \u2014 CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0xeba70",
      "decl": "void player_profiles_list_initialize(void);",
-     "comment": "[NAME: player_profiles_list_initialize — CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
+     "comment": "[NAME: player_profiles_list_initialize \u2014 CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0xebff0",
@@ -27379,12 +27492,12 @@
     {
      "addr": "0xec2c0",
      "decl": "void playlist_profile_begin_editing(void);",
-     "comment": "[NAME: playlist_profile_begin_editing — CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
+     "comment": "[NAME: playlist_profile_begin_editing \u2014 CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0xec840",
      "decl": "void playlist_profile_change_name(void);",
-     "comment": "[NAME: playlist_profile_change_name — CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
+     "comment": "[NAME: playlist_profile_change_name \u2014 CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0xecb60",
@@ -27444,12 +27557,12 @@
     {
      "addr": "0xee500",
      "decl": "void playlist_profile_change_item_options(void);",
-     "comment": "[NAME: playlist_profile_change_item_options — CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
+     "comment": "[NAME: playlist_profile_change_item_options \u2014 CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0xee810",
      "decl": "void playlist_profile_change_indicator_options(void);",
-     "comment": "[NAME: playlist_profile_change_indicator_options — CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
+     "comment": "[NAME: playlist_profile_change_indicator_options \u2014 CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0xeea10",
@@ -27649,7 +27762,7 @@
     {
      "addr": "0xf2560",
      "decl": "void player_profile_3wide_list_update(void *widget);",
-     "comment": "[NAME: player_profile_3wide_list_update — CEA PDB line-containment (probable), cea-deferred 2026-09-03]",
+     "comment": "[NAME: player_profile_3wide_list_update \u2014 CEA PDB line-containment (probable), cea-deferred 2026-09-03]",
      "ported": true
     },
     {
@@ -29605,7 +29718,7 @@
     {
      "addr": "0x1b8570",
      "decl": "void vehicle_update(void);",
-     "comment": "[NAME: vehicle_update — CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]"
+     "comment": "[NAME: vehicle_update \u2014 CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0x1b8f10",
@@ -30225,15 +30338,16 @@
     },
     {
      "addr": "0x17ffc0",
-     "decl": "float *FUN_0017ffc0(float *param_1, unsigned int param_2);",
-     "ported": false
+     "decl": "float *uncompress_int32_to_real_vector3d(float *param_1, unsigned int param_2);",
+     "ported": true,
+     "name": "uncompress_int32_to_real_vector3d"
     },
     {
      "addr": "0x180050",
      "decl": "int rasterizer_geometry_get_vertex_size(short param_1);",
      "name": "rasterizer_geometry_get_vertex_size",
      "ported": true,
-     "comment": "[NAME: rasterizer_geometry_get_vertex_size — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: rasterizer_geometry_get_vertex_size \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x1800b0",
@@ -30295,8 +30409,9 @@
     },
     {
      "addr": "0x180b10",
-     "decl": "unsigned int FUN_00180b10(float *param_1);",
-     "ported": false
+     "decl": "unsigned int compress_real_vector3d_to_int32_clamp(float *param_1);",
+     "ported": true,
+     "name": "compress_real_vector3d_to_int32_clamp"
     },
     {
      "addr": "0x180d10",
@@ -30463,7 +30578,7 @@
      "addr": "0x183390",
      "decl": "int rasterizer_xbox_bitmap_rebuild_hardware_format(int bitmap);",
      "ported": false,
-     "comment": "[NAME: rasterizer_xbox_bitmap_rebuild_hardware_format — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: rasterizer_xbox_bitmap_rebuild_hardware_format \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x183650",
@@ -30944,7 +31059,7 @@
      "addr": "0x17d2b0",
      "decl": "void rasterizer_debug_model_vertices(int render_data, int *skinning, unsigned char *part);",
      "ported": true,
-     "comment": "[NAME: rasterizer_debug_model_vertices — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: rasterizer_debug_model_vertices \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x17d8f0",
@@ -31070,7 +31185,7 @@
      "addr": "0x17e800",
      "decl": "void rasterizer_debug_triangle_shaded(float *p0, float *p1, float *p2, float *color0, float *color1, float *color2);",
      "ported": true,
-     "comment": "[NAME: rasterizer_debug_triangle_shaded — CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
+     "comment": "[NAME: rasterizer_debug_triangle_shaded \u2014 CEA PDB line-containment (probable), cea-deferred 2026-09-03]"
     },
     {
      "addr": "0x17eb10",
@@ -33069,7 +33184,7 @@
     {
      "addr": "0x19c5d0",
      "decl": "void draw_string(void *callback, void *screen_pos, const void *color, void *clip_bounds, int flags, char *text);",
-     "comment": "[NAME: draw_string — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: draw_string \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x19c960",
@@ -33475,7 +33590,7 @@
     {
      "addr": "0xfe910",
      "decl": "void weapon_update(void);",
-     "comment": "[NAME: weapon_update — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: weapon_update \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     }
    ],
    "name": "weapons.obj",
@@ -33507,7 +33622,7 @@
     {
      "addr": "0x22dc0",
      "decl": "void actor_combat_update(int actor_handle);",
-     "comment": "[NAME: actor_combat_update — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: actor_combat_update \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x20f80",
@@ -34005,7 +34120,7 @@
      "decl": "void actor_perception_update(int actor_handle);",
      "ported": true,
      "source_path": "src/halo/ai/actor_perception.c",
-     "comment": "[NAME: actor_perception_update — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: actor_perception_update \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     }
    ],
    "name": "actor_perception.obj",
@@ -34257,7 +34372,7 @@
     {
      "addr": "0x46f10",
      "decl": "void ai_communication_event(int type, int unit_handle, int param3, int param4, int param5, int param6, int param7);",
-     "comment": "[NAME: FUN_00046f10 — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03] [NAME: ai_communication_event — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: FUN_00046f10 \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03] [NAME: ai_communication_event \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x48e90",
@@ -35724,7 +35839,7 @@
      "addr": "0x64100",
      "decl": "void props_initialize(void);",
      "ported": true,
-     "comment": "[NAME: props_initialize — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: props_initialize \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x64140",
@@ -36843,7 +36958,7 @@
     {
      "addr": "0x74a30",
      "decl": "void TIFFWriteTile(void);",
-     "comment": "[NAME: TIFFWriteTile — CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]"
+     "comment": "[NAME: TIFFWriteTile \u2014 CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]"
     }
    ],
    "name": "tif_write.obj",
@@ -37410,7 +37525,7 @@
     {
      "addr": "0x123ed0",
      "decl": "void render_model(int model_ref, float distance, void *node_matrices, void *arg4, void *node_transforms, void *node_matrices2, int lighting, void *position, int arg9, void *effect_record, int object_handle, int arg12, int render_flag);",
-     "comment": "[NAME: render_model — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: render_model \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     }
    ],
    "name": "model_animations.obj",
@@ -39009,7 +39124,7 @@
     {
      "addr": "0x149680",
      "decl": "void collision_bsp_test_pill(void);",
-     "comment": "[NAME: collision_bsp_test_pill — name_source=cea-pdb method=line_containment tier=high_confidence (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: collision_bsp_test_pill \u2014 name_source=cea-pdb method=line_containment tier=high_confidence (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x149c60",
@@ -39182,7 +39297,7 @@
     {
      "addr": "0x5f740",
      "decl": "char path_state_traverse(unsigned int *path_buf);",
-     "comment": "[NAME: path_state_traverse — name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
+     "comment": "[NAME: path_state_traverse \u2014 name_source=cea-pdb method=line_containment tier=confirmed (T2), cea-apply-unified 2026-09-03]"
     },
     {
      "addr": "0x5ff70",
@@ -46579,7 +46694,8 @@
     },
     {
      "addr": "0x167ff0",
-     "decl": "void FUN_00167ff0(int a1, const char *call_text);"
+     "decl": "void rasterizer_error(int a1, const char *call_text);",
+     "name": "rasterizer_error"
     }
    ]
   },

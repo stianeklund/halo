@@ -8513,8 +8513,8 @@ void hs_scripts_initialize(void)
  * `CALL 0xca800` followed by `JMP 0xce1e0`.  Both wrappers call 0xca800 and
  * then differ only in the trailing hs_runtime entry point, which makes the
  * current kb names for 0xca800 (hs_runtime_dispose_from_old_map) and 0xce1e0
- * (hs_runtime_dispose) suspect — the coherent reading is that 0xca800 is a
- * shared helper, 0xce1b0 is hs_runtime_dispose, and 0xce1e0 is
+ * (object_lists_dispose_from_old_map) suspect — the coherent reading is that 0xca800 is a
+ * shared helper, 0xce1b0 is object_lists_dispose_from_old_map, and 0xce1e0 is
  * hs_runtime_dispose_from_old_map.  Left unrenamed: nothing in the binary
  * names any of the three, so the call targets below are stated by address. */
 void hs_dispose(void)
@@ -9532,7 +9532,7 @@ void hs_initialize_for_new_map(void)
   if (scenario_tag != 0 && *(int *)(scenario_tag + 0x474) != 0)
     hs_load_scenario_scripts(0);
 
-  hs_runtime_initialize();
+  object_lists_initialize_for_new_map();
   hs_runtime_initialize_for_new_map();
 }
 
@@ -9549,7 +9549,7 @@ void hs_dispose_from_old_map(void)
     *(void **)0x5aa6c8 = 0;
   }
   hs_runtime_dispose_from_old_map();
-  hs_runtime_dispose();
+  object_lists_dispose_from_old_map();
 }
 
 /* 0xc4e20 — Print a built-in function's usage and descriptor field_10 text.
@@ -9662,7 +9662,7 @@ void hs_initialize(void)
   }
 
   FUN_000ce150();
-  FUN_000CA700();
+  hs_runtime_initialize();
   hs_initialize_for_new_map();
 }
 
@@ -9814,7 +9814,7 @@ post_eval:
         *(void **)0x5aa6c8 = 0;
       }
       hs_runtime_dispose_from_old_map();
-      hs_runtime_dispose();
+      object_lists_dispose_from_old_map();
 
       if (*(int *)0x326a08 != -1) {
         scenario_tag = (char *)global_scenario_get();
@@ -9827,7 +9827,7 @@ post_eval:
       if (scenario_tag != 0 && *(int *)(scenario_tag + 0x474) != 0)
         hs_load_scenario_scripts(0);
 
-      hs_runtime_initialize();
+      object_lists_initialize_for_new_map();
       hs_runtime_initialize_for_new_map();
     }
     *(uint8_t *)0x46b6d8 = 0;

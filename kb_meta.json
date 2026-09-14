@@ -7261,38 +7261,126 @@
         "summary": "Post-tick player update: ticks double-speed countdown, handles telefrag effect/kill, scans BSP-switch trigger volumes, advances BSP nibble counter, SP all-dead restart. Re-ported after pre-audit verified all 9 direct-address cast calls (0xa2ed0, 0xa2930, 0x1a7f80, 0xbc4b0 EBX-reg, 0x13d7f0, 0x18ef00, 0x100500, 0xbdb00 EBX-reg, 0x100380). Split-screen telefrag verified in xemu."
       }
     },
+    "0xbdef0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbdf40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbdf80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbdfa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe030": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe080": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe0d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe110": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe150": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe190": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xbe1d0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "uncertain": [
         "FUN_000ca140() is an unknown zero-argument side-effecting step invoked only when hs_macro_function_evaluate returns a non-NULL record; its exact effect is not yet identified."
       ]
     },
+    "0xbe210": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe250": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe270": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe2b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xbe2f0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Second arg to FUN_000c9c10 is a float loaded from result+4 via MSVC push-then-fstp (PUSH ECX; FSTP [ESP]); Ghidra decomp dropped both args as void/void, corrected from disasm.",
         "Fixed sibling callee FUN_000c9c10 kb decl from void(void) to void(int, float); it is the only caller and takes (dword@result+0, float@result+4) cdecl."
       ]
     },
+    "0xbe330": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe370": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xbe400": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe440": {
       "kind": "function",
       "status": "ported"
     },
     "0xbe480": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "FUN_000c9ec0 recovered as 2-arg cdecl from this call site: arg1 = record[0] (dword), arg2 = zero-extended uint16_t at record+0x4 (XOR EDX,EDX; MOV DX,[EAX+4]); Ghidra had modeled it void(void) and dropped both args."
       ]
     },
     "0xbe4c0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "3-arg cdecl signature (int16_t function_index, int thread_datum, char init) recovered from the hs_macro_function_evaluate call site; Ghidra modeled this as void(void) and dropped all three stack args."
       ]
+    },
+    "0xbe500": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe5e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xbe620": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xbe770": {
       "kind": "function",
@@ -7307,6 +7395,10 @@
       "uncertain": [
         "The 2nd param of 0x95660 is declared short to mirror sibling worker 0x95680 and reproduce the caller XOR EDX,EDX zero-extend load; the callee body was not decompiled, so its true param signedness (short vs unsigned short/uint16) is unconfirmed."
       ]
+    },
+    "0xbeb70": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xbee80": {
       "kind": "function",
@@ -7703,6 +7795,46 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc0bf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0c30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0c70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0cd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0d10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0d50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0d90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0dd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0e10": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc0e50": {
       "kind": "function",
       "status": "ported",
@@ -7711,38 +7843,174 @@
         "Both result-block dwords read as full int32 (result[0], result[1]) matching FUN_000581b0(int,int); second load is a 32-bit load like twin 0xc0dd0, not the 16-bit load seen in twin 0xc0d90."
       ]
     },
+    "0xc0e90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0ed0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0f10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0f50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0f90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc0fd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1010": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1050": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1090": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc10d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1110": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1150": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1190": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc11d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1210": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1260": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc12b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1300": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1350": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1390": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc13d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1420": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1470": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc14b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc1500": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "First result field read as zero-extended uint16 (disasm xor edx,edx; mov dx,WORD PTR[eax]), unlike the full-dword twins 0xc1420/0xc1470/0xc14b0.",
         "FUN_000585d0 return-type corrected void->int (it tail-returns FUN_00046b60's int in EAX); this call site consumes the low byte AL via a zero-init dword local (union partial-store/wide-read)."
       ]
     },
+    "0xc1550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc15a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc15f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1640": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1680": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc16c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1700": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1740": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc1780": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "uncertain": [
         "HS script function name is unknown; the handler dispatches result[0] to FUN_00085110, which switches to first-person camera mode 3, so this is likely a camera/cinematic script command."
       ]
     },
+    "0xc17c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc17f0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The function_index (EBP+0x8) and init (EBP+0x10) parameters are never read by the body; they are declared to match the three-argument hs script-function handler signature shared by all 29 siblings in the 0xc1010-0xc17c0 range, which are dispatched through the same hs function table."
       ]
     },
+    "0xc1810": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc1830": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameter names function_index/thread_datum/init and the int16_t/char widths are inferred from the sibling HS script-function handlers (FUN_000c0c30, FUN_000c1810) rather than from local evidence; the prologue loads all three slots as full dwords with no MOVSX/MOVZX, so narrowing is free on the cdecl slots and the widths cannot be arbitrated from this function alone."
       ]
     },
     "0xc1870": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The handler is the HaloScript builtin that selects a multiplayer game variant by name: the first dword of the evaluated macro result block is passed as a const char* to game_set_game_variant_from_name (0xa78e0), and a void (0) result is then committed to the calling thread via hs_return."
       ],
@@ -7752,14 +8020,14 @@
     },
     "0xc18b0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "function_index and init are unused by the body but complete the standard hs-evaluator signature; the only stack read is [EBP+0xC] (thread_datum), so the outer two slots are inferred from the sibling handlers at 0xc0cb0 and 0xc1870 rather than from this body."
       ]
     },
     "0xc18d0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The callee at 0xa7470 returns a 16-bit value in AX; its kb decl was widened from void(void) to int16_t(void) so 0xc18d0 does not silently discard the result (no other src/ caller existed, so the change is contained).",
         "The zero-dword-then-word-store shape (MOV dword [EBP-4],0 then MOV word [EBP-4],AX) is a deliberate ZERO extension of the 16-bit helper result into the 32-bit hs_return slot, reproduced in C as a zeroed int32_t plus a 16-bit store rather than a (short) cast, which would emit MOVSX and change the value for results at or above 0x8000."
@@ -7768,17 +8036,25 @@
         "The signedness of the 0xa7470 return is unproven: the caller pre-zeroes the dword and stores only AX, so signed short and unsigned short compile identically here; int16_t was chosen to match the TU convention without claiming unsignedness."
       ]
     },
+    "0xc1900": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc1930": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The third parameter (char init at [EBP+0x10]) is inferred from the shared hs-evaluator signature used by every neighbouring handler in hs.obj; this body never reads it, and the disassembly only proves that [EBP+0xc] is loaded.",
         "The name players_unzoom_all for callee 0xb69d0 comes from kb.json, so the script-command identity players_unzoom_all is inferred from that callee rather than from a string reference at this address."
       ]
     },
+    "0xc1950": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc1990": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The byte stored by the original's MOV byte ptr [EBP-4],AL is provably *(char *)result: the void-declared callee 0xb6430 (scripted_player_control_set_camera_control) begins with MOV AL,[EBP+8], so it leaves its own argument byte in AL by accident of codegen; the lift re-loads the byte from result instead of reading a return value out of AL.",
         "The ADD ESP,0xc after the hs_return call is a merged MSVC cleanup covering the leftover PUSH EDX from the 0xb6430 call plus hs_return's two arguments; a call-site audit reading it as three stack args for hs_return (0xcbf80) is a false positive."
@@ -7789,28 +8065,76 @@
     },
     "0xc19e0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameters function_index (arg1, [EBP+0x8]) and init (arg3) are never read by the body; they are inferred from the uniform 3-arg hs-evaluator signature shared by the sibling handlers in hs.obj, not from loads in this function."
       ]
     },
+    "0xc1a00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1a30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1a60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1a90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1ac0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1af0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1b20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1b50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1b80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1bb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1be0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc1c10": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameters function_index and init are unused by the body and are inferred from the shared hs-evaluator handler signature used by every sibling in this TU; only [EBP+0xc] (thread_datum) is read by the disassembly."
       ]
     },
+    "0xc1c40": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc1c70": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Argument-record field names (unit_handle @ +0x0, equipment_index @ +0x4 int16, reset_flag @ +0x8 char) are inferred from player_add_equipment's kb.json declaration; the load widths themselves are confirmed from the disassembly (MOV EDX,[EAX] / MOV CX,[EAX+4] / MOV DL,[EAX+8])."
       ]
     },
     "0xc1cb0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameters were recovered from the disassembly frame ([EBP+0x8] int16 function_index, [EBP+0xc] thread_datum, [EBP+0x10] char init); Ghidra's in_stack_00000004/8/c names were an artifact of the stale void(void) kb declaration, not register arguments.",
         "The two debug_player_teleport arguments use deliberately different extension widths: MOVSX from the sign-extended int16 at record+0 for arg1 and XOR/MOV DX from the zero-extended uint16 at record+4 for arg2; typing them identically would be a LOADW-class bug."
@@ -7819,20 +8143,52 @@
         "The single-instruction VC71 residual (25 of 26 instructions) is the MSVC two-instruction XOR EDX,EDX plus MOV DX zero-extension form versus a single MOVZX; this is a codegen idiom difference with no known C-level lever."
       ]
     },
+    "0xc1cf0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc1d10": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The result record returned by hs_macro_function_evaluate has a const char* map-name string pointer as its first dword; inferred from MOV EDX,[EAX]; PUSH EDX feeding main_set_map_name(const char*).",
         "The single ADD ESP,0xc at 0xc1d3c is MSVC merged cleanup for the 1-argument main_set_map_name call plus the 2-argument hs_return call, not evidence of a 3-argument hs_return; the call-site audit ARG_COUNT hazard on hs_return is a false positive here."
       ]
     },
+    "0xc1d50": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc1d90": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The single ADD ESP,0xc at 0xc1dbf is MSVC's coalesced cleanup for main_set_difficulty (1 push) plus hs_return (2 pushes), so the call-site auditor's ARG_COUNT cleanup=3 vs decl=2 warning on hs_return is a false positive."
       ]
+    },
+    "0xc1dd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1e10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1e50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1e80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1ea0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc1ec0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc1ee0": {
       "kind": "function",
@@ -8883,7 +9239,47 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc6130": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc6230": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc62a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc6310": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc6380": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc63f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc6460": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc64d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc6580": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc65f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc6660": {
       "kind": "function",
       "status": "ported"
     },
@@ -8898,6 +9294,10 @@
       ]
     },
     "0xc6810": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc68b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -9032,7 +9432,7 @@
     },
     "0xc8720": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The kb.json placeholder decl void FUN_000c8720(void) was wrong: [EBP+0x8] is read at 0xc8748 and compared as SI (CMP SI,0x7 / CMP SI,0xc), [EBP+0xc] is read at 0xc8724 and 0xc887c and passed to datum_get, and both exits return a byte in AL (MOV AL,BL at 0xc8846, XOR AL,AL at 0xc88a3), giving bool FUN_000c8720(int16_t function_index, int expression_index) as a plain cdecl with no register arguments.",
         "The two arity tests are one if with a || rather than an if/else-if chain: the reference emits the accept tail (POP EDI/POP ESI/MOV AL,BL at 0xc8844) physically between the too-many test at 0xc883d and the qualifier selection at 0xc884d, which only the short-circuit layout reproduces, and rewriting the if/else-if chain into that single || form raised the VC71 match from 82.6 to 85.8 percent with no regression elsewhere in the TU.",
@@ -9042,6 +9442,10 @@
         "The argument counter is lifted as an int with int16_t casts at the two compares because the slot is initialised and incremented 32-bit (MOV dword [EBP-0x4],0x0 at 0xc877d, MOV ECX/INC ECX/MOV at 0xc8812..0xc8821) while every compare against it is 16-bit (CMP word [EBP-0x4],0x2); whether the original declared a short and MSVC widened the arithmetic, or declared a long and narrowed the compares, is not decidable from this function alone.",
         "The residual 14 percent VC71 gap is accounted for entirely by known clang-versus-MSVC ceilings rather than logic differences: clang sinks the accept epilogue to the function end instead of inlining it after the too-many test, rotates the argument walk so it duplicates the CMP EDI,-1 test where the reference duplicates TEST BL,BL, and pays the usual three-instruction thunk cost at the two @<reg> calls to FUN_000c73a0 and FUN_000c74c0; the instruction count is 132 against 129."
       ]
+    },
+    "0xc88b0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0xc89c0": {
       "kind": "function",
@@ -9091,6 +9495,10 @@
         "Script types 3 and 4 are rejected as static scripts by the literal at 0x27d194, but the canonical enumeration of the scenario script-type field at element offset 0x20 remains unproven."
       ]
     },
+    "0xc8f40": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc9050": {
       "kind": "function",
       "status": "ported",
@@ -9113,7 +9521,147 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xc95c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc95d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc95f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9700": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9770": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9840": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9990": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc99e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9a20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9a50": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xc9b10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9b90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9bb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9bd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9c10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9c80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9d40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9d80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9de0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9e50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9ec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9f30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xc9f90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca050": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca0f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca110": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca3f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca430": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca4e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca530": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca580": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca5d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca620": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca670": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xca700": {
       "kind": "function",
       "status": "ported"
     },
@@ -9148,6 +9696,26 @@
       "status": "ported"
     },
     "0xcada0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcae80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcaea0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcaf20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcaf80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xcafc0": {
       "kind": "function",
       "status": "ported"
     },
@@ -15579,11 +16147,19 @@
         "kb.json places 0x17ed70, 0x17edd0 and 0x17ef00 in rasterizer_sprites.obj with source rasterizer/rasterizer_sprites.c, but the single __FILE__ string \"c:\\halo\\SOURCE\\rasterizer\\rasterizer_frame_statistics.c\" at 0x2af728 is xref'd from 0x17eb53, 0x17ee17, 0x17ee40 and 0x17ff6e, bracketing all three; the true translation unit is rasterizer_frame_statistics.c, which may cap a future lift's VC71 score."
       ]
     },
+    "0x17ffc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x180050": {
       "kind": "function",
       "status": "ported"
     },
     "0x180820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x180b10": {
       "kind": "function",
       "status": "ported"
     },
