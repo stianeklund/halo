@@ -355,7 +355,7 @@ void network_connection_notify_traffic_event(int event, int enable,
         break;
       }
     }
-    FUN_0008dc30(name_buf, (const char *)0x294d58);
+    csstrcat(name_buf, (const char *)0x294d58);
     conn->traffic_log_file = crt_fopen(name_buf, (const char *)0x265938);
     if (conn->traffic_log_file != (void *)0) {
       crt_fprintf(conn->traffic_log_file, (const char *)0x294d10);

@@ -3,7 +3,7 @@
  * TU confirmed by the __FILE__ literal at VA 0x29b324, referenced by the
  * assert sites in lights_initialize (lines 0xc2 / 0xc3) and by the already
  * ported object_lights.c functions that currently live in objects.c
- * (FUN_00139930 / FUN_00139990 assert at lines 0x66f / 0x67f).
+ * (light_unmarked / light_mark assert at lines 0x66f / 0x67f).
  *
  * Module globals (offsets/addresses binary-confirmed, names unproven):
  *   0x5a90bc  data_t *   light datum pool ("lights", 0x380 max, 0x7c stride)
@@ -126,7 +126,7 @@ void light_delete(int light_handle)
   datum_delete(*(data_t **)0x5a90bc, light_handle);
 }
 
-/* FUN_00139350 (0x139350) — collect up to max_count cluster indices for the
+/* light_build_cluster_array (0x139350) — collect up to max_count cluster indices for the
  * light's cluster chain into out_buffer, returning how many were written.
  *
  * Register-argument function: EAX = light_handle, EBX = out_buffer,
@@ -147,7 +147,7 @@ void light_delete(int light_handle)
  *            CALL 0x1916d0; ADD ESP,0x8; CMP SI,DI; JL — a do/while whose
  *            -1 test breaks to the shared MOV AX,SI epilogue.
  */
-int16_t FUN_00139350(int light_handle, int16_t *out_buffer, int16_t max_count)
+int16_t light_build_cluster_array(int light_handle, int16_t *out_buffer, int16_t max_count)
 {
   void *light;
   int state;
@@ -237,7 +237,7 @@ float object_get_self_illumination(int object_handle)
   return total;
 }
 
-/* FUN_00139480 (0x139480) — sample the structure lightmap (and the shader's
+/* light_particle (0x139480) — sample the structure lightmap (and the shader's
  * "gel" bitmap) straight down from a world position, producing a tint colour
  * and a secondary colour. Both outputs start out as the global ambient colour
  * at *(0x2ee70c) and are only overwritten when the downward trace hits an
@@ -272,7 +272,7 @@ float object_get_self_illumination(int object_handle)
  * Confirmed: ADD ESP,0x24 after CALL 0x138fd0 = 9 dwords = the 3 uncleaned
  *            tag_block_get_element arguments plus 6 arguments of its own.
  */
-void FUN_00139480(void *position, void *tint_color, void *out_color,
+void light_particle(void *position, void *tint_color, void *out_color,
                   char use_lightmap)
 {
   const int *ambient;

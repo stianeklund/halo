@@ -15,9 +15,9 @@
  * data objects tif_compress.c declares, emitted back to back in declaration
  * order, so the table is this TU's data and the body below is this TU's code.
  *
- * kb.json files FUN_00064fe0 under props.obj (whose source mapping is
+ * kb.json files TIFFNoRowEncode under props.obj (whose source mapping is
  * ai/props.c), which is a stale attribution artifact and not a claim about the
- * original link: the neighbouring FUN_00064ee0 (TIFFClose) landed in
+ * original link: the neighbouring TIFFClose (TIFFClose) landed in
  * ai/props.c for the same reason. The evidence above places this body with the
  * other vendored libtiff TUs, so it lives here. Do not let maintain.py fold it
  * into ai/props.c.
@@ -25,12 +25,12 @@
  * Transcribed from upstream rather than reshaped from the decompiler (the
  * vendored-library rule: for a public library the upstream text is better
  * evidence of the original source form than Ghidra output). Ghidra reports
- * this body as `void FUN_00064fe0(void)` and hides the parameter behind an
+ * this body as `void TIFFNoRowEncode(void)` and hides the parameter behind an
  * `in_stack_00000004` local -- both wrong; see the disassembly below.
  * ======================================================================== */
 
 /* -------------------------------------------------------------------------
- * FUN_00064fe0 -- upstream `_TIFFNoRowEncode`.
+ * TIFFNoRowEncode -- upstream `_TIFFNoRowEncode`.
  *
  * Upstream body:
  *
@@ -150,7 +150,7 @@ typedef struct tiff_s {
    * tif_flush.c's FUN_00068890 make of it. */
   char *tif_name;
   char pad_004[5];
-  /* 0x09 -- written to zero by FUN_000651a0 (`mov byte ptr [eax+9],dl` at
+  /* 0x09 -- written to zero by TIFFSetCompressionScheme (`mov byte ptr [eax+9],dl` at
    * 0x65243) and by nothing else this project has recovered. A byte-wide
    * store, so the field is byte-wide, but its MEANING is unproven: upstream
    * libtiff has no member here that TIFFSetCompressionScheme clears, and the
@@ -158,7 +158,7 @@ typedef struct tiff_s {
    * clear at 0x651dc. Deliberately NOT folded into a `tif_flags` word --
    * see field_0a. */
   char field_09;
-  /* 0x0a -- flags byte. FUN_000651a0 clears bit 5 in place
+  /* 0x0a -- flags byte. TIFFSetCompressionScheme clears bit 5 in place
    * (`and byte ptr [eax+0xa],0xdf` at 0x651dc), tif_close.c's TIFFClose
    * (0x64ee0) tests bit 6, and tif_open.c's TIFFIsTiled (0x6d880) tests
    * bit 7 with a SIGNED byte load -- hence `char` and not `unsigned char`.
@@ -179,7 +179,7 @@ typedef struct tiff_s {
    * load, so the field is `unsigned short` and not upstream's plain int. */
   unsigned short td_compression;
   char pad_03c[0xb4];
-  /* Codec vtable, 0xf0-0x11c. FUN_000651a0 writes all twelve dwords
+  /* Codec vtable, 0xf0-0x11c. TIFFSetCompressionScheme writes all twelve dwords
    * (0x651e3-0x65243), which is what proves the block is exactly twelve
    * slots wide and contiguous; tif_open.c recovers the same block from the
    * LZW/PackBits/NeXT installers, which overwrite subsets of it.
@@ -194,7 +194,7 @@ typedef struct tiff_s {
    * proven, not which of the three is the row variant.
    *
    * 0x114/0x118 are `pad_114[8]` in tif_open.c because nothing there writes
-   * them; FUN_000651a0 does write them, so they cannot stay `pad_`. Upstream
+   * them; TIFFSetCompressionScheme does write them, so they cannot stay `pad_`. Upstream
    * declares tif_close then tif_seek at exactly this point in the same run,
    * so the names are INFERRED from that ordering; both are only ever zeroed
    * here, so neither signature is observed. */
@@ -228,7 +228,7 @@ typedef struct tiff_codec_s {
    * 0x6c5d0 (JPEG).
    *
    * The signature IS observed, by the one call through this slot in the image:
-   * FUN_000651a0 does `push eax` (the TIFF handle) then `call dword ptr
+   * TIFFSetCompressionScheme does `push eax` (the TIFF handle) then `call dword ptr
    * [ecx+8]` then `add esp,4` (0x651e2/0x65246/0x65249), so the method is
    * cdecl and takes exactly ONE argument -- not upstream 3.4's
    * `int (*)(TIFF*, int)`. Its result is the caller's result (nothing writes
@@ -290,7 +290,7 @@ static __inline int _TIFFNoEncode(tiff_t *tif, const char *method) {
 }
 
 /* -------------------------------------------------------------------------
- * FUN_00064fa0 -- upstream `_TIFFNoEncode`, emitted OUT OF LINE.
+ * TIFFNoEncode -- upstream `_TIFFNoEncode`, emitted OUT OF LINE.
  *
  * Upstream body (identical to the `static __inline` copy above; this address
  * is the same function, emitted as a real body rather than inlined):
@@ -390,7 +390,7 @@ static __inline int _TIFFNoEncode(tiff_t *tif, const char *method) {
  *        "tile"). The only stack parameter.
  * @return Always -1 (failure).
  */
-int FUN_00064fa0(void *tif_ /* @<edx> */, const char *method) {
+int TIFFNoEncode(void *tif_ /* @<edx> */, const char *method) {
   tiff_t *tif = (tiff_t *)tif_;
 
   FUN_00068a30(tif->tif_name, "%s %s encoding is not implemented",
@@ -411,7 +411,7 @@ int FUN_00064fa0(void *tif_ /* @<edx> */, const char *method) {
  * @param s Sample number. Unused.
  * @return Always -1 (failure).
  */
-int FUN_00064fe0(void *tif_, char *pp, int cc, int s) {
+int TIFFNoRowEncode(void *tif_, char *pp, int cc, int s) {
   tiff_t *tif = (tiff_t *)tif_;
 
   (void)pp;
@@ -421,7 +421,7 @@ int FUN_00064fe0(void *tif_, char *pp, int cc, int s) {
 }
 
 /* -------------------------------------------------------------------------
- * FUN_00065020 -- upstream `_TIFFNoStripEncode`.
+ * TIFFNoStripEncode -- upstream `_TIFFNoStripEncode`.
  *
  * Upstream body:
  *
@@ -432,7 +432,7 @@ int FUN_00064fe0(void *tif_, char *pp, int cc, int s) {
  *         return (_TIFFNoEncode(tif, "strip"));
  *     }
  *
- * Byte-for-byte the same 0x3e-byte shape as FUN_00064fe0 above -- same frame,
+ * Byte-for-byte the same 0x3e-byte shape as TIFFNoRowEncode above -- same frame,
  * same hoisted `movzx`, same rotated table walk, same unguarded `->name`
  * deref, same `or eax,-1`. The ONLY difference is the fourth argument's
  * literal, and that literal is the whole discriminator between the eight
@@ -450,7 +450,7 @@ int FUN_00064fe0(void *tif_, char *pp, int cc, int s) {
  *   065020  push ebp
  *   065021  mov  ebp, esp                  ; params only, no `sub esp`
  *   065023  mov  edx, [ebp+8]              ; tif -- a stack parameter, so the
- *                                          ; kb `void FUN_00065020(void)`
+ *                                          ; kb `void TIFFNoStripEncode(void)`
  *                                          ; decl was wrong on both counts
  *   065026  movzx ecx, word ptr [edx+0x3a] ; tif->td_compression, u16
  *   06502a  mov  eax, 0x2c9994             ; _TIFFBuiltinCODECS
@@ -495,7 +495,7 @@ int FUN_00064fe0(void *tif_, char *pp, int cc, int s) {
  * @param s Sample number. Unused.
  * @return Always -1 (failure).
  */
-int FUN_00065020(void *tif_, char *pp, int cc, int s) {
+int TIFFNoStripEncode(void *tif_, char *pp, int cc, int s) {
   tiff_t *tif = (tiff_t *)tif_;
 
   (void)pp;
@@ -505,7 +505,7 @@ int FUN_00065020(void *tif_, char *pp, int cc, int s) {
 }
 
 /* -------------------------------------------------------------------------
- * FUN_00065060 -- upstream `_TIFFNoTileEncode`.
+ * TIFFNoTileEncode -- upstream `_TIFFNoTileEncode`.
  *
  * Upstream body:
  *
@@ -517,7 +517,7 @@ int FUN_00065020(void *tif_, char *pp, int cc, int s) {
  *     }
  *
  * Third member of the encode-side triple, and byte-for-byte the same 0x3e-byte
- * shape as FUN_00064fe0 and FUN_00065020 above: same frame, same hoisted
+ * shape as TIFFNoRowEncode and TIFFNoStripEncode above: same frame, same hoisted
  * `movzx`, same rotated table walk, same unguarded `->name` deref, same
  * `or eax,-1`. The ONLY difference is the fourth argument's literal.
  *
@@ -539,7 +539,7 @@ int FUN_00065020(void *tif_, char *pp, int cc, int s) {
  *   065061  mov  ebp, esp                  ; params only, no `sub esp`, so the
  *                                          ; lift must declare no stack locals
  *   065063  mov  edx, [ebp+8]              ; tif -- a stack parameter, so the
- *                                          ; kb `void FUN_00065060(void)` decl
+ *                                          ; kb `void TIFFNoTileEncode(void)` decl
  *                                          ; was wrong on both counts (Ghidra
  *                                          ; hid it as `in_stack_00000004`)
  *   065066  movzx ecx, word ptr [edx+0x3a] ; tif->td_compression, u16, hoisted
@@ -598,7 +598,7 @@ int FUN_00065020(void *tif_, char *pp, int cc, int s) {
  * @param s Sample number. Unused.
  * @return Always -1 (failure).
  */
-int FUN_00065060(void *tif_, char *pp, int cc, int s) {
+int TIFFNoTileEncode(void *tif_, char *pp, int cc, int s) {
   tiff_t *tif = (tiff_t *)tif_;
 
   (void)pp;
@@ -608,7 +608,7 @@ int FUN_00065060(void *tif_, char *pp, int cc, int s) {
 }
 
 /* -------------------------------------------------------------------------
- * FUN_000650a0 -- upstream `_TIFFNoDecode`.
+ * TIFFNoDecode -- upstream `_TIFFNoDecode`.
  *
  * Upstream body:
  *
@@ -633,7 +633,7 @@ int FUN_00065060(void *tif_, char *pp, int cc, int s) {
  * copy of the table scan and the TIFFError call, with TIFFError as its only
  * CALL. Hence the second, inline copy of this body below.
  *
- * Ghidra reports it as `void FUN_000650a0(void)` and hides `tif` behind an
+ * Ghidra reports it as `void TIFFNoDecode(void)` and hides `tif` behind an
  * `in_stack_00000004` local while dropping `method` from the call entirely.
  * All three halves of that are wrong; the disassembly below is the authority.
  *
@@ -702,7 +702,7 @@ int FUN_00065060(void *tif_, char *pp, int cc, int s) {
  *        "tile".
  * @return Always -1 (failure).
  */
-int FUN_000650a0(void *tif_, const char *method) {
+int TIFFNoDecode(void *tif_, const char *method) {
   tiff_t *tif = (tiff_t *)tif_;
 
   FUN_00068a30(tif->tif_name, "%s %s decoding is not implemented",
@@ -713,7 +713,7 @@ int FUN_000650a0(void *tif_, const char *method) {
 /* -------------------------------------------------------------------------
  * `_TIFFNoDecode`, inline copy.
  *
- * The decode side needs the helper BOTH out-of-line (as FUN_000650a0 above,
+ * The decode side needs the helper BOTH out-of-line (as TIFFNoDecode above,
  * which is upstream's `_TIFFNoDecode` emitted as a real function) AND inlined
  * into the row/strip/tile stubs below, which each carry their own copy of the
  * codec-table scan and the TIFFError call rather than a CALL to 0x650a0.
@@ -739,7 +739,7 @@ static __inline int _TIFFNoDecode(tiff_t *tif, const char *method) {
 }
 
 /* -------------------------------------------------------------------------
- * FUN_000650e0 -- upstream `_TIFFNoRowDecode`.
+ * TIFFNoRowDecode -- upstream `_TIFFNoRowDecode`.
  *
  * Upstream body:
  *
@@ -793,7 +793,7 @@ static __inline int _TIFFNoDecode(tiff_t *tif, const char *method) {
  *   06511c  pop   ebp
  *   06511d  ret
  *
- * kb.json declares this `void FUN_000650e0(void)` and Ghidra hides `tif`
+ * kb.json declares this `void TIFFNoRowDecode(void)` and Ghidra hides `tif`
  * behind an `in_stack_00000004` local. Both halves are wrong: `mov edx,[ebp+8]`
  * proves a stack parameter and `or eax,-1` proves an `int` return. Widened to
  * the four-parameter codec-method form the encode siblings at
@@ -817,7 +817,7 @@ static __inline int _TIFFNoDecode(tiff_t *tif, const char *method) {
  * @param s Sample number. Unused.
  * @return Always -1 (failure).
  */
-int FUN_000650e0(void *tif_, char *pp, int cc, int s) {
+int TIFFNoRowDecode(void *tif_, char *pp, int cc, int s) {
   tiff_t *tif = (tiff_t *)tif_;
 
   (void)pp;
@@ -827,7 +827,7 @@ int FUN_000650e0(void *tif_, char *pp, int cc, int s) {
 }
 
 /* -------------------------------------------------------------------------
- * FUN_00065120 -- upstream `_TIFFNoStripDecode`.
+ * TIFFNoStripDecode -- upstream `_TIFFNoStripDecode`.
  *
  * Upstream body:
  *
@@ -839,7 +839,7 @@ int FUN_000650e0(void *tif_, char *pp, int cc, int s) {
  *     }
  *
  * Verbatim, from the pristine image (0x65120..0x6515d, 23 instructions). This
- * body is byte-for-byte identical to FUN_000650e0 above -- same frame, same
+ * body is byte-for-byte identical to TIFFNoRowDecode above -- same frame, same
  * inlined table scan, same single CALL to TIFFError, same unguarded `c->name`
  * deref -- with exactly ONE difference, the method literal pushed as arg4:
  * `push 0x25f560` here versus `push 0x25f554` there. That literal is the whole
@@ -887,7 +887,7 @@ int FUN_000650e0(void *tif_, char *pp, int cc, int s) {
  *   06515c  pop   ebp
  *   06515d  ret
  *
- * kb.json declares this `void FUN_00065120(void)` and Ghidra hides `tif`
+ * kb.json declares this `void TIFFNoStripDecode(void)` and Ghidra hides `tif`
  * behind an `in_stack_00000004` local. Both halves are wrong: `mov edx,[ebp+8]`
  * proves a stack parameter and `or eax,-1` proves an `int` return. Widened to
  * the four-parameter codec-method form the siblings at
@@ -911,7 +911,7 @@ int FUN_000650e0(void *tif_, char *pp, int cc, int s) {
  * @param s Sample number. Unused.
  * @return Always -1 (failure).
  */
-int FUN_00065120(void *tif_, char *pp, int cc, int s) {
+int TIFFNoStripDecode(void *tif_, char *pp, int cc, int s) {
   tiff_t *tif = (tiff_t *)tif_;
 
   (void)pp;
@@ -921,7 +921,7 @@ int FUN_00065120(void *tif_, char *pp, int cc, int s) {
 }
 
 /* -------------------------------------------------------------------------
- * FUN_00065160 -- upstream `_TIFFNoTileDecode`.
+ * TIFFNoTileDecode -- upstream `_TIFFNoTileDecode`.
  *
  * Upstream body:
  *
@@ -983,7 +983,7 @@ int FUN_00065120(void *tif_, char *pp, int cc, int s) {
  *   06519c  pop   ebp
  *   06519d  ret
  *
- * kb.json declares this `void FUN_00065160(void)` and Ghidra hides `tif`
+ * kb.json declares this `void TIFFNoTileDecode(void)` and Ghidra hides `tif`
  * behind an `in_stack_00000004` local. Both halves are wrong: `mov edx,[ebp+8]`
  * proves a stack parameter and `or eax,-1` proves an `int` return. Widened to
  * the four-parameter codec-method form the siblings at
@@ -1007,7 +1007,7 @@ int FUN_00065120(void *tif_, char *pp, int cc, int s) {
  * @param s Sample number. Unused.
  * @return Always -1 (failure).
  */
-int FUN_00065160(void *tif_, char *pp, int cc, int s) {
+int TIFFNoTileDecode(void *tif_, char *pp, int cc, int s) {
   tiff_t *tif = (tiff_t *)tif_;
 
   (void)pp;
@@ -1017,7 +1017,7 @@ int FUN_00065160(void *tif_, char *pp, int cc, int s) {
 }
 
 /* -------------------------------------------------------------------------
- * FUN_000651a0 -- upstream `TIFFSetCompressionScheme`.
+ * TIFFSetCompressionScheme -- upstream `TIFFSetCompressionScheme`.
  *
  * Upstream libtiff v3.2 body (this build predates the 3.4 split of the
  * defaults into a separate `_TIFFSetDefaultCompressionState`, and predates the
@@ -1118,7 +1118,7 @@ int FUN_00065160(void *tif_, char *pp, int cc, int s) {
  * They are written below in ascending-offset order, which is also upstream's
  * declaration order; instruction order is not source order.
  *
- * Ghidra reports this body as `void FUN_000651a0(void)` and hides both
+ * Ghidra reports this body as `void TIFFSetCompressionScheme(void)` and hides both
  * parameters behind `in_stack_00000004`/`in_stack_00000008`. Both halves of
  * that signature are wrong: the two `mov` from [ebp+8]/[ebp+0xc] prove two
  * cdecl stack parameters, and the `xor eax,eax` on the miss path proves an
@@ -1140,7 +1140,7 @@ int FUN_00065160(void *tif_, char *pp, int cc, int s) {
  * @return The codec setup routine's result on success, 0 if `scheme` names no
  *     built-in codec.
  */
-int FUN_000651a0(void *tif_, int scheme) {
+int TIFFSetCompressionScheme(void *tif_, int scheme) {
   tiff_t *tif = (tiff_t *)tif_;
   const tiff_codec_t *c = TIFFFindCODEC(scheme);
 
@@ -1156,12 +1156,12 @@ int FUN_000651a0(void *tif_, int scheme) {
   tif->tif_setupdecode = 0;
   tif->tif_setupencode = 0;
   tif->tif_postencode = 0;
-  tif->tif_decoderow = FUN_000650e0;
-  tif->tif_encoderow = FUN_00064fe0;
-  tif->tif_decodestrip = FUN_00065120;
-  tif->tif_encodestrip = FUN_00065020;
-  tif->tif_decodetile = FUN_00065160;
-  tif->tif_encodetile = FUN_00065060;
+  tif->tif_decoderow = TIFFNoRowDecode;
+  tif->tif_encoderow = TIFFNoRowEncode;
+  tif->tif_decodestrip = TIFFNoStripDecode;
+  tif->tif_encodestrip = TIFFNoStripEncode;
+  tif->tif_decodetile = TIFFNoTileDecode;
+  tif->tif_encodetile = TIFFNoTileEncode;
   tif->tif_close = 0;
   tif->tif_seek = 0;
   tif->tif_cleanup = 0;

@@ -1,7 +1,7 @@
 #include "x87_math.h"
 #ifdef HALO_RNG_TRACE
 #include "halo/math/rng_trace.h"
-/* Mirrors the host LOS-exit detour for calls returning into FUN_000f8720:
+/* Mirrors the host LOS-exit detour for calls returning into projectile_collision_test_line:
  * kind 33 with value bit 31 set (host sets it when the return address is
  * below 0x138900). */
 static bool sweep_los_trace(bool result, int16_t *collision_result)
@@ -109,9 +109,9 @@ void projectile_handle_deleted_object(int projectile_handle, int target)
 /* Escalate the projectile's detonation state (offset 0x1e0) to at least
  * the given state value.  Only updates the field if state is strictly
  * greater than the current value, so the state can only increase
- * (0=none, 1=pending, 2=immediate). Called by FUN_000f9c40 with state=2
+ * (0=none, 1=pending, 2=immediate). Called by projectile_update with state=2
  * to force an immediate detonation. */
-void FUN_000f7e40(int projectile_handle, int16_t state)
+void projectile_set_action(int projectile_handle, int16_t state)
 {
   char *proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
   if (state > *(int16_t *)(proj + 0x1e0))
@@ -129,7 +129,7 @@ void FUN_000f7e40(int projectile_handle, int16_t state)
  * arrays and scale_a/scale_b values; unknown tail floats are 0.0/0.0.
  * Receive register args: esi=effect_tag_index, edi=object_index, eax=tag_def,
  * edx=marker_points, ecx=marker_forwards. */
-void FUN_000f7e60(int effect_tag_index, int object_index, void *tag_def,
+void projectile_effect_new(int effect_tag_index, int object_index, void *tag_def,
                   float *marker_points, float *marker_forwards, float scale_a,
                   float scale_b)
 {
@@ -217,7 +217,7 @@ void projectile_export_function_values(int projectile_handle)
  * Returns 0.0 if the two radii are equal or if the range width is zero.
  * Used by the projectile trajectory system to locate the apex of a parabolic
  * detonation-effect distribution along the projectile's travel path. */
-float FUN_000f7fa0(void *tag, float range_begin, float range_end)
+float projectile_calculate_deceleration_from_distances(void *tag, float range_begin, float range_end)
 {
   range_end -= range_begin;
   /* 0xf7fa9: FSTP dword [ebp+0xc] -- the width is narrowed to float32
@@ -706,7 +706,7 @@ char projectile_aim(int projectile_tag, int param_2, int param_3, void *param_4,
  * direction into obj+0x214..0x21c, and stores sin(speed)/cos(speed) at
  * obj+0x220/0x224. If speed is zero, clears the flag and stores sin=0,
  * cos=1. Takes projectile_handle in EAX (register arg). */
-void FUN_000f8590(int projectile_handle)
+void projectile_adjust_for_angular_velocity_change(int projectile_handle)
 {
   char *obj;
   float speed;
@@ -747,7 +747,7 @@ void FUN_000f8590(int projectile_handle)
  *     compare field for threshold: tag+0x1d0
  *
  * For both branches:
- *   proj+0x20c = FUN_000f7fa0(tag, range_begin, range_end)  [parabolic apex]
+ *   proj+0x20c = projectile_calculate_deceleration_from_distances(tag, range_begin, range_end)  [parabolic apex]
  *   proj+0x210 = tag+0x1e0  [raw end-range copy]
  *   If range_begin > 0.0:
  *     proj+0x208 = range_begin / tag+0x1e4
@@ -756,7 +756,7 @@ void FUN_000f8590(int projectile_handle)
  *     proj+0x208 = 0.0f
  *
  * Called with projectile_handle in EAX (register arg). */
-void FUN_000f8640(int projectile_handle)
+void projectile_calculate_deceleration(int projectile_handle)
 {
   char *proj;
   char *tag_def;
@@ -766,7 +766,7 @@ void FUN_000f8640(int projectile_handle)
 
   if (*(uint8_t *)(proj + 0x4) & 0x10) {
     /* detonating branch: use tag offsets 0x1dc/0x1e0 */
-    *(float *)(proj + 0x20c) = FUN_000f7fa0(
+    *(float *)(proj + 0x20c) = projectile_calculate_deceleration_from_distances(
       tag_def, *(float *)(tag_def + 0x1dc), *(float *)(tag_def + 0x1e0));
     *(int *)(proj + 0x210) = *(int *)(tag_def + 0x1e0);
 
@@ -776,7 +776,7 @@ void FUN_000f8640(int projectile_handle)
     }
   } else {
     /* non-detonating branch: use tag offsets 0x1d0/0x1d4 */
-    *(float *)(proj + 0x20c) = FUN_000f7fa0(
+    *(float *)(proj + 0x20c) = projectile_calculate_deceleration_from_distances(
       tag_def, *(float *)(tag_def + 0x1d0), *(float *)(tag_def + 0x1d4));
     *(int *)(proj + 0x210) = *(int *)(tag_def + 0x1e0);
 
@@ -828,7 +828,7 @@ void FUN_000f8640(int projectile_handle)
  * Confirmed: FSTP ST0 at 0xf8898 discards -radius; ST2 (new_pos.z+r*cz) used
  *            directly in FSUB [EBP-0x14] at 0xf88d3 to compute dir.z.
  */
-bool FUN_000f8720(int projectile_handle, float *new_pos,
+bool projectile_collision_test_line(int projectile_handle, float *new_pos,
                   int16_t *collision_result)
 {
   char *proj;
@@ -968,10 +968,10 @@ bool FUN_000f8720(int projectile_handle, float *new_pos,
  *   6. Notify the AI subsystem of the detonation position.
  *
  * Binary: 0x000f8920 in projectiles.obj.
- * Confirmed: prototype from caller FUN_000f9c40 @ 0xfab65
+ * Confirmed: prototype from caller projectile_update @ 0xfab65
  *   (SETZ AL for param_2, EDX=[EBP-0x18] for param_3, ECX=[EBP+8] for param_1).
  */
-void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
+void projectile_detonate(int projectile_handle, char has_hit_count, float current_time)
 {
   char *proj; /* projectile object data pointer (type 0x20) */
   char *proj_tag; /* projectile tag data pointer (group 'proj') */
@@ -1098,12 +1098,12 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
       (*(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4) != -1)) {
     object_compute_node_matrices(projectile_handle);
 
-    /* contrail_set_state_for_object(contrail_handle, reset_points, dt):
+    /* contrail_owner_collision(contrail_handle, reset_points, dt):
      * dt = (DAT_0028ab38) * (*(float*)0x2533c8 - current_time).
      * Binary: FLD 0x2533c8; FSUB [EBP+0x10]; FMUL 0x28ab38;
      *         FSTP [ESP]; PUSH 0; PUSH ECX; CALL 0x986d0.
      * This is the push-then-fstp float argument pattern. */
-    contrail_set_state_for_object(
+    contrail_owner_collision(
       *(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4), 0,
       (*(float *)0x2533c8u - current_time) * *(float *)0x28ab38u);
   }
@@ -1209,7 +1209,7 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
  *   - Tests whether the new position is inside a valid world region via
  *     FUN_0018f3e0(&proj[0x48], &proj[0x50], NULL).  Sets or clears bit 4
  *     of the object flags word (proj+0x4) accordingly.
- *   - Calls FUN_000f8590 (velocity direction cache) and FUN_000f8640
+ *   - Calls projectile_adjust_for_angular_velocity_change (velocity direction cache) and projectile_calculate_deceleration
  *     (detonation radius cache) with the projectile handle in EAX.
  *   - Sets flags bits 0xc0000 (active + detonating-armed) in proj+0x4.
  *   - Returns 1 (success).
@@ -1229,8 +1229,8 @@ void FUN_000f8920(int projectile_handle, char has_hit_count, float current_time)
  *   proj+0x1f4 speed decay factor (float)
  *   proj+0x1fc range decay factor (float)
  *
- * Disasm-verified: call at 0x000f8eaf passes handle in EAX (FUN_000f8590);
- * call at 0x000f8ebf passes handle in EAX (FUN_000f8640).
+ * Disasm-verified: call at 0x000f8eaf passes handle in EAX (projectile_adjust_for_angular_velocity_change);
+ * call at 0x000f8ebf passes handle in EAX (projectile_calculate_deceleration).
  * All cdecl stack args confirmed from PUSH/ADD-ESP pairs. */
 bool projectile_new(int projectile_handle)
 {
@@ -1321,9 +1321,9 @@ bool projectile_new(int projectile_handle)
 
   /* Update velocity direction cache and detonation radius cache.
    * Both functions take the handle in EAX (register-arg convention). */
-  FUN_000f8590(projectile_handle);
+  projectile_adjust_for_angular_velocity_change(projectile_handle);
   projectile_export_function_values(projectile_handle);
-  FUN_000f8640(projectile_handle);
+  projectile_calculate_deceleration(projectile_handle);
 
   /* Set active + detonating-armed flag bits. */
   *(uint32_t *)(proj + 0x4) |= 0xc0000u;
@@ -1348,10 +1348,10 @@ bool projectile_new(int projectile_handle)
  *      scales it by magnitude(acceleration) * random_real * (PI/2).
  *   4. Adds the scaled random vector to the projectile impulse velocity at
  *      proj+0x3c..0x44.
- *   5. Rebuilds the velocity direction cache (FUN_000f8590).
+ *   5. Rebuilds the velocity direction cache (projectile_adjust_for_angular_velocity_change).
  *   6. Clears bit 5 of the object flags word at proj+0x4.
  *
- * Disasm-verified: FUN_000f8590 called with projectile_handle in EAX.
+ * Disasm-verified: projectile_adjust_for_angular_velocity_change called with projectile_handle in EAX.
  * Deferred stack cleanup: ADD ESP,0x10 at 0xf906b cleans 4 accumulated pushes
  * (random_seed_get_direction3d args + random_math_real arg +
  * real_vector3d_valid arg). The float constant at 0x2568bc = PI/2 (0x3FC90FDB).
@@ -1425,7 +1425,7 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
     *(float *)(proj + 0x44) += dir[2];
 
     /* Rebuild velocity direction cache. */
-    FUN_000f8590(projectile_handle);
+    projectile_adjust_for_angular_velocity_change(projectile_handle);
 
     /* Clear object flag bit 5 ("motion-pending" or similar). */
     *(uint32_t *)(proj + 0x4) &= ~0x20u;
@@ -1442,10 +1442,10 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
 }
 
 /*
- * FUN_000f90d0 - Projectile collision response handler.
+ * projectile_collision - Projectile collision response handler.
  *
- * Called when a projectile has collided (FUN_000f9c40 calls this after
- * FUN_000f8720 reports a hit).  The function:
+ * Called when a projectile has collided (projectile_update calls this after
+ * projectile_collision_test_line reports a hit).  The function:
  *   1. Resolves the projectile object and its tag record.
  *   2. Copies the incoming velocity vector (in_velocity) to a local,
  *      normalises it, and replaces it with the zero vector if it is already
@@ -1475,7 +1475,7 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
  *      a spin-rate scale and stores it at proj+0x1f4.
  *
  * ABI:
- *   Prototype : void FUN_000f90d0(int projectile_handle, float *hit_pos,
+ *   Prototype : void projectile_collision(int projectile_handle, float *hit_pos,
  *                                 float param_3,
  *                                 float *velocity@<eax>,
  *                                 int16_t *col_result@<esi>)
@@ -1484,13 +1484,13 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
  *   param_1   : projectile object handle.
  *   param_2   : hit world-position (float *); output written back.
  *   param_3   : time/distance scale passed from caller (float, EBP-0x18 in
- *               FUN_000f9c40); used as the collision normal speed component.
+ *               projectile_update); used as the collision normal speed component.
  *
  * Source line refs from assert strings:
  *   0x47c (line 1148) collision->object_index!=NONE
  *   0x5cf (line 1487) default detonation result
  */
-void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
+void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
                   float *in_velocity /* @<eax> */,
                   int16_t *col_result /* @<esi> */)
 {
@@ -1852,7 +1852,7 @@ void FUN_000f90d0(int projectile_handle, float *hit_pos, float param_3,
         uTemp |= 0x10u;
       }
       proj[1] = (int)uTemp;
-      FUN_000f8640(projectile_handle);
+      projectile_calculate_deceleration(projectile_handle);
       /* Subtract normal-component contribution from hit_pos. */
       hit_pos[0] -= *(float *)((char *)col_result + 0x24) * /* buf-alias-ok */
                     *(float *)0x255ef8;
@@ -2164,7 +2164,7 @@ clamp_scale_b:
 }
 
 /*
- * Main projectile physics update tick (FUN_000f9c40).
+ * Main projectile physics update tick (projectile_update).
  *
  * Processes one game-tick worth of physics for a single projectile:
  *   1. Contrail cleanup: if the projectile is not already detonating and has
@@ -2182,9 +2182,9 @@ clamp_scale_b:
  *      e. Range limit (local_64 fraction) that proportionally clamps
  *         displacement and flags detonation.
  *      f. Computes new_pos; validates it.
- *      g. Collision depth push/pop around FUN_000f8720.
+ *      g. Collision depth push/pop around projectile_collision_test_line.
  *      h. Bounce limit (max 10) or detonation-state check -> time=0.
- *      i. On collision hit: adjusts velocity for bounce, calls FUN_000f90d0
+ *      i. On collision hit: adjusts velocity for bounce, calls projectile_collision
  *         for detonation effects and ai_handle_spatial_effect for sound, increments
  *         bounce counter.
  *      j. Accumulates total distance; proximity-checks up to 4 local players
@@ -2192,11 +2192,11 @@ clamp_scale_b:
  *      k. Updates orientation (forward/up) from velocity direction.
  *      l. Translates object to new_pos; writes back velocity.
  *      m. If bounced: updates contrail node-matrices and contrail state.
- *   5. Post-loop detonation handling: FUN_000f8920 (velocity/impact) or
+ *   5. Post-loop detonation handling: projectile_detonate (velocity/impact) or
  *      object_delete.
  *   6. Validates axes; exits profiling section.
  */
-bool FUN_000f9c40(int projectile_handle)
+bool projectile_update(int projectile_handle)
 {
   register char *proj; /* object data for the projectile                     */
   register char *proj_tag; /* tag data ('proj') for the projectile               */
@@ -2211,7 +2211,7 @@ bool FUN_000f9c40(int projectile_handle)
   float sound_range; /* sound trigger range from tag                       */
   /* Velocity components (float[3] at proj+0x18).
    * Must be an array: separate floats let clang place vel[1]=EBP-0xC (saved
-   * ESI) and vel[2]=EBP-0x8 (saved EDI). FUN_000f90d0 writes through the
+   * ESI) and vel[2]=EBP-0x8 (saved EDI). projectile_collision writes through the
    * velocity pointer and would corrupt the saved register slots. */
   float vel[3];
 
@@ -2263,7 +2263,7 @@ bool FUN_000f9c40(int projectile_handle)
   int bounce_count; /* local_38: number of bounces so far in this tick   */
   float time_remaining; /* local_1c: fraction of tick remaining (starts 1.0) */
   char found_sound; /* local_21: set once a proximity sound is triggered  */
-  char hit_flag; /* local_15: set when FUN_000f8720 reports a hit      */
+  char hit_flag; /* local_15: set when projectile_collision_test_line reports a hit      */
   char col_hit; /* local_15 updated after detonation check            */
 
   /* Saved object target index (proj+0x1e4). */
@@ -2272,7 +2272,7 @@ bool FUN_000f9c40(int projectile_handle)
   /* Steering turn rate. */
   float steer_turn_rate; /* local_34: steering turn rate (radians/tick)     */
 
-  /* collision_bsp_test_vector result; FUN_000f90d0 reads up to offset 0x4e. */
+  /* collision_bsp_test_vector result; projectile_collision reads up to offset 0x4e. */
   char collision_result[0x50]; /* 80 bytes required                          */
 
   /* Collision normal z component for bounce-angle check. */
@@ -2459,7 +2459,7 @@ bool FUN_000f9c40(int projectile_handle)
       } else {
         steer_frac = 1.0f;
       }
-      FUN_001a9520(*(int *)(proj + 0x1e8), &target_pos_x);
+      unit_get_center_of_mass(*(int *)(proj + 0x1e8), &target_pos_x);
       time_tick = game_time_get();
       tmp_int = (time_tick + (projectile_handle >> 16) * 7) & 0xffff;
       {
@@ -2540,7 +2540,7 @@ bool FUN_000f9c40(int projectile_handle)
             vel[2] *= decel_frac;
           }
         } else {
-          FUN_000f7e40(projectile_handle, 2);
+          projectile_set_action(projectile_handle, 2);
         }
       } else {
         decel_frac = time_remaining * *(float *)(proj + 0x20c);
@@ -2694,7 +2694,7 @@ bool FUN_000f9c40(int projectile_handle)
       time_remaining = 0.0f;
     } else {
       hit_flag = '\x01';
-      col_hit = (char)FUN_000f8720(projectile_handle, new_pos,
+      col_hit = (char)projectile_collision_test_line(projectile_handle, new_pos,
                                    (int16_t *)collision_result);
       if (col_hit == '\0') {
         time_remaining = 0.0f;
@@ -2725,7 +2725,7 @@ bool FUN_000f9c40(int projectile_handle)
           *(uint32_t *)(proj + 0x1dc) |= 4;
         }
         *(int *)(proj + 0x1e4) = -1;
-        FUN_000f90d0(projectile_handle, new_pos, time_remaining, vel,
+        projectile_collision(projectile_handle, new_pos, time_remaining, vel,
                      (int16_t *)collision_result);
         bounce_count++;
         ai_handle_spatial_effect(projectile_handle,
@@ -2885,7 +2885,7 @@ bool FUN_000f9c40(int projectile_handle)
             ((short)bounce_count != 0) && (*(int *)(proj + 0x1ec) != -1) &&
             (*(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4) != -1)) {
           object_compute_node_matrices(projectile_handle);
-          contrail_set_state_for_object(
+          contrail_owner_collision(
             *(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4), 0,
             (1.0f - time_remaining) * *(float *)0x28ab38);
         }
@@ -2912,7 +2912,7 @@ bool FUN_000f9c40(int projectile_handle)
       float fval = *(float *)(proj + 0x1fc);
       if (fval == 0.0f ||
           *(float *)(proj + 0x1f8) >= 1.0f) {
-        FUN_000f8920(projectile_handle, (char)(bounce_count == 0),
+        projectile_detonate(projectile_handle, (char)(bounce_count == 0),
                      time_remaining);
         object_delete(projectile_handle);
       }
@@ -2960,7 +2960,7 @@ bool FUN_000f9c40(int projectile_handle)
  * second damage-effect reference exists at proj+0x220, its midpoint is added
  * as well.  Returns the total accumulated average damage as a float.
  */
-float FUN_000fac20(int weapon_tag_index, float *out_field8)
+float weapon_definition_get_damage_potential(int weapon_tag_index, float *out_field8)
 {
   char *weap_tag;
   char *trigger_elem;
@@ -3005,7 +3005,7 @@ float FUN_000fac20(int weapon_tag_index, float *out_field8)
  * No known direct call-graph callers (likely dispatched via function pointer
  * or animation callback table).
  */
-void FUN_000face0(int animation_graph_tag_index, short *state, int *out_sound)
+void animation_update(int animation_graph_tag_index, short *state, int *out_sound)
 {
   animation_update_internal(1, animation_graph_tag_index, state, out_sound);
 }
@@ -3017,7 +3017,7 @@ void FUN_000face0(int animation_graph_tag_index, short *state, int *out_sound)
  * animation_index). Called by unit_try_and_exit_seat when transitioning a unit
  * to a new animation state after a melee/scripted override.
  */
-int16_t FUN_000fad00(int animation_graph_tag_index, int16_t animation_index)
+int16_t animation_choose_random_permutation(int animation_graph_tag_index, int16_t animation_index)
 {
   return model_animation_choose_random(1, animation_graph_tag_index,
                                        animation_index);

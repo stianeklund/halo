@@ -541,7 +541,7 @@ bool player_ui_edit_profile_name_is_dirty(void)
  * SUB EAX,0 / JZ / DEC EAX / JZ switch lowering with both cases sharing one
  * target. The XOR BL,BL feeding both MOV AL,BL exits is the shared `false`
  * return; the accepted path instead falls through with the callee's AL, so it
- * returns virtual_keyboard_set_validation's result directly.
+ * returns virtual_keyboard_launch's result directly.
  *
  * The edited name buffer is player_ui_globals + 0x15c (0x46c03c), 0x18 bytes
  * = 0xc unicode characters, matching the ustrncmp length in the sibling.
@@ -566,7 +566,7 @@ bool player_ui_prompt_user_to_rename_edit_profile(void)
       return started;
     }
 
-    return virtual_keyboard_set_validation((wchar_t *)0x46c03c, 0x18, 0xa);
+    return virtual_keyboard_launch((wchar_t *)0x46c03c, 0x18, 0xa);
   } else {
     error(2, "not currently editing a saved game file");
   }

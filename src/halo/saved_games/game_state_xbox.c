@@ -543,5 +543,5 @@ void *FUN_001c1950(void *param_1, int param_2)
  */
 int FUN_001c19c0(void)
 {
-  return (int)random_range(random_math_get_local_seed_address(), 0, 0x11);
+  return (int)seed_random_range(random_math_get_local_seed_address(), 0, 0x11);
 }

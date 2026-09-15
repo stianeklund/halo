@@ -825,7 +825,7 @@ short sound_select_permutation(void *sound_tag, short pitch_range_index,
   {
     short count = *(short *)(pitch_range + 0x2c);
     unsigned int *seed = random_math_get_local_seed_address();
-    short selected = random_range(seed, 0, count);
+    short selected = seed_random_range(seed, 0, count);
 
     for (;;) {
       uint32_t all_bits = (1u << ((uint8_t)count & 0x1f)) - 1;

@@ -6,7 +6,7 @@
 
 #include "../../common.h"
 
-/* FUN_0002f1a0: set actor movement destination or refresh path.
+/* actor_move_halt: set actor movement destination or refresh path.
  *
  * If the actor is moving-to-point (field_15e == 4) and has a pending
  * destination (field_504 != 0), delegates to actor_move_to_point with
@@ -17,7 +17,7 @@
  * actor_path_refresh(actor_handle, 1, NULL).
  *
  * No __FILE__ string. */
-void FUN_0002f1a0(int actor_handle)
+void actor_move_halt(int actor_handle)
 {
   char *actor;
   int i;
@@ -43,7 +43,7 @@ void FUN_0002f1a0(int actor_handle)
   actor_path_refresh(actor_handle, 1, NULL);
 }
 
-/* FUN_0002f230 (0x2f230): refresh actor path or dispatch to move/firing
+/* actor_move_halt_at_firing_position (0x2f230): refresh actor path or dispatch to move/firing
  * position.
  *
  * If actor is NOT in move-to-point mode (field_15e != 4):
@@ -51,8 +51,8 @@ void FUN_0002f1a0(int actor_handle)
  *   then calls actor_path_refresh(actor_handle, 1, NULL).
  * If in move-to-point mode and field_3b8 != -1:
  *   calls actor_move_to_firing_position.
- * Otherwise falls through to FUN_0002f1a0. */
-void FUN_0002f230(int actor_handle)
+ * Otherwise falls through to actor_move_halt. */
+void actor_move_halt_at_firing_position(int actor_handle)
 {
   char *actor;
 
@@ -60,7 +60,7 @@ void FUN_0002f230(int actor_handle)
 
   if (((actor_t *)actor)->field_15e == 4) {
     if (((actor_t *)actor)->firing_positions_current_position_index == -1) {
-      FUN_0002f1a0(actor_handle);
+      actor_move_halt(actor_handle);
       return;
     }
     actor_move_to_firing_position(
@@ -114,15 +114,15 @@ void actor_perception_acknowledge(int actor_handle, int prop_handle,
   *(char *)(prop + 0xbb) = 0;
   *(char *)(prop + 0x64) = 1;
 
-  FUN_00036f20(actor_handle, prop_handle, param_3, param_4);
+  actor_stimulus_prop_acknowledged(actor_handle, prop_handle, param_3, param_4);
 }
 
-/* FUN_0002f380 (0x2f380)
+/* actor_get_perception_knowledge (0x2f380)
  * Returns the engagement level (0-3) for a prop relative to actor.
  * 3 = actively targeting/seen; 2/3 = based on orphan state; 0/1/2 = based
  * on actor awareness level when no prop or no orphan.
  */
-uint16_t FUN_0002f380(int actor_handle, int prop_handle)
+uint16_t actor_get_perception_knowledge(int actor_handle, int prop_handle)
 {
   char *actor;
   char *prop;
@@ -156,11 +156,11 @@ uint16_t FUN_0002f380(int actor_handle, int prop_handle)
   return (uint16_t)(((actor_t *)actor)->field_06a >= 3);
 }
 
-/* FUN_0002f5b0 (0x2f5b0)
+/* actor_perception_qsort_compare_optional_props (0x2f5b0)
  * Compare two prop-like structs by their float[2] field (offset +8).
  * Returns -1, 0, or 1 (strcmp-style).
  */
-int FUN_0002f5b0(int param_1, int param_2)
+int actor_perception_qsort_compare_optional_props(int param_1, int param_2)
 {
   float f1;
   float f2;
@@ -174,7 +174,7 @@ int FUN_0002f5b0(int param_1, int param_2)
   return 0;
 }
 
-/* FUN_0002f5f0 (0x2f5f0)
+/* actor_perception_assess_suicide_danger (0x2f5f0)
  * Register args: actor datum handle in EAX, object handle in EDI.
  *
  * Records a new perception entry in the actor's 0x6c-byte block at +0x280
@@ -192,7 +192,7 @@ int FUN_0002f5b0(int param_1, int param_2)
  * (lines using actor + 0x282 etc.); +0x282 is proven written here.
  *
  * No __FILE__ string. */
-bool FUN_0002f5f0(int actor_handle /* @<eax> */, int object_handle /* @<edi> */,
+bool actor_perception_assess_suicide_danger(int actor_handle /* @<eax> */, int object_handle /* @<edi> */,
                   float param_3, float param_4, char param_5, char param_6)
 {
   char *actor;
@@ -262,7 +262,7 @@ void actor_perception_find_prop_pathfinding_location(int actor_handle,
 
 /* actor_perception_find_killer_prop_index (0x2f9b0)
  * Find the highest-scoring active damaging prop visible to the unit that owns
- * the given prop. Similar to actor_get_best_damaging_prop but uses the prop's
+ * the given prop. Similar to actor_perception_find_recent_damaging_prop_index but uses the prop's
  * owning unit as the source of weapon slots.
  * flag: when non-zero, require prop visibility; when 0, accept any.
  */
@@ -311,7 +311,7 @@ int actor_perception_find_killer_prop_index(int actor_handle, int prop_handle,
   return best_handle;
 }
 
-/* actor_get_best_damaging_prop (0x2fa70)
+/* actor_perception_find_recent_damaging_prop_index (0x2fa70)
  * Find the highest-scoring active damaging prop visible to the actor's unit.
  *
  * Iterates up to 4 weapon slots on the actor's unit object (+0x3e0),
@@ -324,7 +324,7 @@ int actor_perception_find_killer_prop_index(int actor_handle, int prop_handle,
  *
  * Returns the best damaging prop handle, or -1 if none found.
  * Asserts damaging_prop_index != 0 (handle 0 is reserved/invalid). */
-int actor_get_best_damaging_prop(int actor_handle, char prefer_visible)
+int actor_perception_find_recent_damaging_prop_index(int actor_handle, char prefer_visible)
 {
   char *unit;
   char *prop_rec;
@@ -384,12 +384,12 @@ actor_perception_forget_recent_damage(int actor_handle)
   int iter[2];
   char *prop;
 
-  FUN_00064540(iter, actor_handle);
-  prop = (char *)FUN_00064570(iter);
+  prop_iterator_new(iter, actor_handle);
+  prop = (char *)prop_iterator_next(iter);
   while (prop != NULL) {
     *(char *)(prop + 0x74) = 0;
     *(int16_t *)(prop + 0x6c) = -1;
-    prop = (char *)FUN_00064570(iter);
+    prop = (char *)prop_iterator_next(iter);
   }
 }
 
@@ -402,22 +402,22 @@ __declspec(noinline) void actor_perception_retreat_successful(int actor_handle)
   char *prop;
 
   datum_get(actor_data, actor_handle);
-  FUN_00064540(iter, actor_handle);
-  prop = (char *)FUN_00064570(iter);
+  prop_iterator_new(iter, actor_handle);
+  prop = (char *)prop_iterator_next(iter);
   while (prop != NULL) {
     *(int16_t *)(prop + 0xaa) = 0;
     *(int16_t *)(prop + 0xae) = 0;
     *(int16_t *)(prop + 0xac) = 0;
-    prop = (char *)FUN_00064570(iter);
+    prop = (char *)prop_iterator_next(iter);
   }
 }
 
-/* actor_get_perception_knowledge (0x2fc20)
+/* actor_compute_prop_unopposable (0x2fc20)
  * Evaluate whether an actor should engage a prop. Checks prop type,
  * visibility flags, and actor state to determine engagement eligibility.
  * Side effects: clears prop tracking fields when engagement drops,
  * and clears actor pursuit fields when target is lost. */
-bool actor_get_perception_knowledge(int actor_handle, int prop_handle)
+bool actor_compute_prop_unopposable(int actor_handle, int prop_handle)
 {
   char *actor;
   char *prop;
@@ -537,7 +537,7 @@ float actor_compute_prop_target_weight(int actor_handle, int clump_item_handle)
       }
     } else {
       /* Actor has a weapon in hand */
-      char *weapon_tag = FUN_000210f0(actor_handle);
+      char *weapon_tag = actor_get_weapon_definition(actor_handle);
       char *actv_tag2 =
         actor_combat_get_firing_variant_definition(actor_handle);
 
@@ -784,7 +784,7 @@ bool actor_situation_try_new_target(int actor_handle, int target)
   return true;
 }
 
-/* FUN_00030e60 (0x30e60): find-or-append a 0x1c-byte record in a caller-owned
+/* actor_emotion_get_unopposable_enemy (0x30e60): find-or-append a 0x1c-byte record in a caller-owned
  * array, keyed by the dword at record+0x8.
  *
  * @<eax> = array base, @<edi> = search key.  Stack: param_1 at [EBP+0x8] is
@@ -806,7 +806,7 @@ bool actor_situation_try_new_target(int actor_handle, int target)
  * `if (index == -1)` rather than written as an early return.
  *
  * No __FILE__ string. */
-short FUN_00030e60(void *records /* @<eax> */, int key /* @<edi> */,
+short actor_emotion_get_unopposable_enemy(void *records /* @<eax> */, int key /* @<edi> */,
                    int param_1, short *p_count, short max_count)
 {
   char *base;
@@ -875,7 +875,7 @@ void actor_perception_unreachable(int actor_handle, int leader_handle,
   }
 
   *(char *)(prop + 0xa4) =
-    (char)actor_get_perception_knowledge(actor_handle, leader_handle);
+    (char)actor_compute_prop_unopposable(actor_handle, leader_handle);
   *(float *)(prop + 0x50) =
     actor_compute_prop_target_weight(actor_handle, leader_handle);
 }
@@ -1001,15 +1001,15 @@ void actor_perception_abandoned_search(int actor_handle, int prop_handle)
  * and — when the prop still has a parent prop (prop+0xc != NONE) — folds the
  * parent's target weight block (+0x50..+0x5c) and its acknowledgement
  * bookkeeping (+0x9c, +0xa0, +0xa4, +0xa6, +0xa8) into this prop, retires the
- * parent link through FUN_0003b410/prop_iterator_next, and clears prop+0xc.
+ * parent link through actor_switch_props/prop_delete, and clears prop+0xc.
  *
  * Returns 1 when the promotion ran, 0 when the prop was already in state 2/3.
  * out_acknowledged (optional) receives the actor_expected_acknowledgement
  * result, or 0 on the skipped path.
  *
  * ADD ESP,0x1c at 0x33409 coalesces three cdecl cleanups: datum_get (8) +
- * FUN_0003b410 (12) + prop_iterator_next (8) = 28.  A cleanup=7 ARG_COUNT
- * hazard on prop_iterator_next is that coalescing, not a real arg mismatch.
+ * actor_switch_props (12) + prop_delete (8) = 28.  A cleanup=7 ARG_COUNT
+ * hazard on prop_delete is that coalescing, not a real arg mismatch.
  *
  * No __FILE__ string. */
 char actor_perception_become_acknowledged(int actor_handle, int prop_handle,
@@ -1039,8 +1039,8 @@ char actor_perception_become_acknowledged(int actor_handle, int prop_handle,
       *(prop + 0xa4) = *(parent_prop + 0xa4);
       *(short *)(prop + 0xa6) = *(short *)(parent_prop + 0xa6);
       *(short *)(prop + 0xa8) = *(short *)(parent_prop + 0xa8);
-      FUN_0003b410(actor_handle, *(int *)(prop + 0xc), prop_handle);
-      prop_iterator_next(actor_handle, *(int *)(prop + 0xc));
+      actor_switch_props(actor_handle, *(int *)(prop + 0xc), prop_handle);
+      prop_delete(actor_handle, *(int *)(prop + 0xc));
       *(int *)(prop + 0xc) = -1;
     }
     *(short *)(prop + 0x24) = 3;
@@ -1206,7 +1206,7 @@ void actor_perception_update(int actor_handle)
         } else {
           ((actor_t *)actor)->field_288 = 0;
         }
-        FUN_000378e0(actor_handle, *(uint16_t *)(actor + 0x280),
+        actor_stimulus_noticed_danger_zone(actor_handle, *(uint16_t *)(actor + 0x280),
                      *(uint16_t *)(actor + 0x282),
                      ((actor_t *)actor)->danger_zone_object_index,
                      (float *)(actor + 0x2b0));
@@ -1228,8 +1228,8 @@ void actor_perception_update(int actor_handle)
   }
 
 iterate_props:
-  FUN_00064540(iter, actor_handle);
-  prop = (char *)FUN_00064570(iter);
+  prop_iterator_new(iter, actor_handle);
+  prop = (char *)prop_iterator_next(iter);
   while (prop != NULL) {
     new_state = -1;
     orphan_expired = 0;
@@ -1398,7 +1398,7 @@ iterate_props:
           error(2, "%s: stop becoming aware", debug_desc_d);
         }
       } else {
-        knowledge_type = FUN_0002f380(actor_handle, iter[0]);
+        knowledge_type = actor_get_perception_knowledge(actor_handle, iter[0]);
         if ((int16_t)knowledge_type < 0 || (int16_t)knowledge_type > 3) {
           display_assert("(knowledge_type >= 0) && (knowledge_type < "
                          "NUMBER_OF_ACTOR_KNOWLEDGE_TYPES)",
@@ -1521,7 +1521,7 @@ iterate_props:
                                                           iter[0]);
           new_prop_handle = prop_orphan_transition(actor_handle, iter[0]);
         }
-        FUN_0003b410(actor_handle, iter[0], new_prop_handle);
+        actor_switch_props(actor_handle, iter[0], new_prop_handle);
         new_state = 0;
       } else {
         new_state = 3;
@@ -1563,7 +1563,7 @@ iterate_props:
       }
       *(int16_t *)(prop + 0x24) = (int16_t)new_state;
       *(char *)(prop + 0xa4) =
-        (char)actor_get_perception_knowledge(actor_handle, iter[0]);
+        (char)actor_compute_prop_unopposable(actor_handle, iter[0]);
       *(float *)(prop + 0x50) =
         actor_compute_prop_target_weight(actor_handle, iter[0]);
 
@@ -1583,8 +1583,8 @@ iterate_props:
         system_exit(-1);
       }
       *(int *)(parent_prop + 0xc) = -1;
-      FUN_0003b410(actor_handle, iter[0], -1);
-      prop_iterator_next(actor_handle, iter[0]);
+      actor_switch_props(actor_handle, iter[0], -1);
+      prop_delete(actor_handle, iter[0]);
       goto tally_prop;
 
     case 3:
@@ -1605,7 +1605,7 @@ iterate_props:
              ((other_actor != NULL && (*(char *)(other_actor + 8) == 0 ||
                                        *(char *)(other_actor + 0x13) != 0)) ||
               *(float *)0x255fe0 < distance_squared))) {
-          FUN_0003b410(actor_handle, iter[0], -1);
+          actor_switch_props(actor_handle, iter[0], -1);
           new_state = 0;
         } else {
           new_state = 2;
@@ -1684,7 +1684,7 @@ iterate_props:
       }
     } else {
       if (*(char *)(prop + 0x129) != 0) {
-        FUN_00037630(actor_handle, iter[0]);
+        actor_stimulus_prop_just_killed(actor_handle, iter[0]);
         *(char *)(prop + 0x129) = 0;
       }
       if (*(char *)(prop + 0x12a) != 0 ||
@@ -1697,7 +1697,7 @@ iterate_props:
           if (acknowledge_out != 0)
             goto clear_acknowledge_flag;
         }
-        FUN_00036a20(actor_handle, iter[0], acknowledge_flag);
+        actor_stimulus_prop_sighted(actor_handle, iter[0], acknowledge_flag);
         *(char *)(prop + 0x12a) = 0;
       }
 
@@ -1708,7 +1708,7 @@ iterate_props:
         ((actor_t *)actor)->field_377 = 1;
         ai_communication_event(0x19, ((actor_t *)actor)->field_018,
                                *(int *)(prop + 0x18), 2, -1, -1, 0);
-        FUN_00036a20(actor_handle, iter[0], 0);
+        actor_stimulus_prop_sighted(actor_handle, iter[0], 0);
       }
 
       if (((actor_t *)actor)->field_018 != -1 && *(char *)(prop + 0x127) == 0 &&
@@ -1738,12 +1738,12 @@ iterate_props:
         if (*(char *)(prop + 0x127) != 0) {
           if (*(char *)(prop + 0x60) != 0)
             goto notify_departed;
-          FUN_00036a90(actor_handle, iter[0]);
+          actor_stimulus_enter_combat_found_body(actor_handle, iter[0]);
           goto after_notify;
         }
         if (*(char *)(prop + 0x60) != 0) {
         notify_departed:
-          FUN_00036b10(actor_handle, iter[0]);
+          actor_stimulus_enter_combat_perceived_enemy(actor_handle, iter[0]);
           goto after_notify;
         }
       } else {
@@ -1774,7 +1774,7 @@ iterate_props:
                                          ((actor_t *)actor)->field_018, 2, -1,
                                          2, 0);
                 }
-              } else if (FUN_0003b120(actor_handle) != 0 &&
+              } else if (actor_in_combat(actor_handle) != 0 &&
                          actor_is_fighting(actor_handle) == 0 &&
                          *(char *)(prop + 0x12b) != 0 &&
                          *(int16_t *)(prop + 0x32) > 1) {
@@ -1798,7 +1798,7 @@ iterate_props:
       }
     }
 
-    prop = (char *)FUN_00064570(iter);
+    prop = (char *)prop_iterator_next(iter);
   }
 
   if (((actor_t *)actor)->target_target_prop_index != -1) {

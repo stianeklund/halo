@@ -388,7 +388,7 @@ void terminal_draw(void)
     /* -- Draw active input line at bottom of screen -- */
     text_buf[0] = '\0';
     *(uint8_t *)(*(char **)0x46c414 + 0xb3) = 0;
-    FUN_0008dc30(text_buf, *(char **)0x46c414 + 0x94);
+    csstrcat(text_buf, *(char **)0x46c414 + 0x94);
     *(uint8_t *)(*(char **)0x46c414 + 0x1b3) = 0;
     str_len = (int16_t)csstrlen(text_buf);
     csstrcpy(text_buf + str_len, *(char **)0x46c414 + 0xb4);

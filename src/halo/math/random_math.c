@@ -638,7 +638,7 @@ __declspec(noinline) float random_math_real(unsigned int *seed)
   return (float)(s >> 16) * *(float *)0x2647f4;
 }
 
-/* Generate a random float in [min, max] using the same LCG as random_range.
+/* Generate a random float in [min, max] using the same LCG as seed_random_range.
  * Advances *seed, extracts the upper 16 bits (0..65535), normalizes to
  * [0.0, 1.0] by dividing by 65535, then scales into [min, max]. */
 float random_real_range(int *seed, float min, float max)
@@ -674,7 +674,7 @@ uint16_t random_seed_step(unsigned int *seed)
  * generator.  Advances *seed with the classic Numerical Recipes
  * LCG (a=0x19660d, c=0x3c6ef35f), then maps the upper 16 bits of
  * the new seed into the requested range. */
-int16_t random_range(unsigned int *seed, int16_t min, int16_t max)
+int16_t seed_random_range(unsigned int *seed, int16_t min, int16_t max)
 {
   unsigned int s;
 
@@ -803,7 +803,7 @@ void random_direction3d(int *seed, float *forward, float zero, float angle,
   result[2] = forward[2];
 
   /* Pick a random direction from the precomputed sphere table.
-   * Inlines: index = random_range(seed, 0, table_size) then table lookup. */
+   * Inlines: index = seed_random_range(seed, 0, table_size) then table lookup. */
 #ifdef HALO_RNG_TRACE
   RNG_TRACE(seed, RNG_TRACE_KIND_DIR3D_INLINE, *seed);
 #endif

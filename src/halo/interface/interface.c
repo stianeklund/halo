@@ -190,7 +190,7 @@ void interface_initialize_for_new_map(void)
 
   hud_initialize_for_new_map();
   FUN_0019B330();
-  FUN_000dc7a0();
+  first_person_weapons_initialize_for_new_map();
 
   globals = (char *)game_globals_get();
   if (*(int *)(globals + 0x140) != 0) {

@@ -2205,7 +2205,7 @@ void FUN_000d6cc0(int param_1)
   float position[3];
   /* Save the local_player_index up front (original: u1 = param_1 @0xd6cc6).
    * The case-1 (object waypoint) branch below reuses param_1's stack slot as a
-   * throwaway scratch for FUN_0001aae0's radius out-param, so param_1 itself is
+   * throwaway scratch for object_get_bounding_sphere's radius out-param, so param_1 itself is
    * clobbered. The original keeps the real index in u1 and uses it for
    * FUN_000d6660 and game_engine_render_nav_points; the prior lift dropped that
    * save and reused the clobbered param_1, tripping the players.c#133
@@ -2246,7 +2246,7 @@ void FUN_000d6cc0(int param_1)
         i2 = (int)object_try_and_get_and_verify_type(*(int *)pu6, -1);
         if (i2 == 0)
           goto skip;
-        FUN_0001aae0(*(int *)pu6, position, (float *)&param_1);
+        object_get_bounding_sphere(*(int *)pu6, position, (float *)&param_1);
         break;
       case 2:
         game_engine_get_goal_position((int *)position, (short)*(int *)pu6);
@@ -2335,7 +2335,7 @@ void FUN_000d6e50(int param_1)
           pu6[-1] = 0xffff;
           goto next;
         }
-        FUN_0001aae0(obj_handle, target_pos, l_1c);
+        object_get_bounding_sphere(obj_handle, target_pos, l_1c);
         break;
       case 2:
         game_engine_get_goal_position((int *)target_pos,
@@ -2658,7 +2658,7 @@ void FUN_000d7560(int param_1, char param_2)
   if (pu5 != (int *)0) {
     i7 = (int)tag_get(0x756e6974, *pu5);
     s2 = local_player_count();
-    i7 = FUN_001a6820(i7, 1 < s2);
+    i7 = unit_definition_get_active_hud_index(i7, 1 < s2);
     if (i7 != -1) {
       i7 = (int)tag_get(0x756e6869, i7);
       u8 = 0;
@@ -3041,7 +3041,7 @@ void FUN_000d7d40(int param_1)
   csmemset(handle_slots + 1, 0, 17 * 4);
 
   s4 = local_player_count();
-  tag_indices[0] = FUN_001a6820((int)unit_tag_data, 1 < s4);
+  tag_indices[0] = unit_definition_get_active_hud_index((int)unit_tag_data, 1 < s4);
 
   csmemset(tag_indices + 1, 0, 17 * 4);
 
@@ -3075,7 +3075,7 @@ void FUN_000d7d40(int param_1)
 
     FUN_000d7280((short)local_player_idx);
     s4 = local_player_count();
-    i8 = FUN_001a6820(vehicle_tag, 1 < s4);
+    i8 = unit_definition_get_active_hud_index(vehicle_tag, 1 < s4);
 
     if ((*unit_tag_data & 4) != 0) {
       if (i8 != -1) {
@@ -3096,7 +3096,7 @@ void FUN_000d7d40(int param_1)
             *(short *)(next_unit + 0x2a0) != -1) {
           handle_slots[slot_count] = i13;
           s4 = local_player_count();
-          i13 = FUN_001a6870(
+          i13 = unit_definition_get_seat_active_hud_index(
             vehicle_tag, *(unsigned short *)(next_unit + 0x2a0), 1 < s4);
           tag_indices[slot_count] = i13;
           slot_count = slot_count + 1;

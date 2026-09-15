@@ -127,7 +127,7 @@ void console_printf(int channel, const char *format, ...)
   terminal_output(NULL, (const char *)0x257984, (buffer[255] = 0, buffer));
 
   if (*console_telnet_enabled() != 0) {
-    csstrcat(buffer, (const char *)0x261f2c, 0x400);
+    csstrncat(buffer, (const char *)0x261f2c, 0x400);
     debug_string_to_display(buffer, 1);
   }
 }
@@ -155,7 +155,7 @@ void console_warning(const char *format, ...)
   terminal_output(*(void **)0x2ee6d0, (const char *)0x257984, buffer);
 
   if (*console_telnet_enabled() != 0) {
-    csstrcat(buffer, (const char *)0x261f2c, 0x400);
+    csstrncat(buffer, (const char *)0x261f2c, 0x400);
     debug_string_to_display(buffer, 1);
   }
 }
@@ -272,8 +272,8 @@ void console_process_enter(void)
       if (!large_list) {
         console_printf(0, token_array[idx]);
       } else {
-        FUN_0008dc30(accum, token_array[idx]);
-        FUN_0008dc30(accum, (char *)0x28094c);
+        csstrcat(accum, token_array[idx]);
+        csstrcat(accum, (char *)0x28094c);
         if (idx % 4 == 3) {
           console_printf(0, accum);
           accum[0] = 0;
