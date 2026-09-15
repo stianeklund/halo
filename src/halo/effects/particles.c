@@ -1,8 +1,8 @@
 /* Allocate a new particle system header and initialize it (0xa1210).
  * Copies position, velocity, and tint/orientation data into the datum,
- * resolves lighting color via FUN_00139480, then runs setup (FUN_000a0fd0).
+ * resolves lighting color via light_particle, then runs setup (particle_system_initialize).
  * Returns the datum handle, or -1 on failure. */
-int FUN_000a1210(int tag_index, float *position, float *velocity,
+int particle_system_new_unattached(int tag_index, float *position, float *velocity,
                  void *ext_data, float scale)
 {
   int handle;
@@ -33,9 +33,9 @@ int FUN_000a1210(int tag_index, float *position, float *velocity,
     *(float *)(datum + 0x14) = scale;
     *(uint32_t *)(datum + 0x04) |= 1;
 
-    FUN_00139480((void *)(datum + 0x20), (void *)(datum + 0x48), local_buf, 0);
+    light_particle((void *)(datum + 0x20), (void *)(datum + 0x48), local_buf, 0);
 
-    if (!FUN_000a0fd0(handle)) {
+    if (!particle_system_initialize(handle)) {
       datum_delete(particle_system_header_data, handle);
       return -1;
     }
@@ -48,9 +48,9 @@ int FUN_000a1210(int tag_index, float *position, float *velocity,
  * object tag's particle_systems block (obje+0x140), copies spawn data
  * into the new datum, resolves the marker position, samples the object's
  * root location, sets up velocity and function-value flag, then calls
- * FUN_000a0fd0 to allocate the particle pool.
+ * particle_system_initialize to allocate the particle pool.
  * Returns the datum handle, or -1 on failure. */
-int FUN_000a12e0(int particle_tag_index, int object_handle,
+int particle_system_new_attached(int particle_tag_index, int object_handle,
                  int16_t attach_index)
 {
   int datum_handle;
@@ -115,7 +115,7 @@ int FUN_000a12e0(int particle_tag_index, int object_handle,
       *(uint32_t *)(datum + 0x4) = has_value ? (f | 0x1) : (f & ~0x1U);
     }
 
-    if (!FUN_000a0fd0(datum_handle)) {
+    if (!particle_system_initialize(datum_handle)) {
       datum_delete(particle_system_header_data, datum_handle);
       datum_handle = -1;
     }
@@ -154,7 +154,7 @@ void particle_delete(int datum_handle)
 
 /* Delete all particles owned by a local player that have an attached
    object (flag 0x40 set and object handle != -1). */
-void FUN_000a1510(int16_t local_player_index)
+void particles_stop_on_first_person_weapon(int16_t local_player_index)
 {
   int handle;
   char *datum;
@@ -186,7 +186,7 @@ void FUN_000a1510(int16_t local_player_index)
  *
  * Referenced from a function-pointer table at 0x326a20 — appears to be
  * a per-frame engine update callback. */
-void FUN_000a1590(void)
+void particles_reconnect_to_structure_bsp(void)
 {
   int handle;
   char *particle;
@@ -288,7 +288,7 @@ bool valid_real_argb_color(float *color)
 /* Particle physics cleanup dispatch (0xa1770).
  * Called when deleting a particle that has a secondary physics tag.
  * Dispatches to effect creation ('effe') or sound playback ('snd!'). */
-void FUN_000a1770(int particle, int tag_group, int physics_tag, int param)
+void particle_effect_new(int particle, int tag_group, int physics_tag, int param)
 {
   float velocity[3];
   float *default_fwd;
@@ -353,8 +353,8 @@ void FUN_000a1770(int particle, int tag_group, int physics_tag, int param)
 
 /* Delete a particle (0xa18c0).
  * Checks the particle tag for a secondary physics resource; if present,
- * dispatches cleanup via FUN_000a1770. Then removes the particle datum. */
-void FUN_000a18c0(int datum_handle)
+ * dispatches cleanup via particle_effect_new. Then removes the particle datum. */
+void particle_die(int datum_handle)
 {
   char *datum;
   char *tag;
@@ -362,7 +362,7 @@ void FUN_000a18c0(int datum_handle)
   datum = (char *)datum_get(particle_data, datum_handle);
   tag = (char *)tag_get(0x70617274, *(int *)(datum + 0x04));
   if (*(int *)(tag + 0x64) != -1) {
-    FUN_000a1770((int)datum, *(int *)(tag + 0x58), *(int *)(tag + 0x64), 0);
+    particle_effect_new((int)datum, *(int *)(tag + 0x58), *(int *)(tag + 0x64), 0);
   }
   datum_delete(particle_data, datum_handle);
 }
@@ -380,8 +380,8 @@ void FUN_000a18c0(int datum_handle)
  * Each phase accumulates the total frame offset from prior phases.
  * If the final frame index is valid within the bitmap tag's sequence
  * array, clamps it and returns true. Otherwise calls particle_delete
- * (FUN_000a18c0) and returns false. */
-bool FUN_000a1910(int datum_handle)
+ * (particle_die) and returns false. */
+bool particle_next_sequence(int datum_handle)
 {
   char *datum;
   char *tag;
@@ -456,15 +456,15 @@ skip_phase2:
   }
 
   /* No valid frame — delete particle */
-  FUN_000a18c0(datum_handle);
+  particle_die(datum_handle);
   return false;
 }
 
 /* Advance particle bitmap frame counter by one step (0xa1a90).
  * Selects forward or backward animation based on datum flag bit 0x1.
- * When the last/first frame is reached, calls FUN_000a1910 to pick the
+ * When the last/first frame is reached, calls particle_next_sequence to pick the
  * next sequence. Returns true while the animation is still alive. */
-bool FUN_000a1a90(int datum_handle)
+bool particle_next_frame(int datum_handle)
 {
   char *datum;
   char *part_tag;
@@ -485,7 +485,7 @@ bool FUN_000a1a90(int datum_handle)
       *(int16_t *)(datum + 0x26) = frame_counter - 1;
       return 1;
     }
-    result = FUN_000a1910(datum_handle);
+    result = particle_next_sequence(datum_handle);
     if (result) {
       seq_elem = (char *)tag_block_get_element(
         bitm_tag + 0x54, (int)(*(int16_t *)(datum + 0x24)), 0x40);
@@ -502,7 +502,7 @@ bool FUN_000a1a90(int datum_handle)
     *(int16_t *)(datum + 0x26) = frame_counter + 1;
     return 1;
   }
-  result = FUN_000a1910(datum_handle);
+  result = particle_next_sequence(datum_handle);
   *(int16_t *)(datum + 0x26) = 0;
   return result;
 }
@@ -513,7 +513,7 @@ bool FUN_000a1a90(int datum_handle)
  *   bit 3: random-start (advance once if delta_time != 0),
  *   default: accumulate time and advance frames in a loop.
  * Returns true while the particle is still alive. */
-bool FUN_000a1b60(int datum_handle, float delta_time)
+bool particle_update_frame_time(int datum_handle, float delta_time)
 {
   char *datum;
   uint32_t flags;
@@ -527,10 +527,10 @@ bool FUN_000a1b60(int datum_handle, float delta_time)
     goto done;
   if (flags & 0x8) {
     if (delta_time != 0.0f)
-      return (bool)FUN_000a1a90(datum_handle);
+      return (bool)particle_next_frame(datum_handle);
   } else {
     if (*(uint32_t *)(datum + 0x1c) == 0xbf800000u) {
-      result = (bool)FUN_000a1a90(datum_handle);
+      result = (bool)particle_next_frame(datum_handle);
       *(uint32_t *)(datum + 0x1c) = 0;
     }
     if (delta_time > 0.0f && result) {
@@ -540,7 +540,7 @@ bool FUN_000a1b60(int datum_handle, float delta_time)
           *(float *)(datum + 0x1c) += delta_time;
           return result;
         }
-        result = (bool)FUN_000a1a90(datum_handle);
+        result = (bool)particle_next_frame(datum_handle);
         delta_time -= frame_remainder;
         if (delta_time <= 0.0f)
           return result;
@@ -555,7 +555,7 @@ done:
  * Free-floating particles run point physics (point_physics_update) for gravity and
  * collision; attached particles apply velocity damping. Returns false if the
  * particle was deleted during this step. */
-bool FUN_000a1c30(int datum_handle, float delta_time)
+bool particle_update_physics(int datum_handle, float delta_time)
 {
   char *particle;
   int *tag;
@@ -620,11 +620,11 @@ bool FUN_000a1c30(int datum_handle, float delta_time)
           speed_ratio = 1.0f;
 
         if (tag[0x15] != -1) {
-          FUN_000a1770((int)particle, tag[0x12], tag[0x15],
+          particle_effect_new((int)particle, tag[0x12], tag[0x15],
                        *(int *)&speed_ratio);
         }
-        if (tag[0xc] != -1 && FUN_0009f3b0(particle + 0x30)) {
-          FUN_0009f430(tag[0xc], 8, surface_index, particle + 0x30,
+        if (tag[0xc] != -1 && material_effect_visible(particle + 0x30)) {
+          material_effect_new(tag[0xc], 8, surface_index, particle + 0x30,
                        collision_normal, particle + 0x28, speed_ratio);
         }
       }
@@ -632,7 +632,7 @@ bool FUN_000a1c30(int datum_handle, float delta_time)
       /* Die on contact */
       if (*(uint8_t *)tag & 0x20) {
         if (tag[0x15] == -1) {
-          FUN_000a18c0(datum_handle);
+          particle_die(datum_handle);
           return 0;
         }
         particle_delete(datum_handle);
@@ -715,7 +715,7 @@ bool FUN_000a1c30(int datum_handle, float delta_time)
   return 1;
 
 delete_particle:
-  FUN_000a18c0(datum_handle);
+  particle_die(datum_handle);
   return 0;
 }
 
@@ -924,7 +924,7 @@ void particle_new(void *spawn_params)
 
   /* sample lighting and apply to color channels */
   if ((*tag & 0x200) == 0 || (*tag & 0x40) != 0) {
-    FUN_00139480(local_position, light, diffuse, 0);
+    light_particle(local_position, light, diffuse, 0);
 
     if (!valid_real_rgb_color(light)) {
       csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",
@@ -957,7 +957,7 @@ void particle_new(void *spawn_params)
   }
 
   /* bitmap sprite setup */
-  if (FUN_000a1910(datum_handle)) {
+  if (particle_next_sequence(datum_handle)) {
     char *bitmap_tag =
       (char *)tag_get(0x6269746d, *(int *)((char *)tag + 0x10));
     char *seq_element = (char *)tag_block_get_element(
@@ -1002,10 +1002,10 @@ void particles_update(float delta_time)
       *(float *)(datum + 0x14) = new_lifetime;
       if (!(new_lifetime >= *(float *)(datum + 0x18)) || just_created ||
           *(int16_t *)(tag + 0x9e) != 0) {
-        if (FUN_000a1b60(datum_handle, delta_time))
-          FUN_000a1c30(datum_handle, delta_time);
+        if (particle_update_frame_time(datum_handle, delta_time))
+          particle_update_physics(datum_handle, delta_time);
       } else {
-        FUN_000a18c0(datum_handle);
+        particle_die(datum_handle);
       }
     } else {
       datum_delete(particle_data, datum_handle);

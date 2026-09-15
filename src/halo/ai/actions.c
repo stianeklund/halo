@@ -1437,10 +1437,10 @@ char actor_action_try_to_seek_cover(int actor_handle, char param_2,
   return 0;
 }
 
-/* FUN_0001d3c0 (0x1d3c0) — Attempt to make the actor seek cover with explicit
+/* actor_action_try_to_panic (0x1d3c0) — Attempt to make the actor seek cover with explicit
  * parameters. Calls FUN_00015040 with param_2/param_3/param_4 and no actor
  * lookup, then actor_action_change with action 4 if successful. */
-char FUN_0001d3c0(int actor_handle, short param_2, int param_3, char param_4)
+char actor_action_try_to_panic(int actor_handle, short param_2, int param_3, char param_4)
 {
   char cVar1;
   short local_88[66];
@@ -1505,7 +1505,7 @@ char actor_action_try_to_enter_vehicle(int actor_handle, int param_2,
  *   compared twice (CMP CX,7 / JZ; CMP CX,5 / JNZ). Read before the ADD ESP.
  * Confirmed: hit path is ADD EAX,0xa4 — 0xa4 is used as an ADDRESS (base of a
  *   sub-record), not dereferenced as a value here (contrast the byte read of
- *   field_a4 in FUN_0001d530).
+ *   field_a4 in actor_pursuit_consider_nearby_actor).
  * Confirmed: miss path is XOR EDX,EDX / MOV EAX,EDX — returns NULL. Ghidra
  *   typed this function `void`, which silently drops the EAX return.
  * Confirmed: the datum_get result is NOT NULL-checked before the +0x6c load;
@@ -1536,12 +1536,12 @@ void *actor_get_pursuit_location(int actor_handle)
   return result;
 }
 
-/* FUN_0001d530 (0x1d530) — Predicate: is the actor at a given absolute index
+/* actor_pursuit_consider_nearby_actor (0x1d530) — Predicate: is the actor at a given absolute index
  * an eligible target of a differing category. Validates actor_handle (@<eax>)
  * via datum_get(actor_data, ...) with the result discarded (validation only),
  * resolves the actor record from actor_index, then gates on a bounded type
  * field (field_6e in [2,4)) and a mode field (field_6c). On a qualifying mode
- * it maps the actor's type word (field_4) through FUN_0003a7f0 and returns 1
+ * it maps the actor's type word (field_4) through actor_type_get_pursuit_controller and returns 1
  * when the mapped category differs from param_1; otherwise returns 0.
  *
  * Confirmed: datum_get(actor_data, actor_handle@<eax>) at 0x1d53c; two pushes
@@ -1552,9 +1552,9 @@ void *actor_get_pursuit_location(int actor_handle)
  * Confirmed: field_6e bounded (1 < field_6e < 4), word.
  * Confirmed: field_6c mode set {7,5, 8 iff param_1==0, 6 iff field_a4==0 &&
  *   field_9c>0}, word (field_a4 byte, field_9c word).
- * Confirmed: FUN_0003a7f0(*(int16_t *)(actor + 4)) compared to param_1;
+ * Confirmed: actor_type_get_pursuit_controller(*(int16_t *)(actor + 4)) compared to param_1;
  *   MOV AL,1 / MOV BL,AL byte-only return -> char. */
-char FUN_0001d530(int actor_handle, char param_1, int actor_index)
+char actor_pursuit_consider_nearby_actor(int actor_handle, char param_1, int actor_index)
 {
   char *actor;
   short mode;
@@ -1567,7 +1567,7 @@ char FUN_0001d530(int actor_handle, char param_1, int actor_index)
     if (mode == 7 || mode == 5 || (param_1 == '\0' && mode == 8) ||
         (mode == 6 && *(char *)(actor + 0xa4) == '\0' &&
          0 < *(short *)(actor + 0x9c))) {
-      if ((char)FUN_0003a7f0(*(int16_t *)(actor + 4)) != param_1) {
+      if ((char)actor_type_get_pursuit_controller(*(int16_t *)(actor + 4)) != param_1) {
         return 1;
       }
     }
@@ -2025,14 +2025,14 @@ char actor_action_handle_surprise(int actor_handle, short type)
                weapon_state, -1, -1, 0);
 
   if (*(float *)(actv_tag + 0x90) > 0.0f) {
-    FUN_00021010(actor_handle, (int)(*(float *)(actv_tag + 0x90) * 30.0f));
+    actor_combat_fire_wildly(actor_handle, (int)(*(float *)(actv_tag + 0x90) * 30.0f));
   }
 
   if (*(float *)(actv_tag + 0x8c) > 0.0f) {
-    FUN_00021040(actor_handle, (int)(*(float *)(actv_tag + 0x8c) * 30.0f));
+    actor_combat_disable_bursts(actor_handle, (int)(*(float *)(actv_tag + 0x8c) * 30.0f));
   }
 
-  FUN_00036da0(actor_handle);
+  actor_stimulus_was_surprised(actor_handle);
 
   prop_handle = ((actor_t *)actor)->field_2f4;
   if (prop_handle != -1) {
@@ -2049,13 +2049,13 @@ char actor_action_handle_surprise(int actor_handle, short type)
  * evaluates the transition. In guard action (0x6c==4) with positive shield
  * value (actor+0xa8), clamps the shield to the panic level. Otherwise, if
  * enough time has passed since actor+0x398, checks whether to play a sound
- * event or attempt seek cover via FUN_0001d3c0. Clears panic level on exit.
+ * event or attempt seek cover via actor_action_try_to_panic. Clears panic level on exit.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x1dd50.
  * Confirmed: game_time_get() at 0x1ddd6.
  * Confirmed: display_assert + system_exit pattern at 0x1de08-0x1de25.
  * Confirmed: ai_communication_event sound event call at 0x1de43.
- * Confirmed: FUN_0001d3c0 call at 0x1de74. */
+ * Confirmed: actor_action_try_to_panic call at 0x1de74. */
 char actor_action_handle_panic_transition(int actor_handle, short param_2,
                                           char param_3, short param_4)
 {
@@ -2097,7 +2097,7 @@ char actor_action_handle_panic_transition(int actor_handle, short param_2,
       actor->stimuli_panic_type = 0;
       return result;
     }
-    result = FUN_0001d3c0(actor_handle, actor->stimuli_panic_type,
+    result = actor_action_try_to_panic(actor_handle, actor->stimuli_panic_type,
                           actor->stimuli_panic_prop_index, bVar3);
   }
 done:
@@ -2358,7 +2358,7 @@ commit:
  * the action counter (actor+0x6e) greater than 1, throttle on a 0x1e-tick
  * cooldown (actor+0x370). On a fresh cooldown, gate on
  * actor_action_allow_cover_seeking then try actor_action_try_to_seek_cover;
- * failing that (and only when param2 is set) try FUN_0001d3c0 with the actor's
+ * failing that (and only when param2 is set) try actor_action_try_to_panic with the actor's
  * cover target (actor+0x270). Returns 1 if a cover-seek action was started, 0
  * otherwise.
  *
@@ -2369,7 +2369,7 @@ commit:
  * actor_get_action_priority_flag(actor_handle);
  * actor_action_allow_cover_seeking(actor_handle, 0);
  * actor_action_try_to_seek_cover(actor_handle, 1, 0);
- * FUN_0001d3c0(actor_handle, 4, actor+0x270, param3). FPU: FLD actor+0x1bc;
+ * actor_action_try_to_panic(actor_handle, 4, actor+0x270, param3). FPU: FLD actor+0x1bc;
  * FCOMP tag+0x2dc; TEST AH,0x41; JP => (actor+0x1bc <= tag+0x2dc). */
 char actor_action_handle_active_cover_seeking(int actor_handle, char param2,
                                               int param3)
@@ -2418,7 +2418,7 @@ char actor_action_handle_active_cover_seeking(int actor_handle, char param2,
                 return 1;
               }
               if (param2 != '\0') {
-                cVar1 = FUN_0001d3c0(
+                cVar1 = actor_action_try_to_panic(
                   actor_handle, 4, ((actor_t *)actor)->target_target_prop_index,
                   param3);
                 if (cVar1 != '\0') {
@@ -2836,10 +2836,10 @@ char actor_action_handle_lost_contact(int actor_handle)
     flag_b = 0;
     can_search = 0;
     if (prop == (char *)0 || *(char *)(prop + 0xbb) == '\0') {
-      val_30 = FUN_0003a790(*(short *)(actor + 4));
-      val_24 = FUN_0003a7b0(*(short *)(actor + 4));
-      val_34 = FUN_0003a7d0(*(short *)(actor + 4));
-      flag_38 = (char)FUN_0003a7f0(*(short *)(actor + 4));
+      val_30 = actor_type_get_when_to_search_at_target(*(short *)(actor + 4));
+      val_24 = actor_type_get_when_to_pursue(*(short *)(actor + 4));
+      val_34 = actor_type_get_when_to_search_pursuit(*(short *)(actor + 4));
+      flag_38 = (char)actor_type_get_pursuit_controller(*(short *)(actor + 4));
       val_28 = 0;
       have_pos = 0;
       flag_2c = 0;
@@ -3372,7 +3372,7 @@ char actor_action_consider_grenade(int actor_handle)
  *
  * Pre-screen guards (all fall through to a false return):
  *   1. actor+0x158 (swarm element handle) must be NONE (-1).
- *   2. FUN_0002a360(actor_handle) must be false (some blocking condition).
+ *   2. actor_move_animation_busy(actor_handle) must be false (some blocking condition).
  *   3. actor+0x504 (a boolean flag) must be clear.
  *   4. actor+0x270 (target prop/attractor datum handle) must be valid (!= -1).
  *   5. unit_tag+0x234 (evade-enable / max-evade scalar) must be > 0.0f.
@@ -3414,7 +3414,7 @@ char actor_action_try_to_evade(int actor_handle)
   char path_result[0x1c];
 
   if (actor->field_158 != -1) return 0;
-  if (FUN_0002a360(actor_handle) != 0) return 0;
+  if (actor_move_animation_busy(actor_handle) != 0) return 0;
   if (actor->field_504 != '\0') return 0;
   if (actor->target_target_prop_index == -1) return 0;
 
@@ -3685,7 +3685,7 @@ bool actors_searching_same_position(int actor_handle, int param_2)
  *
  * Pass 1 walks the clump-actor iterator (FUN_00064540/FUN_00064570): each
  * record must have flag bytes at +0x60 and +0x127 clear, a valid unit index at
- * +0x1c, and (when flag != 0) a type word at +0x24 in [2,4). FUN_0001d530
+ * +0x1c, and (when flag != 0) a type word at +0x24 in [2,4). actor_pursuit_consider_nearby_actor
  * (actor_handle in EAX) is the category-differs predicate. Each qualifier
  * increments the count; the record with the smallest key at +0x11c becomes the
  * best, its index taken from the iterator cursor iter1[0].
@@ -3693,14 +3693,14 @@ bool actors_searching_same_position(int actor_handle, int param_2)
  * threshold = (flag != 0) + 1  (1 or 2). If the count is still below threshold
  * and the actor's encounter handle (+0x34) is valid, Pass 2 walks the encounter
  * iterator (encounter_actor_iterator_new/next). For each element with a valid
- * unit index at +0x18 passing FUN_0001d530, it resolves an active-prop index
+ * unit index at +0x18 passing actor_pursuit_consider_nearby_actor, it resolves an active-prop index
  * via prop_get_active_by_unit_index, falling back to FUN_00064b40(...,1,0); on
  * a valid index it counts the element and, when the 3D distance (record
  * +0x12c..) to the actor's own position is closer, records that index. Stops
  * once the count reaches threshold.
  *
  * Confirmed: EDI = actor_handle preserved as the @<eax> arg to both
- * FUN_0001d530 sites (MOV EAX,EDI at 0x20309 and 0x203a2); cdecl pushes are
+ * actor_pursuit_consider_nearby_actor sites (MOV EAX,EDI at 0x20309 and 0x203a2); cdecl pushes are
  * (char)flag then the actor index, one ADD ESP,0x8 each. Confirmed: FLT_MAX
  * seed 0x7f7fffff at 0x202b9; both distance compares are '<' (TEST AH,5;JP).
  * Pass-2 magnitude is FSQRT over +0x12c/+0x130/+0x134 deltas. Confirmed: iter1
@@ -3736,7 +3736,7 @@ int actor_pursuit_find_nearby_actors(int actor_handle, char flag)
         *(int *)(rec + 0x1c) != -1 &&
         (flag == '\0' ||
          (1 < *(short *)(rec + 0x24) && *(short *)(rec + 0x24) < 4)) &&
-        FUN_0001d530(actor_handle, flag, *(int *)(rec + 0x1c)) != '\0') {
+        actor_pursuit_consider_nearby_actor(actor_handle, flag, *(int *)(rec + 0x1c)) != '\0') {
       count++;
       if (*(float *)(rec + 0x11c) < best_dist) {
         best_dist = *(float *)(rec + 0x11c);
@@ -3751,7 +3751,7 @@ int actor_pursuit_find_nearby_actors(int actor_handle, char flag)
     rec = encounter_actor_iterator_next(iter2);
     while (rec != 0) {
       if (*(int *)(rec + 0x18) != -1 &&
-          FUN_0001d530(actor_handle, flag, iter2[1]) != '\0') {
+          actor_pursuit_consider_nearby_actor(actor_handle, flag, iter2[1]) != '\0') {
         mapped =
           prop_get_active_by_unit_index(actor_handle, *(int *)(rec + 0x18));
         if (mapped == -1) {
@@ -3897,7 +3897,7 @@ char actor_action_handle_grenade_throwing(int actor_handle)
  *    has expired. Refreshes the cooldown, then gates on
  *    actor_action_allow_cover_seeking(actor,1); attempts
  *    actor_action_try_to_seek_cover, else (when the 'actr' flag 0x400000 is
- *    set) FUN_0001d3c0 toward the grenade prop.
+ *    set) actor_action_try_to_panic toward the grenade prop.
  * 2. Selects an evasion radius from the 'actr' tag: tag+0x314 when actor+0x374
  *    is set and actor+0x378 is clear, otherwise tag+0x310. When actor+0x1ca is
  *    set and tag+0x318 exceeds *(float*)0x2533c0, the radius is clamped down to
@@ -3950,7 +3950,7 @@ char actor_action_handle_evasion(int actor_handle)
           return 1;
         }
         if ((*(unsigned int *)actr_tag & 0x400000) &&
-            FUN_0001d3c0(actor_handle, 5, ((actor_t *)actor)->field_3ac, 0)) {
+            actor_action_try_to_panic(actor_handle, 5, ((actor_t *)actor)->field_3ac, 0)) {
           return 1;
         }
       }
@@ -4036,10 +4036,10 @@ char actor_action_handle_evasion(int actor_handle)
   return status;
 }
 
-/* FUN_00021080 (0x21080) — Returns non-zero if the actor's fire_state
- * enum (actor+0x5f2) equals 4. Paired with FUN_00021040 (actor_combat.c),
+/* actor_firing_blindly (0x21080) — Returns non-zero if the actor's fire_state
+ * enum (actor+0x5f2) equals 4. Paired with actor_combat_disable_bursts (actor_combat.c),
  * which sets fire_state to 4. */
-char FUN_00021080(int actor_handle)
+char actor_firing_blindly(int actor_handle)
 {
   char *actor;
 
@@ -4047,16 +4047,16 @@ char FUN_00021080(int actor_handle)
   return ((actor_t *)actor)->control_fire_state == 4;
 }
 
-/* FUN_000210b0 (0x210b0) — Primary-look eligibility predicate. Resolves the
+/* actor_combat_currently_firing_burst (0x210b0) — Primary-look eligibility predicate. Resolves the
  * actor via datum_get(actor_data, actor_handle) and returns true only when the
  * signed 16-bit control.current_fire_target_type at actor+0x60c is positive
  * (> 0; signed CMP/JLE in the original) AND the fire_state enum at actor+0x5f2
- * (same field read by sibling FUN_00021080) equals 2. Positive here means "a
+ * (same field read by sibling actor_firing_blindly) equals 2. Positive here means "a
  * fire target is set" — the named values are _actor_fire_target_prop (1) and
  * _actor_fire_target_manual_point (2); 0 is never named by an assert string.
  * When no fire target is set it returns false without inspecting fire_state.
  * Called by actor_looking to gate primary look-mode selection. */
-bool FUN_000210b0(int actor_handle)
+bool actor_combat_currently_firing_burst(int actor_handle)
 {
   char *actor;
   bool result;
@@ -4069,9 +4069,9 @@ bool FUN_000210b0(int actor_handle)
   return result;
 }
 
-char *FUN_000210f0(int actor_handle)
+char *actor_get_weapon_definition(int actor_handle)
 {
-  int weapon_handle = actor_attacking_target(actor_handle);
+  int weapon_handle = actor_get_weapon(actor_handle);
   if (weapon_handle != -1) {
     int *obj = (int *)object_get_and_verify_type(weapon_handle, 4);
     return (char *)tag_get(0x77656170, *obj);

@@ -10,7 +10,7 @@
  * NOT a self-contained header, deliberately. This is an "internal" header in
  * the original sense: it holds the definitions of the per-script-function
  * evaluators and is #included at one point in hs_runtime.c, after the file-
- * scope statics they call (hs_return, hs_thread_stack_alloc, FUN_000cc1d0,
+ * scope statics they call (hs_return, hs_thread_stack_alloc, hs_evaluate,
  * hs_function_table_get, ...). It will not compile alone, and must never be
  * included from a second translation unit -- these are external definitions,
  * so a second include is a duplicate-symbol error, not a redefinition warning.
@@ -59,7 +59,7 @@ void hs_evaluate_begin(int16_t function_index, int thread_datum, char init)
 
   if (*expr_ptr != -1) {
     char *expr;
-    FUN_000cc1d0(thread_datum, *expr_ptr, result_ptr);
+    hs_evaluate(thread_datum, *expr_ptr, result_ptr);
     expr = (char *)datum_get(*(data_t **)0x5aa6c8, *expr_ptr);
     *expr_ptr = *(int *)(expr + 0x8);
     return;
@@ -175,7 +175,7 @@ void hs_evaluate_begin_random(int16_t function_index, int thread_datum,
         }
 
         /* Evaluate the chosen argument. */
-        FUN_000cc1d0(thread_datum, cur_datum, result_value);
+        hs_evaluate(thread_datum, cur_datum, result_value);
 
         /* Mark the slot as used. */
         used_bits[(int)sVar11 >> 5] |= 1 << ((int)sVar11 & 0x1f);
@@ -222,7 +222,7 @@ void hs_evaluate_if(int16_t function_index, int thread_datum, char init)
     *branch_ptr = -1;
     node = datum_get(*(data_t **)0x5aa6c8, *(int *)(*(int *)(thread + 0x10) + 4));
     node = datum_get(*(data_t **)0x5aa6c8, *(int *)((char *)node + 0x10));
-    FUN_000cc1d0(thread_datum, *(int *)((char *)node + 8), cond_result);
+    hs_evaluate(thread_datum, *(int *)((char *)node + 8), cond_result);
     return;
   }
 
@@ -248,7 +248,7 @@ void hs_evaluate_if(int16_t function_index, int thread_datum, char init)
     *branch_ptr = *(int *)((char *)node + 8);
   }
 
-  FUN_000cc1d0(thread_datum, *branch_ptr, (char *)value_ptr);
+  hs_evaluate(thread_datum, *branch_ptr, (char *)value_ptr);
 }
 
 /* 0xcca00 — HS 'set' evaluator. Assigns a value to a global variable.
@@ -277,7 +277,7 @@ void hs_evaluate_set(int16_t function_index, int thread_datum, char init)
 
   if (init) {
     if (global_type == 0x17)
-      FUN_000ce370(FUN_000cc0a0(*(int16_t *)(var_node + 0x10)));
+      FUN_000ce370(hs_global_evaluate(*(int16_t *)(var_node + 0x10)));
 
     global_index = (int)*(int16_t *)(var_node + 0x10) & 0x7fff;
     if (!((uint8_t)(*((uint8_t *)(var_node + 0x10) + 1)) & 0x80))
@@ -287,16 +287,16 @@ void hs_evaluate_set(int16_t function_index, int thread_datum, char init)
       char *global_datum =
         (char *)datum_get(*(data_t **)0x5aa6c0, global_index);
       char *value_expr = (char *)datum_get(*(data_t **)0x5aa6c8, var_node_idx);
-      FUN_000cc1d0(thread_datum, *(int *)(value_expr + 0x8), global_datum + 4);
+      hs_evaluate(thread_datum, *(int *)(value_expr + 0x8), global_datum + 4);
     }
     return;
   }
 
-  FUN_000cb7b0(*(int16_t *)(var_node + 0x10));
+  hs_global_reconcile_write(*(int16_t *)(var_node + 0x10));
   if (global_type == 0x17)
-    FUN_000ce350(FUN_000cc0a0(*(int16_t *)(var_node + 0x10)));
+    FUN_000ce350(hs_global_evaluate(*(int16_t *)(var_node + 0x10)));
 
-  FUN_000cb230(*(int16_t *)(var_node + 0x10));
+  hs_global_reconcile_read(*(int16_t *)(var_node + 0x10));
   {
     int ref = (int)*(int16_t *)(var_node + 0x10);
     if (ref & 0x8000)
@@ -352,7 +352,7 @@ void hs_evaluate_logical(int16_t function_index, int thread_datum, char init)
   }
 
   if (*expr_ptr != -1 && *running == is_and) {
-    FUN_000cc1d0(thread_datum, *expr_ptr, result_ptr);
+    hs_evaluate(thread_datum, *expr_ptr, result_ptr);
     {
       char *expr = (char *)datum_get(*(data_t **)0x5aa6c8, *expr_ptr);
       *expr_ptr = *(int *)(expr + 0x8);
@@ -423,7 +423,7 @@ void hs_evaluate_arithmetic(int16_t function_index, int thread_datum, char init)
   }
 
   if (*expr_ptr != -1) {
-    FUN_000cc1d0(thread_datum, *expr_ptr, operand);
+    hs_evaluate(thread_datum, *expr_ptr, operand);
     {
       char *expr = (char *)datum_get(*(data_t **)0x5aa6c8, *expr_ptr);
       *expr_ptr = *(int *)(expr + 0x8);
@@ -435,7 +435,7 @@ void hs_evaluate_arithmetic(int16_t function_index, int thread_datum, char init)
 }
 
 /* 0xccdf0 — HS equal/not-equal evaluator. Evaluates two arguments of the
- * same type via FUN_000cc3a0, then compares with csmemcmp using the type's
+ * same type via hs_arguments_evaluate, then compares with csmemcmp using the type's
  * size from the table at 0x26f350. function_index 0xd = equal, 0xe = not_equal.
  */
 void hs_evaluate_equality(int16_t function_index, int thread_datum, char init)
@@ -464,7 +464,7 @@ void hs_evaluate_equality(int16_t function_index, int thread_datum, char init)
 
   param_types[0] = type;
   param_types[1] = type;
-  values = (int *)FUN_000cc3a0(thread_datum, 2, (int)param_types, init);
+  values = (int *)hs_arguments_evaluate(thread_datum, 2, (int)param_types, init);
   if (values != 0) {
     int size = (int)*(int16_t *)(0x26f350 + (int)type * 2);
     char result = (csmemcmp(values, values + 1, size) == 0) ? 1 : 0;
@@ -475,13 +475,13 @@ void hs_evaluate_equality(int16_t function_index, int thread_datum, char init)
 }
 
 /* 0xcced0 — HS comparison evaluator (gt/lt/ge/lte). Evaluates two arguments
- * of matching numeric type via FUN_000cc3a0 using the static param_types pair
+ * of matching numeric type via hs_arguments_evaluate using the static param_types pair
  * at 0x46b80c/0x46b80e, then performs FPU comparison. Handles three type
  * classes: real (type==6, FLD float), long_integer (type==8, FILD dword),
  * and short_integer/enum (type==7 or 0x20..0x24, MOVSX word then FILD).
  * function_index 0xf=gt, 0x10=lt, 0x11=ge, 0x12=lte.
  *
- * The formal_params passed to FUN_000cc3a0 is a static int16_t[2] at
+ * The formal_params passed to hs_arguments_evaluate is a static int16_t[2] at
  * 0x0046b80c; both slots are filled with the argument's inferred type.
  * Result is committed via hs_return(thread_datum, (int)(uint8_t)result).
  */
@@ -512,7 +512,7 @@ void hs_evaluate_inequality(int16_t function_index, int thread_datum, char init)
 
   param_types[0] = type;
   param_types[1] = type;
-  values = (int *)FUN_000cc3a0(thread_datum, 2, (int)param_types, init);
+  values = (int *)hs_arguments_evaluate(thread_datum, 2, (int)param_types, init);
   if (values == NULL)
     return;
 
@@ -607,7 +607,7 @@ void hs_evaluate_inequality(int16_t function_index, int thread_datum, char init)
  *   init: evaluate the sleep-ticks expression, set phase=0.
  *   phase 0: resolve optional target-thread expression; increment phase.
  *   phase 1: apply the sleep. If target != -1, look up thread by script index
- *            via FUN_000cada0(@EDI). Negative ticks → sleep_until = -2
+ *            via hs_find_thread_by_script(@EDI). Negative ticks → sleep_until = -2
  * (forever). Positive ticks → sleep_until = game_time + ticks. Backs up the
  *            target's old sleep_until if sleeping a different thread.
  *
@@ -648,7 +648,7 @@ void hs_evaluate_sleep(int16_t function_index, int thread_datum, char init)
                                    *(int *)(*(int *)(thread + 0x10) + 4));
     char *child =
       (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
-    FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), sleep_ticks);
+    hs_evaluate(thread_datum, *(int *)(child + 0x8), sleep_ticks);
     *phase = 0;
     return;
   }
@@ -663,7 +663,7 @@ void hs_evaluate_sleep(int16_t function_index, int thread_datum, char init)
     int next_expr = *(int *)(ticks_node + 0x8);
     *phase = *phase + 1;
     if (next_expr != -1) {
-      FUN_000cc1d0(thread_datum, next_expr, target_ref);
+      hs_evaluate(thread_datum, next_expr, target_ref);
       return;
     }
     *(int *)target_ref = -1;
@@ -675,7 +675,7 @@ void hs_evaluate_sleep(int16_t function_index, int thread_datum, char init)
     int16_t ticks = *sleep_ticks;
     if (ticks != 0) {
       if (*target_ref != -1) {
-        local_thread = FUN_000cada0(*target_ref);
+        local_thread = hs_find_thread_by_script(*target_ref);
       }
       if (local_thread != -1) {
         char *target = (char *)datum_get(*(data_t **)0x5aa6c4, local_thread);
@@ -761,7 +761,7 @@ void hs_evaluate_sleep_until(int16_t function_index, int thread_datum,
     *ticks_per_eval = 0x1e;
     *timeout_ticks = -1;
     if (ticks_expr != -1) {
-      FUN_000cc1d0(thread_datum, ticks_expr, ticks_per_eval);
+      hs_evaluate(thread_datum, ticks_expr, ticks_per_eval);
       return;
     }
   }
@@ -771,7 +771,7 @@ void hs_evaluate_sleep_until(int16_t function_index, int thread_datum,
     if (ticks_expr != -1) {
       char *ticks_node = (char *)datum_get(*(data_t **)0x5aa6c8, ticks_expr);
       if (*(int *)(ticks_node + 0x8) != -1) {
-        FUN_000cc1d0(thread_datum, *(int *)(ticks_node + 0x8), timeout_ticks);
+        hs_evaluate(thread_datum, *(int *)(ticks_node + 0x8), timeout_ticks);
         return;
       }
     }
@@ -786,7 +786,7 @@ void hs_evaluate_sleep_until(int16_t function_index, int thread_datum,
                                    *(int *)(*(int *)(thread + 0x10) + 4));
     char *child =
       (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
-    FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), evaluated);
+    hs_evaluate(thread_datum, *(int *)(child + 0x8), evaluated);
     {
       int ticks;
       int new_sleep;
@@ -840,7 +840,7 @@ void hs_evaluate_inspect(int16_t function_index, int thread_datum, char init)
       char *node = (char *)datum_get(*(data_t **)0x5aa6c8, first_arg);
       char *child =
         (char *)datum_get(*(data_t **)0x5aa6c8, *(int *)(node + 0x10));
-      FUN_000cc1d0(thread_datum, *(int *)(child + 0x8), result_ptr);
+      hs_evaluate(thread_datum, *(int *)(child + 0x8), result_ptr);
       return;
     }
 
@@ -889,7 +889,7 @@ void hs_evaluate_object_cast_up(int16_t function_index, int thread_datum,
   if (init != 0) {
     thread = datum_get(*(data_t **)0x5aa6c8, *(int *)(*(int *)((char *)thread + 0x10) + 4));
     thread = datum_get(*(data_t **)0x5aa6c8, *(int *)((char *)thread + 0x10));
-    FUN_000cc1d0(thread_datum, *(int *)((char *)thread + 8), result_ptr);
+    hs_evaluate(thread_datum, *(int *)((char *)thread + 8), result_ptr);
     return;
   }
 
@@ -956,7 +956,7 @@ void hs_evaluate_debug_string(int16_t function_index, int thread_datum,
 
   if (*cur_expr != -1 && *arg_count < 0x20) {
     int result;
-    FUN_000cc1d0(thread_datum, *cur_expr, &result);
+    hs_evaluate(thread_datum, *cur_expr, &result);
     {
       char *expr_node = (char *)datum_get(*(data_t **)0x5aa6c8, *cur_expr);
       *cur_expr = *(int *)(expr_node + 0x8);

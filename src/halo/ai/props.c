@@ -357,7 +357,7 @@ int FUN_00064570(int *iter)
  *   the nearest rejected prop wins; otherwise the nearest accepted prop wins
  *   but only if at least `flag ? 6 : 4` flag-matching candidates were seen;
  *   otherwise a brand-new prop datum is allocated.  A reused prop is
- *   unlinked from the actor (FUN_0003b410 + FUN_00064400) and cleared to zero
+ *   unlinked from the actor (actor_switch_props + FUN_00064400) and cleared to zero
  *   except for its datum identifier before being re-added.
  *
  * Ghidra's decompile of this function must NOT be transcribed: the stale
@@ -408,7 +408,7 @@ int FUN_00064570(int *iter)
  *   0x6474b / 0x64771 display_assert (4 args) + PUSH EBX(-1); system_exit.
  *     The second assert at line 0x9f re-reads [ESI+0xc] (0x64756) — MSVC did
  *     not treat system_exit as noreturn, so both asserts are emitted.
- *   0x64785 FUN_0003b410 (3 stack args):
+ *   0x64785 actor_switch_props (3 stack args):
  *     1 | PUSH EBX (reloaded [EBP+8] at 0x64780) | actor_handle | YES
  *     2 | PUSH EDI                               | prop_index   | YES
  *     3 | PUSH EBX (still -1 from OR at 0x64730) | NONE         | YES
@@ -417,7 +417,7 @@ int FUN_00064570(int *iter)
  *     1 | MOV EAX,EBX at 0x6478a  | actor_handle @<eax> | YES
  *     2 | EDI live from selection | prop_index   @<edi> | YES
  *   0x6479c csmemset (3 stack args; the ADD ESP,0x18 at 0x647a1 is MSVC
- *   coalescing this call's 3 pushes with FUN_0003b410's 3 — the ARG_COUNT
+ *   coalescing this call's 3 pushes with actor_switch_props's 3 — the ARG_COUNT
  *   audit warning of 6 args is that artifact, not a real mismatch):
  *     1 | PUSH ESI       | prop  | YES
  *     2 | PUSH 0         | 0     | YES
@@ -536,7 +536,7 @@ int prop_new_unacknowledged(int actor_handle, int unit_handle, bool flag)
                      "c:\\halo\\SOURCE\\ai\\props.c", 0x9f, 1);
       system_exit(none_handle);
     }
-    FUN_0003b410(actor_handle, prop_index, none_handle);
+    actor_switch_props(actor_handle, prop_index, none_handle);
     FUN_00064400(actor_handle, prop_index);
     identifier = *(short *)prop;
     csmemset(prop, 0, 0x138);

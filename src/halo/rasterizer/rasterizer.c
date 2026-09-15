@@ -1754,7 +1754,7 @@ void FUN_00173b40(float *parameters)
  * (color), 4 = D3DVSDE_TEXCOORD0, 0 = D3DVSDE_VERTEX.
  *
  * `success` mirrors the original D3D result-check macro: BL is initialized to 1
- * (MOV BL,0x1) and only ever re-set to 1, so all four FUN_00167ff0
+ * (MOV BL,0x1) and only ever re-set to 1, so all four rasterizer_error
  * (report_d3d_call_failed) branches are unreachable at runtime — they are kept
  * to preserve the basic-block layout. Each per-call check compiles to
  * TEST BL,BL / JZ / MOV BL,1 / JMP — reproduced by the
@@ -1792,7 +1792,7 @@ void FUN_001741d0(float *quad)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexDataColor(global_d3d_device, "
                      "9, vertices[vertex_index].color)");
       }
@@ -1801,7 +1801,7 @@ void FUN_001741d0(float *quad)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexData2f(global_d3d_device, 4, "
                      "vertices[vertex_index].texcoord.u, "
                      "vertices[vertex_index].texcoord.v)");
@@ -1811,7 +1811,7 @@ void FUN_001741d0(float *quad)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, "
+        rasterizer_error(0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, "
                         "VSDE_VERTEX, vertices[vertex_index].position.x, "
                         "vertices[vertex_index].position.y)");
       }
@@ -1820,7 +1820,7 @@ void FUN_001741d0(float *quad)
     } while (remaining != 0);
     D3DDevice_End();
     if (!success) {
-      FUN_00167ff0(0, "IDirect3DDevice8_End(global_d3d_device)");
+      rasterizer_error(0, "IDirect3DDevice8_End(global_d3d_device)");
       error(2, "### ERROR rasterizer_text_draw_character failed");
     }
   }
@@ -2089,7 +2089,7 @@ void FUN_001749b0(void)
   hr = D3DDevice_EndVisibilityTest(0xfff);
   if (hr < 0) {
     ok = 0;
-    FUN_00167ff0(
+    rasterizer_error(
       hr, "IDirect3DDevice8_EndVisibilityTest(global_d3d_device, index)");
   } else {
     ok = 1;
@@ -2104,7 +2104,7 @@ void FUN_001749b0(void)
     ok = 1;
   } else {
     ok = 0;
-    FUN_00167ff0(hr, "hr");
+    rasterizer_error(hr, "hr");
   }
 
   *(int *)0x47e4c4 = *(int *)0x47e4c4 + (int)pixels;
@@ -2242,7 +2242,7 @@ char FUN_00174bd0(void)
     ok = 1;
   } else {
     ok = 0;
-    FUN_00167ff0(
+    rasterizer_error(
       hr,
       "IDirect3DDevice8_CreateVertexBuffer(global_d3d_device, "
       "RASTERIZER_TRANSPARENT_GEOMETRY_TEXCOORD_STREAM_SIZE*(2*sizeof(byte)), "
@@ -2259,7 +2259,7 @@ char FUN_00174bd0(void)
   if (ok != 0) {
     ok = 1;
   } else {
-    FUN_00167ff0(
+    rasterizer_error(
       0,
       "IDirect3DVertexBuffer8_Lock("
       "rasterizer_xbox_transparent_geometry_texcoord_stream, 0, "
@@ -2851,7 +2851,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__INVERSE_OFFSET, "
                      "vsh_constants__inverse, VSH_CONSTANTS__INVERSE_COUNT)");
@@ -2861,7 +2861,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
              "VSH_CONSTANTS__TEXANIM_OFFSET, vsh_constants__texanim, 4)");
       }
@@ -2890,7 +2890,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(0,
+          rasterizer_error(0,
                        "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                        "device, VSH_CONSTANTS__ZSPRITE_OFFSET, "
                        "vsh_constants__zsprite, VSH_CONSTANTS__ZSPRITE_COUNT)");
@@ -2939,7 +2939,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(0,
+          rasterizer_error(0,
                        "IDirect3DDevice8_SetStreamSource(global_d3d_device, 1, "
                        "rasterizer_xbox_transparent_geometry_texcoord_stream, "
                        "2*sizeof(byte))");
@@ -3229,7 +3229,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         }
       } else {
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__TEXANIM_OFFSET, "
                      "vsh_constants__texanim, VSH_CONSTANTS__TEXANIM_COUNT)");
@@ -3290,7 +3290,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
                      "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -3659,7 +3659,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       } while ((short)m2 < 4);
       D3DDevice_SetVertexShaderConstant(-0x51, anim_out2, 8);
       if (success == 0) {
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__TEXANIM_OFFSET, "
                      "vsh_constants__texanim, VSH_CONSTANTS__TEXANIM_COUNT)");
@@ -3723,7 +3723,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
                      "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -3852,7 +3852,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(
+          rasterizer_error(
             0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
                "VSH_CONSTANTS__TEXSCALE_OFFSET, vsh_constants__texscale, "
                "VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -3953,7 +3953,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(
+          rasterizer_error(
             0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
                "VSH_CONSTANTS__TEXSCALE_OFFSET, vsh_constants__texscale, "
                "VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -4095,7 +4095,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(
+          rasterizer_error(
             0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
                "VSH_CONSTANTS__TEXSCALE_OFFSET, vsh_constants__texscale, "
                "VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -4279,7 +4279,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
                      "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -4617,7 +4617,7 @@ static __inline int water_alpha_to_pixel32(float alpha_in)
     if (success) {                  \
       success = 1;                  \
     } else {                        \
-      FUN_00167ff0(0, (call_text)); \
+      rasterizer_error(0, (call_text)); \
       success = 0;                  \
     }                               \
   } while (0)
@@ -5315,7 +5315,7 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
  *  - The two float arguments are forwarded as raw dwords through EAX/ECX with
  *    no FLD/FSTP anywhere, i.e. a pure bit passthrough. Typing them `float`
  *    matches the callee's kb.json declaration and avoids the FILD/int
- *    conversion that an int-typed passthrough would emit (FUN_001a7c70 class).
+ *    conversion that an int-typed passthrough would emit (units_scripting_set_current_vitality class).
  *  - XOR EAX,EAX before the RET is a real `return 0` (S_OK), not a dead
  *    write; lifting this as void would be the §16 void-EAX hazard.
  *
@@ -5510,7 +5510,7 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
           D3DDevice_End();
           hr = D3DDevice_EndVisibilityTest(index);
           if (hr < 0) {
-            FUN_00167ff0(
+            rasterizer_error(
               hr,
               "IDirect3DDevice8_EndVisibilityTest(global_d3d_device, index)");
             error(2,

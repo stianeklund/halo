@@ -2658,7 +2658,7 @@ void FUN_000d7560(int param_1, char param_2)
   if (pu5 != (int *)0) {
     i7 = (int)tag_get(0x756e6974, *pu5);
     s2 = local_player_count();
-    i7 = FUN_001a6820(i7, 1 < s2);
+    i7 = unit_definition_get_active_hud_index(i7, 1 < s2);
     if (i7 != -1) {
       i7 = (int)tag_get(0x756e6869, i7);
       u8 = 0;
@@ -3041,7 +3041,7 @@ void FUN_000d7d40(int param_1)
   csmemset(handle_slots + 1, 0, 17 * 4);
 
   s4 = local_player_count();
-  tag_indices[0] = FUN_001a6820((int)unit_tag_data, 1 < s4);
+  tag_indices[0] = unit_definition_get_active_hud_index((int)unit_tag_data, 1 < s4);
 
   csmemset(tag_indices + 1, 0, 17 * 4);
 
@@ -3075,7 +3075,7 @@ void FUN_000d7d40(int param_1)
 
     FUN_000d7280((short)local_player_idx);
     s4 = local_player_count();
-    i8 = FUN_001a6820(vehicle_tag, 1 < s4);
+    i8 = unit_definition_get_active_hud_index(vehicle_tag, 1 < s4);
 
     if ((*unit_tag_data & 4) != 0) {
       if (i8 != -1) {
@@ -3096,7 +3096,7 @@ void FUN_000d7d40(int param_1)
             *(short *)(next_unit + 0x2a0) != -1) {
           handle_slots[slot_count] = i13;
           s4 = local_player_count();
-          i13 = FUN_001a6870(
+          i13 = unit_definition_get_seat_active_hud_index(
             vehicle_tag, *(unsigned short *)(next_unit + 0x2a0), 1 < s4);
           tag_indices[slot_count] = i13;
           slot_count = slot_count + 1;

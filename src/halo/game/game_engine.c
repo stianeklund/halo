@@ -2782,7 +2782,7 @@ void game_engine_weapon_fired(int param_1)
     return;
   biped = (int)object_get_and_verify_type(player, 3);
   biped2 = (int)object_get_and_verify_type(player, 3);
-  weapon_handle = (int)unit_get_weapon(player, *(int16_t *)(biped2 + 0x2a2));
+  weapon_handle = (int)unit_inventory_get_weapon(player, *(int16_t *)(biped2 + 0x2a2));
   decay = 0.1f;
   if (game_engine_player_has_stealth_weapon(param_1)) {
     decay = 0.0f;
@@ -4160,12 +4160,12 @@ void game_engine_update_non_deterministic(float dt)
  * 3 register args and tail-jmps, leaving the caller's param2/param3 (a
  * HUD-buffer pointer) at the original's stack1 slot -- which then reaches a
  * players datum_get as a bogus handle and asserts "players index ... unused".
- * Running our cdecl impl directly (only caller is our lifted FUN_000ae110)
+ * Running our cdecl impl directly (only caller is our lifted game_engine_get_state_message)
  * avoids the broken thunk.
  *
  * RETURNS the "text was produced" flag in AL (original 0xacec0..0xaceed: the
  * vtable handler's AL if nonzero, else game_engine_get_score_hud_text's AL).
- * FUN_000ae110 (0xae110) propagates this to FUN_000d04d0 (0xd04d0, unported),
+ * game_engine_get_state_message (0xae110) propagates this to FUN_000d04d0 (0xd04d0, unported),
  * which only draws
  * the HUD text when AL != 0 ("test al,al; je" at 0xd0931). Declaring this
  * void (and returning 0 from ae110) suppressed all live-player game-engine
@@ -5066,8 +5066,8 @@ game_variant_t *game_engine_get_variant_by_name(game_variant_t *out_variant,
   return out_variant;
 }
 
-/* Dispatch to vtable slot 33 (0x84) or fall back to FUN_000ae250.
- * Tail-calls FUN_000ae250 which reads param_1 from the stack. */
+/* Dispatch to vtable slot 33 (0x84) or fall back to game_engine_did_player_win_default.
+ * Tail-calls game_engine_did_player_win_default which reads param_1 from the stack. */
 
 int game_engine_did_player_win(int param_1)
 
@@ -5080,7 +5080,7 @@ int game_engine_did_player_win(int param_1)
 
     return ((int (**)(int))current_game_engine)[0x84 / 4](param_1);
 
-  return FUN_000ae250(param_1);
+  return game_engine_did_player_win_default(param_1);
 }
 
 /* Check if the team won by finding a player on team ESI and dispatching. */
@@ -5098,7 +5098,7 @@ int FUN_000ae340(int team)
       if (((int (**)(int))current_game_engine)[0x84 / 4])
         return ((int (**)(int))current_game_engine)[0x84 / 4](
           iter.datum_handle);
-      return ((int (*)(int))FUN_000ae250)(iter.datum_handle);
+      return ((int (*)(int))game_engine_did_player_win_default)(iter.datum_handle);
     }
     player = (int)data_iterator_next(&iter);
   }
@@ -5503,7 +5503,7 @@ void FUN_000ae920(wchar_t *title_buf, int player_handle)
       if (win_cb)
         won = win_cb(player_handle);
       else
-        won = FUN_000ae250(player_handle);
+        won = game_engine_did_player_win_default(player_handle);
     }
     has_teams = 0;
     if (current_game_engine)

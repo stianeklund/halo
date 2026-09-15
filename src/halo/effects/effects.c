@@ -36,7 +36,7 @@ void effects_dispose(void)
  *     current game tick — i.e., the violence event is more than 30 ticks old.
  * Returns false if any check fails or if last_violent_time is NONE (-1).
  */
-bool FUN_0009c700(int object_handle)
+bool effects_object_is_corpse(int object_handle)
 {
   char *unit;
 
@@ -134,7 +134,7 @@ void effects_stop_on_first_person_weapon(int local_player_index)
  * out[0] = effect_data capacity, out[1] = effect_location_data capacity,
  * out[2] = number of active effects without looping/attached flags (bits 3-4).
  * 0x9c910 / effects.obj */
-void FUN_0009c910(short *out)
+void effects_information_get(short *out)
 {
   int elem_index;
   char *effect;
@@ -155,7 +155,7 @@ void FUN_0009c910(short *out)
  * effect_ptr[0x44] (scale_a) and/or effect_ptr[0x48] (scale_b) when the
  * corresponding bit (1<<bit_index) is set in flags_lo / flags_hi respectively.
  * 0x9c9a0 / effects.obj */
-float FUN_0009c9a0(int unused, int effect_ptr, float base_val,
+float effect_scale(int unused, int effect_ptr, float base_val,
                    uint32_t flags_lo, uint32_t flags_hi, uint8_t bit_index)
 {
   float val;
@@ -174,7 +174,7 @@ float FUN_0009c9a0(int unused, int effect_ptr, float base_val,
  * effect scale modifiers (effect_ptr[0x44]/[0x48]) to min_val via bit 2*N
  * and to the range via bit 2*N+1, then returns random_real_range + scaled_min.
  * 0x9c9f0 / effects.obj */
-float FUN_0009c9f0(int bit_index, int effect_ptr, uint32_t flags_lo,
+float effect_real_random_range(int bit_index, int effect_ptr, uint32_t flags_lo,
                    uint32_t flags_hi, unsigned int *seed, float min_val,
                    float max_val)
 {
@@ -196,20 +196,20 @@ float FUN_0009c9f0(int bit_index, int effect_ptr, uint32_t flags_lo,
   return random_real_range((int *)seed, 0.0f, range) + base;
 }
 
-/* Compute a scaled random velocity vector for an effect. Calls FUN_0009c9f0
+/* Compute a scaled random velocity vector for an effect. Calls effect_real_random_range
  * with bit_index=3 to get a scalar from [min_val, max_val]; if non-zero,
  * generates a random direction (random_seed_get_direction3d) and scales it by
  * that scalar. If the scalar is zero, copies the global forward vector instead.
  * EBX=effect_ptr, EDI=flags_hi (all callers pass through registers).
  * 0x9ca70 / effects.obj */
-void effects_information_get(int effect_ptr, uint32_t flags_hi, uint32_t *seed,
+void effect_random_angular_velocity(int effect_ptr, uint32_t flags_hi, uint32_t *seed,
                              float *velocity_out, float min_val, float max_val,
                              uint32_t flags_lo)
 {
   float scalar;
 
   scalar =
-    FUN_0009c9f0(3, effect_ptr, flags_lo, flags_hi, seed, min_val, max_val);
+    effect_real_random_range(3, effect_ptr, flags_lo, flags_hi, seed, min_val, max_val);
   if (scalar != 0.0f) {
     random_seed_get_direction3d(seed, velocity_out);
     velocity_out[0] *= scalar;
@@ -225,7 +225,7 @@ void effects_information_get(int effect_ptr, uint32_t flags_hi, uint32_t *seed,
 /* Effect part volume filter (0x9caf0). Tests whether an effect part should
  * spawn based on its creation type and the effect's trigger/kill volume.
  * type 0=always, 1=outside volume, 2=inside volume, 3=never. */
-bool FUN_0009caf0(int16_t part_type, void *position, void *effect_volumes)
+bool effect_allowed_by_environment(int16_t part_type, void *position, void *effect_volumes)
 {
   switch (part_type) {
   case 0:
@@ -248,7 +248,7 @@ bool FUN_0009caf0(int16_t part_type, void *position, void *effect_volumes)
  * the elapsed-time counter, and picks a random duration from the event's
  * min/max range. Uses the global or local random seed depending on the
  * effect tag's "non-deterministic" flag (bit 1). */
-void FUN_0009cb90(int effect_handle, int event_index)
+void effect_set_event(int effect_handle, int event_index)
 {
   char *effect;
   char *tag_data;
@@ -286,7 +286,7 @@ void FUN_0009cb90(int effect_handle, int event_index)
  * it to the event's location chain (0x9cc20). The node index at the start of
  * marker_data gets bit 15 set when is_particle is true, cleared when false;
  * 0xFFFF is left unchanged. Returns the new datum index or -1 on failure. */
-int FUN_0009cc20(int marker_data, int effect_datum, int event_index,
+int effect_build_location(int marker_data, int effect_datum, int event_index,
                  int is_particle)
 {
   int new_index;
@@ -324,7 +324,7 @@ int FUN_0009cc20(int marker_data, int effect_datum, int event_index,
  * looks for negative marker-resolved indices. For other types, skips
  * locations with negative (non -1) node indices. Recursive. */
 __declspec(noinline)
-void *FUN_0009cca0(void *effect, int *location_handle, int part_type)
+void *effect_location_get_next_instance(void *effect, int *location_handle, int part_type)
 {
   char *loc;
   uint16_t node_idx;
@@ -348,13 +348,13 @@ void *FUN_0009cca0(void *effect, int *location_handle, int part_type)
          local_player_count() == 1)) {
       node_idx = *(uint16_t *)(loc + 2);
       if (node_idx == 0xffff || !(node_idx & 0x8000)) {
-        loc = (char *)FUN_0009cca0(effect, location_handle, part_type);
+        loc = (char *)effect_location_get_next_instance(effect, location_handle, part_type);
         return loc;
       }
     } else {
       node_idx = *(uint16_t *)(loc + 2);
       if (node_idx != 0xffff && (node_idx & 0x8000)) {
-        loc = (char *)FUN_0009cca0(effect, location_handle, part_type);
+        loc = (char *)effect_location_get_next_instance(effect, location_handle, part_type);
         return loc;
       }
     }
@@ -366,7 +366,7 @@ void *FUN_0009cca0(void *effect, int *location_handle, int part_type)
  * time value through one of several curves: constant, step, linear,
  * quadratic, inverse quadratic, or cubic hermite (smoothstep). Returns
  * 0 when t == -1 (sentinel for "no duration"). */
-float FUN_0009cdd0(uint16_t transition_type, float t)
+float effect_evaluate_function_integral(uint16_t transition_type, float t)
 {
   if (t == -1.0f)
     return 0.0f;
@@ -429,7 +429,7 @@ void effect_stop(int effect_handle, char fade_out)
       cur_loop = *(short *)((char *)tag_data + 6);
       if ((cur_loop >= 0) &&
           (cur_loop + 1 < *(int *)((char *)tag_data + 0x34))) {
-        FUN_0009cb90(effect_handle, cur_loop + 1);
+        effect_set_event(effect_handle, cur_loop + 1);
         *(unsigned char *)(effect + 2) |= 4;
         return;
       }
@@ -443,7 +443,7 @@ void effect_stop(int effect_handle, char fade_out)
 /* Iterate all active effects whose BSP leaf index (effect+0x3c) is unset
  * (NONE). For each such effect, look up its attached location datum; if the
  * location's short field at +2 is valid and negative (pending reconnect flag),
- * attempt to re-acquire a location via FUN_0009cca0. On success, refresh the
+ * attempt to re-acquire a location via effect_location_get_next_instance. On success, refresh the
  * effect's world-point from the new location. On failure (or no location),
  * delete the effect entirely. */
 void effects_reconnect_to_structure_bsp(void)
@@ -468,7 +468,7 @@ void effects_reconnect_to_structure_bsp(void)
         location_handle = *(int *)(effect_location + 4);
         if ((*(int16_t *)(effect_location + 2) != (int16_t)NONE) &&
             (*(int16_t *)(effect_location + 2) < 0)) {
-          new_location = FUN_0009cca0(effect, &location_handle, 0);
+          new_location = effect_location_get_next_instance(effect, &location_handle, 0);
         } else {
           new_location = 0;
         }
@@ -535,7 +535,7 @@ bool dangerous_effects_near_player(void)
         node_index = *(short *)((char *)location + 2);
         /* negative (but not -1) node index → resolve via helper */
         if (node_index != -1 && node_index < 0) {
-          location = FUN_0009cca0(effect, &location_index, 0);
+          location = effect_location_get_next_instance(effect, &location_index, 0);
         }
         if (location == NULL)
           break;
@@ -581,7 +581,7 @@ bool dangerous_effects_near_player(void)
  * rotates direction_in by a random cone angle, and writes direction_out and
  * velocity_out = speed * direction_out. Inlines effect_compute_scale logic
  * for speed (bit 0/1) and cone angle (bit 2/3). */
-void FUN_0009d1f0(void *effect, unsigned int *seed, float *direction_in,
+void effect_random_translational_velocity(void *effect, unsigned int *seed, float *direction_in,
                   float *direction_out, float *velocity_out, float min_speed,
                   float max_speed, float cone_angle, int flags_lo, int flags_hi)
 {
@@ -592,7 +592,7 @@ void FUN_0009d1f0(void *effect, unsigned int *seed, float *direction_in,
   float cos_a;
   float sin_a;
 
-  speed = FUN_0009c9f0(0, (int)effect, flags_lo, flags_hi, seed, min_speed, max_speed);
+  speed = effect_real_random_range(0, (int)effect, flags_lo, flags_hi, seed, min_speed, max_speed);
 
   cone = cone_angle;
   if ((char)flags_lo & 4)
@@ -621,7 +621,7 @@ void FUN_0009d1f0(void *effect, unsigned int *seed, float *direction_in,
 /* Allocate a new effect datum and begin its first event (0x9d2d0).
  * Tries the effect pool; if full and this is a non-deterministic (particle)
  * effect, evicts the oldest deterministic effect to make room. */
-int FUN_0009d2d0(int tag_index, int object_index, int from_particle)
+int effect_allocate(int tag_index, int object_index, int from_particle)
 {
   int effect_index;
   char *tag;
@@ -677,7 +677,7 @@ int FUN_0009d2d0(int tag_index, int object_index, int from_particle)
   *(int *)(datum + 0x40) = object_index;
   *(int16_t *)(datum + 0x4c) = -1;
   *(int16_t *)(datum + 2) = 0;
-  FUN_0009cb90(effect_index, 0);
+  effect_set_event(effect_index, 0);
 
   return effect_index;
 }
@@ -686,7 +686,7 @@ int FUN_0009d2d0(int tag_index, int object_index, int from_particle)
  * Copies color from the provided pointer (or default if NULL) to datum+0x18,
  * validates it, copies velocity to datum+0x30, and stores scale at +0x44/+0x48.
  */
-void FUN_0009d430(int datum, int color_ptr, int velocity_ptr, float scale_a,
+void impulse_effect_initialize(int datum, int color_ptr, int velocity_ptr, float scale_a,
                   float scale_b)
 {
   char *d = (char *)datum;
@@ -727,8 +727,8 @@ void FUN_0009d430(int datum, int color_ptr, int velocity_ptr, float scale_a,
 
 /* Iterate effect events and spawn location-based sub-effects (0x9d4e0).
  * For each event in the effect tag, calls the marker callback to get marker
- * positions, then creates sub-effect instances via FUN_0009cc20. */
-void FUN_0009d4e0(int datum, void *callback)
+ * positions, then creates sub-effect instances via effect_build_location. */
+void effect_build_locations(int datum, void *callback)
 {
   typedef short (*marker_callback_fn)(int, void *, void *, int);
   marker_callback_fn cb;
@@ -758,7 +758,7 @@ void FUN_0009d4e0(int datum, void *callback)
     if (marker_count > 0) {
       is_particle = (callback == (void *)0x000dd190);
       for (j = 0; j < marker_count; j++) {
-        result = FUN_0009cc20((int)(marker_buf + (int)j * 0x6c), datum,
+        result = effect_build_location((int)(marker_buf + (int)j * 0x6c), datum,
                               event_index, is_particle);
         if (result == -1)
           break;
@@ -773,7 +773,7 @@ void FUN_0009d4e0(int datum, void *callback)
  * function, then walks the location chain spawning particles/effects at
  * each location with randomized position, direction, velocity, size, and
  * color. Handles node-matrix transforms for attached effects. */
-void FUN_0009d590(void *effect)
+void effect_generate_particles(void *effect)
 {
   char *ef = (char *)effect;
   char *tag_data;
@@ -826,11 +826,11 @@ void FUN_0009d590(void *effect)
         int ftol_prev, ftol_cur;
         int16_t count_delta;
 
-        trans_prev = FUN_0009cdd0(*(uint16_t *)(part + 0x68), prev_t);
+        trans_prev = effect_evaluate_function_integral(*(uint16_t *)(part + 0x68), prev_t);
         count = (int)*(uint8_t *)(ef + 0xdc + (int)part_index);
         ftol_prev = (int)(trans_prev * (float)count);
 
-        trans_cur = FUN_0009cdd0(*(uint16_t *)(part + 0x68), t);
+        trans_cur = effect_evaluate_function_integral(*(uint16_t *)(part + 0x68), t);
         count = (int)*(uint8_t *)(ef + 0xdc + (int)part_index);
         ftol_cur = (int)(trans_cur * (float)count);
 
@@ -848,7 +848,7 @@ void FUN_0009d590(void *effect)
 
           location_handle =
             *(int *)(ef + 0x5c + (int)*(int16_t *)(part + 8) * 4);
-          location = (char *)FUN_0009cca0(
+          location = (char *)effect_location_get_next_instance(
             effect, &location_handle, (int)*(uint16_t *)(part + 4));
 
           if (location != NULL) {
@@ -913,7 +913,7 @@ void FUN_0009d590(void *effect)
                                                      *(float *)(location + 0x38) + scaled_dir[2];
 
                   seed = random_math_get_local_seed_address();
-                  FUN_0009d1f0(effect, seed, (float *)(part + 0x20),
+                  effect_random_translational_velocity(effect, seed, (float *)(part + 0x20),
                                spawn_params.fields.direction,
                                spawn_params.fields.velocity,
                                *(float *)(part + 0x84), *(float *)(part + 0x88),
@@ -961,7 +961,7 @@ void FUN_0009d590(void *effect)
                   }
                 }
 
-                if (!FUN_0009caf0(*(int16_t *)part, world_pos,
+                if (!effect_allowed_by_environment(*(int16_t *)part, world_pos,
                                   (char *)effect + 0x10))
                   goto next_count;
 
@@ -1121,7 +1121,7 @@ void FUN_0009d590(void *effect)
                 spawn_count--;
               } while (spawn_count != 0);
 
-              location = (char *)FUN_0009cca0(
+              location = (char *)effect_location_get_next_instance(
                 effect, &location_handle, (int)*(uint16_t *)(part + 4));
             } while (location != NULL);
           }
@@ -1137,14 +1137,14 @@ void FUN_0009d590(void *effect)
 }
 
 /* Tag-class dispatch for effect location processing (0x9dcf0).
- * Called from FUN_0009e310 for each active location datum. Dispatches based on
+ * Called from effect_generate_parts for each active location datum. Dispatches based on
  * the tag class (obje/deca/jpt!/ligh/pctl/snd!) at loc_entry+0x14. */
 #ifdef _MSC_VER
 __declspec(noinline)
 #else
 __attribute__((noinline))
 #endif
-void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
+void effect_generate_part(float *position, void *effect, void *location, void *part,
                   float *forward, float *up, float scale)
 {
   char *ef = (char *)effect;
@@ -1165,7 +1165,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     uint16_t loc_node = *(uint16_t *)(loc + 2);
     int marker = (loc_node == 0xffff) ? -1 : (int)(loc_node & 0x7fff);
 
-    FUN_0013b290(*(int *)(loc_entry + 0x24), *(int *)(ef + 0x3c), marker,
+    light_new_unattached(*(int *)(loc_entry + 0x24), *(int *)(ef + 0x3c), marker,
                  (float *)(loc + 0x30), (float *)(loc + 0xc), scale);
     break;
   }
@@ -1203,7 +1203,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     float decal_scale;
 
     seed = (unsigned int *)random_math_get_local_seed_address();
-    FUN_0009d1f0(effect, seed, forward, dir_scratch, direction,
+    effect_random_translational_velocity(effect, seed, forward, dir_scratch, direction,
                  *(float *)(loc_entry + 0x40), *(float *)(loc_entry + 0x44),
                  *(float *)(loc_entry + 0x48),
                  (int)*(uint32_t *)(loc_entry + 0x60),
@@ -1213,7 +1213,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     decal_scale = random_real_range((int *)seed, *(float *)(loc_entry + 0x54),
                                     *(float *)(loc_entry + 0x58));
 
-    FUN_0009c4b0(*(int *)(loc_entry + 0x24), position, direction, decal_scale,
+    decal_new(*(int *)(loc_entry + 0x24), position, direction, decal_scale,
                  false, -1, 0);
     break;
   }
@@ -1235,7 +1235,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     *(float *)(placement + 0x48) = up[2];
 
     seed = (unsigned int *)get_global_random_seed_address();
-    FUN_0009d1f0(effect, seed, forward, dir_scratch,
+    effect_random_translational_velocity(effect, seed, forward, dir_scratch,
                  (float *)(placement + 0x28), *(float *)(loc_entry + 0x40),
                  *(float *)(loc_entry + 0x44), *(float *)(loc_entry + 0x48),
                  (int)*(uint32_t *)(loc_entry + 0x60),
@@ -1246,7 +1246,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     *(float *)(placement + 0x30) += vel[2];
 
     seed = (unsigned int *)get_global_random_seed_address();
-    effects_information_get((int)effect, *(uint32_t *)(loc_entry + 0x64), seed,
+    effect_random_angular_velocity((int)effect, *(uint32_t *)(loc_entry + 0x64), seed,
                             (float *)(placement + 0x4c),
                             *(float *)(loc_entry + 0x4c),
                             *(float *)(loc_entry + 0x50),
@@ -1301,7 +1301,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     particle_data.scale_factor = 1.0f;
 
     seed = (unsigned int *)random_math_get_local_seed_address();
-    FUN_0009d1f0(effect, seed, forward, dir_scratch, direction,
+    effect_random_translational_velocity(effect, seed, forward, dir_scratch, direction,
                  *(float *)(loc_entry + 0x40), *(float *)(loc_entry + 0x44),
                  *(float *)(loc_entry + 0x48),
                  (int)*(uint32_t *)(loc_entry + 0x60),
@@ -1311,7 +1311,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
     direction[1] += vel[1];
     direction[2] += vel[2];
 
-    FUN_000a1210(*(int *)(loc_entry + 0x24), position, direction, &particle_data,
+    particle_system_new_unattached(*(int *)(loc_entry + 0x24), position, direction, &particle_data,
                  scale);
     break;
   }
@@ -1330,7 +1330,7 @@ void FUN_0009dcf0(float *position, void *effect, void *location, void *part,
  * (0x9e0d0). Iterates the effect pool and for each effect whose object handle
  * (offset 0x3c) matches the given weapon_handle, asserts that
  * local_player_index is currently NONE, then sets it and re-processes the
- * effect's event/marker callbacks via FUN_0009d4e0 with the particle marker
+ * effect's event/marker callbacks via effect_build_locations with the particle marker
  * callback (first_person_weapon_get_marker_by_name). */
 void effects_start_on_first_person_weapon(int local_player_index,
                                           int weapon_handle)
@@ -1350,7 +1350,7 @@ void effects_start_on_first_person_weapon(int local_player_index,
     }
 
     *(int16_t *)(effect + 0x4c) = (int16_t)local_player_index;
-    FUN_0009d4e0((int)effect, (void *)0xdd190);
+    effect_build_locations((int)effect, (void *)0xdd190);
   }
 }
 
@@ -1358,7 +1358,7 @@ void effects_start_on_first_person_weapon(int local_player_index,
  * (0x9e180). Validates the forward vector, optionally transforms through the
  * node matrix, then builds a 4x3 orientation matrix at output+4 with position
  * embedded. */
-void FUN_0009e180(void *output, int16_t marker_index /* @<ax> */,
+void effect_marker_list_get_marker(void *output, int16_t marker_index /* @<ax> */,
                   void *creation_info /* @<ebx> */)
 {
   int16_t count = *(int16_t *)((char *)creation_info + 0x8);
@@ -1423,7 +1423,7 @@ void FUN_0009e180(void *output, int16_t marker_index /* @<ax> */,
                                      local_forward, local_up);
 }
 
-void FUN_0009e310(void *effect)
+void effect_generate_parts(void *effect)
 {
   char *ef = (char *)effect;
   char *tag_data;
@@ -1466,7 +1466,7 @@ void FUN_0009e310(void *effect)
           node_designator = *(uint16_t *)(location + 2);
 
           if (node_designator != 0xffff && (node_designator & 0x8000)) {
-            location = (char *)FUN_0009cca0(effect, &location_handle, 0);
+            location = (char *)effect_location_get_next_instance(effect, &location_handle, 0);
           }
 
           if (location == NULL)
@@ -1513,14 +1513,14 @@ void FUN_0009e310(void *effect)
           }
 
           loc_part = (int16_t *)loc_entry;
-          if (FUN_0009caf0(*loc_part, position, ef + 0x10) != 0) {
+          if (effect_allowed_by_environment(*loc_part, position, ef + 0x10) != 0) {
             scale = 1.0f;
             if (*(uint8_t *)(loc_entry + 0x60) & 0x20)
               scale = *(float *)(ef + 0x44);
             if (*(uint8_t *)(loc_entry + 0x64) & 0x20)
               scale *= *(float *)(ef + 0x48);
 
-            FUN_0009dcf0(position, effect, location, loc_entry, forward, up,
+            effect_generate_part(position, effect, location, loc_entry, forward, up,
                          scale);
           }
         }
@@ -1531,7 +1531,7 @@ void FUN_0009e310(void *effect)
   }
 }
 
-short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,
+short effect_marker_list_get_markers_by_name(int object_handle, void *event_elem, void *marker_buf,
                    int16_t max_markers)
 {
   char *creation_info = *(char **)0x4557e4;
@@ -1543,7 +1543,7 @@ short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,
       for (i = 0; i < *(int16_t *)(creation_info + 8); i++) {
         if (csstrcmp((const char *)event_elem,
                      *(char **)(*(int *)(creation_info + 0xc) + (int)i * 4)) == 0) {
-          FUN_0009e180((char *)marker_buf + (int)marker_count * 0x6c, i,
+          effect_marker_list_get_marker((char *)marker_buf + (int)marker_count * 0x6c, i,
                        creation_info);
           marker_count++;
           if (marker_count >= max_markers)
@@ -1555,7 +1555,7 @@ short FUN_0009e560(int object_handle, void *event_elem, void *marker_buf,
       return marker_count;
   }
 
-  FUN_0009e180(marker_buf, 0, *(char **)0x4557e4);
+  effect_marker_list_get_marker(marker_buf, 0, *(char **)0x4557e4);
   return 1;
 }
 
@@ -1637,7 +1637,7 @@ void effect_update(int effect_index, float elapsed)
           } else {
             /* clear completed flag and restart from event 0 */
             *(uint16_t *)((char *)effect + 2) = ef & 0xfff7;
-            FUN_0009cb90(effect_index, 0);
+            effect_set_event(effect_index, 0);
           }
         }
       }
@@ -1729,7 +1729,7 @@ event_loop:
     if (ef_flags & 1) {
       /* ---- have active event: update it ---- */
       if ((ef_flags & 0x10) == 0) {
-        FUN_0009d590(effect);
+        effect_generate_particles(effect);
       }
 
       if (transitioned) {
@@ -1775,7 +1775,7 @@ event_loop:
 
         /* start the chosen event */
         {
-          FUN_0009cb90(effect_index, (int)(int16_t)next_event);
+          effect_set_event(effect_index, (int)(int16_t)next_event);
         }
       }
     } else {
@@ -1826,7 +1826,7 @@ event_loop:
           flags_a = *(int *)((char *)part + 0xe0);
           flags_b = *(int *)((char *)part + 0xe4);
 
-          result = FUN_0009c9f0(5, (int)effect, (uint32_t)flags_a,
+          result = effect_real_random_range(5, (int)effect, (uint32_t)flags_a,
                                 (uint32_t)flags_b, (uint32_t *)seed2, lo, hi);
 
           /* __ftol2: convert float to byte count */
@@ -1844,7 +1844,7 @@ event_loop:
 
         /* create effect locations for the new event */
         if ((*(uint8_t *)((char *)effect + 2) & 0x10) == 0) {
-          FUN_0009e310(effect);
+          effect_generate_parts(effect);
         }
       }
     }
@@ -1860,12 +1860,12 @@ delete_effect:
 }
 
 /* Create a new effect attached to a specific object marker (0x9ee40).
- * Validates inputs, allocates an effect datum via FUN_0009d2d0, fills colour/
+ * Validates inputs, allocates an effect datum via effect_allocate, fills colour/
  * scale from the caller, stores attached_object handle, then — if debug
  * logging is active — reports whether the effect is "violent" (attached unit
  * recently received a damage event).  Builds a creation_info record with the
  * looked-up node matrix for the requested marker index, memsets the per-event
- * slot array, runs the marker-resolve callback (FUN_0009e560), and fires the
+ * slot array, runs the marker-resolve callback (effect_marker_list_get_markers_by_name), and fires the
  * first effect_update tick.  Returns the new effect datum index or NONE. */
 int effect_new_attached_from_markers(
   int effect_tag_index, int object_index, int attached_object,
@@ -1923,17 +1923,17 @@ int effect_new_attached_from_markers(
     system_exit(-1);
   }
 
-  handle = FUN_0009d2d0(effect_tag_index, object_index, 1);
+  handle = effect_allocate(effect_tag_index, object_index, 1);
   if (handle != NONE) {
     datum = (char *)datum_get(effect_data, handle);
-    FUN_0009d430((int)datum, *(int *)&unknown1, *(int *)&unknown2, scale_a,
+    impulse_effect_initialize((int)datum, *(int *)&unknown1, *(int *)&unknown2, scale_a,
                  scale_b);
     *(int *)(datum + 0x3c) = attached_object;
 
     /* violent-effect flag: check if attached unit recently had a damage event
      */
     if (*(bool *)0x2eebe0) {
-      if (FUN_0009c700(attached_object)) {
+      if (effects_object_is_corpse(attached_object)) {
         *(uint8_t *)(datum + 2) |= 0x40;
       }
     }
@@ -1974,7 +1974,7 @@ int effect_new_attached_from_markers(
 
     *(void **)0x4557e4 = creation_info;
     csmemset(datum + 0x5c, -1, 0x80);
-    FUN_0009d4e0((int)datum, (void *)&FUN_0009e560);
+    effect_build_locations((int)datum, (void *)&effect_marker_list_get_markers_by_name);
     effect_update(handle, 0.0f);
   }
   return handle;
@@ -2030,10 +2030,10 @@ int effect_new_unattached_from_markers(
     system_exit(-1);
   }
 
-  handle = FUN_0009d2d0(effect_tag_index, object_index, *(int *)&unknown3);
+  handle = effect_allocate(effect_tag_index, object_index, *(int *)&unknown3);
   if (handle != -1) {
     datum = (char *)datum_get(effect_data, handle);
-    FUN_0009d430((int)datum, *(int *)&unknown1, *(int *)&unknown2, scale_a,
+    impulse_effect_initialize((int)datum, *(int *)&unknown1, *(int *)&unknown2, scale_a,
                  scale_b);
     *(int *)(datum + 0x3c) = -1;
 
@@ -2055,7 +2055,7 @@ int effect_new_unattached_from_markers(
 
     *(void **)0x4557e4 = creation_info;
     csmemset(datum + 0x5c, -1, 0x80);
-    FUN_0009d4e0((int)datum, (void *)&FUN_0009e560);
+    effect_build_locations((int)datum, (void *)&effect_marker_list_get_markers_by_name);
     effect_update(handle, 0.0f);
   }
   return handle;
@@ -2085,7 +2085,7 @@ bool effects_update(float elapsed)
  * player. Returns 1 if local_player_count() > 2 (split-screen shortcut), if
  * distance-squared to any active local player's camera is below the threshold
  * at 0x253f00, or 0 otherwise. (0x9f3b0) */
-bool FUN_0009f3b0(void *param_1)
+bool material_effect_visible(void *param_1)
 {
   char result;
   short i;
@@ -2118,7 +2118,7 @@ bool FUN_0009f3b0(void *param_1)
  * Looks up the 'foot' tag by handle, walks two block levels using param_2 and
  * param_3 as indices, computes a position offset (param_4 + param_5 * dt),
  * then conditionally creates an unattached effect and/or impulse sound. */
-void FUN_0009f430(int param_1, short param_2, short param_3, void *param_4,
+void material_effect_new(int param_1, short param_2, short param_3, void *param_4,
                   void *param_5, void *param_6, float param_7)
 {
   int *tag_data;

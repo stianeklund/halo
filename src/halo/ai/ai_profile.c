@@ -1687,7 +1687,7 @@ int16_t FUN_000559a0(unsigned int encounter_handle /* @<eax> */, int field_0x34,
       void *dst_sq;
       const char *type_name;
       dst_sq = tag_block_get_element(dest_squads, (int)(short)found, 0xe8);
-      type_name = FUN_0003a760(*(short *)((char *)actr_tag + 0x14));
+      type_name = actor_type_get_name(*(short *)((char *)actr_tag + 0x14));
       error(2, (const char *)0x25c6b4 /* "%s -> %s (same-type %s)" */,
             debug_str, dst_sq, type_name);
     }
@@ -1739,7 +1739,7 @@ validate:
  * re-attaches live actors, rewrites pending creation records and BSP-resident
  * actors, then refreshes team status and dirty flags. match_flag =
  * (source==dest) skips identity mappings. encounter_handle (source) is @<eax>;
- * param_3/param_4 drive an optional per-actor FUN_00036dc0 (encounters.c passes
+ * param_3/param_4 drive an optional per-actor actor_stimulus_maneuvering (encounters.c passes
  * 0,0 so that path is inert). */
 void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
                   int param_3, int param_4)
@@ -1860,9 +1860,9 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
                        "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x65d, 1);
         system_exit(-1);
       }
-      FUN_0003baa0(actor_iter[1], dst_index, (int16_t)mapped);
+      actor_change_encounter(actor_iter[1], dst_index, (int16_t)mapped);
       if ((char)param_3 != 0)
-        FUN_00036dc0(actor_iter[1], (char)param_4, 0);
+        actor_stimulus_maneuvering(actor_iter[1], (char)param_4, 0);
     }
     actor = (void *)encounter_actor_iterator_next(actor_iter);
   }

@@ -7,7 +7,7 @@
  * ai_update, ai_clump, and enemies_can_see_player entry points.
  */
 
-/* FUN_0003f5f0: per-tick AI actor activation sweep.
+/* actors_update: per-tick AI actor activation sweep.
  * Called from ai_update on the first-frame/map-load branch.
  * Copies ai_globals[6..7] (int16_t) into ai_globals[4..5], then clears
  * both ai_globals[6..7] and the byte flag at ai_globals[3].
@@ -15,14 +15,14 @@
  * encounter_iterator_next/actor_iterator_next. For each actor record:
  *   - if record+0xb is nonzero: calls actor_erase(actor_handle, 0)
  *     to delete/dispose the actor entry.
- *   - if record+0xb is zero and record+0x6a > 0: calls FUN_0003ec80(@esi)
+ *   - if record+0xb is zero and record+0x6a > 0: calls actor_update(@esi)
  *     to activate the actor (full AI init sequence).
  * The datum handle comes from iter offset 0x14 (stored by actor_iterator_next).
  * Confirmed: void(void), called from ai_update at 0x41206 with no args.
- * Confirmed: FUN_0003ec80 takes @esi register arg (MOV ESI,[EBP-8]; CALL).
+ * Confirmed: actor_update takes @esi register arg (MOV ESI,[EBP-8]; CALL).
  * Confirmed: actor_erase is cdecl with 2 stack args (PUSH 0; PUSH EAX; CALL;
  * ADD ESP,8). */
-void FUN_0003f5f0(void)
+void actors_update(void)
 {
   char *g;
   char iter[0x1c]; /* extended AI actor iterator */
@@ -46,7 +46,7 @@ void FUN_0003f5f0(void)
     } else {
       if (*(int16_t *)(record + 0x6a) > 0) {
         /* actor ready for activation — full init via @esi */
-        FUN_0003ec80(*(int *)(iter + 0x14));
+        actor_update(*(int *)(iter + 0x14));
       }
     }
     record = (char *)actor_iterator_next(iter);
@@ -367,7 +367,7 @@ int ai_release_inactive_swarms(int result_description, char *more_to_release)
 /* Compare two AI records for sorting. Primary key: int at offset 8 (ascending).
    Secondary key: unsigned byte at offset 0 (ascending).
    Returns 1 if param_1 < param_2, -1 if param_1 > param_2, 0 if equal. */
-int FUN_0003fb00(unsigned char *param_1, unsigned char *param_2)
+int sub_3FB00(unsigned char *param_1, unsigned char *param_2)
 {
   if (*(int *)(param_2 + 8) < *(int *)(param_1 + 8)) {
     return 1;
@@ -426,7 +426,7 @@ int FUN_0003fb00(unsigned char *param_1, unsigned char *param_2)
  *   0x3fbfd / 0x3fc59  PUSH LEA [EBP-0x18] ->
  * FUN_000599c0((int)encounter_iter). ADD ESP,0xc at 0x3fc02 again folds the
  * preceding new(2)+next(1). 0x3fc7c  PUSH 0x3fb00 / PUSH 0xc / PUSH MOVSX
- * EDX,AX(count) / PUSH ESI+4 -> qsort(records, count, 12, FUN_0003fb00) [match]
+ * EDX,AX(count) / PUSH ESI+4 -> qsort(records, count, 12, sub_3FB00) [match]
  *
  * Uncertain: actor+8, actor+0xc, encounter+0xd, encounter+0x2a and
  * encounter+0x10 are left as raw offsets — only their widths and the sense of
@@ -480,7 +480,7 @@ void ai_find_inactive_encounters(void *working_memory,
 
   if (storage[0] > 0) {
     qsort(storage + 2, (size_t)(int)storage[0], 0xc,
-          (qsort_compar_proc)FUN_0003fb00);
+          (qsort_compar_proc)sub_3FB00);
   }
 }
 
@@ -603,7 +603,7 @@ bool ai_release_inactive_encounters(char *result_description,
  * game_allegiance_get_team_is_friendly, and returns true (1) when the
  * teams are NOT friendly (i.e. the unit is an enemy worth approaching).
  * If flag is non-zero and the check passes, sets the approach-active
- * flag at actor+0x2ed by calling FUN_00036e30.
+ * flag at actor+0x2ed by calling actor_stimulus_vehicle_eviction.
  * Confirmed: 3 args (PUSH count), no ADD ESP after final CALL, bool
  * return via AL; ADD ESP,8 after each of the two inner calls. */
 bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag)
@@ -624,7 +624,7 @@ bool ai_handle_unit_approach(int ai_handle, int unit_handle, bool flag)
         result = 1;
         if (flag) {
           /* set the approach-active flag at actor+0x2ed */
-          FUN_00036e30(ai_handle);
+          actor_stimulus_vehicle_eviction(ai_handle);
         }
       }
     }
@@ -1005,7 +1005,7 @@ void ai_update_team_status(void)
  * param_1).
  *
  * Confirmed: [EBP+8]=param_1 (int), [EBP+C]=param_2 (int),
- * [EBP+10]=velocity_ptr (ignored). The third arg is pushed by FUN_001a0a40 but
+ * [EBP+10]=velocity_ptr (ignored). The third arg is pushed by biped_bumped_object but
  * never accessed by this function.
  */
 void ai_handle_bump(int param_1, int param_2, float *velocity_ptr)
@@ -1131,13 +1131,13 @@ void ai_handle_damage(int unit_handle, int param_2, int param_3, float damage,
   }
 }
 
-/* FUN_00040570: spawn AI actors into vehicle seats from pending vehicle list.
+/* ai_place_pending_mounted_weapons: spawn AI actors into vehicle seats from pending vehicle list.
  * Called each tick from ai_update. Iterates the vehicle spawn queue stored
  * in the AI globals block: a count at offset +0x8b8 (int16_t) and an array
  * of object handles starting at offset +0x8bc. For each queued vehicle,
  * looks up its unit tag definition and walks the tag_block at tag+0x2e4
  * (element size 0x11c). For each seat element with a valid actor variant
- * tag index at element+0x104, creates an actor via FUN_0003f030 using the
+ * tag index at element+0x104, creates an actor via actor_place using the
  * vehicle's world position as the starting location, then boards the new
  * actor's unit into the vehicle at the corresponding seat index.
  * Clears the queue count to zero after processing.
@@ -1146,10 +1146,10 @@ void ai_handle_damage(int unit_handle, int param_2, int param_3, float damage,
  * Confirmed: outer loop uses CMP SI (16-bit comparison).
  * Confirmed: inner loop counter sign-extended via MOVSX EAX,AX.
  * Confirmed: csmemset size 0x1c, word at buffer+0x1a = 0xffff.
- * Confirmed: FUN_0003f030 args: 6 pushes, ADD ESP,0x2c (cleans 6 args + prior
+ * Confirmed: actor_place args: 6 pushes, ADD ESP,0x2c (cleans 6 args + prior
  * 5). Confirmed: unit_board_vehicle args: PUSH EDX(seat), PUSH EDI(vehicle),
  * PUSH EAX(unit). */
-void FUN_00040570(void)
+void ai_place_pending_mounted_weapons(void)
 {
   int g;
   int vehicle_handle;
@@ -1183,7 +1183,7 @@ void FUN_00040570(void)
         *(int16_t *)(starting_location + 0x1a) = (int16_t)0xffff;
         object_get_world_position(vehicle_handle,
                                   (vector3_t *)starting_location);
-        actor_handle = FUN_0003f030(*(int *)(seat_element + 0x104), -1, -1,
+        actor_handle = actor_place(*(int *)(seat_element + 0x104), -1, -1,
                                     starting_location, 0, 0);
         if (actor_handle != -1) {
           actor = datum_get(actor_data, actor_handle);
@@ -1358,14 +1358,14 @@ void ai_handle_exit_vehicle(int param_1)
   }
 }
 
-/* FUN_00040a40: clear the AI encounter/firing-position cache fields in the
+/* ai_flush_spatial_effects: clear the AI encounter/firing-position cache fields in the
  * globals block. Zeroes the int16_t counts at globals+0x130 and globals+0x132,
  * then csmemsets 0x280 bytes starting at globals+0x134 to zero.
  *
  * Confirmed: void(void) — no args, no return value.
  * Confirmed: three stores then CALL csmemset(globals+0x134, 0, 0x280).
  * Confirmed: ADD ESP,0xc (3 args); RET. */
-void FUN_00040a40(void)
+void ai_flush_spatial_effects(void)
 {
   int g;
 
@@ -1498,7 +1498,7 @@ void ai_initialize_for_new_map(void)
   ai_debug_initialize_for_new_map();
   FUN_00053650();
   FUN_0005dfa0();
-  actor_in_combat();
+  actors_initialize_for_new_map();
   FUN_00064150();
   encounters_initialize_for_new_map();
   ai_script_initialize_for_new_map();
@@ -1553,7 +1553,7 @@ void ai_update(void)
   if (should_update) {
     ai_debug_update();
     FUN_00053680();
-    FUN_00040570();
+    ai_place_pending_mounted_weapons();
     if (schedule_flag) {
       /* scripted/scheduled actor branch */
       actors_move_randomly();
@@ -1563,7 +1563,7 @@ void ai_update(void)
         /* first-frame / map-load branch */
         ai_conversation_update();
         FUN_0005de80();
-        FUN_0003f5f0();
+        actors_update();
         *(char *)(*(int *)0x632574 + 2) = 1;
       } else {
         /* accumulated-spawn branch */
@@ -1580,7 +1580,7 @@ void ai_update(void)
   }
 }
 
-/* FUN_000413c0: fill one ai_firing_pos_entry_t in the candidate buffer.
+/* ai_generate_line_of_fire_pill: fill one ai_firing_pos_entry_t in the candidate buffer.
  *
  * Register args (thunk loads before CALL):
  *   ESI = ai_firing_pos_entry_t *entry  — pointer to the slot to fill
@@ -1618,7 +1618,7 @@ void ai_update(void)
  *
  * Confirmed: cdecl, 1 stack arg, RET (no stack cleanup in callee).
  * Confirmed: ADD ESP,0x10 at 0x413e1 cleans all 4 pushes to 0x1a0890. */
-void FUN_000413c0(ai_firing_pos_entry_t *entry, int unit_handle,
+void ai_generate_line_of_fire_pill(ai_firing_pos_entry_t *entry, int unit_handle,
                   int actor_handle)
 {
   float height_offset;
@@ -1638,7 +1638,7 @@ void FUN_000413c0(ai_firing_pos_entry_t *entry, int unit_handle,
   entry->occupied = 0;
 }
 
-/* FUN_00041420: build the firing-position candidate list for an actor.
+/* ai_find_line_of_fire_friend_pills: build the firing-position candidate list for an actor.
  *
  * Iterates two linked lists:
  *   1. The actor's own encounter clump (via
@@ -1649,7 +1649,7 @@ void FUN_000413c0(ai_firing_pos_entry_t *entry, int unit_handle,
  *        - skip if member has no object (member+0x18 == -1)
  *        - skip if member is already targeting something (member+0x158 != -1)
  *        Calls prop_get_active_by_unit_index(actor_handle,
- * member_object_handle) to get a staging handle, then FUN_000413c0(@esi=entry,
+ * member_object_handle) to get a staging handle, then ai_generate_line_of_fire_pill(@esi=entry,
  * @edi=object_handle, actor_handle_from_64ab0) to fill the slot.
  *
  *   2. A secondary prop/enemy list (via FUN_00064540/FUN_00064570).
@@ -1661,7 +1661,7 @@ void FUN_000413c0(ai_firing_pos_entry_t *entry, int unit_handle,
  *        - verify via object_get_and_verify_type that object type bit 0 is set
  *        - skip if both are in the same encounter (same encounter handle)
  *        - skip if count >= max_count
- *        Calls FUN_000413c0(@esi=entry, @edi=entry_object_handle,
+ *        Calls ai_generate_line_of_fire_pill(@esi=entry, @edi=entry_object_handle,
  *        local_10[0]) to fill the slot.
  *
  * Returns count of candidates written (int16_t in BX, returned via AX).
@@ -1677,18 +1677,18 @@ void FUN_000413c0(ai_firing_pos_entry_t *entry, int unit_handle,
  * Confirmed: first loop iterator at [EBP-0x10] (12 bytes: handle/current/next).
  *            second loop iterator at [EBP-0xc] (8 bytes: actor_handle/next).
  *
- * Call-site verification table — call to FUN_000413c0 at 0x4149a:
+ * Call-site verification table — call to ai_generate_line_of_fire_pill at 0x4149a:
  *   arg      | binary source         | C expr             | match?
  *   stack[0] | PUSH EAX (ret 64ab0) | actor_handle_64ab0 | YES
  *   @esi     | LEA ESI,[buf+cnt*40] | &buf[count]        | YES
  *   @edi     | MOV EDI,[EDI+0x18]   | member_object_hdl  | YES
  *
- * Call-site verification table — call to FUN_000413c0 at 0x41567:
+ * Call-site verification table — call to ai_generate_line_of_fire_pill at 0x41567:
  *   arg      | binary source         | C expr             | match?
  *   stack[0] | PUSH ECX ([EBP-0xc]) | local_10[0]        | YES
  *   @esi     | LEA ESI,[buf+cnt*40] | &buf[count]        | YES
  *   @edi     | MOV EDI,[EDI+0x18]   | prop_object_handle | YES */
-int16_t FUN_00041420(int actor_handle, int16_t max_count,
+int16_t ai_find_line_of_fire_friend_pills(int actor_handle, int16_t max_count,
                      ai_firing_pos_entry_t *buf)
 {
   char *actor;
@@ -1716,7 +1716,7 @@ int16_t FUN_00041420(int actor_handle, int16_t max_count,
         staging =
           prop_get_active_by_unit_index(actor_handle, member_object_handle);
         /* entry ptr = buf + count*0x28; EDI = member_object_handle */
-        FUN_000413c0(&buf[count], member_object_handle, staging);
+        ai_generate_line_of_fire_pill(&buf[count], member_object_handle, staging);
         count++;
       }
       member = (char *)encounter_actor_iterator_next(iter_a);
@@ -1740,7 +1740,7 @@ int16_t FUN_00041420(int actor_handle, int16_t max_count,
           if (count < max_count) {
             prop_obj_handle = *(int *)(prop + 0x18);
             /* entry ptr = buf + count*0x28; EDI = prop_obj_handle */
-            FUN_000413c0(&buf[count], prop_obj_handle, local_10[0]);
+            ai_generate_line_of_fire_pill(&buf[count], prop_obj_handle, local_10[0]);
             count++;
           }
         }
@@ -1757,7 +1757,7 @@ int16_t FUN_00041420(int actor_handle, int16_t max_count,
 /* ai_test_line_of_fire: test whether the actor can fire at a target through any
  * candidate firing position, and return the best candidate handle.
  *
- * Builds up to 0x20 candidate firing-position entries via FUN_00041420
+ * Builds up to 0x20 candidate firing-position entries via ai_find_line_of_fire_friend_pills
  * (collecting nearby cover points / target-prop positions), then for each
  * entry:
  *   - skips entries whose handle_b matches excluded_handle (param_2)
@@ -1778,7 +1778,7 @@ int16_t FUN_00041420(int actor_handle, int16_t max_count,
  * Confirmed: global INC at 0x5ac6e4 = entry-attempt counter (word).
  * Confirmed: guard 0x5aca69 = ai_debug lineoffire enable flag.
  * Confirmed: EBX = param_5 (int *result_out) loaded at 0x000415cc AFTER
- *   the FUN_00041420 call+cleanup. EBX is callee-saved and used throughout.
+ *   the ai_find_line_of_fire_friend_pills call+cleanup. EBX is callee-saved and used throughout.
  * Confirmed: buf size = 0x508 bytes (SUB ESP,0x508; buf at EBP-0x508). */
 bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin,
                           float *offset, int *result_out)
@@ -1794,7 +1794,7 @@ bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin,
   success = 1;
   result_datum = -1;
 
-  count = (int)(int16_t)FUN_00041420(actor_handle, 0x20, buf);
+  count = (int)(int16_t)ai_find_line_of_fire_friend_pills(actor_handle, 0x20, buf);
 
   if (count > 0) {
     for (i = 0; i < count; i++) {

@@ -1149,7 +1149,7 @@ int FUN_00049c70(void)
  *
  * Confirmed: two stack parameters at [EBP+8] and [EBP+0xC] (Ghidra surfaced
  *   them as in_stack_00000004 / in_stack_00000008).  Both are passed straight
- *   through to the name->index lookups FUN_001a6cd0 / FUN_001a67e0, whose kb
+ *   through to the name->index lookups unit_get_speech_priority_by_name / dialogue_get_vocalization_type_by_name, whose kb
  *   declarations take `const char *`.  The old kb declaration of `(void)` was
  *   wrong and would have produced a caller/callee stack mismatch.
  * Confirmed: frame is PUSH EBP / MOV EBP,ESP / SUB ESP,0x38.  EBX and EDI are
@@ -1170,22 +1170,22 @@ int FUN_00049c70(void)
  *   0x4a005  MOV [EBP-0x34],EDX  record+0x04 <- sound definition index
  * Confirmed: datum_get is (actor_data, handle) -- PUSH EAX (the handle read
  *   from 0x5ac9f8) then PUSH [0x6325a4], ADD ESP,8 at 0x49f89.
- * Confirmed: FUN_001a68d0's pushes at 0x49fd6 are EAX(=&[EBP-0x8]),
+ * Confirmed: unit_test_speech's pushes at 0x49fd6 are EAX(=&[EBP-0x8]),
  *   ECX(=&[EBP-0x4]), 0, 1, 1, EBX, EDX, so left-to-right the arguments are
  *   (unit handle, vocalization index, 1, 1, NULL, &type, &sound index) and
  *   ADD ESP,0x1c confirms 7 stack dwords.
  * Confirmed: the single ADD ESP,0x8 at 0x49fb0 cleans both name-lookup pushes
- *   and the single ADD ESP,0x1c at 0x4a01b cleans FUN_001a6ef0's three pushes
+ *   and the single ADD ESP,0x1c at 0x4a01b cleans unit_speak's three pushes
  *   plus csmemset's three and ai_communication_packet_new's one -- MSVC
- *   coalesced the cleanups, so the ARG_COUNT hazards on FUN_001a67e0 and
- *   FUN_001a6ef0 are false positives.
+ *   coalesced the cleanups, so the ARG_COUNT hazards on dialogue_get_vocalization_type_by_name and
+ *   unit_speak are false positives.
  * Confirmed: the width of every compare is 16-bit -- TEST BX,BX / JLE (signed
  *   `> 0`), CMP AX,SI (`== -1`), TEST SI,SI -- so the three intermediates are
  *   `short`, not `int`.
  * Inferred: 0x5aca89 is a "debug speech requested" byte flag; it is set to 1
  *   unconditionally once the debug actor handle resolves, before the unit
  *   handle is even validated.
- * Uncertain: the two `1` arguments to FUN_001a68d0 are byte-width literals
+ * Uncertain: the two `1` arguments to unit_test_speech are byte-width literals
  *   (PUSH 1 twice) whose meaning is not recoverable from this call site. */
 void ai_debug_vocalize(const char *vocalization_name,
                        const char *vocalization_type_name)
@@ -1201,12 +1201,12 @@ void ai_debug_vocalize(const char *vocalization_name,
     actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)0x5ac9f8);
     *(uint8_t *)0x5aca89 = 1;
     if (*(int32_t *)((char *)actor + 0x18) != -1) {
-      vocalization_index = FUN_001a6cd0(vocalization_name);
-      vocalization_type = FUN_001a67e0(vocalization_type_name);
+      vocalization_index = unit_get_speech_priority_by_name(vocalization_name);
+      vocalization_type = dialogue_get_vocalization_type_by_name(vocalization_type_name);
       if (vocalization_index > 0 && vocalization_type != -1) {
         sound_definition_index = -1;
         communication_count =
-          FUN_001a68d0(*(int32_t *)((char *)actor + 0x18), vocalization_index,
+          unit_test_speech(*(int32_t *)((char *)actor + 0x18), vocalization_index,
                        1, 1, NULL, &vocalization_type, &sound_definition_index);
         if (communication_count != 0) {
           csmemset(communication, 0, 0x30);
@@ -1214,7 +1214,7 @@ void ai_debug_vocalize(const char *vocalization_name,
           *(short *)(communication + 0x02) = vocalization_type;
           *(int32_t *)(communication + 0x04) = sound_definition_index;
           ai_communication_packet_new(communication + 0x10);
-          FUN_001a6ef0(*(int32_t *)((char *)actor + 0x18), communication_count,
+          unit_speak(*(int32_t *)((char *)actor + 0x18), communication_count,
                        communication);
         }
       }
@@ -1239,12 +1239,12 @@ void ai_debug_vocalize(const char *vocalization_name,
  *   `local_2c[32]` at EBP-0x28 is NOT an independent local: EBP-0x28 is
  *   record + 0x10, so ai_communication_packet_new receives an interior pointer
  *   into the same buffer.  Declaring it as a second array would grow the frame
- *   past 0x38 and hand FUN_001a6ef0 the wrong bytes.  This is the same layout
+ *   past 0x38 and hand unit_speak the wrong bytes.  This is the same layout
  *   ai_debug_vocalize (0x49f60) uses.
  * Confirmed: [EBP-0x8] is a dword sound-definition index preset to -1 by
  *   MOV dword ptr [EBP-0x8],0xffffffff before the lookup, and [EBP-0x4] is a
  *   word vocalization type seeded from the 16-bit global at 0x6324ea.  Both
- *   are out-parameters of FUN_001a68d0 and are read back afterwards.
+ *   are out-parameters of unit_test_speech and are read back afterwards.
  * Confirmed global widths (all accesses are of the stated size; widening any
  *   of them changes the emitted load/store and the 0xd1 wraparound):
  *   0x6324e0  byte   speak-block active flag
@@ -1261,7 +1261,7 @@ void ai_debug_vocalize(const char *vocalization_name,
  *   object_try_and_get_and_verify_type (0x13d640) @ 0x4a054, ADD ESP,8
  *     1  | PUSH EAX (= [0x6324e4])          | *(int32_t *)0x6324e4      | yes
  *     2  | PUSH 3 (pushed first)            | 3                         | yes
- *   FUN_001a68d0 (0x1a68d0) @ 0x4a0d7, ADD ESP,0x1c (7 dwords)
+ *   unit_test_speech (0x1a68d0) @ 0x4a0d7, ADD ESP,0x1c (7 dwords)
  *     1  | PUSH EDX (= [0x6324e4])          | *(int32_t *)0x6324e4      | yes
  *     2  | PUSH 3                           | 3                         | yes
  *     3  | PUSH 0                           | 0                         | yes
@@ -1275,7 +1275,7 @@ void ai_debug_vocalize(const char *vocalization_name,
  *     3  | PUSH 0x30 (pushed first)         | 0x30                      | yes
  *   ai_communication_packet_new (0x42d20) @ 0x4a112
  *     1  | PUSH EAX (= LEA [EBP-0x28])      | communication + 0x10      | yes
- *   FUN_001a6ef0 (0x1a6ef0) @ 0x4a123
+ *   unit_speak (0x1a6ef0) @ 0x4a123
  *     1  | PUSH EDX (= [0x6324e4])          | *(int32_t *)0x6324e4      | yes
  *     2  | PUSH ESI (communication count)   | communication_count       | yes
  *     3  | PUSH ECX (= LEA [EBP-0x38]), 1st | communication             | yes
@@ -1285,21 +1285,21 @@ void ai_debug_vocalize(const char *vocalization_name,
  *   crt_strchr (0x1d95d0) @ 0x4a150
  *     1  | PUSH EAX (strstr result)         | p                         | yes
  *     2  | PUSH 0x5c (pushed first)         | '\\'                      | yes
- *   FUN_001a67b0 (0x1a67b0) @ 0x4a174 and @ 0x4a1b7, ADD ESP,8
+ *   dialogue_get_vocalization_name (0x1a67b0) @ 0x4a174 and @ 0x4a1b7, ADD ESP,8
  *     1  | PUSH EAX (= word [0x6324ea])     | *(int16_t *)0x6324ea      | yes
  *     2  | PUSH 0 (pushed first)            | 0                         | yes
  *   console_printf (0xff4d0) @ 0x4a184
  *     1  | PUSH 0 (pushed last)             | 0                         | yes
  *     2  | PUSH 0x259f2c                    | "%s: %s"                  | yes
- *     3  | PUSH EAX (FUN_001a67b0 result)   | FUN_001a67b0(index, 0)    | yes
+ *     3  | PUSH EAX (dialogue_get_vocalization_name result)   | dialogue_get_vocalization_name(index, 0)    | yes
  *     4  | PUSH ESI (pushed first)          | name                      | yes
  *   csstrcmp (0x8dcb0) @ 0x4a1c0
- *     1  | PUSH EAX (FUN_001a67b0 result)   | FUN_001a67b0(index, 0)    | yes
+ *     1  | PUSH EAX (dialogue_get_vocalization_name result)   | dialogue_get_vocalization_name(index, 0)    | yes
  *     2  | PUSH 0x25ad00 (pushed first)     | "unused"                  | yes
  *   The ADD ESP,0x1c at 0x4a12b is a single coalesced cleanup covering
  *   csmemset's three pushes, ai_communication_packet_new's one and
- *   FUN_001a6ef0's three, so the enrichment ARG_COUNT warnings on
- *   FUN_001a6ef0 ("cleanup=7, decl=3") and crt_strstr ("cleanup=3, decl=2")
+ *   unit_speak's three, so the enrichment ARG_COUNT warnings on
+ *   unit_speak ("cleanup=7, decl=3") and crt_strstr ("cleanup=3, decl=2")
  *   are false positives; the raw push counts above are 3 and 2.
  *
  * Store-offset table for the communication record (derived from the raw MOV
@@ -1326,7 +1326,7 @@ void ai_debug_vocalize(const char *vocalization_name,
  *   would drop two instructions.  The advance loop at 0x4a1a7 is a do/while
  *   whose bottom test re-reads the 16-bit global.
  *
- * Inferred: FUN_001a68d0's second argument 3 is a priority/importance selector
+ * Inferred: unit_test_speech's second argument 3 is a priority/importance selector
  *   (ai_debug_vocalize passes the looked-up vocalization index there instead),
  *   and a returned count below 2 means "nothing to say", which is why the
  *   printed tag name degenerates to "<none>".
@@ -1377,7 +1377,7 @@ void FUN_0004a030(void)
     vocalization_type = *(int16_t *)0x6324ea;
     sound_definition_index = -1;
     communication_count =
-      FUN_001a68d0(*(int32_t *)0x6324e4, 3, 0, 0, NULL, &vocalization_type,
+      unit_test_speech(*(int32_t *)0x6324e4, 3, 0, 0, NULL, &vocalization_type,
                    &sound_definition_index);
     if (communication_count >= 2) {
       csmemset(communication, 0, 0x30);
@@ -1386,7 +1386,7 @@ void FUN_0004a030(void)
       *(int16_t *)(communication + 0x00) = 4;
       *(int16_t *)(communication + 0x0c) = 0xf;
       ai_communication_packet_new(communication + 0x10);
-      FUN_001a6ef0(*(int32_t *)0x6324e4, communication_count, communication);
+      unit_speak(*(int32_t *)0x6324e4, communication_count, communication);
       if (sound_definition_index != -1) {
         name = tag_get_name(sound_definition_index);
         p = crt_strstr(name, "conditional");
@@ -1405,14 +1405,14 @@ void FUN_0004a030(void)
     } else {
       name = "<none>";
     }
-    console_printf(0, "%s: %s", FUN_001a67b0(*(int16_t *)0x6324ea, 0), name);
+    console_printf(0, "%s: %s", dialogue_get_vocalization_name(*(int16_t *)0x6324ea, 0), name);
     if (*(uint8_t *)0x6324e1 == 0) {
       *(int16_t *)0x6324ea = -1;
     } else {
       *(int16_t *)0x6324e8 = 0xf;
       do {
         *(int16_t *)0x6324ea = (int16_t)(*(int16_t *)0x6324ea + 1);
-        if (csstrcmp(FUN_001a67b0(*(int16_t *)0x6324ea, 0), "unused") != 0) {
+        if (csstrcmp(dialogue_get_vocalization_name(*(int16_t *)0x6324ea, 0), "unused") != 0) {
           break;
         }
         if (*(uint8_t *)0x6324e2 == 0) {
@@ -1435,7 +1435,7 @@ void FUN_0004a030(void)
  *
  * Confirmed ABI: __cdecl, ONE dword stack argument.  `MOV ECX,dword ptr
  *   [EBP+0x8]` at 0x4a23a reads the parameter and pushes it as the single
- *   argument of FUN_001a67e0(const char *), so the parameter is a name
+ *   argument of dialogue_get_vocalization_type_by_name(const char *), so the parameter is a name
  *   string.  The terminator is a plain RET (no RET n), and the kb.json
  *   declaration previously read "void ai_debug_speak(void);", which is wrong;
  *   it is corrected as part of this lift.
@@ -1448,10 +1448,10 @@ void FUN_0004a030(void)
  *   datum_get (0x119320)
  *     1  | PUSH EAX (= [0x6325a4])           | *(data_t **)0x6325a4 | yes
  *     2  | PUSH EAX (= [0x5ac9f8]), pushed 1st| *(int32_t *)0x5ac9f8| yes
- *   FUN_001a67e0 (0x1a67e0)
+ *   dialogue_get_vocalization_type_by_name (0x1a67e0)
  *     1  | PUSH ECX (= [EBP+0x8])            | name                 | yes
  *   The single ADD ESP,0xc at 0x4a248 cleans BOTH calls (8 + 4); MSVC
- *   coalesced the cleanups, so the ARG_COUNT hazard on FUN_001a67e0
+ *   coalesced the cleanups, so the ARG_COUNT hazard on dialogue_get_vocalization_type_by_name
  *   ("cleanup=3 stack args, decl=1") is a false positive.
  *
  * Confirmed store widths and order (LOADW-sensitive; derived from the raw
@@ -1462,7 +1462,7 @@ void FUN_0004a030(void)
  *   0x6324e8   | word  | 0                        | MOV word ptr [...],CX
  *   0x6324e1   | byte  | 0                        | same XOR-zeroed ECX
  *   0x6324e4   | dword | actor[+0x18]             | unit handle
- *   0x6324ea   | word  | FUN_001a67e0 result      | vocalization type index
+ *   0x6324ea   | word  | dialogue_get_vocalization_type_by_name result      | vocalization type index
  * Declaring 0x6324e8 / 0x6324ea as 32-bit or 0x5aca89 / 0x6324e0 / 0x6324e1
  * as anything wider than a byte changes the emitted store size.
  *
@@ -1486,7 +1486,7 @@ void ai_debug_speak(const char *name)
 
   if (*(int32_t *)0x5ac9f8 != -1) {
     actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)0x5ac9f8);
-    vocalization_type = FUN_001a67e0(name);
+    vocalization_type = dialogue_get_vocalization_type_by_name(name);
     if (*(int32_t *)((char *)actor + 0x18) != -1 && vocalization_type != -1) {
       *(uint8_t *)0x5aca89 = 1;
       *(uint8_t *)0x6324e0 = 1;
@@ -1597,7 +1597,7 @@ void ai_debug_speak(const char *name)
  *   original does not cache it, so neither do we.
  *
  * Inferred: the index column is an index into the engine's vocalization table
- *   (the same space ai_debug_speak's FUN_001a67e0 lookup returns), and the
+ *   (the same space ai_debug_speak's dialogue_get_vocalization_type_by_name lookup returns), and the
  *   values are the first vocalization of each named category.
  * Uncertain: the meaning of the individual bytes in 0x6324e0..0x6324e2 is not
  *   recoverable from these two call sites, so they are left as raw addresses;
@@ -1947,7 +1947,7 @@ void ai_debug_communication_ignore(int count, char **names)
  * argument-less wrapper around a bare FUN_0004a460() call.
  *
  * Call-site table for ai_debug_toggle_flags (last push = first arg, cdecl):
- *   arg5 lookup      PUSH 0x1a67e0  -> FUN_001a67e0, the same name->index
+ *   arg5 lookup      PUSH 0x1a67e0  -> dialogue_get_vocalization_type_by_name, the same name->index
  *                                      lookup ai_debug_speak uses for the
  *                                      vocalization type name
  *   arg4 vector_size PUSH 0xd1      -> 209 entries
@@ -1964,7 +1964,7 @@ void ai_debug_communication_ignore(int count, char **names)
  * disagree with the "communication" reading of that name: the sibling
  * suppress/ignore commands use the 57-entry communication-type table via
  * ai_communication_get_type_by_name (0x42ce0), whereas this one uses the
- * 209-entry vocalization-type lookup FUN_001a67e0 (0x1a67e0).  So the bit
+ * 209-entry vocalization-type lookup dialogue_get_vocalization_type_by_name (0x1a67e0).  So the bit
  * vector at 0x5aca24 is indexed by vocalization type, not communication
  * type.  Neither the vector nor the lookup has an independent name string,
  * so the kb name is kept as-is and the discrepancy is recorded here.
@@ -1975,7 +1975,7 @@ void ai_debug_communication_ignore(int count, char **names)
  * __FILE__ string of its own. */
 void ai_debug_communication_focus(int count, char **names)
 {
-  ai_debug_toggle_flags(count, names, 0x5aca24, 0xd1, FUN_001a67e0);
+  ai_debug_toggle_flags(count, names, 0x5aca24, 0xd1, dialogue_get_vocalization_type_by_name);
 }
 
 /* ai_debug_idle_look_clear: reset the idle-look debug block at 0x6323d4 to

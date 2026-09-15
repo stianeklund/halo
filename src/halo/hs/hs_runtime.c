@@ -80,7 +80,7 @@ bool hs_validate_syntax(char **error_info, char **error_text)
           }
           ok = offset_ok;
           if (ok) {
-            ok = FUN_000c73a0(datum_index);
+            ok = hs_parse_primitive(datum_index);
           }
         }
 
@@ -234,7 +234,7 @@ bool hs_validate_syntax(char **error_info, char **error_text)
 /* 0xc8720 — Compile-time argument type-checker for the HaloScript arithmetic
  * calls (`+', `-', `*', `/', min, max).
  *
- * ABI — the kb.json placeholder `void FUN_000c8720(void)' was WRONG; both
+ * ABI — the kb.json placeholder `void hs_parse_arithmetic(void)' was WRONG; both
  * stack slots are read and a byte is returned:
  *   - [EBP+0x8] is loaded at 0xc8748 and compared as SI (CMP SI,0x7 at
  *     0xc8751, CMP SI,0xc at 0xc8757), so argument 1 is the 16-bit
@@ -249,14 +249,14 @@ bool hs_validate_syntax(char **error_info, char **error_text)
  *     0x26f514/0x26f530/0x26f54c/0x26f568/0x26f584/0x26f5a0, stride 0x1c),
  *     exactly the six indices 7..0xc that the assert admits.
  *
- * hs_type_check is INLINED here rather than called (as in FUN_000c85b0 and
- * FUN_000c8f40): the body carries its own copy of the
+ * hs_type_check is INLINED here rather than called (as in hs_parse_logical and
+ * hs_parse_debug_string): the body carries its own copy of the
  * !hs_compile_globals.error assert (hs_compile.c line 0x48e) and dispatches
- * straight to FUN_000c73a0 (@EDI, constant-flag nodes, which also get
- * constant_type=6 at +0x2) or FUN_000c74c0 (@EBX).  Note EBX is loaded with
+ * straight to hs_parse_primitive (@EDI, constant-flag nodes, which also get
+ * constant_type=6 at +0x2) or hs_parse_nonprimitive (@EBX).  Note EBX is loaded with
  * the literal 6 at 0xc87d1 purely to feed the two word stores — the MOV
- * EBX,EDI at 0xc87fd is what supplies FUN_000c74c0's register argument, and
- * FUN_000c73a0 needs no move because EDI already holds the argument index.
+ * EBX,EDI at 0xc87fd is what supplies hs_parse_nonprimitive's register argument, and
+ * hs_parse_primitive needs no move because EDI already holds the argument index.
  * Arguments that already carry a type (+0x4 != 0) are skipped and leave the
  * running result untouched; BL is re-seeded to true at the top of every
  * iteration (0xc8795), so only the LAST argument's outcome can end the walk.
@@ -274,9 +274,9 @@ bool hs_validate_syntax(char **error_info, char **error_text)
  *   0x46b700 = hs_compile_globals.error_offset
  *   0x46b704 = hs_compile_globals.error_message buffer
  *
- * The name stays FUN_000c8720: the assert string proves which function
+ * The name stays hs_parse_arithmetic: the assert string proves which function
  * indices reach this callback, not the callback's own symbol name. */
-bool FUN_000c8720(int16_t function_index, int expression_index)
+bool hs_parse_arithmetic(int16_t function_index, int expression_index)
 {
   bool valid;
   char *node;
@@ -317,9 +317,9 @@ bool FUN_000c8720(int16_t function_index, int expression_index)
       node = (char *)datum_get(*(data_t **)0x5aa6c8, argument_index);
       if (*(uint8_t *)(node + 0x6) & 1) {
         *(int16_t *)(argument + 0x2) = 6;
-        valid = FUN_000c73a0(argument_index);
+        valid = hs_parse_primitive(argument_index);
       } else {
-        valid = FUN_000c74c0(argument_index);
+        valid = hs_parse_nonprimitive(argument_index);
       }
     }
 
@@ -383,10 +383,10 @@ bool FUN_000c8720(int16_t function_index, int expression_index)
  * Globals: 0x5aa6c8 = hs_syntax_data (data_t *), 0x46b6fc =
  * hs_compile_globals.error_message.
  *
- * The name stays FUN_000c88b0: the assert string proves which function indices
+ * The name stays hs_parse_equality: the assert string proves which function indices
  * reach this callback (it is installed twice, from the table entries at
  * 0x26f5bc and 0x26f5d8), not the callback's own symbol name. */
-bool FUN_000c88b0(int function_index, int expression_index)
+bool hs_parse_equality(int function_index, int expression_index)
 {
   char *node;
   int argument_nodes[2];
@@ -437,13 +437,13 @@ bool FUN_000c88b0(int function_index, int expression_index)
 }
 
 /* Type-check the argument list of an ordered-comparison call (`>', `<', `>=',
- * `<=').  This is the ordered sibling of FUN_000c88b0 above (equal/not_equal,
+ * `<=').  This is the ordered sibling of hs_parse_equality above (equal/not_equal,
  * indices 0xd/0xe): both collect exactly two arguments and unify the operand
  * types, but this one additionally requires the donor type to fall inside one
  * of two accepted ranges before it is propagated to the partner operand.
  *
  * ABI recovered from the disassembly.  The kb.json placeholder was
- * `void FUN_000c89c0(void)', which was wrong on every count:
+ * `void hs_parse_inequality(void)', which was wrong on every count:
  *   - Two cdecl stack arguments, matching every other parse callback in the
  *     table: [EBP+0x8] function_index (loaded as a dword at 0xc89c8, then
  *     compared as SI at 0xc89cb/0xc89d6) and [EBP+0xc] expression_index
@@ -468,7 +468,7 @@ bool FUN_000c88b0(int function_index, int expression_index)
  * Globals: 0x5aa6c8 = hs_syntax_data (data_t *), 0x46b6fc =
  * hs_compile_globals.error_message.
  *
- * The name stays FUN_000c89c0: the assert string proves which function
+ * The name stays hs_parse_inequality: the assert string proves which function
  * indices reach this callback, not the callback's own symbol name. */
 
 /* The reference re-calls datum_get for every single comparison of the node
@@ -499,10 +499,10 @@ bool FUN_000c88b0(int function_index, int expression_index)
    (HS_SYNTAX_NODE_TYPE(node_index) >= 6 &&     \
     HS_SYNTAX_NODE_TYPE(node_index) <= 8))
 
-bool FUN_000c89c0(int function_index, int expression_index)
+bool hs_parse_inequality(int function_index, int expression_index)
 {
   int argument_nodes[2];
-  /* As in FUN_000c88b0, the reference keeps the accept flag in the frame byte
+  /* As in hs_parse_equality, the reference keeps the accept flag in the frame byte
    * at [EBP-1] rather than in a register, which is what makes the frame 0xc
    * bytes (int[2] plus the flag) rather than 8; volatile pins it there. */
   volatile bool success;
@@ -727,9 +727,9 @@ bool hs_sleep_until_parse(int16_t function_index, int expression_index)
  * Globals: 0x5aa6c8 = hs_syntax_data (data_t *), 0x46b6fc =
  * hs_compile_globals.error_message, 0x46b700 = hs_compile_globals.error_offset.
  *
- * The name stays FUN_000c8d30: the assert string proves the function index
+ * The name stays hs_parse_wake: the assert string proves the function index
  * that reaches this callback, not the callback's own symbol name. */
-bool FUN_000c8d30(int function_index, int script_node)
+bool hs_parse_wake(int function_index, int script_node)
 {
   char *node;
   char *script;
@@ -776,7 +776,7 @@ bool FUN_000c8d30(int function_index, int script_node)
  * the index of its function-name node, whose +0x08 (next) is the first
  * argument. Each untyped argument (+0x04 == 0) is assigned the
  * debug-string type (9) and dispatched by its constant flag (+0x06 bit 0)
- * to FUN_000c73a0 (@EDI) or FUN_000c74c0 (@EBX). The walk stops at the
+ * to hs_parse_primitive (@EDI) or hs_parse_nonprimitive (@EBX). The walk stops at the
  * first failed check and returns false; the return value is BL, which the
  * epilogue moves to AL (MOV AL,BL at 0xc903e).
  *
@@ -790,7 +790,7 @@ bool FUN_000c8d30(int function_index, int script_node)
  *   0x5aa6c8 = hs_syntax_data (data_t*)
  *   0x46b6fc = hs_compile_globals.error_message
  */
-bool FUN_000c8f40(int16_t function_index, int expression_index)
+bool hs_parse_debug_string(int16_t function_index, int expression_index)
 {
   bool valid;
   int argument_index;
@@ -824,9 +824,9 @@ bool FUN_000c8f40(int16_t function_index, int expression_index)
       node2 = (char *)datum_get(*(data_t **)0x5aa6c8, argument_index);
       if (*(uint8_t *)(node2 + 0x6) & 1) {
         *(int16_t *)(node + 0x2) = 9;
-        valid = FUN_000c73a0(argument_index);
+        valid = hs_parse_primitive(argument_index);
       } else {
-        valid = FUN_000c74c0(argument_index);
+        valid = hs_parse_nonprimitive(argument_index);
       }
     }
 
@@ -906,7 +906,7 @@ int hs_compile(int source_length, const char *source, int *error_info,
     *(int *)0x46b700 = -1;
     hs_skip_whitespace(&cursor);
     if (*cursor != '\0') {
-      expr_datum = FUN_000c7be0(&cursor);
+      expr_datum = hs_tokenize(&cursor);
       if (*(int *)0x46b6fc == 0) {
         node1 = data_new_at_index(*(data_t **)0x5aa6c8);
         node2 = data_new_at_index(*(data_t **)0x5aa6c8);
@@ -979,7 +979,7 @@ bool hs_compile_source(int source_file_size, void *source_ptr,
     if (*cursor == '\0')
       return true;
 
-    expr_datum = FUN_000c7be0(&cursor);
+    expr_datum = hs_tokenize(&cursor);
     hs_skip_whitespace(&cursor);
 
     if (*(char **)0x46b6fc != NULL)
@@ -1073,14 +1073,14 @@ void hs_compile_cleanup(void)
  * is stale (it models the function as void(void) with an empty body); the
  * disassembly above is authoritative.
  *
- * The single caller is FUN_000bdef0 (CALL at 0xbdf19). Semantic role is
- * unknown beyond the byte-inversion, so the name is left as FUN_000c95c0. */
+ * The single caller is hs_not_evaluate (CALL at 0xbdf19). Semantic role is
+ * unknown beyond the byte-inversion, so the name is left as hs_not. */
 static __inline unsigned char hs_byte_cast(int val)
 {
   return (unsigned char)val;
 }
 
-unsigned char FUN_000c95c0(unsigned char value)
+unsigned char hs_not(unsigned char value)
 {
   return hs_byte_cast(value == 0);
 }
@@ -1103,12 +1103,12 @@ unsigned char FUN_000c95c0(unsigned char value)
  * cdecl: the first PUSH is the last argument, so ECX (= *(void **)0x2ee6d4)
  * is the color and EAX (= param_1) is the format string.
  *
- * param_1 arrives from FUN_000bdf40 as the first dword of an HS macro
+ * param_1 arrives from hs_print_evaluate as the first dword of an HS macro
  * function result record. Its pointee type is unproven beyond being the
  * string terminal_output formats, so the kb.json declaration keeps int and
  * the cast is local. Semantic role is otherwise unknown, so the name is left
- * as FUN_000c95d0. */
-void FUN_000c95d0(int param_1)
+ * as hs_print. */
+void hs_print(int param_1)
 {
   typedef void (*terminal_output_2_t)(void *, const char *);
 
@@ -1133,7 +1133,7 @@ void FUN_000c95d0(int param_1)
  * offset use in scenario.c/units.c. The roles of FUN_000ce200 and
  * FUN_000ce2b0 are unproven, so both keep their FUN_ names and the local
  * holding the FUN_000ce200 result stays mechanically named. */
-int FUN_000c95f0(void)
+int hs_players(void)
 {
   int result;
   int player_index;
@@ -1196,7 +1196,7 @@ int FUN_000c95f0(void)
  * hs_runtime_initialize_for_new_map; the older "return values buffer" label on
  * it elsewhere in this file is unproven prose, and the meaning of the
  * individual bits is likewise unproven, so every name here stays mechanical. */
-unsigned char FUN_000c9650(int16_t bit_index, int object_list, int state)
+unsigned char hs_trigger_volume_test_objects(int16_t bit_index, int object_list, int state)
 {
   char flag;
   int object_index;
@@ -1240,7 +1240,7 @@ clear_bit:
  * copy the position at +0x50, then test param_1 against that point and the
  * supplied angle scaled by the global at 0x253d4c. The parameter roles beyond
  * these mechanically observed uses are unproven. */
-char FUN_000c9700(int param_1, int param_2, float param_3)
+char hs_unit_can_see_object(int param_1, int param_2, float param_3)
 {
   vector3_t position;
   char result;
@@ -1260,7 +1260,7 @@ char FUN_000c9700(int param_1, int param_2, float param_3)
 
 /* 0xc9770 — Report whether any unit in arg0's object list can see object arg1
  * within the angle arg2.  Iterates arg0's children and returns true on the
- * first child that is a unit and for which FUN_000c9700 reports true.
+ * first child that is a unit and for which hs_unit_can_see_object reports true.
  *
  * Binary evidence (0xc9770..0xc97e3, cdecl, three stack args):
  *
@@ -1272,8 +1272,8 @@ char FUN_000c9700(int param_1, int param_2, float param_3)
  *   [EBP+0x10] -> EBX at 0xc9790 is loaded ONCE, before the loop head at
  *   0xc9793; [EBP+0xc] -> ECX at 0xc97a2 is reloaded every iteration.  The
  *   call at 0xc97a8 pushes EBX, then ECX, then ESI, so in cdecl order it is
- *   FUN_000c9700(child_handle, arg1, arg2) — the child handle is the FIRST
- *   argument (the seeing unit), matching FUN_000c9700 passing its param_1
+ *   hs_unit_can_see_object(child_handle, arg1, arg2) — the child handle is the FIRST
+ *   argument (the seeing unit), matching hs_unit_can_see_object passing its param_1
  *   straight to unit_can_see_point as the unit handle and resolving its param_2
  * as the object whose position is tested.  ADD ESP,0xc confirms three args; the
  *   artifact's §7_GETTER_SWALLOWED hazard was against a stale void(void) decl
@@ -1282,14 +1282,14 @@ char FUN_000c9700(int param_1, int param_2, float param_3)
  *   PUSH 3 / PUSH ESI / CALL 0x13d640 at 0xc9796 is
  *   object_try_and_get_and_verify_type(child, 3); a NULL result skips straight
  *   to the iterator advance at 0xc97b4, so non-unit children are ignored
- *   without calling FUN_000c9700.
+ *   without calling hs_unit_can_see_object.
  *
  *   Three distinct returns: XOR BL,BL at 0xc977f feeds MOV AL,BL at 0xc97dc
  *   for the "list was empty" exit (value 0), MOV AL,0x1 at 0xc97d3 for a hit,
  *   and XOR AL,AL at 0xc97ca for a fully-walked list — so the byte return is a
  *   boolean and the two zero exits are the same value.
  *
- *   arg2 is a float only because it is forwarded to FUN_000c9700's float
+ *   arg2 is a float only because it is forwarded to hs_unit_can_see_object's float
  *   param_3; this function itself never touches the FPU (it copies the dword
  *   through EBX), so the role of the value is unproven beyond that forward.
  *
@@ -1297,11 +1297,11 @@ char FUN_000c9700(int param_1, int param_2, float param_3)
  *   0xce450  = FUN_000ce450(list_handle, int *iter_state)  — first child
  *   0xce320  = FUN_000ce320(list_handle, int *iter_state)  — next child
  *   0x13d640 = object_try_and_get_and_verify_type(handle, type_mask)
- *   0xc9700  = FUN_000c9700(unit_handle, object_handle, angle)
+ *   0xc9700  = hs_unit_can_see_object(unit_handle, object_handle, angle)
  *
  * No callers in the binary (xrefs_to is empty), so the parameter names stay
  * mechanical. */
-unsigned char FUN_000c9770(int arg0, int arg1, float arg2)
+unsigned char hs_objects_can_see_object(int arg0, int arg1, float arg2)
 {
   int child;
   int iter_state;
@@ -1309,7 +1309,7 @@ unsigned char FUN_000c9770(int arg0, int arg1, float arg2)
   child = FUN_000ce450(arg0, &iter_state);
   while (child != -1) {
     if (object_try_and_get_and_verify_type(child, 3) != NULL &&
-        FUN_000c9700(child, arg1, arg2) != 0)
+        hs_unit_can_see_object(child, arg1, arg2) != 0)
       return 1;
     child = FUN_000ce320(arg0, &iter_state);
   }
@@ -1317,7 +1317,7 @@ unsigned char FUN_000c9770(int arg0, int arg1, float arg2)
 }
 
 /* 0xc9840 — Report whether any unit in arg0's object list can see the cutscene
- * flag arg1 within the angle arg2.  Same walk as FUN_000c9770 above, but the
+ * flag arg1 within the angle arg2.  Same walk as hs_objects_can_see_object above, but the
  * tested point comes from the scenario's 0x4e4 block instead of another object.
  *
  * Binary evidence (0xc9840..0xc98d2, cdecl, three stack args):
@@ -1330,7 +1330,7 @@ unsigned char FUN_000c9770(int arg0, int arg1, float arg2)
  *   MOV DI,word ptr [EBP+0xc] at 0xc985e is a 16-bit load hoisted ABOVE the
  *   loop head at 0xc9862, and MOVSX ECX,DI at 0xc9880 sign-extends it before
  *   it is pushed as the tag_block_get_element index — so the second parameter
- *   is a short, matching FUN_000c9de0's flag_index for the same block.
+ *   is a short, matching hs_effect_new's flag_index for the same block.
  *   TEST DI,DI / JZ 0xc98ad skips the visibility test (but NOT the iterator
  *   advance) when it is zero.
  *
@@ -1340,7 +1340,7 @@ unsigned char FUN_000c9770(int arg0, int arg1, float arg2)
  *   tag_block_get_element(scenario+0x4e4, flag_index, 0x5c) (ADD EAX,0x4e4 at
  *   0xc988e forms the block pointer, ADD ESP,0xc at 0xc9899 retires 3 args),
  *   and ADD EAX,0x24 at 0xc989c takes the element's +0x24 vector3 — the same
- *   field FUN_000c9de0 and players.c use for this block.
+ *   field hs_effect_new and players.c use for this block.
  *
  *   The float arg is the FIRST push of the unit_can_see_point call, not of
  *   tag_block_get_element: PUSH ECX at 0xc9879 only reserves the slot and
@@ -1348,7 +1348,7 @@ unsigned char FUN_000c9770(int arg0, int arg1, float arg2)
  *   PUSH EAX (the +0x24 point) / PUSH ESI (the child handle) follow, and
  *   ADD ESP,0xc at 0xc98a6 retires all three — so in cdecl order it is
  *   unit_can_see_point(child_handle, flag_position, angle * *(float
- * *)0x253d4c), identical to the forward in FUN_000c9700.
+ * *)0x253d4c), identical to the forward in hs_unit_can_see_object.
  *
  *   Two exits: MOV AL,0x1 at 0xc98cc on a hit, XOR AL,AL at 0xc98c3 when the
  *   list is walked out (which is also the empty-list exit), so the byte return
@@ -1365,7 +1365,7 @@ unsigned char FUN_000c9770(int arg0, int arg1, float arg2)
  * No callers in the binary (xrefs_to is empty), so the parameter names stay
  * mechanical; the role of arg2 beyond being scaled by 0x253d4c and forwarded
  * is unproven. */
-unsigned char FUN_000c9840(int arg0, short flag_index, float arg2)
+unsigned char hs_objects_can_see_flag(int arg0, short flag_index, float arg2)
 {
   int child;
   int iter_state;
@@ -1431,7 +1431,7 @@ unsigned char FUN_000c9840(int arg0, short flag_index, float arg2)
  *   0x13d680 = object_get_and_verify_type(int datum_handle, int type_mask)
  *   0xba500  = player_index_from_unit_index(int unit_index)
  *
- * Callers (0xc99ed in FUN_000c99e0, 0xc9adc in FUN_000c9a50, plus the self
+ * Callers (0xc99ed in hs_object_destroy, 0xc9adc in hs_object_destroy_all, plus the self
  * recursion) each push a single dword handle, which is what fixes the kb.json
  * decl from void(void) to bool(int); the recursive site's TEST AL,AL proves the
  * bool return.  Whether the mask-0x1c/flag-bit-1 tail means "item is held or at
@@ -1501,7 +1501,7 @@ bool FUN_000c98e0(int object_handle)
  *   Control flow: the handle!=-1 case is the fall-through with its own
  *   POP ESI/POP EBP/RET at 0xc99d1, and JZ 0xc99d4 skips to the create call,
  *   i.e. an early return out of the already-exists branch. */
-void FUN_000c9990(int16_t index)
+void hs_object_create(int16_t index)
 {
   if (index != -1) {
     if (object_name_list_get_handle(index) != -1) {
@@ -1514,7 +1514,7 @@ void FUN_000c9990(int16_t index)
   }
 }
 
-void FUN_000c99e0(int datum)
+void hs_object_destroy(int datum)
 {
   if (datum != -1) {
     if (!FUN_000c98e0(datum)) {
@@ -1529,7 +1529,7 @@ void FUN_000c99e0(int datum)
 /* 0xc9a20 — object-name iterator callback that deletes the named scenario
  * object if it currently exists.  Same body as the sibling callback 0xca110
  * minus its trailing re-create call, so this is the plain delete variant that
- * FUN_000c9bb0 hands to hs_object_iterate_names_containing.
+ * hs_object_destroy_containing hands to hs_object_iterate_names_containing.
  *
  * Binary evidence (0xc9a20..0xc9a44, cdecl, EBP frame, no saved registers):
  *
@@ -1546,20 +1546,20 @@ void FUN_000c99e0(int datum)
  *
  *   PUSH EAX / CALL 0xc99e0 / ADD ESP,0x4
  *     The handle — the CALL's own EAX result, not the name index — is
- *     forwarded to FUN_000c99e0, the int-taking player-guarded delete used by
+ *     forwarded to hs_object_destroy, the int-taking player-guarded delete used by
  *     `object_destroy`.  A local holds it so the C form does not re-invoke the
  *     lookup.  Both ADD ESP,0x4 cleanups are separate, one per call.
  *
  * No string reference names the owning script function, so the FUN_ name and
  * the mechanical parameter name stand. */
-void FUN_000c9a20(int16_t index)
+void hs_object_destroy_by_name(int16_t index)
 {
   int object_handle;
 
   if (index != -1) {
     object_handle = object_name_list_get_handle(index);
     if (object_handle != -1)
-      FUN_000c99e0(object_handle);
+      hs_object_destroy(object_handle);
   }
 }
 
@@ -1594,13 +1594,13 @@ void FUN_000c9a20(int16_t index)
  *   CMP [EAX+0xcc],EDI is object_data_t.parent_object_index (0xcc) against
  *   NONE — only root objects are considered.  MOV EAX,[EBP-0x8] is NOT a
  *   separate local: [EBP-0x8] is iter+0x8, object_iter_t.last_handle (the
- *   buffer-alias trap, same as in FUN_000c9d80 below).  That handle is pushed
+ *   buffer-alias trap, same as in hs_objects_delete_by_definition below).  That handle is pushed
  *   to FUN_000c98e0, whose TEST AL,AL / JNZ skips the delete when the object is
  *   player-related, so the delete runs only on !FUN_000c98e0(handle).
  *
  * No string in this function names the script it backs, so the FUN_ name
  * stands. */
-void FUN_000c9a50(void)
+void hs_object_destroy_all(void)
 {
   {
     data_iter_t player_iter;
@@ -1693,24 +1693,24 @@ void hs_object_iterate_names_containing(hs_object_name_iterator_t iterator,
   }
 }
 
-/* 0xc9b90 — Run FUN_000c9990 over every scenario object-name containing the
+/* 0xc9b90 — Run hs_object_create over every scenario object-name containing the
  * caller's string.  Confirmed at 0xc9b90..0xc9b96: MOV EBX,[EBP+8] loads the
  * one stack argument into the register slot that 0xc9b10 reads, PUSH offset
- * FUN_000c9990 supplies the callback, and ADD ESP,4 cleans the single push.
+ * hs_object_create supplies the callback, and ADD ESP,4 cleans the single push.
  * EAX is never consumed after the CALL, so the function is void. */
-void FUN_000c9b90(int substring)
+void hs_object_create_containing(int substring)
 {
-  hs_object_iterate_names_containing(FUN_000c9990, (const char *)substring);
+  hs_object_iterate_names_containing(hs_object_create, (const char *)substring);
 }
 
-/* 0xc9bb0 — Same shape as 0xc9b90 (MOV EBX,[EBP+8]; PUSH offset FUN_000c9a20;
- * CALL 0xc9b10; ADD ESP,4) with FUN_000c9a20 as the callback.  FUN_000c9a20's
+/* 0xc9bb0 — Same shape as 0xc9b90 (MOV EBX,[EBP+8]; PUSH offset hs_object_destroy_by_name;
+ * CALL 0xc9b10; ADD ESP,4) with hs_object_destroy_by_name as the callback.  hs_object_destroy_by_name's
  * kb.json decl was void(void); its own body reads the caller's argument as a
  * 16-bit value at [ESP+4] (Ghidra: in_stack_00000004, a short compared against
  * -1), which the shared callback type fixes to int16_t. */
-void FUN_000c9bb0(int substring)
+void hs_object_destroy_containing(int substring)
 {
-  hs_object_iterate_names_containing(FUN_000c9a20, (const char *)substring);
+  hs_object_iterate_names_containing(hs_object_destroy_by_name, (const char *)substring);
 }
 
 /* 0xc9bd0 — Return the object handle `index` steps into an HS object list,
@@ -1735,7 +1735,7 @@ void FUN_000c9bb0(int substring)
  *   loop body), so a list whose first element is NONE returns NONE without
  *   calling FUN_000ce320, and the value left in EAX at the epilogue is the
  *   return — the caller at 0xbe39b consumes it with PUSH EAX into hs_return. */
-int FUN_000c9bd0(int object_list, short index)
+int hs_object_list_get_element(int object_list, short index)
 {
   int iterator;
   int object_handle;
@@ -1781,7 +1781,7 @@ int FUN_000c9bd0(int object_list, short index)
  * spill was measured and made it WORSE (83.1%, 34 insns vs 31), so the
  * assignment form is kept.  The residual gap is FCOMP+reload versus the
  * original's FCOM-without-pop, which keeps the value live in ST(0). */
-void FUN_000c9c10(int object_handle, float fraction)
+void hs_object_set_shield(int object_handle, float fraction)
 {
   object_data_t *object;
 
@@ -1824,7 +1824,7 @@ void FUN_000c9c10(int object_handle, float fraction)
  *
  *   The tail always runs object_permute_region(handle, arg3, region_index, 1)
  *   — PUSH 1 / PUSH [EBP-4] / PUSH [EBP+0x10] / PUSH [EBP+8], ADD ESP,0x10. */
-void FUN_000c9c80(int object_handle, int region_name, int permutation_name)
+void hs_object_set_permutation(int object_handle, int region_name, int permutation_name)
 {
   char *object_tag;
   char *model_tag;
@@ -1870,7 +1870,7 @@ void FUN_000c9c80(int object_handle, int region_name, int permutation_name)
  *
  * kb.json previously modelled this as void(void); the caller at 0xbeb8c does
  * MOV EDX,[EAX] / PUSH EDX / CALL, which is what fixes the single argument. */
-void FUN_000c9d40(int object_list)
+void hs_objects_predict(int object_list)
 {
   int iterator;
   int object_handle;
@@ -1883,7 +1883,7 @@ void FUN_000c9d40(int object_list)
 }
 
 /* 0xc9d80 — Delete every live object whose definition tag index matches the
- * caller's, then run FUN_00145490.
+ * caller's, then run objects_memory_compact.
  *
  * Binary evidence (0xc9d80..0xc9dc0, cdecl, one stack arg, 0x10 bytes of
  * locals):
@@ -1909,7 +1909,7 @@ void FUN_000c9d40(int object_list)
  * spot: _sum_locals measures arrays, scalars and struct ARRAYS, so the bare
  * `object_iter_t iterator` counts as 0 even though types.h asserts
  * cs(object_iter_t, 0x10) — exactly the original SUB ESP,0x10. */
-void FUN_000c9d80(int tag_index)
+void hs_objects_delete_by_definition(int tag_index)
 {
   object_iter_t iterator;
   object_data_t *object;
@@ -1921,7 +1921,7 @@ void FUN_000c9d80(int tag_index)
       object_delete(iterator.last_handle);
     object = (object_data_t *)object_iterator_next(&iterator);
   }
-  FUN_00145490();
+  objects_memory_compact();
 }
 
 /* 0xc9de0 — Spawn an unattached effect at a scenario cutscene-flag: the flag's
@@ -1948,7 +1948,7 @@ void FUN_000c9d80(int tag_index)
  *   angles_to_vector (2) and effect_new_unattached_from_markers (12).  The two
  *   0x3f800000 immediates are the float scale arguments and the two PUSH 0
  *   immediately after them are the two trailing float arguments. */
-void FUN_000c9de0(int effect_tag_index, short flag_index)
+void hs_effect_new(int effect_tag_index, short flag_index)
 {
   vector3_t forward;
   char *flag;
@@ -1981,7 +1981,7 @@ void FUN_000c9de0(int effect_tag_index, short flag_index)
  *
  *   ADD ESP,0x30 at 0xc9e99 covers effect_new_attached_from_markers' 12 pushes
  *   alone; the marker lookup's 4 were already cleaned by ADD ESP,0x10. */
-void FUN_000c9e50(int effect_tag_index, int object_handle, int marker_name)
+void hs_effect_new_from_object_marker(int effect_tag_index, int object_handle, int marker_name)
 {
   char marker[0x6c];
 
@@ -2024,7 +2024,7 @@ void FUN_000c9e50(int effect_tag_index, int object_handle, int marker_name)
  *
  *   ADD ESP,0x24 at 0xc9f11 folds tag_block_get_element (3), damage_data_new
  *   (2), scenario_location_from_point (2) and FUN_00138e30 (2). */
-void FUN_000c9ec0(int damage_effect_tag_index, short flag_index)
+void hs_damage_new(int damage_effect_tag_index, short flag_index)
 {
   char damage_params[0x54];
   char *flag;
@@ -2055,7 +2055,7 @@ void FUN_000c9ec0(int damage_effect_tag_index, short flag_index)
  *   object_cause_damage(params, object_handle, -1, -1, -1, NULL).  ADD ESP,
  *   0x30 folds damage_data_new (2), object_get_world_position (2),
  *   scenario_location_from_point (2) and object_cause_damage (6). */
-void FUN_000c9f30(int damage_effect_tag_index, int object_handle)
+void hs_damage_object(int damage_effect_tag_index, int object_handle)
 {
   char damage_params[0x54];
 
@@ -2079,7 +2079,7 @@ void FUN_000c9f30(int damage_effect_tag_index, int object_handle)
  * in the body, so the name arrives in ESI as a register argument; it is PUSHed
  * again unchanged at 0xc9fb5 (second tag_loaded) and at 0xc9ff4 (the %s of the
  * error message).  kb.json's placeholder `void (void)` is corrected here to
- * `void *FUN_000c9f90(const char *sound_name @<esi>)`; the three RET sites all
+ * `void *hs_sound_get_gain_reference(const char *sound_name @<esi>)`; the three RET sites all
  * leave a value in EAX (ADD EAX,0x28 / ADD EAX,0x4 / XOR EAX,EAX), so the
  * return is a pointer and not void.
  *
@@ -2106,7 +2106,7 @@ void FUN_000c9f30(int damage_effect_tag_index, int object_handle)
  *
  * The meaning of the returned +0x28 / +0x4 sub-structures is unproven, so the
  * offsets are kept raw and the function keeps its FUN_ name. */
-void *FUN_000c9f90(const char *sound_name)
+void *hs_sound_get_gain_reference(const char *sound_name)
 {
   int tag_index;
   char *looping_sound;
@@ -2166,8 +2166,8 @@ void *FUN_000c9f90(const char *sound_name)
  * 0x5aa6a0 is the 0x20-byte (256-bit) block cleared by
  * hs_runtime_initialize_for_new_map; the meaning of the individual bits, of
  * the object list, and of the predicate are all unproven, so every name here
- * stays mechanical. The only caller is 0xbe0ac in FUN_000be080. */
-unsigned char FUN_000ca050(int16_t bit_index, int object_list)
+ * stays mechanical. The only caller is 0xbe0ac in hs_trigger_volume_test_objects_all_evaluate. */
+unsigned char hs_trigger_volume_test_objects_all(int16_t bit_index, int object_list)
 {
   char flag;
   int object_index;
@@ -2191,7 +2191,7 @@ unsigned char FUN_000ca050(int16_t bit_index, int object_list)
   return (unsigned char)flag;
 }
 
-/* 0xca0f0 — Two-argument forwarding wrapper onto FUN_000c9650 with the third
+/* 0xca0f0 — Two-argument forwarding wrapper onto hs_trigger_volume_test_objects with the third
  * argument forced to zero.
  *
  * Binary evidence (0xca0f0..0xca106, cdecl, EBP frame, no locals):
@@ -2204,7 +2204,7 @@ unsigned char FUN_000ca050(int16_t bit_index, int object_list)
  *   CALL 0xc9650 / ADD ESP,0xc / POP EBP / RET
  *
  *   The wrapper never writes EAX/AL, so the byte result the caller at 0xbe030
- *   zero-extends is FUN_000c9650's own return value. That callee ends with
+ *   zero-extends is hs_trigger_volume_test_objects's own return value. That callee ends with
  *   `MOV AL,BL` on both exit paths (0xc96c2, 0xc96f1), which is why its kb.json
  *   decl is corrected here from the placeholder `void (void)` to a three-stack-
  *   argument `unsigned char` function: [EBP+0x8] is MOVSX'd from DI (int16_t),
@@ -2213,9 +2213,9 @@ unsigned char FUN_000ca050(int16_t bit_index, int object_list)
  *
  * The meaning of the forwarded arguments and of the zero flag is unproven, so
  * both functions keep their FUN_ names and mechanical parameter names. */
-unsigned char FUN_000ca0f0(int16_t param_1, int param_2)
+unsigned char hs_trigger_volume_test_objects_any(int16_t param_1, int param_2)
 {
-  return FUN_000c9650(param_1, param_2, 0);
+  return hs_trigger_volume_test_objects(param_1, param_2, 0);
 }
 
 /* 0xca110 — object-name iterator callback for the `object_create_anew` script
@@ -2237,7 +2237,7 @@ unsigned char FUN_000ca0f0(int16_t param_1, int param_2)
  *     -1 test is "no such object right now".
  *
  *   PUSH EAX / CALL 0xc99e0 / ADD ESP,0x4
- *     The handle (not the name index) is forwarded to FUN_000c99e0, whose
+ *     The handle (not the name index) is forwarded to hs_object_destroy, whose
  *     kb.json decl is the int-taking player-guarded delete used by
  *     `object_destroy`.  The value pushed is the CALL's own EAX result, held
  *     in a local here because the C form must not re-invoke the lookup.
@@ -2250,15 +2250,15 @@ unsigned char FUN_000ca0f0(int16_t param_1, int param_2)
  *
  * The script-function name is not proven from a string reference here, so the
  * function keeps its FUN_ name and mechanical parameter name. */
-void FUN_000ca110(int16_t index)
+void hs_object_create_anew(int16_t index)
 {
   int object_handle;
 
   if (index != -1) {
     object_handle = object_name_list_get_handle(index);
     if (object_handle != -1)
-      FUN_000c99e0(object_handle);
-    FUN_000c9990(index);
+      hs_object_destroy(object_handle);
+    hs_object_create(index);
   }
 }
 
@@ -2285,7 +2285,7 @@ void FUN_000ca110(int16_t index)
  * forwarder at 0xca410 has the same shape with different constants. The
  * meaning of both parameters and of 0xca160 is unproven, so the names stay
  * mechanical. */
-void FUN_000ca3f0(int a, int b)
+void hs_object_teleport(int a, int b)
 {
   FUN_000ca160(a, b, 1, 1);
 }
@@ -2337,7 +2337,7 @@ void FUN_000ca3f0(int a, int b)
  * +0x34 is the player's unit object handle. The meanings of `cluster_index`,
  * of `param_2`, and of 0xca160 itself are unproven, so the names stay
  * mechanical. */
-void FUN_000ca430(int cluster_index, int param_2)
+void hs_teleport_players_not_in_trigger_volume(int cluster_index, int param_2)
 {
   int player_index;
   char *player;
@@ -2382,7 +2382,7 @@ void FUN_000ca430(int cluster_index, int param_2)
  *
  * The buffer is the caller's local (1024 bytes at 0xcd4a0), so no bound is
  * applied here — the original does not pass or check a size. */
-void FUN_000ca4e0(int16_t type, bool value, char *buffer)
+void hs_inspect_boolean(int16_t type, bool value, char *buffer)
 {
   if (type != 5) {
     display_assert("type==_hs_type_boolean",
@@ -2423,7 +2423,7 @@ void FUN_000ca4e0(int16_t type, bool value, char *buffer)
  *
  * The buffer is the caller's local (1024 bytes at 0xcd4a0), so no bound is
  * applied here — the original does not pass or check a size. */
-void FUN_000ca530(int16_t type, float value, char *buffer)
+void hs_inspect_real(int16_t type, float value, char *buffer)
 {
   if (type != 6) {
     display_assert("type==_hs_type_real",
@@ -2465,7 +2465,7 @@ void FUN_000ca530(int16_t type, float value, char *buffer)
  *
  * The buffer is the caller's local (1024 bytes at 0xcd4a0), so no bound is
  * applied here — the original does not pass or check a size. */
-void FUN_000ca580(int16_t type, int16_t value, char *buffer)
+void hs_inspect_short_integer(int16_t type, int16_t value, char *buffer)
 {
   if (type != 7) {
     display_assert("type==_hs_type_short_integer",
@@ -2504,7 +2504,7 @@ void FUN_000ca580(int16_t type, int16_t value, char *buffer)
  *
  * The buffer is the caller's local (1024 bytes at 0xcd4a0), so no bound is
  * applied here — the original does not pass or check a size. */
-void FUN_000ca5d0(int16_t type, long value, char *buffer)
+void hs_inspect_long_integer(int16_t type, long value, char *buffer)
 {
   if (type != 8) {
     display_assert("type==_hs_type_long_integer",
@@ -2537,7 +2537,7 @@ void FUN_000ca5d0(int16_t type, long value, char *buffer)
  *
  * As with the sibling handlers, the destination is the caller's local buffer
  * and the original applies no length bound. */
-void FUN_000ca620(int16_t type, const char *value, char *buffer)
+void hs_inspect_string(int16_t type, const char *value, char *buffer)
 {
   if (type != 9) {
     display_assert("type==_hs_type_string",
@@ -2590,7 +2590,7 @@ void FUN_000ca620(int16_t type, const char *value, char *buffer)
  *
  * As with the sibling handlers, the destination is the caller's local buffer
  * and the original applies no length bound. */
-void FUN_000ca670(int16_t type, int16_t enum_value, char *buffer)
+void hs_inspect_enum(int16_t type, int16_t enum_value, char *buffer)
 {
   char *enum_definition;
 
@@ -2630,7 +2630,7 @@ void FUN_000ca670(int16_t type, int16_t enum_value, char *buffer)
  * ARG_COUNT hazard on the second call site is that coalescing, not a
  * six-argument call). The 0x27d504*2 bound check is MOVSX + SHL 1 +
  * CMP 0x400 + JL, i.e. assert when count*2 >= 0x400. */
-void FUN_000CA700(void)
+void hs_runtime_initialize(void)
 {
   int16_t global_index;
 
@@ -2780,9 +2780,9 @@ int hs_thread_new(int script_index, int type)
 
 /* 0xcaa30 — Delete an HS thread by handle. Asserts that the thread's type is
  * not _hs_thread_type_script (type==0) before deleting. Called when a
- * console-command thread (type==2) finishes execution in FUN_000cd840.
+ * console-command thread (type==2) finishes execution in hs_thread_main.
  */
-void FUN_000caa30(int thread_handle)
+void hs_thread_delete(int thread_handle)
 {
   char *thread;
 
@@ -2965,7 +2965,7 @@ static void *hs_thread_stack_alloc(int thread_handle, int size)
 
 /* 0xcada0 — Find an HS thread whose script index (at +4) matches the given
  * index. Iterates hs_thread_data; returns the matching datum handle or -1. */
-int FUN_000cada0(int16_t script_index)
+int hs_find_thread_by_script(int16_t script_index)
 {
   int datum_index;
   char *thread;
@@ -2998,10 +2998,10 @@ int FUN_000cada0(int16_t script_index)
  *                                    left untouched
  *   MOV  EAX,dword ptr [EBP+0x8]   ; reload the full slot for the return
  *
- * The kb.json decl said `void FUN_000cae80(void)` and Ghidra's decompiler
+ * The kb.json decl said `void hs_long_to_boolean(void)` and Ghidra's decompiler
  * gave up with an empty `{ return; }` body; the disassembly above proves a
  * single dword argument and an EAX-carried return, so the decl is corrected
- * to `int FUN_000cae80(int)`. The partial byte store is preserved exactly
+ * to `int hs_long_to_boolean(int)`. The partial byte store is preserved exactly
  * (not simplified to a full-width `return arg == 0`) because it only leaves
  * the upper 3 bytes of the original argument untouched when the low byte is
  * overwritten — behaviorally faithful for whatever upper-byte content a
@@ -3011,7 +3011,7 @@ int FUN_000cada0(int16_t script_index)
  * slots of a function table, unrelated to the 0x2f43d0/0x2f50f8 tables next
  * to 0xcaf20/0xcaf80), so no ported caller constrains the argument's meaning
  * further; it keeps the unqualified `param_1` name. */
-int FUN_000cae80(int param_1)
+int hs_long_to_boolean(int param_1)
 {
   unsigned char *low_byte;
 
@@ -3035,16 +3035,16 @@ int FUN_000cae80(int param_1)
  *                                    left untouched
  *   MOV  EAX,dword ptr [EBP+0x8]   ; reload the full slot for the return
  *
- * The kb.json decl said `void FUN_000caea0(void)` and Ghidra's decompiler
+ * The kb.json decl said `void hs_short_to_boolean(void)` and Ghidra's decompiler
  * gave up with an empty `{ return; }` body; the disassembly above proves a
  * single dword argument and an EAX-carried return, so the decl is corrected
- * to `int FUN_000caea0(int)`.
+ * to `int hs_short_to_boolean(int)`.
  *
  * Referenced only from 0x2f42b0 [DATA], the middle slot of the same
  * function-table pair documented at 0xcae80 (0x2f42ac / 0x2f42b4) — no
  * ported caller constrains the argument's meaning further, so it keeps the
  * unqualified `param_1` name. */
-int FUN_000caea0(int param_1)
+int hs_short_to_boolean(int param_1)
 {
   unsigned char *low_byte;
 
@@ -3065,10 +3065,10 @@ int FUN_000caea0(int param_1)
  *   FSTP  float ptr [EBP+0x8]      ; round to float32, store back to the slot
  *   MOV   EAX,dword ptr [EBP+0x8]  ; return the float's raw bits via EAX
  *
- * The kb.json decl said `void FUN_000caf20(void)` and Ghidra's decompiler gave
+ * The kb.json decl said `void hs_enum_to_real(void)` and Ghidra's decompiler gave
  * up with an empty `{ return; }` body; the disassembly above proves both the
  * int16 argument and the EAX-carried float-bits return, so the decl is
- * corrected to `int FUN_000caf20(int16_t)`. Returning the bit pattern through
+ * corrected to `int hs_enum_to_real(int16_t)`. Returning the bit pattern through
  * EAX instead of ST0 matches the §31 implicit-EAX-return pattern (thunk/table
  * callers read a boxed 32-bit value generically, not through the FPU).
  *
@@ -3076,7 +3076,7 @@ int FUN_000caea0(int param_1)
  * a function table also holding FUN_000caf10/FUN_000caf40 and neighbors), so
  * no ported caller constrains the parameter's meaning; it keeps the
  * unqualified `param_1` name. */
-int FUN_000caf20(int16_t param_1)
+int hs_enum_to_real(int16_t param_1)
 {
   int local_1;
   float local_2;
@@ -3113,10 +3113,10 @@ int FUN_000caf20(int16_t param_1)
  *   MOV EAX,EDI                  ; return EDI (the FUN_000ce200 result, or
  *                                  the untouched -1 default)
  *
- * The kb.json decl said `void FUN_000caf80(void)` and Ghidra reported the
+ * The kb.json decl said `void hs_object_name_to_object_list(void)` and Ghidra reported the
  * argument as `in_stack_00000004` with no return; the disassembly above
  * proves both the single argument and the EAX return, so the decl is
- * corrected to `int FUN_000caf80(int16_t)` — int16_t because the only
+ * corrected to `int hs_object_name_to_object_list(int16_t)` — int16_t because the only
  * consumer, object_name_list_get_handle, takes int16_t, matching the same
  * dword-loaded/word-consumed pattern already documented at 0xc9990/0xc9a20.
  *
@@ -3124,7 +3124,7 @@ int FUN_000caf20(int16_t param_1)
  * the same HS function table that also holds 0xcafc0's five slots at
  * 0x2f50e4..0x2f50f4), so no ported caller constrains the signature further.
  * FUN_000ce200/FUN_000ce2b0 stay unproven and keep their FUN_ names. */
-int FUN_000caf80(int16_t index)
+int hs_object_name_to_object_list(int16_t index)
 {
   int result;
   int object_handle;
@@ -3151,10 +3151,10 @@ int FUN_000caf80(int16_t index)
  *   PUSH EDI / PUSH ESI / CALL 0xce2b0 / ADD ESP,0x8
  *   MOV EAX,ESI                  ; return the FUN_000ce200 result
  *
- * The kb.json decl said `void FUN_000cafc0(void)` and Ghidra reported the
+ * The kb.json decl said `void hs_object_to_object_list(void)` and Ghidra reported the
  * argument as `in_stack_00000004` with no return; the disassembly above proves
  * both the single dword parameter and the EAX return, so the decl is corrected
- * to `int FUN_000cafc0(int)`. The push order at 0xcafd7/0xcafd8 puts the
+ * to `int hs_object_to_object_list(int)`. The push order at 0xcafd7/0xcafd8 puts the
  * FUN_000ce200 result first and our own argument second, matching the
  * FUN_000ce2b0(result, handle) shape already lifted at 0xc95f0 and 0x547c0.
  *
@@ -3163,7 +3163,7 @@ int FUN_000caf80(int16_t index)
  * of FUN_000ce200/FUN_000ce2b0 stay unproven and keep their FUN_ names; the
  * parameter is named for the NONE test plus the two ported call sites that feed
  * object handles into the same FUN_000ce2b0 slot. */
-int FUN_000cafc0(int object_handle)
+int hs_object_to_object_list(int object_handle)
 {
   int result;
 
@@ -3288,7 +3288,7 @@ static int hs_can_cast(int thread_handle, int16_t actual_type,
  * hs_global_get_type (0xc3e60). ext_ptr+0x8 is the backing pointer to the live
  * C variable; NULL means use static default from the data segment.
  */
-static void FUN_000cb230(int loop_var)
+static void hs_global_reconcile_read(int loop_var)
 {
   char *datum_ptr;
   char *ext_ptr;
@@ -3583,10 +3583,10 @@ static void FUN_000cb230(int loop_var)
 }
 
 /* 0xcb7b0 — Write HS datum values back to external C globals, type-dispatched.
- * Reverse of FUN_000cb230: datum_ptr+4 → *ext_ptr+8. Only writes if the
+ * Reverse of hs_global_reconcile_read: datum_ptr+4 → *ext_ptr+8. Only writes if the
  * backing pointer (ext_ptr+8) is non-NULL.
  */
-void FUN_000cb7b0(int loop_var)
+void hs_global_reconcile_write(int loop_var)
 {
   char *datum_ptr;
   char *ext_ptr;
@@ -3703,7 +3703,7 @@ const char *hs_runtime_get_executing_thread_name(void)
 /* 0xcb9a0 — Wake the running HS thread whose script matches `script_name`.
  *
  * The by-name counterpart of hs_evaluate_wake (0xcc0e0), which resolves its
- * target by script *index* via FUN_000cada0.  Here FUN_000cae00 walks the
+ * target by script *index* via hs_find_thread_by_script.  Here FUN_000cae00 walks the
  * hs_thread datum pool, and for every thread with a valid script index
  * (thread+4 != -1) resolves that script's name from the scenario scripts
  * block (scenario+0x49c, stride 0x5c, name at +0) and _stricmp's it against
@@ -3822,16 +3822,16 @@ static void hs_return(int thread_handle, int value)
 }
 
 /* 0xcc0a0 — Resolve an HS global reference to its current value. Syncs
- * external globals via FUN_000cb230, then indexes into hs_globals_data.
+ * external globals via hs_global_reconcile_read, then indexes into hs_globals_data.
  * External globals (bit 0x8000 set) index directly; scenario globals
  * add hs_globals_start_index (0x27d504) as a base offset.
  */
-int FUN_000cc0a0(int16_t global_ref)
+int hs_global_evaluate(int16_t global_ref)
 {
   int index;
   char *datum_ptr;
 
-  FUN_000cb230((int)global_ref);
+  hs_global_reconcile_read((int)global_ref);
   if ((global_ref & 0x8000) == 0) {
     index = (global_ref & 0x7fff) + (int)*(int16_t *)0x27d504;
   } else {
@@ -3847,7 +3847,7 @@ int FUN_000cc0a0(int16_t global_ref)
  * Walks the current stack frame's expression down to the script-name argument
  * node: thread->stack_frame (+0x10) -> frame+4 = expression index -> node+0x10
  * = first child -> child+8 = next sibling. That node holds the script index at
- * +0x10 (int16). FUN_000cada0 maps script index -> running thread handle; when
+ * +0x10 (int16). hs_find_thread_by_script maps script index -> running thread handle; when
  * a thread is found, FUN_000cacf0 wakes it (clears its sleep_until / restores
  * the backed-up value). Always returns 0 to the calling thread.
  *
@@ -3896,7 +3896,7 @@ void hs_evaluate_wake(int16_t function_index, int thread_datum, char init)
     system_exit(-1);
   }
 
-  target_thread = FUN_000cada0(*(int16_t *)(script_name_node + 0x10));
+  target_thread = hs_find_thread_by_script(*(int16_t *)(script_name_node + 0x10));
   if (target_thread != -1) {
     FUN_000cacf0(target_thread);
   }
@@ -3907,7 +3907,7 @@ void hs_evaluate_wake(int16_t function_index, int thread_datum, char init)
 /* 0xcc1d0 — Evaluate an HS expression and store the result at dest_ptr.
  * If the expression is a constant, evaluates immediately via hs_can_cast.
  * If the expression is a global reference (reparse bit), resolves the global
- * first via FUN_000cc0a0 and hs_global_get_type before evaluating.
+ * first via hs_global_evaluate and hs_global_get_type before evaluating.
  * If the expression is non-constant, sets up the thread stack frame for
  * deferred evaluation: stores dest_ptr and expression_index in the stack
  * frame, pushes a new frame via hs_thread_push_frame, and sets the evaluation
@@ -3915,7 +3915,7 @@ void hs_evaluate_wake(int16_t function_index, int thread_datum, char init)
  *
  * Validates thread integrity (stack bounds) and asserts dest_ptr != NULL.
  */
-void FUN_000cc1d0(int thread_handle, int expression_index, void *dest_ptr)
+void hs_evaluate(int thread_handle, int expression_index, void *dest_ptr)
 {
   char *thread;
   char *expr;
@@ -3961,7 +3961,7 @@ void FUN_000cc1d0(int thread_handle, int expression_index, void *dest_ptr)
   if (*(uint8_t *)(expr2 + 0x6) & 1) {
     if (*(uint8_t *)(expr + 0x6) & 4) {
       /* Global reference (reparse bit): resolve via external global */
-      int resolved = FUN_000cc0a0(*(int16_t *)(expr + 0x10));
+      int resolved = hs_global_evaluate(*(int16_t *)(expr + 0x10));
       int16_t type = hs_global_get_type((uint16_t) * (int16_t *)(expr + 0x10));
       *(int *)dest_ptr =
         hs_can_cast(thread_handle, (int)type,
@@ -3985,7 +3985,7 @@ void FUN_000cc1d0(int thread_handle, int expression_index, void *dest_ptr)
  * the scenario scripts block (scenario+0x49c), allocates 4 bytes on the
  * thread stack, then either evaluates the script's expression tree (init)
  * or pops the frame with the stored result. */
-void FUN_000cc340(int16_t script_index, int thread_handle, char init)
+void hs_script_evaluate(int16_t script_index, int thread_handle, char init)
 {
   char *script;
   void *result;
@@ -3996,7 +3996,7 @@ void FUN_000cc340(int16_t script_index, int thread_handle, char init)
   result = hs_thread_stack_alloc(thread_handle, 4);
 
   if (init) {
-    FUN_000cc1d0(thread_handle, *(int *)(script + 0x24), result);
+    hs_evaluate(thread_handle, *(int *)(script + 0x24), result);
   } else {
     hs_return(thread_handle, *(int *)result);
   }
@@ -4007,7 +4007,7 @@ void FUN_000cc340(int16_t script_index, int thread_handle, char init)
  * the array, type-checking against the formal parameter list. Returns the
  * values array pointer when all arguments are evaluated, or 0 if still
  * processing. */
-int FUN_000cc3a0(int thread_datum, int16_t param_count, int formal_params,
+int hs_arguments_evaluate(int thread_datum, int16_t param_count, int formal_params,
                  char init)
 {
   char *thread;
@@ -4068,7 +4068,7 @@ int FUN_000cc3a0(int thread_datum, int16_t param_count, int formal_params,
     }
   }
 
-  FUN_000cc1d0(thread_datum, *expr_ptr, &values[(int)*arg_index]);
+  hs_evaluate(thread_datum, *expr_ptr, &values[(int)*arg_index]);
   {
     char *expr = (char *)datum_get(*(data_t **)0x5aa6c8, *expr_ptr);
     *expr_ptr = *(int *)(expr + 0x8);
@@ -4078,15 +4078,15 @@ int FUN_000cc3a0(int thread_datum, int16_t param_count, int formal_params,
 }
 
 /* 0xcc560 — Evaluate an HS built-in function call by dispatching to
- * FUN_000cc3a0 with the function's formal parameter count and types
+ * hs_arguments_evaluate with the function's formal parameter count and types
  * from the function descriptor table.
- * Returns FUN_000cc3a0's result — callers (e.g. ai_allegiance at 0xc06b0)
+ * Returns hs_arguments_evaluate's result — callers (e.g. ai_allegiance at 0xc06b0)
  * read EAX after this call to get the evaluated script value. */
 int hs_macro_function_evaluate(int16_t function_index, int thread_datum,
                                char init)
 {
   char *desc = (char *)hs_function_table_get(function_index);
-  return FUN_000cc3a0(thread_datum, *(int16_t *)(desc + 0x18),
+  return hs_arguments_evaluate(thread_datum, *(int16_t *)(desc + 0x18),
                       (int)(desc + 0x1a), init);
 }
 
@@ -4102,7 +4102,7 @@ int hs_macro_function_evaluate(int16_t function_index, int thread_datum,
  * On completion, marks continuous/dormant scripts as finished (sleep=-1)
  * and deletes console-command threads.
  */
-static void FUN_000cd840(int thread_handle)
+static void hs_thread_main(int thread_handle)
 {
   char *thread;
   char *script;
@@ -4168,7 +4168,7 @@ static void FUN_000cd840(int thread_handle)
     *(int16_t *)(*(char **)(thread + 0x10) + 0xc) = 0;
     {
       void *result = hs_thread_stack_alloc(thread_handle, 4);
-      FUN_000cc1d0(thread_handle, *(int *)(script + 0x24), result);
+      hs_evaluate(thread_handle, *(int *)(script + 0x24), result);
     }
     if (*(char **)(thread + 0x10) == stack_base)
       goto done;
@@ -4214,7 +4214,7 @@ static void FUN_000cd840(int thread_handle)
       {
         void *result = hs_thread_stack_alloc(thread_handle, 4);
         if (eval_flag) {
-          FUN_000cc1d0(thread_handle, *(int *)(ref_script + 0x24), result);
+          hs_evaluate(thread_handle, *(int *)(ref_script + 0x24), result);
         } else {
           hs_return(thread_handle, *(int *)result);
         }
@@ -4232,7 +4232,7 @@ done:
         return;
       }
     } else if (*(uint8_t *)(thread + 0x2) == 2) {
-      FUN_000caa30(thread_handle);
+      hs_thread_delete(thread_handle);
     }
   }
   *(int16_t *)0x46b812 = -1;
@@ -4303,12 +4303,12 @@ void hs_runtime_initialize_for_new_map(void)
         datum_ptr = (char *)datum_get(*(data_t **)0x5aa6c0, datum_idx);
         *(int *)(internal_thread + 4) = -1;
         *(int16_t *)(*(int *)(internal_thread + 0x10) + 0xc) = 0;
-        FUN_000cc1d0(thread_index, *(int *)(script_element + 0x28),
+        hs_evaluate(thread_index, *(int *)(script_element + 0x28),
                      (void *)(datum_ptr + 4));
         if (*(uint8_t *)(internal_thread + 3) & 1) {
-          FUN_000cd840(thread_index);
+          hs_thread_main(thread_index);
           if (*(int16_t *)(script_element + 0x20) == 0x17) {
-            FUN_000cb230((int)loop_var);
+            hs_global_reconcile_read((int)loop_var);
             if ((loop_var & 0x8000) == 0) {
               raw_idx = (int)*(int16_t *)0x27d504 + raw_idx;
             }
@@ -4327,7 +4327,7 @@ void hs_runtime_initialize_for_new_map(void)
             system_exit(-1);
           }
         }
-        FUN_000cb7b0((int)loop_var);
+        hs_global_reconcile_write((int)loop_var);
         loop_var++;
         raw_idx = (uint32_t)(short)loop_var;
       } while ((int)raw_idx < *(int *)((char *)scenario + 0x4a8));
@@ -4379,14 +4379,14 @@ void hs_runtime_initialize_for_new_map(void)
  *   - thread+0x2 == 2 (runtime/console thread type, same tag written by
  *     hs_runtime_execute) latches BL; thread+0x8 is the wake time — when it
  *     is non-negative and has not passed current time, the thread is run via
- *     FUN_000cd840 (@EAX = thread index, MOV EAX,ESI at 0xcde5e).
+ *     hs_thread_main (@EAX = thread index, MOV EAX,ESI at 0xcde5e).
  *   - after the sweep FUN_000ce3c0() runs unconditionally (0xcde80).
  *   - if no type-2 thread was seen, game_time_get() is sampled again and the
  *     MSVC signed-modulo idiom AND 0x8000000f / JNS / DEC / OR 0xfffffff0 /
  *     INC (0xcde91-0xcde9c) tests time % 16 == 0 before tail-calling
  *     hs_scripts_dispose (JMP 0xc3ca0 at 0xcde9f).
  *
- * 0xcd840 = FUN_000cd840 (@EAX = thread_handle)
+ * 0xcd840 = hs_thread_main (@EAX = thread_handle)
  *
  * Globals:
  *   0x46b810 = hs_runtime_globals.executing (uint8_t)
@@ -4417,7 +4417,7 @@ void hs_runtime_update(void)
 
     wake_time = *(int *)(thread + 0x8);
     if (wake_time >= 0 && wake_time <= current_time)
-      FUN_000cd840(thread_index);
+      hs_thread_main(thread_index);
   }
 
   FUN_000ce3c0();
@@ -4458,9 +4458,9 @@ int hs_runtime_execute(int thread_index)
       *(uint8_t *)(thread_ptr + 0x3) = 0;
       *(int *)(thread_ptr + 0x8) = 0;
       thread_ptr = (char *)datum_get(*(data_t **)0x5aa6c4, thread_handle);
-      FUN_000cc1d0(thread_handle, thread_index, (int *)(thread_ptr + 0x14));
+      hs_evaluate(thread_handle, thread_index, (int *)(thread_ptr + 0x14));
       if (*(uint8_t *)(thread_ptr + 0x3) & 1) {
-        FUN_000cd840(thread_handle);
+        hs_thread_main(thread_handle);
         return -1;
       }
       return *(int *)(thread_ptr + 0x14);
@@ -4682,7 +4682,7 @@ void FUN_000ce110(data_t *data, int first_reference)
  *   PUSH 0xc / PUSH 0x30 / PUSH 0x280edc("object list header") /
  *     CALL 0x1bfe10 -- game_state_data_new("object list header", 0x30, 0xc);
  *     result stored to *(data_t **)0x5aa698 (hs_object_list_header_data,
- *     per the comments on hs_runtime_initialize/dispose below).
+ *     per the comments on object_lists_initialize_for_new_map/dispose below).
  *   PUSH 0x280ed0("list object") / PUSH 0x280e94("%s reference") /
  *     PUSH EAX(&local_104) / CALL 0x1d90f0 -- crt_sprintf(local_104,
  *     "%s reference", "list object"); same format string and 256-byte
@@ -4695,7 +4695,7 @@ void FUN_000ce110(data_t *data, int first_reference)
  *     the call_site_audit ARG_COUNT hazard on the last call_site is this
  *     shared cleanup, not an extra argument to game_state_data_new.
  * No string names this function itself, so it keeps the FUN_ name -- it
- * pairs with hs_runtime_initialize/hs_runtime_dispose below as the
+ * pairs with object_lists_initialize_for_new_map/object_lists_dispose_from_old_map below as the
  * allocation half of the two-pool lifecycle they delete_all/make_invalid.
  */
 void FUN_000ce150(void)
@@ -4713,7 +4713,7 @@ void FUN_000ce150(void)
  * 0x5aa698 = hs_object_list_header_data (data_t*)
  * 0x5aa694 = hs_object_list_reference_data (data_t*)
  */
-void hs_runtime_initialize(void)
+void object_lists_initialize_for_new_map(void)
 {
   data_delete_all(*(data_t **)0x5aa698);
   data_delete_all(*(data_t **)0x5aa694);
@@ -4725,7 +4725,7 @@ void hs_runtime_initialize(void)
  * 0x5aa698 = hs_object_list_header_data (data_t*)
  * 0x5aa694 = hs_object_list_reference_data (data_t*)
  */
-void hs_runtime_dispose(void)
+void object_lists_dispose_from_old_map(void)
 {
   data_make_invalid(*(data_t **)0x5aa698);
   data_make_invalid(*(data_t **)0x5aa694);
@@ -4744,7 +4744,7 @@ void hs_runtime_dispose(void)
  * stays FUN_000ce200 (its five call sites already use that name).
  *
  * noinline: the original build compiled the object-list family in a separate
- * TU (the asserts name c:\halo\SOURCE\hs\object_lists.c), so FUN_000c95f0 in
+ * TU (the asserts name c:\halo\SOURCE\hs\object_lists.c), so hs_players in
  * this file calls it instead of expanding it inline. */
 __declspec(noinline) int FUN_000ce200(void)
 {
@@ -4843,8 +4843,8 @@ void FUN_000ce2b0(int param_1, int param_2)
  * real relocs to 0xce320.  Because our TU has the body in scope, cl.exe inlines
  * the whole thing into those callers (the 0x5aa694 datum_get and the node+0x4 /
  * node+0x8 loads show up in their codegen, none of which the reference
- * contains), which alone held FUN_000c9bd0 at 53.2% (49 insns vs 30) and
- * FUN_000c9d40 at 56.7% (41 vs 26).
+ * contains), which alone held hs_object_list_get_element at 53.2% (49 insns vs 30) and
+ * hs_objects_predict at 56.7% (41 vs 26).
  *
  * The guard is `_MSC_VER && !__clang__` because our clang build targets
  * i386-pc-win32 and therefore also defines _MSC_VER; this must apply to cl.exe

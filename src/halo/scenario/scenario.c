@@ -72,7 +72,7 @@ void FUN_0018B000(void)
  * players data pool (*(int*)0x5aa6d4) at player_data+0x34. The object qualifies
  * (returns 1) when it is that unit AND the director perspective for the local
  * player (director_get_perspective) is 0 (first-person). Otherwise it falls
- * back to FUN_00085150(object_handle) (observer/cinematic check) and returns 1
+ * back to scripted_camera_object_is_first_person_camera(object_handle) (observer/cinematic check) and returns 1
  * if that is set, else 0.
  * ABI: object_handle in ESI (@<esi>), frameless. Returns int bool. Sole caller
  * FUN_0018c100 sets ESI = *buf (the object handle). */
@@ -94,7 +94,7 @@ int FUN_0018b010(int object_handle)
     return 1;
   }
 
-  if (FUN_00085150(object_handle)) {
+  if (scripted_camera_object_is_first_person_camera(object_handle)) {
     return 1;
   }
   return 0;
@@ -221,7 +221,7 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
      * first-person perspective (unless observed) — or the debug override. */
     if ((((fp_unit != object_handle) ||
           (director_get_perspective(*(unsigned short *)0x506548) != 0)) &&
-         (FUN_00085150(object_handle) == 0)) ||
+         (scripted_camera_object_is_first_person_camera(object_handle) == 0)) ||
         (*(char *)0x506574 != 0)) {
       if (*(char *)(rd + 8) == 0) {
         if (parent_model_effect == 0) {
@@ -332,7 +332,7 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
                        *(unsigned short *)(obj + 0x126),
                        (*(char *)(rd + 9) != 0) ? 4 : 0);
           if (*(char *)0x506528 != 0) {
-            FUN_0013c920(object_handle);
+            object_type_render_debug(object_handle);
           }
         } else {
           /* Shadow pass: no record built (arg10 NULL, arg13 constant 2). */
@@ -625,9 +625,9 @@ void FUN_0018b990(void *volume)
  * 0x254f90, every 3 above 0x253f00, else every 10), but only for
  * dynamically-lit objects (object flags bit14). A stale state whose
  * transform also moved (>1 frame since state+0x10) forces a full rebuild.
- * Rebuild recomputes the desired lighting (FUN_0013bce0 into state+0x88)
+ * Rebuild recomputes the desired lighting (lights_prepare_for_object_static into state+0x88)
  * and stamps lod/submit-frame; when the tick counter advanced
- * (0x506544 vs state+0xc) the point lights are re-gathered (FUN_0013aa10).
+ * (0x506544 vs state+0xc) the point lights are re-gathered (lights_prepare_for_object_dynamic).
  * A forced rebuild copies desired -> current (state+0x14) wholesale
  * (0x74 bytes); a stale state with smooth lighting on (0x323c04) instead
  * fades current toward desired per field (ambient/distant colors and
@@ -683,7 +683,7 @@ void FUN_0018bc60(int render_state_index, int object_handle, float lod,
   if (force_rebuild != 0 || stale != 0) {
   rebuild:
     *(int *)(state + 4) = object_handle;
-    FUN_0013bce0(object_handle, (float *)(state + 0x88));
+    lights_prepare_for_object_static(object_handle, (float *)(state + 0x88));
     *(float *)(state + 0xfc) = lod;
     *(int *)(state + 8) = *(int *)0x506540;
     if (force_rebuild != 0)
@@ -691,7 +691,7 @@ void FUN_0018bc60(int render_state_index, int object_handle, float lod,
   }
   if (ticks > 0) {
   update_points:
-    FUN_0013aa10(object_handle, (int)(state + 0x88));
+    lights_prepare_for_object_dynamic(object_handle, (int)(state + 0x88));
     if (force_rebuild != 0)
       goto copy_all;
   }
@@ -819,7 +819,7 @@ int FUN_0018bf80(int object_handle, float lod)
  * (object_handle, lod). On success returns the datum's data + 0x14 from the
  * cluster-lighting pool (*(data_t**)0x50652c). On the NONE (-1) path, falls
  * back to the global lighting-state buffer at 0x4d8258: rebuilds its baseline
- * lighting (FUN_0013bce0) and its dynamic light markers (FUN_0013aa10), then
+ * lighting (lights_prepare_for_object_static) and its dynamic light markers (lights_prepare_for_object_dynamic), then
  * returns &DAT_004d8258. cdecl: object_handle [EBP+8], lod [EBP+0xc] (float,
  * forwarded bitwise to FUN_0018bf80). NOTE: kb name 'scenario_leaf_index_from
  * _point' appears to be a misnomer (object-handle arg, pointer return). */
@@ -831,8 +831,8 @@ void *scenario_leaf_index_from_point(int object_handle, float lod)
   if (index != -1) {
     return (void *)((int)datum_get(*(data_t **)0x50652c, index) + 0x14);
   }
-  FUN_0013bce0(object_handle, (float *)0x4d8258);
-  FUN_0013aa10(object_handle, 0x4d8258);
+  lights_prepare_for_object_static(object_handle, (float *)0x4d8258);
+  lights_prepare_for_object_dynamic(object_handle, 0x4d8258);
   return (void *)0x4d8258;
 }
 
@@ -849,7 +849,7 @@ void *scenario_leaf_index_from_point(int object_handle, float lod)
  * shadow drew (FUN_0018b830 returns non-zero), submits the object tree
  * (FUN_0018b190 with a NULL effect) and the shadow volume (FUN_0018b990
  * @<ecx>). Render pass: visibility is false only for attached objects
- * (flags bit0, +0xc8 == NONE) whose attachment 0x11c fails FUN_001363d0 —
+ * (flags bit0, +0xc8 == NONE) whose attachment 0x11c fails widgets_need_lighting —
  * and a NONE 0x11c returns outright; fetches the 'obje' tag def, resolves
  * lighting (or NULL when invisible), gates on editor_preprocess_rendered_object (retail stub:
  * always 1; args passed and ignored), zero-inits the type/modifier/node
@@ -921,7 +921,7 @@ void FUN_0018c100(void *record)
   } else {
     obj = (char *)object_get_and_verify_type(*(int *)rec, -1);
     if ((*(uint8_t *)(obj + 4) & 1) == 0 || *(int *)(obj + 0xc8) != -1 ||
-        (visible = (char)FUN_001363d0(*(int *)(obj + 0x11c))) != 0) {
+        (visible = (char)widgets_need_lighting(*(int *)(obj + 0x11c))) != 0) {
       visible = 1;
     } else if (*(int *)(obj + 0x11c) == -1) {
       return;
@@ -1346,7 +1346,7 @@ void FUN_0018c5b0(void)
  * query fills a 0x6c record whose +0x60 position the original read through
  * overlapping locals — or from the euler angles at elem+0x68 when the
  * marker name is empty; the light is placed far along that direction
- * (0x2b1b50) facing back (perpendicular basis), FUN_00139b40. Finally the
+ * (0x2b1b50) facing back (perpendicular basis), lights_queue_lens_flare. Finally the
  * node matrices are pulled into a scaled view space (scale 2^-10, position
  * * 0x2b1b4c), FUN_0017d1a0(1) selects the sky rasterizer mode, and the
  * model is drawn with unit region scales via the 13-arg render_model,
@@ -1475,7 +1475,7 @@ void render_sky(void)
               perp[1] = perp[1] * len;
               perp[2] = perp[2] * len;
             }
-            FUN_00139b40(*(int *)(elem + 0xc), (int *)pos2, (int)negdir,
+            lights_queue_lens_flare(*(int *)(elem + 0xc), (int *)pos2, (int)negdir,
                          (int)perp, *(float **)0x2ee708, 1.0f);
           }
         next_light:

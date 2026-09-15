@@ -592,7 +592,7 @@ char FUN_00043090(int param_1, int param_2, int param_3)
  * ABI (disasm 0x430d0-0x43266): three register arguments plus seven cdecl
  * stack slots. ECX -> ESI = vocalization_type, EAX -> EBX =
  * sound_definition_index_reference, EDX -> EDI = priority (the assert string
- * at 0xc1a names the first two and `weight`; the callee decl of FUN_001a68d0
+ * at 0xc1a names the first two and `weight`; the callee decl of unit_test_speech
  * names unit_handle/priority). Stack: [EBP+0x08] unit_handle, [EBP+0x0c]
  * param_5, [EBP+0x10] param_6, [EBP+0x14] param_7, [EBP+0x18] param_8,
  * [EBP+0x1c] weight, [EBP+0x20] failure_reason. Returns short: both exits do
@@ -603,7 +603,7 @@ char FUN_00043090(int param_1, int param_2, int param_3)
  *   - 0x4311e..0x43114 pushes seven args (ADD ESP,0x1c) in the order
  *     (unit_handle, priority, param_7, 1, &last_speech_time,
  *      vocalization_type, sound_definition_index_reference).
- *   - 0x43147 ADD ESP,0x10 merges FUN_001a6ca0's one-dword cleanup into
+ *   - 0x43147 ADD ESP,0x10 merges unit_get_speech_priority_name's one-dword cleanup into
  *     crt_sprintf's three, so the name lookup stays nested in the call.
  *   - 0x431a2 MOV ECX,0 / SETS CL / DEC ECX / AND ECX,EAX clamps the elapsed
  *     tick delta at zero (branchless `delta < 0 ? 0 : delta`).
@@ -633,11 +633,11 @@ short ai_communication_consider_speech(int *sound_definition_index_reference,
                  vocalization_type && sound_definition_index_reference &&
                    weight);
 
-  play_type = FUN_001a68d0(unit_handle, priority, param_7, 1, &last_speech_time,
+  play_type = unit_test_speech(unit_handle, priority, param_7, 1, &last_speech_time,
                            vocalization_type, sound_definition_index_reference);
   if (play_type == 0) {
     if (failure_reason != 0) {
-      crt_sprintf(failure_reason, "nospch-%s", FUN_001a6ca0(priority));
+      crt_sprintf(failure_reason, "nospch-%s", unit_get_speech_priority_name(priority));
     }
   } else if (play_type == 1) {
     *weight = *weight * *(float *)0x2533e4;
@@ -765,7 +765,7 @@ void ai_conversation_unit_died(int unit_handle, char param_2)
  * team from its actor-type definition flags. Confirmed via disasm
  * 0x43270-0x432ac: datum_get(actor_data, actor_handle) resolves the actor
  * record (no -1 guard on actor_handle, unlike FUN_00043050); the actor's
- * field_004 (int16_t, "meaning unproven") is passed to FUN_0003a770
+ * field_004 (int16_t, "meaning unproven") is passed to actor_type_get_race
  * (actor_type_definitions[actor_type]->+0x4 flags word, already ported in
  * actors.c). Bit 0x2 of that flags word (TEST AL,0x2) returns 0; bit 0x4
  * (TEST AL,0x4) returns 1; otherwise returns -1 (OR ECX,0xffffffff / MOV
@@ -781,7 +781,7 @@ int16_t actor_communication_team(int actor_handle)
   int16_t result;
 
   actor = (actor_t *)datum_get(actor_data, actor_handle);
-  flags = FUN_0003a770(actor->field_004);
+  flags = actor_type_get_race(actor->field_004);
   result = -1;
   if ((flags & 2) != 0) {
     return 0;
@@ -1349,9 +1349,9 @@ bool ai_conversation_line_begin(int conversation_handle)
  *     the `> 0 && --field == 0` form rather than three separate reads.
  *   - EBP-0x4 is written with a full dword (MOV dword ptr [EBP-0x4],EDX after
  *     XOR EDX,EDX / SETNZ DL), so the vocalization-type local is int-width and
- *     is passed to FUN_001a68d0 through a `short *` cast; EBP-0x8 is likewise
+ *     is passed to unit_test_speech through a `short *` cast; EBP-0x8 is likewise
  *     a dword -1.
- *   - FUN_001a68d0's pushes at 0x43e2d..0x43e45 are EAX(=&[EBP-0x8]),
+ *   - unit_test_speech's pushes at 0x43e2d..0x43e45 are EAX(=&[EBP-0x8]),
  *     ECX(=&[EBP-0x4]), 0, 0, 1, 1, EDX(=[ESI+0x18]); cdecl, so left-to-right
  *     the arguments are (unit handle, 1, 1, 0, NULL, &type, &sound index) and
  *     ADD ESP,0x1c confirms 7 stack dwords.
@@ -1362,18 +1362,18 @@ bool ai_conversation_line_begin(int conversation_handle)
  *   - The record stores are word [EBP-0x38]=1, word [EBP-0x36]=CX and dword
  *     [EBP-0x34]=EDX, i.e. record+0x00/+0x02/+0x04; MSVC sank the constant
  *     +0x00 store below the other two, the source order is ascending.
- *   - The single ADD ESP,0x1c at 0x43e94 cleans FUN_001a6ef0's three pushes
+ *   - The single ADD ESP,0x1c at 0x43e94 cleans unit_speak's three pushes
  *     plus csmemset's three and ai_communication_packet_new's one — MSVC
- *     coalesced the cleanups, so the ARG_COUNT hazard on FUN_001a6ef0
+ *     coalesced the cleanups, so the ARG_COUNT hazard on unit_speak
  *     (cleanup=7 vs decl=3) is a false positive.
  *   - MOV EDI,EAX; TEST DI,DI; JLE — the communication count is a signed
  *     16-bit `> 0` test.
- * Inferred: FUN_0003b120 (returns char, +0x6cc is a byte) is the actor
- *   "is fighting" predicate; the vocalization type passed to FUN_001a68d0 is
+ * Inferred: actor_in_combat (returns char, +0x6cc is a byte) is the actor
+ *   "is fighting" predicate; the vocalization type passed to unit_test_speech is
  *   just that flag widened, and vocalization index 1 is a literal at this
  *   call site.
  * Uncertain: the meaning of the `1`/`0` byte-width literals in arguments 3
- *   and 4 of FUN_001a68d0 is not recoverable from this call site. */
+ *   and 4 of unit_test_speech is not recoverable from this call site. */
 void actor_communication_update(int actor_handle)
 {
   char communication[0x30];
@@ -1385,7 +1385,7 @@ void actor_communication_update(int actor_handle)
 
   actor = (actor_t *)datum_get(*(data_t **)0x6325a4, actor_handle);
   if (actor->field_06a >= 2 && *(char *)(*(char **)0x632574 + 0x10) != '\0') {
-    fighting = FUN_0003b120(actor_handle);
+    fighting = actor_in_combat(actor_handle);
     if (actor->field_6ce == 0 || actor->field_6cc != fighting) {
       FUN_00043ce0(actor_handle);
     }
@@ -1393,7 +1393,7 @@ void actor_communication_update(int actor_handle)
       vocalization_type = (fighting != '\0');
       sound_definition_index = -1;
       communication_count =
-        FUN_001a68d0(actor->field_018, 1, 1, 0, NULL,
+        unit_test_speech(actor->field_018, 1, 1, 0, NULL,
                      (short *)&vocalization_type, &sound_definition_index);
       if (communication_count > 0) {
         csmemset(communication, 0, 0x30);
@@ -1401,7 +1401,7 @@ void actor_communication_update(int actor_handle)
         *(short *)(communication + 0x02) = (short)vocalization_type;
         *(int32_t *)(communication + 0x04) = sound_definition_index;
         ai_communication_packet_new(communication + 0x10);
-        FUN_001a6ef0(actor->field_018, communication_count, communication);
+        unit_speak(actor->field_018, communication_count, communication);
       }
     }
   }
@@ -1432,7 +1432,7 @@ void actor_communication_update(int actor_handle)
  *     SETL DL; DEC EDX; AND EAX,EDX — a branchless max(0, field-0x2d).
  *   - XOR ECX,ECX; MOV CX,word ptr [EAX+4] — the actor field at +0x4 is
  *     zero-extended, so it is read through an unsigned short.
- *   - TEST AL,0x2 / TEST AL,0x4 on FUN_0003a770's result select team index 0
+ *   - TEST AL,0x2 / TEST AL,0x4 on actor_type_get_race's result select team index 0
  *     and 1 respectively; neither bit set returns without touching anything.
  *   - The AI globals pointer at 0x632574 is re-loaded for each of the three
  *     high-water updates (0x43fe1, 0x43ffb, 0x44015), and EBP-0x4 is
@@ -1452,7 +1452,7 @@ void actor_communication_update(int actor_handle)
  *     scale — so it is read from memory twice rather than cached.
  *   - FLD f; FMUL [0x253394]; FIADD dword ptr [EBP-0xc]; _ftol2 is
  *     (int)(f * scale + ticks); _ftol2 is written as a plain cast.
- *   - Hazard ARG_COUNT on FUN_0003a770 (cleanup=3, decl=1) is a false
+ *   - Hazard ARG_COUNT on actor_type_get_race (cleanup=3, decl=1) is a false
  *     positive: the ADD ESP,0xc at 0x43fb1 is MSVC coalescing datum_get's
  *     two pushes with this call's single push.
  *   - Hazard ARG_COUNT on error (cleanup=8, decl=3) is likewise expected:
@@ -1460,7 +1460,7 @@ void actor_communication_update(int actor_handle)
  *     + six varargs.
  * Uncertain: param_2 and param_3 keep mechanical names.  param_2 indexes the
  *   three high-water slots and picks "talk" vs "chatter"; param_3 is only
- *   ever handed to FUN_001a67b0 for the debug line.  Neither meaning is
+ *   ever handed to dialogue_get_vocalization_name for the debug line.  Neither meaning is
  *   proven by a string or assert at this call site. */
 void ai_communication_update_speech_timers(int unit_handle, int16_t param_2,
                                            int16_t param_3,
@@ -1497,7 +1497,7 @@ void ai_communication_update_speech_timers(int unit_handle, int16_t param_2,
     FUN_00043ce0(*(int32_t *)(unit + 0x1a4));
     actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)(unit + 0x1a4));
     communication_flags =
-      FUN_0003a770((int16_t) * (uint16_t *)((char *)actor + 4));
+      actor_type_get_race((int16_t) * (uint16_t *)((char *)actor + 4));
     if ((communication_flags & 2) == 0) {
       if ((communication_flags & 4) == 0) {
         return;
@@ -1535,8 +1535,8 @@ void ai_communication_update_speech_timers(int unit_handle, int16_t param_2,
           speech_kind = "chatter";
         }
         error(2, "%s %s %d/%s: %s %d",
-              *(char **)(0x2c8d68 + (int)team_index * 8), FUN_001a6ca0(param_2),
-              (int)dialogue_type_index, FUN_001a67b0(param_3, 1), speech_kind,
+              *(char **)(0x2c8d68 + (int)team_index * 8), unit_get_speech_priority_name(param_2),
+              (int)dialogue_type_index, dialogue_get_vocalization_name(param_3, 1), speech_kind,
               ticks - base_ticks);
       }
     }

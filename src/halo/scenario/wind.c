@@ -59,7 +59,7 @@ typedef char wind_record_size_check[(sizeof(wind_record) == 0x20) ? 1 : -1];
  * stack (caller-cleaned). Constants: 1/3=0x259ec0, 8.0f=0x253f78,
  * 2^23=0x2b229c. Wind tick 0x5064c8 is re-read every iteration. Sole caller
  * FUN_00190240 (also wind.c). */
-void FUN_0018ff00(float *out, float *position, float scale, float magnitude)
+void wind_variance_get(float *out, float *position, float scale, float magnitude)
 {
   float timescale[3];
   float mag;

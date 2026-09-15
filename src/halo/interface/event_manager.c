@@ -42,7 +42,7 @@ void hud_update_weapon(void)
 
     unit = object_get_and_verify_type(unit_handle, 3);
     weapon_handle =
-      unit_get_weapon(unit_handle, *(unsigned short *)((char *)unit + 0x2a2));
+      unit_inventory_get_weapon(unit_handle, *(unsigned short *)((char *)unit + 0x2a2));
     if (weapon_handle != -1) {
       goto have_weapon;
     }
@@ -62,7 +62,7 @@ void hud_update_weapon(void)
       }
       other_unit = object_get_and_verify_type(*(int *)((char *)unit + 0xcc), 3);
       weapon_handle =
-        unit_get_weapon(*(int *)((char *)unit + 0xcc),
+        unit_inventory_get_weapon(*(int *)((char *)unit + 0xcc),
                         *(unsigned short *)((char *)other_unit + 0x2a2));
       if (weapon_handle != -1) {
         goto have_weapon;

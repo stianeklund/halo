@@ -44,10 +44,10 @@
 #define RNG_TRACE_KIND_SHIELD_AFTER  14u /* FUN_00136f40 shield vitality     info */
 #define RNG_TRACE_KIND_ANIM_CHOOSE   15u /* model_animation_choose_random: value=anim index, caller2=its caller  info */
 #define RNG_TRACE_KIND_UNIT_STATE    16u /* unit_animation_set_state entry: value=(anim_state<<8)|old_state, caller=its caller, caller2=unit handle  info */
-#define RNG_TRACE_KIND_ANIM_UPDATE_IN 17u /* FUN_001ab870 before original updater: value=state[1]<<16|state[0], caller=unit_update_animation site, caller2=unit handle  info */
-#define RNG_TRACE_KIND_ANIM_UPDATE_OUT 18u /* FUN_001ab870 after original updater: value=state[0]<<16|result, caller=unit_update_animation site, caller2=unit handle  info */
+#define RNG_TRACE_KIND_ANIM_UPDATE_IN 17u /* unit_animation_update before original updater: value=state[1]<<16|state[0], caller=unit_update_animation site, caller2=unit handle  info */
+#define RNG_TRACE_KIND_ANIM_UPDATE_OUT 18u /* unit_animation_update after original updater: value=state[0]<<16|result, caller=unit_update_animation site, caller2=unit handle  info */
 /* Turn-in-place fork gates in FUN_001a4c50, which is unported on BOTH builds.
- * Sampled in its ported caller (FUN_001a6350) rather than inside the fork: the
+ * Sampled in its ported caller (biped_update) rather than inside the fork: the
  * fork performs no write to any of these four fields before the gate chain at
  * 0x1a5109, so the caller's read is the same value the gates see.  The pristine
  * host gets the identical record from a binary probe at 0x1a5109
@@ -86,7 +86,7 @@
  * function last wrote the desired facing.  Paired capture proved our cosine is
  * a bit-exact constant (self-dot) while the pristine host sweeps a real turn,
  * so unit+0x1d4 equals unit+0x24 on our build.  Three candidate writers remain
- * (unit_set_control's producer, FUN_001b3690's static arm, players.c's
+ * (unit_set_control's producer, unit_update's static arm, players.c's
  * input-disabled arm) and +0x1b4 bit 0 picks the second of them. */
 #define RNG_TRACE_KIND_DESIRED_X     28u /* raw bits of unit+0x1d4  info */
 #define RNG_TRACE_KIND_CURRENT_X     29u /* raw bits of unit+0x24   info */
@@ -101,15 +101,15 @@
  * binary detour at 0x141793.  Separates "the radius query returned a
  * different candidate set" from "the unported applier rejected it". */
 #define RNG_TRACE_KIND_RADIUS_HIT    32u /* object_find_in_radius accept: value=object position z bits (obj+0x58), caller2=object handle  info */
-#define RNG_TRACE_KIND_LOS_RESULT    33u /* FUN_0014df70 exit, only when returning into FUN_00138900 or the projectile sweep FUN_000f8720 (value bit 31 set): value=(result<<16)|(uint16)collision_result[0], caller2=hit-t float bits  info */
+#define RNG_TRACE_KIND_LOS_RESULT    33u /* FUN_0014df70 exit, only when returning into FUN_00138900 or the projectile sweep projectile_collision_test_line (value bit 31 set): value=(result<<16)|(uint16)collision_result[0], caller2=hit-t float bits  info */
 #define RNG_TRACE_KIND_DAMAGE_ORIGIN 34u /* FUN_00138e30 entry: value=origin.x bits (+0x28), caller2=origin.y bits (+0x2c)  info */
-#define RNG_TRACE_KIND_SWEEP_POS     36u /* FUN_000f8720 entry: value=new_pos.x bits, caller2=new_pos.z bits  info */
+#define RNG_TRACE_KIND_SWEEP_POS     36u /* projectile_collision_test_line entry: value=new_pos.x bits, caller2=new_pos.z bits  info */
 #define RNG_TRACE_KIND_PROJECTILE_ACCEL_X 37u /* projectile_accelerate entry: value=projectile handle, caller2=acceleration.x bits  info */
 #define RNG_TRACE_KIND_PROJECTILE_ACCEL_YZ 38u /* projectile_accelerate entry: value=acceleration.y bits, caller2=acceleration.z bits  info */
-#define RNG_TRACE_KIND_SWEEP_NEW_Y_HANDLE 39u /* FUN_000f8720 entry: value=new_pos.y bits, caller2=projectile handle  info */
-#define RNG_TRACE_KIND_SWEEP_POS_XY 40u /* FUN_000f8720: value=proj_pos.x bits, caller2=proj_pos.y bits  info */
-#define RNG_TRACE_KIND_SWEEP_POS_Z_VEL_X 41u /* FUN_000f8720: value=proj_pos.z bits, caller2=velocity.x bits  info */
-#define RNG_TRACE_KIND_SWEEP_VEL_YZ 42u /* FUN_000f8720: value=velocity.y bits, caller2=velocity.z bits  info */
+#define RNG_TRACE_KIND_SWEEP_NEW_Y_HANDLE 39u /* projectile_collision_test_line entry: value=new_pos.y bits, caller2=projectile handle  info */
+#define RNG_TRACE_KIND_SWEEP_POS_XY 40u /* projectile_collision_test_line: value=proj_pos.x bits, caller2=proj_pos.y bits  info */
+#define RNG_TRACE_KIND_SWEEP_POS_Z_VEL_X 41u /* projectile_collision_test_line: value=proj_pos.z bits, caller2=velocity.x bits  info */
+#define RNG_TRACE_KIND_SWEEP_VEL_YZ 42u /* projectile_collision_test_line: value=velocity.y bits, caller2=velocity.z bits  info */
 #define RNG_TRACE_KIND_NET_UPDATE_FLAGS 43u /* client game update: value=flags, caller2=local player count  info */
 #define RNG_TRACE_KIND_NET_UPDATE_BUTTONS_01 44u /* client game update: value=slot 0 buttons, caller2=slot 1 buttons  info */
 #define RNG_TRACE_KIND_NET_UPDATE_BUTTONS_23 45u /* client game update: value=slot 2 buttons, caller2=slot 3 buttons  info */
@@ -119,7 +119,7 @@
 #define RNG_TRACE_KIND_THROW_SEAT_Z_HANDLE 49u /* grenade release after unit_set_seat_state: value=seat z bits, caller2=unit handle  info */
 #define RNG_TRACE_KIND_THROW_FINAL_XY 50u /* grenade release before object_translate: value=target x bits, caller2=target y bits  info */
 #define RNG_TRACE_KIND_THROW_FINAL_Z_HANDLE 51u /* grenade release before object_translate: value=target z bits, caller2=unit handle  info */
-#define RNG_TRACE_KIND_RESPONSE_HIT_XY 52u /* FUN_000f90d0 entry: hit position x/y bits  info */
+#define RNG_TRACE_KIND_RESPONSE_HIT_XY 52u /* projectile_collision entry: hit position x/y bits  info */
 #define RNG_TRACE_KIND_RESPONSE_HIT_Z_HANDLE 53u /* entry: hit position z bits/projectile handle  info */
 #define RNG_TRACE_KIND_RESPONSE_VEL_XY 54u /* entry: incoming velocity x/y bits  info */
 #define RNG_TRACE_KIND_RESPONSE_VEL_Z_TYPE 55u /* entry: incoming velocity z bits/collision type  info */
