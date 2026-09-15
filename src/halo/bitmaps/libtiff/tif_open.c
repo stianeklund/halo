@@ -1931,7 +1931,7 @@ int TIFFFdOpen(int fd, const char *name, const char *mode)
   }
 bad:
   tif->tif_mode = _O_RDONLY; /* XXX avoid flush */
-  FUN_00064ee0((int)tif);
+  TIFFClose((int)tif);
   return 0;
 bad2:
   __close(fd);

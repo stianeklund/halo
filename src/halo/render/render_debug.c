@@ -956,7 +956,7 @@ void FUN_00189c40(char flag, const char *string)
   }
 
   if (flag != 0) {
-    interface_draw_text(1, -1, 0, 0, 5, 0);
+    interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
     rasterizer_text_draw(0, 0, 0, 0, string);
     return;
   }
@@ -1002,7 +1002,7 @@ void FUN_00189cb0(char flag, void *position, void *string, int color)
     text_pos[0] = (short)(int)(proj[1] - (float)*(short *)0x50657c);
     text_pos[2] = 0x7fff;
     text_pos[3] = 0x7fff;
-    interface_draw_text(1, -1, 0, 0, 5, 0);
+    interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
     draw_string_set_color((void *)color);
     rasterizer_text_draw(text_pos, 0, 0, 0, string);
   }
@@ -1066,7 +1066,7 @@ void FUN_00189de0(void)
     snprintf(text + csstrlen(text), 0x800 - csstrlen(text), "|n%s",
              *(void **)((char *)e2 + 4));
   }
-  interface_draw_text(1, -1, 0, 0, 5, 0);
+  interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
   rasterizer_text_draw(0, 0, 0, 0, text);
 }
 
@@ -1212,7 +1212,7 @@ void FUN_0018a190(void)
   } else {
     crt_sprintf(cursor, " leaf %5d", child & 0x7fffffff);
   }
-  interface_draw_text(1, -1, 0, 0, 5, 0);
+  interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
   rasterizer_text_draw(0, 0, 0, 0, text);
   if (input_key_is_down(0x3e)) {
     file = crt_fopen("d:\\debug_bsp.txt", "w");
@@ -1240,7 +1240,7 @@ void FUN_0018a370(void)
     tab_stops[2] = 0x226;
     draw_string_set_tab_stops(tab_stops, 3);
     input_get_raw_data_string(buffer, 0x1ff);
-    interface_draw_text(1, -1, 0, 0, 5, 0);
+    interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
     rasterizer_text_draw(0, 0, 0, 0, buffer);
   }
 }
@@ -1623,8 +1623,8 @@ void FUN_0018ac50(void)
   short i;
   debug_primitive *rec;
 
-  FUN_000534d0();
-  FUN_00053da0();
+  ai_debug_render();
+  ai_profile_render();
   render_debug_object_damage();
   render_debug_scripting();
   render_debug_trigger_volumes();

@@ -184,7 +184,7 @@ present:
   D3DDevice_Present(0, 0, *(void **)0x505728, 0);
 
   if (!ok) {
-    FUN_00167ff0(0, "IDirect3DDevice8_Present(global_d3d_device, NULL, NULL, "
+    rasterizer_error(0, "IDirect3DDevice8_Present(global_d3d_device, NULL, NULL, "
                     "window_globals.hWndPresentTarget, NULL)");
   }
 
@@ -548,7 +548,7 @@ void FUN_001584f0(int stage, int target, int max_mipmap)
       hr = (int)D3DResource_Release((void *)target);
       if (hr < 0) {
         success = 0;
-        FUN_00167ff0(hr, "IDirect3DSurface8_Release(d3d_backbuffer)");
+        rasterizer_error(hr, "IDirect3DSurface8_Release(d3d_backbuffer)");
       } else {
         success = 1;
       }
@@ -661,7 +661,7 @@ void FUN_001584f0(int stage, int target, int max_mipmap)
 
   D3DDevice_SetTexture((uint32_t)(short)stage, d3d_texture);
   if (success == 0) {
-    FUN_00167ff0(0, "IDirect3DDevice8_SetTexture(global_d3d_device, stage, "
+    rasterizer_error(0, "IDirect3DDevice8_SetTexture(global_d3d_device, stage, "
                     "(IDirect3DBaseTexture8*)d3d_texture)");
     error(2, "### ERROR rasterizer_set_target_as_texture failed");
   }
@@ -1040,7 +1040,7 @@ void FUN_00158df0(unsigned short *parameters)
   if (*(short *)0x3256bc == 1) {
     color_pixel = 0;
   } else {
-    color_pixel = FUN_000d1dd0((float *)0x5a5dac);
+    color_pixel = real_rgb_color_to_pixel32((float *)0x5a5dac);
   }
 
   if (*parameters == 0 || *parameters == 1) {
@@ -2083,7 +2083,7 @@ void FUN_0015aa40(void)
  *
  *   p0     - short[2] screen coords of the first endpoint  (x, y)
  *   p1     - short[2] screen coords of the second endpoint (x, y)
- *   color0 - real_rgb_color for p0 (packed to 0x00RRGGBB by FUN_000d1dd0)
+ *   color0 - real_rgb_color for p0 (packed to 0x00RRGGBB by real_rgb_color_to_pixel32)
  *   color1 - optional real_rgb_color for p1; if NULL, p0's color is reused
  *
  * D3D primitive: Begin(4 = D3DPT_LINELIST). Vertex register 9 =
@@ -2110,9 +2110,9 @@ void FUN_0015abe0(short *p0, short *p1, float *color0, float *color1)
     system_exit(-1);
   }
 
-  packed0 = FUN_000d1dd0(color0);
+  packed0 = real_rgb_color_to_pixel32(color0);
   if (color1 != 0) {
-    packed1 = FUN_000d1dd0(color1);
+    packed1 = real_rgb_color_to_pixel32(color1);
   }
 
   D3DDevice_Begin(4);
@@ -2142,7 +2142,7 @@ void FUN_0015abe0(short *p0, short *p1, float *color0, float *color1)
  *
  *   points      - array of short[2] screen coords (x, y), stride 4 bytes/point
  *   point_count - number of points; must be > 1 (asserted, line 0xf9)
- *   color       - real_rgb_color, packed to 0x00RRGGBB by FUN_000d1dd0
+ *   color       - real_rgb_color, packed to 0x00RRGGBB by real_rgb_color_to_pixel32
  *
  * D3D primitive: Begin(4 = D3DPT_LINELIST). Vertex register 9 = D3DVSDE_DIFFUSE
  * (color, set once), register 0 = D3DVSDE_VERTEX (position via SetVertexData2s,
@@ -2150,7 +2150,7 @@ void FUN_0015abe0(short *p0, short *p1, float *color0, float *color1)
  * coords before the call (decl.h SetVertexData2s takes int a/b).
  *
  * `success` mirrors the original D3D result-check macro: it stays true, so the
- * FUN_00167ff0 (report_d3d_call_failed) branches after each SetVertexData2s and
+ * rasterizer_error (report_d3d_call_failed) branches after each SetVertexData2s and
  * after End are unreachable in practice — preserved to match the binary's
  * basic-block layout. The per-vertex check emits the reassignment shape
  * (if(success) success=1; else { success=0; report; }) that the original
@@ -2184,7 +2184,7 @@ void FUN_0015acc0(short *points, int16_t point_count, float *color)
     system_exit(-1);
   }
 
-  packed = FUN_000d1dd0(color);
+  packed = real_rgb_color_to_pixel32(color);
   D3DDevice_Begin(4);
   D3DDevice_SetVertexDataColor(9, packed);
   success = 1;
@@ -2198,7 +2198,7 @@ void FUN_0015acc0(short *points, int16_t point_count, float *color)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0, "IDirect3DDevice8_SetVertexData2s(global_d3d_device, "
+        rasterizer_error(0, "IDirect3DDevice8_SetVertexData2s(global_d3d_device, "
                         "D3DVSDE_VERTEX, point->x, point->y)");
       }
       p = p + 2;
@@ -2207,7 +2207,7 @@ void FUN_0015acc0(short *points, int16_t point_count, float *color)
   }
   D3DDevice_End();
   if (!success) {
-    FUN_00167ff0(0, "IDirect3DDevice8_End(global_d3d_device)");
+    rasterizer_error(0, "IDirect3DDevice8_End(global_d3d_device)");
   }
 }
 
@@ -2378,7 +2378,7 @@ void rasterizer_decals_initialize_for_new_map(void)
  * rasterizer_decals_dispose_from_old_map
  *
  * Asserts the LRUV vertex cache exists, then clears all per-map decal state:
- *   1. Calls decals_update_for_new_map(true) to strip lock/permanent flags
+ *   1. Calls decals_unlock(true) to strip lock/permanent flags
  *      from every live decal datum and reset the global lock/permanent counts.
  *   2. Calls lruv_cache_dispose_all() to evict all cached vertex entries.
  */
@@ -2390,7 +2390,7 @@ void rasterizer_decals_dispose_from_old_map(void)
       "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x83, 1);
     system_exit(-1);
   }
-  decals_update_for_new_map(1);
+  decals_unlock(1);
   lruv_cache_dispose_all(*(void **)0x476adc);
 }
 
@@ -2409,7 +2409,7 @@ void FUN_0015b1e0(void)
       "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x8e, 1);
     system_exit(-1);
   }
-  decals_update_for_new_map(0);
+  decals_unlock(0);
   lruv_cache_dispose_all(*(void **)0x476adc);
 }
 
@@ -2876,7 +2876,7 @@ LAB_0015bb9c:
 /*
  * FUN_0015bc40 — render every decal in one cluster/layer chain.
  *
- * Fetches the decal list head via FUN_00098fe0(cluster_index, current_layer),
+ * Fetches the decal list head via decal_get_first_decal_index(cluster_index, current_layer),
  * then walks the singly-linked list (link at decal+0x34, -1 terminates). For
  * each decal it re-programs the framebuffer blend function + texture-combiner
  * state and rebinds the decal bitmap only when they change from the cached
@@ -2920,7 +2920,7 @@ void FUN_0015bc40(int rendered_cluster_data)
 
   if (*(uint16_t *)0x3256bc == 0 && *(uint8_t *)0x3256cd != 0) {
     decal_index =
-      FUN_00098fe0((int16_t)rendered_cluster_data, *(int16_t *)0x476ac8);
+      decal_get_first_decal_index((int16_t)rendered_cluster_data, *(int16_t *)0x476ac8);
     while (decal_index != -1) {
       char *decal;
       char *tag;
@@ -3187,7 +3187,7 @@ char FUN_0015c2d0(void)
     return 1;
   }
 
-  FUN_00167ff0(
+  rasterizer_error(
     hr,
     "IDirect3DDevice8_CreateVertexBuffer(global_d3d_device, "
     "RASTERIZER_MAXIMUM_DETAIL_OBJECTS_PER_FRAME*NUMBER_OF_VERTICES_PER_"
@@ -3590,7 +3590,7 @@ void FUN_0015c980(void *view_data)
  *   - loop counters are (short)-truncated each iteration (MOVSX re-loads);
  *     block counts are re-read from memory every iteration.
  *   - `success` ([EBP-1]) is the alternating d3d debug-check latch, same
- *     idiom as rasterizer.c: on the false path FUN_00167ff0(0, call_text).
+ *     idiom as rasterizer.c: on the false path rasterizer_error(0, call_text).
  *
  * Globals: 0x3256dc byte detail-objects-draw enable; 0x476ab0
  * global_d3d_device; scenario+0x3c0 detail_object_collection_palette block.
@@ -3725,7 +3725,7 @@ void FUN_0015cbb0(void *detail_object_view_data)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
              "VSH_CONSTANTS__DETAILOBJ_TYPEDATA_OFFSET, "
              "vsh_constants__detailobj_typedata, "
@@ -3736,7 +3736,7 @@ void FUN_0015cbb0(void *detail_object_view_data)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
              "VSH_CONSTANTS__DETAILOBJ_FRAMEDATA_OFFSET, "
              "vsh_constants__detailobj_framedata, frame_count)");
@@ -3762,7 +3762,7 @@ void FUN_0015cbb0(void *detail_object_view_data)
             success = 1;
           } else {
             success = 0;
-            FUN_00167ff0(
+            rasterizer_error(
               0, "IDirect3DDevice8_SetVertexData4f(global_d3d_device, 2, "
                  "(real)(cell->cell_x*DETAIL_OBJECT_CELL_SIZE), "
                  "(real)(cell->cell_y*DETAIL_OBJECT_CELL_SIZE), "
@@ -3774,7 +3774,7 @@ void FUN_0015cbb0(void *detail_object_view_data)
             success = 1;
           } else {
             success = 0;
-            FUN_00167ff0(
+            rasterizer_error(
               0, "IDirect3DDevice8_SetVertexData4f(global_d3d_device, 3, "
                  "cell->z_reference_vector->i, cell->z_reference_vector->j, "
                  "cell->z_reference_vector->k, cell->z_reference_vector->l)");
@@ -3785,7 +3785,7 @@ void FUN_0015cbb0(void *detail_object_view_data)
             success = 1;
           } else {
             success = 0;
-            FUN_00167ff0(0,
+            rasterizer_error(0,
                          "IDirect3DDevice8_DrawVertices(global_d3d_device, "
                          "D3DPT_QUADLIST, cell->internal__first_vertex_index, "
                          "cell->detail_object_count*"
@@ -4230,7 +4230,7 @@ short FUN_0015d480(int dynamic_vertex_buffer_index)
  * dynamic_vertex_buffer->vertex_start_index.
  *
  * local_5 / bl are a two-phase debug HRESULT-check toggle (both initialised to
- * 1 and mirrored around the two D3D calls -- FUN_00167ff0 only fires when the
+ * 1 and mirrored around the two D3D calls -- rasterizer_error only fires when the
  * toggle is 0, which never happens in the retail path).  Preserved verbatim for
  * codegen fidelity; do not fold to a plain bool.  On a failed toggle the tail
  * calls error(2,"### ERROR rasterizer_draw_dynamic_vertices failed").
@@ -4353,7 +4353,7 @@ void rasterizer_draw_dynamic_vertices(int first_primitive_index,
       if (local_5 != 0) {
         bl = 1;
       } else {
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetStreamSource(global_d3d_device, 0, "
                      "d3d_vertex_buffer, vertex_size)");
         bl = 0;
@@ -4368,7 +4368,7 @@ void rasterizer_draw_dynamic_vertices(int first_primitive_index,
       if (bl != 0) {
         local_5 = 1;
       } else {
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_DrawPrimitive(global_d3d_device, "
                      "d3d_primitive_type, first_primitive_index*vertices_per_"
                      "primitive + dynamic_vertex_buffer->vertex_start_index, "

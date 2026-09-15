@@ -1,7 +1,7 @@
 /* Predicate: returns 1 when a weapon-interface-state buffer is "displayable"
  * — either it has a non-zero count field (+0x10) with both +0xe and +0x12
  * clear, or its scalar field (+0x4) equals 1.0f.  EAX = state buffer. */
-int FUN_000d02c0(void *state_buf)
+int weapon_state_is_depleted(void *state_buf)
 {
   if (*(short *)((char *)state_buf + 0x10) != 0) {
     if (*(short *)((char *)state_buf + 0xe) == 0) {
@@ -17,9 +17,9 @@ int FUN_000d02c0(void *state_buf)
   return 0;
 }
 
-/* hud_new (0xd02f0) — allocate hud scripted globals and initialise HUD
+/* hud_initialize (0xd02f0) — allocate hud scripted globals and initialise HUD
  * subsystems */
-void hud_new(void)
+void hud_initialize(void)
 {
   void *scripted_globals;
   scripted_globals = game_state_malloc("hud scripted globals", 0, 4);
@@ -30,9 +30,9 @@ void hud_new(void)
     system_exit(-1);
   }
   hud_messaging_initialize();
-  FUN_000d72f0();
-  hud_weapon_initialize();
-  hud_nav_points_initialize();
+  hud_initialize_unit_interface();
+  hud_initialize_weapon_interface();
+  hud_initialize_nav_points();
   motion_sensor_initialize();
 }
 
@@ -41,10 +41,10 @@ void hud_new(void)
 void hud_dispose(void)
 {
   FUN_000db140();
+  hud_dispose_nav_points();
+  hud_dispose_weapon_interface();
+  hud_dispose_unit_interface();
   hud_messaging_dispose();
-  hud_weapon_dispose();
-  FUN_000d7430();
-  FUN_000d46e0();
 }
 
 void hud_initialize_for_new_map(void)
@@ -57,20 +57,20 @@ void hud_initialize_for_new_map(void)
     system_exit(-1);
   }
   hud_globals = tag_get(0x68756467, interface_get_tag_index(6));
-  FUN_000d46a0();
-  FUN_000d7330();
-  hud_weapon_initialize_for_new_map();
   hud_messaging_initialize_for_new_map();
+  hud_initialize_unit_interface_for_new_map();
+  hud_initialize_weapon_interface_for_new_map();
+  hud_initialize_nav_points_for_new_map();
   FUN_000db150();
 }
 
 void hud_dispose_from_old_map(void)
 {
   FUN_000db1b0();
+  hud_dispose_nav_points_from_old_map();
+  hud_dispose_weapon_interface_from_old_map();
+  hud_dispose_unit_interface_from_old_map();
   hud_messaging_dispose_from_old_map();
-  hud_weapon_dispose_from_old_map();
-  FUN_000d7420();
-  FUN_000d46d0();
 }
 
 /* HaloScript: set whether the HUD is shown. Writes param to HUD control
@@ -114,7 +114,7 @@ void hud_update(void)
 /* Returns a weapon's HUD interface index (int16 at the weapon's 'obje' tag
  * +0x13c), or -1 if the handle is NONE.  Frameless leaf; EAX = weapon handle.
  */
-int FUN_000d04a0(int weapon_handle)
+int get_object_icon_text_index(int weapon_handle)
 {
   void *obj;
   void *tag;
@@ -131,7 +131,7 @@ int FUN_000d04a0(int weapon_handle)
  * failure prompts, then a weapon-HUD-state machine (held weapon, vehicle seat,
  * equipment, pickups, seat weapon, custom string, and weapon-switch search).
  * EAX = local player index. */
-void FUN_000d04d0(int local_player_index)
+void hud_show_action_response(int local_player_index)
 {
   void *player_rec;
   short respawn_failure;
@@ -213,13 +213,13 @@ void FUN_000d04d0(int local_player_index)
   case 3:
     unit_obj = object_get_and_verify_type(unit_handle, 3);
     hud_set_state_message(*(short *)0x506548, 7);
-    d04a0_result = FUN_000d04a0(*(int *)((char *)unit_obj + 0xcc));
+    d04a0_result = get_object_icon_text_index(*(int *)((char *)unit_obj + 0xcc));
     hud_set_state_message_text(*(short *)0x506548, 0, (short)d04a0_result, 0);
     return;
 
   case 5:
     hud_set_state_message(*(short *)0x506548, 1);
-    d04a0_result = FUN_000d04a0(unit_get_equipment(unit_handle));
+    d04a0_result = get_object_icon_text_index(unit_get_equipment(unit_handle));
     hud_set_state_message_text(*(short *)0x506548, 0, (short)d04a0_result, 0);
     hud_set_state_message_text(*(short *)0x506548, 1,
                                (short)item_wphi_tag_index, 0);
@@ -306,12 +306,12 @@ void FUN_000d04d0(int local_player_index)
 
   case 11:
     hud_set_state_message(*(short *)0x506548, 8);
-    d04a0_result = FUN_000d04a0(*(int *)((char *)player_rec + 0x24));
+    d04a0_result = get_object_icon_text_index(*(int *)((char *)player_rec + 0x24));
     hud_set_state_message_text(*(short *)0x506548, 0, (short)d04a0_result, 0);
     return;
 
   default:
-    if (FUN_000ae110(local_player_index, (int)wchar_buf, 0x400)) {
+    if (game_engine_get_state_message(local_player_index, (int)wchar_buf, 0x400)) {
       hud_enable_custom_state_message(*(short *)0x506548, 1);
       hud_set_state_text(*(short *)0x506548, wchar_buf);
       return;
@@ -323,7 +323,7 @@ void FUN_000d04d0(int local_player_index)
 
     unit_obj = object_get_and_verify_type(unit_handle, 3);
     initial_slot = (int)*(short *)((char *)unit_obj + 0x2a2);
-    initial_weapon_handle = unit_get_weapon(unit_handle, (short)initial_slot);
+    initial_weapon_handle = unit_inventory_get_weapon(unit_handle, (short)initial_slot);
 
     unit_obj = object_get_and_verify_type(unit_handle, 3);
     vehicle_unit_handle = *(int *)((char *)unit_obj + 0xcc);
@@ -347,7 +347,7 @@ void FUN_000d04d0(int local_player_index)
     }
 
     weapon_build_weapon_interface_state(initial_weapon_handle, (int)wif_buf);
-    if (!FUN_000d02c0(wif_buf)) {
+    if (!weapon_state_is_depleted(wif_buf)) {
       goto disable;
     }
 
@@ -355,7 +355,7 @@ void FUN_000d04d0(int local_player_index)
     next_slot = initial_slot;
     do {
       next_slot = unit_inventory_next_weapon(unit_handle, next_slot, 1);
-      current_weapon_handle = unit_get_weapon(unit_handle, (short)next_slot);
+      current_weapon_handle = unit_inventory_get_weapon(unit_handle, (short)next_slot);
       weapon_build_weapon_interface_state(current_weapon_handle, (int)wif_buf);
       if (!(*(short *)(wif_buf + 0x10) != 0 && *(short *)(wif_buf + 0xe) == 0 &&
             *(short *)(wif_buf + 0x12) == 0)) {
@@ -373,7 +373,7 @@ void FUN_000d04d0(int local_player_index)
       break;
     } while (1);
 
-    if (FUN_000d02c0(wif_buf) ||
+    if (weapon_state_is_depleted(wif_buf) ||
         current_weapon_handle == initial_weapon_handle) {
       goto disable;
     }
@@ -420,44 +420,44 @@ wchar_t *hud_get_item_string(int index)
 /* Notify the HUD that a local player has picked up equipment.
  * If the local player index is valid (not NONE), forwards to the HUD
  * messaging handler at 0xd5240 with param_3=1 and param_4=-1. */
-void hud_player_set_equipment(unsigned __int16 local_player_index,
+void hud_picked_up_grenade(unsigned __int16 local_player_index,
                               int equipment_tag_handle)
 {
   if ((int16_t)local_player_index != NONE)
-    hud_messaging_set_vehicle_notification(local_player_index,
+    hud_add_item_message(local_player_index,
                                            equipment_tag_handle, 1, -1);
 }
 
 /* Notify the HUD that a local player has entered a vehicle seat.
  * If the local player index is valid (not NONE), forwards to the HUD
  * messaging handler at 0xd5240 with the seat index and param_4=1. */
-void hud_player_enter_vehicle(unsigned __int16 local_player_index,
+void hud_picked_up_ammunition(unsigned __int16 local_player_index,
                               int tag_handle, int16_t seat_index)
 {
   if ((int16_t)local_player_index != NONE)
-    hud_messaging_set_vehicle_notification(local_player_index, tag_handle,
+    hud_add_item_message(local_player_index, tag_handle,
                                            seat_index, 1);
 }
 
 /* Notify the HUD that a local player has entered a vehicle.
  * If the local player index is valid (not NONE), forwards to the HUD
  * vehicle notification handler at 0xd5240 with zeroed extra params. */
-void hud_player_set_vehicle(unsigned __int16 local_player_index,
+void hud_picked_up_weapon(unsigned __int16 local_player_index,
                             int vehicle_tag_handle)
 {
   if ((int16_t)local_player_index != NONE)
-    hud_messaging_set_vehicle_notification(local_player_index,
+    hud_add_item_message(local_player_index,
                                            vehicle_tag_handle, 0, 0);
 }
 
 /* Notify the HUD that a local player has changed vehicle seat.
  * If the local player index is valid (not NONE), forwards to the HUD
  * vehicle notification handler at 0xd5240 with zeroed extra params. */
-void hud_player_set_vehicle_seat(unsigned __int16 local_player_index,
+void hud_picked_up_powerup(unsigned __int16 local_player_index,
                                  int vehicle_tag_handle)
 {
   if ((int16_t)local_player_index != NONE)
-    hud_messaging_set_vehicle_notification(local_player_index,
+    hud_add_item_message(local_player_index,
                                            vehicle_tag_handle, 0, 0);
 }
 
@@ -465,7 +465,7 @@ void hud_player_set_vehicle_seat(unsigned __int16 local_player_index,
  * sets the ring radius via tan(); each of 16 vertices is placed on the circle
  * at depth -0.0625, transformed by the HUD matrix at 0x5065e8, then drawn as
  * connected segments with style param_2. */
-void hud_set_element_digital(float param_1, const void *param_2)
+void temporary_hud_draw_reticle(float param_1, const void *param_2)
 {
   float vertices[16][3];
   float radius;
@@ -547,7 +547,7 @@ void hud_autosave(int16_t param)
  * crosshair/reticle sprite there.  The reticle's rotation angle is derived from
  * the head's camera-space depth (mapped through a near/far range and clamped).
  * EAX = local player handle. */
-void FUN_000d0e90(int player_handle)
+void hud_draw_friendly_indicator(int player_handle)
 {
   void *player;
   float head_pos[3];
@@ -601,9 +601,9 @@ void FUN_000d0e90(int player_handle)
   interface_draw_bitmap(sprite_handle, offset_xy, color_struct, 1.0f, 0, 1.0f);
 }
 
-/* Draws the rotating crosshair (FUN_000d0e90) for every OTHER live player on
+/* Draws the rotating crosshair (hud_draw_friendly_indicator) for every OTHER live player on
  * the local player's team (same team, valid unit, different handle). */
-void FUN_000d0ff0(void)
+void hud_draw_players(void)
 {
   int player_index;
   void *player_datum;
@@ -634,7 +634,7 @@ void FUN_000d0ff0(void)
     datum = data_iterator_next(&iter);
   }
   for (i = 0; i < count; i++) {
-    FUN_000d0e90(handles[i]);
+    hud_draw_friendly_indicator(handles[i]);
   }
 }
 
@@ -647,10 +647,10 @@ void FUN_000d0ff0(void)
  *   - Weapon name + ammo counts + heat + age (if magazines present) or just
  * name
  *   - Active-camouflage / full-spectrum-vision status strings
- *   - hud_set_element_digital calls for zoom ratio and ammo fill
+ *   - temporary_hud_draw_reticle calls for zoom ratio and ammo fill
  * Screen position is loaded from 0x506584 (x|y packed), y offset by +100.
  * Color pointer from 0x2ee6c4; style/justify/flags set to (-1,0,0). */
-void FUN_000d1090(void)
+void temporary_hud_draw(void)
 {
   int player_handle;
   char *player;
@@ -694,7 +694,7 @@ void FUN_000d1090(void)
   {
     void *tmp_unit;
     tmp_unit = object_get_and_verify_type(*(int *)(player + 0x34), 3);
-    weapon_obj_handle = unit_get_weapon(*(int *)(player + 0x34),
+    weapon_obj_handle = unit_inventory_get_weapon(*(int *)(player + 0x34),
                                         *(int16_t *)((char *)tmp_unit + 0x2a2));
   }
 
@@ -798,14 +798,14 @@ void FUN_000d1090(void)
 
       /* NOTE: the original pushes draw_ptr at 0xd1336 immediately before the
        * zoom_level call, but 0xb6a70 reads only [EBP+8] -- that push is the
-       * trailing argument of the enclosing hud_set_element_digital call
+       * trailing argument of the enclosing temporary_hud_draw_reticle call
        * (lift-learnings SS3 cdecl arg mis-grouping), not a second parameter. */
       zoom_level =
         (int16_t)player_control_get_zoom_level((int16_t) * (int *)0x506548);
       magnification =
         weapon_get_zoom_magnification(weapon_obj_handle, zoom_level);
 
-      hud_set_element_digital(
+      temporary_hud_draw_reticle(
         *(float *)((char *)weapon_tag + 0x3e4) / magnification, draw_ptr);
     }
 
@@ -821,7 +821,7 @@ void FUN_000d1090(void)
         fvar = *(float *)((char *)weapon_obj + 0x22c);
       }
 
-      hud_set_element_digital(
+      temporary_hud_draw_reticle(
         fvar * *(float *)((char *)tag_block_flags + 0x80) +
           (1.0f - fvar) * *(float *)((char *)tag_block_flags + 0x7c),
         *(const void **)0x2ee6e0);
@@ -842,7 +842,7 @@ void FUN_000d1090(void)
  * is running a non-active state or a cinematic, draws teammate crosshairs,
  * then updates the player's weapon/state HUD (full or minimal depending on
  * perspective and vehicle state). */
-void FUN_000d1400(void)
+void hud_draw_screen(void)
 {
   int player_index;
   short perspective;
@@ -867,7 +867,7 @@ void FUN_000d1400(void)
 check_cinematic:
   c = cinematic_in_progress();
   if (c == '\0') {
-    FUN_000d0ff0();
+    hud_draw_players();
   }
 after_cinematic:
   c = game_time_get_paused();
@@ -877,30 +877,30 @@ after_cinematic:
     }
   }
   if (*(char *)*(void **)0x46bd10 == '\0') {
-    FUN_000d7560((int)player_datum, '\0');
+    hud_play_unit_sounds((int)player_datum, '\0');
   } else {
     if (perspective == 3 || perspective == 2 ||
         *(int *)((char *)player_datum + 0x34) == -1) {
-      FUN_000d04d0(player_index);
-      FUN_000d7560((int)player_datum, (char)*(char *)*(void **)0x46bd10);
+      hud_show_action_response(player_index);
+      hud_play_unit_sounds((int)player_datum, (char)*(char *)*(void **)0x46bd10);
     } else {
       FUN_000dabf0((int)player_datum);
-      FUN_000d04d0(player_index);
-      FUN_000d7560((int)player_datum, (char)*(char *)*(void **)0x46bd10);
-      FUN_000d7d40((int)player_datum);
-      FUN_000d6cc0((int)(int16_t) * (short *)0x506548);
-      FUN_000d7a20((int)(int16_t) * (short *)0x506548);
+      hud_show_action_response(player_index);
+      hud_play_unit_sounds((int)player_datum, (char)*(char *)*(void **)0x46bd10);
+      hud_render_unit_interface((int)player_datum);
+      hud_render_nav_points((int)(int16_t) * (short *)0x506548);
+      hud_render_damage_indicators((int)(int16_t) * (short *)0x506548);
     }
   }
-  FUN_000d5350((int)(int16_t) * (short *)0x506548);
+  hud_messaging_update((int)(int16_t) * (short *)0x506548);
 done:
   FUN_0015f200();
   if (*(char *)0x5aa690 != '\0') {
-    FUN_000d1090();
+    temporary_hud_draw();
   }
 }
 
-/* FUN_000d1540 (0xd1540) — return the caller's return address.
+/* get_return_eip (0xd1540) — return the caller's return address.
  *
  * Frameless helper, `mov eax,[ebp+4]; ret` (bytes 8B 45 04 C3). Because it sets
  * up no prologue, EBP still holds the *caller's* frame pointer at entry, so
@@ -918,7 +918,7 @@ done:
  * !defined(__clang__) guard is required to select the GCC-style asm for the
  * shipping build. */
 #if defined(_MSC_VER) && !defined(__clang__)
-__declspec(naked) int FUN_000d1540(void)
+__declspec(naked) int get_return_eip(void)
 {
   __asm {
     mov eax, dword ptr [ebp + 4]
@@ -926,7 +926,7 @@ __declspec(naked) int FUN_000d1540(void)
   }
 }
 #else
-__attribute__((naked)) int FUN_000d1540(void)
+__attribute__((naked)) int get_return_eip(void)
 {
   __asm__ __volatile__("movl 4(%ebp), %eax\n\tret");
 }
@@ -935,7 +935,7 @@ __attribute__((naked)) int FUN_000d1540(void)
 /* Scan int array backwards from index 127, return first index where element
  * is not the sentinel 0x62626262 ("bbbb"). Returns -1 if all are sentinel.
  * Loop counter is short (16-bit); OR AX,0xffff sign-extends -1 to int. */
-short FUN_000d1550(int param_1)
+short check_stack_buffer(int param_1)
 {
   short i;
 
@@ -952,7 +952,7 @@ short FUN_000d1550(int param_1)
  * by hud_widget_index, then its sub-block by (param_1 % count), returning the
  * element pointer + 8 (or NULL if any index is invalid).  Stack-guard
  * instrumented (hud_draw.c). */
-void *FUN_000d1580(int tag_index, short hud_widget_index, short param_1)
+void *get_sprite_clip_rect(int tag_index, short hud_widget_index, short param_1)
 {
   int return_addr;
   int guard[128];
@@ -967,7 +967,7 @@ void *FUN_000d1580(int tag_index, short hud_widget_index, short param_1)
   short corrupt_index;
 
   elem = NULL;
-  return_addr = FUN_000d1540();
+  return_addr = get_return_eip();
   csmemset(guard, 0x62, 0x200);
 
   if (tag_index == -1 || hud_widget_index == -1 || param_1 == -1) {
@@ -1001,7 +1001,7 @@ done_scan:
     }
   }
 
-  if (FUN_000d1540() != return_addr) {
+  if (get_return_eip() != return_addr) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_draw.c", 100, 1);
     system_exit(-1);
@@ -1017,7 +1017,7 @@ done_scan:
   return elem;
 }
 
-float FUN_000d1690(int split_screen)
+float hud_globals_get_scale(int split_screen)
 {
   return *(float *)0x002533c8;
 }
@@ -1025,7 +1025,7 @@ float FUN_000d1690(int split_screen)
 /* Resolves a bitmap data element (and optional sprite element) from a 'bitm'
  * tag given a sequence and frame index, writing the results to *out_bitmap and
  * *out_sprite.  Stack-guard instrumented (hud_draw.c). */
-void FUN_000d16a0(int bitmap_tag, short sequence_index,
+void hud_retrieve_bitmap_and_bounding_rect(int bitmap_tag, short sequence_index,
                   unsigned int frame_index, int *out_bitmap, int *out_sprite)
 {
   int return_addr;
@@ -1037,7 +1037,7 @@ void FUN_000d16a0(int bitmap_tag, short sequence_index,
   int bitmap_index;
   short corrupt;
 
-  return_addr = FUN_000d1540();
+  return_addr = get_return_eip();
   csmemset(guard, 0x62, 0x200);
 
   if (out_bitmap == NULL) {
@@ -1078,7 +1078,7 @@ void FUN_000d16a0(int bitmap_tag, short sequence_index,
 
   if (*out_bitmap != 0) {
     *out_sprite =
-      (int)FUN_000d1580(bitmap_tag, sequence_index, (short)frame_index);
+      (int)get_sprite_clip_rect(bitmap_tag, sequence_index, (short)frame_index);
   } else {
     *out_sprite = 0;
   }
@@ -1092,7 +1092,7 @@ void FUN_000d16a0(int bitmap_tag, short sequence_index,
   } while (corrupt >= 0);
   corrupt = -1;
 found_corrupt:
-  if (FUN_000d1540() != return_addr) {
+  if (get_return_eip() != return_addr) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0xe4, 1);
     system_exit(-1);
@@ -1112,7 +1112,7 @@ found_corrupt:
  * bitmap_dims+0x4 / +0x6).  screen_index selects which corners receive the
  * +/- extents; mode 4 scales by two global aspect constants.  Stack-guard
  * instrumented (hud_draw.c). */
-void FUN_000d1890(float *out_corners, float *rect, char align_flag,
+void hud_calculate_bitmap_bounds(float *out_corners, float *rect, char align_flag,
                   short *bitmap_dims, short screen_index)
 {
   int return_address;
@@ -1123,7 +1123,7 @@ void FUN_000d1890(float *out_corners, float *rect, char align_flag,
   float y_extent;
   short corrupt_index;
 
-  return_address = FUN_000d1540();
+  return_address = get_return_eip();
   csmemset(guard, 0x62, 0x200);
 
   if (align_flag != '\0') {
@@ -1187,7 +1187,7 @@ void FUN_000d1890(float *out_corners, float *rect, char align_flag,
   } while (corrupt_index >= 0);
   corrupt_index = -1;
 found_corrupt:
-  if (return_address != FUN_000d1540()) {
+  if (return_address != get_return_eip()) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x38b, 1);
     system_exit(-1);
@@ -1206,7 +1206,7 @@ found_corrupt:
  * found, builds its HUD interface state.  Returns true if a weapon was drawn.
  * Wrapped in the hud_draw debug instrumentation: a return-address capture plus
  * a 0x200-byte 0x62 stack canary, both re-checked on exit. */
-char FUN_000d1a70(int render, int param_1)
+char hud_draw_multitexture_overlay_get_current_weapon_definition(int render, int param_1)
 {
   int return_address;
   int guard[128];
@@ -1220,12 +1220,12 @@ char FUN_000d1a70(int render, int param_1)
   short i;
 
   drew = 0;
-  return_address = FUN_000d1540();
+  return_address = get_return_eip();
   csmemset(guard, 0x62, 0x200);
 
   obj = object_get_and_verify_type(*(int *)(render + 0x34), 3);
   weapon =
-    unit_get_weapon(*(int *)(render + 0x34), *(short *)((char *)obj + 0x2a2));
+    unit_inventory_get_weapon(*(int *)(render + 0x34), *(short *)((char *)obj + 0x2a2));
   if (weapon == -1) {
     obj = object_get_and_verify_type(*(int *)(render + 0x34), 3);
     if (*(int *)((char *)obj + 0xcc) != -1 &&
@@ -1237,7 +1237,7 @@ char FUN_000d1a70(int render, int param_1)
       if ((*flags_elem & 8) != 0) {
         parent_unit =
           object_get_and_verify_type(*(int *)((char *)obj + 0xcc), 3);
-        weapon = unit_get_weapon(*(int *)((char *)obj + 0xcc),
+        weapon = unit_inventory_get_weapon(*(int *)((char *)obj + 0xcc),
                                  *(short *)((char *)parent_unit + 0x2a2));
       }
     }
@@ -1263,7 +1263,7 @@ char FUN_000d1a70(int render, int param_1)
       break;
     }
   }
-  if (return_address != FUN_000d1540()) {
+  if (return_address != get_return_eip()) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x408, 1);
     system_exit(-1);
@@ -1281,12 +1281,12 @@ char FUN_000d1a70(int render, int param_1)
  * The original is an inline /QIfist truncation helper: it FISTs (round to
  * nearest), then corrects back toward zero via an integer-bits SBB/SETG of the
  * remainder.  Verified equivalent to (int)x by exhaustive sweep. */
-int FUN_000d1c50(float param_1)
+int fast_ftol_C(float param_1)
 {
   return (int)param_1;
 }
 
-uint32_t FUN_000d1c90(float *color)
+uint32_t real_argb_color_to_pixel32(float *color)
 {
   int a;
   int r;
@@ -1333,8 +1333,8 @@ uint32_t FUN_000d1c90(float *color)
 /* Packs a 3-component real RGB color (each 0.0..1.0) into a 0x00RRGGBB
  * 32-bit pixel.  Validates the color via valid_real_rgb_color() and, on
  * failure, formats an assert message (bitmaps_inlines.h:0xc9) and halts.
- * Sibling of FUN_000d1c90 (the 4-component ARGB variant). */
-unsigned int FUN_000d1dd0(float *color)
+ * Sibling of real_argb_color_to_pixel32 (the 4-component ARGB variant). */
+unsigned int real_rgb_color_to_pixel32(float *color)
 {
   float scale;
   int packed;
@@ -1359,10 +1359,10 @@ unsigned int FUN_000d1dd0(float *color)
 }
 
 /* Returns the packed 0xAARRGGBB pixel32 for a uniform (alpha, intensity,
- * intensity, intensity) color.  The original tail-calls FUN_000d1c90, so its
- * EAX (the pixel32) is the return value; the HUD meter builder (FUN_000d3340)
+ * intensity, intensity) color.  The original tail-calls real_argb_color_to_pixel32, so its
+ * EAX (the pixel32) is the return value; the HUD meter builder (hud_draw_meter)
  * stores it into meter+0x14 as the flash/blend render-state. */
-unsigned int FUN_000d1e90(float alpha, float intensity)
+unsigned int real_alpha_intensity_to_pixel32(float alpha, float intensity)
 {
   float color[4];
 
@@ -1380,7 +1380,7 @@ unsigned int FUN_000d1e90(float alpha, float intensity)
   color[1] = intensity;
   color[2] = intensity;
   color[3] = intensity;
-  return FUN_000d1c90(color);
+  return real_argb_color_to_pixel32(color);
 }
 
 /* Resolves an absolute on-screen position (out[0],out[1]) from an anchor-mode
@@ -1390,7 +1390,7 @@ unsigned int FUN_000d1e90(float alpha, float intensity)
  * the rect midpoint).  An optional offset_struct nudges the result per anchor
  * (cases 0-4).  scale = (flag==0 || in_scale==const) ? 1 : in_scale.  Result is
  * rounded to two shorts.  Stack-guard instrumented (hud_draw.c). */
-void FUN_000d1f40(short local_player, unsigned short *absolute_placement,
+void hud_calculate_point(short local_player, unsigned short *absolute_placement,
                   short *placement, int offset_struct, char flag,
                   float in_scale, short *out)
 {
@@ -1403,7 +1403,7 @@ void FUN_000d1f40(short local_player, unsigned short *absolute_placement,
   int half;
   short corrupt_index;
 
-  return_address = FUN_000d1540();
+  return_address = get_return_eip();
   csmemset(guard, 0x62, 0x200);
 
   if (flag == '\0' || in_scale == *(float *)0x2533c0) {
@@ -1504,7 +1504,7 @@ void FUN_000d1f40(short local_player, unsigned short *absolute_placement,
   } while (corrupt_index >= 0);
   corrupt_index = -1;
 found_corrupt2:
-  if (return_address != FUN_000d1540()) {
+  if (return_address != get_return_eip()) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0xb5, 1);
     system_exit(-1);
@@ -1519,7 +1519,7 @@ found_corrupt2:
 
 /* Scales the float at struct offset +8 by a global factor and rounds to the
  * nearest int (original uses x87 FISTP round-to-nearest). */
-int FUN_000d2300(int param_1)
+int get_flash_duration(int param_1)
 {
   float v;
 
@@ -1534,7 +1534,7 @@ int FUN_000d2300(int param_1)
  * span; int16 at +0x10 = segment count; byte at +0x12 bit0 = reverse flag).
  * param_2 = animation base time (0 selects an endpoint by flag, no blend).
  * Stack-guard instrumented (hud_draw.c). */
-uint32_t FUN_000d2320(int *param_1, int param_2)
+uint32_t get_flash_color(int *param_1, int param_2)
 {
   int return_address;
   int guard[128];
@@ -1552,7 +1552,7 @@ uint32_t FUN_000d2320(int *param_1, int param_2)
   short corrupt_index;
   short i;
 
-  return_address = FUN_000d1540();
+  return_address = get_return_eip();
   csmemset(guard, 0x62, 0x200);
 
   elapsed_ticks = game_time_get() - param_2;
@@ -1633,7 +1633,7 @@ check_guard:
       break;
     }
   }
-  if (return_address != FUN_000d1540()) {
+  if (return_address != get_return_eip()) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x137, 1);
     system_exit(-1);
@@ -1644,7 +1644,7 @@ check_guard:
       "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x137, 1);
     system_exit(-1);
   }
-  return FUN_000d1c90(out_color);
+  return real_argb_color_to_pixel32(out_color);
 }
 
 /* Builds a rotated 4-corner sprite quad and submits it to the sprite
@@ -1655,7 +1655,7 @@ check_guard:
  * 0x8c-byte render descriptor is initialised (bitmap_handle, param_4, four 1.0
  * fields, mode 7, single-player present flag) and passed with the vertices to
  * rasterizer_sprites_render.  Stack-guard instrumented (hud_draw.c). */
-void FUN_000d2580(float *scale, short *screen_pos, int bitmap_handle,
+void hud_draw_bitmap_internal(float *scale, short *screen_pos, int bitmap_handle,
                   int param_4, int *uv_coords, float *corner_offsets,
                   float angle, int color)
 {
@@ -1677,7 +1677,7 @@ void FUN_000d2580(float *scale, short *screen_pos, int bitmap_handle,
   char bitmap_present;
   short corrupt_index;
 
-  return_address = FUN_000d1540();
+  return_address = get_return_eip();
   csmemset(guard, 0x62, 0x200);
 
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -1732,7 +1732,7 @@ void FUN_000d2580(float *scale, short *screen_pos, int bitmap_handle,
   } while (corrupt_index >= 0);
   corrupt_index = -1;
 found_corrupt:
-  if (return_address != FUN_000d1540()) {
+  if (return_address != get_return_eip()) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x3d9, 1);
     system_exit(-1);
@@ -1757,12 +1757,12 @@ found_corrupt:
  * an interpolated scalar plus an RGB triple, and switch(widget+0x42) /
  * switch(widget+0x40) routes those into the colour/transform output slots.
  * Finally issues the sprite render.  Stack-guard instrumented (hud_draw.c).
- * Mirrors sibling FUN_000d2580 for the rotation/vertex/canary scaffold.
+ * Mirrors sibling hud_draw_bitmap_internal for the rotation/vertex/canary scaffold.
  *
  * Note: the original deliberately overlaps the transient sin/cos scalars
  * (EBP-0x1c/-0x10) with colour_block+0x68/+0x74; the colour block is only read
  * up to +0x64 by the rasterizer, so they are modelled as separate C locals. */
-void FUN_000d27a0(int element, float *scale, int local_player_index,
+void hud_draw_multitexture_overlay(int element, float *scale, int local_player_index,
                   void *cursor, float *icon_rect, float *corners, float angle,
                   int color)
 {
@@ -1815,7 +1815,7 @@ void FUN_000d27a0(int element, float *scale, int local_player_index,
   int rgb2;
   float aim_angles[2]; /* EBP-0x2c, vector_to_angles output for case 0 */
 
-  return_addr = FUN_000d1540();
+  return_addr = get_return_eip();
   csmemset(guard, 0x62, 0x200);
 
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -1856,7 +1856,7 @@ void FUN_000d27a0(int element, float *scale, int local_player_index,
 
   player_index = local_player_get_player_index((short)local_player_index);
   hud_globals = datum_get(*(data_t **)0x5aa6d4, player_index);
-  FUN_000d1a70((int)hud_globals, (int)angles_buf);
+  hud_draw_multitexture_overlay_get_current_weapon_definition((int)hud_globals, (int)angles_buf);
 
   /* Build four rotated vertices into vertex_buf (5 dwords each). */
   cnt = 1;
@@ -2000,7 +2000,7 @@ void FUN_000d27a0(int element, float *scale, int local_player_index,
           player_index =
             local_player_get_player_index((short)local_player_index);
           hud_globals = datum_get(*(data_t **)0x5aa6d4, player_index);
-          unit_scripting_unit_driver(*(int *)((char *)hud_globals + 0x34),
+          unit_get_aiming_vector(*(int *)((char *)hud_globals + 0x34),
                                      driver_out);
           vector_to_angles(aim_angles, driver_out);
           dest_value = aim_angles[1];
@@ -2168,7 +2168,7 @@ void FUN_000d27a0(int element, float *scale, int local_player_index,
   } while (corrupt_index >= 0);
   corrupt_index = -1;
 found_corrupt:
-  if (return_addr != FUN_000d1540()) {
+  if (return_addr != get_return_eip()) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x55c, 1);
     system_exit(-1);

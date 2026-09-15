@@ -822,7 +822,7 @@ void collision_log_render(void)
                 snprintf(user_buf + csstrlen(user_buf),
                          0x200 - csstrlen(user_buf), " %s", stat_buf);
               }
-              FUN_0008dc30(line, user_buf);
+              csstrcat(line, user_buf);
             }
             p_user_elem += 0x48;
             rank_left--;
@@ -864,7 +864,7 @@ void collision_log_render(void)
             snprintf(summary_buf + csstrlen(summary_buf),
                      0x200 - csstrlen(summary_buf), " %s", stat_buf);
           }
-          FUN_0008dc30(line, summary_buf);
+          csstrcat(line, summary_buf);
         }
 
         bounds[0] = (int16_t)y_pos;
@@ -872,7 +872,7 @@ void collision_log_render(void)
         bounds[2] = 0x7fff;
         bounds[3] = 0x7fff;
 
-        interface_draw_text(1, -1, 0, 0, 5, 0);
+        interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
         draw_string_set_color(*(const void **)0x2ee6c4);
         draw_string_set_tab_stops(NULL, 0);
         rasterizer_text_draw(NULL, bounds, tab_info, 0, line);

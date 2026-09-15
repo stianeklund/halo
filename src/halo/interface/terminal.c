@@ -3,24 +3,24 @@
  * XBE source: c:\halo\SOURCE\interface\terminal.c
  *
  * Re-implemented functions (by XBE address, ascending):
- *   0xe33a0  FUN_000e33a0
- *   0xe33e0  FUN_000e33e0
+ *   0xe33a0  terminal_initialize
+ *   0xe33e0  terminal_dispose
  *   0xe3410  terminal_remove_line
- *   0xe34a0  terminal_show
- *   0xe34e0  terminal_open
- *   0xe3560  terminal_dispose
- *   0xe3580  terminal_process_input
- *   0xe3640  terminal_age_lines
- *   0xe3940  terminal_get_line
+ *   0xe34a0  terminal_clear
+ *   0xe34e0  terminal_gets_begin
+ *   0xe3560  terminal_gets_end
+ *   0xe3580  terminal_update_input
+ *   0xe3640  terminal_update_output
+ *   0xe3940  terminal_new_line
  *   0xe39e0  terminal_update
- *   0xe3a10  terminal_output
+ *   0xe3a10  terminal_printf
  *   0xe3690  terminal_draw
  */
 
-/* FUN_000e33a0 (0xe33a0) — allocate the terminal's line pool and reset the
+/* terminal_initialize (0xe33a0) — allocate the terminal's line pool and reset the
  * line list.
  *
- * This function and FUN_000e33e0 sit immediately above terminal_remove_line
+ * This function and terminal_dispose sit immediately above terminal_remove_line
  * in the binary and kb.json currently lists them under progress_bar.obj, but
  * they belong to terminal.c: the pool name string at 0x282db4 is
  * "terminal output" and sits inside terminal.c's .rdata cluster (it is
@@ -48,7 +48,7 @@
  * one base pointer drops to 78.6%.
  */
 /* 0xe33a0 */
-void FUN_000e33a0(void)
+void terminal_initialize(void)
 {
   data_t *pool;
 
@@ -61,9 +61,9 @@ void FUN_000e33a0(void)
   *(int *)0x46c410 = -1;
 }
 
-/* FUN_000e33e0 (0xe33e0) — release the terminal's line pool.
+/* terminal_dispose (0xe33e0) — release the terminal's line pool.
  *
- * Belongs to terminal.c for the same reasons as FUN_000e33a0 above.
+ * Belongs to terminal.c for the same reasons as terminal_initialize above.
  *
  * Confirmed: MOV CL,[EAX+0x24] / TEST CL,CL gates the data_make_invalid
  * call (0x119550) on a byte flag inside the pool header; the pool pointer
@@ -74,7 +74,7 @@ void FUN_000e33a0(void)
  * NULL check.
  */
 /* 0xe33e0 */
-void FUN_000e33e0(void)
+void terminal_dispose(void)
 {
   data_t *pool;
 
@@ -134,7 +134,7 @@ void terminal_remove_line(int line_handle)
   datum_delete(*(void **)0x46c408, line_handle);
 }
 
-/* terminal_show — force the terminal overlay visible.
+/* terminal_clear — force the terminal overlay visible.
  *
  * Sets both display timers to -1 (infinite) and activates the terminal
  * data pool.
@@ -142,7 +142,7 @@ void terminal_remove_line(int line_handle)
  * Confirmed: MOV [0x46c40c], -1; MOV [0x46c410], -1.
  * Confirmed: CALL 0x119720 (data_make_valid) with [0x46c408].
  */
-void terminal_show(void)
+void terminal_clear(void)
 {
   if (*(uint8_t *)0x46c404 != 0) {
     *(int *)0x46c40c = -1;
@@ -152,7 +152,7 @@ void terminal_show(void)
 }
 
 /*
- * terminal_open — initialize a terminal state structure.
+ * terminal_gets_begin — initialize a terminal state structure.
  *
  * Registers the terminal state pointer if no terminal is currently open.
  * Sets up the edit text substructure at offset 0x1b4, sets max line
@@ -165,7 +165,7 @@ void terminal_show(void)
  * Confirmed: CALL 0x97440 (edit_text_initialize) with state+0x1b4.
  * Confirmed: MOV word ptr [ESI], 0 — key count at state+0.
  */
-bool terminal_open(void *terminal)
+bool terminal_gets_begin(void *terminal)
 {
   char *state = (char *)terminal;
 
@@ -185,17 +185,17 @@ bool terminal_open(void *terminal)
   return 1;
 }
 
-/* terminal_dispose — close the terminal if it matches the active one.
+/* terminal_gets_end — close the terminal if it matches the active one.
  *
  * Confirmed: compares param against [0x46c414], clears if equal.
  */
-void terminal_dispose(void *terminal)
+void terminal_gets_end(void *terminal)
 {
   if (terminal == *(void **)0x46c414)
     *(void **)0x46c414 = 0;
 }
 
-/* terminal_process_input — drain the keyboard buffer into the terminal state.
+/* terminal_update_input — drain the keyboard buffer into the terminal state.
  *
  * Called each frame while the terminal is active. Reads all pending
  * buffered keystrokes from the input system, stores up to 32 of them in
@@ -227,7 +227,7 @@ void terminal_dispose(void *terminal)
  * Confirmed: SETZ DL ; MOV [0x46c418],DL — clears flag if it was set.
  * Confirmed: MOV AL,1 ; RET — always returns true when state != NULL.
  */
-bool terminal_process_input(void)
+bool terminal_update_input(void)
 {
   int now;
   int key;
@@ -266,7 +266,7 @@ bool terminal_process_input(void)
   return 1;
 }
 
-/* terminal_age_lines — increment age counters and evict stale lines.
+/* terminal_update_output — increment age counters and evict stale lines.
  *
  * Walks the terminal line list from head ([0x46c40c]) to tail following
  * the next pointer at line+8.  For each entry the age counter at
@@ -281,7 +281,7 @@ bool terminal_process_input(void)
  * Confirmed: CALL 0xe3410 (terminal_remove_line) — EDI holds the handle.
  * Confirmed: MOV ESI,[EAX+8] ; ... MOV EDI,ESI — advance to next.
  */
-void terminal_age_lines(void)
+void terminal_update_output(void)
 {
   int handle;
   char *line;
@@ -328,7 +328,7 @@ void terminal_age_lines(void)
  *   +0x0c  = bool: has tab markers
  *   +0x0d  = text buffer (nul-terminated)
  *   +0x110 = float color[4] (r,g,b,a stored sequentially)
- *   +0x120 = int age counter (incremented each frame by terminal_age_lines)
+ *   +0x120 = int age counter (incremented each frame by terminal_update_output)
  *
  * Globals:
  *   0x46c404 = byte active flag
@@ -388,7 +388,7 @@ void terminal_draw(void)
     /* -- Draw active input line at bottom of screen -- */
     text_buf[0] = '\0';
     *(uint8_t *)(*(char **)0x46c414 + 0xb3) = 0;
-    FUN_0008dc30(text_buf, *(char **)0x46c414 + 0x94);
+    csstrcat(text_buf, *(char **)0x46c414 + 0x94);
     *(uint8_t *)(*(char **)0x46c414 + 0x1b3) = 0;
     str_len = (int16_t)csstrlen(text_buf);
     csstrcpy(text_buf + str_len, *(char **)0x46c414 + 0xb4);
@@ -476,7 +476,7 @@ void terminal_draw(void)
   }
 }
 
-/* terminal_get_line — allocate a new terminal line at the head of the list.
+/* terminal_new_line — allocate a new terminal line at the head of the list.
  *
  * If the pool is full (count == 32), the tail entry is removed first to
  * make room (via terminal_remove_line).  A new datum is then allocated via
@@ -495,7 +495,7 @@ void terminal_draw(void)
  * Confirmed: if old_head==-1 then MOV [0x46c410],ESI (tail=new), else
  *            MOV [old_head+0x4],ESI (old_head->prev = new).
  */
-int terminal_get_line(void)
+int terminal_new_line(void)
 {
   int new_handle;
   char *new_line;
@@ -542,9 +542,9 @@ int terminal_get_line(void)
  * Processes keyboard input for the terminal and ages displayed lines.
  * Skips aging when console_is_active() returns true (console is open).
  *
- * Confirmed: checks flag at 0x46c404, calls 0xe3580 (terminal_process_input)
+ * Confirmed: checks flag at 0x46c404, calls 0xe3580 (terminal_update_input)
  *            and 0xff4c0 (console_is_active), then 0xe3640
- * (terminal_age_lines). Confirmed: MOV BL,AL saves process_input result; MOV
+ * (terminal_update_output). Confirmed: MOV BL,AL saves process_input result; MOV
  * AL,BL restores it. Confirmed: return type is void (caller in main_loop
  * ignores EAX).
  */
@@ -554,16 +554,16 @@ bool terminal_update(void)
 
   result = false;
   if (*(uint8_t *)0x46c404 != 0) {
-    result = terminal_process_input();
+    result = terminal_update_input();
     if (!console_is_active()) {
-      terminal_age_lines();
+      terminal_update_output();
     }
   }
   return result;
 }
 
 /*
- * terminal_output — write a formatted line to the terminal overlay.
+ * terminal_printf — write a formatted line to the terminal overlay.
  *
  * Allocates a terminal line from the data pool, copies color (or uses
  * default white), formats the text via vsnprintf, checks for "|t" tab
@@ -571,7 +571,7 @@ bool terminal_update(void)
  *
  * Confirmed: default color {1.0f, 0.7f, 0.7f, 0.7f} on stack.
  * Confirmed: assert "format" at line 0x18d.
- * Confirmed: CALL 0xe3940 (terminal_get_line) returns datum handle.
+ * Confirmed: CALL 0xe3940 (terminal_new_line) returns datum handle.
  * Confirmed: CALL 0x119320 (datum_get) to get line data pointer.
  * Confirmed: 16-byte color copy at line+0x110.
  * Confirmed: vsnprintf(line+0xd, 0xfe, format, va_args) at 0x1db0c8.
@@ -579,7 +579,7 @@ bool terminal_update(void)
  * Confirmed: strstr(text, "|t") sets flag at line+0xc.
  * Confirmed: CALL 0x130ab0 processes tab markers.
  */
-void terminal_output(void *color, const char *format, const char *text)
+void terminal_printf(void *color, const char *format, const char *text)
 {
   float default_color[4];
   int line_handle;
@@ -595,7 +595,7 @@ void terminal_output(void *color, const char *format, const char *text)
   if (*(uint8_t *)0x46c404 == 0)
     return;
 
-  line_handle = terminal_get_line();
+  line_handle = terminal_new_line();
 
   if (format == NULL) {
     display_assert("format", "c:\\halo\\SOURCE\\interface\\terminal.c", 0x18d,

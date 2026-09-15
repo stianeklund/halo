@@ -1,7 +1,7 @@
 /* Refresh every local player's HUD weapon state (0xda980).
  * Source: c:\halo\SOURCE\interface\hud_weapon.c line 0xd4.
  * Stack-guard idiom: 0x200-byte 0x62 fill plus a return-address canary
- * (FUN_000d1540), both asserted after the per-player loop. */
+ * (get_return_eip), both asserted after the per-player loop. */
 void hud_update_weapon(void)
 {
   int guard[128];
@@ -25,7 +25,7 @@ void hud_update_weapon(void)
   short i;
   short corrupt_index;
 
-  return_addr = FUN_000d1540();
+  return_addr = get_return_eip();
   csmemset(guard, 0x62, 0x200);
 
   local_player_index = local_player_get_next(-1);
@@ -42,7 +42,7 @@ void hud_update_weapon(void)
 
     unit = object_get_and_verify_type(unit_handle, 3);
     weapon_handle =
-      unit_get_weapon(unit_handle, *(unsigned short *)((char *)unit + 0x2a2));
+      unit_inventory_get_weapon(unit_handle, *(unsigned short *)((char *)unit + 0x2a2));
     if (weapon_handle != -1) {
       goto have_weapon;
     }
@@ -62,7 +62,7 @@ void hud_update_weapon(void)
       }
       other_unit = object_get_and_verify_type(*(int *)((char *)unit + 0xcc), 3);
       weapon_handle =
-        unit_get_weapon(*(int *)((char *)unit + 0xcc),
+        unit_inventory_get_weapon(*(int *)((char *)unit + 0xcc),
                         *(unsigned short *)((char *)other_unit + 0x2a2));
       if (weapon_handle != -1) {
         goto have_weapon;
@@ -99,7 +99,7 @@ void hud_update_weapon(void)
                  update_state);
 
   store_weapon:
-    hud_weapon_state = FUN_000d8bc0(local_player_index);
+    hud_weapon_state = get_hud_state(local_player_index);
     *(int *)((char *)hud_weapon_state + 0x20) = weapon_handle;
 
   next_player:
@@ -114,7 +114,7 @@ void hud_update_weapon(void)
     }
   }
 
-  if (FUN_000d1540() != return_addr) {
+  if (get_return_eip() != return_addr) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0xd4, 1);
     system_exit(-1);
@@ -353,19 +353,19 @@ bool event_manager_tab_check(void)
       cache_files_precache_map_end();
   }
 
-  if (ui_widget_is_main_menu_loaded() && !cache_files_precache_in_progress() &&
-      !network_game_in_progress() && !bink_playback_active()) {
+  if (main_menu_screen_is_active() && !cache_files_precache_in_progress() &&
+      !network_game_is_active() && !bink_playback_active()) {
     now = system_milliseconds();
     last_event = event_manager_get_last_event_time();
     if (*(unsigned int *)0x46bd38 > last_event)
       last_event = *(unsigned int *)0x46bd38;
-    attract_flag = ui_widget_get_attract_mode_flag();
+    attract_flag = ui_main_menu_music_active();
     if (now - last_event >= 0x11f1c) {
       if (attract_flag)
-        ui_widget_stop_attract_mode();
+        ui_stop_main_menu_music();
     } else {
       if (!attract_flag)
-        ui_widget_start_title_music();
+        ui_start_main_menu_music();
     }
     if (now - last_event >= 0x124f8)
       return true;
@@ -378,7 +378,7 @@ bool event_manager_tab_check(void)
  */
 void FUN_000dc110(void)
 {
-  ui_widget_stop_attract_mode();
+  ui_stop_main_menu_music();
   sound_stop_all();
   bink_playback_start("d:\\bink\\credits.bik", 0x2e);
 }
@@ -407,7 +407,7 @@ void event_manager_tab_process(void)
   attract_files[2] = "d:\\bink\\attract3.bik";
 
   do {
-    idx = random_range(random_math_get_local_seed_address(), 0, 3);
+    idx = seed_random_range(random_math_get_local_seed_address(), 0, 3);
     if (idx < 0)
       idx = 0;
     else if (idx > 2)
@@ -415,7 +415,7 @@ void event_manager_tab_process(void)
   } while (idx == *(int16_t *)0x2f670c);
 
   *(int16_t *)0x2f670c = idx;
-  ui_widget_stop_attract_mode();
+  ui_stop_main_menu_music();
   bink_playback_start(attract_files[idx], 0x2e);
 
   if (!bink_playback_active())

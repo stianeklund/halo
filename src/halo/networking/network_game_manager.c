@@ -130,12 +130,12 @@ void network_game_reset_for_next_round(void *game, bool flag)
   } else {
     main_load_ui_scenario(true);
     csmemset(g + 0x430, 0, 4);
-    if (network_game_server_get() != NULL) {
+    if (global_network_game_server_get() != NULL) {
       set_game_connection(2);
       game_time_end();
       return;
     }
-    if (network_game_client_get() != NULL) {
+    if (global_network_game_client_get() != NULL) {
       set_game_connection(1);
       game_time_end();
       return;
@@ -278,7 +278,7 @@ bool network_game_add_player(void *game, void *player)
   return result;
 }
 
-int FUN_0012af00(void *p1, void *p2)
+int sort_network_players(void *p1, void *p2)
 {
   char *player1 = (char *)p1;
   char *player2 = (char *)p2;
@@ -463,7 +463,7 @@ bool network_game_remove_player(void *game, void *player)
           player_slot[0x1d] < 4) {
         if (player_slot[0x1c] >= 0 && player_slot[0x1c] < 4) {
           if (player_slot[0x1c] == p[0x1c] && player_slot[0x1d] == p[0x1d]) {
-            network_player_reset((uint8_t *)player_slot);
+            network_game_invalidate_player((uint8_t *)player_slot);
             *(short *)(g + 0x224) -= 1;
             return true;
           }
@@ -502,7 +502,7 @@ bool network_game_create_game_objects(void *game)
   conn = game_connection();
   if (conn > 0) {
     if (conn < 3) {
-      options.random_seed = network_game_get_number_of_games_played();
+      options.random_seed = network_game_get_random_seed();
     } else {
       if (conn != 3) {
         goto bad_connection;
@@ -528,7 +528,7 @@ bool network_game_create_game_objects(void *game)
 
     g[0x430] = 1;
     game_initialize_for_new_map();
-    qsort(g + 0x226, 16, 32, (int (*)(const void *, const void *))FUN_0012af00);
+    qsort(g + 0x226, 16, 32, (int (*)(const void *, const void *))sort_network_players);
 
     player = g + 0x226;
     for (i = 0; i < 16; i++, player += 0x20) {
@@ -608,7 +608,7 @@ wchar_t *network_game_get_random_player_name(void)
     psVar2 = (short *)tag_get(0x75737472, iVar1);
     if (psVar2 != NULL) {
       uVar3 =
-        random_range(random_math_get_local_seed_address(), 0, *psVar2 - 1);
+        seed_random_range(random_math_get_local_seed_address(), 0, *psVar2 - 1);
       puVar4 = (wchar_t *)FUN_0019d420(iVar1, uVar3);
       return puVar4;
     }
@@ -616,7 +616,7 @@ wchar_t *network_game_get_random_player_name(void)
   return (wchar_t *)0x26cdf0;
 }
 
-void network_game_log(const char *format, ...)
+void network_event(const char *format, ...)
 {
   va_list args;
 
@@ -633,7 +633,7 @@ void network_game_log(const char *format, ...)
   error(3, error_string_buffer);
 }
 
-bool network_game_message_encode(void *message_struct, char *encoded_message,
+bool encode_network_game_message(void *message_struct, char *encoded_message,
                                  int16_t *encoded_message_size, int16_t type,
                                  int one)
 {

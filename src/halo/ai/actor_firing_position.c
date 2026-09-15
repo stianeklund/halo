@@ -5,27 +5,27 @@
  * (the assert at 0x24b3d stamps that literal).
  *
  * Ported:
- *   FUN_00024370 (0x24370) — score one candidate firing position: resolve the
+ *   post_evaluator_global (0x24370) — score one candidate firing position: resolve the
  *     actor's 'actr' tag, then either accumulate a penalty (no candidate) or
  *     test 3D path availability to the candidate and either credit it via
- *     FUN_00024000 or mark it rejected.
- *   FUN_00024450 (0x24450) — the third evaluator: credit the candidate by how
+ *     firing_position_store_evaluation_debug or mark it rejected.
+ *   post_evaluator_pursuit (0x24450) — the third evaluator: credit the candidate by how
  *     stale the encounter's record of examining it is (type 5) and by how few
  *     times it has been examined (type 6), after either marking it examined or
  *     querying the existing record.
  *   post_evaluator_hide (0x245d0) — the hide evaluator: score a candidate by
  *     its aiming kind through a 5-entry jump table, crediting the same
- *     FUN_00024000 accumulator (credit type 0x12).
- *   FUN_00024770 (0x24770) — the twin evaluator from the same dispatch table:
+ *     firing_position_store_evaluation_debug accumulator (credit type 0x12).
+ *   post_evaluator_attack (0x24770) — the twin evaluator from the same dispatch table:
  *     score a candidate by its aiming kind (0 / 1 / default) rather than by
- *     path availability, crediting the same FUN_00024000 accumulator.
+ *     path availability, crediting the same firing_position_store_evaluation_debug accumulator.
  *   actor_get_firing_position_group (0x24a60) — map an actor plus a
  *     group-selector and a searching-state override onto one of the squad
  *     definition's firing-position group indices, returned as the int stored
  *     at squad + 0x54 + group*4.
  *   actor_clear_discarded_firing_positions (0x24b80) — reset the discarded-
  *     firing-position ring buffer at actor+0x3c8.
- *   FUN_00024be0 (0x24be0) — push one discarded firing position onto that
+ *   actor_discard_firing_position (0x24be0) — push one discarded firing position onto that
  *     ring buffer and cache the position's first 12 bytes at actor+0x3dc.
  *
  * Layout used here (all offsets read directly from the listing):
@@ -51,10 +51,10 @@
  * verbatim from the assert predicate string in the XBE. */
 #define NUMBER_OF_FIRING_POSITION_GROUPS 7
 
-/* Sort context consumed by FUN_00024950. The look-scoring pass in
+/* Sort context consumed by firing_position_compare. The look-scoring pass in
  * actor_looking.c publishes the candidate-record array base and the record
  * count into these two adjacent globals (stores at 0x26de8/0x26def) just
- * before handing FUN_00024950 to the generic sort FUN_00091ef0.
+ * before handing firing_position_compare to the generic sort FUN_00091ef0.
  *
  * Both identifiers are verbatim from the assert predicate strings in the XBE
  * (0x254d88 / 0x254d40 / 0x254cf8), so they are string-proven, not inferred.
@@ -76,10 +76,10 @@
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 
-/* FUN_00024060 (0x24060) — the "close is good" distance ramp over a whole
+/* pre_evaluator_guard (0x24060) — the "close is good" distance ramp over a whole
  * candidate firing-position array.
  *
- * Four cdecl stack parameters, same shape as FUN_00024130 below (its twin in
+ * Four cdecl stack parameters, same shape as pre_evaluator_combatmove below (its twin in
  * the same dispatch family): [EBP+8] is never read in the body — a dead
  * parameter kept for the shared signature — [EBP+0xc] is the eval_state
  * pointer (only field touched is the float at +0x18), [EBP+0x10] is read as
@@ -99,7 +99,7 @@
  *
  * ESI is loaded as firing_positions + 8, so every ESI-relative displacement in
  * the listing is 8 short of the true record offset. The record is the same
- * 0x3c-stride candidate FUN_00024130 / FUN_00024370 / FUN_00024950 walk:
+ * 0x3c-stride candidate pre_evaluator_combatmove / post_evaluator_global / firing_position_compare walk:
  *   +0x08  float  the candidate's distance
  *   +0x30  char   usable flag
  *   +0x38  float  the accumulated score
@@ -117,7 +117,7 @@
  * minus distance) first (FLD [EDI+0x18]; FSUB [ESI]), then form the reciprocal
  * factor on a fresh stack slot (FLD 1.0f; FDIV threshold) and FMULP, then
  * FMUL 8.0f. Ghidra printed the two factors in the opposite order. */
-void FUN_00024060(int actor_handle, char *eval_state,
+void pre_evaluator_guard(int actor_handle, char *eval_state,
                   short firing_position_count, char *firing_positions)
 {
   char *firing_position;
@@ -148,7 +148,7 @@ void FUN_00024060(int actor_handle, char *eval_state,
   }
 }
 
-/* FUN_00024130 (0x24130) — run the two shared scoring passes over a whole
+/* pre_evaluator_combatmove (0x24130) — run the two shared scoring passes over a whole
  * candidate firing-position array.
  *
  * Confirmed from the listing at 0x24130:
@@ -165,7 +165,7 @@ void FUN_00024060(int actor_handle, char *eval_state,
  * Pass 1 (0x241b1..0x24248) adds a distance-ramp score scaled by a weight
  * shared across the whole array; pass 2 (0x24265..0x2435a) adds an aiming
  * blockage score. Both walk the same 0x3c-stride candidate record that
- * FUN_00024370 and FUN_00024950 use:
+ * post_evaluator_global and firing_position_compare use:
  *   +0x00  int    the object the aiming/blockage test is run against
  *   +0x08  float  the candidate's distance
  *   +0x30  char   usable flag
@@ -191,7 +191,7 @@ void FUN_00024060(int actor_handle, char *eval_state,
  * 0x242d1). kb.json declared it void(void); corrected as part of this port.
  * Its kind field is re-read from the record after the call (MOV SI,[ESI+0x25c]
  * at 0x242ca) rather than reusing the value the guard loaded. */
-void FUN_00024130(int actor_handle, char *eval_state,
+void pre_evaluator_combatmove(int actor_handle, char *eval_state,
                   short firing_position_count, char *firing_positions)
 {
   char *definition;
@@ -267,7 +267,7 @@ void FUN_00024130(int actor_handle, char *eval_state,
   }
 }
 
-/* FUN_00024370 (0x24370) — score one candidate firing position for an actor.
+/* post_evaluator_global (0x24370) — score one candidate firing position for an actor.
  *
  * Confirmed from the listing at 0x24370:
  *   MOV EAX,[0x6325a4] (actor_data); PUSH EBX (actor_handle) -> datum_get.
@@ -278,7 +278,7 @@ void FUN_00024130(int actor_handle, char *eval_state,
  *
  *   The addend at 0x243b4 is FADD DWORD PTR [0x254cc0]; that address holds
  *   0x41700000 == 15.0f — VC71's literal pool for the same 15.0f pushed to
- *   FUN_00024000 at 0x2440d. It is a source literal, not a game global.
+ *   firing_position_store_evaluation_debug at 0x2440d. It is a source literal, not a game global.
  *
  *   `dist` occupies the (dead) third parameter's home slot in the original:
  *   MOV DWORD PTR [EBP+0x10],0 / LEA EDX,[EBP+0x10] while ESI still holds
@@ -307,7 +307,7 @@ void FUN_00024130(int actor_handle, char *eval_state,
  *                   +0x030 char     usable flag (also the return value)
  *                   +0x031 char     rejected flag
  */
-int FUN_00024370(int actor_handle, char *eval_state, char *firing_position)
+int post_evaluator_global(int actor_handle, char *eval_state, char *firing_position)
 {
   char *actor;
   float dist;
@@ -327,7 +327,7 @@ int FUN_00024370(int actor_handle, char *eval_state, char *firing_position)
         path_3d_available((int)scenario_get(), (int *)(actor + 0x12c),
                           *(int *)&dist, *(int **)firing_position,
                           (unsigned char *)0, (float *)0) != '\0') {
-      FUN_00024000(eval_state, 15.0f, 0x19, firing_position);
+      firing_position_store_evaluation_debug(eval_state, 15.0f, 0x19, firing_position);
     } else {
       *(char *)(firing_position + 0x31) = 1;
       if (*(char *)(eval_state + 0x14) == '\0')
@@ -340,11 +340,11 @@ int FUN_00024370(int actor_handle, char *eval_state, char *firing_position)
   return *(unsigned char *)(firing_position + 0x30);
 }
 
-/* FUN_00024450 (0x24450) — score one candidate firing position by how long ago
+/* post_evaluator_pursuit (0x24450) — score one candidate firing position by how long ago
  * the actor's encounter last examined it, and by how many times.
  *
  * Third member of the evaluator family stored in the dispatch table beside
- * FUN_00024370 and FUN_00024770: same three-parameter shape, same
+ * post_evaluator_global and post_evaluator_attack: same three-parameter shape, same
  * MOVZX EAX,BYTE PTR [ESI+0x30] tail at 0x245c4, so the return is int-width
  * and not char.
  *
@@ -394,7 +394,7 @@ int FUN_00024370(int actor_handle, char *eval_state, char *firing_position)
  *                   +0x030 char   usable flag (also the return value)
  *                   +0x031 char   rejected flag
  */
-int FUN_00024450(int actor_handle, char *eval_state, char *firing_position)
+int post_evaluator_pursuit(int actor_handle, char *eval_state, char *firing_position)
 {
   char *actor;
   int now;
@@ -428,7 +428,7 @@ int FUN_00024450(int actor_handle, char *eval_state, char *firing_position)
 
   if (*(char *)(eval_state + 0x10) != '\0') {
     if (unexamined)
-      FUN_00024000(eval_state, 15.0f, 7, firing_position);
+      firing_position_store_evaluation_debug(eval_state, 15.0f, 7, firing_position);
   } else if (!unexamined) {
     *(char *)(firing_position + 0x31) = 1;
     if (*(char *)(eval_state + 0x14) == '\0')
@@ -441,28 +441,28 @@ int FUN_00024450(int actor_handle, char *eval_state, char *firing_position)
       score = 10.0f;
     else if (last_examined < now)
       score = (float)(now - last_examined) * 0.033333335f;
-    FUN_00024000(eval_state, score, 5, firing_position);
+    firing_position_store_evaluation_debug(eval_state, score, 5, firing_position);
 
     score = 0.0f;
     if (examined_count < 4)
       score = (float)(4 - examined_count) * 5.0f;
-    FUN_00024000(eval_state, score, 6, firing_position);
+    firing_position_store_evaluation_debug(eval_state, score, 6, firing_position);
   }
 
   return *(unsigned char *)(firing_position + 0x30);
 }
 
 /* post_evaluator_hide (0x245d0) — the hide evaluator: score a candidate
- * firing position by its aiming kind, crediting the same FUN_00024000
+ * firing position by its aiming kind, crediting the same firing_position_store_evaluation_debug
  * accumulator as the rest of the family (credit type 0x12 here).
  *
  * Third member of the evaluator family, so it carries the same
- * three-parameter shape and the same shared tail as FUN_00024450 /
- * FUN_000246b0 / FUN_00024770: MOVZX EAX,BYTE PTR [ESI+0x30] at 0x24694,
+ * three-parameter shape and the same shared tail as post_evaluator_pursuit /
+ * post_evaluator_uncover / post_evaluator_attack: MOVZX EAX,BYTE PTR [ESI+0x30] at 0x24694,
  * i.e. the return is int-width and not char.
  *
- * The first parameter is DEAD here, exactly as in FUN_000246b0 and
- * FUN_00024770: nothing in 0x245d0..0x2469b touches [EBP+0x8].
+ * The first parameter is DEAD here, exactly as in post_evaluator_uncover and
+ * post_evaluator_attack: nothing in 0x245d0..0x2469b touches [EBP+0x8].
  *
  * Confirmed from the listing at 0x245d0 (disassembled from the pristine XBE):
  *   0x245d4  MOV EDI,[EBP+0xC]  — eval_state lives in EDI for the whole body,
@@ -474,9 +474,9 @@ int FUN_00024450(int actor_handle, char *eval_state, char *firing_position)
  *
  *   0x245ec  FLD [EDI+0x660] / FADD [0x254CC8] / FSTP [EDI+0x660]. The field
  *            is loaded FIRST, so this is the compound `+=` form, matching
- *            FUN_000246b0 and unlike FUN_00024770's tail where the constant
+ *            post_evaluator_uncover and unlike post_evaluator_attack's tail where the constant
  *            is FLD'd first. This path RETURNS at 0x24606 — it does not fall
- *            through to the FUN_00024000 call. MOV EAX,1 is scheduled between
+ *            through to the firing_position_store_evaluation_debug call. MOV EAX,1 is scheduled between
  *            the FLD and the FADD, which is where the `return 1` comes from.
  *            [0x254CC8] == 0x41400000 == 12.0f, a VC71 literal-pool slot in
  *            this TU (its neighbours are 15.0f, 5.0f, 7.5f), not a game
@@ -499,7 +499,7 @@ int FUN_00024450(int actor_handle, char *eval_state, char *firing_position)
  *
  *   0x2467f  pushes 0x12, then score, then eval_state (ADD ESP,0xC pays for
  *            exactly three) while firing_position is still live in ESI,
- *            matching FUN_00024000's @<esi> fourth parameter.
+ *            matching firing_position_store_evaluation_debug's @<esi> fourth parameter.
  *
  *   The default arm is a hard assert: PUSH 1 / PUSH 0x45D / PUSH 0x254C8C /
  *   PUSH 0 / CALL display_assert, then PUSH -1 / CALL system_exit. The
@@ -556,7 +556,7 @@ int post_evaluator_hide(int actor_handle, char *eval_state,
                      1);
       system_exit(-1);
     }
-    FUN_00024000(eval_state, score, 0x12, firing_position);
+    firing_position_store_evaluation_debug(eval_state, score, 0x12, firing_position);
   }
 
   if (firing_position == (char *)0)
@@ -564,14 +564,14 @@ int post_evaluator_hide(int actor_handle, char *eval_state,
   return *(unsigned char *)(firing_position + 0x30);
 }
 
-/* FUN_000246b0 (0x246b0) — score one candidate firing position by its
+/* post_evaluator_uncover (0x246b0) — score one candidate firing position by its
  * "front"/kind classification, rejecting a rear position only once the actor
  * has closed to within the position's own radius. Fourth member of the
  * evaluator family: identical three-parameter shape, identical
  * MOVZX EAX,BYTE PTR [ESI+0x30] tail at 0x24764, so the return is int-width
  * and not char.
  *
- * The first parameter is DEAD here, exactly as in FUN_00024770: nothing in
+ * The first parameter is DEAD here, exactly as in post_evaluator_attack: nothing in
  * 0x246b0..0x2476a touches [EBP+0x8]. The name is carried over from the
  * table's other entries, not proven from this listing.
  *
@@ -586,9 +586,9 @@ int post_evaluator_hide(int actor_handle, char *eval_state,
  *
  *   0x246cc  FLD [ECX+0x660] / FADD [0x254CD0] / FSTP [ECX+0x660]. The field
  *            is loaded FIRST, so this is the compound `+=` form, unlike
- *            FUN_00024770's tail where the constant is FLD'd first. This path
+ *            post_evaluator_attack's tail where the constant is FLD'd first. This path
  *            RETURNS at 0x246e5 (POP ESI / POP EBP / RET) — it does not fall
- *            through to the FUN_00024000 call.
+ *            through to the firing_position_store_evaluation_debug call.
  *            [0x254CD0] == 0x41A00000 == 20.0f, a VC71 literal-pool slot in
  *            this TU (its neighbours are 15.0f, 5.0f, 12.0f, 7.5f), not a
  *            game global.
@@ -628,11 +628,11 @@ int post_evaluator_hide(int actor_handle, char *eval_state,
  *
  *   0x2474c pushes 0x14, then score, then eval_state (ADD ESP,0xC pays for
  *   exactly three) while firing_position is still live in ESI, matching
- *   FUN_00024000's @<esi> fourth parameter.
+ *   firing_position_store_evaluation_debug's @<esi> fourth parameter.
  *
  * Offsets used (raw; struct identities not yet proven):
  *   eval_state      +0x014 char   "keep rejected positions" gate (as the twins)
- *                   +0x5fc char   master gate (as FUN_00024770)
+ *                   +0x5fc char   master gate (as post_evaluator_attack)
  *                   +0x600 float  actor's distance to the encounter
  *                   +0x660 float  rejected-position accumulator
  *   firing_position +0x006 int16  kind, dispatched 0 / 1 / default
@@ -640,7 +640,7 @@ int post_evaluator_hide(int actor_handle, char *eval_state,
  *                   +0x030 char   usable flag (also the return value)
  *                   +0x031 char   rejected flag
  */
-int FUN_000246b0(int actor_handle, char *eval_state, char *firing_position)
+int post_evaluator_uncover(int actor_handle, char *eval_state, char *firing_position)
 {
   float score;
   float dist;
@@ -670,7 +670,7 @@ int FUN_000246b0(int actor_handle, char *eval_state, char *firing_position)
       }
       break;
     }
-    FUN_00024000(eval_state, score, 0x14, firing_position);
+    firing_position_store_evaluation_debug(eval_state, score, 0x14, firing_position);
   }
 
   if (firing_position == (char *)0)
@@ -678,8 +678,8 @@ int FUN_000246b0(int actor_handle, char *eval_state, char *firing_position)
   return *(unsigned char *)(firing_position + 0x30);
 }
 
-/* FUN_00024770 (0x24770) — score one candidate firing position against the
- * actor's aiming state. Sibling of FUN_00024370: both addresses are stored as
+/* post_evaluator_attack (0x24770) — score one candidate firing position against the
+ * actor's aiming state. Sibling of post_evaluator_global: both addresses are stored as
  * function pointers eight bytes apart in the evaluator dispatch table
  * (0x254c30 holds 0x24370, 0x254c38 holds 0x24770), and neither is reached by
  * a direct CALL anywhere in the image, so the three-parameter prototype and
@@ -718,7 +718,7 @@ int FUN_000246b0(int actor_handle, char *eval_state, char *firing_position)
  *
  *   0x2482d pushes 0xE, then score, then eval_state (ADD ESP,0xC pays for
  *   exactly three) while firing_position is still live in ESI, matching
- *   FUN_00024000's @<esi> fourth parameter.
+ *   firing_position_store_evaluation_debug's @<esi> fourth parameter.
  *
  * Offsets used (raw; struct identities not yet proven):
  *   eval_state      +0x014 char   "keep rejected positions" gate (as the twin)
@@ -729,7 +729,7 @@ int FUN_000246b0(int actor_handle, char *eval_state, char *firing_position)
  *                   +0x030 char   usable flag (also the return value)
  *                   +0x031 char   rejected flag
  */
-int FUN_00024770(int actor_handle, char *eval_state, char *firing_position)
+int post_evaluator_attack(int actor_handle, char *eval_state, char *firing_position)
 {
   float score;
 
@@ -760,7 +760,7 @@ int FUN_00024770(int actor_handle, char *eval_state, char *firing_position)
       }
       break;
     }
-    FUN_00024000(eval_state, score, 0xe, firing_position);
+    firing_position_store_evaluation_debug(eval_state, score, 0xe, firing_position);
   }
 
   if (firing_position == (char *)0)
@@ -768,7 +768,7 @@ int FUN_00024770(int actor_handle, char *eval_state, char *firing_position)
   return *(unsigned char *)(firing_position + 0x30);
 }
 
-/* FUN_00024950 (0x24950) — ordering predicate for the candidate
+/* firing_position_compare (0x24950) — ordering predicate for the candidate
  * firing-position records built by actor_looking.c. Handed to the generic sort
  * FUN_00091ef0 as its comparator, which passes indices (not pointers), so the
  * record array and its count travel in the two globals above.
@@ -781,8 +781,8 @@ int FUN_00024770(int actor_handle, char *eval_state, char *firing_position)
  * Record layout, read straight off the listing — element stride 0x3c from
  * IMUL ESI,ESI,0x3c at 0x24966, matching the 0x200 * 0x3c record buffer in
  * actor_looking.c. Field meanings are unproven, so they stay as offsets:
- *   +0x30  char   the same flag FUN_00024370 clears on a rejected candidate
- *   +0x31  char   the same flag FUN_00024370 sets on a rejected candidate
+ *   +0x30  char   the same flag post_evaluator_global clears on a rejected candidate
+ *   +0x31  char   the same flag post_evaluator_global sets on a rejected candidate
  *   +0x38  float  the accumulated score
  *
  * The two byte-flag branches are written with an explicit 1/-1 rank compared
@@ -818,7 +818,7 @@ int FUN_00024770(int actor_handle, char *eval_state, char *firing_position)
  * emitted order: the array base is loaded at 0x24953 and both IMUL/ADD pairs
  * complete at 0x2496b, ahead of the TEST EAX,EAX at 0x2496d that guards the
  * first assert. Nothing is dereferenced until after all three asserts pass. */
-bool FUN_00024950(long index1, long index2)
+bool firing_position_compare(long index1, long index2)
 {
   char *record1;
   char *record2;
@@ -953,7 +953,7 @@ void actor_clear_discarded_firing_positions(int actor_handle, int param2)
   }
 }
 
-/* FUN_00024be0 (0x24be0) — push one firing position onto the actor's
+/* actor_discard_firing_position (0x24be0) — push one firing position onto the actor's
  * discarded-position ring buffer and latch it as the actor's current
  * "avoid this position" record, caching the position's first 12 bytes.
  *
@@ -989,7 +989,7 @@ void actor_clear_discarded_firing_positions(int actor_handle, int param2)
  *   Tail: ADD ESI,0x3dc then three dword MOVs from the firing-position
  *   element's first 12 bytes (its position) into +0x3dc/+0x3e0/+0x3e4.
  */
-void FUN_00024be0(int actor_handle, short param_2, char param_3)
+void actor_discard_firing_position(int actor_handle, short param_2, char param_3)
 {
   actor_t *actor;
   encounter_definition *encounter;

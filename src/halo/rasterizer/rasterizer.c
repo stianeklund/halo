@@ -1472,7 +1472,7 @@ int FUN_00173af0(void *device, uint32_t reg, float a, float b)
  *   +0x40,+0x44    2 floats     -> vs_a[16..17] (overwritten in the map[0]
  * block) +0x48..0x54    6 floats     -> vs_b[0..3] (+0x48,0x4c,0x50,0x54)
  *   +0x58,+0x5c,+0x60 float*    rgb triples (NULL => *(float**)0x2ee708)
- *   +0x64          float[4]     packed 4x by FUN_000d1c90
+ *   +0x64          float[4]     packed 4x by real_argb_color_to_pixel32
  *   +0x78,+0x7c,+0x80 float*    alpha scalars (NULL => 1.0f)
  *   +0x88 uint16   framebuffer blend function (zero-extended)
  *   +0x8a char     texture filter select (0 => 2, else 1)
@@ -1703,15 +1703,15 @@ void FUN_00173b40(float *parameters)
     vs_a[12] = (*(float **)(p + 0x7c) != 0) ? **(float **)(p + 0x7c) : 1.0f;
     vs_a[16] = (*(float **)(p + 0x80) != 0) ? **(float **)(p + 0x80) : 1.0f;
 
-    *(uint32_t *)0x5a5ae8 = FUN_000d1c90(&vs_a[8]);
-    *(uint32_t *)0x5a5b08 = FUN_000d1c90(&vs_a[12]);
-    *(uint32_t *)0x5a5aec = FUN_000d1c90(&vs_a[16]);
+    *(uint32_t *)0x5a5ae8 = real_argb_color_to_pixel32(&vs_a[8]);
+    *(uint32_t *)0x5a5b08 = real_argb_color_to_pixel32(&vs_a[12]);
+    *(uint32_t *)0x5a5aec = real_argb_color_to_pixel32(&vs_a[16]);
     /* ADD ESI,0x64 then PUSH ESI four times — the same colour is packed into
      * four consecutive slots; the repetition is in the original. */
-    *(uint32_t *)0x5a5af8 = FUN_000d1c90((float *)(p + 0x64));
-    *(uint32_t *)0x5a5afc = FUN_000d1c90((float *)(p + 0x64));
-    *(uint32_t *)0x5a5b00 = FUN_000d1c90((float *)(p + 0x64));
-    *(uint32_t *)0x5a5b04 = FUN_000d1c90((float *)(p + 0x64));
+    *(uint32_t *)0x5a5af8 = real_argb_color_to_pixel32((float *)(p + 0x64));
+    *(uint32_t *)0x5a5afc = real_argb_color_to_pixel32((float *)(p + 0x64));
+    *(uint32_t *)0x5a5b00 = real_argb_color_to_pixel32((float *)(p + 0x64));
+    *(uint32_t *)0x5a5b04 = real_argb_color_to_pixel32((float *)(p + 0x64));
 
     *(uint32_t *)0x5a5b74 = 0x89;
     *(uint32_t *)0x5a5b28 = 0x89;
@@ -1754,7 +1754,7 @@ void FUN_00173b40(float *parameters)
  * (color), 4 = D3DVSDE_TEXCOORD0, 0 = D3DVSDE_VERTEX.
  *
  * `success` mirrors the original D3D result-check macro: BL is initialized to 1
- * (MOV BL,0x1) and only ever re-set to 1, so all four FUN_00167ff0
+ * (MOV BL,0x1) and only ever re-set to 1, so all four rasterizer_error
  * (report_d3d_call_failed) branches are unreachable at runtime — they are kept
  * to preserve the basic-block layout. Each per-call check compiles to
  * TEST BL,BL / JZ / MOV BL,1 / JMP — reproduced by the
@@ -1792,7 +1792,7 @@ void FUN_001741d0(float *quad)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexDataColor(global_d3d_device, "
                      "9, vertices[vertex_index].color)");
       }
@@ -1801,7 +1801,7 @@ void FUN_001741d0(float *quad)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexData2f(global_d3d_device, 4, "
                      "vertices[vertex_index].texcoord.u, "
                      "vertices[vertex_index].texcoord.v)");
@@ -1811,7 +1811,7 @@ void FUN_001741d0(float *quad)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, "
+        rasterizer_error(0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, "
                         "VSDE_VERTEX, vertices[vertex_index].position.x, "
                         "vertices[vertex_index].position.y)");
       }
@@ -1820,7 +1820,7 @@ void FUN_001741d0(float *quad)
     } while (remaining != 0);
     D3DDevice_End();
     if (!success) {
-      FUN_00167ff0(0, "IDirect3DDevice8_End(global_d3d_device)");
+      rasterizer_error(0, "IDirect3DDevice8_End(global_d3d_device)");
       error(2, "### ERROR rasterizer_text_draw_character failed");
     }
   }
@@ -2089,7 +2089,7 @@ void FUN_001749b0(void)
   hr = D3DDevice_EndVisibilityTest(0xfff);
   if (hr < 0) {
     ok = 0;
-    FUN_00167ff0(
+    rasterizer_error(
       hr, "IDirect3DDevice8_EndVisibilityTest(global_d3d_device, index)");
   } else {
     ok = 1;
@@ -2104,7 +2104,7 @@ void FUN_001749b0(void)
     ok = 1;
   } else {
     ok = 0;
-    FUN_00167ff0(hr, "hr");
+    rasterizer_error(hr, "hr");
   }
 
   *(int *)0x47e4c4 = *(int *)0x47e4c4 + (int)pixels;
@@ -2242,7 +2242,7 @@ char FUN_00174bd0(void)
     ok = 1;
   } else {
     ok = 0;
-    FUN_00167ff0(
+    rasterizer_error(
       hr,
       "IDirect3DDevice8_CreateVertexBuffer(global_d3d_device, "
       "RASTERIZER_TRANSPARENT_GEOMETRY_TEXCOORD_STREAM_SIZE*(2*sizeof(byte)), "
@@ -2259,7 +2259,7 @@ char FUN_00174bd0(void)
   if (ok != 0) {
     ok = 1;
   } else {
-    FUN_00167ff0(
+    rasterizer_error(
       0,
       "IDirect3DVertexBuffer8_Lock("
       "rasterizer_xbox_transparent_geometry_texcoord_stream, 0, "
@@ -2537,7 +2537,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
                        0x158, 1);
         system_exit(-1);
       }
-      *(uint32_t *)0x5a5b6c = FUN_000d1dd0(&argb[1]);
+      *(uint32_t *)0x5a5b6c = real_rgb_color_to_pixel32(&argb[1]);
       *(uint32_t *)0x5a5b94 = 1;
       *(uint32_t *)0x5a5ae0 = 1;
       rasterizer_set_pixel_shader((void *)0x5a5ac0);
@@ -2851,7 +2851,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__INVERSE_OFFSET, "
                      "vsh_constants__inverse, VSH_CONSTANTS__INVERSE_COUNT)");
@@ -2861,7 +2861,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
              "VSH_CONSTANTS__TEXANIM_OFFSET, vsh_constants__texanim, 4)");
       }
@@ -2890,7 +2890,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(0,
+          rasterizer_error(0,
                        "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                        "device, VSH_CONSTANTS__ZSPRITE_OFFSET, "
                        "vsh_constants__zsprite, VSH_CONSTANTS__ZSPRITE_COUNT)");
@@ -2939,7 +2939,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(0,
+          rasterizer_error(0,
                        "IDirect3DDevice8_SetStreamSource(global_d3d_device, 1, "
                        "rasterizer_xbox_transparent_geometry_texcoord_stream, "
                        "2*sizeof(byte))");
@@ -3229,7 +3229,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         }
       } else {
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__TEXANIM_OFFSET, "
                      "vsh_constants__texanim, VSH_CONSTANTS__TEXANIM_COUNT)");
@@ -3290,7 +3290,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
                      "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -3451,7 +3451,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
             c[2] = c[2] * pf[1];
             c[3] = c[3] * pf[2];
           }
-          ((uint32_t *)0x5a5ae8)[(short)j] = FUN_000d1c90(c);
+          ((uint32_t *)0x5a5ae8)[(short)j] = real_argb_color_to_pixel32(c);
           j = j + 1;
         } while ((int)(short)j < *(int *)(gen + 0x60));
       }
@@ -3659,7 +3659,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       } while ((short)m2 < 4);
       D3DDevice_SetVertexShaderConstant(-0x51, anim_out2, 8);
       if (success == 0) {
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__TEXANIM_OFFSET, "
                      "vsh_constants__texanim, VSH_CONSTANTS__TEXANIM_COUNT)");
@@ -3723,7 +3723,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
                      "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -3852,7 +3852,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(
+          rasterizer_error(
             0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
                "VSH_CONSTANTS__TEXSCALE_OFFSET, vsh_constants__texscale, "
                "VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -3860,7 +3860,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         csmemset((void *)0x5a5ac0, 0, 0xf0);
         *(uint32_t *)0x5a5b98 = 1;
         *(uint32_t *)0x5a5b94 = 1;
-        *(uint32_t *)0x5a5ae8 = FUN_000d1dd0((float *)(gls + 0x54));
+        *(uint32_t *)0x5a5ae8 = real_rgb_color_to_pixel32((float *)(gls + 0x54));
         *(uint32_t *)0x5a5b48 = 0x8010000;
         *(uint32_t *)0x5a5b74 = 0xc0;
         if (*(short *)(grp + 0x14) == 1) {
@@ -3953,7 +3953,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(
+          rasterizer_error(
             0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
                "VSH_CONSTANTS__TEXSCALE_OFFSET, vsh_constants__texscale, "
                "VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -4003,7 +4003,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           } else {
             bump_color[2] = bc;
           }
-          *(uint32_t *)0x5a5ae8 = FUN_000d1dd0(bump_color);
+          *(uint32_t *)0x5a5ae8 = real_rgb_color_to_pixel32(bump_color);
           *(uint32_t *)0x5a5b48 = 0x4a410b0b;
         }
         *(uint32_t *)0x5a5b74 = 0x20cd;
@@ -4016,8 +4016,8 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         }
         *(uint32_t *)0x5a5b50 = 0xc0c0d0d;
         *(uint32_t *)0x5a5b7c = 0xd;
-        *(uint32_t *)0x5a5af4 = FUN_000d1c90((float *)(gls + 0x8c));
-        *(uint32_t *)0x5a5b14 = FUN_000d1c90((float *)(gls + 0x9c));
+        *(uint32_t *)0x5a5af4 = real_argb_color_to_pixel32((float *)(gls + 0x8c));
+        *(uint32_t *)0x5a5b14 = real_argb_color_to_pixel32((float *)(gls + 0x9c));
         *(uint32_t *)0x5a5b34 = 0xc00;
         *(uint32_t *)0x5a5b80 = 0xc00;
         *(uint32_t *)0x5a5b84 = 0xc00;
@@ -4095,7 +4095,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(
+          rasterizer_error(
             0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_device, "
                "VSH_CONSTANTS__TEXSCALE_OFFSET, vsh_constants__texscale, "
                "VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -4279,7 +4279,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
                      "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
                      "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
@@ -4617,7 +4617,7 @@ static __inline int water_alpha_to_pixel32(float alpha_in)
     if (success) {                  \
       success = 1;                  \
     } else {                        \
-      FUN_00167ff0(0, (call_text)); \
+      rasterizer_error(0, (call_text)); \
       success = 0;                  \
     }                               \
   } while (0)
@@ -5158,7 +5158,7 @@ void FUN_00179de0(void *group)
               weight * *(float *)((char *)shader + 0x74);
     tint[2] = inverse_weight * *(float *)((char *)shader + 0x88) +
               weight * *(float *)((char *)shader + 0x78);
-    *(unsigned int *)0x5a5ae8 = FUN_000d1dd0(&tint[0]);
+    *(unsigned int *)0x5a5ae8 = real_rgb_color_to_pixel32(&tint[0]);
   }
 
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
@@ -5315,7 +5315,7 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
  *  - The two float arguments are forwarded as raw dwords through EAX/ECX with
  *    no FLD/FSTP anywhere, i.e. a pure bit passthrough. Typing them `float`
  *    matches the callee's kb.json declaration and avoids the FILD/int
- *    conversion that an int-typed passthrough would emit (FUN_001a7c70 class).
+ *    conversion that an int-typed passthrough would emit (units_scripting_set_current_vitality class).
  *  - XOR EAX,EAX before the RET is a real `return 0` (S_OK), not a dead
  *    write; lifting this as void would be the §16 void-EAX hazard.
  *
@@ -5510,7 +5510,7 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
           D3DDevice_End();
           hr = D3DDevice_EndVisibilityTest(index);
           if (hr < 0) {
-            FUN_00167ff0(
+            rasterizer_error(
               hr,
               "IDirect3DDevice8_EndVisibilityTest(global_d3d_device, index)");
             error(2,
@@ -6123,7 +6123,7 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
       }
 
       *(unsigned int *)((char *)pixel_shader + index * 4 + 0x48) =
-        FUN_000d1c90((float *)(stage + 0x2c));
+        real_argb_color_to_pixel32((float *)(stage + 0x2c));
 
       color_in0 =
         FUN_0017be50(*(short *)(stage + 0x3c), *(short *)(stage + 0x3e));

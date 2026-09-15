@@ -473,7 +473,7 @@ int sound_impulse_start(int sound_tag_index, float scale)
   *(float *)(source + 0x08) = 1.0f;
 
   /* original returns the sound datum handle (or -1) from this tail call;
-   * callers like hud_sounds_update (FUN_000d70b0) store it for
+   * callers like hud_sounds_update (hud_play_sound) store it for
    * sound_stop_impulse. */
   return sound_start(sound_tag_index, source, NONE, 0, 0, 0);
 }

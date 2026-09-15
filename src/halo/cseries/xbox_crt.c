@@ -702,8 +702,8 @@ double fabs(double x)
  * 0x1d90e0): subtract the size from ESP and relocate the return address.  A
  * bare `ret` here left the frame UNALLOCATED, so a function's locals/spills
  * aliased live ESP and were clobbered by the next argument push — manifested as
- * a NULL+0x99 fault in actor_has_accessible_firing_position (0x25a00) and as
- * corrupted firing-position records driving AI aim in FUN_00025c10 (0x25c10).
+ * a NULL+0x99 fault in actor_nearby_firing_positions (0x25a00) and as
+ * corrupted firing-position records driving AI aim in actor_select_firing_position (0x25c10).
  * Byte-faithful to 0x1d90e0; Xbox fully commits the thread stack, so no
  * page-probing is needed. */
 #if !defined(_MSC_VER) || defined(__clang__)

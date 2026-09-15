@@ -5,7 +5,7 @@
  * FUN_ per naming-confidence rules. No-op when param_1 == -1 (skips both
  * the object lookup and the flag update).
  *
- * Sole caller FUN_000bf1e0 (players.c, HaloScript builtin dispatcher)
+ * Sole caller unit_set_enterable_by_player_evaluate (players.c, HaloScript builtin dispatcher)
  * passes (record[0], zero-extended byte at record+4) and discards the
  * (void) return. */
 void FUN_001ac030(int param_1, int param_2)
@@ -113,7 +113,7 @@ void FUN_001ac0a0(int param_1, int param_2)
  *   the ARG_COUNT warning on 0x19b210 ("cleanup=5 vs decl=3") is that merge
  *   -- tag_block_get_element really takes 3 args, do NOT "fix" its decl.
  *
- * Sole caller FUN_000bef80 (players.c, HaloScript builtin dispatcher)
+ * Sole caller unit_get_custom_animation_time_evaluate (players.c, HaloScript builtin dispatcher)
  * zero-extends the 16-bit result and forwards it to hs_return. */
 int16_t FUN_001AC0E0(int handle)
 {
@@ -498,13 +498,13 @@ void FUN_001be2b0(char *request /* @<esi> */)
 
   /* Cold path: MSVC lays the cache-blown reporting out after the RET. */
   if (system_milliseconds() - *(unsigned int *)0x4e9374 > 10000u) {
-    terminal_output(
+    terminal_printf(
       *(void **)0x2ee6f4,
       "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
       NULL);
     error(2, "SOUND CACHE BLOWN!!!! double-click \"GETSTABBED.BAT\" on your "
              "PC now!!!");
-    terminal_output(
+    terminal_printf(
       *(void **)0x2ee6f4,
       "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
       NULL);
@@ -825,7 +825,7 @@ short sound_select_permutation(void *sound_tag, short pitch_range_index,
   {
     short count = *(short *)(pitch_range + 0x2c);
     unsigned int *seed = random_math_get_local_seed_address();
-    short selected = random_range(seed, 0, count);
+    short selected = seed_random_range(seed, 0, count);
 
     for (;;) {
       uint32_t all_bits = (1u << ((uint8_t)count & 0x1f)) - 1;

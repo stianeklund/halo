@@ -712,13 +712,13 @@ void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block,
   if (block && !result) {
     unsigned int now = system_milliseconds();
     if (now - *(unsigned int *)0x4ea98c > 10000u) {
-      terminal_output(
+      terminal_printf(
         *(void **)0x2ee6f4,
         "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
         NULL);
       error(2, "YOU GOT STABBED!!!! double-click \"GETSTABBED.BAT\" on your PC "
                "now!!!");
-      terminal_output(
+      terminal_printf(
         *(void **)0x2ee6f4,
         "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
         NULL);

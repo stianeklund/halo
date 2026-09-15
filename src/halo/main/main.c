@@ -69,7 +69,7 @@ void display_error_damaged_media(void)
  * int16 error_handle @+0, uint8 is_modal @+2, uint8 pause_game @+3). Must run
  * only outside a cinematic; asserts otherwise ("Noooooooooooooooooo!!!",
  * ui_widget.c line 0x93f, system_exit(-1) flavor). For each valid record
- * (0 <= handle < 0x28) it re-issues ui_widget_display_error(handle, slot,
+ * (0 <= handle < 0x28) it re-issues display_error(handle, slot,
  * is_modal, pause_game), then clears the slot to -1. Ref 0xe8db0. */
 void ui_widget_display_deferred_errors(void)
 {
@@ -88,7 +88,7 @@ void ui_widget_display_deferred_errors(void)
   do {
     error_handle = *record;
     if (error_handle >= 0 && error_handle < 0x28) {
-      ui_widget_display_error(error_handle, local_player_index, (char)record[1],
+      display_error(error_handle, local_player_index, (char)record[1],
                               *(char *)((int)record + 3));
     }
     *record = -1;
@@ -205,11 +205,11 @@ void FUN_000ffe50(char param_1)
   }
 }
 
-/* Guard wrapper: if param_1 is nonzero, call FUN_00053890. */
+/* Guard wrapper: if param_1 is nonzero, call ai_profile_change_render_spray. */
 void FUN_000ffe70(char param_1)
 {
   if (param_1 != '\0') {
-    FUN_00053890();
+    ai_profile_change_render_spray();
     return;
   }
 }
@@ -223,11 +223,11 @@ void FUN_000ffe90(char param_1)
   }
 }
 
-/* Guard wrapper: if param_1 is nonzero, call FUN_00054df0 (ai_erase_all). */
+/* Guard wrapper: if param_1 is nonzero, call ai_scripting_erase_all (ai_erase_all). */
 void FUN_000ffeb0(char param_1)
 {
   if (param_1 != '\0') {
-    FUN_00054df0();
+    ai_scripting_erase_all();
     return;
   }
 }
@@ -1426,7 +1426,7 @@ void main_menu_precache_resources(void)
  * (byte at 0x46da42).
  *
  * Confirmed (disassembly, 6 instructions, no frame, no locals):
- *   CALL 0xe4640              -> ui_widget_stop_attract_mode()
+ *   CALL 0xe4640              -> ui_stop_main_menu_music()
  *   PUSH 0 / CALL 0xe43d0 / ADD ESP,4 -> main_menu_active(false)
  *   MOV byte ptr [0x46da42],0 -> main_globals.main_menu_scenario_loaded = 0
  *
@@ -1438,7 +1438,7 @@ void main_menu_precache_resources(void)
  */
 void main_menu_unload(void)
 {
-  ui_widget_stop_attract_mode();
+  ui_stop_main_menu_music();
   main_menu_active(false);
   main_globals.main_menu_scenario_loaded = 0;
 }
@@ -1448,7 +1448,7 @@ void main_menu_unload(void)
  *
  * Resets the player action queue state by deleting all pending updates,
  * re-initializing the queue, and restarting the server update pipeline.
- * Called when closing a UI widget (ui_widget_close) and at the end of
+ * Called when closing a UI widget (ui_widget_delete) and at the end of
  * each network client frame (network_game_client_end_frame).
  */
 void main_reset_player_actions(void)
@@ -2058,11 +2058,11 @@ void main_new_map(game_options_t *game_options)
  *    kb.json; used only by this function). Compared against
  *    unk_time_globals.unk_0 (uint32 ms ticker at 0x46d9e0).
  *  - Timer not-yet-started path (deadline == 0):
- *      - FUN_e46a0 returns DAT_0046cc86 (main-menu music-active flag).
+ *      - ui_main_menu_music_active returns DAT_0046cc86 (main-menu music-active flag).
  *      - If music is playing (== 1):
  *          deadline = current_ms + 1000
  *          FUN_e5a40(1000) — begin music fade-out over 1000 ms
- *          FUN_e3e10(1)    — enable UI widget
+ *          ui_widgets_inhibit_processing(1)    — enable UI widget
  *          FUN_e3c90(0.0f) — set rasterizer fade to 0 (transparent)
  *        MSVC interleaves: PUSH 0x3e8 (e5a40 arg), then PUSH 0x1 (e3e10 arg),
  *        then PUSH 0x0 (e3c90 arg), cleaned with a single ADD ESP,0xc.
@@ -2074,10 +2074,10 @@ void main_new_map(game_options_t *game_options)
  *      FUN_e3c90(fade) — update rasterizer blend.
  *  - Timer-expired (or not-pending) path:
  *      FUN_e3c90(-1.0f)     — set fade to -1.0f (0xbf800000)
- *      FUN_e4640()          — stop main-menu music
+ *      ui_stop_main_menu_music()          — stop main-menu music
  *      FUN_e43d0(0)         — clear UI widget flag2
  *      main_globals.main_menu_scenario_loaded = 0  [cleared mid push-sequence]
- *      FUN_e3e10(0)         — disable UI widget
+ *      ui_widgets_inhibit_processing(0)         — disable UI widget
  *        MSVC interleaves: PUSH 0xbf800000 (e3c90), PUSH 0x0 (e43d0), PUSH 0x0
  *        (e3e10), cleaned with ADD ESP,0xc.
  *      If game_in_progress() and word_46DA0C == 0:
@@ -2100,12 +2100,12 @@ void main_new_map(game_options_t *game_options)
  *      0xbf800000 = -1.0f
  *
  * Inferred:
- *  - FUN_e46a0 = "main menu music is playing" — reads DAT_0046cc86.
+ *  - ui_main_menu_music_active = "main menu music is playing" — reads DAT_0046cc86.
  *  - FUN_e5a40 = begin UI fade / music fade-out (takes fade duration ms).
  *  - FUN_e3c90 = rasterizer_set_fade (takes float; stores raw bits to
  * DAT_0046cc4c).
- *  - FUN_e3e10 = ui_widget_set_flag (bool enable).
- *  - FUN_e4640 = stop_main_menu_music.
+ *  - ui_widgets_inhibit_processing = ui_widget_set_flag (bool enable).
+ *  - ui_stop_main_menu_music = stop_main_menu_music.
  *  - FUN_e43d0 = ui_widget_set_flag2 (bool).
  *  - FUN_1c1c00 = player_profile_save_level (local_player_index).
  *
@@ -2124,12 +2124,12 @@ void main_change_map_name(void)
   if (main_globals.main_menu_scenario_loaded) {
     if (*(int *)0x46da34 == 0) {
       /* music not yet fading: check if music is still playing */
-      if (ui_widget_get_attract_mode_flag()) {
+      if (ui_main_menu_music_active()) {
         /* set deadline and kick off the 1000 ms fade sequence */
         *(uint32_t *)0x46da34 = (uint32_t)unk_time_globals.unk_0 + 1000;
         /* MSVC interleaved pre-push: PUSH 0x3e8, PUSH 0x1, PUSH 0x0 */
         main_screen_shell_begin_fade(1000);
-        ui_widget_set_events_suppressed(1);
+        ui_widgets_inhibit_processing(1);
         ui_widgets_set_fade_value(0.0f);
       }
     } else {
@@ -2156,10 +2156,10 @@ void main_change_map_name(void)
   /* timer expired (or was never pending): finalize fade and start new map */
   /* MSVC interleaved pre-push: PUSH 0xbf800000, PUSH 0x0, PUSH 0x0 */
   ui_widgets_set_fade_value(-1.0f); /* 0xbf800000 */
-  ui_widget_stop_attract_mode();
+  ui_stop_main_menu_music();
   main_menu_active(false);
   main_globals.main_menu_scenario_loaded = 0;
-  ui_widget_set_events_suppressed(0);
+  ui_widgets_inhibit_processing(0);
 
   if (game_in_progress() && word_46DA0C == 0) {
     /* initialize game_options from queued map name and difficulty */
@@ -4606,11 +4606,11 @@ void main_loop(void)
   x = word_46DA0C;
   switch (x) {
   case 2:
-    dispose_global_network_game_server();
     dispose_global_network_game_client();
+    dispose_global_network_game_server();
     break;
   case 1:
-    dispose_global_network_game_server();
+    dispose_global_network_game_client();
     break;
   }
   game_dispose_from_old_map();
@@ -5374,7 +5374,7 @@ void FUN_00103d80(void)
  *   - close and clear any open error_geometry_file (FILE* @0x46e394),
  *   - copy 'source' into the path buffer (csstrncpy, 0x3b),
  *   - clear the byte flag @0x31fb03,
- *   - append the ".wrl" extension (FUN_0008dc30 = strcat-like),
+ *   - append the ".wrl" extension (csstrcat = strcat-like),
  *   - assert the file handle is now NULL, and
  *   - run the CRT-region helper FUN_001db4a9.
  * If 'source' matches the cached path, the call is a no-op.
@@ -5394,7 +5394,7 @@ void FUN_00103de0(char *source)
     }
     csstrncpy((char *)0x31fac8, source, 0x3b);
     *(char *)0x31fb03 = 0;
-    FUN_0008dc30((char *)0x31fac8, ".wrl");
+    csstrcat((char *)0x31fac8, ".wrl");
     if (*(void **)0x46e394 != NULL) {
       display_assert("error_geometry_file==NULL",
                      "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x44, true);

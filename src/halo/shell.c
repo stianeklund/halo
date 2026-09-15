@@ -186,7 +186,7 @@ bool FUN_001911b0(void)
                                                    launch_data) == 0) &&
       (launch_data_type == 0)) {
     if (csstrcmp(launch_data, "XDEMOS") == 0) {
-      csstrcat((char *)0x4d8a88, "xdemo ", 7);
+      csstrncat((char *)0x4d8a88, "xdemo ", 7);
       *(char *)0x4d8a8f = 0;
     }
   }

@@ -454,7 +454,7 @@ int _TIFFVSetField(void *tif_, int tag, va_list ap)
   /* 0x65376. The masked vararg is 0x6537c-0x65381; the field-set test is the
    * signed byte branch at 0x6537e-0x65389; `break` on an unchanged scheme is
    * the JZ straight to the field-bit tail at 0x65391. TIFFSetCompressionScheme
-   * (FUN_000651a0) takes (tif, scheme) -- EDI is pushed first, so it is the
+   * (TIFFSetCompressionScheme) takes (tif, scheme) -- EDI is pushed first, so it is the
    * second argument (0x653ae-0x653b0) -- and its EAX lands in `status` before
    * the test (0x653ba), which is the assignment-in-condition below. */
   case TIFFTAG_COMPRESSION:
@@ -465,7 +465,7 @@ int _TIFFVSetField(void *tif_, int tag, va_list ap)
       if (tif->tif_cleanup)
         (*tif->tif_cleanup)(tif);
     }
-    if ((status = FUN_000651a0(tif, v)) != 0)
+    if ((status = TIFFSetCompressionScheme(tif, v)) != 0)
       tif->td_compression = (unsigned short)v;
     else
       goto end;

@@ -450,7 +450,7 @@ void game_engine_load_stage(const char *param_1)
     main_set_multiplayer_map_name((const char *)0x5aa760);
   }
   game_set_game_variant((game_variant_t *)0x5aa7a0);
-  if (!network_game_in_progress()) {
+  if (!network_game_is_active()) {
     main_reset_map();
   }
 }
@@ -464,7 +464,7 @@ void game_engine_playlist_begin(void)
 {
   main_set_multiplayer_map_name((const char *)0x5aa760);
   game_set_game_variant((game_variant_t *)0x5aa7a0);
-  if (!network_game_in_progress()) {
+  if (!network_game_is_active()) {
     main_reset_map();
   }
 }
@@ -985,7 +985,7 @@ void game_engine_switch_to_postgame(void)
   int iVar1;
 
   if (*(int *)0x5aa730 == 0) {
-    iVar1 = (int)network_game_server_get();
+    iVar1 = (int)global_network_game_server_get();
     if (iVar1 != 0) {
       *(int *)0x5aa730 = 1;
       *(int *)0x5aa728 = 0x40e00000;
@@ -1014,7 +1014,7 @@ char game_engine_get_goal_in_use(short param_1)
 /* game_engine_get_goal_position (0xa9380)
  *
  * Copies the position (3 floats) of the goal at index param_2 into param_1.
- * Returns param_1 in EAX — unported callers (FUN_000d6cc0) use the return
+ * Returns param_1 in EAX — unported callers (hud_render_nav_points) use the return
  * value as the position pointer. */
 int *game_engine_get_goal_position(int *param_1, short param_2)
 {
@@ -1045,7 +1045,7 @@ void game_engine_set_goal_position(int flag_index, int *position, float height,
 
   idx = (int)flag_index;
   *(int *)(0x456710 + idx * 0x20) = player;
-  icon = (int16_t)hud_find_nav_point_by_name((const char *)name);
+  icon = (int16_t)find_nav_point((const char *)name);
   *(int16_t *)(0x456714 + idx * 0x20) = icon;
   *(char *)(0x456704 + idx * 0x20) = 1;
   *(int *)(0x4566f8 + idx * 0x20) = position[0];
@@ -1088,9 +1088,9 @@ void game_engine_render_nav_points(int param_1)
                            (int)((char *)flag_ptr - (char *)0x4566f8) / 0x20,
                            player_index)) {
             {
-              int dist = ((int (*)(int, void *, int *, int))FUN_000d6550)(
+              int dist = ((int (*)(int, void *, int *, int))hud_get_nav_point_render_type)(
                 param_1, head_position, flag_ptr, -1);
-              ((void (*)(int, int *, int16_t, int))FUN_000d6660)(
+              ((void (*)(int, int *, int16_t, int))custom_render_nav_point)(
                 param_1, flag_ptr, *(int16_t *)((char *)flag_ptr + 0x1c), dist);
             }
           }
@@ -2782,7 +2782,7 @@ void game_engine_weapon_fired(int param_1)
     return;
   biped = (int)object_get_and_verify_type(player, 3);
   biped2 = (int)object_get_and_verify_type(player, 3);
-  weapon_handle = (int)unit_get_weapon(player, *(int16_t *)(biped2 + 0x2a2));
+  weapon_handle = (int)unit_inventory_get_weapon(player, *(int16_t *)(biped2 + 0x2a2));
   decay = 0.1f;
   if (game_engine_player_has_stealth_weapon(param_1)) {
     decay = 0.0f;
@@ -3926,7 +3926,7 @@ int FUN_000aca70(int item_collection_tag)
   tag = (int *)tag_get(TAG_GROUP_ITMC, item_collection_tag);
   count = *tag;
   seed = (unsigned int *)get_global_random_seed_address();
-  accum = random_range(seed, 0, FUN_000a8970(tag));
+  accum = seed_random_range(seed, 0, FUN_000a8970(tag));
   data = tag[1];
   i = 0;
   if (0 < count) {
@@ -4095,7 +4095,7 @@ void game_engine_update_player_always_invis(int param_1)
 
     if (*(int *)(player + 0x34) != -1)
 
-      player_set_respawn_timer(param_1, 0, 0xf);
+      player_handle_powerup_minor(param_1, 0, 0xf);
   }
 }
 
@@ -4121,21 +4121,21 @@ void game_engine_update_non_deterministic(float dt)
 
   switch (*(int32_t *)0x5aa730) {
   case 2:
-    rumble_clear_all_players();
+    rumble_clear_all_now();
     *(float *)0x5aa728 -= dt;
     if (*(float *)0x5aa728 <= 0.0f)
       *(int32_t *)0x5aa730 = 3;
     break;
 
   case 3:
-    rumble_clear_all_players();
+    rumble_clear_all_now();
     *(float *)0x5aa72c += dt;
     if (*(float *)0x5aa72c > 1.0f)
       *(float *)0x5aa72c = 1.0f;
 
     if (game_engine_check_input_button(0) || game_engine_check_input_button(0xc)) {
-      if (network_game_server_get())
-        network_server_manager_pregame_start(network_game_server_get());
+      if (global_network_game_server_get())
+        network_game_server_reset_to_pregame(global_network_game_server_get());
       return;
     }
 
@@ -4160,12 +4160,12 @@ void game_engine_update_non_deterministic(float dt)
  * 3 register args and tail-jmps, leaving the caller's param2/param3 (a
  * HUD-buffer pointer) at the original's stack1 slot -- which then reaches a
  * players datum_get as a bogus handle and asserts "players index ... unused".
- * Running our cdecl impl directly (only caller is our lifted FUN_000ae110)
+ * Running our cdecl impl directly (only caller is our lifted game_engine_get_state_message)
  * avoids the broken thunk.
  *
  * RETURNS the "text was produced" flag in AL (original 0xacec0..0xaceed: the
  * vtable handler's AL if nonzero, else game_engine_get_score_hud_text's AL).
- * FUN_000ae110 (0xae110) propagates this to FUN_000d04d0 (0xd04d0, unported),
+ * game_engine_get_state_message (0xae110) propagates this to hud_show_action_response (0xd04d0, unported),
  * which only draws
  * the HUD text when AL != 0 ("test al,al; je" at 0xd0931). Declaring this
  * void (and returning 0 from ae110) suppressed all live-player game-engine
@@ -4768,7 +4768,7 @@ void game_engine_player_update_netgame_flag(int player_handle)
       *(int *)(effect_desc + 0x30) = *(int *)0x2efe78;
       *(int *)(effect_desc + 0x34) = *(int *)0x2efe7c;
 
-      player_effect_apply(player_handle, effect_desc, 1.0f);
+      player_effect_screen_flash(player_handle, effect_desc, 1.0f);
     }
   }
 
@@ -5066,8 +5066,8 @@ game_variant_t *game_engine_get_variant_by_name(game_variant_t *out_variant,
   return out_variant;
 }
 
-/* Dispatch to vtable slot 33 (0x84) or fall back to FUN_000ae250.
- * Tail-calls FUN_000ae250 which reads param_1 from the stack. */
+/* Dispatch to vtable slot 33 (0x84) or fall back to game_engine_did_player_win_default.
+ * Tail-calls game_engine_did_player_win_default which reads param_1 from the stack. */
 
 int game_engine_did_player_win(int param_1)
 
@@ -5080,7 +5080,7 @@ int game_engine_did_player_win(int param_1)
 
     return ((int (**)(int))current_game_engine)[0x84 / 4](param_1);
 
-  return FUN_000ae250(param_1);
+  return game_engine_did_player_win_default(param_1);
 }
 
 /* Check if the team won by finding a player on team ESI and dispatching. */
@@ -5098,7 +5098,7 @@ int FUN_000ae340(int team)
       if (((int (**)(int))current_game_engine)[0x84 / 4])
         return ((int (**)(int))current_game_engine)[0x84 / 4](
           iter.datum_handle);
-      return ((int (*)(int))FUN_000ae250)(iter.datum_handle);
+      return ((int (*)(int))game_engine_did_player_win_default)(iter.datum_handle);
     }
     player = (int)data_iterator_next(&iter);
   }
@@ -5371,7 +5371,7 @@ void game_engine_initialize_for_new_map(void)
  * It is called via inline asm to ensure exact register state.
  *
  * 0x456b14 is a bool: non-zero means networked/team game (uses
- * network_game_client_get to determine team assignment instead of counter).
+ * global_network_game_client_get to determine team assignment instead of counter).
  */
 void game_engine_player_added(int player_data_handle)
 {
@@ -5396,8 +5396,8 @@ void game_engine_player_added(int player_data_handle)
     *(int32_t *)(player_datum + 0x20) = (int32_t)(*(uint8_t *)0x5aa724);
     *(int32_t *)0x5aa724 = *(int32_t *)0x5aa724 + 1;
   } else {
-    /* Networked: check network_game_client_get for team assignment */
-    void *client = network_game_client_get();
+    /* Networked: check global_network_game_client_get for team assignment */
+    void *client = global_network_game_client_get();
     if (client == NULL) {
       int v;
       /* No client info: use counter with wrap-around to bit 0 */
@@ -5503,7 +5503,7 @@ void FUN_000ae920(wchar_t *title_buf, int player_handle)
       if (win_cb)
         won = win_cb(player_handle);
       else
-        won = FUN_000ae250(player_handle);
+        won = game_engine_did_player_win_default(player_handle);
     }
     has_teams = 0;
     if (current_game_engine)
@@ -5826,7 +5826,7 @@ void game_engine_post_rasterize_post_game(void)
     rect2d_offset(rect2, -screen_bounds_left, -screen_bounds_top);
     draw_string_set_tab_stops(0, 0);
     draw_string_set_color(bottom_color);
-    tmp = (int)network_game_server_get();
+    tmp = (int)global_network_game_server_get();
     if (tmp != 0) {
       rect2[1] = 0x17c;
       draw_string_and_hack_in_icons(
@@ -5886,7 +5886,7 @@ void game_engine_update(void)
             ((char (*)(int, int))vtable[32])(player_handle, 1))) &&
           *(int *)((char *)datum_get(player_data, iter.datum_handle) + 0x34) !=
             NONE) {
-        player_set_respawn_timer(iter.datum_handle, 0, 0xf);
+        player_handle_powerup_minor(iter.datum_handle, 0, 0xf);
       }
     }
 
@@ -5938,9 +5938,9 @@ void game_engine_update(void)
         object_delete(object_iter[2]);
 
       {
-        void *server = network_game_server_get();
+        void *server = global_network_game_server_get();
         if (server != NULL) {
-          network_server_manager_game_over(server);
+          network_game_server_switch_to_postgame(server);
           return;
         }
       }
@@ -6212,7 +6212,7 @@ void FUN_000af9a0(void)
       bounds[3] = 0x280;
       do {
         render_ui_widgets_postgame((int16_t)i, bounds);
-        rumble_clear_for_local_player((int16_t)i);
+        rumble_player_clear((int16_t)i);
         i = i + 1;
       } while (i < 4);
       return;
@@ -6898,7 +6898,7 @@ int ctf_initialize_for_new_map(void)
   } else {
     {
       unsigned int *seed = (unsigned int *)get_global_random_seed_address();
-      rng = random_range(seed, 0, 2);
+      rng = seed_random_range(seed, 0, 2);
     }
     if ((int)rng < 0 || 1 < (int)rng) {
       display_assert("(flag_to_create >= 0) && (flag_to_create <= 1)",
@@ -7876,7 +7876,7 @@ int FUN_000b1e90(int param_1, int param_2)
 
   {
     unsigned int *seed = (unsigned int *)get_global_random_seed_address();
-    rng = random_range(seed, 0, *(int16_t *)0x456d54);
+    rng = seed_random_range(seed, 0, *(int16_t *)0x456d54);
   }
   i = 0;
   if (0 < *(int16_t *)0x456d54) {
@@ -8670,7 +8670,7 @@ void FUN_000b2d30(int *param_1, int param_2)
     if (flag_count != 0) {
       {
         unsigned int *seed = (unsigned int *)get_global_random_seed_address();
-        rng_pick = random_range(seed, 0, (int16_t)flag_count);
+        rng_pick = seed_random_range(seed, 0, (int16_t)flag_count);
       }
       i = 0;
       if (0 < *flag_block) {

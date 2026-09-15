@@ -832,13 +832,13 @@ void FUN_00160f50(void *shader, int frame_index, int vertices_per_primitive,
     *(uint32_t *)0x5a5ae0 = 0xa0f000c;
     *(uint32_t *)0x5a5ae4 = 0x1c011800;
     *(uint32_t *)0x5a5ae8 = FUN_00159070(scale_plasma);
-    *(uint32_t *)0x5a5af4 = FUN_000d1dd0(vector_primary);
-    *(uint32_t *)0x5a5b14 = FUN_000d1dd0(vector_secondary);
-    *(uint32_t *)0x5a5af8 = FUN_000d1dd0(plasma_a);
-    *(uint32_t *)0x5a5b18 = FUN_000d1dd0(plasma_b);
+    *(uint32_t *)0x5a5af4 = real_rgb_color_to_pixel32(vector_primary);
+    *(uint32_t *)0x5a5b14 = real_rgb_color_to_pixel32(vector_secondary);
+    *(uint32_t *)0x5a5af8 = real_rgb_color_to_pixel32(plasma_a);
+    *(uint32_t *)0x5a5b18 = real_rgb_color_to_pixel32(plasma_b);
   }
 
-  *(uint32_t *)0x5a5b6c = FUN_000d1dd0((float *)((char *)shader_data + 0x10c));
+  *(uint32_t *)0x5a5b6c = real_rgb_color_to_pixel32((float *)((char *)shader_data + 0x10c));
 
   if (*(uint16_t *)0x3256b0 == 1) {
     constants[0] = 0.5f;
@@ -860,7 +860,7 @@ void FUN_00160f50(void *shader, int frame_index, int vertices_per_primitive,
     D3DDevice_SetVertexShaderConstant(-0x51, &constants[0], 4);
     *(uint32_t *)0x5a5ae0 = 0x2004000c;
   } else if (*(uint16_t *)0x3256b0 == 2 || *(uint16_t *)0x3256b0 == 3) {
-    *(uint32_t *)0x5a5b70 = FUN_000d1dd0((float *)0x47dc98);
+    *(uint32_t *)0x5a5b70 = real_rgb_color_to_pixel32((float *)0x47dc98);
     *(uint32_t *)0x5a5ae0 = 0x2002000c;
   }
 
@@ -1062,7 +1062,7 @@ void FUN_00161f00(void)
  *   +0x28            flag byte; bit 1 set means "no bitmap" (tag index -1)
  *   +0x134           bitmap tag index bound to stage 0 when bit 1 is clear
  *   +0x138 / +0x13c  the two animated values written into constant row 0
- *   +0x10c           color vector passed to FUN_000d1dd0
+ *   +0x10c           color vector passed to real_rgb_color_to_pixel32
  *
  * There is no float compare anywhere in this function (no FCOM in the
  * reference): the draw is gated only by the two global tests.
@@ -1164,7 +1164,7 @@ void FUN_00162560(void *shader, int frame_index, int vertices_per_primitive,
 
     D3DDevice_SetVertexShaderConstant(-0x54, &constants[0], 3);
 
-    render_state = FUN_000d1dd0((float *)((char *)shader_data + 0x10c));
+    render_state = real_rgb_color_to_pixel32((float *)((char *)shader_data + 0x10c));
     D3DDevice_SetRenderState_Simple(0x41e20, render_state);
     *(uint32_t *)0x1fb744 = render_state;
 
@@ -1619,9 +1619,9 @@ void FUN_00163910(void *shader, int frame_index, int vertices_per_primitive,
       *(unsigned long *)0x5a5b10 = FUN_00159070(
         *(float *)0x47dca8 * *(float *)((char *)shader_data + 0x290));
       *(unsigned long *)0x5a5af4 =
-        FUN_000d1dd0((float *)((char *)shader_data + 0x2a8));
+        real_rgb_color_to_pixel32((float *)((char *)shader_data + 0x2a8));
       *(unsigned long *)0x5a5b14 =
-        FUN_000d1dd0((float *)((char *)shader_data + 0x2b4));
+        real_rgb_color_to_pixel32((float *)((char *)shader_data + 0x2b4));
 
       if ((*(uint8_t *)((char *)shader_data + 0x28) & 2) != 0) {
         *(unsigned long *)0x5a5b48 = 0x14a0000;
@@ -1903,7 +1903,7 @@ void FUN_00163fe0(void *bitmap_data)
  *                    0x5a5b94/0x5a5ad8/0x5a5adc/0x5a5b40 set
  *   +0x290           float compared against 0.0f and passed twice to
  *                    FUN_00159070
- *   +0x2a8 / +0x2b4  color vectors passed to FUN_000d1dd0
+ *   +0x2a8 / +0x2b4  color vectors passed to real_rgb_color_to_pixel32
  *
  * Branch senses are decoded from the FNSTSW form, not from the decompiler:
  *   FCOMP [0x2533c0] / TEST AH,0x41 / JNZ-to-skip  =>  operand > 0.0f
@@ -1990,9 +1990,9 @@ void FUN_001640d0(void *shader, int frame_index, int vertices_per_primitive,
       *(unsigned long *)0x5a5b10 =
         FUN_00159070(*(float *)((char *)shader_data + 0x290));
       *(unsigned long *)0x5a5af4 =
-        FUN_000d1dd0((float *)((char *)shader_data + 0x2a8));
+        real_rgb_color_to_pixel32((float *)((char *)shader_data + 0x2a8));
       *(unsigned long *)0x5a5b14 =
-        FUN_000d1dd0((float *)((char *)shader_data + 0x2b4));
+        real_rgb_color_to_pixel32((float *)((char *)shader_data + 0x2b4));
 
       if ((*(uint8_t *)((char *)shader_data + 0x28) & 2) != 0) {
         *(unsigned long *)0x5a5b48 = 0x14a0911;
@@ -2210,7 +2210,7 @@ void FUN_00164590(void *bitmap_data)
  *                     FUN_00163590, which also memsets and populates it).
  *   0x5a5bd4 / 0x5a5bd8 / 0x5a5bdc
  *                     three scalars folded into the clamped color fed to
- *                     FUN_000d1dd0 on the "no stage-0 bitmap" path.
+ *                     real_rgb_color_to_pixel32 on the "no stage-0 bitmap" path.
  *   0x3256ba  uint16  statistics mode; the counters below run only when it
  *                     is 2. NOTE: 0x3256ba, not the 0x3256bc of the guard.
  *   0x5a5498 / 0x5a5494 / 0x5a5490
@@ -2250,7 +2250,7 @@ void FUN_00164590(void *bitmap_data)
  * their addresses are handed to the texture-animation evaluator as
  * out-parameters. The three clamped floats are one contiguous group: the
  * reference takes the address of the first (LEA ECX,[EBP-0xc]) and passes it
- * to FUN_000d1dd0, whose kb decl is float *.
+ * to real_rgb_color_to_pixel32, whose kb decl is float *.
  *
  * Call-site arity note: the binary emits merged cdecl cleanups. ADD ESP,0x1c
  * after CALL 0x190a90 is 4 arguments plus FUN_00178b40's 3 uncleaned;
@@ -2410,7 +2410,7 @@ void FUN_00164690(void *shader, int frame_index, int vertices_per_primitive,
         } else if (color[2] > *(float *)0x2533c8) {
           color[2] = 1.0f;
         }
-        *(uint32_t *)0x5a5ae8 = FUN_000d1dd0(&color[0]);
+        *(uint32_t *)0x5a5ae8 = real_rgb_color_to_pixel32(&color[0]);
         *(uint32_t *)0x5a5b48 = 0x4a410b0b;
       } else {
         *(uint32_t *)0x5a5b48 = 0x49480b0b;
@@ -2663,7 +2663,7 @@ void FUN_00164cf0(void *shader, int frame_index, int vertices_per_primitive,
     } else if (color[2] > *(float *)0x2533c8) {
       color[2] = 1.0f;
     }
-    *(uint32_t *)0x5a5ae8 = FUN_000d1dd0(&color[0]);
+    *(uint32_t *)0x5a5ae8 = real_rgb_color_to_pixel32(&color[0]);
     *(uint32_t *)0x5a5b48 = 0x4a410b0b;
   } else {
     *(uint32_t *)0x5a5b48 = 0x49480b0b;

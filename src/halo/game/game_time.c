@@ -253,7 +253,7 @@ extern double floor(double);
  *   0x2533c0 = 0.0f, 0x253f00 = 100.0f, 0x254cb8 = 1000.0f,
  *   TICKS_PER_SECOND = *(float *)0x253394 = 30.0f.
  * game_time_globals + 0x14 is the "target/end tick" counter driven by
- * update_get_game_time(); it has no name in game_time_globals_t yet. */
+ * update_client_get_maximum_possible_server_time(); it has no name in game_time_globals_t yet. */
 void game_time_update(float param_1)
 {
   float fVar1;
@@ -298,7 +298,7 @@ void game_time_update(float param_1)
     clamp_leftover = true;
     break;
   case 2:
-    server = network_game_server_get();
+    server = global_network_game_server_get();
     server_min_time =
       network_game_server_get_oldest_client_update_received((int)server);
     cur_time = (unsigned int)game_time_get();
@@ -355,7 +355,7 @@ void game_time_update(float param_1)
                   "game_time_globals->leftover_dt>=0.f && "
                   "game_time_globals->leftover_dt<100.f");
   if ((int)(int16_t)game_connection() == 1) {
-    maximum_ticks = update_get_maximum_actions();
+    maximum_ticks = update_client_get_maximum_actions();
     if (ticks_elapsed > maximum_ticks) {
       ticks_elapsed = maximum_ticks - 1 < 0 ? 0 : maximum_ticks - 1;
     } else if (ticks_elapsed + 7 < maximum_ticks) {
@@ -381,16 +381,16 @@ void game_time_update(float param_1)
     target_tick = (int)globals->time + ticks_elapsed;
     switch ((int)(int16_t)game_connection()) {
     case 0:
-      update_client_apply_actions((int16_t)ticks_elapsed);
+      update_client_local_ticks((int16_t)ticks_elapsed);
       break;
     case 2:
-      network_game_server_update_ticks((int)network_game_server_get(),
+      network_game_server_update_ticks((int)global_network_game_server_get(),
                                        (unsigned short)ticks_elapsed);
       break;
     default:
       break;
     }
-    update_time = update_get_game_time();
+    update_time = update_client_get_maximum_possible_server_time();
     if (update_time > *(int *)((char *)game_time_globals + 0x14)) {
       if (update_time <= target_tick)
         target_tick = update_time;

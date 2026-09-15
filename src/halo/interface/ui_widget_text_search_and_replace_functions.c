@@ -11,7 +11,7 @@
  *
  * Recovered layout (cachebeta.xbe, v01.10.12.2276):
  *
- *   0x000f5290  ui_widget_text_search_and_replace_function_invoke  (this fn)
+ *   0x000f5290  ui_widget_search_and_replace_invoke  (this fn)
  *   0x000f52e0  text_search_and_replace_function_table[0]  (FUN_000f52e0)
  *   0x000f52f0  text_search_and_replace_function_table[1]  (FUN_000f52f0)
  *
@@ -39,7 +39,7 @@
  * (ui_widget_game_data_function_invoke + ui_widget_game_data_function_table).
  */
 wchar_t *
-ui_widget_text_search_and_replace_function_invoke(void *widget,
+ui_widget_search_and_replace_invoke(void *widget,
                                                   unsigned short function_index)
 {
   assert_halt(widget);
