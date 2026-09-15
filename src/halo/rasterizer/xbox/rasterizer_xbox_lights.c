@@ -1,7 +1,7 @@
 #include "x87_math.h"
 
 /*
- * FUN_00169650 @ 0x169650 — D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_SetVertexData2f_5 @ 0x169650 — D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetVertexData2f. Disassembly (11 instructions):
  *   push ebp; mov ebp,esp; mov eax,[ebp+0x10]; mov ecx,[ebp+0xc];
  *   push eax; push ecx; push edx; call 0x1ed280 (D3DDevice_SetVertexData2f,
@@ -31,7 +31,7 @@
  *
  * xrefs_to is empty in the fingerprinted Ghidra artifact — no callers found.
  */
-int FUN_00169650(void *device, uint32_t reg, float a, float b)
+int IDirect3DDevice8_SetVertexData2f_5(void *device, uint32_t reg, float a, float b)
 {
   (void)device;
   D3DDevice_SetVertexData2f(reg, a, b);
@@ -39,7 +39,7 @@ int FUN_00169650(void *device, uint32_t reg, float a, float b)
 }
 
 /*
- * FUN_00169670 @ 0x169670 — D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_SetVertexData4f_1 @ 0x169670 — D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetVertexData4f. Disassembly (16 instructions):
  *   push ebp; mov ebp,esp; mov eax,[ebp+0x1c]; mov ecx,[ebp+0x18];
  *   mov edx,[ebp+0x14]; push eax; mov eax,[ebp+0x10]; push ecx;
@@ -51,7 +51,7 @@ int FUN_00169650(void *device, uint32_t reg, float a, float b)
  * the device pointer of the inline member instantiation) is never read; it
  * stays in the signature so the callee-cleans immediate is correct.
  *
- * Unlike the sibling FUN_00169650, the D3D register index here is NOT an
+ * Unlike the sibling IDirect3DDevice8_SetVertexData2f_5, the D3D register index here is NOT an
  * implicit register input: EDX is written by MOV EDX,[EBP+0x14] at 0x169679
  * before the PUSH EDX at 0x169684, and every one of the five forwarded
  * values comes from a stack slot. So there is no @<reg> annotation.
@@ -66,7 +66,7 @@ int FUN_00169650(void *device, uint32_t reg, float a, float b)
  *
  * xrefs_to is empty in the fingerprinted Ghidra artifact — no callers found.
  */
-int __stdcall FUN_00169670(void *device, uint32_t reg, float a, float b,
+int __stdcall IDirect3DDevice8_SetVertexData4f_1(void *device, uint32_t reg, float a, float b,
                            float c, float d)
 {
   (void)device;
@@ -78,14 +78,14 @@ static const char kLightsFile[] =
   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_lights.c";
 
 /*
- * FUN_001696d0 @ 0x1696d0 — full-screen light/lens-flare accumulation pass.
+ * rasterizer_sun_glow_copy_source @ 0x1696d0 — full-screen light/lens-flare accumulation pass.
  *
  * ABI (from disassembly, not the decompiler):
  *   ESI  = `bounds`, a 4-float rect {x0, x1, y0, y1}. The name is binary
  *          evidence: TEST ESI,ESI / assert("bounds", ..., 0x143) at
  *          0x1696d9..0x1696ee. => @<esi> register parameter.
  *   [EBP+8] = one cdecl stack argument, forwarded verbatim as the first
- *          argument of FUN_00158140 at 0x1699a9 (MOV EDX,[EBP+8]; PUSH EDX
+ *          argument of rasterizer_set_target at 0x1699a9 (MOV EDX,[EBP+8]; PUSH EDX
  *          last of five pushes).
  *
  * Frame: SUB ESP,0x80 = exactly one 32-float vertex-shader constant block
@@ -102,10 +102,10 @@ static const char kLightsFile[] =
  * natural index order, same as the sibling passes in this TU family.
  *
  * ADD ESP,0x24 at 0x1699ae is the cdecl mis-grouping trap: it cleans
- * FUN_00158140 (5) + csmemset (3) + rasterizer_set_pixel_shader (1) = 9
+ * rasterizer_set_target (5) + csmemset (3) + rasterizer_set_pixel_shader (1) = 9
  * dwords, not a 9-argument call.
  *
- * Second FUN_00158140 takes the zero-extended WORD at 0x5a5bc0
+ * Second rasterizer_set_target takes the zero-extended WORD at 0x5a5bc0
  * (XOR EAX,EAX; MOV AX,[0x005a5bc0]) — a 16-bit read, not the dword the
  * decompiler's `(uint)DAT_005a5bc0` suggests.
  *
@@ -116,7 +116,7 @@ static const char kLightsFile[] =
  *   0x5a5ac0  0xf0 bytes  pixel-shader state block
  *   0x5a5bc0  uint16   current rasterizer render target
  */
-void FUN_001696d0(int param_1, float *bounds)
+void rasterizer_sun_glow_copy_source(int param_1, float *bounds)
 {
   float vs[32];
 
@@ -129,7 +129,7 @@ void FUN_001696d0(int param_1, float *bounds)
     system_exit(-1);
   }
 
-  FUN_001584f0(0, 0, 0);
+  rasterizer_set_target_as_texture(0, 0, 0);
 
   D3DDevice_SetTextureStageState(0, 0xa, 3);
   D3DDevice_SetTextureStageState(0, 0xb, 3);
@@ -156,7 +156,7 @@ void FUN_001696d0(int param_1, float *bounds)
   D3DDevice_SetRenderState_ZEnable(0);
   D3DDevice_SetRenderState_ZBias(0);
 
-  FUN_00178b40(0x26, 8, 0);
+  rasterizer_set_vertex_shader_permutation(0x26, 8, 0);
 
   vs[0] = bounds[1] - bounds[0];
   vs[1] = 0.0f;
@@ -202,7 +202,7 @@ void FUN_001696d0(int param_1, float *bounds)
   *(uint32_t *)0x5a5ae4 = 0x1c00;
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
 
-  FUN_00158140(param_1, 0, 0, 0, 0);
+  rasterizer_set_target(param_1, 0, 0, 0, 0);
 
   D3DDevice_Begin(7);
   D3DDevice_SetVertexData2s(4, 0, 0);
@@ -215,17 +215,17 @@ void FUN_001696d0(int param_1, float *bounds)
   D3DDevice_SetVertexData2f(0, -1.015625f, -0.984375f);
   D3DDevice_End();
 
-  FUN_00158140(*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
+  rasterizer_set_target(*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
 }
 
 /*
- * FUN_00169a50 @ 0x169a50 — sun-glow convolve pass: ping-pongs a 4-tap
+ * rasterizer_sun_glow_convolve @ 0x169a50 — sun-glow convolve pass: ping-pongs a 4-tap
  * separable blur between two rasterizer render targets for `iterations`
  * passes and returns the target index holding the final result.
  *
  * Name evidence: the failure path at 0x169faa passes
  * "### ERROR rasterizer_sun_glow_convolve failed" to error(). The kb.json
- * name is deliberately left as FUN_00169a50 — a name-only change desyncs
+ * name is deliberately left as rasterizer_sun_glow_convolve — a name-only change desyncs
  * tools/verify/function_bounds.json and blocks the commit gate.
  *
  * ABI (from disassembly, not the decompiler): plain RET (no immediate) =>
@@ -254,13 +254,13 @@ void FUN_001696d0(int param_1, float *bounds)
  * cdecl ADD ESP mis-grouping (the check_lift_hazards ARG_COUNT warnings on
  * rasterizer_set_pixel_shader and error are this, not real arg counts):
  *   ADD ESP,0x10 @0x169d16 = csmemset(3) + rasterizer_set_pixel_shader(1)
- *   ADD ESP,0x18 @0x169de3 = FUN_00158140(5) + rasterizer_set_pixel_shader(1)
- *   ADD ESP,0x14 @0x169f9c = FUN_00158140(5)
+ *   ADD ESP,0x18 @0x169de3 = rasterizer_set_target(5) + rasterizer_set_pixel_shader(1)
+ *   ADD ESP,0x14 @0x169f9c = rasterizer_set_target(5)
  * error() is variadic and is called here with exactly two arguments.
  *
- * The final FUN_00158140 target is a zero-extended WORD read
+ * The final rasterizer_set_target target is a zero-extended WORD read
  * (XOR EAX,EAX; MOV AX,[0x005a5bc0] at 0x169f85), not a dword — same trap
- * the sibling FUN_001696d0 documents.
+ * the sibling rasterizer_sun_glow_copy_source documents.
  *
  * Ten CALL 0x00167ff0 sites (0x169e09, e2d, e57, e7b, ea5, ec9, ef3, f17,
  * f41, f63), one after each of the ten D3D drawing calls. Each tests the
@@ -280,7 +280,7 @@ void FUN_001696d0(int param_1, float *bounds)
  *   0x5a5ae8  uint32   pixel-shader constant, per-pass alpha
  *   0x5a5bc0  uint16   current rasterizer render target
  */
-int FUN_00169a50(int primary_target, int secondary_target, short iterations)
+int rasterizer_sun_glow_convolve(int primary_target, int secondary_target, short iterations)
 {
   float vs[32];
   int dest;
@@ -324,7 +324,7 @@ int FUN_00169a50(int primary_target, int secondary_target, short iterations)
     D3DDevice_SetRenderState_ZEnable(0);
     D3DDevice_SetRenderState_ZBias(0);
 
-    FUN_00178b40(0x26, 8, 0);
+    rasterizer_set_vertex_shader_permutation(0x26, 8, 0);
 
     vs[0] = 1.0f;
     vs[1] = 0.0f;
@@ -385,7 +385,7 @@ int FUN_00169a50(int primary_target, int secondary_target, short iterations)
       }
 
       for (j = 0; j < 4; j++) {
-        FUN_001584f0(j, src, 0);
+        rasterizer_set_target_as_texture(j, src, 0);
         D3DDevice_SetTextureStageState(j, 0xa, 4);
         D3DDevice_SetTextureStageState(j, 0xb, 4);
         D3DDevice_SetTextureStageState(j, 0xd, 2);
@@ -393,7 +393,7 @@ int FUN_00169a50(int primary_target, int secondary_target, short iterations)
         D3DDevice_SetTextureStageState(j, 0xf, 1);
       }
 
-      FUN_00158140(dest, 0, 0, 0, 0);
+      rasterizer_set_target(dest, 0, 0, 0, 0);
 
       *(uint32_t *)0x5a5ae8 = (uint32_t)(i <= 0 ? 0xff : 0x7f) << 24;
       rasterizer_set_pixel_shader((void *)0x5a5ac0);
@@ -401,69 +401,69 @@ int FUN_00169a50(int primary_target, int secondary_target, short iterations)
       D3DDevice_Begin(7);
       if (!success) {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_Begin(global_d3d_device, D3DPT_TRIANGLEFAN)");
       }
       D3DDevice_SetVertexData2s(4, 0, 0);
       if (!success) {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 0, 0)");
       }
       D3DDevice_SetVertexData2f(0, -1.015625f, 1.015625f);
       if (!success) {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
              "scale - 1.0f + mysterious_horizontal_offset, scale + 1.0f)");
       }
       D3DDevice_SetVertexData2s(4, 1, 0);
       if (!success) {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 1, 0)");
       }
       D3DDevice_SetVertexData2f(0, 0.984375f, 1.015625f);
       if (!success) {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
              "scale + 1.0f + mysterious_horizontal_offset, scale + 1.0f)");
       }
       D3DDevice_SetVertexData2s(4, 1, 1);
       if (!success) {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 1, 1)");
       }
       D3DDevice_SetVertexData2f(0, 0.984375f, -0.984375f);
       if (!success) {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
              "scale + 1.0f + mysterious_horizontal_offset, scale - 1.0f)");
       }
       D3DDevice_SetVertexData2s(4, 0, 1);
       if (!success) {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 0, 1)");
       }
       D3DDevice_SetVertexData2f(0, -1.015625f, -0.984375f);
       if (!success) {
         success = 0;
-        FUN_00167ff0(
+        rasterizer_error(
           0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
              "scale - 1.0f + mysterious_horizontal_offset, scale - 1.0f)");
       }
       D3DDevice_End();
       if (!success) {
         success = 0;
-        FUN_00167ff0(0, "IDirect3DDevice8_End(global_d3d_device)");
+        rasterizer_error(0, "IDirect3DDevice8_End(global_d3d_device)");
       }
     }
 
-    FUN_00158140(*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
+    rasterizer_set_target(*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
 
     if (!success) {
       error(2, "### ERROR rasterizer_sun_glow_convolve failed");
@@ -480,8 +480,8 @@ int FUN_00169a50(int primary_target, int secondary_target, short iterations)
  * Name evidence: the tail failure string at 0x2a30d4 reads
  * "### ERROR rasterizer_sun_glow_draw failed", and the per-call debug strings
  * name the original locals verbatim (bounds.x0/x1/y0/y1, r, pass, brightness).
- * The symbol is deliberately kept as FUN_00169fd0 to stay consistent with its
- * sibling FUN_00169a50, whose string likewise says
+ * The symbol is deliberately kept as rasterizer_sun_glow_draw to stay consistent with its
+ * sibling rasterizer_sun_glow_convolve, whose string likewise says
  * rasterizer_sun_glow_convolve.
  *
  * sun_entry layout actually touched here (0x28-stride array based at 0x4c6480):
@@ -489,10 +489,10 @@ int FUN_00169a50(int primary_target, int secondary_target, short iterations)
  *   +0x04  float   position x
  *   +0x08  float   position y
  *   +0x0c  float   position z
- *   +0x10  uint32  packed direction, unpacked by FUN_0017ffc0
+ *   +0x10  uint32  packed direction, unpacked by uncompress_int32_to_real_vector3d
  * On the definition:
  *   +0x10  float   glow radius — used both as the FMUL scale at 0x16a1b0 and
- *                  as the raw `radius` dword pushed to FUN_00169200 @0x16a1e1
+ *                  as the raw `radius` dword pushed to rasterizer_project_billboard @0x16a1e1
  * No other offset of either structure is read or written by this function; the
  * +0x22/+0x24/+0x30 fields the caller filters on are never touched here.
  *
@@ -501,13 +501,13 @@ int FUN_00169a50(int primary_target, int secondary_target, short iterations)
  * frame past the original 0x98 and is a deliberate, known cost:
  *   [EBP+0x8]   param_1 -> viewport width -> viewport height -> left_f ->
  *               pass -> r -> (bounds.y1 + r) -> pass
- *   [EBP-0x10]  to_sun -> unpacked sun direction -> FUN_00169200 out_screen.
+ *   [EBP-0x10]  to_sun -> unpacked sun direction -> rasterizer_project_billboard out_screen.
  *               Kept as ONE float[3] (`scratch`): all three roles are 3-float
  *               vectors, and role (b)'s last read (0x16a1d6) precedes the call
  *               at 0x16a1eb that writes role (c).  scratch[2] then survives as
  *               the projected depth handed to SetVertexData4f.
- *   [EBP-0x34]  FUN_0017ffc0 out buffer -> screen_bounds[1..3]
- *   [EBP-0x30]  FUN_00169200 out_extent -> screen_bounds[2]
+ *   [EBP-0x34]  uncompress_int32_to_real_vector3d out buffer -> screen_bounds[1..3]
+ *   [EBP-0x30]  rasterizer_project_billboard out_extent -> screen_bounds[2]
  *               Split (different sizes; merging would need pointer arithmetic
  *               into the middle of an array).  out_extent is written by the
  *               callee and never read back here.
@@ -528,16 +528,16 @@ int FUN_00169a50(int primary_target, int secondary_target, short iterations)
  *
  * The per-call `if (success) success = 1; else { success = 0; report(); }`
  * shape is what the reference literally does (TEST BL,BL; JZ; MOV BL,1; JMP /
- * XOR BL,BL; CALL 0x167ff0).  FUN_00169a50 above spells the same construct with
+ * XOR BL,BL; CALL 0x167ff0).  rasterizer_sun_glow_convolve above spells the same construct with
  * a single arm; the two-arm form is kept here because it matches this
  * function's own codegen. */
-void FUN_00169fd0(int *sun_entry)
+void rasterizer_sun_glow_draw(int *sun_entry)
 {
   float vs[20]; /* EBP-0x98, uploaded whole by constant -0x44 */
   float world_point[3]; /* EBP-0x48 */
   float screen_bounds[4]; /* EBP-0x38: {left+x0, left+x1, top+y0, top+y1} */
-  float dir[3]; /* EBP-0x34: FUN_0017ffc0 output buffer */
-  float glow_extent[2]; /* EBP-0x30: FUN_00169200 out_extent, never read */
+  float dir[3]; /* EBP-0x34: uncompress_int32_to_real_vector3d output buffer */
+  float glow_extent[2]; /* EBP-0x30: rasterizer_project_billboard out_extent, never read */
   float bounds[4]; /* EBP-0x24: {x0, x1, y0, y1} — names from strings */
   float scratch[3]; /* EBP-0x10: see slot-reuse note above */
   const float *sun_pos;
@@ -620,7 +620,7 @@ void FUN_00169fd0(int *sun_entry)
   vs[19] = 1.0f;
   D3DDevice_SetVertexShaderConstant(-0x44, vs, 5);
 
-  unpacked = FUN_0017ffc0(dir, (unsigned int)sun_entry[4]);
+  unpacked = uncompress_int32_to_real_vector3d(dir, (unsigned int)sun_entry[4]);
   scratch[0] = unpacked[0];
   scratch[1] = unpacked[1];
   scratch[2] = unpacked[2];
@@ -629,7 +629,7 @@ void FUN_00169fd0(int *sun_entry)
   world_point[0] = scratch[0] * glow_radius + sun_pos[1];
   world_point[1] = scratch[1] * glow_radius + sun_pos[2];
   world_point[2] = scratch[2] * glow_radius + sun_pos[3];
-  if (!FUN_00169200(world_point, glow_radius, glow_extent, scratch)) {
+  if (!rasterizer_project_billboard(world_point, glow_radius, glow_extent, scratch)) {
     return;
   }
 
@@ -663,7 +663,7 @@ void FUN_00169fd0(int *sun_entry)
   }
 
   /* Pass 1: stamp the flat 64x64 alpha silhouette into render target 4. */
-  FUN_00178b40(0x38, 6, 0);
+  rasterizer_set_vertex_shader_permutation(0x38, 6, 0);
   D3DDevice_SetRenderState_CullMode(0x901);
   D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,
                                   NV097_COLOR_MASK_ALPHA);
@@ -687,7 +687,7 @@ void FUN_00169fd0(int *sun_entry)
   D3DDevice_End();
 
   /* Pass 2: depth-tested textured quad that keeps only the unoccluded part. */
-  FUN_00178b40(0x38, 6, 0);
+  rasterizer_set_vertex_shader_permutation(0x38, 6, 0);
   rasterizer_set_texture_direct(0, *(int *)(*(int *)0x476204 + 0x6c), 0);
   D3DDevice_SetTextureStageState(0, 10, 3);
   D3DDevice_SetTextureStageState(0, 0xb, 3);
@@ -728,13 +728,13 @@ void FUN_00169fd0(int *sun_entry)
 
   /* MOV BL,0x1 sits at 0x16a587, immediately before the first downsample. */
   success = 1;
-  FUN_001696d0(4, screen_bounds);
-  FUN_001696d0(5, screen_bounds);
-  target = FUN_00169a50(4, 5, 4);
+  rasterizer_sun_glow_copy_source(4, screen_bounds);
+  rasterizer_sun_glow_copy_source(5, screen_bounds);
+  target = rasterizer_sun_glow_convolve(4, 5, 4);
 
   /* Pass 3: 16 additive halo quads, radius r growing, brightness falling. */
-  FUN_00178b40(0x38, 6, 0);
-  FUN_001584f0(0, target, 0);
+  rasterizer_set_vertex_shader_permutation(0x38, 6, 0);
+  rasterizer_set_target_as_texture(0, target, 0);
   D3DDevice_SetTextureStageState(0, 10, 3);
   D3DDevice_SetTextureStageState(0, 0xb, 3);
   D3DDevice_SetTextureStageState(0, 0xd, 2);
@@ -771,7 +771,7 @@ void FUN_00169fd0(int *sun_entry)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(
+      rasterizer_error(
         0, "IDirect3DDevice8_Begin(global_d3d_device, D3DPT_TRIANGLEFAN)");
     }
 
@@ -781,7 +781,7 @@ void FUN_00169fd0(int *sun_entry)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(
+      rasterizer_error(
         0, "IDirect3DDevice8_SetVertexData4f(global_d3d_device, 9, 0.0f, 0.0f, "
            "0.0f, brightness/(real)(pass + 1))");
     }
@@ -791,7 +791,7 @@ void FUN_00169fd0(int *sun_entry)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(
+      rasterizer_error(
         0, "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 0, 0)");
     }
 
@@ -802,7 +802,7 @@ void FUN_00169fd0(int *sun_entry)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(
+      rasterizer_error(
         0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
            "bounds.x0 - r, bounds.y0 - r)");
     }
@@ -812,7 +812,7 @@ void FUN_00169fd0(int *sun_entry)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(
+      rasterizer_error(
         0, "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 1, 0)");
     }
 
@@ -822,7 +822,7 @@ void FUN_00169fd0(int *sun_entry)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(
+      rasterizer_error(
         0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
            "bounds.x1 + r, bounds.y0 - r)");
     }
@@ -832,7 +832,7 @@ void FUN_00169fd0(int *sun_entry)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(
+      rasterizer_error(
         0, "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 1, 1)");
     }
 
@@ -842,7 +842,7 @@ void FUN_00169fd0(int *sun_entry)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(
+      rasterizer_error(
         0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
            "bounds.x1 + r, bounds.y1 + r)");
     }
@@ -852,7 +852,7 @@ void FUN_00169fd0(int *sun_entry)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(
+      rasterizer_error(
         0, "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 0, 1)");
     }
 
@@ -861,7 +861,7 @@ void FUN_00169fd0(int *sun_entry)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(
+      rasterizer_error(
         0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
            "bounds.x0 - r, bounds.y1 + r)");
     }
@@ -871,7 +871,7 @@ void FUN_00169fd0(int *sun_entry)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(0, "IDirect3DDevice8_End(global_d3d_device)");
+      rasterizer_error(0, "IDirect3DDevice8_End(global_d3d_device)");
     }
   }
 

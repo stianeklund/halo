@@ -759,7 +759,7 @@ int FUN_0008f6b0(void)
  * the saturated tick count, into the globals at 0x449ed8 / 0x449edc.
  *
  * ABI corrected from the (int, int) kb.json declaration while lifting the
- * caller FUN_0016FDD0 (0x16fdd0): that call site pushes three dwords and
+ * caller rasterizer_profile_frame_end (0x16fdd0): that call site pushes three dwords and
  * cleans 12 bytes (ADD ESP,0xc), and the first slot is written by
  * FSTP dword ptr [ESP] over a dummy PUSH — so arg1 is a float and arg2 is an
  * int64 (PUSH high; PUSH low).  This body reads [EBP+8] and [EBP+0xc] only,

@@ -3,7 +3,7 @@
  * Corresponds to action_vehicle.obj.
  * Assertion path: c:\halo\SOURCE\ai\action_vehicle.c
  *
- * Recovered by lifting action_vehicle_setup from cachebeta.xbe (v01.10.12.2276).
+ * Recovered by lifting action_vehicle_setup_specific from cachebeta.xbe (v01.10.12.2276).
  * This function was mis-filed under real_math.obj by whole-object address-range
  * grouping; its behaviour (actor datum lookup, vehicle-seat attach-point query,
  * actor_move_to_point) and the embedded assert path place it in
@@ -12,7 +12,7 @@
 
 #include "../../common.h"
 
-/* action_vehicle_setup (0x1b750) — Build the state buffer for an actor's "enter
+/* action_vehicle_setup_specific (0x1b750) — Build the state buffer for an actor's "enter
  * vehicle" action and start the actor moving toward the entry point.
  *
  * Zeroes the 0x4c-byte action state buffer, then (only when the actor is not
@@ -20,7 +20,7 @@
  * the target object is a vehicle whose speed (object+0x38) is at or above the
  * global threshold at 0x253398 and whose object+0xb6 bit 2 is clear. On success
  * it records the vehicle handle / seat index into the state buffer, computes
- * the seat attach transform (action_vehicle_evaluate_seat -> action_vehicle_compute_entry_point), and issues an
+ * the seat attach transform (action_vehicle_evaluate_seat -> action_vehicle_find_destination), and issues an
  * actor_move_to_point toward the computed entry position.
  *
  * Returns 1 only when every check passes and actor_move_to_point succeeds;
@@ -32,12 +32,12 @@
  *   FPU: continue iff speed >= *(float*)0x253398 (fld speed; fcomp threshold).
  *   object+0xb6 is a byte; continue iff (~(b>>2)) & 1 (bit 2 clear).
  *   state buffer: +0 = vehicle handle (dword), +4 = seat index (word), +6 = 0.
- *   action_vehicle_compute_entry_point: ECX = actor_handle, EAX = vehicle_handle, out at
+ *   action_vehicle_find_destination: ECX = actor_handle, EAX = vehicle_handle, out at
  * buf+0x30/+0x48. Note: the second datum_get(actor_data, actor_handle) is
  * present in the original; its result is immediately overwritten by
  * object_get_and_verify_type and never used (preserved here for fidelity).
  */
-char action_vehicle_setup(int actor_handle, int vehicle_handle, int16_t seat_index,
+char action_vehicle_setup_specific(int actor_handle, int vehicle_handle, int16_t seat_index,
                   short *state_data)
 {
   char *actor;
@@ -63,7 +63,7 @@ char action_vehicle_setup(int actor_handle, int vehicle_handle, int16_t seat_ind
                                            seat_index) != '\0' &&
           action_vehicle_evaluate_seat(actor_handle, vehicle_handle, seat_index, 1, &attach[0],
                        &attach[3], &attach[6], 0, 0, 0, 0) != '\0' &&
-          action_vehicle_compute_entry_point(actor_handle, vehicle_handle, &attach[0], &attach[3],
+          action_vehicle_find_destination(actor_handle, vehicle_handle, &attach[0], &attach[3],
                        &attach[6], 0, (float *)((char *)state_data + 0x30),
                        (int *)((char *)state_data + 0x48)) != '\0' &&
           actor_move_to_point(
@@ -83,8 +83,8 @@ char action_vehicle_setup(int actor_handle, int vehicle_handle, int16_t seat_ind
  * approach: it periodically re-latches the vehicle's current position, asks
  * FUN_0001ada0 whether the approach is still viable, recomputes the seat
  * attach transform (action_vehicle_evaluate_seat), and either steers the actor toward the
- * entry point (action_vehicle_compute_entry_point -> actor_move_to_point), stops
- * (FUN_0002f1a0), or boards the vehicle (unit_board_vehicle).
+ * entry point (action_vehicle_find_destination -> actor_move_to_point), stops
+ * (actor_move_halt), or boards the vehicle (unit_board_vehicle).
  *
  * Returns non-zero once the action has resolved — either "already seated /
  * abandoned" (actor+0xa5) or "give up" (actor+0xa6).
@@ -97,7 +97,7 @@ char action_vehicle_setup(int actor_handle, int vehicle_handle, int16_t seat_ind
  *   Locals: one 9-float scratch block at EBP-0x28 handed to action_vehicle_evaluate_seat as
  *   three vec3 out-params (&[3], &[6], &[0], in that argument order — verified
  *   from the reverse PUSH sequence at 0x1ba25, NOT copied from the sibling
- *   action_vehicle_setup which uses a different order), plus three byte out-flags at
+ *   action_vehicle_setup_specific which uses a different order), plus three byte out-flags at
  *   EBP-3/-2/-1 (flag_7/flag_6/flag_5 below).
  *   Assert tail at 0x1b8ea is `PUSH -1; CALL 0x8e2f0` = system_exit(-1)
  *   (the decompiler wrongly showed halt_and_catch_fire); original message was
@@ -198,11 +198,11 @@ int action_vehicle_perform(int actor_handle)
                          *(unsigned short *)(actor + 0xa0));
       *(actor + 0xa4) = 1;
     } else {
-      FUN_0002f1a0(actor_handle);
+      actor_move_halt(actor_handle);
     }
   } else {
     if (((actor_t *)actor)->field_04c != 0) {
-      if (action_vehicle_compute_entry_point(actor_handle, *(int *)(actor + 0x9c), &attach[3],
+      if (action_vehicle_find_destination(actor_handle, *(int *)(actor + 0x9c), &attach[3],
                        &attach[6], &attach[0], actor + 0xa3,
                        (float *)(actor + 0xcc), (int *)(actor + 0xe4)) == 0 ||
           actor_move_to_point(actor_handle, (float *)(actor + 0xcc),

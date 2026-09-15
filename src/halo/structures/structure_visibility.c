@@ -49,11 +49,11 @@ reset_sky:
     *(uint8_t *)0x506789 = 1;
 }
 
-/* FUN_001966b0: scenario visibility cluster sweep.
+/* structure_visibility_traverse_subclusters: scenario visibility cluster sweep.
  *   For each rendered cluster, walk its frustum-visible portals
  *   and mark referenced bitfield entries until a cap (0x4000) is hit.
  *   param_1 = scenario pointer (tag block base at +0x134 = clusters table). */
-void FUN_001966b0(int param_1)
+void structure_visibility_traverse_subclusters(int param_1)
 {
   short *local_8;
   int local_10;
@@ -120,7 +120,7 @@ void FUN_001966b0(int param_1)
   }
 }
 
-/* FUN_00196850: structure visibility SURFACE sweep (sibling of 0x1966b0,
+/* structure_visibility_traverse_surface_lists: structure visibility SURFACE sweep (sibling of 0x1966b0,
  * which does the cube/portal sweep).
  *   For every rendered cluster, walk cluster->surface_indices (a long buffer
  *   at +0x48, count at +0x44). The buffer is a sequence of runs; each run has
@@ -138,7 +138,7 @@ void FUN_001966b0(int param_1)
  *   which case the global default at 0x5065a4 is used -- identical selection
  *   to 0x1966b0. Ghidra's decompile drops both this block and the part
  *   element; do not trust it. */
-void FUN_00196850(int param_1)
+void structure_visibility_traverse_surface_lists(int param_1)
 {
   short *rendered_cluster;
   void *plane_ctx;
@@ -237,21 +237,21 @@ void FUN_00196850(int param_1)
  * freshly built portal-clipped list (FUN_00108060). The assert file string
  * proves this function lives in structure_visibility.c.
  *
- * FUN_00197570 (@edx records / @esi count / float threshold) and
- * FUN_00196e10 (@edi sound_list / @ebx env / float dist) take register args --
+ * points_within_distance (@edx records / @esi count / float threshold) and
+ * render_debug_hull (@edi sound_list / @ebx env / float dist) take register args --
  * verified against callee disassembly (0x197570 reads SI+EDX; 0x196e10 reads
  * [EDI] and pushes EBX without saving them). */
-void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
+void structure_visibility_traverse_cluster(int16_t cluster_index, uint16_t *sound_list)
 {
   uint16_t built_list[1026]; /* local_102c([0]=count) + local_1028(elements @
                                 &[2]) -- MUST stay contiguous */
   uint16_t portal_hull[1026]; /* original: ONE hull buffer at EBP-0x824
                                  ([0]=count word, float pairs @ &[2]).
-                                 FUN_001974f0 -> FUN_00197310 writes up to
+                                 portal_hull_from_portal -> portal_hull_from_points writes up to
                                  0x100 points (0x804 bytes) through it; the
                                  prior split into `int local_828` + work_b
                                  smashed the clang frame (map-load crash,
-                                 read of 0xc0170662 at FUN_00197b00+0x2a9). */
+                                 read of 0xc0170662 at structure_visibility_traverse_cluster+0x2a9). */
   void *bsp;
   int cluster_index_i;
   char *clusters_block;
@@ -268,7 +268,7 @@ void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
   cluster_index_i = (int)cluster_index;
   cluster_elem = (uint16_t *)tag_block_get_element((char *)bsp + 0x134,
                                                    cluster_index_i, 0x68);
-  sound_bits = structure_bsp_get_cluster_sound_data(bsp, *(int16_t *)0x506784);
+  sound_bits = structure_bsp_get_cluster_pvs(bsp, *(int16_t *)0x506784);
 
   if (sound_list == 0 || (int16_t)*sound_list < 0 ||
       (int16_t)*sound_list > 0x100) {
@@ -325,12 +325,12 @@ void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
   /* 0x197ca9: original sets EDI=[ebp+0xc] (visible_region hull param) and
    * ESI=rec+4 (rendered-cluster bounds rect) before CALL. Accumulates the
    * hull's 2D points into the rect (min/max union). */
-  FUN_00196d60((float *)((char *)rec + 4), (int16_t *)sound_list);
+  grow_clipping_rectangle_by_portal_hull((float *)((char *)rec + 4), (int16_t *)sound_list);
 
   if (*(char *)0x505702 != 0) {
-    FUN_00196e10(sound_list, *(void **)0x2ee6d0, 0.05f);
+    render_debug_hull(sound_list, *(void **)0x2ee6d0, 0.05f);
   } else if (ai_debug_highlight_cluster(cluster_index, &sound_env_out) != 0) {
-    FUN_00196e10(sound_list, sound_env_out, 0.05f);
+    render_debug_hull(sound_list, sound_env_out, 0.05f);
   }
 
   clusters_block = (char *)bsp + 0x134;
@@ -360,14 +360,14 @@ void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
       continue;
 
     {
-      int16_t r = FUN_001974f0(conn_index, (char)pick, (int *)portal_hull);
+      int16_t r = portal_hull_from_portal(conn_index, (char)pick, (int *)portal_hull);
 
       if (r == 2) {
-        FUN_00197b00(neighbor, sound_list);
+        structure_visibility_traverse_cluster(neighbor, sound_list);
       } else if (r == 0) {
         if (*(char *)0x506789 == 0) {
           char c =
-            FUN_00197570(*(float **)((char *)conn + 0x38),
+            points_within_distance(*(float **)((char *)conn + 0x38),
                          *(int16_t *)((char *)conn + 0x34), *(float *)0x506590);
           if (c == 0)
             continue;
@@ -379,10 +379,10 @@ void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
           *sound_list, sound_list + 2, *(int *)portal_hull, portal_hull + 2,
           0x100, &built_list[2], 0x38d1b717);
         if ((int16_t)built_list[0] > 0) {
-          FUN_00197b00(neighbor, built_list);
+          structure_visibility_traverse_cluster(neighbor, built_list);
         } else if (built_list[0] == 0xffff) {
           error(2, "portal intersection failed.");
-          FUN_00197b00(neighbor, sound_list);
+          structure_visibility_traverse_cluster(neighbor, sound_list);
         }
       }
     }

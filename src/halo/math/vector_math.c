@@ -169,7 +169,7 @@ bool action_alert_perform(int actor_handle)
                      "c:\\halo\\SOURCE\\ai\\action_alert.c", 0x47, 1);
       system_exit(-1);
     }
-    if (*(short *)(actor + 0xa2) != -1 && FUN_0002a3d0(actor_handle) != '\0') {
+    if (*(short *)(actor + 0xa2) != -1 && actor_path_has_path(actor_handle) != '\0') {
       dist2 = distance_squared3d((const float *)(actor + 0x12c),
                                  (const float *)(actor + 0xa8));
       tolerance = actor_destination_tolerance(actor_handle);
@@ -235,7 +235,7 @@ update_command:
  * Confirmed: cdecl, two stack args. MOV ESI,[EBP+0xc] at 0x128c4 is the
  *   asserted/zeroed pointer, so state_data is the SECOND arg; [EBP+0x8] is
  *   never read by this function (unknown type; named actor_handle after the
- *   identical action_fight_setup twin FUN_00014620 / 0x14620).
+ *   identical action_fight_setup twin action_fight_setup / 0x14620).
  * Confirmed: TEST ESI,ESI / JNZ 0x128e8 at 0x128c7 — assert on NULL only.
  * Confirmed assert args (pushed last-to-first): PUSH 1 (halt), PUSH 0x1e
  *   (line 30), PUSH 0x25339c ("c:\halo\SOURCE\ai\action_avoid.c"),
@@ -256,8 +256,8 @@ char action_avoid_setup(int actor_handle, void *state_data)
 
 /* action_avoid_perform (0x12920)
  * Run one avoid-action tick: assert the actor is not a swarm actor, and when
- * its timeslice byte is set, evaluate a look target (FUN_00027090) and hand
- * the result to the firing-position selector (FUN_000272d0).  Returns true
+ * its timeslice byte is set, evaluate a look target (actor_active_select_firing_position) and hand
+ * the result to the firing-position selector (actor_change_firing_position).  Returns true
  * when actor+0x280 (short) is zero, on both paths.
  *
  * Confirmed: cdecl, one stack arg at [EBP+0x8] kept in EDI (0x12934); the kb
@@ -275,12 +275,12 @@ char action_avoid_setup(int actor_handle, void *state_data)
  *   body.
  * Confirmed: PUSH 0x670 / PUSH 0 / PUSH ECX(EBP-0x6b4) / CALL csmemset, then
  *   MOV word ptr [EBP-0x6b0],0x6 — a 16-bit 6 at state_buf+4.
- * Confirmed FUN_00027090 pushes (last-to-first, 0x12981..0x1299b): &local_4,
+ * Confirmed actor_active_select_firing_position pushes (last-to-first, 0x12981..0x1299b): &local_4,
  *   big_buf, &local_8, local_48, state_buf, actor_handle.
- * Confirmed FUN_000272d0 pushes (last-to-first, 0x129aa..0x129be): local_4,
- *   big_buf, local_8, local_48, EAX (FUN_00027090 result), actor_handle.
+ * Confirmed actor_change_firing_position pushes (last-to-first, 0x129aa..0x129be): local_4,
+ *   big_buf, local_8, local_48, EAX (actor_active_select_firing_position result), actor_handle.
  *   ADD ESP,0x3c at 0x129c4 cleans csmemset (0xc) + both 6-arg calls (0x18
- *   each); the FUN_000272d0 return value is discarded.
+ *   each); the actor_change_firing_position return value is discarded.
  * Confirmed: XOR EAX,EAX / CMP word ptr [ESI+0x280],AX / SETZ AL — byte
  *   return. */
 bool action_avoid_perform(int actor_handle)
@@ -302,9 +302,9 @@ bool action_avoid_perform(int actor_handle)
   if (*(char *)(actor + 0x4c) != '\0') {
     csmemset(state_buf, 0, 0x670);
     *(short *)(state_buf + 4) = 6;
-    result = FUN_00027090(actor_handle, state_buf, local_48, &local_8, big_buf,
+    result = actor_active_select_firing_position(actor_handle, state_buf, local_48, &local_8, big_buf,
                           &local_4);
-    FUN_000272d0(actor_handle, result, local_48, local_8, (unsigned int)big_buf,
+    actor_change_firing_position(actor_handle, result, local_48, local_8, (unsigned int)big_buf,
                  (char)local_4);
   }
   return *(short *)(actor + 0x280) == 0;
@@ -366,7 +366,7 @@ void FUN_00012be0(int actor_handle)
  *   held at [EBP-0x4] and reread twice below for two separate flag tests.
  * Confirmed: MOV word[ESI+0x3ec],2 / MOV word[ESI+0x3fc],4 — 16-bit stores.
  * Confirmed: first branch tests actor+0xa0(short)==2||3, actor+0xa5(char)
- *   !=0, actor+0x504(char)==0, and FUN_0002a3d0(actor_handle)==0 (PUSH
+ *   !=0, actor+0x504(char)==0, and actor_path_has_path(actor_handle)==0 (PUSH
  *   EDI/CALL 0x2a3d0/ADD ESP,4/TEST AL,AL — actor_handle forwarded
  *   unchanged); on all true, stores 4 at actor+0x3e8(short).
  * Confirmed: else-if actor+0x6e(short)<5 or actor+0xa0==1, stores 5 at
@@ -408,7 +408,7 @@ void FUN_00012c30(int actor_handle)
   if ((*(short *)(*new_var + 0xa0) == 2 || *(short *)(actor + 0xa0) == 3) &&
       *(char *)(*new_var + 0xa5) != '\0' &&
       (*(char *)(actor + 0x504) == '\0' &&
-       FUN_0002a3d0(actor_handle) == '\0')) {
+       actor_path_has_path(actor_handle) == '\0')) {
     *(short *)(*new_var + 0x3e8) = 4;
   } else if (*(short *)(*new_var + 0x6e) < 5 ||
              *(short *)(*new_var + 0xa0) == 1) {
@@ -575,7 +575,7 @@ float normalize3d(float *v)
      (-3.69e19) — making the threshold always-true — and substituted a
      `mag == 0.0f` guard.  That let denormalized / near-zero (but nonzero)
      vectors be divided into a non-unit result that later tripped
-     assert_valid_real_normal3d (actor_looking.c:529 via FUN_00028660).  Read
+     assert_valid_real_normal3d (actor_looking.c:529 via actor_look_decode_direction).  Read
      the threshold as a double to restore the original early-out. */
   if (fabsf(mag) >= *(double *)0x2533d0) {
     scale = 1.0f / mag;

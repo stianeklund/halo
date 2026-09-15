@@ -5,11 +5,11 @@
  * group) and is cleared by rasterizer_transparent_geometry_begin.
  * Binary: MOVSX EDX,AX / SAR EDX,5 -> signed word index; NEG EAX / SBB AL,AL /
  * INC AL -> AL = (bit == 0). */
-char FUN_00184570(void *group)
+char rasterizer_transparent_geometry_get_group_pending_status(void *group)
 {
   short presorted_index;
 
-  presorted_index = rasterizer_transparent_geometry_group_to_presorted_index(
+  presorted_index = rasterizer_transparent_geometry_get_group_presorted_index(
     (unsigned int)group);
   if (presorted_index != -1) {
     return (char)(((1 << (presorted_index & 0x1f)) &
@@ -18,7 +18,7 @@ char FUN_00184570(void *group)
   return 1;
 }
 
-/* FUN_001845b0: set or clear this group's bit in the transparent-geometry-group
+/* rasterizer_transparent_geometry_set_group_pending_status: set or clear this group's bit in the transparent-geometry-group
  * bit vector at 0x4d0cbc (0x30 bytes = 12 dwords = 384 bits, matching the
  * 0x180 group cap; zeroed by the csmemset above). A group pointer that does not
  * resolve to a presorted index (-1) is silently ignored.
@@ -37,13 +37,13 @@ char FUN_00184570(void *group)
  * AND ECX,0x1f before SHL EDX,CL in both branches. The word index (SAR ECX,5)
  * is recomputed inside each branch rather than hoisted above the TEST, so the
  * expression is written out per branch here. (0x1845b0) */
-void FUN_001845b0(void *group, int clear_bit)
+void rasterizer_transparent_geometry_set_group_pending_status(void *group, int clear_bit)
 {
   short group_presorted_index;
   int index;
 
   group_presorted_index =
-    rasterizer_transparent_geometry_group_to_presorted_index(
+    rasterizer_transparent_geometry_get_group_presorted_index(
       (unsigned int)group);
   if (group_presorted_index == -1) {
     return;
@@ -58,7 +58,7 @@ void FUN_001845b0(void *group, int clear_bit)
     *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) & ~(1 << (index & 0x1f));
 }
 
-/* FUN_00184610: resolve the first vertex index of a transparent geometry group
+/* rasterizer_transparent_geometry_get_primary_vertex_type: resolve the first vertex index of a transparent geometry group
  * (0x184610). Two mutually exclusive sources on the group record:
  *   +0x58  pointer to an int16 vertex index (nullable) -- when set, the stored
  *          index is returned directly. The load is `MOV AX,word ptr [EAX]`, a
@@ -74,7 +74,7 @@ void FUN_001845b0(void *group, int clear_bit)
  * The null-group assert tail is CALL 0x8e2f0 = system_exit(-1), not
  * halt_and_catch_fire (Ghidra prints thunk_FUN_001029a0). Every return path is
  * `MOV AX,...`, hence the 16-bit return type. */
-short FUN_00184610(void *group)
+short rasterizer_transparent_geometry_get_primary_vertex_type(void *group)
 {
   short *vertex_index;
   int dynamic_vertex_buffer_index;
@@ -92,22 +92,22 @@ short FUN_00184610(void *group)
   }
   dynamic_vertex_buffer_index = *(int *)((char *)group + 0x54);
   if (dynamic_vertex_buffer_index != -1) {
-    return rasterizer_widget_draw_sprite2d(dynamic_vertex_buffer_index);
+    return rasterizer_dynamic_vertices_get_type(dynamic_vertex_buffer_index);
   }
   error(2, "### ERROR transparent geometry group has no vertices");
   return -1;
 }
 
 /* rasterizer_transparent_geometry dispose counterpart to
- * rasterizer_transparent_geometry_new (0x184260): tears down the vertex
- * cache (FUN_00174cc0), frees the three group/index/vertex buffers if
+ * rasterizer_transparent_geometry_initialize (0x184260): tears down the vertex
+ * cache (rasterizer_transparent_geometry_dispose_aux_buffer), frees the three group/index/vertex buffers if
  * allocated, and zeroes the buffer pointers plus the group/dynamic-vertex
  * counters. Each buffer is freed then zeroed individually (not batched) --
  * matches the disassembly's per-buffer CMP/JZ/CALL/MOV-zero sequence
  * (0x184690). */
-void FUN_00184690(void)
+void rasterizer_transparent_geometry_dispose(void)
 {
-  FUN_00174cc0();
+  rasterizer_transparent_geometry_dispose_aux_buffer();
   if (*(void **)0x4d0cec != 0) {
     debug_free(
       *(void **)0x4d0cec,
@@ -133,11 +133,11 @@ void FUN_00184690(void)
 /* render_effects (0x184b60)
  *
  * Broadcasts a single cdecl byte argument (the record's first byte, per the
- * caller FUN_000bee00 at 0xbee00) to four adjacent global enable bytes:
+ * caller render_effects_evaluate at 0xbee00) to four adjacent global enable bytes:
  * 0x32574a, 0x32574b, 0x32574c, 0x32574d. All four are set to the same
  * incoming value (000184b63 MOV AL,[EBP+8]; four MOV [addr],AL stores, no
  * branch). 0x32574c is read elsewhere as the particle-system-update gate
- * (particle_system_update, 0xa1170) and 0x32574b as the scenario particles
+ * (particle_systems_render, 0xa1170) and 0x32574b as the scenario particles
  * gate; the other two bytes' readers are not evidenced in this bundle. */
 void render_effects(int a)
 {
@@ -161,7 +161,7 @@ void render_initialize_for_new_map(void)
 
 /* Invalidate the cached render states data if it exists and is valid
  * (0x184ba0). Thunk through 0x18afe0. */
-void j__render_dispose_from_old_map(void)
+void render_dispose_from_old_map(void)
 {
   int ptr = *(int *)0x50652c;
   if (ptr && *(char *)(ptr + 0x24) != 0) {
@@ -178,7 +178,7 @@ void render_dispose(void)
  *   0 = full pregame UI (loading screen, menus, bink playback)
  *   1 = inactive window (no player assigned, simpler scene render)
  * Called from render_frame with window_type passed via EBX register. */
-void render_window_pregame(int window_type, int16_t *win)
+void render_nonplayer_frame(int window_type, int16_t *win)
 {
   window_parameters_t window_params;
 
@@ -263,7 +263,7 @@ void render_frame_present(_WORD *a1, void *a2)
  * each element is 0x1a0 (416) bytes at base 0x5067cc (MOVSX EAX,SI;
  * IMUL EAX,EAX,0x1a0; ADD EAX,0x5067cc — the decompiler's "*0xd0" is a
  * mis-rendered immediate, disassembly is authoritative). Caller
- * FUN_00198070 (structures.c) treats the result as int16_t*, so element
+ * structure_visibility_find_clusters (structures.c) treats the result as int16_t*, so element
  * layout is not yet a named struct. */
 void *rendered_cluster_get(int rendered_cluster_index)
 {
@@ -284,7 +284,7 @@ void *rendered_cluster_get(int rendered_cluster_index)
  * for split-screen tile subdivision, or NULL for full-screen rendering.
  * Handles fog distance clamping, camera frustum setup, optional water/sky
  * reflection rendering, and the main scene render pass. */
-void render_window(int16_t *win, void *offset_or_null)
+void render_player_frame(int16_t *win, void *offset_or_null)
 {
   char *esi = (char *)win;
   char *render_cam = esi + 4;
@@ -422,7 +422,7 @@ void render_window(int16_t *win, void *offset_or_null)
       ((void (*)(int))0x17c960)(0);
       *(int *)0x506784 = (int)*(int16_t *)(reflection_info + 0x18);
 
-      render_scene(-1, &reflection_cam, reflection_frustum, &reflection_cam,
+      render_window(-1, &reflection_cam, reflection_frustum, &reflection_cam,
                    reflection_frustum, 1, 0);
 
       /* restore BSP and switch back to main render target */
@@ -433,7 +433,7 @@ void render_window(int16_t *win, void *offset_or_null)
     }
   }
 
-  render_scene(*(int16_t *)win, render_cam, render_frustum, rasterizer_cam,
+  render_window(*(int16_t *)win, render_cam, render_frustum, rasterizer_cam,
                rasterizer_frustum, 0, (char)rendered_reflection);
 }
 
@@ -457,9 +457,9 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
   for (i = 0; i < a3; i++) {
     *(int16_t *)0x50654a = i;
     if ((char)win[1] != '\0') {
-      render_window_pregame(0, win);
+      render_nonplayer_frame(0, win);
     } else if (win[0] == -1) {
-      render_window_pregame(1, win);
+      render_nonplayer_frame(1, win);
     } else {
       if (a5 != NULL && a4 != NULL) {
         offset[0] =
@@ -467,7 +467,7 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
         offset[1] = (int16_t)(((int16_t *)a4)[1] * *(int16_t *)0x31fa98 +
                               ((int16_t *)a5)[1]);
       }
-      render_window(win, a5 != NULL ? (void *)offset : NULL);
+      render_player_frame(win, a5 != NULL ? (void *)offset : NULL);
     }
     win += 0x56;
   }

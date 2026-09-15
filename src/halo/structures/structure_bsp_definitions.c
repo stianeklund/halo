@@ -1,5 +1,5 @@
 /* Traverse two child nodes from a BSP leaf (0x193340). */
-void FUN_00193340(int *leaf_map, int leaf_index)
+void leaf_map_build_leaf_faces(int *leaf_map, int leaf_index)
 {
   int *leaf;
   int node;
@@ -21,10 +21,10 @@ void FUN_00193340(int *leaf_map, int leaf_index)
     node = leaf[i + 1];
     if (node < 0) {
       if (node != -1) {
-        FUN_001932d0(leaf_map, node);
+        leaf_map_build_leaf_faces_for_leaf(leaf_map, node);
       }
     } else {
-      FUN_00193340(leaf_map, node);
+      leaf_map_build_leaf_faces(leaf_map, node);
     }
     if (*(int16_t *)0x4d8e90 <= 0) {
       display_assert("leaf_map_globals.node_stack_count>0",
@@ -38,7 +38,7 @@ void FUN_00193340(int *leaf_map, int leaf_index)
 /* Return pointer to a cluster's sound bit-vector data (0x193550).
  * Computes BIT_VECTOR_SIZE_IN_LONGS from clusters.count, then indexes
  * into cluster_data.elements by cluster_index * that stride. */
-uint32_t *structure_bsp_get_cluster_sound_data(void *bsp, int16_t cluster_index)
+uint32_t *structure_bsp_get_cluster_pvs(void *bsp, int16_t cluster_index)
 {
   char *b = (char *)bsp;
 
@@ -95,7 +95,7 @@ uint8_t *structure_bsp_get_cluster_encoded_sound_data(void *bsp,
  * Ensures from < to by swapping if necessary, then delegates to
  * structure_bsp_get_cluster_encoded_sound_data for the actual lookup. Returns 0
  * for same-cluster. */
-uint8_t structure_bsp_cluster_sound_encoding(void *bsp, int16_t from_cluster,
+uint8_t structure_bsp_get_cluster_encoded_sound_distance(void *bsp, int16_t from_cluster,
                                              int16_t to_cluster)
 {
   char *b = (char *)bsp;

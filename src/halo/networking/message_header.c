@@ -4,14 +4,14 @@
 #define key_agreement_group ((void *)0x2ee588)
 
 /* 0x80380 - Decode a key-agreement packet: thin wrapper around
- * decode_packet_group (FUN_0011aa40, data_packet_groups.c) bound to the
+ * decode_packet_group (data_packet_group_decode_packet, data_packet_groups.c) bound to the
  * key_agreement_group definition, the decode twin of 0x803d0's
  * encode_packet_group call below. Three params (packet_type,
  * packet_version, expected_packet_class) arrive in EDX/ECX/EAX
  * (binary-proven: PUSH EDX/ECX/EAX at entry save the incoming register
  * values before EAX/ECX/EDX are reloaded from the stack args, and those
  * saved copies are the last three cdecl pushes before the CALL). The
- * function does not touch EAX after the CALL, so FUN_0011aa40's bool
+ * function does not touch EAX after the CALL, so data_packet_group_decode_packet's bool
  * return value passes through unmodified (implicit-EAX return, no
  * comparison in the wrapper). */
 bool FUN_00080380(void *decoded_packet, char *encoded_packet,
@@ -19,7 +19,7 @@ bool FUN_00080380(void *decoded_packet, char *encoded_packet,
                   short *packet_version /* @<ecx> */,
                   short expected_packet_class /* @<eax> */)
 {
-  return FUN_0011aa40((int)key_agreement_group, decoded_packet, encoded_packet,
+  return data_packet_group_decode_packet((int)key_agreement_group, decoded_packet, encoded_packet,
                       encoded_packet_size, packet_type, packet_version,
                       expected_packet_class);
 }

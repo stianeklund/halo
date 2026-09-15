@@ -1,5 +1,5 @@
 /*
- * FUN_00075380 -- bitmap_extract: create a new bitmap entry in the group.
+ * extract_bitmap_to_group -- bitmap_extract: create a new bitmap entry in the group.
  *
  * Validates the source bitmap, determines format and mipmap count,
  * adds a new bitmap entry to the group's tag_block, copies registration
@@ -8,7 +8,7 @@
  * Source TU: bitmap_extract.c (assert strings confirm)
  * ABI: bitmap passed in EAX (@EAX), returns short (new bitmap index or -1).
  */
-short FUN_00075380(void *bitmap /* @<eax> */)
+short extract_bitmap_to_group(void *bitmap /* @<eax> */)
 {
   char *group;
   short bitmap_type;
@@ -58,7 +58,7 @@ short FUN_00075380(void *bitmap /* @<eax> */)
     }
   }
 
-  new_bitmap_index = FUN_00077120(
+  new_bitmap_index = bitmap_group_add_bitmap(
     *(void **)0x33414c, *(short *)(bm + 0x4), *(short *)(bm + 0x6),
     *(short *)(bm + 0x8), *(short *)(bm + 0xa), format, (int)mipmap_count);
 
@@ -68,7 +68,7 @@ short FUN_00075380(void *bitmap /* @<eax> */)
     return new_bitmap_index;
   }
 
-  pixel_data = FUN_00077590(bitmap);
+  pixel_data = bitmap_clone(bitmap);
 
   bitmap_data = (char *)tag_block_get_element(*(char **)0x33414c + 0x60,
                                               (int)new_bitmap_index, 0x30);
@@ -146,17 +146,17 @@ short FUN_00075380(void *bitmap /* @<eax> */)
 }
 
 /*
- * FUN_00075630 -- 3D texture group extraction.
+ * process_3d_bitmaps -- 3D texture group extraction.
  *
  * Iterates over the pending bitmap array (base at DAT_00334134, count in
  * DAT_00334138). Groups consecutive entries with matching mip_count. For each
  * power-of-two group, creates a 3D bitmap, copies the slices into it via
- * bitmap_cube_map_face_extract, registers it with FUN_00075380, then frees
+ * bitmap_3d_slice_insert, registers it with extract_bitmap_to_group, then frees
  * it. Logs warnings for incompatible-dimension or non-power-of-two groups.
  *
  * Returns 1 on success, 0 if a temporary bitmap allocation failed.
  */
-char FUN_00075630(void)
+char process_3d_bitmaps(void)
 {
   short mip_count;
   short width;
@@ -216,12 +216,12 @@ char FUN_00075630(void)
       success = 0;
     } else {
       for (i = 0; (short)i < (short)slice_idx; i++) {
-        bitmap_cube_map_face_extract(
+        bitmap_3d_slice_insert(
           *(void **)(*(char **)0x334134 + ((short)outer + i) * 0x10),
           new_bitmap, 0, i);
       }
       *(short *)0x33415c = mip_count;
-      handle = FUN_00075380(new_bitmap);
+      handle = extract_bitmap_to_group(new_bitmap);
       if (handle != (short)-1) {
         tag_element = tag_block_get_element(*(char **)0x33414c + 0x54,
                                             (int)mip_count, 0x40);
@@ -242,20 +242,20 @@ char FUN_00075630(void)
 }
 
 /*
- * FUN_00075800 -- cube map group extraction.
+ * process_cube_maps -- cube map group extraction.
  *
- * Walks the same pending bitmap array as FUN_00075630 (base at
+ * Walks the same pending bitmap array as process_3d_bitmaps (base at
  * *(char**)0x334134, count at *(short*)0x334138) accumulating six square,
  * same-size faces from a single sequence into one temporary cube map created
  * by bitmap_cube_map_new. On the sixth face the cube map is registered with
- * FUN_00075380 and recorded in the group's sequence block; any mismatch
+ * extract_bitmap_to_group and recorded in the group's sequence block; any mismatch
  * (non-square face, incompatible size, sequence boundary) logs a warning and
  * abandons the partial cube map. Every source bitmap is deleted as it is
  * consumed.
  *
  * Returns 1 on success, 0 if a temporary bitmap allocation failed.
  */
-char FUN_00075800(void)
+char process_cube_maps(void)
 {
   void *cube_map;
   short face_count;
@@ -330,7 +330,7 @@ char FUN_00075800(void)
     if (success && face_count == 6) {
       /* The original reuses the face-count register (EBX) to hold the new
        * bitmap handle here; it is reset to 0 before leaving this block. */
-      face_count = FUN_00075380(cube_map);
+      face_count = extract_bitmap_to_group(cube_map);
       if (face_count != (short)-1) {
         tag_element = tag_block_get_element(*(char **)0x33414c + 0x54,
                                             (int)sequence_index, 0x40);
@@ -363,22 +363,22 @@ char FUN_00075800(void)
 }
 
 /*
- * FUN_00075a20 (0x75a20) -- bitmap extract: pack sprites into texture pages.
+ * process_sprites (0x75a20) -- bitmap extract: pack sprites into texture pages.
  *
- * Type-3 (sprite) counterpart of FUN_00075630/FUN_00075800.  Derives the page
+ * Type-3 (sprite) counterpart of process_3d_bitmaps/process_cube_maps.  Derives the page
  * dimension and inter-sprite spacing from the bitmap group globals, verifies
  * every extracted sprite fits inside one page, then asks FUN_000747d0 to lay
  * the sprites out into pages.  For each page it allocates a texture page
  * bitmap, fills it, blits every sprite assigned to that page, writes the
  * normalised sprite rectangle and registration point back into the sequence's
- * sprite block, registers the page with FUN_00075380, and finally reports
+ * sprite block, registers the page with extract_bitmap_to_group, and finally reports
  * per-page utilisation and the overall sprite budget.
  *
  * Returns 1 on success, 0 on any failure -- the flag is returned in AL at all
  * five RET sites (0x75b25 MOV AL,DL / 0x75dae / 0x75dfa / 0x75e3c MOV
  * AL,[EBP-1] / 0x75e5a XOR AL,AL), so the declaration is char, not void.
  */
-char FUN_00075a20(void)
+char process_sprites(void)
 {
   int pages[32];
   int fill_colors[3];
@@ -456,7 +456,7 @@ char FUN_00075a20(void)
             "### ERROR extract_sprite: failed to allocate texture page bitmap");
       success = 0;
     } else {
-      FUN_00077510(page_bitmap,
+      bitmap_fill(page_bitmap,
                    fill_colors[*(short *)(*(char **)0x33414c + 0x4e)]);
       for (sprite_index = 0; success && sprite_index < *(short *)0x334138;
            sprite_index++) {
@@ -519,7 +519,7 @@ char FUN_00075a20(void)
           bitmap_delete(*(void **)sprite_entry);
         }
       }
-      if (FUN_00075380(page_bitmap) != (short)-1) {
+      if (extract_bitmap_to_group(page_bitmap) != (short)-1) {
         used_pixels += *(short *)(page + 0xa) * *(short *)(page + 8);
         bitmap_delete(page_bitmap);
       }
@@ -563,7 +563,7 @@ char FUN_00075a20(void)
 }
 
 /*
- * FUN_00076300 -- bitmap extract: the no-sequences path.
+ * extract_no_plate -- bitmap extract: the no-sequences path.
  *
  * Allocates a single bitmap element in the group's bitmaps block (+0x54) and
  * extracts the whole colour plate into it, using a bounds rectangle that
@@ -571,14 +571,14 @@ char FUN_00075a20(void)
  * be extracted without a real plate and report an error instead.
  *
  * Source TU: c:\halo\SOURCE\bitmaps\bitmap_extract.c (assert string, line 422).
- * ABI: returns success in AL; the caller at FUN_00076790 branches on it.
+ * ABI: returns success in AL; the caller at bitmaps_extract branches on it.
  *
  * Globals: 0x33414c = bitmap group tag (+0x00 type, +0x02 plate/usage,
  * +0x54 bitmaps tag_block); 0x334148 = extract-sequences flag;
  * 0x334150 = source plate bitmap (+0x04 / +0x06 dimensions);
  * 0x334158 = current bitmap element; 0x33415c = current bitmap index.
  */
-char FUN_00076300(void)
+char extract_no_plate(void)
 {
   short bounds[4];
   char *group;
@@ -604,7 +604,7 @@ char FUN_00076300(void)
     bounds[0] = 0;
     bounds[1] = 0;
     /* Both plate fields are read before the first store into bounds: the
-       buffer's address is taken (it is passed to FUN_00075e70), so a store
+       buffer's address is taken (it is passed to extract_bitmap), so a store
        through it between the two reads would force MSVC to reload the
        global.  The original loads +0x04 and +0x06 back to back and stores
        them crossed -- +0x04 lands in the HIGH element. */
@@ -622,7 +622,7 @@ char FUN_00076300(void)
     *(void **)0x334158 = tag_block_get_element(bitmaps_block_owner + 0x54,
                                                (int)new_bitmap_index, 0x40);
     *(short *)(*(char **)0x334158 + 0x20) = (short)0xffff;
-    FUN_00075e70(bounds);
+    extract_bitmap(bounds);
     return 1;
 
   case 1:
@@ -641,14 +641,14 @@ char FUN_00076300(void)
 }
 
 /*
- * FUN_000766e0 -- bitmap extract: allocate and process all sequences.
+ * extract_plate -- bitmap extract: allocate and process all sequences.
  *
  * Iterates source bitmap rows (up to *(short*)(*(char**)0x334150+6) count),
  * allocating a new sequence element in the group's sequences block for each
- * run, initialising its frame range fields, then calling FUN_00076410 to
+ * run, initialising its frame range fields, then calling extract_bitmaps_in_row to
  * extract bitmaps into it. Returns 1 on full success, 0 on any failure.
  */
-char FUN_000766e0(void)
+char extract_plate(void)
 {
   int local_8;
   int iVar3;
@@ -672,7 +672,7 @@ char FUN_000766e0(void)
       tag_block_get_element(*(char **)0x33414c + 0x54, (int)sVar2, 0x40);
     *(short *)(*(char **)0x334158 + 0x20) = (short)0xffff;
     *(short *)(*(char **)0x334158 + 0x22) = 0;
-    cVar1 = FUN_00076410(local_8, (short)iVar3);
+    cVar1 = extract_bitmaps_in_row(local_8, (short)iVar3);
     local_8 = iVar3 + 1;
     if (!cVar1)
       return 0;
@@ -680,7 +680,7 @@ char FUN_000766e0(void)
 }
 
 /*
- * FUN_00076790 (0x76790) -- bitmap extract: decompress the color plate and run
+ * bitmaps_extract (0x76790) -- bitmap extract: decompress the color plate and run
  * the per-group-type extraction pass.
  *
  * Validates group->type/format/usage against their enum bounds, allocates the
@@ -692,7 +692,7 @@ char FUN_000766e0(void)
  *
  * Returns 1 on success, 0 on any failure. Source: bitmap_extract.c
  */
-char FUN_00076790(void *group, int param_3)
+char bitmaps_extract(void *group, int param_3)
 {
   unsigned int decompressed_plate_size;
   char extract_sequences;
@@ -768,9 +768,9 @@ char FUN_00076790(void *group, int param_3)
         extract_sequences = *(char *)0x334148;
         *(int *)0x334154 = param_3;
         if (extract_sequences)
-          result = FUN_000766e0();
+          result = extract_plate();
         else
-          result = FUN_00076300();
+          result = extract_no_plate();
         bitmap_delete(*(void **)0x334150);
         if (result) {
           /* type is re-read through the global, not from the parameter. */
@@ -779,13 +779,13 @@ char FUN_00076790(void *group, int param_3)
           case 4:
             break;
           case 1:
-            result = FUN_00075630();
+            result = process_3d_bitmaps();
             break;
           case 2:
-            result = FUN_00075800();
+            result = process_cube_maps();
             break;
           case 3:
-            result = FUN_00075a20();
+            result = process_sprites();
             break;
           default:
             display_assert("### ERROR unsupported bitmap group type",
@@ -811,12 +811,12 @@ cleanup:
   return result;
 }
 
-/* FUN_00076a70 (0x76a70) — bitmap extract: compress color plate pixel data into
+/* bitmaps_extract_from_plate (0x76a70) — bitmap extract: compress color plate pixel data into
  * group buffer. Validates plate and group, allocates a temporary buffer,
  * compresses the pixel data using FUN_00119b40, reallocates to compressed size,
- * stores width/height/pointer in group, then calls FUN_00076790 to continue.
+ * stores width/height/pointer in group, then calls bitmaps_extract to continue.
  * Source: bitmap_extract.c */
-char FUN_00076a70(void *plate, void *group, int param_3)
+char bitmaps_extract_from_plate(void *plate, void *group, int param_3)
 {
   int size;
   void *t;
@@ -851,7 +851,7 @@ char FUN_00076a70(void *plate, void *group, int param_3)
       if (t) {
         *(int *)((char *)group + 0x28) = (int)t;
         *(int *)((char *)group + 0x1c) = size;
-        return FUN_00076790(group, param_3);
+        return bitmaps_extract(group, param_3);
       }
       error(2, "### ERROR extract: failed to realloc color plate");
       return 0;
@@ -864,12 +864,12 @@ char FUN_00076a70(void *plate, void *group, int param_3)
 }
 
 /*
- * FUN_00076bb0 -- bitmap tag_block element delete wrapper.
+ * delete_bitmap -- bitmap tag_block element delete wrapper.
  *
  * Gets an element from a tag_block at the given index (element size 0x30),
  * then passes it to bitmap_delete.
  */
-void FUN_00076bb0(void *tag_block, int index)
+void delete_bitmap(void *tag_block, int index)
 {
   void *element;
 
@@ -878,7 +878,7 @@ void FUN_00076bb0(void *tag_block, int index)
 }
 
 /*
- * FUN_00076bd0 -- bitmap_group_postprocess: validate and initialize a bitmap
+ * postprocess_bitmap_group -- bitmap_group_postprocess: validate and initialize a bitmap
  * group tag.
  *
  * Called during tag loading. For each bitmap in the group: sets FORCE_POW2 flag
@@ -889,7 +889,7 @@ void FUN_00076bb0(void *tag_block, int index)
  *
  * Source TU: bitmap_utilities.c (confirmed by address placement)
  */
-char FUN_00076bd0(int tag_index)
+char postprocess_bitmap_group(int tag_index)
 {
   char success;
   void *tag;
@@ -1093,13 +1093,13 @@ char FUN_00076bd0(int tag_index)
 }
 
 /*
- * FUN_00076ff0 -- get bitmap data element from a bitmap tag.
+ * bitmap_group_try_and_get_bitmap -- get bitmap data element from a bitmap tag.
  *
  * Looks up a 'bitm' tag by index, then returns a pointer to the bitmap
  * data entry at the given bitmap_index within the tag's bitmap block
  * (offset 0x60, element size 0x30). Returns NULL on failure.
  */
-void *FUN_00076ff0(int tag_index, short bitmap_index)
+void *bitmap_group_try_and_get_bitmap(int tag_index, short bitmap_index)
 {
   int iVar1;
   void *uVar2;
@@ -1116,7 +1116,7 @@ void *FUN_00076ff0(int tag_index, short bitmap_index)
 }
 
 /*
- * FUN_00077040 -- bitmap_group_get_bitmap: resolve sequence/frame index pair
+ * bitmap_group_get_bitmap_from_sequence -- bitmap_group_get_bitmap: resolve sequence/frame index pair
  * to a bitmap data element in a 'bitm' tag.
  *
  * Walks the tag's sequence block to find the correct bitmap index, handling
@@ -1125,7 +1125,7 @@ void *FUN_00076ff0(int tag_index, short bitmap_index)
  *
  * Source TU: bitmap_group.c (assert strings confirm)
  */
-void *FUN_00077040(int tag_index, short sequence_index, short frame_index)
+void *bitmap_group_get_bitmap_from_sequence(int tag_index, short sequence_index, short frame_index)
 {
   int tag;
   int sequence;
@@ -1171,7 +1171,7 @@ cleanup_null:
 }
 
 /*
- * FUN_00077120 -- bitmap_group_add_bitmap: validate and add a new bitmap entry
+ * bitmap_group_add_bitmap -- bitmap_group_add_bitmap: validate and add a new bitmap entry
  * to a bitmap group tag.
  *
  * Validates dimensions (power-of-two, cube-map squareness) and format flags,
@@ -1190,7 +1190,7 @@ cleanup_null:
  *
  * Source file: c:\halo\SOURCE\bitmaps\bitmap_group.c (~line 0x2d7)
  */
-short FUN_00077120(void *group, short type, short width, short height,
+short bitmap_group_add_bitmap(void *group, short type, short width, short height,
                    short depth, short format, short mipmap_count)
 {
   char new_bitmap[0x30];
@@ -1368,20 +1368,20 @@ after_pow2_guard:
 }
 
 /*
- * FUN_00077510 -- bitmap_fill: fill all pixels of a bitmap with a dword value.
+ * bitmap_fill -- bitmap_fill: fill all pixels of a bitmap with a dword value.
  *
  * Gets the pixel base address via bitmap_2d_address(0,0,0), gets the pixel
  * count, then fills that many dwords with the given color. The original uses
  * REP STOSD.
  */
-/* The original CALLs this from FUN_00075a20 (0x75b86) rather than inlining
+/* The original CALLs this from process_sprites (0x75b86) rather than inlining
  * it; MSVC 7.1 otherwise expands the fill loop (merged ADD ESP,0x14 plus a
- * REP STOSD) into its only in-TU caller. FUN_00075a20 is that sole caller,
+ * REP STOSD) into its only in-TU caller. process_sprites is that sole caller,
  * so suppressing auto-inlining here cannot affect any other function. */
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma auto_inline(off)
 #endif
-void FUN_00077510(void *bitmap, int fill_color)
+void bitmap_fill(void *bitmap, int fill_color)
 {
   int *pixels;
   int count;
@@ -1400,13 +1400,13 @@ void FUN_00077510(void *bitmap, int fill_color)
 #endif
 
 /*
- * FUN_00077540 -- bitmap_alpha_to_rgb: spread alpha byte to all 4 channels.
+ * bitmap_alpha_to_rgb -- bitmap_alpha_to_rgb: spread alpha byte to all 4 channels.
  *
  * For each pixel, reads byte [+3] (alpha), builds 0xAAAAAAAA by shifting
  * and OR-ing, then stores back as the full pixel. Converts an alpha-only
  * bitmap into a grayscale ARGB bitmap.
  */
-void FUN_00077540(void *bitmap)
+void bitmap_alpha_to_rgb(void *bitmap)
 {
   unsigned int *pixels;
   int count;
@@ -1429,10 +1429,10 @@ void FUN_00077540(void *bitmap)
   }
 }
 
-/* FUN_00077590 (0x77590) — clone a bitmap: allocates a new bitmap of the same
+/* bitmap_clone (0x77590) — clone a bitmap: allocates a new bitmap of the same
  * type/format, copies pixel data from source to the clone, copies the flags
  * field (+0xe). */
-void *FUN_00077590(void *bitmap)
+void *bitmap_clone(void *bitmap)
 {
   void *cloned;
   void *src_data;
@@ -1500,7 +1500,7 @@ void *FUN_00077590(void *bitmap)
 }
 
 /*
- * FUN_00077720 -- box-filter 2x downscale for a 2D ARGB bitmap.
+ * bitmap_2d_shrink -- box-filter 2x downscale for a 2D ARGB bitmap.
  *
  * Allocates a new ARGB (format 0xb) bitmap at (width/scale)x(height/scale),
  * averaging scale×scale source pixel blocks per output pixel.
@@ -1508,7 +1508,7 @@ void *FUN_00077590(void *bitmap)
  * brightness_adjust is added to the computed alpha channel value.
  * @<eax> = scale: box filter kernel size (must be >= 2).
  */
-void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap,
+void *bitmap_2d_shrink(short scale /* @<eax> */, void *source_bitmap,
                    short brightness_adjust, char alpha_weighted)
 {
   unsigned short src_width;
@@ -1643,7 +1643,7 @@ void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap,
 }
 
 /*
- * FUN_000779b0 -- box-filter downscale for a 3D (volume) ARGB bitmap.
+ * bitmap_3d_shrink -- box-filter downscale for a 3D (volume) ARGB bitmap.
  *
  * Allocates a new ARGB (format 0xb) 3D bitmap at
  * (width/scale)x(height/scale)x(depth/scale), averaging scale×scale×scale
@@ -1652,7 +1652,7 @@ void *FUN_00077720(short scale /* @<eax> */, void *source_bitmap,
  * computed alpha channel value.
  * @<eax> = scale: box filter kernel size (must be >= 2).
  */
-void *FUN_000779b0(short scale /* @<eax> */, void *source_bitmap,
+void *bitmap_3d_shrink(short scale /* @<eax> */, void *source_bitmap,
                    short brightness_adjust, char alpha_weighted)
 {
   unsigned short src_width;
@@ -1822,12 +1822,12 @@ void *FUN_000779b0(short scale /* @<eax> */, void *source_bitmap,
 }
 
 /*
- * FUN_00077cd0 -- box-filter downscale for a cube-map bitmap.
+ * bitmap_cm_shrink -- box-filter downscale for a cube-map bitmap.
  *
  * Allocates a new ARGB (format 0xb) cube map whose faces are
  * (width / min(width, scale)) on a side, then walks the six faces: each source
- * face is extracted into a temporary 2D bitmap (FUN_0007ea60), downscaled with
- * the 2D box filter (FUN_00077720) and inserted into the new cube map. The
+ * face is extracted into a temporary 2D bitmap (bitmap_cube_map_face_extract), downscaled with
+ * the 2D box filter (bitmap_2d_shrink) and inserted into the new cube map. The
  * per-face scaled bitmap is released every iteration; the temporary extraction
  * bitmap is released after the loop.
  *
@@ -1835,7 +1835,7 @@ void *FUN_000779b0(short scale /* @<eax> */, void *source_bitmap,
  * downscaler. Returns the new cube map, which may be NULL or dataless when
  * allocation failed.
  */
-void *FUN_00077cd0(void *source_bitmap, short scale, int brightness_adjust,
+void *bitmap_cm_shrink(void *source_bitmap, short scale, int brightness_adjust,
                    int alpha_weighted)
 {
   short src_width;
@@ -1886,9 +1886,9 @@ void *FUN_00077cd0(void *source_bitmap, short scale, int brightness_adjust,
   }
 
   for (face = 0; face < 6; face++) {
-    FUN_0007ea60(source_bitmap, 0, face, temp_2d);
+    bitmap_cube_map_face_extract(source_bitmap, 0, face, temp_2d);
     scaled_face =
-      FUN_00077720(scale, temp_2d, brightness_adjust, alpha_weighted);
+      bitmap_2d_shrink(scale, temp_2d, brightness_adjust, alpha_weighted);
     if (scaled_face != 0 && *(int *)((char *)scaled_face + 0x2c) != 0) {
       bitmap_cube_map_face_insert(scaled_face, dst_bitmap, 0, face);
     }
@@ -1971,11 +1971,11 @@ void bitmap_fade(void *bitmap, unsigned int color, float fade_amount)
 }
 
 /*
- * FUN_00077ff0 -- 2D bitmap separable Gaussian filter.
+ * bitmap_2d_smooth -- 2D bitmap separable Gaussian filter.
  * Horizontal pass (pixels->tmp) then vertical pass (tmp->pixels).
  * Circular boundary wrapping. filter_coefficients: 2*filter_radius+1 entries.
  */
-void FUN_00077ff0(void *bitmap, short filter_radius, short *filter_coefficients)
+void bitmap_2d_smooth(void *bitmap, short filter_radius, short *filter_coefficients)
 {
   unsigned int pix_size;
   void *pixels;
@@ -2129,11 +2129,11 @@ void FUN_00077ff0(void *bitmap, short filter_radius, short *filter_coefficients)
 }
 
 /*
- * FUN_00078460 -- 3D bitmap separable Gaussian filter.
+ * bitmap_3d_smooth -- 3D bitmap separable Gaussian filter.
  * X-pass (pixels->tmp), Y-pass (tmp->pixels), Z-pass (pixels->tmp),
  * then csmemcpy(pixels, tmp). Circular boundary wrapping.
  */
-void FUN_00078460(void *bitmap, short filter_radius, short *filter_coefficients)
+void bitmap_3d_smooth(void *bitmap, short filter_radius, short *filter_coefficients)
 {
   char *bmp;
   unsigned int pix_size;
@@ -2375,7 +2375,7 @@ void FUN_00078460(void *bitmap, short filter_radius, short *filter_coefficients)
 }
 
 /*
- * FUN_00078b80 -- cube_map smooth stub.
+ * bitmap_cm_smooth -- cube_map smooth stub.
  *
  * Validates the bitmap (must be cube_map type) and the filter_coefficients
  * pointer, then prints a warning that smoothing a cube map is not supported
@@ -2384,7 +2384,7 @@ void FUN_00078460(void *bitmap, short filter_radius, short *filter_coefficients)
  * ABI: bitmap passed in ESI (@ESI). Two stack params: filter_radius,
  * filter_coefficients.
  */
-void FUN_00078b80(int filter_radius, short *filter_coefficients,
+void bitmap_cm_smooth(int filter_radius, short *filter_coefficients,
                   void *bitmap /* @<esi> */)
 {
   /* bitmap_verify(bitmap, TRUE) */
@@ -2414,7 +2414,7 @@ void FUN_00078b80(int filter_radius, short *filter_coefficients,
 }
 
 /*
- * FUN_000790b0 -- 3D bitmap sharpen stub.
+ * bitmap_3d_sharpen -- 3D bitmap sharpen stub.
  *
  * Validates the bitmap (must be 3D type) and positive/negative table pointers,
  * then prints a warning that sharpening a 3D bitmap is not supported
@@ -2429,7 +2429,7 @@ void FUN_00078b80(int filter_radius, short *filter_coefficients,
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma auto_inline(off)
 #endif
-void FUN_000790b0(int unused, int positive_table, int negative_table,
+void bitmap_3d_sharpen(int unused, int positive_table, int negative_table,
                   void *bitmap /* @<esi> */)
 {
   /* bitmap_verify(bitmap, TRUE) */
@@ -2468,15 +2468,15 @@ void FUN_000790b0(int unused, int positive_table, int negative_table,
 #pragma auto_inline(on)
 #endif
 
-/* FUN_00079180 (0x79180) — cube map sharpen stub. Validates bitmap (@esi) is
+/* bitmap_cm_sharpen (0x79180) — cube map sharpen stub. Validates bitmap (@esi) is
  * cube type, checks positive/negative table pointers, then prints warning and
  * returns. */
-/* Same reason as FUN_000790b0 above: the original CALLs this from
+/* Same reason as bitmap_3d_sharpen above: the original CALLs this from
  * bitmap_sharpen (0x7b41e); MSVC 7.1 would otherwise inline it. */
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma auto_inline(off)
 #endif
-void FUN_00079180(int unused, int positive_table, int negative_table,
+void bitmap_cm_sharpen(int unused, int positive_table, int negative_table,
                   void *bitmap /* @<esi> */)
 {
   if (!bitmap_verify(bitmap, 1)) {
@@ -2507,12 +2507,12 @@ void FUN_00079180(int unused, int positive_table, int negative_table,
 #pragma auto_inline(on)
 #endif
 
-/* FUN_00079250 (0x79250) — 2D bitmap alpha-bleed: for each transparent pixel
+/* bitmap_2d_alpha_bleed (0x79250) — 2D bitmap alpha-bleed: for each transparent pixel
  * (alpha==0), copies RGB from the first non-transparent neighbor found in the
  * 3x3 neighborhood. Runs `passes` iterations over the whole bitmap, writing
  * each pass into a temp buffer then memcpy'ing back.
  * @<eax> = passes (must be > 0). */
-void FUN_00079250(short passes /* @<eax> */, void *bitmap)
+void bitmap_2d_alpha_bleed(short passes /* @<eax> */, void *bitmap)
 {
   short width;
   short height;
@@ -2613,16 +2613,16 @@ void FUN_00079250(short passes /* @<eax> */, void *bitmap)
 }
 
 /*
- * FUN_00079480 -- 3D bitmap alpha_bleed.
+ * bitmap_3d_alpha_bleed -- 3D bitmap alpha_bleed.
  *
  * Allocates one temporary 2D bitmap matching the 3D bitmap's width/height and
  * format, then walks every depth slice: read the slice into the temp
- * (bitmap_3d_slice_insert), run the 2D alpha-bleed over it (FUN_00079250),
- * write the temp back into the slice (bitmap_cube_map_face_extract).
+ * (bitmap_3d_slice_extract), run the 2D alpha-bleed over it (bitmap_2d_alpha_bleed),
+ * write the temp back into the slice (bitmap_3d_slice_insert).
  *
  * ABI: bitmap passed in EDI (@EDI). One stack param: passes (short).
  */
-void FUN_00079480(short passes, void *bitmap /* @<edi> */)
+void bitmap_3d_alpha_bleed(short passes, void *bitmap /* @<edi> */)
 {
   void *temp;
   short slice;
@@ -2654,9 +2654,9 @@ void FUN_00079480(short passes, void *bitmap /* @<edi> */)
 
   if (temp != 0 && *(int *)((char *)temp + 0x2c) != 0) {
     for (slice = 0; slice < *(short *)((char *)bitmap + 8); slice++) {
-      bitmap_3d_slice_insert(bitmap, 0, slice, temp);
-      FUN_00079250(passes, temp);
-      bitmap_cube_map_face_extract(temp, bitmap, 0, slice);
+      bitmap_3d_slice_extract(bitmap, 0, slice, temp);
+      bitmap_2d_alpha_bleed(passes, temp);
+      bitmap_3d_slice_insert(temp, bitmap, 0, slice);
     }
   } else {
     error(2, "### ERROR failed to allocate temporary bitmap");
@@ -2666,7 +2666,7 @@ void FUN_00079480(short passes, void *bitmap /* @<edi> */)
 }
 
 /*
- * FUN_00079590 -- cube_map alpha_bleed stub.
+ * bitmap_cm_alpha_bleed -- cube_map alpha_bleed stub.
  *
  * Validates the bitmap (must be cube_map type) and that passes > 0,
  * then prints a warning that alpha-bleeding a cube map is not supported
@@ -2674,7 +2674,7 @@ void FUN_00079480(short passes, void *bitmap /* @<edi> */)
  *
  * ABI: bitmap passed in ESI (@ESI). One stack param: passes (short).
  */
-void FUN_00079590(short passes, void *bitmap /* @<esi> */)
+void bitmap_cm_alpha_bleed(short passes, void *bitmap /* @<esi> */)
 {
   /* bitmap_verify(bitmap, TRUE) */
   if (!bitmap_verify(bitmap, 1)) {
@@ -2703,7 +2703,7 @@ void FUN_00079590(short passes, void *bitmap /* @<esi> */)
 }
 
 /*
- * FUN_00079630 -- cube_map height_map stub.
+ * bitmap_cm_height_map -- cube_map height_map stub.
  *
  * Validates the bitmap (must be cube_map type) and that bump_height > 0.0f,
  * then prints a warning that using a cube map as a height map is not supported
@@ -2711,7 +2711,7 @@ void FUN_00079590(short passes, void *bitmap /* @<esi> */)
  *
  * ABI: bitmap passed in ESI (@ESI). One stack param: bump_height (float).
  */
-void FUN_00079630(float bump_height, void *bitmap /* @<esi> */)
+void bitmap_cm_height_map(float bump_height, void *bitmap /* @<esi> */)
 {
   /* bitmap_verify(bitmap, TRUE) */
   if (!bitmap_verify(bitmap, 1)) {
@@ -2740,7 +2740,7 @@ void FUN_00079630(float bump_height, void *bitmap /* @<esi> */)
 }
 
 /*
- * FUN_000796e0 -- unimplemented "compress source 2d bitmap into one mipmap
+ * bitmap_2d_compress_to_mipmap -- unimplemented "compress source 2d bitmap into one mipmap
  * level of a compressed 2d bitmap" path.
  *
  * The body is nothing but the argument-validation preamble (assert lines
@@ -2758,7 +2758,7 @@ void FUN_00079630(float bump_height, void *bitmap /* @<esi> */)
  * +0x08 depth (short), +0x0a type (short; 0 == _bitmap_type_2d), +0x0e flags
  * (byte; bit 1 == _bitmap_compressed_bit), +0x14 mipmap_count (short).
  */
-void FUN_000796e0(void *source_bitmap /* @<edi> */,
+void bitmap_2d_compress_to_mipmap(void *source_bitmap /* @<edi> */,
                   void *destination_bitmap /* @<esi> */,
                   short destination_mipmap_index /* @<bx> */, int param_4)
 {
@@ -2852,23 +2852,23 @@ void FUN_000796e0(void *source_bitmap /* @<edi> */,
 }
 
 /*
- * FUN_000798e0 -- compress one mipmap level of an uncompressed 3D bitmap into
+ * bitmap_3d_compress_to_mipmap -- compress one mipmap level of an uncompressed 3D bitmap into
  * a compressed 3D bitmap.
  *
- * Mirror image of FUN_0007a1e0 (3D uncompress).  Allocates two temporary 2D
+ * Mirror image of bitmap_3d_uncompress_from_mipmap (3D uncompress).  Allocates two temporary 2D
  * bitmaps sized from the *source* -- one in the source's format and one in the
  * destination's -- then for each depth slice: extracts that slice into the
- * first temp, compresses it into the second (FUN_000796e0, which asserts out
+ * first temp, compresses it into the second (bitmap_2d_compress_to_mipmap, which asserts out
  * in this build), and writes the result back into the requested mipmap level
  * of the destination.
  *
- * The kb declaration was `void FUN_000798e0(void)`: Ghidra dropped all four
+ * The kb declaration was `void bitmap_3d_compress_to_mipmap(void)`: Ghidra dropped all four
  * cdecl stack arguments (EBP+8 / +0xc / +0x10 / +0x14).  The fourth is read
  * exactly once (`MOV EDX,[EBP+0x14]; PUSH EDX`) and forwarded as
- * FUN_000796e0's sole *stack* argument; no assert names it, so it keeps a
+ * bitmap_2d_compress_to_mipmap's sole *stack* argument; no assert names it, so it keeps a
  * mechanical name.  Arity of the three loop calls cannot be read off per-call
  * cleanup -- they share one `ADD ESP,0x24` (9 dwords = 4 + 1 + 4).  The
- * `XOR EBX,EBX` sitting between that PUSH and the CALL is FUN_000796e0's
+ * `XOR EBX,EBX` sitting between that PUSH and the CALL is bitmap_2d_compress_to_mipmap's
  * `@<bx>` argument, not dead scheduling; EDI/ESI carry the two temporaries.
  *
  * bitmap_data_t offsets used: +0x04 width (short), +0x06 height (short),
@@ -2876,7 +2876,7 @@ void FUN_000796e0(void *source_bitmap /* @<edi> */,
  * (unsigned short), +0x0e flags (byte; bit 1 == _bitmap_compressed_bit),
  * +0x14 mipmap_count (short), +0x2c pixel data.
  */
-void FUN_000798e0(void *source_bitmap, void *destination_bitmap,
+void bitmap_3d_compress_to_mipmap(void *source_bitmap, void *destination_bitmap,
                   short destination_mipmap_index, int param_4)
 {
   void *temp_source;
@@ -2974,9 +2974,9 @@ void FUN_000798e0(void *source_bitmap, void *destination_bitmap,
   if (temp_source != 0 && *(int *)((char *)temp_source + 0x2c) != 0 &&
       temp_destination != 0 && *(int *)((char *)temp_destination + 0x2c) != 0) {
     for (slice = 0; slice < *(short *)((char *)source_bitmap + 8); slice++) {
-      bitmap_3d_slice_insert(source_bitmap, 0, slice, temp_source);
-      FUN_000796e0(temp_source, temp_destination, 0, param_4);
-      bitmap_cube_map_face_extract(temp_destination, destination_bitmap,
+      bitmap_3d_slice_extract(source_bitmap, 0, slice, temp_source);
+      bitmap_2d_compress_to_mipmap(temp_source, temp_destination, 0, param_4);
+      bitmap_3d_slice_insert(temp_destination, destination_bitmap,
                                    destination_mipmap_index, slice);
     }
   } else {
@@ -2988,22 +2988,22 @@ void FUN_000798e0(void *source_bitmap, void *destination_bitmap,
 }
 
 /*
- * FUN_00079bb0 -- compress one mipmap level of an uncompressed cube map into
+ * bitmap_cm_compress_to_mipmap -- compress one mipmap level of an uncompressed cube map into
  * a compressed cube map.
  *
- * Cube-map twin of FUN_000798e0 (3D compress): identical nine-assert preamble
+ * Cube-map twin of bitmap_3d_compress_to_mipmap (3D compress): identical nine-assert preamble
  * and identical two-temporary allocation, but the per-slice loop becomes a
  * fixed six-face loop and the extract/insert pair swaps to the cube-map
  * helpers.  Both temporaries are sized from the *source*; only the format
  * differs (source format for the first, destination format for the second).
  *
- * The kb declaration was `void FUN_00079bb0(void)`: Ghidra dropped all four
+ * The kb declaration was `void bitmap_cm_compress_to_mipmap(void)`: Ghidra dropped all four
  * cdecl stack arguments (EBP+8 / +0xc / +0x10 / +0x14).  The fourth appears
  * only in the disassembly (`MOV EDX,[EBP+0x14]; PUSH EDX` at 0x79e10) and is
- * forwarded as FUN_000796e0's sole *stack* argument; no assert names it, so it
+ * forwarded as bitmap_2d_compress_to_mipmap's sole *stack* argument; no assert names it, so it
  * keeps a mechanical name.  Arity of the three loop calls cannot be read off
  * per-call cleanup -- they share one `ADD ESP,0x24` (9 dwords = 4 + 1 + 4).
- * The `XOR EBX,EBX` between that PUSH and the CALL is FUN_000796e0's `@<bx>`
+ * The `XOR EBX,EBX` between that PUSH and the CALL is bitmap_2d_compress_to_mipmap's `@<bx>`
  * argument, not dead scheduling; EDI/ESI carry the two temporaries.
  *
  * The loop counter is compared 16-bit (`CMP BX,6`) against a literal 6, not
@@ -3016,7 +3016,7 @@ void FUN_000798e0(void *source_bitmap, void *destination_bitmap,
  * format (unsigned short), +0x0e flags (byte; bit 1 ==
  * _bitmap_compressed_bit), +0x14 mipmap_count (short), +0x2c pixel data.
  */
-void FUN_00079bb0(void *source_bitmap, void *destination_bitmap,
+void bitmap_cm_compress_to_mipmap(void *source_bitmap, void *destination_bitmap,
                   short destination_mipmap_index, int param_4)
 {
   void *temp_source;
@@ -3114,8 +3114,8 @@ void FUN_00079bb0(void *source_bitmap, void *destination_bitmap,
   if (temp_source != 0 && *(int *)((char *)temp_source + 0x2c) != 0 &&
       temp_destination != 0 && *(int *)((char *)temp_destination + 0x2c) != 0) {
     for (face = 0; face < 6; face++) {
-      FUN_0007ea60(source_bitmap, 0, face, temp_source);
-      FUN_000796e0(temp_source, temp_destination, 0, param_4);
+      bitmap_cube_map_face_extract(source_bitmap, 0, face, temp_source);
+      bitmap_2d_compress_to_mipmap(temp_source, temp_destination, 0, param_4);
       bitmap_cube_map_face_insert(temp_destination, destination_bitmap,
                                   destination_mipmap_index, face);
     }
@@ -3128,11 +3128,11 @@ void FUN_00079bb0(void *source_bitmap, void *destination_bitmap,
 }
 
 /*
- * FUN_00079e70 -- uncompress one mipmap level of a compressed 2D bitmap into
+ * bitmap_2d_uncompress_from_mipmap -- uncompress one mipmap level of a compressed 2D bitmap into
  * an uncompressed 2D bitmap.
  *
- * This is the worker under FUN_0007a1e0 (3D) and
- * bitmap_2d_uncompress_from_mipmap (cube map): those wrappers loop slices or
+ * This is the worker under bitmap_3d_uncompress_from_mipmap (3D) and
+ * bitmap_cm_uncompress_from_mipmap (cube map): those wrappers loop slices or
  * faces and call this once per 2D level.
  *
  * Walks the source mipmap's compressed block stream in raster order.  Each
@@ -3161,7 +3161,7 @@ void FUN_00079bb0(void *source_bitmap, void *destination_bitmap,
  * Block formats (dispatch at 0x7a0a5 is a SUB 0xe / DEC / DEC compare chain):
  * 0x0e consumes 8 bytes per block, 0x0f and 0x10 consume 16.
  */
-void FUN_00079e70(void *source_bitmap, void *destination_bitmap,
+void bitmap_2d_uncompress_from_mipmap(void *source_bitmap, void *destination_bitmap,
                   short source_mipmap_index)
 {
   unsigned char *source_address;
@@ -3256,7 +3256,7 @@ void FUN_00079e70(void *source_bitmap, void *destination_bitmap,
   for (y = 0; y < mipmap_height; y += 4) {
     /* Recomputed every row of blocks, not hoisted (call at 0x7a089 is inside
      * the outer loop body). */
-    mipmap_width = bitmap_mipmap_width(source_bitmap, source_mipmap_index);
+    mipmap_width = bitmap_mipmap_get_width(source_bitmap, source_mipmap_index);
 
     for (x = 0; x < mipmap_width; x += 4) {
       k = 0;
@@ -3300,10 +3300,10 @@ void FUN_00079e70(void *source_bitmap, void *destination_bitmap,
 }
 
 /*
- * FUN_0007a1e0 -- uncompress one mipmap level of a compressed 3D bitmap into
+ * bitmap_3d_uncompress_from_mipmap -- uncompress one mipmap level of a compressed 3D bitmap into
  * an uncompressed 3D bitmap.
  *
- * Same shape as bitmap_2d_uncompress_from_mipmap below, differing only in the
+ * Same shape as bitmap_cm_uncompress_from_mipmap below, differing only in the
  * bitmap type constant (1 == _bitmap_type_3d), the loop bound (the source
  * bitmap's depth instead of the six cube faces), the assert line numbers
  * (0x7b0-0x7b9; 0x7b7 unused), and the per-slice extract/insert helpers.
@@ -3322,7 +3322,7 @@ void FUN_00079e70(void *source_bitmap, void *destination_bitmap,
  * (unsigned short), +0x0e flags (byte; bit 1 == _bitmap_compressed_bit),
  * +0x14 mipmap_count (short), +0x2c pixel data.
  */
-void FUN_0007a1e0(void *source_bitmap, void *destination_bitmap,
+void bitmap_3d_uncompress_from_mipmap(void *source_bitmap, void *destination_bitmap,
                   short source_mipmap_index)
 {
   void *temp_source;
@@ -3417,10 +3417,10 @@ void FUN_0007a1e0(void *source_bitmap, void *destination_bitmap,
   if (temp_source != 0 && *(int *)((char *)temp_source + 0x2c) != 0 &&
       temp_destination != 0 && *(int *)((char *)temp_destination + 0x2c) != 0) {
     for (slice = 0; slice < *(short *)((char *)source_bitmap + 8); slice++) {
-      bitmap_3d_slice_insert(source_bitmap, source_mipmap_index, slice,
+      bitmap_3d_slice_extract(source_bitmap, source_mipmap_index, slice,
                              temp_source);
-      FUN_00079e70(temp_source, temp_destination, 0);
-      bitmap_cube_map_face_extract(temp_destination, destination_bitmap, 0,
+      bitmap_2d_uncompress_from_mipmap(temp_source, temp_destination, 0);
+      bitmap_3d_slice_insert(temp_destination, destination_bitmap, 0,
                                    slice);
     }
   } else {
@@ -3432,7 +3432,7 @@ void FUN_0007a1e0(void *source_bitmap, void *destination_bitmap,
 }
 
 /*
- * bitmap_2d_uncompress_from_mipmap -- uncompress one mipmap level of a
+ * bitmap_cm_uncompress_from_mipmap -- uncompress one mipmap level of a
  * compressed cube map into an uncompressed cube map.
  *
  * Allocates two temporary 2D bitmaps sized to the destination -- one in the
@@ -3449,7 +3449,7 @@ void FUN_0007a1e0(void *source_bitmap, void *destination_bitmap,
  * +0x0c format (unsigned short), +0x0e flags (byte; bit 1 ==
  * _bitmap_compressed_bit), +0x14 mipmap_count (short), +0x2c pixel data.
  */
-void bitmap_2d_uncompress_from_mipmap(void *source_bitmap,
+void bitmap_cm_uncompress_from_mipmap(void *source_bitmap,
                                       void *destination_bitmap,
                                       short source_mipmap_index)
 {
@@ -3545,8 +3545,8 @@ void bitmap_2d_uncompress_from_mipmap(void *source_bitmap,
   if (temp_source != 0 && *(int *)((char *)temp_source + 0x2c) != 0 &&
       temp_destination != 0 && *(int *)((char *)temp_destination + 0x2c) != 0) {
     for (face = 0; face < 6; face++) {
-      FUN_0007ea60(source_bitmap, source_mipmap_index, face, temp_source);
-      FUN_00079e70(temp_source, temp_destination, 0);
+      bitmap_cube_map_face_extract(source_bitmap, source_mipmap_index, face, temp_source);
+      bitmap_2d_uncompress_from_mipmap(temp_source, temp_destination, 0);
       bitmap_cube_map_face_insert(temp_destination, destination_bitmap, 0,
                                   face);
     }
@@ -3822,7 +3822,7 @@ unsigned short *hsv_color_to_rgb_color(unsigned short *hsv,
   return rgb_out;
 }
 
-float *bitmap_clone(float *rgb, float *hsv_out)
+float *real_rgb_color_to_real_hsv_color(float *rgb, float *hsv_out)
 {
   float max_component;
   float min_component;
@@ -4077,9 +4077,9 @@ bool valid_real_rgb_color(float *rgb)
 /*
  * bitmap_shrink -- bitmap_shrink: dispatcher for bitmap mipmap shrinking.
  *
- * Validates the bitmap. If mipmap_count < 2, delegates to FUN_00077590.
- * Otherwise dispatches based on bitmap->type: 2D -> FUN_00077720,
- * 3D -> FUN_000779b0, cube_map -> FUN_00077cd0.
+ * Validates the bitmap. If mipmap_count < 2, delegates to bitmap_clone.
+ * Otherwise dispatches based on bitmap->type: 2D -> bitmap_2d_shrink,
+ * 3D -> bitmap_3d_shrink, cube_map -> bitmap_cm_shrink.
  * Returns a pointer to the shrunk bitmap (or NULL on error).
  */
 void *bitmap_shrink(void *bitmap, short mipmap_count, int param_3, int param_4)
@@ -4092,18 +4092,18 @@ void *bitmap_shrink(void *bitmap, short mipmap_count, int param_3, int param_4)
   }
 
   if (mipmap_count <= 1) {
-    return FUN_00077590(bitmap);
+    return bitmap_clone(bitmap);
   }
 
   switch (*(short *)((char *)bitmap + 0xa)) {
   case 0:
-    return FUN_00077720((short)mipmap_count, bitmap, (short)param_3,
+    return bitmap_2d_shrink((short)mipmap_count, bitmap, (short)param_3,
                         (char)param_4);
   case 1:
-    return FUN_000779b0((short)mipmap_count, bitmap, (short)param_3,
+    return bitmap_3d_shrink((short)mipmap_count, bitmap, (short)param_3,
                         (char)param_4);
   case 2:
-    return FUN_00077cd0(bitmap, mipmap_count, param_3, param_4);
+    return bitmap_cm_shrink(bitmap, mipmap_count, param_3, param_4);
   default:
     display_assert("### ERROR unupported bitmap type",
                    "c:\\halo\\SOURCE\\bitmaps\\bitmap_utilities.c", 0xf3, 1);
@@ -4118,8 +4118,8 @@ void *bitmap_shrink(void *bitmap, short mipmap_count, int param_3, int param_4)
  * Validates the bitmap, checks filter_size range, then builds a 1-D
  * Gaussian kernel of radius floor(smooth_factor) by iterating Pascal's
  * triangle accumulation into a 10-element short array at DAT_00334560.
- * Dispatches: type 0 -> FUN_00077ff0, type 1 -> FUN_00078460,
- * type 2 -> FUN_00078b80 (cube map, stub).
+ * Dispatches: type 0 -> bitmap_2d_smooth, type 1 -> bitmap_3d_smooth,
+ * type 2 -> bitmap_cm_smooth (cube map, stub).
  */
 void bitmap_smooth(void *pixel_data, float smooth_factor)
 {
@@ -4166,13 +4166,13 @@ void bitmap_smooth(void *pixel_data, float smooth_factor)
 
   switch ((int16_t)(*(short *)((char *)pixel_data + 0xa))) {
   case 0:
-    FUN_00077ff0(pixel_data, filter_radius, filter_table);
+    bitmap_2d_smooth(pixel_data, filter_radius, filter_table);
     return;
   case 1:
-    FUN_00078460(pixel_data, filter_radius, filter_table);
+    bitmap_3d_smooth(pixel_data, filter_radius, filter_table);
     return;
   case 2:
-    FUN_00078b80(filter_radius, filter_table, pixel_data);
+    bitmap_cm_smooth(filter_radius, filter_table, pixel_data);
     return;
   default:
     display_assert("### ERROR unsupported bitmap type",
@@ -4187,8 +4187,8 @@ void bitmap_smooth(void *pixel_data, float smooth_factor)
  *
  * Builds the two 256-entry sharpen weight tables (positive at 0x334360,
  * negative at 0x334160 -- adjacent, 0x200 bytes each) from `amount`, then
- * dispatches on bitmap->type: 2D -> bitmap_2d_sharpen, 3D -> FUN_000790b0,
- * cube_map -> FUN_00079180.
+ * dispatches on bitmap->type: 2D -> bitmap_2d_sharpen, 3D -> bitmap_3d_sharpen,
+ * cube_map -> bitmap_cm_sharpen.
  *
  * Confirmed from disassembly at 0x7b310:
  *   - Guard at 0x7b348 is FLD [ebp+0xc]; FCOMP [0x2533c0]; FNSTSW; TEST
@@ -4251,10 +4251,10 @@ void bitmap_sharpen(void *bitmap, float amount)
       bitmap_2d_sharpen(bitmap, *(int *)&amount, 0x334360, 0x334160);
       break;
     case 1:
-      FUN_000790b0(*(int *)&amount, 0x334360, 0x334160, bitmap);
+      bitmap_3d_sharpen(*(int *)&amount, 0x334360, 0x334160, bitmap);
       break;
     case 2:
-      FUN_00079180(*(int *)&amount, 0x334360, 0x334160, bitmap);
+      bitmap_cm_sharpen(*(int *)&amount, 0x334360, 0x334160, bitmap);
       break;
     default:
       display_assert("### ERROR unsupported bitmap type",
@@ -4270,8 +4270,8 @@ void bitmap_sharpen(void *bitmap, float amount)
  * bitmap type.
  *
  * Validates the bitmap, checks that passes > 0, then dispatches based on
- * bitmap->type: 2D -> FUN_00079250, 3D -> FUN_00079480 (bitmap in EDI),
- * cube_map -> FUN_00079590 (bitmap in ESI).
+ * bitmap->type: 2D -> bitmap_2d_alpha_bleed, 3D -> bitmap_3d_alpha_bleed (bitmap in EDI),
+ * cube_map -> bitmap_cm_alpha_bleed (bitmap in ESI).
  * On unsupported type, fires an assert.
  */
 void bitmap_alpha_bleed(void *bitmap, short passes)
@@ -4289,13 +4289,13 @@ void bitmap_alpha_bleed(void *bitmap, short passes)
 
   switch (*(short *)((char *)bitmap + 0xa)) {
   case 0:
-    FUN_00079250(passes, bitmap);
+    bitmap_2d_alpha_bleed(passes, bitmap);
     break;
   case 1:
-    FUN_00079480(passes, bitmap);
+    bitmap_3d_alpha_bleed(passes, bitmap);
     break;
   case 2:
-    FUN_00079590(passes, bitmap);
+    bitmap_cm_alpha_bleed(passes, bitmap);
     break;
   default:
     display_assert("### ERROR unsupported bitmap type",
@@ -4306,14 +4306,14 @@ void bitmap_alpha_bleed(void *bitmap, short passes)
 }
 
 /*
- * FUN_0007b940 -- 3D bitmap height_map -> bump_map conversion.
+ * bitmap_3d_height_map -- 3D bitmap height_map -> bump_map conversion.
  *
  * Allocates one temporary 2D bitmap matching the 3D bitmap's width/height and
  * format, then walks every depth slice: read the slice into the temp
- * (bitmap_3d_slice_insert), run the 2D height-to-bump conversion over it
- * (FUN_0007b510), write the temp back into the slice
- * (bitmap_cube_map_face_extract).  Structurally identical to the 3D
- * alpha_bleed at FUN_00079480, which shares this alloc/loop/dispose shape.
+ * (bitmap_3d_slice_extract), run the 2D height-to-bump conversion over it
+ * (bitmap_2d_height_map), write the temp back into the slice
+ * (bitmap_3d_slice_insert).  Structurally identical to the 3D
+ * alpha_bleed at bitmap_3d_alpha_bleed, which shares this alloc/loop/dispose shape.
  *
  * Confirmed from disassembly at 0x7b940:
  *   - No `sub esp`; ESI/EDI are pushed late (0x7b9cf / 0x7b9d6), after the
@@ -4329,7 +4329,7 @@ void bitmap_alpha_bleed(void *bitmap, short passes)
  * read by FLD at 0x7b999 and re-pushed as an opaque dword at 0x7b90a -- it is
  * never converted to an integer.
  */
-void FUN_0007b940(float bump_height, void *bitmap /* @<ebx> */)
+void bitmap_3d_height_map(float bump_height, void *bitmap /* @<ebx> */)
 {
   void *temp;
   short slice;
@@ -4365,13 +4365,13 @@ void FUN_0007b940(float bump_height, void *bitmap /* @<ebx> */)
    * reproduce it: MSVC71 collapses the duplicated return back into the shared
    * tail and the redundant pre-test costs 1.0pp (89.9% -> 88.9%, insn count
    * unchanged at 91).  The single-dispose shape below is the better match and
-   * mirrors the structurally identical 3D alpha_bleed at FUN_00079480. */
+   * mirrors the structurally identical 3D alpha_bleed at bitmap_3d_alpha_bleed. */
   if (temp != 0 && *(int *)((char *)temp + 0x2c) != 0) {
     for (slice = 0; slice < *(short *)((char *)bitmap + 8); slice++) {
-      bitmap_3d_slice_insert(bitmap, 0, slice, temp);
+      bitmap_3d_slice_extract(bitmap, 0, slice, temp);
       /* bitmap passed in ESI (register arg); only bump_height is pushed. */
-      FUN_0007b510(bump_height, temp);
-      bitmap_cube_map_face_extract(temp, bitmap, 0, slice);
+      bitmap_2d_height_map(bump_height, temp);
+      bitmap_3d_slice_insert(temp, bitmap, 0, slice);
     }
   } else {
     error(2, "### ERROR failed to allocate temporary bitmap");

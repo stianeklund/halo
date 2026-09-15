@@ -13,7 +13,7 @@ extern int __cdecl abs(int);
 #define abs __builtin_abs
 #endif
 
-float FUN_00193910(float param_1, float param_2)
+float calculate_world_from_cell_index_and_offset(float param_1, float param_2)
 {
   const float k_inv_255 = *(const float *)0x261518;
   const float k_scale = *(const float *)0x253f78;
@@ -26,7 +26,7 @@ float FUN_00193910(float param_1, float param_2)
  * Empty no-op in this build: the disassembly is a single RET (C3) — no
  * prologue, no stack frame, no CALLs, no FPU. Preserved as an empty body to
  * keep the address populated and the ABI intact, matching the sibling
- * structure_runtime_decals_dispose_from_old_map (0x1963a0). Both are invoked
+ * structure_decals_dispose_from_old_map (0x1963a0). Both are invoked
  * from structures_dispose_from_old_map (0x1983e0). */
 void structure_detail_objects_dispose_from_old_map(void)
 {
@@ -45,14 +45,14 @@ void structure_detail_objects_dispose(void)
 {
 }
 
-void FUN_001939f0(float param_1)
+void detail_object_offset(float param_1)
 {
   *(float *)0x4d8eac = param_1;
   *(uint8_t *)0x4d8ea4 = 1;
   *(float *)0x4d8ea8 = param_1 - *(float *)0x4d8ea8;
 }
 
-int FUN_00193a80(int param_1, short *param_2, int in_EAX)
+int get_lower_bound_cell(int param_1, short *param_2, int in_EAX)
 {
   int count;
   int mid;
@@ -88,7 +88,7 @@ int FUN_00193a80(int param_1, short *param_2, int in_EAX)
   return param_1;
 }
 
-int FUN_00193b00(int param_1, short *param_2, int in_EAX)
+int get_upper_bound_cell(int param_1, short *param_2, int in_EAX)
 {
   int count;
   int mid;
@@ -115,7 +115,7 @@ int FUN_00193b00(int param_1, short *param_2, int in_EAX)
   return param_1;
 }
 
-float FUN_00193b80(float *param_1, float *param_2)
+float dot_product4d(float *param_1, float *param_2)
 {
   return param_1[0] * param_2[0] + param_1[1] * param_2[1] +
          param_1[2] * param_2[2] + param_1[3] * param_2[3];
@@ -136,7 +136,7 @@ float FUN_00193b80(float *param_1, float *param_2)
  *     in_EAX@eax = end (last elem + 0x20); stack = &key.
  *   - record float at +0xc stored via FSTP (float, NOT (int)).
  */
-void FUN_00193c00(void)
+void structure_render_detail_objects(void)
 {
   short player_count;
   char *scn;
@@ -248,9 +248,9 @@ void FUN_00193c00(void)
         key[0] = (short)(int)local_10;
         key[1] = (short)local_3c;
         key[3] = 0;
-        psVar4 = (short *)FUN_00193a80((int)begin, key, end);
+        psVar4 = (short *)get_lower_bound_cell((int)begin, key, end);
         key[2] = (short)(key[2] + 3); /* z + 2 (upper bound) */
-        psVar5 = (short *)FUN_00193b00((int)begin, key, end);
+        psVar5 = (short *)get_upper_bound_cell((int)begin, key, end);
         key[2] = coord[2]; /* reset z */
 
         ub_last = psVar5 - 0x10;

@@ -3,7 +3,7 @@
  * TU confirmed by the __FILE__ literal at VA 0x29b324, referenced by the
  * assert sites in lights_initialize (lines 0xc2 / 0xc3) and by the already
  * ported object_lights.c functions that currently live in objects.c
- * (FUN_00139930 / FUN_00139990 assert at lines 0x66f / 0x67f).
+ * (light_unmarked / light_mark assert at lines 0x66f / 0x67f).
  *
  * Module globals (offsets/addresses binary-confirmed, names unproven):
  *   0x5a90bc  data_t *   light datum pool ("lights", 0x380 max, 0x7c stride)
@@ -12,8 +12,8 @@
  *   0x5a90b0  cluster partition for lights ("light")
  *
  * Light datum offsets touched here (binary-confirmed, names unproven):
- *   +0x10  cluster reference head (passed to cluster_partition_remove_object
- *          and read as the seed handle by FUN_00191690)
+ *   +0x10  cluster reference head (passed to cluster_partition_disconnect
+ *          and read as the seed handle by cluster_partition_get_first_cluster)
  *   +0x14  real_rgb_color used by real_rgb_color_brightness
  */
 
@@ -33,7 +33,7 @@
  *            halt=true, each followed by PUSH -1; CALL system_exit.
  * Confirmed: MOV byte ptr [EAX],0x1 writes the enable flag through [0x46f074].
  * Confirmed: PUSH 0x25b590 ("light"); PUSH 0x5a90b0; CALL 0x191500 =>
- *            cluster_partition_globals_new.
+ *            cluster_partition_new.
  * Confirmed: the JZ fall-through calls error(2, 0x29b3e8) =
  *            "couldn't allocate memory for object lights.".
  */
@@ -48,7 +48,7 @@ void lights_initialize(void)
                      *(void **)0x46f074 != (void *)0);
   **(unsigned char **)0x46f074 = 1;
   if (*(data_t **)0x5a90bc != (data_t *)0) {
-    cluster_partition_globals_new((void **)0x5a90b0, "light");
+    cluster_partition_new((void **)0x5a90b0, "light");
   } else {
     error(2, "couldn't allocate memory for object lights.");
   }
@@ -60,7 +60,7 @@ void lights_initialize(void)
  */
 void lights_dispose(void)
 {
-  cluster_partition_null_references((int *)0x5a90b0);
+  cluster_partition_delete((int *)0x5a90b0);
 }
 
 /* lights_initialize_for_new_map (0x1392b0) — clear the light pool, re-enable
@@ -69,27 +69,27 @@ void lights_dispose(void)
  * Confirmed: MOV EAX,[0x5a90bc]; PUSH EAX; CALL 0x119b20 => data_delete_all.
  * Confirmed: MOV ECX,[0x46f074]; MOV byte ptr [ECX],0x1 — the enable-flag
  *            store is scheduled between the PUSH and the CALL below.
- * Confirmed: PUSH 0x5a90b0; CALL 0x1915d0 => cluster_partition_clear.
+ * Confirmed: PUSH 0x5a90b0; CALL 0x1915d0 => cluster_partition_make_valid.
  *            Combined ADD ESP,0x8 retires both single-argument frames.
  */
 void lights_initialize_for_new_map(void)
 {
   data_delete_all(*(data_t **)0x5a90bc);
   **(unsigned char **)0x46f074 = 1;
-  cluster_partition_clear((void *)0x5a90b0);
+  cluster_partition_make_valid((void *)0x5a90b0);
 }
 
 /* lights_dispose_from_old_map (0x1392e0) — invalidate the light pool and
  * dispose the cluster partition.
  *
  * Confirmed: MOV EAX,[0x5a90bc]; PUSH EAX; CALL 0x119550 => data_make_invalid.
- * Confirmed: PUSH 0x5a90b0; CALL 0x191600 => cluster_partition_dispose.
+ * Confirmed: PUSH 0x5a90b0; CALL 0x191600 => cluster_partition_make_invalid.
  *            Combined ADD ESP,0x8 retires both single-argument frames.
  */
 void lights_dispose_from_old_map(void)
 {
   data_make_invalid(*(data_t **)0x5a90bc);
-  cluster_partition_dispose((void *)0x5a90b0);
+  cluster_partition_make_invalid((void *)0x5a90b0);
 }
 
 /* lights_enable (0x139300) — store the enable byte into the lights game
@@ -97,7 +97,7 @@ void lights_dispose_from_old_map(void)
  *
  * Confirmed: MOV AL,byte ptr [EBP+0x8]; MOV ECX,[0x46f074];
  *            RET, so the byte return value is the value just written. The
- *            sole ported caller (FUN_000becd0 in players.c) consumes AL.
+ *            sole ported caller (lights_enable_evaluate in players.c) consumes AL.
  */
 unsigned char lights_enable(unsigned char value)
 {
@@ -111,7 +111,7 @@ unsigned char lights_enable(unsigned char value)
  * Confirmed: PUSH ESI(handle); PUSH EAX([0x5a90bc]); CALL 0x119320 =>
  *            datum_get(light_data, light_handle).
  * Confirmed: ADD EAX,0x10; PUSH EAX; PUSH ESI; PUSH 0x5a90b0; CALL 0x1919a0
- *            => cluster_partition_remove_object(partition, handle, light+0x10).
+ *            => cluster_partition_disconnect(partition, handle, light+0x10).
  * Confirmed: MOV ECX,[0x005a90bc] re-loads the pool pointer before
  *            PUSH ESI; PUSH ECX; CALL 0x1196d0 => datum_delete.
  * Confirmed: single ADD ESP,0x1c = 7 dwords = 2 + 3 + 2 cdecl arguments.
@@ -121,12 +121,12 @@ void light_delete(int light_handle)
   void *light;
 
   light = datum_get(*(data_t **)0x5a90bc, light_handle);
-  cluster_partition_remove_object((void *)0x5a90b0, light_handle,
+  cluster_partition_disconnect((void *)0x5a90b0, light_handle,
                                   (char *)light + 0x10);
   datum_delete(*(data_t **)0x5a90bc, light_handle);
 }
 
-/* FUN_00139350 (0x139350) — collect up to max_count cluster indices for the
+/* light_build_cluster_array (0x139350) — collect up to max_count cluster indices for the
  * light's cluster chain into out_buffer, returning how many were written.
  *
  * Register-argument function: EAX = light_handle, EBX = out_buffer,
@@ -137,7 +137,7 @@ void light_delete(int light_handle)
  * Confirmed: PUSH EAX; PUSH ECX([0x5a90bc]); CALL 0x119320 => datum_get.
  * Confirmed: MOV EDX,[EAX+0x10]; PUSH EDX; LEA EAX,[EBP-4]; PUSH EAX;
  *            PUSH 0x5a90b0; CALL 0x191690 =>
- *            FUN_00191690(partition, &state, light[0x10]).
+ *            cluster_partition_get_first_cluster(partition, &state, light[0x10]).
  *            ADD ESP,0x14 = 5 dwords = 2 + 3 cdecl arguments.
  * Confirmed: XOR ESI,ESI seeds the count; TEST DI,DI / JLE skips the loop.
  * Confirmed: CMP AX,0xffff is a 16-bit compare against -1, and
@@ -147,7 +147,7 @@ void light_delete(int light_handle)
  *            CALL 0x1916d0; ADD ESP,0x8; CMP SI,DI; JL — a do/while whose
  *            -1 test breaks to the shared MOV AX,SI epilogue.
  */
-int16_t FUN_00139350(int light_handle, int16_t *out_buffer, int16_t max_count)
+int16_t light_build_cluster_array(int light_handle, int16_t *out_buffer, int16_t max_count)
 {
   void *light;
   int state;
@@ -156,7 +156,7 @@ int16_t FUN_00139350(int light_handle, int16_t *out_buffer, int16_t max_count)
 
   light = datum_get(*(data_t **)0x5a90bc, light_handle);
   count = 0;
-  cluster_index = (int16_t)FUN_00191690((void *)0x5a90b0, &state,
+  cluster_index = (int16_t)cluster_partition_get_first_cluster((void *)0x5a90b0, &state,
                                         *(int *)((char *)light + 0x10));
   if (max_count > 0) {
     do {
@@ -165,7 +165,7 @@ int16_t FUN_00139350(int light_handle, int16_t *out_buffer, int16_t max_count)
       }
       out_buffer[count] = cluster_index;
       count++;
-      cluster_index = (int16_t)FUN_001916d0(0x5a90b0, &state);
+      cluster_index = (int16_t)cluster_partition_get_next_cluster(0x5a90b0, &state);
     } while (count < max_count);
   }
   return count;
@@ -237,7 +237,7 @@ float object_get_self_illumination(int object_handle)
   return total;
 }
 
-/* FUN_00139480 (0x139480) — sample the structure lightmap (and the shader's
+/* light_particle (0x139480) — sample the structure lightmap (and the shader's
  * "gel" bitmap) straight down from a world position, producing a tint colour
  * and a secondary colour. Both outputs start out as the global ambient colour
  * at *(0x2ee70c) and are only overwritten when the downward trace hits an
@@ -259,7 +259,7 @@ float object_get_self_illumination(int object_handle)
  *            then tag_block_get_element(collection+0x14, material_index,
  *            0x100).
  * Confirmed: CMP word ptr [EAX+0x24],0x3 gates on shader type 3; the shader
- *            is then re-resolved through FUN_001906b0(shader, 3).
+ *            is then re-resolved through shader_get_and_verify_type(shader, 3).
  * Confirmed: MOVSX EAX,word ptr [EBX+0x10]; CDQ; IDIV dword ptr [ECX+0x60] —
  *            a signed 32-bit modulo whose remainder (EDX) becomes the
  *            bitmap index for the gel bitmap.
@@ -272,7 +272,7 @@ float object_get_self_illumination(int object_handle)
  * Confirmed: ADD ESP,0x24 after CALL 0x138fd0 = 9 dwords = the 3 uncleaned
  *            tag_block_get_element arguments plus 6 arguments of its own.
  */
-void FUN_00139480(void *position, void *tint_color, void *out_color,
+void light_particle(void *position, void *tint_color, void *out_color,
                   char use_lightmap)
 {
   const int *ambient;
@@ -319,15 +319,15 @@ void FUN_00139480(void *position, void *tint_color, void *out_color,
   if (*(int16_t *)(shader + 0x24) != 3) {
     return;
   }
-  shader_env = (char *)FUN_001906b0(shader, 3);
+  shader_env = (char *)shader_get_and_verify_type(shader, 3);
   if (*(int *)(scenario + 0xc) == -1 || *(int *)(shader_env + 0x94) == -1 ||
       *collection == -1) {
     return;
   }
 
-  lightmap_bitmap = FUN_00076ff0(*(int *)(scenario + 0xc), *collection);
+  lightmap_bitmap = bitmap_group_try_and_get_bitmap(*(int *)(scenario + 0xc), *collection);
   bitmap_group = (char *)tag_get(0x6269746d, *(int *)(shader_env + 0x94));
-  gel_bitmap = FUN_00076ff0(
+  gel_bitmap = bitmap_group_try_and_get_bitmap(
     *(int *)(shader_env + 0x94),
     (short)(*(int16_t *)(material + 0x10) % *(int *)(bitmap_group + 0x60)));
   vertex_indices = (unsigned short *)0;

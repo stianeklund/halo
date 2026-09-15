@@ -72,7 +72,7 @@ void FUN_0018B000(void)
  * players data pool (*(int*)0x5aa6d4) at player_data+0x34. The object qualifies
  * (returns 1) when it is that unit AND the director perspective for the local
  * player (director_get_perspective) is 0 (first-person). Otherwise it falls
- * back to FUN_00085150(object_handle) (observer/cinematic check) and returns 1
+ * back to scripted_camera_object_is_first_person_camera(object_handle) (observer/cinematic check) and returns 1
  * if that is set, else 0.
  * ABI: object_handle in ESI (@<esi>), frameless. Returns int bool. Sole caller
  * FUN_0018c100 sets ESI = *buf (the object handle). */
@@ -94,7 +94,7 @@ int FUN_0018b010(int object_handle)
     return 1;
   }
 
-  if (FUN_00085150(object_handle)) {
+  if (scripted_camera_object_is_first_person_camera(object_handle)) {
     return 1;
   }
   return 0;
@@ -110,12 +110,12 @@ void FUN_0018b080(void)
   short count;
 
   object_reset_markers();
-  count = (short)FUN_00196c90(
+  count = (short)structure_visibility_find_objects(
     (int)0x4d82d4, 0x100, (void *)cluster_partition_object_iter_first,
     (void *)cluster_partition_object_iter_next, (void *)FUN_0018aef0,
     (void *)object_markers_need_update, (void *)object_mark);
   *(short *)0x4d82d0 = count;
-  count = (short)FUN_00196c90(
+  count = (short)structure_visibility_find_objects(
     0x4d82d4 + (int)count * 4, 0x100 - *(unsigned short *)0x4d82d0,
     (void *)cluster_get_first_noncollideable_object,
     (void *)cluster_get_next_noncollideable_object, (void *)FUN_0018aef0,
@@ -132,7 +132,7 @@ void FUN_0018b080(void)
  * sphere against the render frustum globals at 0x5065a4. During a cinematic,
  * objects whose flag bit 0x400000 (object+0x4) is set report FLT_MAX
  * (0x2548fc) — always-visible override. Otherwise fetches the bounding
- * sphere (FUN_0001aae0) and tail-returns
+ * sphere (object_get_bounding_sphere) and tail-returns
  * render_frustum_sphere_diameter_in_pixels(). Register ABI: object handle in
  * ESI; float return in ST(0). Callers (3, all in FUN_0018c100) load ESI from
  * the PVS record's first dword. kb.json previously misnamed this
@@ -149,7 +149,7 @@ float FUN_0018b130(int object_handle)
       return *(float *)0x2548fc; /* FLT_MAX */
     }
   }
-  FUN_0001aae0(object_handle, center, &radius);
+  object_get_bounding_sphere(object_handle, center, &radius);
   return render_frustum_sphere_diameter_in_pixels((void *)0x5065a4, center,
                                                   radius);
 }
@@ -221,7 +221,7 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
      * first-person perspective (unless observed) — or the debug override. */
     if ((((fp_unit != object_handle) ||
           (director_get_perspective(*(unsigned short *)0x506548) != 0)) &&
-         (FUN_00085150(object_handle) == 0)) ||
+         (scripted_camera_object_is_first_person_camera(object_handle) == 0)) ||
         (*(char *)0x506574 != 0)) {
       if (*(char *)(rd + 8) == 0) {
         if (parent_model_effect == 0) {
@@ -249,7 +249,7 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
                                   object_handle, -1) +
                                 4) &
               0x400000) == 0)) {
-          FUN_0001aae0(object_handle, center, &radius);
+          object_get_bounding_sphere(object_handle, center, &radius);
           dist = render_frustum_sphere_diameter_in_pixels((void *)0x5065a4,
                                                           center, radius);
         } else {
@@ -316,9 +316,9 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
             marker[2] = fwd[2] * *(float *)0x2549d4 + *(float *)(obj + 0x58);
             crt_sprintf(text, "inactive %s",
                         tag_name_strip_path(tag_get_name(*(int *)obj)));
-            FUN_00189150(0, (float *)(obj + 0x50), *(float *)(obj + 0x5c),
+            render_debug_point(0, (float *)(obj + 0x50), *(float *)(obj + 0x5c),
                          *(void **)0x2ee6d8);
-            FUN_00189cb0(0, marker, text, *(int *)0x2ee6d8);
+            render_debug_string_at_point(0, marker, text, *(int *)0x2ee6d8);
           }
 
           /* Single 13-argument model-submit. MSVC evaluates the cdecl args
@@ -332,7 +332,7 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
                        *(unsigned short *)(obj + 0x126),
                        (*(char *)(rd + 9) != 0) ? 4 : 0);
           if (*(char *)0x506528 != 0) {
-            FUN_0013c920(object_handle);
+            object_type_render_debug(object_handle);
           }
         } else {
           /* Shadow pass: no record built (arg10 NULL, arg13 constant 2). */
@@ -457,7 +457,7 @@ char FUN_0018b830(void *ctx, float fade)
   char *obj;
 
   fade_local = fade;
-  FUN_0001aae0(*(int *)ctx, center, &radius);
+  object_get_bounding_sphere(*(int *)ctx, center, &radius);
   perpendicular3d((float *)(*(int *)((char *)ctx + 4) + 0x5c), perp);
   /* length result discarded (FSTP ST0 in the original) */
   normalize3d(perp);
@@ -504,7 +504,7 @@ void FUN_0018b930(float *plane, float *flipped, float *normal, float *point)
  *
  * The ECX descriptor holds three axis vectors A (+0x10), B (+0x1c) and a
  * direction axis C (+0x28), a center point P (+0x34) and a scalar extent r
- * (+0x40). Two products are produced and forwarded to render_structure_shadows:
+ * (+0x40). Two products are produced and forwarded to structure_render_shadow:
  *   - a 6-plane array {nx,ny,nz,d} (24 floats): +C/-C (asymmetric extents
  *     r*0.5 in front, r*4.0 behind), +A/-A and +B/-B (extent r each). d is the
  *     signed plane offset dot(axis,P) - extent.
@@ -613,7 +613,7 @@ void FUN_0018b990(void *volume)
   scalars[4] = (Cv[2] * 4.0f + -(bz + az)) * r + P[2];
   scalars[5] = ((bz + az) - Cv[2] * 0.5f) * r + P[2];
 
-  render_structure_shadows(P, r4, scalars, 6, planes);
+  structure_render_shadow(P, r4, scalars, 6, planes);
   FUN_0017cd00();
 }
 
@@ -625,9 +625,9 @@ void FUN_0018b990(void *volume)
  * 0x254f90, every 3 above 0x253f00, else every 10), but only for
  * dynamically-lit objects (object flags bit14). A stale state whose
  * transform also moved (>1 frame since state+0x10) forces a full rebuild.
- * Rebuild recomputes the desired lighting (FUN_0013bce0 into state+0x88)
+ * Rebuild recomputes the desired lighting (lights_prepare_for_object_static into state+0x88)
  * and stamps lod/submit-frame; when the tick counter advanced
- * (0x506544 vs state+0xc) the point lights are re-gathered (FUN_0013aa10).
+ * (0x506544 vs state+0xc) the point lights are re-gathered (lights_prepare_for_object_dynamic).
  * A forced rebuild copies desired -> current (state+0x14) wholesale
  * (0x74 bytes); a stale state with smooth lighting on (0x323c04) instead
  * fades current toward desired per field (ambient/distant colors and
@@ -683,7 +683,7 @@ void FUN_0018bc60(int render_state_index, int object_handle, float lod,
   if (force_rebuild != 0 || stale != 0) {
   rebuild:
     *(int *)(state + 4) = object_handle;
-    FUN_0013bce0(object_handle, (float *)(state + 0x88));
+    lights_prepare_for_object_static(object_handle, (float *)(state + 0x88));
     *(float *)(state + 0xfc) = lod;
     *(int *)(state + 8) = *(int *)0x506540;
     if (force_rebuild != 0)
@@ -691,7 +691,7 @@ void FUN_0018bc60(int render_state_index, int object_handle, float lod,
   }
   if (ticks > 0) {
   update_points:
-    FUN_0013aa10(object_handle, (int)(state + 0x88));
+    lights_prepare_for_object_dynamic(object_handle, (int)(state + 0x88));
     if (force_rebuild != 0)
       goto copy_all;
   }
@@ -819,7 +819,7 @@ int FUN_0018bf80(int object_handle, float lod)
  * (object_handle, lod). On success returns the datum's data + 0x14 from the
  * cluster-lighting pool (*(data_t**)0x50652c). On the NONE (-1) path, falls
  * back to the global lighting-state buffer at 0x4d8258: rebuilds its baseline
- * lighting (FUN_0013bce0) and its dynamic light markers (FUN_0013aa10), then
+ * lighting (lights_prepare_for_object_static) and its dynamic light markers (lights_prepare_for_object_dynamic), then
  * returns &DAT_004d8258. cdecl: object_handle [EBP+8], lod [EBP+0xc] (float,
  * forwarded bitwise to FUN_0018bf80). NOTE: kb name 'scenario_leaf_index_from
  * _point' appears to be a misnomer (object-handle arg, pointer return). */
@@ -831,8 +831,8 @@ void *scenario_leaf_index_from_point(int object_handle, float lod)
   if (index != -1) {
     return (void *)((int)datum_get(*(data_t **)0x50652c, index) + 0x14);
   }
-  FUN_0013bce0(object_handle, (float *)0x4d8258);
-  FUN_0013aa10(object_handle, 0x4d8258);
+  lights_prepare_for_object_static(object_handle, (float *)0x4d8258);
+  lights_prepare_for_object_dynamic(object_handle, 0x4d8258);
   return (void *)0x4d8258;
 }
 
@@ -849,7 +849,7 @@ void *scenario_leaf_index_from_point(int object_handle, float lod)
  * shadow drew (FUN_0018b830 returns non-zero), submits the object tree
  * (FUN_0018b190 with a NULL effect) and the shadow volume (FUN_0018b990
  * @<ecx>). Render pass: visibility is false only for attached objects
- * (flags bit0, +0xc8 == NONE) whose attachment 0x11c fails FUN_001363d0 —
+ * (flags bit0, +0xc8 == NONE) whose attachment 0x11c fails widgets_need_lighting —
  * and a NONE 0x11c returns outright; fetches the 'obje' tag def, resolves
  * lighting (or NULL when invisible), gates on editor_preprocess_rendered_object (retail stub:
  * always 1; args passed and ignored), zero-inits the type/modifier/node
@@ -921,7 +921,7 @@ void FUN_0018c100(void *record)
   } else {
     obj = (char *)object_get_and_verify_type(*(int *)rec, -1);
     if ((*(uint8_t *)(obj + 4) & 1) == 0 || *(int *)(obj + 0xc8) != -1 ||
-        (visible = (char)FUN_001363d0(*(int *)(obj + 0x11c))) != 0) {
+        (visible = (char)widgets_need_lighting(*(int *)(obj + 0x11c))) != 0) {
       visible = 1;
     } else if (*(int *)(obj + 0x11c) == -1) {
       return;
@@ -975,14 +975,14 @@ void FUN_0018c370(void *record)
 /* 0x18c3a0 — scenario_test_pvs: per-frame potentially-visible-set debug draw.
  * Optionally brackets the work in a 'render_objects' profile section (when both
  * the global debug-enable byte 0x449ef1 and the section-enable byte 0x325810
- * are set). Resets the sprite/decal draw state (FUN_0017d1a0(0)) and primes the
+ * are set). Resets the sprite/decal draw state (rasterizer_models_begin(0)) and primes the
  * object iteration list (FUN_0018b080), then runs the body loop exactly twice:
  * the first pass (BL toggle 0->1) and the second. On the pass whose toggle byte
  * BL equals the global char at 0x3256c6 it walks the visible-object table at
  * 0x4d82d4 (count is the signed short at 0x4d82d0), seeding a 0x48-byte stack
  * record per entry (record[0] = table[i]) and processing it via FUN_0018c100
  * (record passed in EDI); on the other pass it draws first-person weapons
- * (first_person_weapon_draw). Finishes via FUN_0016b240 (reloc-verified
+ * (first_person_weapon_draw). Finishes via _rasterizer_models_end (reloc-verified
  * against the delinked reference; an earlier draft wrongly called
  * FUN_0017cbf0 here). void(void). */
 void scenario_test_pvs(void)
@@ -995,7 +995,7 @@ void scenario_test_pvs(void)
   if (*(char *)0x449ef1 != 0 && *(char *)0x325810 != 0) {
     profile_enter_private((void *)0x325808);
   }
-  FUN_0017d1a0(0);
+  rasterizer_models_begin(0);
   FUN_0018b080();
   pass = 0;
   record[8] = 0;
@@ -1015,7 +1015,7 @@ void scenario_test_pvs(void)
     again = (pass == 0);
     pass = 1;
   } while (again);
-  FUN_0016b240();
+  _rasterizer_models_end();
   if (*(char *)0x449ef1 != 0 && *(char *)0x325810 != 0) {
     profile_exit_private((void *)0x325808);
   }
@@ -1025,7 +1025,7 @@ void scenario_test_pvs(void)
  * Optionally brackets the work in a 'render_object_shadows' profile section
  * (when both the global debug-enable byte 0x449ef1 and the section-enable byte
  * 0x325e08 are set). When the master enable byte 0x325800 is set, it brackets
- * a sky/object iteration pass between FUN_00172520 and FUN_00172720
+ * a sky/object iteration pass between _rasterizer_environment_shadows_begin and _rasterizer_environment_shadows_end
  * (reloc-verified against the delinked reference; an earlier draft wrongly
  * called the decal helpers FUN_0017cca0/FUN_0017cd10 here): a 0x48-byte stack
  * record is primed (record[8] = 1) and passed in EAX to FUN_0018c370 (the kb
@@ -1039,10 +1039,10 @@ void scenario_test_pas(void)
     profile_enter_private((void *)0x325e00);
   }
   if (*(char *)0x325800 != 0) {
-    FUN_00172520();
+    _rasterizer_environment_shadows_begin();
     record[8] = 1;
     FUN_0018c370(record);
-    rasterizer_window_get_fog();
+    _rasterizer_environment_shadows_end();
   }
   if (*(char *)0x449ef1 != 0 && *(char *)0x325e08 != 0) {
     profile_exit_private((void *)0x325e00);
@@ -1346,11 +1346,11 @@ void FUN_0018c5b0(void)
  * query fills a 0x6c record whose +0x60 position the original read through
  * overlapping locals — or from the euler angles at elem+0x68 when the
  * marker name is empty; the light is placed far along that direction
- * (0x2b1b50) facing back (perpendicular basis), FUN_00139b40. Finally the
+ * (0x2b1b50) facing back (perpendicular basis), lights_queue_lens_flare. Finally the
  * node matrices are pulled into a scaled view space (scale 2^-10, position
- * * 0x2b1b4c), FUN_0017d1a0(1) selects the sky rasterizer mode, and the
+ * * 0x2b1b4c), rasterizer_models_begin(1) selects the sky rasterizer mode, and the
  * model is drawn with unit region scales via the 13-arg render_model,
- * flushed through FUN_0016b240 (the 0x17cbf0 thunk's target, matching the
+ * flushed through _rasterizer_models_end (the 0x17cbf0 thunk's target, matching the
  * scenario_test_pvs reloc lesson). cdecl, void(void), 0x1658-byte frame via
  * _chkstk. */
 void render_sky(void)
@@ -1445,7 +1445,7 @@ void render_sky(void)
             if (csstrlen(elem + 0x10) == 0) {
               angles_to_vector(delta, (float *)(elem + 0x68));
             } else {
-              if (FUN_00124730(*(int *)(rec + 0xc), elem + 0x10, 0, 0, -1,
+              if (model_get_marker_by_name(*(int *)(rec + 0xc), elem + 0x10, 0, 0, -1,
                                node_matrices, 0, marker, 1) == 0)
                 goto next_light;
               delta[0] = *(float *)(marker + 0x60) - *(float *)0x506550;
@@ -1475,7 +1475,7 @@ void render_sky(void)
               perp[1] = perp[1] * len;
               perp[2] = perp[2] * len;
             }
-            FUN_00139b40(*(int *)(elem + 0xc), (int *)pos2, (int)negdir,
+            lights_queue_lens_flare(*(int *)(elem + 0xc), (int *)pos2, (int)negdir,
                          (int)perp, *(float **)0x2ee708, 1.0f);
           }
         next_light:
@@ -1498,7 +1498,7 @@ void render_sky(void)
           i = (int)(int16_t)counter;
         } while (i < *(int *)(mode_tag + 0xb8));
       }
-      FUN_0017d1a0(1);
+      rasterizer_models_begin(1);
       csmemset(record, 0, 0x74);
       defcol = *(float **)0x2ee708;
       *(int32_t *)record = *(int32_t *)defcol;
@@ -1506,7 +1506,7 @@ void render_sky(void)
       *(int32_t *)(record + 8) = *(int32_t *)(defcol + 2);
       render_model(*(int *)(rec + 0xc), 0.0f, node_matrices, 0, 0, scales,
                    (int)record, (void *)0x506550, 0, 0, 0, 0, 1);
-      FUN_0016b240();
+      _rasterizer_models_end();
     }
   }
 }
@@ -1605,7 +1605,7 @@ void FUN_0018d040(void *state, float *value, int16_t p1, int p2, void *src,
 /* 0x18d0b0 — per-frame coverage/big-sprite stats reset (kb name is a
  * misnomer). If the debug flag at 0x5064e8 is set, format the accumulated
  * coverage (float @0x506504) and big-sprite count (short @0x506508) into a
- * line and emit it via FUN_00189c40(0, ...). Then zero both accumulators and
+ * line and emit it via render_debug_string(0, ...). Then zero both accumulators and
  * run two matrix_transform_vector passes over the 0x5065b4 matrix using the
  * pointers at *0x31fc44 / *0x31fc40 into the 0x506510 / 0x50651c buffers.
  * cdecl, void(void). */
@@ -1616,7 +1616,7 @@ void scenario_fog_region_get_fog_index(void)
   if (*(char *)0x5064e8 != 0) {
     crt_sprintf(line, "   coverage: %.1f big sprites: %d",
                 (double)*(float *)0x506504, (int)*(short *)0x506508);
-    FUN_00189c40(0, line);
+    render_debug_string(0, line);
   }
   *(float *)0x506504 = 0.0f;
   *(short *)0x506508 = 0;
@@ -1675,12 +1675,12 @@ int16_t FUN_0018d140(void *data, int bitmap)
       fmt = xbox_texture_cache_get_hardware_format((void *)bitmap, 0, 1);
       if (fmt != NULL) {
         *(uint16_t *)0x325652 = 0x10;
-        vb = rasterizer_widget_set_zbuffer_enable(
+        vb = rasterizer_dynamic_vertices_new(
           (*(uint32_t *)((char *)data + 0x10) & 1) != 0 ? 8 : 6,
           (int)*(int16_t *)((char *)data + 4) << 2);
         *(int *)group = vb;
         if (vb != -1) {
-          verts = rasterizer_widget_draw_sprite3d(vb);
+          verts = rasterizer_dynamic_vertices_lock(vb);
           *(int *)(group + 4) = verts;
           if (verts == 0) {
             display_assert("group->vertices",
@@ -1795,19 +1795,19 @@ void FUN_0018d360(void *sprite_build_data)
   for (i = 0; i < *(int16_t *)(data + 0x20); i++) {
     rec = (uint32_t *)(data + 0x24 + (int)i * 0x10);
     if (*(int16_t *)((char *)rec + 0x8) != 0) {
-      rasterizer_widget_end((int)rec[0]);
+      rasterizer_dynamic_vertices_unlock((int)rec[0]);
       if ((*(uint32_t *)(data + 0x10) & 1) != 0) {
         display_assert(
           "### ERROR sprites rendered with screen geometry -- tell Bernie!!",
           "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x179, 1);
         system_exit(-1);
-        FUN_0017cf80(0, -4, rec[0], (int)*(int16_t *)((char *)rec + 0x8) << 1);
+        rasterizer_dynamic_screen_geometry_draw(0, -4, rec[0], (int)*(int16_t *)((char *)rec + 0x8) << 1);
       } else {
-        FUN_0017cf60(*(uint32_t *)(data + 8), rec[3], 0, -4, rec[0],
+        rasterizer_dynamic_unlit_geometry_draw(*(uint32_t *)(data + 8), rec[3], 0, -4, rec[0],
                      (int)*(int16_t *)((char *)rec + 0x8) << 1, origin,
                      ((*(uint32_t *)(data + 0x10) & 2) << 6) | 0x20);
       }
-      FUN_0017c9f0((int)rec[0]);
+      rasterizer_dynamic_vertices_delete((int)rec[0]);
     }
   }
 
@@ -2057,7 +2057,7 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
                                        transformed_origin, basis + 7) *
                           intensity;
             }
-            pixel = FUN_000d1c90(color);
+            pixel = real_argb_color_to_pixel32(color);
             anim = (char *)*(int *)((char *)data + 8);
             if (anim != NULL && *(int16_t *)(anim + 0x2a) != 0 &&
                 (*(uint8_t *)(anim + 0x28) & 2) == 0) {
@@ -2174,10 +2174,10 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
                 matrix_transform_point((float *)0x5065e8,
                                        (float *)(verts + idx * 0x18 - 0x18),
                                        dbg_d);
-                FUN_0017eb10(wpoint, dbg_b, *(int *)0x2ee6c4);
-                FUN_0017eb10(wpoint, dbg_c, *(int *)0x2ee6c4);
-                FUN_0017eb10(dbg_c, dbg_d, *(int *)0x2ee6c4);
-                FUN_0017eb10(dbg_d, dbg_b, *(int *)0x2ee6c4);
+                rasterizer_debug_line(wpoint, dbg_b, *(int *)0x2ee6c4);
+                rasterizer_debug_line(wpoint, dbg_c, *(int *)0x2ee6c4);
+                rasterizer_debug_line(dbg_c, dbg_d, *(int *)0x2ee6c4);
+                rasterizer_debug_line(dbg_d, dbg_b, *(int *)0x2ee6c4);
               }
             }
           }
@@ -2814,7 +2814,7 @@ bool scenario_ensure_point_within_world(int cluster_index,
   }
   bsp = *(void **)0x5064e0;
   sound_data =
-    structure_bsp_get_cluster_sound_data(bsp, (int16_t)cluster_index);
+    structure_bsp_get_cluster_pvs(bsp, (int16_t)cluster_index);
   if (cluster_index1 < 0 ||
       (int)cluster_index1 >= *(int *)((char *)bsp + 0x134)) {
     display_assert(
@@ -2828,7 +2828,7 @@ bool scenario_ensure_point_within_world(int cluster_index,
 
 /* 0x18e8a0 — AND the two clusters' PVS (potentially-visible-set) bit vectors.
  * Asserts the structure BSP global (0x5064e0) is loaded, fetches each region's
- * cluster sound-data PVS bitfield via structure_bsp_get_cluster_sound_data,
+ * cluster sound-data PVS bitfield via structure_bsp_get_cluster_pvs,
  * then bit_vector_and's them, size = cluster count (uint16 @bsp+0x134), into a
  * NULL result buffer (in-place / dry-run, result discarded). cdecl, void. */
 void scenario_get_fog_region_index(int region_a, int region_b)
@@ -2843,8 +2843,8 @@ void scenario_get_fog_region_index(int region_a, int region_b)
     system_exit(-1);
   }
   bsp = *(int *)0x5064e0;
-  pvs_a = (int)structure_bsp_get_cluster_sound_data((void *)bsp, region_a);
-  pvs_b = (int)structure_bsp_get_cluster_sound_data((void *)bsp, region_b);
+  pvs_a = (int)structure_bsp_get_cluster_pvs((void *)bsp, region_a);
+  pvs_b = (int)structure_bsp_get_cluster_pvs((void *)bsp, region_b);
   bit_vector_and(*(unsigned short *)(bsp + 0x134), pvs_a, pvs_b, 0);
 }
 
@@ -3788,7 +3788,7 @@ void scenario_get_sound_environment(int32_t *out_datum, void **out_env,
       env_name = tag_get_name(snde_datum);
     }
     crt_sprintf((char *)0x5ab100, "|n|n|n|n%s", env_name);
-    FUN_00189c40(0, (char *)0x5ab100);
+    render_debug_string(0, (char *)0x5ab100);
   }
 
   /* Source environment block: the resolved 'snde' tag, or module default. */
@@ -3969,7 +3969,7 @@ void FUN_0018fb20(float *position, const float *target, float max_delta)
  * Confirmed: assert scenario.c:0xb7; 'sky ' = 0x736b7920; snap condition
  * chain from TEST AH,0x5/0x44 decode; smooth rate = dist, then
  * dist * DAT_002533e8 for distance/color/scale. Sole caller
- * render_window (render.c). */
+ * render_player_frame (render.c). */
 void FUN_0018fbc0(int16_t window_index, int structure_bsp_index,
                   const float *camera_position, char *out)
 {

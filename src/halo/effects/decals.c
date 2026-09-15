@@ -1,7 +1,7 @@
 #include "x87_math.h"
 
 /*
- * FUN_00098970 — consistency check for a doubly-linked decal entry.
+ * decal_check — consistency check for a doubly-linked decal entry.
  * Verifies that the decal's prev (0x30) and next (0x34) neighbors share the
  * same cluster_index (+4) and, if layer_check is true, the same layer (+6).
  * Calls datum_get twice per neighbor to read each field independently,
@@ -9,7 +9,7 @@
  *
  * 0x98970 / decals.obj
  */
-void FUN_00098970(int handle, bool layer_check)
+void decal_check(int handle, bool layer_check)
 {
   void *decal;
   void *other;
@@ -54,14 +54,14 @@ void FUN_00098970(int handle, bool layer_check)
 }
 
 /*
- * FUN_00098aa0 — set the first decal datum index for a cluster/layer slot.
+ * decal_set_first_decal_index — set the first decal datum index for a cluster/layer slot.
  * Validates cluster_index in [0, 512) and layer in [0, 5), then writes
  * param_1 into decal_globals at [layer * 512 + cluster_index].
- * Counterpart to FUN_00098fe0 (getter). Takes cluster_index in SI, layer in DI.
+ * Counterpart to decal_get_first_decal_index (getter). Takes cluster_index in SI, layer in DI.
  *
  * 0x98aa0 / decals.obj
  */
-void FUN_00098aa0(int16_t cluster_index, int16_t layer, int param_1)
+void decal_set_first_decal_index(int16_t cluster_index, int16_t layer, int param_1)
 {
   if (cluster_index < 0 || cluster_index >= 0x200) {
     display_assert(
@@ -78,7 +78,7 @@ void FUN_00098aa0(int16_t cluster_index, int16_t layer, int param_1)
     param_1;
 }
 
-void FUN_00098b20(float *sprite_bounds, void *definition,
+void decal_sprite_get_bounds(float *sprite_bounds, void *definition,
                   int16_t sequence_index, int16_t sprite_index, float extent,
                   float *out_extent)
 {
@@ -153,7 +153,7 @@ void decals_initialize(void)
   global_decal_data->identifier_zero_invalid = 1;
   decal_globals = (char *)game_state_malloc("decal globals", 0, 0x280c);
   assert_halt(decal_globals);
-  rasterizer_decals_initialize();
+  _rasterizer_decals_initialize();
   decal_counts_0 = 0;
   decal_counts_1 = 0;
 }
@@ -167,7 +167,7 @@ void decals_initialize_for_new_map(void)
   *(_DWORD *)(decal_globals + 0x2804) = 0;
   *(_DWORD *)(decal_globals + 0x2808) = 0;
   data_delete_all(global_decal_data);
-  rasterizer_decals_initialize_for_new_map();
+  _rasterizer_decals_initialize_for_new_map();
   decal_counts_0 = 0;
   decal_counts_1 = 0;
 }
@@ -176,7 +176,7 @@ void decals_dispose_from_old_map(void)
 {
   assert_halt(global_decal_data);
   assert_halt(decal_globals);
-  rasterizer_decals_dispose_from_old_map();
+  _rasterizer_decals_dispose_from_old_map();
   data_make_invalid(global_decal_data);
 }
 
@@ -186,7 +186,7 @@ void decals_dispose(void)
   rasterizer_decals_dispose();
 }
 
-/* decals_update_for_new_map (0x98e70)
+/* decals_unlock (0x98e70)
  *
  * Scans every live decal entry and clears transient-lifetime flags:
  *   bit 0 (0x1) = "locked"   — always cleared, decrements locked count
@@ -201,7 +201,7 @@ void decals_dispose(void)
  * The bit fields are in the uint16_t at decal_entry+0x2; the counts
  * live in decal_globals+0x2804 (locked) and decal_globals+0x2808 (permanent).
  */
-void decals_update_for_new_map(bool full_reset)
+void decals_unlock(bool full_reset)
 {
   data_iter_t iter;
   int16_t *entry;
@@ -266,7 +266,7 @@ void decals_update_for_new_map(bool full_reset)
  * Returns the first decal datum index for the given cluster and layer.
  * Validates that cluster_index is in [0, 512) and layer is in [0, 5).
  * Indexes into the decal_globals array: [layer * 512 + cluster_index]. */
-int FUN_00098fe0(int16_t cluster_index, int16_t layer)
+int decal_get_first_decal_index(int16_t cluster_index, int16_t layer)
 {
   assert_halt(cluster_index >= 0 && cluster_index < 0x200);
   assert_halt(layer >= 0 && layer < 5);
@@ -385,7 +385,7 @@ float *plane2d_from_points(float *out_line, float *point_a, float *point_b)
 }
 
 /*
- * FUN_00099490 — build a 3D plane from a point on the plane and its normal.
+ * plane3d_from_point_and_normal — build a 3D plane from a point on the plane and its normal.
  *
  * plane_out[0..2] = normal[0..2] (copied via integer moves in the original,
  * which is what VC71 emits for plain float assignment), and
@@ -400,7 +400,7 @@ float *plane2d_from_points(float *out_line, float *point_a, float *point_b)
  *
  * 0x99490 / decals.obj
  */
-void FUN_00099490(float *plane_out, float *point, float *normal)
+void plane3d_from_point_and_normal(float *plane_out, float *point, float *normal)
 {
   float *plane_normal;
 
@@ -489,7 +489,7 @@ void bsp3d_get_plane_from_designator(int structure_bsp,
  * Retirement releases the decal's claim on the locked-decal budget if it held
  * one (flag bit 0), then calls the rasterizer-side free FUN_0017cb10. The
  * "tell Bernie" underflow warning is the same one-shot pattern as in
- * decals_update_for_new_map above, with its own latch byte (0x4557dc here,
+ * decals_unlock above, with its own latch byte (0x4557dc here,
  * 0x4557dd there) so the two sites report independently.
  *
  * Decal fields used:
@@ -592,26 +592,26 @@ void decal_update(int decal_index)
 }
 
 /*
- * FUN_00099840 — prepend a decal to the cluster/layer linked list.
+ * decal_reinsert — prepend a decal to the cluster/layer linked list.
  *
- * Reads the current list head via FUN_00098fe0, then initialises the decal's
+ * Reads the current list head via decal_get_first_decal_index, then initialises the decal's
  * link fields (prev=-1, next=old_head, cluster_index, layer) via datum_get on
  * global_decal_data. If the old head exists it back-links its prev to the new
- * decal. Finally calls FUN_00098aa0 to update the list head.
+ * decal. Finally calls decal_set_first_decal_index to update the list head.
  *
  * cluster_index@<ecx>, layer@<ax> are register args; decal_handle is on the
  * stack. ESI=cluster_index, EDI=layer are preserved throughout for the
- * FUN_00098aa0 call.
+ * decal_set_first_decal_index call.
  *
  * 0x99840 / decals.obj
  */
-void FUN_00099840(int16_t cluster_index, int16_t layer, int decal_handle)
+void decal_reinsert(int16_t cluster_index, int16_t layer, int decal_handle)
 {
   int old_head;
   char *decal;
   char *old_head_decal;
 
-  old_head = FUN_00098fe0(cluster_index, layer);
+  old_head = decal_get_first_decal_index(cluster_index, layer);
   decal = (char *)datum_get(global_decal_data, decal_handle);
   *(int *)(decal + 0x30) = -1;
   *(int *)(decal + 0x34) = old_head;
@@ -621,14 +621,14 @@ void FUN_00099840(int16_t cluster_index, int16_t layer, int decal_handle)
     old_head_decal = (char *)datum_get(global_decal_data, old_head);
     *(int *)(old_head_decal + 0x30) = decal_handle;
   }
-  FUN_00098aa0(cluster_index, layer, decal_handle);
+  decal_set_first_decal_index(cluster_index, layer, decal_handle);
 }
 
 static void decals_log_invalid_decal_type_once(
   int16_t decal_type, int decal_tag_index, const char *decal_name,
   int bitmap_tag_index, const char *bitmap_name, const char *context);
 
-int FUN_000998b0(int new_index_hint, int16_t cluster_index, int16_t layer,
+int decal_insert(int new_index_hint, int16_t cluster_index, int16_t layer,
                  int old_index, bool randomize)
 {
   int decal_index;
@@ -759,11 +759,11 @@ int FUN_000998b0(int new_index_hint, int16_t cluster_index, int16_t layer,
  * (decal_globals->first_disconnected_decal_index at +0x2800) and reattach
  * each decal to its structure-BSP cluster. For every decal on the list the
  * next handle (+0x34) is cached BEFORE any relinking, the decal is
- * consistency-checked (FUN_00098970), its cluster is resolved from the decal
+ * consistency-checked (decal_check), its cluster is resolved from the decal
  * position (+8) via scenario_location_from_point, and when a valid cluster
  * is found the decal is unlinked from the disconnected list (repairing
  * neighbour prev/next at +0x30/+0x34, or the list head at +0x2800 when it is
- * the first entry) and prepended to the cluster/layer list via FUN_00099840.
+ * the first entry) and prepended to the cluster/layer list via decal_reinsert.
  * A post-incremented guard counter aborts with an error after 0x801
  * iterations.
  *
@@ -812,7 +812,7 @@ void decals_reconnect_to_structure_bsp(void)
             "c:\\halo\\SOURCE\\effects\\decals.c", 0x295, true);
           system_exit(-1);
         }
-        FUN_00098970(decal_index, false);
+        decal_check(decal_index, false);
         scenario_location_from_point(location, decal + 8);
         if (*(int16_t *)((char *)location + 4) != -1) {
           if (*(int *)(decal + 0x34) != -1) {
@@ -833,10 +833,10 @@ void decals_reconnect_to_structure_bsp(void)
             }
             *(int *)(decal_globals + 0x2800) = *(int *)(decal + 0x34);
           }
-          FUN_00099840(*(int16_t *)((char *)location + 4),
+          decal_reinsert(*(int16_t *)((char *)location + 4),
                        *(int16_t *)(decal + 6), decal_index);
         }
-        FUN_00098970(decal_index, false);
+        decal_check(decal_index, false);
         decal_index = next;
       } while (next != -1);
     }
@@ -853,7 +853,7 @@ void decals_reconnect_to_structure_bsp(void)
  * onto the front of the disconnected list: the tail's next takes the old
  * disconnected head (decal_globals + 0x2800), that old head's prev (+0x30) is
  * repaired to point at the tail, the disconnected head becomes the list's
- * ORIGINAL first index (the FUN_00098fe0 result, not the current node), and
+ * ORIGINAL first index (the decal_get_first_decal_index result, not the current node), and
  * the [layer][cluster] slot is cleared to NONE. The trailing bound asserts
  * (source lines 0xd8/0xd9) come from decal_set_first_decal_index being inlined
  * here. A post-incremented guard aborts a list after 0x801 iterations.
@@ -886,7 +886,7 @@ void decals_disconnect_from_structure_bsp(void)
 
     for (cluster_index = 0; cluster_index < 0x200; ++cluster_index) {
       for (layer = 0; layer < 5; ++layer) {
-        first = FUN_00098fe0(cluster_index, layer);
+        first = decal_get_first_decal_index(cluster_index, layer);
         guard = 0;
         decal_index = first;
 
@@ -943,7 +943,7 @@ void decals_disconnect_from_structure_bsp(void)
  * Walks the decal pool with the standard data_iterator pair and calls
  * decal_update for each element. The whole pass is skipped when the pool's
  * "valid" byte at +0x24 is clear (pool not initialised for the current map),
- * matching decals_update_for_new_map above -- but note there is no
+ * matching decals_unlock above -- but note there is no
  * assert_halt on the pool pointer here: the original loads [0x005aa8b8]
  * straight into EAX @00099f86 and dereferences +0x24 with no null check.
  *
@@ -1045,7 +1045,7 @@ void decals_delete_permanent_from_cluster(int16_t cluster_index)
  * doubly-linked neighbours (prev at +0x30, next at +0x34), then updates the
  * list head: decal_globals->first_disconnected_decal_index (+0x2800) when
  * cluster_index (+4) is -1, otherwise the [layer][cluster] slot via
- * FUN_00098aa0. Every path ends in datum_delete.
+ * decal_set_first_decal_index. Every path ends in datum_delete.
  *
  * 0x9a160 / decals.obj
  */
@@ -1100,7 +1100,7 @@ void decal_delete(int decal_index)
     return;
   }
 
-  first = FUN_00098fe0(*(int16_t *)((char *)decal + 4),
+  first = decal_get_first_decal_index(*(int16_t *)((char *)decal + 4),
                        *(int16_t *)((char *)decal + 6));
   if (first != decal_index) {
     display_assert(
@@ -1110,12 +1110,12 @@ void decal_delete(int decal_index)
     system_exit(-1);
   }
 
-  FUN_00098aa0(*(int16_t *)((char *)decal + 4), *(int16_t *)((char *)decal + 6),
+  decal_set_first_decal_index(*(int16_t *)((char *)decal + 4), *(int16_t *)((char *)decal + 6),
                *(int *)((char *)decal + 0x34));
   datum_delete(global_decal_data, decal_index);
 }
 
-void FUN_0009a300(float *bounds, float *projection, float *basis)
+void decal_projection_create(float *bounds, float *projection, float *basis)
 {
   float projected[3];
 
@@ -1153,31 +1153,31 @@ void FUN_0009a300(float *bounds, float *projection, float *basis)
     *(int16_t *)((char *)projection + 0x54) = 0;
   }
 
-  *(uint8_t *)((char *)projection + 0x56) = (uint8_t)FUN_00099270(
+  *(uint8_t *)((char *)projection + 0x56) = (uint8_t)projection_sign_from_vector3d(
       projection + 0x11, *(int16_t *)((char *)projection + 0x54));
 
   projected[0] = bounds[0] * basis[1] + bounds[2] * basis[4] + basis[10];
   projected[1] = bounds[2] * basis[5] + bounds[0] * basis[2] + basis[11];
   projected[2] = bounds[2] * basis[6] + bounds[0] * basis[3] + basis[12];
-  FUN_00061df0(projected, *(int16_t *)((char *)projection + 0x54),
+  project_point3d(projected, *(int16_t *)((char *)projection + 0x54),
                *(uint8_t *)((char *)projection + 0x56), projection + 0x16);
 
   projected[0] = bounds[1] * basis[1] + bounds[2] * basis[4] + basis[10];
   projected[1] = bounds[2] * basis[5] + bounds[1] * basis[2] + basis[11];
   projected[2] = bounds[2] * basis[6] + bounds[1] * basis[3] + basis[12];
-  FUN_00061df0(projected, *(int16_t *)((char *)projection + 0x54),
+  project_point3d(projected, *(int16_t *)((char *)projection + 0x54),
                *(uint8_t *)((char *)projection + 0x56), projection + 0x18);
 
   projected[0] = bounds[1] * basis[1] + bounds[3] * basis[4] + basis[10];
   projected[1] = bounds[3] * basis[5] + bounds[1] * basis[2] + basis[11];
   projected[2] = bounds[1] * basis[3] + bounds[3] * basis[6] + basis[12];
-  FUN_00061df0(projected, *(int16_t *)((char *)projection + 0x54),
+  project_point3d(projected, *(int16_t *)((char *)projection + 0x54),
                *(uint8_t *)((char *)projection + 0x56), projection + 0x1a);
 
   projected[0] = bounds[3] * basis[4] + bounds[0] * basis[1] + basis[10];
   projected[1] = bounds[3] * basis[5] + bounds[0] * basis[2] + basis[11];
   projected[2] = bounds[3] * basis[6] + bounds[0] * basis[3] + basis[12];
-  FUN_00061df0(projected, *(int16_t *)((char *)projection + 0x54),
+  project_point3d(projected, *(int16_t *)((char *)projection + 0x54),
                *(uint8_t *)((char *)projection + 0x56), projection + 0x1c);
 
   projection[0x1e] = projection[0x18] - projection[0x16];
@@ -1188,7 +1188,7 @@ void FUN_0009a300(float *bounds, float *projection, float *basis)
                                            projection[0x1f] * projection[0x20]);
 }
 
-void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
+void decal_clip_to_surface(void *geometry, float *projection, int surface_index,
                   bool allow_deviants, float scale, int16_t type,
                   int *surface_queue, int16_t *surface_queue_write_index,
                   int *deviant_surface_list, int16_t *deviant_surface_count)
@@ -1307,12 +1307,12 @@ void FUN_0009a5a0(void *geometry, float *projection, int surface_index,
         int first_vertex_index = edge[surface_match ? 1 : 0];
         float *first_vertex = (float *)tag_block_get_element(
           (char *)vertices_block, first_vertex_index, 0x10);
-        FUN_00061df0(first_vertex, *(int16_t *)((char *)projection + 0x54),
+        project_point3d(first_vertex, *(int16_t *)((char *)projection + 0x54),
                      *(uint8_t *)((char *)projection + 0x56),
                      projected_previous);
       }
 
-      FUN_00061df0(remote_vertex, *(int16_t *)((char *)projection + 0x54),
+      project_point3d(remote_vertex, *(int16_t *)((char *)projection + 0x54),
                    *(uint8_t *)((char *)projection + 0x56), projected_current);
       if (plane2d_from_points(line, projected_current, projected_previous) ==
           NULL) {
@@ -1499,7 +1499,7 @@ static float decals_random_real(float min, float max)
 
 static int16_t decals_random_short(int16_t min, int16_t max)
 {
-  return random_range(random_math_get_local_seed_address(), min, max);
+  return seed_random_range(random_math_get_local_seed_address(), min, max);
 }
 
 static void decals_get_signed_plane(int structure_bsp, int plane_reference,
@@ -1713,9 +1713,9 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
           decals_cross3(bitangent, normal, tangent);
         } else {
           float axis_vector[3];
-          int16_t axis = (int16_t)FUN_00099220(direction3);
+          int16_t axis = (int16_t)projection_from_vector3d(direction3);
           float axis_sign =
-            FUN_00099270(direction3, (uint16_t)axis) ? 1.0f : -1.0f;
+            projection_sign_from_vector3d(direction3, (uint16_t)axis) ? 1.0f : -1.0f;
 
           decals_build_axis(axis_vector, (uint16_t)axis, axis_sign, 0x848);
 
@@ -1743,8 +1743,8 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
             reflected[1] = reflected_scale * normal[1] + direction3[1];
             reflected[2] = reflected_scale * normal[2] + direction3[2];
 
-            axis = (int16_t)FUN_00099220(reflected);
-            axis_sign = FUN_00099270(reflected, (uint16_t)axis) ? 1.0f : -1.0f;
+            axis = (int16_t)projection_from_vector3d(reflected);
+            axis_sign = projection_sign_from_vector3d(reflected, (uint16_t)axis) ? 1.0f : -1.0f;
             decals_build_axis(axis_vector, (uint16_t)axis, axis_sign, 0x868);
 
             if (decals_dot3(axis_vector, normal) <= *(float *)0x2533c0) {
@@ -1832,7 +1832,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
         (int16_t *)tag_block_get_element(sequence + 0x34, sequence_index, 0x20);
 
       sprite_index = sprite[0];
-      FUN_00098b20(uv_bounds, decal_tag, selected_color, sequence_index, size,
+      decal_sprite_get_bounds(uv_bounds, decal_tag, selected_color, sequence_index, size,
                    bounds);
     } else {
       float aspect = 1.0f;
@@ -1867,7 +1867,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
       }
     }
 
-    FUN_0009a300(bounds, projection, basis);
+    decal_projection_create(bounds, projection, basis);
 
     min_normal[0] = basis[7];
     max_normal[0] = basis[7];
@@ -1893,7 +1893,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
         decals_assert_or_exit((char *)0x26a710, 0x932);
       }
 
-      FUN_0009a5a0(geometry, projection, surface_queue[queue_read_index], true,
+      decal_clip_to_surface(geometry, projection, surface_queue[queue_read_index], true,
                    size, decal_type, surface_queue, &queue_write_index,
                    deviant_surfaces, &deviant_surface_count);
       queue_read_index += 1;
@@ -2094,7 +2094,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                   rotated_basis[11] = rotated_origin[1] + best_start[1];
                   rotated_basis[12] = rotated_origin[2] + best_start[2];
 
-                  FUN_0009a300(bounds, transformed_projection, rotated_basis);
+                  decal_projection_create(bounds, transformed_projection, rotated_basis);
 
                   if (rotated_basis[7] < min_normal[0]) {
                     min_normal[0] = rotated_basis[7];
@@ -2119,7 +2119,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
             }
 
             for (i = 0; i < grouped_count; ++i) {
-              FUN_0009a5a0(geometry, transformed_projection,
+              decal_clip_to_surface(geometry, transformed_projection,
                            grouped_surfaces[i], false, size, decal_type, NULL,
                            NULL, NULL, NULL);
             }
@@ -2197,7 +2197,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
       return;
     }
 
-    decal_index = FUN_000998b0(cache_index, collision_result[8],
+    decal_index = decal_insert(cache_index, collision_result[8],
                                *(int16_t *)(decal_tag + 4), -1, randomize);
     if (decal_index == -1) {
       FUN_0017cb10(cache_index);
@@ -2292,7 +2292,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
     *(float *)(decal + 0x20) = decals_random_real(*(float *)(decal_tag + 0x80),
                                                   *(float *)(decal_tag + 0x84));
 
-    FUN_0007c270(color, (*(uint8_t *)decal_tag >> 1) & 3,
+    rgb_colors_interpolate(color, (*(uint8_t *)decal_tag >> 1) & 3,
                  (float *)(decal_tag + 0x34), (float *)(decal_tag + 0x40),
                  decals_random_real(0.0f, 1.0f));
     *(uint32_t *)(decal + 0x24) = real_a_rgb_color_to_pixel32(
@@ -2357,7 +2357,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
   }
 }
 
-void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
+void decal_new(int decal_tag_index, void *origin, void *direction,
                   float scale, bool randomize, int16_t color_index, int flags)
 {
   if (*(uint8_t *)0x2eebd0 != 0) {
@@ -2427,50 +2427,50 @@ void FUN_0009c4b0(int decal_tag_index, void *origin, void *direction,
   }
 }
 
-/* Tail-call thunk to rasterizer decal initialization (FUN_0015abe0).
+/* Tail-call thunk to rasterizer decal initialization (_rasterizer_debug_immediate_line_screenspace).
  * Inherits the caller's pushed args and forwards them unchanged (cdecl). */
 void FUN_0017ca50(short *p0, short *p1, float *color0, float *color1)
 {
-  FUN_0015abe0(p0, p1, color0, color1);
+  _rasterizer_debug_immediate_line_screenspace(p0, p1, color0, color1);
 }
 
-/* Tail-call thunk to rasterizer debug 2D polyline drawer (FUN_0015acc0).
+/* Tail-call thunk to rasterizer debug 2D polyline drawer (_rasterizer_debug_immediate_linestrip_screenspace).
  * 0x17ca60: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15acc0 — forwards 3 stack
  * args: [EBP+8]=points (short[2] array), [EBP+C]=point_count (int16_t),
  * [EBP+10]=color (real_rgb_color *). */
 void FUN_0017ca60(short *points, int16_t point_count, float *color)
 {
-  FUN_0015acc0(points, point_count, color);
+  _rasterizer_debug_immediate_linestrip_screenspace(points, point_count, color);
 }
 
-/* Tail-call thunk to rasterizer decal setup (FUN_0015a4e0). */
+/* Tail-call thunk to rasterizer decal setup (_rasterizer_debug_immediate_end_screenspace). */
 void FUN_0017ca70(void)
 {
-  FUN_0015a4e0();
+  _rasterizer_debug_immediate_end_screenspace();
 }
 
-/* Tail-call thunk to rasterizer_decals_initialize (0x15b6d0). */
+/* Tail-call thunk to _rasterizer_decals_initialize (0x15b6d0). */
 void thunk_rasterizer_decals_initialize(void)
 {
-  rasterizer_decals_initialize();
+  _rasterizer_decals_initialize();
 }
 
-/* Tail-call thunk to rasterizer_decals_initialize_for_new_map (0x15b190). */
+/* Tail-call thunk to _rasterizer_decals_initialize_for_new_map (0x15b190). */
 void thunk_rasterizer_decals_initialize_for_new_map(void)
 {
-  rasterizer_decals_initialize_for_new_map();
+  _rasterizer_decals_initialize_for_new_map();
 }
 
-/* Tail-call thunk to rasterizer_decals_dispose_from_old_map (0x15b1a0). */
+/* Tail-call thunk to _rasterizer_decals_dispose_from_old_map (0x15b1a0). */
 void thunk_rasterizer_decals_dispose_from_old_map(void)
 {
-  rasterizer_decals_dispose_from_old_map();
+  _rasterizer_decals_dispose_from_old_map();
 }
 
-/* Tail-call thunk to rasterizer decal (FUN_0015b1e0). */
+/* Tail-call thunk to rasterizer decal (_rasterizer_decals_flush). */
 void FUN_0017cac0(void)
 {
-  FUN_0015b1e0();
+  _rasterizer_decals_flush();
 }
 
 /* Tail-call thunk to rasterizer_decals_dispose (0x15b7e0). */
@@ -2481,12 +2481,12 @@ void thunk_rasterizer_decals_dispose(void)
 
 int FUN_0017cae0(uint32_t cache_size)
 {
-  return FUN_0015b460(cache_size);
+  return _rasterizer_decal_vertices_new(cache_size);
 }
 
 void *FUN_0017caf0(int cache_index, uint32_t cache_size)
 {
-  return FUN_0015b890(cache_index, cache_size);
+  return _rasterizer_decal_vertices_lock(cache_index, cache_size);
 }
 
 void thunk_FUN_0015b960(void)
@@ -2496,173 +2496,173 @@ void thunk_FUN_0015b960(void)
 
 void FUN_0017cb10(int decal_index)
 {
-  FUN_0015b530(decal_index);
+  _rasterizer_decal_vertices_delete(decal_index);
 }
 
-/* Tail-call thunk to decal rendering pass setup (FUN_0015b970).
+/* Tail-call thunk to decal rendering pass setup (_rasterizer_decals_begin).
  * pass_index selects the rendering pass type. */
 void FUN_0017cb20(short pass_index)
 {
-  FUN_0015b970(pass_index);
+  _rasterizer_decals_begin(pass_index);
 }
 
-/* Tail-call thunk to per-cluster decal rendering (FUN_0015bc40).
+/* Tail-call thunk to per-cluster decal rendering (_rasterizer_decals_draw).
  * rendered_cluster_data is a pointer to the cluster render data. */
 void FUN_0017cb30(int rendered_cluster_data)
 {
-  FUN_0015bc40(rendered_cluster_data);
+  _rasterizer_decals_draw(rendered_cluster_data);
 }
 
-/* Tail-call thunk to rasterizer decal geometry (FUN_0015b5e0). */
+/* Tail-call thunk to rasterizer decal geometry (_rasterizer_decals_end). */
 void FUN_0017cb40(void)
 {
-  FUN_0015b5e0();
+  _rasterizer_decals_end();
 }
 
-/* Tail-call thunk to rasterizer decal geometry (FUN_0015c6f0). */
+/* Tail-call thunk to rasterizer decal geometry (_rasterizer_detail_objects_begin). */
 void FUN_0017cb50(void)
 {
-  FUN_0015c6f0();
+  _rasterizer_detail_objects_begin();
 }
 
-/* Tail-call thunk to rasterizer decal geometry initialization (FUN_0015c980).
+/* Tail-call thunk to rasterizer decal geometry initialization (_rasterizer_detail_objects_rebuild_vertices).
  * 0x17cb60: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15c980 — forwards 1 stack
  * arg: [EBP+8]=decal_group ptr (MOV ESI,[EBP+8] at 0x15c9aa). */
 void FUN_0017cb60(void *decal_group)
 {
-  FUN_0015c980(decal_group);
+  _rasterizer_detail_objects_rebuild_vertices(decal_group);
 }
 
-/* Tail-call thunk to rasterizer decal geometry disposal (FUN_0015cbb0).
+/* Tail-call thunk to rasterizer decal geometry disposal (_rasterizer_detail_objects_draw).
  * 0x17cb70: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15cbb0 — forwards 1 stack
  * arg: [EBP+8]=decal_group ptr (MOV ESI,[EBP+8] at 0x15cbe1). */
 void FUN_0017cb70(void *decal_group)
 {
-  FUN_0015cbb0(decal_group);
+  _rasterizer_detail_objects_draw(decal_group);
 }
 
-/* Tail-call thunk to rasterizer decal geometry (FUN_0015c5f0). */
+/* Tail-call thunk to rasterizer decal geometry (_rasterizer_detail_objects_end). */
 void FUN_0017cb80(void)
 {
-  FUN_0015c5f0();
+  _rasterizer_detail_objects_end();
 }
 
-/* Tail-call thunk to rasterizer decal rendering (FUN_00170c90).
+/* Tail-call thunk to rasterizer decal rendering (_rasterizer_screen_effect).
  * 0x17cb90: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x170c90 — forwards 1 stack
  * arg: [EBP+8]=decal ptr (MOV EAX,[EBP+8] at 0x170ccb; passed to 0x17dc70). */
 void FUN_0017cb90(void *decal)
 {
-  FUN_00170c90(decal);
+  _rasterizer_screen_effect(decal);
 }
 
-/* Tail-call thunk to dynamic vertex geometry decal flush (FUN_0016bed0). */
+/* Tail-call thunk to dynamic vertex geometry decal flush (_rasterizer_model_begin). */
 void FUN_0017cbb0(void *param_1, int param_2)
 {
-  FUN_0016bed0(param_1, param_2);
+  _rasterizer_model_begin(param_1, param_2);
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c5a0).
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (_rasterizer_model_draw).
  */
 void FUN_0017cbc0(int shader, int p2, int p3, int widget_handle, int p5, int p6,
                   int zbuf_handle)
 {
-  FUN_0016c5a0(shader, p2, p3, widget_handle, p5, p6, zbuf_handle);
+  _rasterizer_model_draw(shader, p2, p3, widget_handle, p5, p6, zbuf_handle);
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c090).
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (_rasterizer_model_transparent_geometry_submit).
  */
 void FUN_0017cbd0(void *shader, short p2, int p3, int widget_handle, int p5,
                   int p6, int zbuf_handle, float *position, void *p9)
 {
-  FUN_0016c090(shader, p2, p3, widget_handle, p5, p6, zbuf_handle, position,
+  _rasterizer_model_transparent_geometry_submit(shader, p2, p3, widget_handle, p5, p6, zbuf_handle, position,
                p9);
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00160dc0).
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (_rasterizer_environment_lightmap_begin).
  */
 void FUN_0017cc10(int param_1)
 {
-  FUN_00160dc0(param_1);
+  _rasterizer_environment_lightmap_begin(param_1);
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00160f50).
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (_rasterizer_environment_lightmap_draw).
  */
 void FUN_0017cc20(int param_1, int param_2, int param_3, int param_4,
                   int param_5, int param_6)
 {
-  FUN_00160f50((void *)param_1, param_2, param_3, param_4, param_5,
+  _rasterizer_environment_lightmap_draw((void *)param_1, param_2, param_3, param_4, param_5,
                (void *)param_6);
 }
 
 /* Tail-call thunk to rasterizer_xbox_environment gel-light setup
- * (FUN_001621c0).
+ * (_rasterizer_environment_diffuse_light_begin).
  * 0x17cc60: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x1621c0 — ESP is unchanged
  * at the JMP, so the caller's single pushed dword stays in place and becomes
- * FUN_001621c0's first cdecl argument ([ESP+4] / in_stack_00000004). That
+ * _rasterizer_environment_diffuse_light_begin's first cdecl argument ([ESP+4] / in_stack_00000004). That
  * callee asserts on it with
  * "light_index>=0 && light_index<rasterizer_lights.light_count"
  * (rasterizer_xbox_environment.c:0x2d9) and indexes rasterizer_lights with
  * light_index*0x38, so the forwarded dword is a light index, not a handle.
- * Sole XBE caller: FUN_00196060 @0x196117. */
+ * Sole XBE caller: structure_render_diffuse_light @0x196117. */
 void FUN_0017cc60(int light_index)
 {
-  FUN_001621c0(light_index);
+  _rasterizer_environment_diffuse_light_begin(light_index);
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162560).
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (_rasterizer_environment_diffuse_light_draw).
  */
 void FUN_0017cc70(int param_1, int param_2, int param_3, int param_4,
                   int param_5, int param_6)
 {
-  FUN_00162560((void *)param_1, param_2, param_3, param_4, param_5,
+  _rasterizer_environment_diffuse_light_draw((void *)param_1, param_2, param_3, param_4, param_5,
                (void *)param_6);
 }
 
-/* Tail-call thunk to rasterizer shadow-pass begin (FUN_00172a30).
+/* Tail-call thunk to rasterizer shadow-pass begin (_rasterizer_environment_shadow_begin).
  * 0x17ccb0: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x172a30 — forwards 5 stack
  * args (ADD ESP,0x14 at 0x18b928): [EBP+8]=param_1 (unused), [EBP+C]=shadow
  * matrix ptr (MOV ESI,[EBP+C] at 0x172a81), [EBP+10]=shadow color ptr
  * (MOV EBX,[EBP+10]), [EBP+14]=object_bounding_radius (FLD [EBP+14] at
- * 0x172b88), [EBP+18]=out_radius. Returns FUN_00172a30's char (drawn/visible
+ * 0x172b88), [EBP+18]=out_radius. Returns _rasterizer_environment_shadow_begin's char (drawn/visible
  * flag) — the caller chain FUN_0018b830 -> FUN_0018c100 tests AL after the
  * call (implicit-EAX propagation in the original; made explicit here). */
 char FUN_0017ccb0(int param_1, const float *shadow_matrix,
                   const float *shadow_color, float object_bounding_radius,
                   float *out_radius)
 {
-  return FUN_00172a30(param_1, shadow_matrix, shadow_color,
+  return _rasterizer_environment_shadow_begin(param_1, shadow_matrix, shadow_color,
                       object_bounding_radius, out_radius);
 }
 
-/* Tail-call thunk to rasterizer decal rendering (FUN_00172590).
+/* Tail-call thunk to rasterizer decal rendering (_rasterizer_environment_shadow_model_begin).
  * Inherits the caller's pushed arg and forwards it unchanged (cdecl). */
 void FUN_0017ccc0(int param_1)
 {
-  FUN_00172590(param_1);
+  _rasterizer_environment_shadow_model_begin(param_1);
 }
 
-/* Tail-call thunk to rasterizer decal rendering (FUN_00172de0).
+/* Tail-call thunk to rasterizer decal rendering (_rasterizer_environment_shadow_model_draw).
  * 0x17ccd0: PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x172de0 — forwards 4 stack
  * args (ADD ESP,0x10 at 0x173041): [EBP+8]=decal ptr (MOV ESI,[EBP+8]),
  * [EBP+C]=param_2 (pushed @0x172f20), [EBP+10]=param_3 (MOV EBX,[EBP+10]),
  * [EBP+14]=param_4 (MOV EDI,[EBP+14]). */
 void FUN_0017ccd0(void *decal, int param_2, void *param_3, void *param_4)
 {
-  FUN_00172de0(decal, param_2, param_3, param_4);
+  _rasterizer_environment_shadow_model_draw(decal, param_2, param_3, param_4);
 }
 
-/* Tail-call thunk to rasterizer decal rendering (FUN_00173090). */
+/* Tail-call thunk to rasterizer decal rendering (_rasterizer_environment_shadow_draw). */
 void FUN_0017ccf0(void *shader, int param_2, int vertices_per_primitive, int a2,
                   int triangle_count, void *vertex_buffer)
 {
-  FUN_00173090(shader, param_2, vertices_per_primitive, a2, triangle_count,
+  _rasterizer_environment_shadow_draw(shader, param_2, vertices_per_primitive, a2, triangle_count,
                vertex_buffer);
 }
 
-/* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_00162920).
+/* Tail-call thunk to rasterizer dynamic vertex geometry decal (_rasterizer_environment_diffuse_texture_draw).
  */
 void FUN_0017cd30(int param_1, int param_2, int param_3, int param_4,
                   int param_5, int param_6)
 {
-  FUN_00162920(param_1, param_2, param_3, param_4, param_5, param_6);
+  _rasterizer_environment_diffuse_texture_draw(param_1, param_2, param_3, param_4, param_5, param_6);
 }

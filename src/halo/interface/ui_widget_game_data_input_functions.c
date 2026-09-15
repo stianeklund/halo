@@ -5,7 +5,7 @@
  * A dirty default profile whose name was never edited is instead routed
  * through the rename prompt. Otherwise the profile is saved and the save
  * result is returned. */
-bool ui_widget_multiplayer_profile_save_changes(void *widget, void *event_data,
+bool playlist_profile_save_changes(void *widget, void *event_data,
                                                 bool *widget_deleted)
 {
   void *last_child;
@@ -37,8 +37,8 @@ bool ui_widget_multiplayer_profile_save_changes(void *widget, void *event_data,
   } else {
     error(2, "no changes to playlist profile detected; not saving to disk");
     player_ui_end_editing_profile();
-    last_child = ui_widget_get_last_child(widget);
-    ui_widget_close(last_child);
+    last_child = widget_instance_get_topmost_parent(widget);
+    ui_widget_delete(last_child);
     *widget_deleted = 1;
   }
 
@@ -47,7 +47,7 @@ bool ui_widget_multiplayer_profile_save_changes(void *widget, void *event_data,
 
 /* color picker menu dispose (event handler table index 62, 0x0eebe0) — frees
  * the child widget cached at +0x40 back to the widget pool, if present. */
-bool ui_widget_color_picker_menu_dispose(void *widget, void *event_data,
+bool player_profile_color_picker_menu_dispose(void *widget, void *event_data,
                                          bool *widget_deleted)
 {
   void *child;
@@ -65,7 +65,7 @@ bool ui_widget_color_picker_menu_dispose(void *widget, void *event_data,
  * hanging off widget+0x34, resolves the selected item's profile handle, and
  * either begins editing it, plays a deny sound (no profile / handle == -1),
  * or reports a deferred error (handle >= 0). */
-bool FUN_000eed10(void *widget, void *event_data, bool *widget_deleted)
+bool player_profile_begin_editing(void *widget, void *event_data, bool *widget_deleted)
 {
   short *list_tag;
   int *list_widget;
@@ -138,7 +138,7 @@ bool FUN_000eed10(void *widget, void *event_data, bool *widget_deleted)
  * succeeded, returns immediately. On no-op or save failure it reports the
  * condition via error(), ends the profile edit session, closes the widget's
  * last child, marks *widget_deleted, and returns false. */
-bool FUN_000eeeb0(void *widget, void *event_data, bool *widget_deleted)
+bool player_profile_save_changes(void *widget, void *event_data, bool *widget_deleted)
 {
   void *last_child;
   bool profile_dirty;
@@ -164,8 +164,8 @@ bool FUN_000eeeb0(void *widget, void *event_data, bool *widget_deleted)
   if (!result) {
     error(2, message);
     player_ui_end_editing_profile();
-    last_child = ui_widget_get_last_child(widget);
-    ui_widget_close(last_child);
+    last_child = widget_instance_get_topmost_parent(widget);
+    ui_widget_delete(last_child);
     *widget_deleted = 1;
   }
 
@@ -177,7 +177,7 @@ bool FUN_000eeeb0(void *widget, void *event_data, bool *widget_deleted)
  * and, if so, quits that local player from the current network game. A NULL
  * event_data or an out-of-range controller index halts with an assert and
  * exits. */
-bool ui_widget_remove_local_player_from_network_game(void *widget,
+bool network_game_remove_local_player(void *widget,
                                                      void *event_data,
                                                      bool *widget_deleted)
 {
@@ -202,9 +202,9 @@ bool ui_widget_remove_local_player_from_network_game(void *widget,
  * sub-widget at widget+0x34 must be a 3-item spinner list), resolves the
  * selected item's profile handle, stores it to DAT_0031e494, and either
  * plays a deny sound (handle == -1, returns false) or returns true. Sibling
- * of FUN_000eed10 (player profile list) but with an extra tag_get-based
+ * of player_profile_begin_editing (player profile list) but with an extra tag_get-based
  * container check instead of a flag check, and no editing-session branch. */
-bool FUN_000ef970(void *widget, void *event_data, bool *widget_deleted)
+bool delete_player_profile_request(void *widget, void *event_data, bool *widget_deleted)
 {
   short *container_tag;
   int *list_widget;
@@ -274,7 +274,7 @@ bool FUN_000ef970(void *widget, void *event_data, bool *widget_deleted)
  * NUL), and hands the buffer to the virtual keyboard for validation. Any
  * failure along the way reports a deferred error and plays the deny sound;
  * a validation failure does the same after also ending the edit session. */
-bool FUN_000efde0(void *widget, void *event_data, bool *widget_deleted)
+bool create_and_begin_editing_new_player_profile(void *widget, void *event_data, bool *widget_deleted)
 {
   wchar_t untitled_name[128];
   short controller_index;
@@ -318,7 +318,7 @@ bool FUN_000efde0(void *widget, void *event_data, bool *widget_deleted)
 
   ustrncpy((wchar_t *)edit_name, untitled_name, 0xb);
   ((wchar_t *)edit_name)[0xb] = L'\0';
-  validated = virtual_keyboard_set_validation((wchar_t *)edit_name, 0x18, 8);
+  validated = virtual_keyboard_launch((wchar_t *)edit_name, 0x18, 8);
   if (!validated) {
     display_error_deferred(0x25, -1, true, false);
     ui_play_audio_feedback_sound(4);
@@ -332,14 +332,14 @@ bool FUN_000efde0(void *widget, void *event_data, bool *widget_deleted)
  * this file (widget/widget_deleted unused here; disasm never touches
  * EBP+8 or EBP+0x10). Always returns true (MOV AL,1 before every RET).
  *
- * Looks up the local network client (network_game_client_get), then scans
- * its player table (network_game_client_get_machine_index() + 0x242,
+ * Looks up the local network client (global_network_game_client_get), then scans
+ * its player table (network_game_client_get_game() + 0x242,
  * 16 entries, stride 0x20; network_player_is_valid() takes the entry base
  * at +0x226) for a valid entry whose machine index (entry+0) matches this
- * client's own machine index (FUN_00124c40) and whose local-player index
+ * client's own machine index (network_game_client_get_machine_index) and whose local-player index
  * (entry+1) matches the field at event_data+2. On a match, requests a game
  * start-time change (request_type=1) and errors if it fails. */
-bool FUN_000efed0(void *widget, void *event_data, bool *widget_deleted)
+bool network_game_start_faster(void *widget, void *event_data, bool *widget_deleted)
 {
   void *client;
   char *player_base;
@@ -348,10 +348,10 @@ bool FUN_000efed0(void *widget, void *event_data, bool *widget_deleted)
   int i;
   bool time_change_ok;
 
-  client = network_game_client_get();
+  client = global_network_game_client_get();
   if (client != NULL) {
-    player_base = (char *)network_game_client_get_machine_index(client);
-    local_machine_index = FUN_00124c40(client);
+    player_base = (char *)network_game_client_get_game(client);
+    local_machine_index = network_game_client_get_machine_index(client);
     entry = player_base + 0x242;
     i = 0;
     while (1) {
@@ -380,7 +380,7 @@ bool FUN_000efed0(void *widget, void *event_data, bool *widget_deleted)
  * index and the event's controller index (event_data+0x2); on a match asks
  * the network client to request a start-time change, logging an error if the
  * request is refused. Always returns true regardless of outcome. */
-bool FUN_000eff70(void *widget, void *event_data, bool *widget_deleted)
+bool network_game_start_slower(void *widget, void *event_data, bool *widget_deleted)
 {
   void *client;
   void *machine_base;
@@ -392,10 +392,10 @@ bool FUN_000eff70(void *widget, void *event_data, bool *widget_deleted)
   (void)widget;
   (void)widget_deleted;
 
-  client = network_game_client_get();
+  client = global_network_game_client_get();
   if (client != NULL) {
-    machine_base = network_game_client_get_machine_index(client);
-    local_machine_index = FUN_00124c40(client);
+    machine_base = network_game_client_get_game(client);
+    local_machine_index = network_game_client_get_machine_index(client);
     player_rec = (char *)machine_base + 0x242;
     i = 0;
     while (1) {
@@ -421,7 +421,7 @@ bool FUN_000eff70(void *widget, void *event_data, bool *widget_deleted)
 /* disable if no xdemos (event handler table index 86, 0x0f0070) — marks the
  * widget disabled (+0x12) and clears its enabled/visible byte (+0x10) when no
  * Xbox demo content is installed. */
-bool ui_widget_disable_if_no_xdemos(void *widget, void *event_data,
+bool disable_widget_if_no_xdemos(void *widget, void *event_data,
                                     bool *widget_deleted)
 {
   if (!xbox_demos_available()) {
@@ -435,7 +435,7 @@ bool ui_widget_disable_if_no_xdemos(void *widget, void *event_data,
  * asserts event_data is non-null (halts and exits otherwise), then sets the
  * single-player local player's controller index to the event's controller
  * index (event_data+0x2). Local player index is always 0. */
-bool FUN_000f00b0(void *widget, void *event_data, bool *widget_deleted)
+bool single_player_set_player1_controller_choice(void *widget, void *event_data, bool *widget_deleted)
 {
   (void)widget;
   (void)widget_deleted;
@@ -461,7 +461,7 @@ bool FUN_000f00b0(void *widget, void *event_data, bool *widget_deleted)
  * match, shows error 0x12 (modal, no pause) and marks the widget deleted,
  * returning false. Otherwise assigns that controller to local player 1
  * and returns true. */
-bool FUN_000f0100(void *widget, void *event_data, bool *widget_deleted)
+bool single_player_set_player2_controller_choice(void *widget, void *event_data, bool *widget_deleted)
 {
   short controller_index;
   short current_controller;
@@ -480,7 +480,7 @@ bool FUN_000f0100(void *widget, void *event_data, bool *widget_deleted)
   current_controller = player_ui_get_single_player_local_player_controller(0);
 
   if (controller_index == current_controller) {
-    ui_widget_display_error(0x12, -1, 1, 0);
+    display_error(0x12, -1, 1, 0);
     *widget_deleted = 1;
     return false;
   }
@@ -495,7 +495,7 @@ bool FUN_000f0100(void *widget, void *event_data, bool *widget_deleted)
  * event's controller index (event_data+0x2, zero-extended) as the local
  * player index (modal, pauses game). Returns the network-available flag
  * regardless of which branch ran. */
-bool FUN_000f0170(void *widget, void *event_data, bool *widget_deleted)
+bool display_error_if_no_network_connection(void *widget, void *event_data, bool *widget_deleted)
 {
   bool network_available;
 
@@ -513,7 +513,7 @@ bool FUN_000f0170(void *widget, void *event_data, bool *widget_deleted)
   }
 
   if (!network_available) {
-    ui_widget_display_error(5, *(uint16_t *)((char *)event_data + 2), 1, 1);
+    display_error(5, *(uint16_t *)((char *)event_data + 2), 1, 1);
   }
 
   return network_available;
@@ -523,12 +523,12 @@ bool FUN_000f0170(void *widget, void *event_data, bool *widget_deleted)
  * column-list widget type (3), then, if widget+0x44 (no visible advertised
  * servers) is zero, fetches the network client and, if present and its
  * connection state is 0 ("searching"), forwards this handler's own params to
- * FUN_000E9D40 and returns its result directly (the original tail-propagates
- * FUN_000E9D40's EAX into AL without touching it). If widget+0x44 is
+ * network_game_start_new_server and returns its result directly (the original tail-propagates
+ * network_game_start_new_server's EAX into AL without touching it). If widget+0x44 is
  * non-zero, logs that a new server isn't being started because other servers
  * are already available. Falls through to false on: missing client, non-zero
  * client state, or the log branch. */
-bool ui_widget_start_server_if_none_advertised(void *widget, void *event_data,
+bool start_network_game_if_no_advertised_servers(void *widget, void *event_data,
                                                bool *widget_deleted)
 {
   void *client;
@@ -547,11 +547,11 @@ bool ui_widget_start_server_if_none_advertised(void *widget, void *event_data,
   }
 
   if (*(short *)((char *)widget + 0x44) == 0) {
-    client = network_game_client_get();
+    client = global_network_game_client_get();
     if (client != NULL) {
       state = network_game_client_get_state(client, &elapsed_pct);
       if (state == 0) {
-        return FUN_000E9D40(widget, event_data, widget_deleted);
+        return network_game_start_new_server(widget, event_data, widget_deleted);
       }
     }
   } else {
@@ -568,7 +568,7 @@ bool ui_widget_start_server_if_none_advertised(void *widget, void *event_data,
  * record, clears its local-player autojoin flag, and, when exactly one local
  * record was found, tears down or pauses the server before copying autojoin
  * flags to the next multiplayer game. */
-bool ui_widget_network_game_unjoin_player(void *widget, void *event_data,
+bool netgame_unjoin_player(void *widget, void *event_data,
                                           bool *widget_deleted)
 {
   void *client;
@@ -582,14 +582,14 @@ bool ui_widget_network_game_unjoin_player(void *widget, void *event_data,
   (void)widget;
   (void)widget_deleted;
 
-  client = network_game_client_get();
+  client = global_network_game_client_get();
   if (client == NULL) {
     return true;
   }
 
   matched_record = NULL;
   local_machine_index = network_game_client_get_local_machine_index();
-  record = (char *)network_game_client_get_machine_index(client) + 0x226;
+  record = (char *)network_game_client_get_game(client) + 0x226;
   local_record_count = 0;
   i = 16;
   do {
@@ -625,12 +625,12 @@ bool ui_widget_network_game_unjoin_player(void *widget, void *event_data,
   }
 
   if (local_record_count == 1) {
-    server = network_game_server_get();
-    if (server == NULL || !network_game_accept_remote_connections()) {
-      dispose_global_network_game_server();
+    server = global_network_game_server_get();
+    if (server == NULL || !network_game_should_accept_remote_connections()) {
       dispose_global_network_game_client();
+      dispose_global_network_game_server();
     } else {
-      server = network_game_server_get();
+      server = global_network_game_server_get();
       if (server != NULL) {
         network_game_server_pause_countdown(server, 1);
         player_ui_autojoin_players_to_next_multiplayer_game();
@@ -644,17 +644,17 @@ bool ui_widget_network_game_unjoin_player(void *widget, void *event_data,
   return false;
 }
 
-/* FUN_000f03d0 (0xf03d0, table xref 0x31e2d0) — closes the widget's last
+/* close_calling_widget_if_not_editing_profile (0xf03d0, table xref 0x31e2d0) — closes the widget's last
  * child when neither an in-progress player profile edit nor an in-progress
  * playlist profile edit is active ("no saved game file being edited"
  * cancel path). */
-void FUN_000f03d0(void *widget)
+void close_calling_widget_if_not_editing_profile(void *widget)
 {
   void *child;
 
   if (player_ui_get_edit_player_profile() == NULL &&
       player_ui_get_edit_playlist_profile() == NULL) {
-    child = ui_widget_get_last_child(widget);
+    child = widget_instance_get_topmost_parent(widget);
     error(2, "closing widget '%s' because no saved game file is being edited",
           *(const char **)((char *)child + 4));
     *(uint32_t *)((char *)child + 0x1c) = 1;
@@ -669,7 +669,7 @@ void FUN_000f03d0(void *widget)
  * caller-supplied 16-bit value) into DAT_0031e4fc, then opens the virtual
  * keyboard to let the player edit the name. Logs an error (does not fail)
  * if the keyboard couldn't be invoked; always returns true. */
-bool ui_widget_new_campaign_chosen(void *widget, void *event_data,
+bool new_campaign_chosen(void *widget, void *event_data,
                                    bool *widget_deleted)
 {
   wchar_t campaign_name[128];
@@ -692,7 +692,7 @@ bool ui_widget_new_campaign_chosen(void *widget, void *event_data,
   *(uint16_t *)0x31e4fc =
     *(uint16_t *)((char *)event_data + 2); /* DAT_0031e4fc */
 
-  keyboard_ok = virtual_keyboard_set_validation((wchar_t *)0x46ccd0, 0x18, 8);
+  keyboard_ok = virtual_keyboard_launch((wchar_t *)0x46ccd0, 0x18, 8);
   if (!keyboard_ok) {
     error(2, "failed to invoke the virtual keyboard for a new campaign profile "
              "name");
@@ -704,8 +704,8 @@ bool ui_widget_new_campaign_chosen(void *widget, void *event_data,
 /* virtual-keyboard completion handler for the new campaign name
  * (0xf04c0). The virtual-keyboard done flag gates campaign profile creation;
  * its pending controller index and editable name are held in the global UI
- * state initialized by ui_widget_new_campaign_chosen. */
-void FUN_000f04c0(void)
+ * state initialized by new_campaign_chosen. */
+void new_campaign_decision(void)
 {
   wchar_t player_profile[24];
   int profile_index;
@@ -713,7 +713,7 @@ void FUN_000f04c0(void)
   bool profile_created;
 
   if (*(short *)0x31e4fc != -1) {
-    if (FUN_000f5650()) {
+    if (virtual_keyboard_last_exit_saved_text()) {
       if (*(wchar_t *)0x46ccd0 != L'\0') {
         player_ui_set_single_player_local_player_controller(0,
                                                             *(short *)0x31e4fc);
@@ -757,7 +757,7 @@ void FUN_000f04c0(void)
 
 /* pop history stack once (event handler table index 98, 0x0f0620) — pops one
  * entry from the widget history stack of the widget's local player (+0x8). */
-bool ui_widget_pop_history_stack_once(void *widget, void *event_data,
+bool go_back_twice_next_time(void *widget, void *event_data,
                                       bool *widget_deleted)
 {
   ui_widgets_pop_stack(*(uint16_t *)((char *)widget + 0x8));
@@ -772,8 +772,8 @@ bool ui_widget_pop_history_stack_once(void *widget, void *event_data,
  * child index (DAT_0046ce38, a stored int16); otherwise preselects index 1
  * (default difficulty). Stores the resolved child widget pointer at
  * widget+0x38 and the selected index at widget+0x3c — the same "selected
- * list item" field pair FUN_000f46e0 uses at +0x3c for its spinner list. */
-bool ui_widget_game_data_select_difficulty_item(void *widget)
+ * list item" field pair player_profile_1wide_list_update uses at +0x3c for its spinner list. */
+bool difficulty_menu_initialize(void *widget)
 {
   const char *map_name;
   void *child;
@@ -831,7 +831,7 @@ void ui_widget_game_data_function_invoke(
   }
 }
 
-/* FUN_000f0aa0 (0xf0aa0)
+/* settings_menu_update_extended_description (0xf0aa0)
  * Updates the extended-description text/pic widgets for a "settings select"
  * list widget's currently highlighted item. Resolves the widget's owner's
  * definition tag via widget+0x48 (tag_get('DeLa', tag_index)) and asserts
@@ -846,7 +846,7 @@ void ui_widget_game_data_function_invoke(
  * MSVC reuses the dead incoming widget parameter's stack slot (EBP+8) to
  * cache the text-box child pointer once it is no longer needed as widget;
  * represented below with a separate local (text_widget). */
-void FUN_000f0aa0(void *widget)
+void settings_menu_update_extended_description(void *widget)
 {
   void *widget_def;
   void *description_container;
@@ -916,8 +916,8 @@ void FUN_000f0aa0(void *widget)
   system_exit(-1);
 }
 
-/* FUN_000f0bb0 (0xf0bb0)
- * Same purpose as FUN_000f0aa0 above (updates an extended-description
+/* playlist_settings_menu_update_extended_description (0xf0bb0)
+ * Same purpose as settings_menu_update_extended_description above (updates an extended-description
  * widget for a "settings select" list widget's currently highlighted
  * item), but for a widget whose extended-description owner (widget+0x48)
  * holds the index directly on its container ((*(widget+0x48))+0x34) and
@@ -928,7 +928,7 @@ void FUN_000f0aa0(void *widget)
  * tag_get('DeLa', *(widget+0x48)) and asserts it is a 2-child widget
  * definition (tag+0x3e0 == 2), then writes the resolved index into both
  * the container (+0x40) and its first child (+0x50). */
-void FUN_000f0bb0(void *widget)
+void playlist_settings_menu_update_extended_description(void *widget)
 {
   int child;
   short index;
@@ -976,13 +976,13 @@ void FUN_000f0bb0(void *widget)
   *(short *)((char *)*(int *)((char *)container + 0x2c) + 0x50) = index;
 }
 
-/* FUN_000f0c60 (0xf0c60)
- * Same shape as FUN_000f0bb0 above (updates an extended-description widget
+/* playlist_gametype_select_menu_update_extended_description (0xf0c60)
+ * Same shape as playlist_settings_menu_update_extended_description above (updates an extended-description widget
  * for a "settings select" list widget's currently highlighted item, owner
  * holding the index directly on its container), reusing the identical
  * pooled string literals for both display_assert messages — only the
  * embedded __LINE__ values (0x173, 0x181 vs 0x14d, 0x15b) differ. */
-void FUN_000f0c60(void *widget)
+void playlist_gametype_select_menu_update_extended_description(void *widget)
 {
   int child;
   short index;
@@ -1030,8 +1030,8 @@ void FUN_000f0c60(void *widget)
   *(short *)((char *)*(int *)((char *)container + 0x2c) + 0x50) = index;
 }
 
-/* playlist_settings_menu_update_extended_description (0xf0d10)
- * Same purpose as FUN_000f0bb0/FUN_000f0c60 above (updates an
+/* multiplayer_type_menu_update_extended_description (0xf0d10)
+ * Same purpose as playlist_settings_menu_update_extended_description/playlist_gametype_select_menu_update_extended_description above (updates an
  * extended-description widget for a "settings select" list widget's
  * currently-highlighted item: counts the index of widget's currently
  * selected sibling via the +0x34/+0x2c chain compared against widget+0x38),
@@ -1039,11 +1039,11 @@ void FUN_000f0c60(void *widget)
  * widget+0x48's container (+0x34) and that container's first child (+0x2c)
  * directly, and writes the resolved index to container+0x50 and
  * (container's first child)+0x40, the offsets swapped relative to
- * FUN_000f0bb0/FUN_000f0c60's +0x40/+0x50 writes. The final two stores each
+ * playlist_settings_menu_update_extended_description/playlist_gametype_select_menu_update_extended_description's +0x40/+0x50 writes. The final two stores each
  * re-derive the container from widget+0x48 independently (matching two
  * separate reloads in the disassembly, 0xf0d75 and 0xf0d7f), rather than
  * reusing the value computed for the guard check. */
-void playlist_settings_menu_update_extended_description(void *widget)
+void multiplayer_type_menu_update_extended_description(void *widget)
 {
   int container;
   int child;
@@ -1085,8 +1085,8 @@ void playlist_settings_menu_update_extended_description(void *widget)
              0x40) = index;
 }
 
-/* FUN_000f0d90 (0xf0d90)
- * Same shape as FUN_000f0aa0 above (updates the extended-description
+/* difficulty_select_menu_update_extended_description (0xf0d90)
+ * Same shape as settings_menu_update_extended_description above (updates the extended-description
  * text/pic widgets for a "settings select" list widget's currently
  * highlighted item), but for the difficulty-select widget: resolves the
  * widget's owner's definition tag via widget+0x48 (tag_get('DeLa',
@@ -1097,7 +1097,7 @@ void playlist_settings_menu_update_extended_description(void *widget)
  * (*(widget+0x48))+0x34 — a container widget (+0xe==0) whose first child
  * (+0x2c) is a text-box widget (+0xe==1) — and writes the resolved index
  * into both the container (+0x50) and its text child (+0x40). */
-void FUN_000f0d90(void *widget)
+void difficulty_select_menu_update_extended_description(void *widget)
 {
   void *widget_def;
   void *description_container;
@@ -1167,7 +1167,7 @@ void FUN_000f0d90(void *widget)
   system_exit(-1);
 }
 
-void ui_widget_game_data_build_version(int widget)
+void set_textbox_to_build_number(int widget)
 {
   wchar_t *v1, *v2; // eax
 
@@ -1201,7 +1201,7 @@ void ui_widget_game_data_build_version(int widget)
 /* player-profile three-column list update (0x0f2560). Validates the column
  * list and extended-description text widget, then stores the selected list
  * item's spinner setting into the text widget. */
-void player_profile_3wide_list_update(void *widget)
+void game_options_menu_update_text_desc(void *widget)
 {
   void *text_widget;
   void *child;
@@ -1273,13 +1273,13 @@ void player_profile_3wide_list_update(void *widget)
   *(short *)((char *)text_widget + 0x40) = list_value;
 }
 
-/* FUN_000f2690 (0xf2690)
+/* solo_game_objective_text (0xf2690)
  * "objective text" data-driven text box widget update. Fetches the current
  * hud objective string (empty if hud_messaging_get_objective() returns NULL
  * or an empty string), requires the widget to be a text box (type == 1 at
  * +0xe), then, when the text is non-empty, reallocates the widget's text
  * buffer (+0x3c) to fit it and copies it in, null-terminated. */
-void FUN_000f2690(void *widget)
+void solo_game_objective_text(void *widget)
 {
   wchar_t *objective_text;
   wchar_t *new_buf;
@@ -1314,11 +1314,11 @@ void FUN_000f2690(void *widget)
   }
 }
 
-/* FUN_000f2720 (0xf2720) — validates a three-column game-options list and
+/* game_options_menu_update_pic_desc (0xf2720) — validates a three-column game-options list and
  * its extended-description picture container, then sums each preceding
  * spinner's item count and the selected spinner's selected-item index into
  * the picture widget's +0x50 word. */
-void FUN_000f2720(void *widget)
+void game_options_menu_update_pic_desc(void *widget)
 {
   void *picture_widget;
   void *list_item;
@@ -1393,7 +1393,7 @@ void FUN_000f2720(void *widget)
   *(short *)((char *)picture_widget + 0x50) = list_value;
 }
 
-/* FUN_000f28e0 (0xf28e0)
+/* get_active_player_profile_display_name (0xf28e0)
  * "profile display name" data-driven text box widget update. Requires the
  * widget to be a text box (type == 1 at +0xe) and its bound local player
  * index (+0x8, a signed 16-bit slot) to be in range
@@ -1404,7 +1404,7 @@ void FUN_000f2720(void *widget)
  * null-terminated at wchar index 11 (byte offset 0x16). Evidence: reference
  * disassembly at 0xf28e0-0xf298c (assert strings/lines are the reference's
  * own PUSH immediates at 0xf2911/0xf2917/0xf2940/0xf2946). */
-void FUN_000f28e0(void *widget)
+void get_active_player_profile_display_name(void *widget)
 {
   unsigned char profile[0x30];
   wchar_t *new_buf;
@@ -1440,9 +1440,9 @@ void FUN_000f28e0(void *widget)
   }
 }
 
-/* FUN_000f2b90 (0xf2b90) — maps the active multiplayer map name to its
+/* multiplayer_game_set_text_box_for_map_name (0xf2b90) — maps the active multiplayer map name to its
  * legacy game-settings text index. */
-void FUN_000f2b90(void *widget)
+void multiplayer_game_set_text_box_for_map_name(void *widget)
 {
   char *map_name;
 
@@ -1514,7 +1514,7 @@ void FUN_000f2b90(void *widget)
     (unsigned short)(0xd - (crt_strstr(map_name, "longest") != NULL));
 }
 
-/* FUN_000f2e60 (0xf2e60)
+/* multiplayer_game_set_text_box_for_teams_noteams (0xf2e60)
  * "mp game settings text" data-driven text box widget update. Requires the
  * widget to be a text box (type == 1 at +0xe); otherwise asserts + exits
  * (reference PUSH immediates at 0xf2e6e/0xf2e70/0xf2e75/0xf2e7a). Fetches
@@ -1523,7 +1523,7 @@ void FUN_000f2b90(void *widget)
  * at +0xc0 equals 1, else 0xd. If there is no active network game, reports
  * error(2, "no network game") instead (reference PUSH immediates at
  * 0xf2eaf/0xf2eb4). Evidence: reference disassembly at 0xf2e60-0xf2ec1. */
-void FUN_000f2e60(void *widget)
+void multiplayer_game_set_text_box_for_teams_noteams(void *widget)
 {
   int game;
   unsigned char state_byte;
@@ -1546,7 +1546,7 @@ void FUN_000f2e60(void *widget)
   }
 }
 
-/* FUN_000f2f60 (0xf2f60)
+/* multiplayer_game_set_text_box_for_score_limit_type (0xf2f60)
  * "mp game settings text" data-driven text box widget update (game-type
  * variant). Requires the widget to be a text box (type == 1 at +0xe);
  * otherwise asserts + exits (reference PUSH immediates at
@@ -1561,7 +1561,7 @@ void FUN_000f2e60(void *widget)
  * PUSH immediates at 0xf2fe6/0xf2feb). Evidence: reference disassembly at
  * 0xf2f60-0xf2ff8 plus jump table dwords at 0xf2ff8-0xf300c
  * (0xf2faa/0xf2fb3/0xf2fbc/0xf2fd4/0xf2fdd). */
-void FUN_000f2f60(void *widget)
+void multiplayer_game_set_text_box_for_score_limit_type(void *widget)
 {
   int game;
 
@@ -1599,7 +1599,7 @@ void FUN_000f2f60(void *widget)
   }
 }
 
-/* FUN_000f3280 (0xf3280)
+/* multiplayer_game_set_text_box_for_number_of_players (0xf3280)
  * "mp game settings text" numeric text box widget update. Requires the
  * widget to be a text box (type == 1 at +0xe). Looks up the current network
  * game via network_game_get_game(); if none is active, reports error 2 "no
@@ -1611,7 +1611,7 @@ void FUN_000f2f60(void *widget)
  * (assert string/line are the reference's own PUSH immediates at
  * 0xf3291/0xf3296/0xf329b; ui_widget_realloc call at 0xf32bd-0xf32ca; error
  * call at 0xf32fe-0xf3305). */
-void FUN_000f3280(void *widget)
+void multiplayer_game_set_text_box_for_number_of_players(void *widget)
 {
   int game;
   wchar_t *new_buf;
@@ -1640,12 +1640,12 @@ void FUN_000f3280(void *widget)
   }
 }
 
-/* get_editable_player_profile_display_name (0xf3590, ui_widget_game_data_
+/* warn_if_difficulty_will_nuke_saved_game (0xf3590, ui_widget_game_data_
  * function_table[39]). The name is kb.json's pre-existing placeholder and
  * does not match the observed behavior: the assert strings and the globals
  * this touches (DAT_0046ce3b/0046cd38/0046ce38) are the exact same
  * "difficulty forced for this map" state that
- * ui_widget_game_data_select_difficulty_item above reads, so this is a
+ * difficulty_menu_initialize above reads, so this is a
  * paired difficulty-warning visibility updater, not a profile-name getter.
  * No source-derived name is available; kept as-is to avoid an unrequested
  * kb.json/table rename.
@@ -1661,7 +1661,7 @@ void FUN_000f3280(void *widget)
  * clears +0x10 to 0. Evidence: reference disassembly at 0xf3590-0xf3630
  * (assert immediates at 0xf35a8/0xf35ad/0xf35b2/0xf35b7 and
  * 0xf35d6/0xf35db/0xf35e0/0xf35e5; crt_stricmp call at 0xf3608). */
-void get_editable_player_profile_display_name(void *widget)
+void warn_if_difficulty_will_nuke_saved_game(void *widget)
 {
   void *list_widget;
   void *warning_widget;
@@ -1698,7 +1698,7 @@ void get_editable_player_profile_display_name(void *widget)
   *(unsigned char *)((char *)warning_widget + 0x10) = 0;
 }
 
-/* get_editable_playlist_profile_display_name (0xf3640, ui_widget_game_data_
+/* dim_if_no_system_link_cable (0xf3640, ui_widget_game_data_
  * function_table). Like the sibling at 0xf3590, kb.json's name is a
  * pre-existing placeholder that does not match the observed behavior: there
  * is no profile lookup or name copy here at all. Kept as-is to avoid an
@@ -1711,7 +1711,7 @@ void get_editable_player_profile_display_name(void *widget)
  * field: 1.0f if transport_network_available(), else 0.333f (0x3eaa7efa) --
  * meaning of +0x24 is unconfirmed (no other function in this TU touches it).
  * Evidence: reference disassembly at 0xf3640-0xf368b. */
-void get_editable_playlist_profile_display_name(void *widget)
+void dim_if_no_system_link_cable(void *widget)
 {
   if (*(short *)((char *)widget + 0xe) != 1) {
     display_assert(
@@ -1728,7 +1728,7 @@ void get_editable_playlist_profile_display_name(void *widget)
   }
 }
 
-/* FUN_000f46e0 (0xf46e0)
+/* player_profile_1wide_list_update (0xf46e0)
  * "mp player settings select" quarter-screen profile list widget update.
  *
  * Validates the widget hierarchy (container wrapper + 1-wide DeLa spinner +
@@ -1748,7 +1748,7 @@ void get_editable_playlist_profile_display_name(void *widget)
  * index +0x2c byte   button description index +0x2d byte   joystick description
  * index MSVC keeps the record pointer as &record.name (base+4), so the offsets
  * used below are 4 less than the record-relative ones above. */
-void FUN_000f46e0(int *widget)
+void player_profile_1wide_list_update(int *widget)
 {
   short *list_tag;
   void *wrapper_tag;
@@ -1839,7 +1839,7 @@ void FUN_000f46e0(int *widget)
 
     item_id = ((int *)widget[0x10])[*(short *)((char *)widget + 0x3c)];
     local_id = item_id;
-    multiplayer_game_set_text_box_for_game_ruleset(&local_id, 1);
+    player_profile_update_cache_for_nwide_list(&local_id, 1);
 
     if (item_id != -1) {
       entry_index = 0;
@@ -1969,7 +1969,7 @@ void FUN_000f46e0(int *widget)
 
     item_ids = (int *)widget[0x10];
     count = (int)*(unsigned short *)((char *)widget + 0x44);
-    qsort(item_ids, count, 4, FUN_000f3960);
+    qsort(item_ids, count, 4, list_indices_sort_proc);
     for (used = 0; used < count; used++) {
       if (item_ids[used] == -1) {
         break;

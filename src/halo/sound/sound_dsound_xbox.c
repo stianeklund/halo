@@ -682,7 +682,7 @@ void FUN_001c9e20(void)
       } while (display_index < *(short *)0x4fdfc4);
     }
 
-    FUN_00189c40(0, buffer);
+    render_debug_string(0, buffer);
   }
 }
 

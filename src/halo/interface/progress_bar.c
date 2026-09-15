@@ -87,8 +87,8 @@ static uint32_t *d3d_render_state_values(void)
  * EDX/ECX/EAX, the device argument (s1) is ignored, width/height/levels/
  * usage (s2-s5) are on the stack. EAX passes through from the callee (no
  * explicit return). No callers found (xrefs_to empty); RET 0x14. Duplicate
- * template instantiation of FUN_00155380 (rasterizer_xbox.c) and
- * FUN_00168230 (rasterizer_xbox_hardware_bitmaps.c) — same body, same
+ * template instantiation of IDirect3DDevice8_CreateTexture_0 (rasterizer_xbox.c) and
+ * IDirect3DDevice8_CreateTexture (rasterizer_xbox_hardware_bitmaps.c) — same body, same
  * @<reg> assignment, confirmed against those two already-ported instances.
  * The kb.json name "tgaLoad" predates this lift; nothing in the
  * disassembly performs TGA decoding, so the name is not evidence of
@@ -273,8 +273,8 @@ void progress_bar_compute_screen_rect(float *input_rect, float *output_rect)
 /*
  * FUN_000e1f00 @ 0xe1f00 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetVertexData2f, byte-identical instruction-for-
- * instruction to the already-ported FUN_0016de60 (0x16de60), FUN_001703f0
- * (0x1703f0), FUN_00172650 (0x172650), and their other siblings in
+ * instruction to the already-ported IDirect3DDevice8_SetVertexData2f_4 (0x16de60), IDirect3DDevice8_SetVertexData2f_3
+ * (0x1703f0), IDirect3DDevice8_SetVertexData2f_2 (0x172650), and their other siblings in
  * rasterizer.c: push ebp/mov ebp,esp; mov eax,[ebp+0x10]; mov ecx,[ebp+0xc];
  * push eax; push ecx; push edx; call 0x1ed280 (D3DDevice_SetVertexData2f,
  * __stdcall); xor eax,eax; pop ebp; ret 0xc. No callers found
@@ -310,7 +310,7 @@ int FUN_000e1f00(void *device, uint32_t reg, float a, float b)
 /*
  * FUN_000e1f20 @ 0xe1f20 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetVertexData4f, same template as the already-ported
- * FUN_0016de80 (rasterizer.c): reg/a/b/c/d arrive in ECX/EAX/EDX/ECX/EAX,
+ * IDirect3DDevice8_SetVertexData4f_0 (rasterizer.c): reg/a/b/c/d arrive in ECX/EAX/EDX/ECX/EAX,
  * the device argument ([ebp+0x8]) is never read, RET 0x18 (six stack
  * dwords) so this is __stdcall, and XOR EAX,EAX before the epilogue is a
  * real `return 0`. No callers found (xrefs_to empty).

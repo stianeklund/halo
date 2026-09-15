@@ -296,7 +296,7 @@ void game_dispose_from_old_map()
   decals_dispose_from_old_map();
   breakable_surfaces_dispose_from_old_map();
   structures_dispose_from_old_map();
-  j__render_dispose_from_old_map();
+  render_dispose_from_old_map();
   objects_dispose_from_old_map();
   director_dispose_from_old_map();
   observer_dispose_from_old_map();
@@ -874,7 +874,7 @@ int FUN_000b45c0(int param_1)
                    0x2a7, 1);
     system_exit(-1);
   }
-  sVar1 = random_range((unsigned int *)get_global_random_seed_address(), 0,
+  sVar1 = seed_random_range((unsigned int *)get_global_random_seed_address(), 0,
                        (short)count);
   piVar6 = (int *)(iVar2 + 0x378);
   iVar5 = (int)sVar1;
@@ -1102,7 +1102,7 @@ wchar_t *FUN_000b4df0(int index, wchar_t *dst)
  *
  * Slayer/oddball "next target" selection: counts the eligible players
  * (not us, not our previous target, different team, alive), picks a random
- * one of them with random_range(seed, 0, count), then walks the player data
+ * one of them with seed_random_range(seed, 0, count), then walks the player data
  * again to find that Nth eligible player and reports it.
  *
  * Register arg: @EDI = player datum handle (read uninitialized at 0xb4e2b
@@ -1115,7 +1115,7 @@ wchar_t *FUN_000b4df0(int index, wchar_t *dst)
  *   EAX (other); the +0x20 team compare is other vs self, and the +0x34
  *   != -1 aliveness test is on `other`.
  * Confirmed 0xb4ec8: PUSH EAX(count) / PUSH 0x0 / CALL
- *   get_global_random_seed_address / PUSH EAX -> random_range(seed, 0, count).
+ *   get_global_random_seed_address / PUSH EAX -> seed_random_range(seed, 0, count).
  * Confirmed 0xb4f56: on count exhaustion the chosen handle is re-read from
  *   the iterator ([EBP-0x18] == data_iter_t.datum_handle) and the assert
  *   fires when it is NONE.
@@ -1149,7 +1149,7 @@ void find_next_target(int player_index)
       }
     } while (data_iterator_next(&iterator) != 0);
     if (count > 0) {
-      count = random_range((unsigned int *)get_global_random_seed_address(), 0,
+      count = seed_random_range((unsigned int *)get_global_random_seed_address(), 0,
                            (int16_t)count);
       data_iterator_new(&iterator, player_data);
       while (data_iterator_next(&iterator) != 0) {

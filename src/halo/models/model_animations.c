@@ -1105,7 +1105,7 @@ void animation_get_node_orientations(void *animation, float frame,
                      (float *)out_translation);
 }
 
-/* overlay_animation_apply_continuous_scaled (0x121940) — Interpolate keyframed
+/* animation_get_keyframe_scale (0x121940) — Interpolate keyframed
  * scale data for a single node in a compressed animation.
  *
  * Scalar (single-float) sibling of animation_get_node_orientations. Resolves
@@ -1146,7 +1146,7 @@ void animation_get_node_orientations(void *animation, float frame,
  * LEA EDX+EAX*0x4 at 0x121a39. Confirmed: Frame indices array stride 2 bytes —
  * LEA ECX+EAX*0x2 at 0x121a44.
  */
-void overlay_animation_apply_continuous_scaled(void *animation, float frame,
+void animation_get_keyframe_scale(void *animation, float frame,
                                                unsigned short scale_count,
                                                short node_index,
                                                void *out_scale)
@@ -1314,7 +1314,7 @@ void overlay_animation_apply_continuous_scaled(void *animation, float frame,
  * (quaternion), translation (vec3), and scale (float) from either:
  *   - Compressed keyframed data (when flag bit 0 is set and compression is
  *     active), using
- * FUN_00121330/animation_get_node_orientations/overlay_animation_apply_continuous_scaled
+ * FUN_00121330/animation_get_node_orientations/animation_get_keyframe_scale
  * interpolators.
  *   - Uncompressed frame data via
  * quaternion_decompress_8byte/quaternion_decompress_6byte or raw memcpy from
@@ -1340,7 +1340,7 @@ void overlay_animation_apply_continuous_scaled(void *animation, float frame,
  * arg: quaternion). Confirmed: CALL FUN_00121330 at 0x121e51 (5 args:
  * animation, frame_float, count, node, out). Confirmed: CALL
  * animation_get_node_orientations at 0x121edc (5 args: animation, frame_float,
- * count, node, out). Confirmed: CALL overlay_animation_apply_continuous_scaled
+ * count, node, out). Confirmed: CALL animation_get_keyframe_scale
  * at 0x121f78 (5 args: animation, frame_float, count, node, out). Confirmed:
  * CALL FUN_00123aa0 at 0x12204a (2 args: mode_tag, out_node_data).
  */
@@ -1450,7 +1450,7 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
             local_c = (int *)((char *)local_c + 4);
           }
         } else if (bVar2) {
-          overlay_animation_apply_continuous_scaled(
+          animation_get_keyframe_scale(
             animation, (float)(int)(short)animation_index,
             (unsigned short)local_24, sVar5, (void *)(iVar7 + 0x1c));
           local_24 = local_24 + 1;
@@ -1546,7 +1546,7 @@ void FUN_00123aa0(void *mode_tag, void *out_node_data)
   }
 }
 
-/* animation_get_root_matrix (0x123e20) — Get a node's default matrix from a
+/* model_get_default_inverse_matrix (0x123e20) — Get a node's default matrix from a
  * model mode tag.
  *
  * Confirmed: cdecl, 2 args (mode_tag ptr, node_index short).
@@ -1558,7 +1558,7 @@ void FUN_00123aa0(void *mode_tag, void *out_node_data)
  * PUSH. Confirmed: return value is element+0x68 (ADD EAX,0x68 at 0x123e3f) —
  * no dereference, so this returns a pointer, not a copied value.
  */
-float *animation_get_root_matrix(void *mode_tag, short node_index)
+float *model_get_default_inverse_matrix(void *mode_tag, short node_index)
 {
   char *element;
 
@@ -1573,7 +1573,7 @@ float *animation_get_root_matrix(void *mode_tag, short node_index)
  * returns -1 without calling tag_get when tag_index == -1 (JZ at 0x123e5c).
  * Confirmed: CALL tag_get(0x6d6f6465 ('mode'), tag_index) at 0x123e64.
  * Confirmed: tag block at mode_tag+0xb8 — same tag block/element-size pair
- * (0x9c) as FUN_00123aa0 and animation_get_root_matrix above, so this walks
+ * (0x9c) as FUN_00123aa0 and model_get_default_inverse_matrix above, so this walks
  * the mode tag's node array. Confirmed: CALL
  * tag_block_get_element(nodes, index, 0x9c) at 0x123e87. Confirmed: CALL
  * csstrcmp(element, name) at 0x123e8e — the element pointer itself is passed

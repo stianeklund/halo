@@ -38,7 +38,7 @@ int actor_combat_check_mode(int actor_handle /* @<eax> */, short mode)
  * duration in ticks (actor+0x5f4). cdecl: actor_handle in arg1 (EDI at the
  * call site), ticks is the truncated float result the caller pushes (arg2).
  * The field at +0x5f4 is a short, so the duration is narrowed. */
-void FUN_00021010(int actor_handle, int ticks)
+void actor_combat_fire_wildly(int actor_handle, int ticks)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
 
@@ -52,7 +52,7 @@ void FUN_00021010(int actor_handle, int ticks)
  * when the request is smaller, leaves the field unchanged (a no-op
  * self-assignment in the original codegen); otherwise it stores the new
  * value (narrowed to short). */
-void FUN_00021040(int actor_handle, int ticks)
+void actor_combat_disable_bursts(int actor_handle, int ticks)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
 
@@ -88,7 +88,7 @@ void actor_combat_get_weapon_vector(int actor_handle /* @<eax> */,
   }
 
   object_get_and_verify_type(handle, 3);
-  unit_scripting_unit_driver(handle, weapon_vector);
+  unit_get_aiming_vector(handle, weapon_vector);
   unit_clip_to_aiming_bounds(handle, weapon_vector, 1);
 }
 
@@ -96,7 +96,7 @@ char *actor_combat_get_firing_variant_definition(int actor_handle)
 {
   char *actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
   char *actv = (char *)tag_get(0x61637476, ((actor_t *)actor)->field_05c);
-  int weapon_handle = actor_attacking_target(actor_handle);
+  int weapon_handle = actor_get_weapon(actor_handle);
   if (weapon_handle != -1) {
     int *obj = (int *)object_get_and_verify_type(weapon_handle, 4);
     char *weap = (char *)tag_get(0x77656170, *obj);
@@ -133,7 +133,7 @@ void actor_combat_get_burst_parameters(int actor_handle /* @<eax> */,
 /* 0x21350 — Round a float to the nearest integer using the FPU's current
  * rounding mode (FLD; FISTP). cdecl helper, single float argument, returns
  * the rounded value in EAX. */
-int FUN_00021350(float value)
+int fast_ftol(float value)
 {
   return x87_round_to_int(value);
 }
@@ -397,8 +397,8 @@ char FUN_00021ae0(int actor_handle, float range, float param3,
   result = 1;
   count = 0;
 
-  FUN_00064540(actor_iter, actor_handle);
-  element = FUN_00064570(actor_iter);
+  prop_iterator_new(actor_iter, actor_handle);
+  element = prop_iterator_next(actor_iter);
   while (element != 0) {
     if (*(short *)(element + 0x24) > 1 && *(short *)(element + 0x24) < 4 &&
         *(char *)(element + 0x127) == '\0') {
@@ -437,7 +437,7 @@ char FUN_00021ae0(int actor_handle, float range, float param3,
         }
       }
     }
-    element = FUN_00064570(actor_iter);
+    element = prop_iterator_next(actor_iter);
   }
 
   actor = (int)datum_get(*(void **)0x6325a4, actor_handle);
@@ -535,7 +535,7 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
   }
 }
 
-/* FUN_00022390 (0x22390) — Update actor combat aiming state each tick.
+/* actor_start_burst (0x22390) — Update actor combat aiming state each tick.
  * Checks/clears fire-ok flag, determines moving and in-combat status,
  * computes fire timer from burst parameters, rate-of-fire modifier from
  * weapon damage, applies prop suppression, then calculates the aim
@@ -548,7 +548,7 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
  * small MSVC<->clang idiom diffs (branch encodings, register allocation)
  * accumulated over the function's length, not one defect. Verified 2026-06-23
  * [[project_sub80_vc71_audit_2026-06-23]]. */
-void FUN_00022390(int actor_handle)
+void actor_start_burst(int actor_handle)
 {
   char *actor;
   char *actv;
@@ -664,10 +664,10 @@ void FUN_00022390(int actor_handle)
         (double)rof_modifier);
     }
   } else if (*(float *)(actv + 0xc8) > *(float *)0x2533c0) {
-    weapon_handle = actor_attacking_target(actor_handle);
+    weapon_handle = actor_get_weapon(actor_handle);
     if (weapon_handle != -1) {
       weapon_obj = (int *)object_get_and_verify_type(weapon_handle, 4);
-      projectile_damage = FUN_000fac20(*weapon_obj, &max_range);
+      projectile_damage = weapon_definition_get_damage_potential(*weapon_obj, &max_range);
       if (*(float *)(actv + 0x78) > *(float *)0x2533c0 &&
           max_range > *(float *)(actv + 0x78)) {
         max_range = *(float *)(actv + 0x78);

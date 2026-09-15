@@ -33,11 +33,11 @@
 /* 0x00062960 — path_obstacles_debug_render
  *
  * Note the hit/miss asymmetry, preserved from the original:
- *   - On raycast HIT, the projected-disc call (FUN_0018a860) receives
+ *   - On raycast HIT, the projected-disc call (render_debug_circle) receives
  *     &disc->point (pfVar1, pointing into the obstacles buffer, where the
  *     three contiguous floats are x, y, radius — z lives at +0x1c and is not
  *     part of that view; the disc renderer only uses x/y + the plane).
- *   - On raycast MISS, the sphere call (FUN_00189540) receives the local
+ *   - On raycast MISS, the sphere call (render_debug_sphere) receives the local
  *     {x,y,z} point copy, which reads z from disc+0x1c.
  */
 void path_obstacles_debug_render(void *obstacles, float radius)
@@ -49,7 +49,7 @@ void path_obstacles_debug_render(void *obstacles, float radius)
   float *disc_point;
   bool hit;
   short collision_result[18]; /* 36-byte buffer for FUN_0014df70 */
-  float plane_scratch[11]; /* scratch/output buffer for FUN_0018a860 */
+  float plane_scratch[11]; /* scratch/output buffer for render_debug_circle */
   float ray_dir[3]; /* {0, 0, dir.z} */
   float point[3]; /* contiguous {x, y, z} */
 
@@ -82,24 +82,24 @@ void path_obstacles_debug_render(void *obstacles, float radius)
       ray_dir[1] = 0.0f;
       hit = FUN_0014df70(0x21, point, ray_dir, -1, collision_result);
       if (hit) {
-        FUN_0018a860(1, plane_scratch, 2, 1, disc_point,
+        render_debug_circle(1, plane_scratch, 2, 1, disc_point,
                      *(float *)((char *)obstacles + disc_off + 0x18),
                      (char *)0x2c8fb8 +
                        *(short *)((char *)obstacles + disc_off + 10) * 0x10,
                      0.015625f);
         if (*(float *)0x2533c0 < radius) {
-          FUN_0018a860(1, plane_scratch, 2, 1, disc_point,
+          render_debug_circle(1, plane_scratch, 2, 1, disc_point,
                        radius + *(float *)((char *)obstacles + disc_off + 0x18),
                        (char *)0x2c8fb8 +
                          *(short *)((char *)obstacles + disc_off + 10) * 0x10,
                        0.015625f);
         }
       } else {
-        FUN_00189540(1, point, *(float *)((char *)obstacles + disc_off + 0x18),
+        render_debug_sphere(1, point, *(float *)((char *)obstacles + disc_off + 0x18),
                      (char *)0x2c8fb8 +
                        *(short *)((char *)obstacles + disc_off + 10) * 0x10);
         if (*(float *)0x2533c0 < radius) {
-          FUN_00189540(1, point,
+          render_debug_sphere(1, point,
                        radius + *(float *)((char *)obstacles + disc_off + 0x18),
                        (char *)0x2c8fb8 +
                          *(short *)((char *)obstacles + disc_off + 10) * 0x10);

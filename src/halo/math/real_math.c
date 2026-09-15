@@ -2701,13 +2701,13 @@ char point_in_triangle3d(float *p1, float *p2, float *p3, float *p4, float *out_
   dot_n = n[0] * v3[0] + n[1] * v3[1] + n[2] * v3[2];
   if (dot_n * dot_n <
       (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) * (*(float *)0x253f44)) {
-    basis = FUN_00099220(n);
-    axis = FUN_00099270(n, basis);
-    FUN_00061df0(v1, basis, axis, p1_proj);
-    FUN_00061df0(v3, basis, axis, v1_proj);
+    basis = projection_from_vector3d(n);
+    axis = projection_sign_from_vector3d(n, basis);
+    project_point3d(v1, basis, axis, p1_proj);
+    project_point3d(v3, basis, axis, v1_proj);
     det = v1_proj[1] * p1_proj[0] - p1_proj[1] * v1_proj[0];
     if (det >= 0.0f) {
-      FUN_00061df0(v2, basis, axis, v2_proj);
+      project_point3d(v2, basis, axis, v2_proj);
       det2 = v2_proj[1] * v1_proj[0] - v1_proj[1] * v2_proj[0];
       if (det2 >= 0.0f) {
         total = v2_proj[1] * p1_proj[0] - p1_proj[1] * v2_proj[0];
@@ -6963,8 +6963,8 @@ char *FUN_00113160(int gz, int *errnum)
                              "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x366);
   *(void **)(gz + 0x50) = buf;
   csstrcpy(buf, *(char **)(gz + 0x54));
-  FUN_0008dc30(*(char **)(gz + 0x50), (char *)0x28d3ec);
-  FUN_0008dc30(*(char **)(gz + 0x50), pcVar4);
+  csstrcat(*(char **)(gz + 0x50), (char *)0x28d3ec);
+  csstrcat(*(char **)(gz + 0x50), pcVar4);
   return *(char **)(gz + 0x50);
 }
 

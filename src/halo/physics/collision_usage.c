@@ -46,7 +46,7 @@ void FUN_0014c6d0(int param_1, void *param_2)
   if (0 < n) {
     i = 0;
     do {
-      FUN_00189270(1, local_64 + i * 3, local_64 + ((i + 1) % n) * 3, param_2);
+      render_debug_line(1, local_64 + i * 3, local_64 + ((i + 1) % n) * 3, param_2);
       n = *(int *)(param_1 + 0x24);
       sVar5 = sVar5 + 1;
       i = (int)sVar5;
@@ -92,7 +92,7 @@ void FUN_0014c7b0(int16_t *param_1)
   if (0 < param_1[1]) {
     do {
       iVar1 = (int)sVar2;
-      FUN_001896d0(
+      render_debug_cylinder(
         1, param_1 + iVar1 * 0x14 + 0xe0a, param_1 + iVar1 * 0x14 + 0xe10,
         *(float *)(param_1 + iVar1 * 0x14 + 0xe16), *(void **)0x2ee6d4);
       sVar2 = sVar2 + 1;
@@ -101,7 +101,7 @@ void FUN_0014c7b0(int16_t *param_1)
   sVar2 = 0;
   if (0 < *param_1) {
     do {
-      FUN_00189540(1, param_1 + sVar2 * 0xe + 10,
+      render_debug_sphere(1, param_1 + sVar2 * 0xe + 10,
                    *(float *)(param_1 + sVar2 * 0xe + 0x10),
                    *(void **)0x2ee6d0);
       sVar2 = sVar2 + 1;
@@ -822,7 +822,7 @@ void collision_log_render(void)
                 snprintf(user_buf + csstrlen(user_buf),
                          0x200 - csstrlen(user_buf), " %s", stat_buf);
               }
-              FUN_0008dc30(line, user_buf);
+              csstrcat(line, user_buf);
             }
             p_user_elem += 0x48;
             rank_left--;
@@ -864,7 +864,7 @@ void collision_log_render(void)
             snprintf(summary_buf + csstrlen(summary_buf),
                      0x200 - csstrlen(summary_buf), " %s", stat_buf);
           }
-          FUN_0008dc30(line, summary_buf);
+          csstrcat(line, summary_buf);
         }
 
         bounds[0] = (int16_t)y_pos;
@@ -872,10 +872,10 @@ void collision_log_render(void)
         bounds[2] = 0x7fff;
         bounds[3] = 0x7fff;
 
-        interface_draw_text(1, -1, 0, 0, 5, 0);
+        interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
         draw_string_set_color(*(const void **)0x2ee6c4);
         draw_string_set_tab_stops(NULL, 0);
-        rasterizer_text_draw(NULL, bounds, tab_info, 0, line);
+        rasterizer_draw_string(NULL, bounds, tab_info, 0, line);
         y_pos += (int)(*(int *)bounds - *(int *)((char *)tab_info + 2));
       }
     }
@@ -1001,14 +1001,14 @@ int FUN_0014da80(int tag_data, int16_t collision_fn_index)
 }
 
 /* 0x14dab0 — Tests whether a point (param_1) passes a sphere–BSP collision
- * check. Finds the BSP3D leaf for param_1 via FUN_0018e420; if found, tests the
+ * check. Finds the BSP3D leaf for param_1 via global_bsp3d_get; if found, tests the
  * collision BSP sphere. Returns 1 if outside BSP or collision sphere
  * intersects, 0 on pass. Confirmed: cdecl, 2 stack args. _chkstk(0x1010) for
  * 4112-byte buf local. */
 char FUN_0014dab0(int param_1, int param_2)
 {
   char buf[0x1010];
-  if ((int)bsp3d_find_leaf(FUN_0018e420(), 0, (void *)param_1) == -1)
+  if ((int)bsp3d_find_leaf(global_bsp3d_get(), 0, (void *)param_1) == -1)
     goto fail;
   if (!(char)collision_bsp_test_sphere(
         (int)global_collision_bsp_get(), 0x100,
@@ -1373,7 +1373,7 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
       collision_flags |= 0xfff00;
     }
 
-    structures_cluster_marker_begin();
+    structure_cluster_marker_begin();
     object_reset_markers();
 
     i = 0;
@@ -1418,7 +1418,7 @@ bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
     }
 
     object_marker_end();
-    structures_cluster_marker_end();
+    structure_cluster_marker_end();
     /* collision_log_add_time(1, ...); — IAT crash via QueryPerformanceCounter
      */
   }
@@ -1574,7 +1574,7 @@ bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
         flags = flags | 0xfff00;
       }
 
-      structures_cluster_marker_begin();
+      structure_cluster_marker_begin();
       object_reset_markers();
 
       cluster_block = (void *)((char *)scenario + 0xe0);
@@ -1601,7 +1601,7 @@ bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
       }
 
       object_marker_end();
-      structures_cluster_marker_end();
+      structure_cluster_marker_end();
     }
 
     collision_log_add_time(2, *(unsigned int *)0x4761e0, *(int *)0x4761e4);

@@ -73,7 +73,7 @@ int main(int argc, const char **argv, const char **envp)
 #if DEBUG_BUILD && !defined(HALO_RETAIL64)
   update_loaded_module_section_attributes();
 #endif
-  rasterizer_preinitialize();
+  rasterizer_preinitialize__fill_you_up_with_the_devils_cock();
   physical_memory_allocate();
   if (shell_initialize()) {
 #ifndef TEST_HARNESS

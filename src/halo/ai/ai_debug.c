@@ -128,7 +128,7 @@ void ai_debug_actor_deleted(int actor_handle)
   }
 }
 
-/* ai_debug_get_newest_path_storage (0x490c0) — scan the 0x20-entry
+/* ai_debug_get_last_path (0x490c0) — scan the 0x20-entry
  * actor_path_debug_array (base *(char**)0x331f5c, stride 0x1ca7c) for the valid
  * entry belonging to actor_handle with the largest value at +0x4, and return a
  * pointer to it.  Returns NULL when no entry matches.
@@ -151,7 +151,7 @@ void ai_debug_actor_deleted(int actor_handle)
  *   value first, so ties keep the FIRST maximum encountered.
  *   Loop counter (CX) and slot index (DI) are 16-bit: CMP CX,0x20 / CMP DI,-1 /
  *   MOVSX EAX,DI before IMUL EAX,EAX,0x1ca7c. */
-void *ai_debug_get_newest_path_storage(int actor_handle)
+void *ai_debug_get_last_path(int actor_handle)
 {
   char *base;
   char *cursor;
@@ -253,7 +253,7 @@ found:
  *
  * No __FILE__ string.  Called from ai_debug_select_actor,
  * ai_debug_initialize_for_new_map, ai_debug_change_selected_encounter,
- * FUN_00054e40.
+ * ai_scripting_select.
  *
  * Calling convention verified (ADD ESP,0x20 at 0x49267 covers 8 dwords):
  *   3 args to csmemset(0x629d44,...) + 3 args to csmemset(0x62a3b4,...) +
@@ -276,16 +276,16 @@ void ai_debug_select_encounter(int encounter_idx)
   }
 }
 
-/* FUN_00049280 (0x49280): draw a debug polyline through `count` entries plus
+/* ai_debug_render_path_line (0x49280): draw a debug polyline through `count` entries plus
  * a per-entry "up" marker.
  *
  * No __FILE__ string. 2 register args (point@<ecx>, color@<ebx>) + 2 stack
  * args ([EBP+0x8] count (short), [EBP+0xc] entries); caller cleans (ADD
- * ESP after each CALL, not RET N).  Callees FUN_00189450 (line between two
- * points) and FUN_001893e0 (point + direction marker), both no-reg-arg,
+ * ESP after each CALL, not RET N).  Callees render_debug_line_offset (line between two
+ * points) and render_debug_tick (point + direction marker), both no-reg-arg,
  * already ported.
  *
- * Called 3x from FUN_0004c560 (0x4c774/0x4c79f/0x4c7ca; static disasm via
+ * Called 3x from ai_debug_render_path_storage (0x4c774/0x4c79f/0x4c7ca; static disasm via
  * tools/audit/dump_caller_regsetup.py, ported=false so not decompiled here).
  * At every call site `point`(@<ecx>) is `lea ecx,[esi+0x28]` -- the same
  * anchor point across all 3 calls -- while `color`(@<ebx>) is one of three
@@ -307,22 +307,22 @@ void ai_debug_select_encounter(int encounter_idx)
  * 0x3dcccccd == 0.1f, 0x3ca3d70a == 0.02f (both confirmed float bit patterns
  * from the disassembly's PUSH immediates). PTR_DAT_0031fc44 is the known
  * global_up_vector_ptr (kb.json: `float *global_up_vector_ptr;`). */
-void FUN_00049280(float *point, void *color, int16_t count, float *entries)
+void ai_debug_render_path_line(float *point, void *color, int16_t count, float *entries)
 {
   float *pfVar1;
   int16_t i;
 
   if (0 < count) {
-    FUN_00189450(1, point, entries + 1, color, 0.1f);
+    render_debug_line_offset(1, point, entries + 1, color, 0.1f);
   }
   i = 0;
   if (0 < count) {
     pfVar1 = entries + 1;
     do {
       if (0 < i) {
-        FUN_00189450(1, pfVar1 - 4, pfVar1, color, 0.1f);
+        render_debug_line_offset(1, pfVar1 - 4, pfVar1, color, 0.1f);
       }
-      FUN_001893e0(1, pfVar1, global_up_vector_ptr, 0.02f, color);
+      render_debug_tick(1, pfVar1, global_up_vector_ptr, 0.02f, color);
       i = i + 1;
       pfVar1 = pfVar1 + 4;
     } while (i < count);
@@ -353,15 +353,15 @@ void FUN_00049280(float *point, void *color, int16_t count, float *entries)
  * boolean array-index `edge[2 + (edge[5] == surface_index)]` to match the
  * disassembly's shape, not rewritten as an if/else). The vertex tag_block
  * sits at bsp_surfaces+0x54, element size 0x10; only the leading floats are
- * used (forwarded as FUN_00189450's float* point_a/point_b).
+ * used (forwarded as render_debug_line_offset's float* point_a/point_b).
  *
  * scale is combined ONCE before the loop with the unnamed float constant at
  * 0x25abcc (FADD [0x25abcc] at 0x4932c) and the sum is reused for every
- * FUN_00189450 call in the loop (matches the original's reuse of the
+ * render_debug_line_offset call in the loop (matches the original's reuse of the
  * [EBP+0xc] argument slot as a local after the FSTP at 0x4933e).
  *
  * Loop walks the surface's edge ring starting at first_edge, drawing a line
- * per edge between its two vertices with FUN_00189450(1, point_a, point_b,
+ * per edge between its two vertices with render_debug_line_offset(1, point_a, point_b,
  * color, scale), and follows forward_edge or backward_edge depending on
  * which side of the edge this surface is on, until the ring returns to
  * first_edge. */
@@ -391,12 +391,12 @@ void ai_debug_render_surface(void *structure_bsp /* @<eax> */,
                                              edge[0], 0x10);
     point_b = (float *)tag_block_get_element((char *)bsp_surfaces + 0x54,
                                              edge[1], 0x10);
-    FUN_00189450(1, point_a, point_b, color, scale);
+    render_debug_line_offset(1, point_a, point_b, color, scale);
     cur_edge = edge[2 + side];
   } while (cur_edge != *(int *)(coll_surface + 4));
 }
 
-/* ai_debug_point3d_set: store three reals into a 3-float point.
+/* set_real_point3d: store three reals into a 3-float point.
  *
  * No __FILE__ string, no callees, no locals (the original has no `sub esp`).
  * 4 cdecl stack args at [EBP+0x8]=dst, +0xc=x, +0x10=y, +0x14=z; caller cleans.
@@ -410,14 +410,14 @@ void ai_debug_render_surface(void *structure_bsp /* @<eax> */,
  * The interleaved MOV ECX / MOV EDX between the stores is scheduling too.
  *
  * Name is descriptive (object-prefixed), not recovered from a string. */
-void ai_debug_point3d_set(float *point, float x, float y, float z)
+void set_real_point3d(float *point, float x, float y, float z)
 {
   point[0] = x;
   point[1] = y;
   point[2] = z;
 }
 
-/* ai_debug_get_last_path (0x493d0): arm the debug line-of-fire ray with a new
+/* ai_debug_lineoffire_new (0x493d0): arm the debug line-of-fire ray with a new
  * pair of endpoints.
  *
  * No __FILE__ string, no callees (pure leaf, zero CALLs), no FPU instructions,
@@ -434,7 +434,7 @@ void ai_debug_point3d_set(float *point, float x, float y, float z)
  * dword):
  *   +0x00  0x5acab8  uint8   armed flag        <- 1
  *   +0x01  0x5acab9  uint8   ray-test success  <- 0   (also written by
- *                                                     FUN_000494d0)
+ *                                                     ai_debug_lineoffire_success)
  *   +0x02           2 bytes padding
  *   +0x04  0x5acabc  float[3] endpoint A       <- vec_a[0..2]
  *   +0x10  0x5acac8  float[3] endpoint B       <- vec_b[0..2]
@@ -454,8 +454,8 @@ void ai_debug_point3d_set(float *point, float x, float y, float z)
  * pure MSVC scheduling, no semantic content.
  *
  * Inferred: the two flag bytes are stored inline rather than through
- * FUN_000494d0 (there is no CALL in this function at all). */
-void ai_debug_get_last_path(float *vec_a, float *vec_b)
+ * ai_debug_lineoffire_success (there is no CALL in this function at all). */
+void ai_debug_lineoffire_new(float *vec_a, float *vec_b)
 {
   *(uint8_t *)0x5acab8 = 1;
   *(uint8_t *)0x5acab9 = 0;
@@ -484,7 +484,7 @@ void ai_debug_get_last_path(float *vec_a, float *vec_b)
  * in this change.
  *
  * Pill list layout (parallel arrays, all indexed by the count at 0x5acad4,
- * which ai_debug_get_last_path resets to 0):
+ * which ai_debug_lineoffire_new resets to 0):
  *   0x5acab8  uint8         valid/armed flag (assert guard)
  *   0x5acad4  int32         pill count, bound 0x10
  *   0x5acad8  char[16]      per-pill flag
@@ -535,24 +535,24 @@ void ai_debug_lineoffire_addpill(float *vec_a, float *vec_b, float radius,
   }
 }
 
-/* FUN_000494d0: set debug ray-test success flag.
+/* ai_debug_lineoffire_success: set debug ray-test success flag.
  *
- * No __FILE__ string. Called from ai_debug_get_last_path (ray setup) and
- * FUN_000494e0 (ray render). */
-void FUN_000494d0(char success)
+ * No __FILE__ string. Called from ai_debug_lineoffire_new (ray setup) and
+ * ai_debug_render_lineoffire (ray render). */
+void ai_debug_lineoffire_success(char success)
 {
   *(uint8_t *)0x5acab9 = success;
 }
 
-/* FUN_000494e0: render the stored debug line-of-sight ray.
+/* ai_debug_render_lineoffire: render the stored debug line-of-sight ray.
  *
- * No __FILE__ string; the name is left as FUN_000494e0.  Behaviour: draws the
+ * No __FILE__ string; the name is left as ai_debug_render_lineoffire.  Behaviour: draws the
  * stored debug ray as one line, then one sphere per recorded hit.  Does
  * nothing unless the ray block armed flag (0x5acab8) is set.
  *
- * Debug ray block (see ai_debug_set_last_ray and FUN_000494d0 above):
+ * Debug ray block (see ai_debug_set_last_ray and ai_debug_lineoffire_success above):
  *   0x5acab8  uint8    armed flag
- *   0x5acab9  uint8    ray-test success flag (written by FUN_000494d0)
+ *   0x5acab9  uint8    ray-test success flag (written by ai_debug_lineoffire_success)
  *   0x5acabc  float[3] ray start
  *   0x5acac8  float[3] ray delta (start + delta = ray end)
  *   0x5acad4  int32    hit count
@@ -566,10 +566,10 @@ void FUN_000494d0(char success)
  * relocation against 0x5acae8), not as a separate absolute base.
  *
  * Call-site verification (both cdecl, caller-cleaned):
- *   0x49543 FUN_00189270, ADD ESP,0x10 (4 dwords).  Pushes, in reverse order:
+ *   0x49543 render_debug_line, ADD ESP,0x10 (4 dwords).  Pushes, in reverse order:
  *     color, LEA EBP-0xc (endpoint), 0x5acabc (start), 1 -> C order
  *     (1, (float *)0x5acabc, endpoint, color)  [match]
- *   0x49581 FUN_00189860, ADD ESP,0x14 (5 dwords).  Pushes, in reverse order:
+ *   0x49581 render_debug_pill, ADD ESP,0x14 (5 dwords).  Pushes, in reverse order:
  *     color, [ESI*4+0x5acc68], EDI+0xc0, EDI, 1 -> C order
  *     (1, point, point + 0xc0, radius, color)  [match]
  *   The radius push is a plain dword MOV of a float slot.  Ghidra prints a
@@ -593,7 +593,7 @@ void FUN_000494d0(char success)
  * The hit count at 0x5acad4 is re-read from memory on every iteration (two
  * relocations against it in the delinked reference), so it stays in the loop
  * condition rather than being cached in a local. */
-void FUN_000494e0(void)
+void ai_debug_render_lineoffire(void)
 {
   float endpoint[3];
   void *color;
@@ -608,7 +608,7 @@ void FUN_000494e0(void)
     if (*(uint8_t *)0x5acab9 == 0) {
       color = *(void **)0x2ee6d0;
     }
-    FUN_00189270(1, (float *)0x5acabc, endpoint, color);
+    render_debug_line(1, (float *)0x5acabc, endpoint, color);
     i = 0;
     if (0 < *(int32_t *)0x5acad4) {
       point = (float *)0x5acae8;
@@ -617,7 +617,7 @@ void FUN_000494e0(void)
         if (((uint8_t *)0x5acad8)[i] == 0) {
           color = *(void **)0x2ee6d8;
         }
-        FUN_00189860(1, point, point + 48, ((float *)0x5acc68)[i], color);
+        render_debug_pill(1, point, point + 48, ((float *)0x5acc68)[i], color);
         i++;
         point += 3;
       } while (i < *(int32_t *)0x5acad4);
@@ -625,11 +625,11 @@ void FUN_000494e0(void)
   }
 }
 
-/* FUN_000495b0 (0x495b0): render the second AI debug ray/sphere/path block.
+/* ai_debug_render_ballistic_lineoffire (0x495b0): render the second AI debug ray/sphere/path block.
  *
  * Gated on the armed flag at 0x5f8cb4.  Draws a point marker at 0x5f8cb8, a
  * vector from 0x5f8cb8 along 0x5f8cc4, then a list of spheres and a polyline.
- * This is a distinct global block from the 0x5acab8 one used by FUN_000494e0:
+ * This is a distinct global block from the 0x5acab8 one used by ai_debug_render_lineoffire:
  *   0x5f8cb4  uint8    armed flag
  *   0x5f8cb5  uint8    secondary flag (selects the polyline colour polarity)
  *   0x5f8cb8  float[3] point A
@@ -643,18 +643,18 @@ void FUN_000494e0(void)
  * pt[i]..pt[i+1])
  *
  * Call-site verification (all cdecl, caller-cleaned; first PUSH = last C arg):
- *   0x495d0 FUN_00189150.  PUSH EAX([0x2ee6e0]); PUSH 0x3dcccccd (0.1f as a
+ *   0x495d0 render_debug_point.  PUSH EAX([0x2ee6e0]); PUSH 0x3dcccccd (0.1f as a
  *     raw dword, no FLD); PUSH 0x5f8cb8; PUSH 1 -> (1, 0x5f8cb8, 0.1f, colour)
  *     [match]
- *   0x495ed FUN_00189320.  PUSH ECX([0x2ee6e0]); PUSH 0x3f800000 (1.0f);
+ *   0x495ed render_debug_vector.  PUSH ECX([0x2ee6e0]); PUSH 0x3f800000 (1.0f);
  *     PUSH 0x5f8cc4; PUSH 0x5f8cb8; PUSH 1 ->
  *     (1, 0x5f8cb8, 0x5f8cc4, 1.0f, colour)  [match]
  *     ADD ESP,0x24 at 0x495f7 is the *combined* deferred cleanup for both
  *     calls (4 + 5 = 9 dwords); it is not a nine-argument call.
- *   0x49635 FUN_00189860, ADD ESP,0x14.  PUSH EDX([0x2ee6d8]); PUSH
+ *   0x49635 render_debug_pill, ADD ESP,0x14.  PUSH EDX([0x2ee6d8]); PUSH
  *     EAX([EAX*4+0x5f8e54]); PUSH EDX(ECX+0x5f8d94); PUSH EAX(ECX+0x5f8cd4);
  *     PUSH 1 -> (1, centre+i*12, endpoint+i*12, radius[i], colour)  [match]
- *   0x4969c FUN_00189270, ADD ESP,0x10.  PUSH ECX(colour); PUSH
+ *   0x4969c render_debug_line, ADD ESP,0x10.  PUSH ECX(colour); PUSH
  *     ECX(EAX+0x5f8ea4); PUSH EDX(EAX+0x5f8e98); PUSH 1 ->
  *     (1, pt+i*12, pt+i*12+0xc, colour)  [match]
  *   The two point bases in each of the last two calls are separate LEAs
@@ -682,7 +682,7 @@ void FUN_000494e0(void)
  * `count - 1 > 0` test, not Ghidra's `count != 1 && -1 < count - 1`.
  *
  * cdecl void(void); no stack frame, ESI is the only saved register. */
-void FUN_000495b0(void)
+void ai_debug_render_ballistic_lineoffire(void)
 {
   void *color;
   short counter;
@@ -692,8 +692,8 @@ void FUN_000495b0(void)
 
   new_var = (int32_t *)0x5f8e94;
   if (*(uint8_t *)0x5f8cb4 != 0) {
-    FUN_00189150(1, (float *)0x5f8cb8, 0.1f, *(void **)0x2ee6e0);
-    FUN_00189320(1, (float *)0x5f8cb8, (float *)0x5f8cc4, 1.0f,
+    render_debug_point(1, (float *)0x5f8cb8, 0.1f, *(void **)0x2ee6e0);
+    render_debug_vector(1, (float *)0x5f8cb8, (float *)0x5f8cc4, 1.0f,
                  *(void **)0x2ee6e0);
 
     counter = 0;
@@ -701,7 +701,7 @@ void FUN_000495b0(void)
       i = 0;
       do {
         off = i * 12;
-        FUN_00189860(1, (char *)0x5f8cd4 + off, (char *)0x5f8d94 + off,
+        render_debug_pill(1, (char *)0x5f8cd4 + off, (char *)0x5f8d94 + off,
                      ((float *)0x5f8e54)[i], *(void **)0x2ee6d8);
         counter++;
         i = counter;
@@ -721,7 +721,7 @@ void FUN_000495b0(void)
           }
         }
         off = i * 12;
-        FUN_00189270(1, (float *)((char *)0x5f8e98 + off),
+        render_debug_line(1, (float *)((char *)0x5f8e98 + off),
                      (float *)((char *)0x5f8ea4 + off), color);
         counter++;
         i = counter;
@@ -740,14 +740,14 @@ void FUN_000495b0(void)
  *
  * Returns 0 (and writes nothing) unless the highlight-cluster debug flag
  * (0x5aca6c) is set and an encounter is selected (0x5ac9f4 != -1).  The
- * 0x200-byte cluster bit vector at 0x331f18 is rebuilt via FUN_00058fd0
+ * 0x200-byte cluster bit vector at 0x331f18 is rebuilt via encounter_compute_activation_cluster_bit_vector
  * whenever the cached game time (0x2c8e90) or cached encounter index
  * (0x2c8e8c) is stale.  If the queried cluster's bit is set the color depends
  * on byte +0xd of the selected encounter datum; otherwise the third color
  * constant is used.
  *
  * Call-site verification (all cdecl, caller-cleaned):
- *   0x4970a FUN_00058fd0, ADD ESP,0x14 (5 dwords).  Pushes, in reverse order,
+ *   0x4970a encounter_compute_activation_cluster_bit_vector, ADD ESP,0x14 (5 dwords).  Pushes, in reverse order,
  *     0x331f18, 0, 0x200, 0, EDX(=[0x5ac9f4]) -> C order
  *     (encounter_index, 0, 0x200, 0, (char *)0x331f18)  [match]
  *   0x49741 display_assert, no ADD ESP (noreturn).  Pushes 1, 0x1025,
@@ -755,7 +755,7 @@ void FUN_000495b0(void)
  *   0x49748 system_exit, PUSH -1  [match]
  *   0x4977b datum_get, ADD ESP,8.  PUSH EDX(=[0x5ac9f4]) then PUSH
  *     EAX(=[0x5ab270]) -> datum_get(*(data_t **)0x5ab270, [0x5ac9f4]) [match]
- *   EDX is reloaded from [0x5ac9f4] at 0x49717 after the FUN_00058fd0 call
+ *   EDX is reloaded from [0x5ac9f4] at 0x49717 after the encounter_compute_activation_cluster_bit_vector call
  *   (the frame has no `sub esp`, so no stack local exists to spill into), so
  *   the global is re-read rather than cached across the call.
  *
@@ -783,7 +783,7 @@ char ai_debug_highlight_cluster(int16_t cluster_index, void *out)
   time = game_time_get();
   if (*(int32_t *)0x2c8e90 != time ||
       *(int32_t *)0x2c8e8c != *(int32_t *)0x5ac9f4) {
-    FUN_00058fd0(*(int32_t *)0x5ac9f4, 0, 0x200, 0, (char *)0x331f18);
+    encounter_compute_activation_cluster_bit_vector(*(int32_t *)0x5ac9f4, 0, 0x200, 0, (char *)0x331f18);
     *(int32_t *)0x2c8e90 = game_time_get();
     *(int32_t *)0x2c8e8c = *(int32_t *)0x5ac9f4;
   }
@@ -806,7 +806,7 @@ char ai_debug_highlight_cluster(int16_t cluster_index, void *out)
   return 1;
 }
 
-/* ai_debug_render_points_and_lines: flush the queued AI debug point and line
+/* ai_debug_render_lineofsight: flush the queued AI debug point and line
  * lists to the debug renderer.
  *
  * Each queued point (3-float / 12-byte record array at 0x5accb0, count at
@@ -842,7 +842,7 @@ char ai_debug_highlight_cluster(int16_t cluster_index, void *out)
  * here.  Both loop counts are re-read from their globals in the loop tail
  * (MOV EAX,[0x5accac] at 0x49a51, MOV EAX,[0x5eccb0] at 0x49aaa) rather than
  * cached in a register, so the conditions re-read them too. */
-void ai_debug_render_points_and_lines(void)
+void ai_debug_render_lineofsight(void)
 {
   void **colors[13];
   float *point;
@@ -873,7 +873,7 @@ void ai_debug_render_points_and_lines(void)
       if (0xc < color_index) {
         color_index = 0xc;
       }
-      FUN_00189cb0(1, point, (void *)0x5ab100, (int)*colors[color_index]);
+      render_debug_string_at_point(1, point, (void *)0x5ab100, (int)*colors[color_index]);
       i = i + 1;
       point = point + 3;
     } while (i < *(int32_t *)0x5accac);
@@ -887,7 +887,7 @@ void ai_debug_render_points_and_lines(void)
       if (0xc < color_index) {
         color_index = 0xc;
       }
-      FUN_00189270(1, (float *)0x5accb0 + line[-2] * 3,
+      render_debug_line(1, (float *)0x5accb0 + line[-2] * 3,
                    (float *)0x5accb0 + line[-1] * 3, *colors[color_index]);
       i = i + 1;
       line = line + 3;
@@ -941,7 +941,7 @@ void ai_debug_render_points_and_lines(void)
  *   [EBP+0x14] -- the function returns its own buf argument.
  *
  * Inferred: object type mask 3 for object_get_and_verify_type, matching the
- *   two verify calls in FUN_00049c70 in this same TU.
+ *   two verify calls in ai_debug_get_this_actor in this same TU.
  * Inferred: the unit definition tag name is read from tag +0x2c, the standard
  *   tag-header name pointer used by the other tag_name_strip_path callers.
  *
@@ -956,7 +956,7 @@ void ai_debug_render_points_and_lines(void)
  *   tag_name_strip_path covers the preceding tag_get pushes as well, and the
  *   crt_sprintf/snprintf cleanups vary with the variadic argument count.
  *
- * Called from FUN_0004b7a0 (0x4b7a0) with the 0x100-byte global scratch
+ * Called from ai_debug_select_this_actor (0x4b7a0) with the 0x100-byte global scratch
  * buffer at 0x5ab100. */
 char *ai_debug_describe_actor(int actor_handle, int object_handle,
                               char with_actor, char *buf, int buf_size)
@@ -1017,7 +1017,7 @@ char *ai_debug_describe_actor(int actor_handle, int object_handle,
   return buf;
 }
 
-/* FUN_00049c70: resolve the object the debug camera is currently looking at,
+/* ai_debug_get_this_actor: resolve the object the debug camera is currently looking at,
  * returning a datum handle (or -1 when nothing usable is under the crosshair).
  *
  * Fires a 50.0-world-unit ray from the observer camera along the camera's own
@@ -1076,7 +1076,7 @@ char *ai_debug_describe_actor(int actor_handle, int object_handle,
  *   The binary emits CMP EAX,EBX / CMP ECX,EBX there because EBX is provably
  *   -1 at both points; that is a register-reuse optimisation over the same
  *   source-level "== -1" test. */
-int FUN_00049c70(void)
+int ai_debug_get_this_actor(void)
 {
   char collision_result[0x50];
   float delta[3];
@@ -1149,7 +1149,7 @@ int FUN_00049c70(void)
  *
  * Confirmed: two stack parameters at [EBP+8] and [EBP+0xC] (Ghidra surfaced
  *   them as in_stack_00000004 / in_stack_00000008).  Both are passed straight
- *   through to the name->index lookups FUN_001a6cd0 / FUN_001a67e0, whose kb
+ *   through to the name->index lookups unit_get_speech_priority_by_name / dialogue_get_vocalization_type_by_name, whose kb
  *   declarations take `const char *`.  The old kb declaration of `(void)` was
  *   wrong and would have produced a caller/callee stack mismatch.
  * Confirmed: frame is PUSH EBP / MOV EBP,ESP / SUB ESP,0x38.  EBX and EDI are
@@ -1170,22 +1170,22 @@ int FUN_00049c70(void)
  *   0x4a005  MOV [EBP-0x34],EDX  record+0x04 <- sound definition index
  * Confirmed: datum_get is (actor_data, handle) -- PUSH EAX (the handle read
  *   from 0x5ac9f8) then PUSH [0x6325a4], ADD ESP,8 at 0x49f89.
- * Confirmed: FUN_001a68d0's pushes at 0x49fd6 are EAX(=&[EBP-0x8]),
+ * Confirmed: unit_test_speech's pushes at 0x49fd6 are EAX(=&[EBP-0x8]),
  *   ECX(=&[EBP-0x4]), 0, 1, 1, EBX, EDX, so left-to-right the arguments are
  *   (unit handle, vocalization index, 1, 1, NULL, &type, &sound index) and
  *   ADD ESP,0x1c confirms 7 stack dwords.
  * Confirmed: the single ADD ESP,0x8 at 0x49fb0 cleans both name-lookup pushes
- *   and the single ADD ESP,0x1c at 0x4a01b cleans FUN_001a6ef0's three pushes
+ *   and the single ADD ESP,0x1c at 0x4a01b cleans unit_speak's three pushes
  *   plus csmemset's three and ai_communication_packet_new's one -- MSVC
- *   coalesced the cleanups, so the ARG_COUNT hazards on FUN_001a67e0 and
- *   FUN_001a6ef0 are false positives.
+ *   coalesced the cleanups, so the ARG_COUNT hazards on dialogue_get_vocalization_type_by_name and
+ *   unit_speak are false positives.
  * Confirmed: the width of every compare is 16-bit -- TEST BX,BX / JLE (signed
  *   `> 0`), CMP AX,SI (`== -1`), TEST SI,SI -- so the three intermediates are
  *   `short`, not `int`.
  * Inferred: 0x5aca89 is a "debug speech requested" byte flag; it is set to 1
  *   unconditionally once the debug actor handle resolves, before the unit
  *   handle is even validated.
- * Uncertain: the two `1` arguments to FUN_001a68d0 are byte-width literals
+ * Uncertain: the two `1` arguments to unit_test_speech are byte-width literals
  *   (PUSH 1 twice) whose meaning is not recoverable from this call site. */
 void ai_debug_vocalize(const char *vocalization_name,
                        const char *vocalization_type_name)
@@ -1201,12 +1201,12 @@ void ai_debug_vocalize(const char *vocalization_name,
     actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)0x5ac9f8);
     *(uint8_t *)0x5aca89 = 1;
     if (*(int32_t *)((char *)actor + 0x18) != -1) {
-      vocalization_index = FUN_001a6cd0(vocalization_name);
-      vocalization_type = FUN_001a67e0(vocalization_type_name);
+      vocalization_index = unit_get_speech_priority_by_name(vocalization_name);
+      vocalization_type = dialogue_get_vocalization_type_by_name(vocalization_type_name);
       if (vocalization_index > 0 && vocalization_type != -1) {
         sound_definition_index = -1;
         communication_count =
-          FUN_001a68d0(*(int32_t *)((char *)actor + 0x18), vocalization_index,
+          unit_test_speech(*(int32_t *)((char *)actor + 0x18), vocalization_index,
                        1, 1, NULL, &vocalization_type, &sound_definition_index);
         if (communication_count != 0) {
           csmemset(communication, 0, 0x30);
@@ -1214,7 +1214,7 @@ void ai_debug_vocalize(const char *vocalization_name,
           *(short *)(communication + 0x02) = vocalization_type;
           *(int32_t *)(communication + 0x04) = sound_definition_index;
           ai_communication_packet_new(communication + 0x10);
-          FUN_001a6ef0(*(int32_t *)((char *)actor + 0x18), communication_count,
+          unit_speak(*(int32_t *)((char *)actor + 0x18), communication_count,
                        communication);
         }
       }
@@ -1222,7 +1222,7 @@ void ai_debug_vocalize(const char *vocalization_name,
   }
 }
 
-/* FUN_0004a030 (0x4a030): per-tick service routine for the debug "speak"
+/* ai_debug_speech_update (0x4a030): per-tick service routine for the debug "speak"
  * request block that ai_debug_speak (0x4a220) and ai_debug_speak_list
  * (0x4a290) arm.  While the block is active it waits for the unit to stop
  * talking, waits out a countdown, asks the unit for the communication that
@@ -1239,12 +1239,12 @@ void ai_debug_vocalize(const char *vocalization_name,
  *   `local_2c[32]` at EBP-0x28 is NOT an independent local: EBP-0x28 is
  *   record + 0x10, so ai_communication_packet_new receives an interior pointer
  *   into the same buffer.  Declaring it as a second array would grow the frame
- *   past 0x38 and hand FUN_001a6ef0 the wrong bytes.  This is the same layout
+ *   past 0x38 and hand unit_speak the wrong bytes.  This is the same layout
  *   ai_debug_vocalize (0x49f60) uses.
  * Confirmed: [EBP-0x8] is a dword sound-definition index preset to -1 by
  *   MOV dword ptr [EBP-0x8],0xffffffff before the lookup, and [EBP-0x4] is a
  *   word vocalization type seeded from the 16-bit global at 0x6324ea.  Both
- *   are out-parameters of FUN_001a68d0 and are read back afterwards.
+ *   are out-parameters of unit_test_speech and are read back afterwards.
  * Confirmed global widths (all accesses are of the stated size; widening any
  *   of them changes the emitted load/store and the 0xd1 wraparound):
  *   0x6324e0  byte   speak-block active flag
@@ -1261,7 +1261,7 @@ void ai_debug_vocalize(const char *vocalization_name,
  *   object_try_and_get_and_verify_type (0x13d640) @ 0x4a054, ADD ESP,8
  *     1  | PUSH EAX (= [0x6324e4])          | *(int32_t *)0x6324e4      | yes
  *     2  | PUSH 3 (pushed first)            | 3                         | yes
- *   FUN_001a68d0 (0x1a68d0) @ 0x4a0d7, ADD ESP,0x1c (7 dwords)
+ *   unit_test_speech (0x1a68d0) @ 0x4a0d7, ADD ESP,0x1c (7 dwords)
  *     1  | PUSH EDX (= [0x6324e4])          | *(int32_t *)0x6324e4      | yes
  *     2  | PUSH 3                           | 3                         | yes
  *     3  | PUSH 0                           | 0                         | yes
@@ -1275,7 +1275,7 @@ void ai_debug_vocalize(const char *vocalization_name,
  *     3  | PUSH 0x30 (pushed first)         | 0x30                      | yes
  *   ai_communication_packet_new (0x42d20) @ 0x4a112
  *     1  | PUSH EAX (= LEA [EBP-0x28])      | communication + 0x10      | yes
- *   FUN_001a6ef0 (0x1a6ef0) @ 0x4a123
+ *   unit_speak (0x1a6ef0) @ 0x4a123
  *     1  | PUSH EDX (= [0x6324e4])          | *(int32_t *)0x6324e4      | yes
  *     2  | PUSH ESI (communication count)   | communication_count       | yes
  *     3  | PUSH ECX (= LEA [EBP-0x38]), 1st | communication             | yes
@@ -1285,21 +1285,21 @@ void ai_debug_vocalize(const char *vocalization_name,
  *   crt_strchr (0x1d95d0) @ 0x4a150
  *     1  | PUSH EAX (strstr result)         | p                         | yes
  *     2  | PUSH 0x5c (pushed first)         | '\\'                      | yes
- *   FUN_001a67b0 (0x1a67b0) @ 0x4a174 and @ 0x4a1b7, ADD ESP,8
+ *   dialogue_get_vocalization_name (0x1a67b0) @ 0x4a174 and @ 0x4a1b7, ADD ESP,8
  *     1  | PUSH EAX (= word [0x6324ea])     | *(int16_t *)0x6324ea      | yes
  *     2  | PUSH 0 (pushed first)            | 0                         | yes
  *   console_printf (0xff4d0) @ 0x4a184
  *     1  | PUSH 0 (pushed last)             | 0                         | yes
  *     2  | PUSH 0x259f2c                    | "%s: %s"                  | yes
- *     3  | PUSH EAX (FUN_001a67b0 result)   | FUN_001a67b0(index, 0)    | yes
+ *     3  | PUSH EAX (dialogue_get_vocalization_name result)   | dialogue_get_vocalization_name(index, 0)    | yes
  *     4  | PUSH ESI (pushed first)          | name                      | yes
  *   csstrcmp (0x8dcb0) @ 0x4a1c0
- *     1  | PUSH EAX (FUN_001a67b0 result)   | FUN_001a67b0(index, 0)    | yes
+ *     1  | PUSH EAX (dialogue_get_vocalization_name result)   | dialogue_get_vocalization_name(index, 0)    | yes
  *     2  | PUSH 0x25ad00 (pushed first)     | "unused"                  | yes
  *   The ADD ESP,0x1c at 0x4a12b is a single coalesced cleanup covering
  *   csmemset's three pushes, ai_communication_packet_new's one and
- *   FUN_001a6ef0's three, so the enrichment ARG_COUNT warnings on
- *   FUN_001a6ef0 ("cleanup=7, decl=3") and crt_strstr ("cleanup=3, decl=2")
+ *   unit_speak's three, so the enrichment ARG_COUNT warnings on
+ *   unit_speak ("cleanup=7, decl=3") and crt_strstr ("cleanup=3, decl=2")
  *   are false positives; the raw push counts above are 3 and 2.
  *
  * Store-offset table for the communication record (derived from the raw MOV
@@ -1326,7 +1326,7 @@ void ai_debug_vocalize(const char *vocalization_name,
  *   would drop two instructions.  The advance loop at 0x4a1a7 is a do/while
  *   whose bottom test re-reads the 16-bit global.
  *
- * Inferred: FUN_001a68d0's second argument 3 is a priority/importance selector
+ * Inferred: unit_test_speech's second argument 3 is a priority/importance selector
  *   (ai_debug_vocalize passes the looked-up vocalization index there instead),
  *   and a returned count below 2 means "nothing to say", which is why the
  *   printed tag name degenerates to "<none>".
@@ -1336,7 +1336,7 @@ void ai_debug_vocalize(const char *vocalization_name,
  * Uncertain: the "conditional" / backslash trimming shortens a tag path such
  *   as "...conditional\\<leaf>" to its leaf name; the exact tag-name shape it
  *   targets is not observable here. */
-void FUN_0004a030(void)
+void ai_debug_speech_update(void)
 {
   char communication[0x30];
   int sound_definition_index;
@@ -1377,7 +1377,7 @@ void FUN_0004a030(void)
     vocalization_type = *(int16_t *)0x6324ea;
     sound_definition_index = -1;
     communication_count =
-      FUN_001a68d0(*(int32_t *)0x6324e4, 3, 0, 0, NULL, &vocalization_type,
+      unit_test_speech(*(int32_t *)0x6324e4, 3, 0, 0, NULL, &vocalization_type,
                    &sound_definition_index);
     if (communication_count >= 2) {
       csmemset(communication, 0, 0x30);
@@ -1386,7 +1386,7 @@ void FUN_0004a030(void)
       *(int16_t *)(communication + 0x00) = 4;
       *(int16_t *)(communication + 0x0c) = 0xf;
       ai_communication_packet_new(communication + 0x10);
-      FUN_001a6ef0(*(int32_t *)0x6324e4, communication_count, communication);
+      unit_speak(*(int32_t *)0x6324e4, communication_count, communication);
       if (sound_definition_index != -1) {
         name = tag_get_name(sound_definition_index);
         p = crt_strstr(name, "conditional");
@@ -1405,14 +1405,14 @@ void FUN_0004a030(void)
     } else {
       name = "<none>";
     }
-    console_printf(0, "%s: %s", FUN_001a67b0(*(int16_t *)0x6324ea, 0), name);
+    console_printf(0, "%s: %s", dialogue_get_vocalization_name(*(int16_t *)0x6324ea, 0), name);
     if (*(uint8_t *)0x6324e1 == 0) {
       *(int16_t *)0x6324ea = -1;
     } else {
       *(int16_t *)0x6324e8 = 0xf;
       do {
         *(int16_t *)0x6324ea = (int16_t)(*(int16_t *)0x6324ea + 1);
-        if (csstrcmp(FUN_001a67b0(*(int16_t *)0x6324ea, 0), "unused") != 0) {
+        if (csstrcmp(dialogue_get_vocalization_name(*(int16_t *)0x6324ea, 0), "unused") != 0) {
           break;
         }
         if (*(uint8_t *)0x6324e2 == 0) {
@@ -1435,7 +1435,7 @@ void FUN_0004a030(void)
  *
  * Confirmed ABI: __cdecl, ONE dword stack argument.  `MOV ECX,dword ptr
  *   [EBP+0x8]` at 0x4a23a reads the parameter and pushes it as the single
- *   argument of FUN_001a67e0(const char *), so the parameter is a name
+ *   argument of dialogue_get_vocalization_type_by_name(const char *), so the parameter is a name
  *   string.  The terminator is a plain RET (no RET n), and the kb.json
  *   declaration previously read "void ai_debug_speak(void);", which is wrong;
  *   it is corrected as part of this lift.
@@ -1448,10 +1448,10 @@ void FUN_0004a030(void)
  *   datum_get (0x119320)
  *     1  | PUSH EAX (= [0x6325a4])           | *(data_t **)0x6325a4 | yes
  *     2  | PUSH EAX (= [0x5ac9f8]), pushed 1st| *(int32_t *)0x5ac9f8| yes
- *   FUN_001a67e0 (0x1a67e0)
+ *   dialogue_get_vocalization_type_by_name (0x1a67e0)
  *     1  | PUSH ECX (= [EBP+0x8])            | name                 | yes
  *   The single ADD ESP,0xc at 0x4a248 cleans BOTH calls (8 + 4); MSVC
- *   coalesced the cleanups, so the ARG_COUNT hazard on FUN_001a67e0
+ *   coalesced the cleanups, so the ARG_COUNT hazard on dialogue_get_vocalization_type_by_name
  *   ("cleanup=3 stack args, decl=1") is a false positive.
  *
  * Confirmed store widths and order (LOADW-sensitive; derived from the raw
@@ -1462,7 +1462,7 @@ void FUN_0004a030(void)
  *   0x6324e8   | word  | 0                        | MOV word ptr [...],CX
  *   0x6324e1   | byte  | 0                        | same XOR-zeroed ECX
  *   0x6324e4   | dword | actor[+0x18]             | unit handle
- *   0x6324ea   | word  | FUN_001a67e0 result      | vocalization type index
+ *   0x6324ea   | word  | dialogue_get_vocalization_type_by_name result      | vocalization type index
  * Declaring 0x6324e8 / 0x6324ea as 32-bit or 0x5aca89 / 0x6324e0 / 0x6324e1
  * as anything wider than a byte changes the emitted store size.
  *
@@ -1486,7 +1486,7 @@ void ai_debug_speak(const char *name)
 
   if (*(int32_t *)0x5ac9f8 != -1) {
     actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)0x5ac9f8);
-    vocalization_type = FUN_001a67e0(name);
+    vocalization_type = dialogue_get_vocalization_type_by_name(name);
     if (*(int32_t *)((char *)actor + 0x18) != -1 && vocalization_type != -1) {
       *(uint8_t *)0x5aca89 = 1;
       *(uint8_t *)0x6324e0 = 1;
@@ -1597,7 +1597,7 @@ void ai_debug_speak(const char *name)
  *   original does not cache it, so neither do we.
  *
  * Inferred: the index column is an index into the engine's vocalization table
- *   (the same space ai_debug_speak's FUN_001a67e0 lookup returns), and the
+ *   (the same space ai_debug_speak's dialogue_get_vocalization_type_by_name lookup returns), and the
  *   values are the first vocalization of each named category.
  * Uncertain: the meaning of the individual bytes in 0x6324e0..0x6324e2 is not
  *   recoverable from these two call sites, so they are left as raw addresses;
@@ -1673,7 +1673,7 @@ void ai_debug_speak_list(const char *list_name)
   }
 }
 
-/* ai_debug_toggle_flags (0x4a460): parse a list of debug-flag names into a
+/* ai_debug_communication_toggle_bits (0x4a460): parse a list of debug-flag names into a
  * temporary bit vector and toggle those bits in a caller-supplied vector.
  *
  * __FILE__ assert xref confirms the TU: c:\halo\SOURCE\ai\ai_debug.c, lines
@@ -1756,7 +1756,7 @@ void ai_debug_speak_list(const char *list_name)
  * (SAR) on both the mask and the destination.
  *
  * No FPU instructions, no struct field access. */
-void ai_debug_toggle_flags(int count, char **names, int dest_vector,
+void ai_debug_communication_toggle_bits(int count, char **names, int dest_vector,
                            uint32_t vector_size,
                            int16_t(__cdecl *lookup)(const char *))
 {
@@ -1844,7 +1844,7 @@ void ai_debug_toggle_flags(int count, char **names, int dest_vector,
 /* ai_debug_communication_suppress (0x4a650): console/script command that
  * toggles bits in the AI communication-suppression bit vector at 0x5aca14.
  *
- * A pure forwarder to ai_debug_toggle_flags (0x4a460) with three constants
+ * A pure forwarder to ai_debug_communication_toggle_bits (0x4a460) with three constants
  * baked in: the destination bit vector, its size in bits, and the
  * name->type lookup used to resolve each argument string.
  *
@@ -1858,7 +1858,7 @@ void ai_debug_toggle_flags(int count, char **names, int dest_vector,
  * declaration of `void (void)` is why the decompiler emitted an
  * argument-less wrapper around a bare FUN_0004a460() call.
  *
- * Call-site table for ai_debug_toggle_flags (last push = first arg, cdecl):
+ * Call-site table for ai_debug_communication_toggle_bits (last push = first arg, cdecl):
  *   arg5 lookup      PUSH 0x42ce0  -> ai_communication_get_type_by_name
  *   arg4 vector_size PUSH 0x39     -> 57 communication types
  *   arg3 dest_vector PUSH 0x5aca14 -> suppression bit vector, passed as an
@@ -1878,7 +1878,7 @@ void ai_debug_toggle_flags(int count, char **names, int dest_vector,
  * argument count and the argument string vector. */
 void ai_debug_communication_suppress(int count, char **names)
 {
-  ai_debug_toggle_flags(count, names, 0x5aca14, 0x39,
+  ai_debug_communication_toggle_bits(count, names, 0x5aca14, 0x39,
                         ai_communication_get_type_by_name);
 }
 
@@ -1888,7 +1888,7 @@ void ai_debug_communication_suppress(int count, char **names)
  * Structurally identical to ai_debug_communication_suppress (0x4a650) eight
  * bytes earlier; the ONLY difference is the destination bit vector constant
  * (0x5aca1c here vs 0x5aca14 there).  Both are pure forwarders to
- * ai_debug_toggle_flags (0x4a460) with three constants baked in: the
+ * ai_debug_communication_toggle_bits (0x4a460) with three constants baked in: the
  * destination bit vector, its size in bits, and the name->type lookup used
  * to resolve each argument string.
  *
@@ -1902,7 +1902,7 @@ void ai_debug_communication_suppress(int count, char **names)
  * declaration of `void (void)` is why the decompiler emitted an
  * argument-less wrapper around a bare FUN_0004a460() call.
  *
- * Call-site table for ai_debug_toggle_flags (last push = first arg, cdecl):
+ * Call-site table for ai_debug_communication_toggle_bits (last push = first arg, cdecl):
  *   arg5 lookup      PUSH 0x42ce0  -> ai_communication_get_type_by_name
  *   arg4 vector_size PUSH 0x39     -> 57 communication types
  *   arg3 dest_vector PUSH 0x5aca1c -> ignore bit vector, passed as an
@@ -1922,7 +1922,7 @@ void ai_debug_communication_suppress(int count, char **names)
  * argument count and the argument string vector. */
 void ai_debug_communication_ignore(int count, char **names)
 {
-  ai_debug_toggle_flags(count, names, 0x5aca1c, 0x39,
+  ai_debug_communication_toggle_bits(count, names, 0x5aca1c, 0x39,
                         ai_communication_get_type_by_name);
 }
 
@@ -1931,7 +1931,7 @@ void ai_debug_communication_ignore(int count, char **names)
  *
  * Structurally identical to ai_debug_communication_suppress (0x4a650) and
  * ai_debug_communication_ignore (0x4a680); all three are pure forwarders to
- * ai_debug_toggle_flags (0x4a460) with three constants baked in: the
+ * ai_debug_communication_toggle_bits (0x4a460) with three constants baked in: the
  * destination bit vector, its size in bits, and the name->index lookup used
  * to resolve each argument string.  This one differs in ALL THREE constants,
  * not just the vector address.
@@ -1946,8 +1946,8 @@ void ai_debug_communication_ignore(int count, char **names)
  * declaration of `void (void)` is why the decompiler emitted an
  * argument-less wrapper around a bare FUN_0004a460() call.
  *
- * Call-site table for ai_debug_toggle_flags (last push = first arg, cdecl):
- *   arg5 lookup      PUSH 0x1a67e0  -> FUN_001a67e0, the same name->index
+ * Call-site table for ai_debug_communication_toggle_bits (last push = first arg, cdecl):
+ *   arg5 lookup      PUSH 0x1a67e0  -> dialogue_get_vocalization_type_by_name, the same name->index
  *                                      lookup ai_debug_speak uses for the
  *                                      vocalization type name
  *   arg4 vector_size PUSH 0xd1      -> 209 entries
@@ -1964,7 +1964,7 @@ void ai_debug_communication_ignore(int count, char **names)
  * disagree with the "communication" reading of that name: the sibling
  * suppress/ignore commands use the 57-entry communication-type table via
  * ai_communication_get_type_by_name (0x42ce0), whereas this one uses the
- * 209-entry vocalization-type lookup FUN_001a67e0 (0x1a67e0).  So the bit
+ * 209-entry vocalization-type lookup dialogue_get_vocalization_type_by_name (0x1a67e0).  So the bit
  * vector at 0x5aca24 is indexed by vocalization type, not communication
  * type.  Neither the vector nor the lookup has an independent name string,
  * so the kb name is kept as-is and the discrepancy is recorded here.
@@ -1975,7 +1975,7 @@ void ai_debug_communication_ignore(int count, char **names)
  * __FILE__ string of its own. */
 void ai_debug_communication_focus(int count, char **names)
 {
-  ai_debug_toggle_flags(count, names, 0x5aca24, 0xd1, FUN_001a67e0);
+  ai_debug_communication_toggle_bits(count, names, 0x5aca24, 0xd1, dialogue_get_vocalization_type_by_name);
 }
 
 /* ai_debug_idle_look_clear: reset the idle-look debug block at 0x6323d4 to
@@ -2047,7 +2047,7 @@ void ai_debug_idle_look_addprop(int index, float value)
   }
 }
 
-/* FUN_0004a8c0 (0x4a8c0) — render the AI "communication" debug ring buffer.
+/* ai_debug_render_spatial_effects (0x4a8c0) — render the AI "communication" debug ring buffer.
  * Walks the 32-entry ring stored in the AI globals block (*(char**)0x632574)
  * from head (+0x130) to tail (+0x132), and for every live entry draws a debug
  * sphere at the entry's position plus a text label "c<count> t<age>" offset
@@ -2070,14 +2070,14 @@ void ai_debug_idle_look_addprop(int index, float value)
  * by actors.c:3555 and actor_looking.c:835.
  *
  * Call-site verification (all cdecl, ADD ESP,0x10 after each):
- *   0x4a955 FUN_00189540: PUSH EBX(color) / PUSH 0x3e4ccccd(0.2f) /
+ *   0x4a955 render_debug_sphere: PUSH EBX(color) / PUSH 0x3e4ccccd(0.2f) /
  *           PUSH ESI(=EDI+4, position) / PUSH 1  -> (1, pos, 0.2f, color)
  *   0x4a9a6 csprintf:     PUSH EAX(game_time-timestamp) / PUSH ECX(count) /
  *           PUSH 0x25aed0("c%d t%d") / PUSH 0x5ab100(static buffer)
- *   0x4a9b5 FUN_00189cb0: PUSH EBX(color) at 0x4a96e — BEFORE csprintf's own
+ *   0x4a9b5 render_debug_string_at_point: PUSH EBX(color) at 0x4a96e — BEFORE csprintf's own
  *           pushes — then PUSH EAX(csprintf result) / PUSH EDX(&text_position)
  *           / PUSH 1.  The hoisted colour push proves the csprintf call is
- *           NESTED as argument 3 of FUN_00189cb0, not assigned to a temp.
+ *           NESTED as argument 3 of render_debug_string_at_point, not assigned to a temp.
  *           EBX is reloaded with [EDI+0x10] (timestamp) right after its push.
  *
  * Store-offset table (text_position, EBP-0x20 .. EBP-0x18, passed by
@@ -2096,7 +2096,7 @@ void ai_debug_idle_look_addprop(int index, float value)
  * wrap.  Confirmed: cdecl, no args, PUSH EBP / MOV EBP,ESP / SUB ESP,0x20;
  * EBX/ESI/EDI are saved only on the non-empty path (MSVC sank the saves past
  * the initial JE). */
-void FUN_0004a8c0(void)
+void ai_debug_render_spatial_effects(void)
 {
   short index;
   int game_time;
@@ -2125,12 +2125,12 @@ void FUN_0004a8c0(void)
       if (type >= 0 && type < 3) {
         color = *color_table[type];
       }
-      FUN_00189540(1, pos, 0.2f, color);
+      render_debug_sphere(1, pos, 0.2f, color);
       up = *(float **)0x31fc44;
       text_position[0] = up[0] * 0.3f + pos[0];
       text_position[1] = up[1] * 0.3f + pos[1];
       text_position[2] = up[2] * 0.3f + pos[2];
-      FUN_00189cb0(1, text_position,
+      render_debug_string_at_point(1, text_position,
                    csprintf((char *)0x5ab100, "c%d t%d",
                             (int)*(int16_t *)(entry + 2),
                             game_time - *(int32_t *)(entry + 0x10)),
@@ -2141,7 +2141,7 @@ void FUN_0004a8c0(void)
   }
 }
 
-/* FUN_0004a9f0 (0x4a9f0) — O(n^2) pairwise suppression pass over the
+/* ai_debug_path_storage_update (0x4a9f0) — O(n^2) pairwise suppression pass over the
  * actor_path_debug_array (base *(char **)0x331f5c, stride 0x1ca7c, 0x20
  * slots).  For every ordered pair (outer, inner) with inner > outer, when both
  * records are live and they describe the "same" debug event, the older of the
@@ -2198,7 +2198,7 @@ void FUN_0004a8c0(void)
  *   between the FCOMP and the FNSTSW, which is pure scheduling.
  *   This is the ONLY call in the function; no buffers are allocated or passed,
  *   so there is no store-offset table to derive. */
-void FUN_0004a9f0(void)
+void ai_debug_path_storage_update(void)
 {
   char *inner;
   char *outer;
@@ -2436,8 +2436,8 @@ void ai_debug_update(void)
     *(uint8_t *)0x5ac9c3 = '\0';
   }
 
-  FUN_0004a030();
-  FUN_0004a9f0();
+  ai_debug_speech_update();
+  ai_debug_path_storage_update();
 }
 
 /* ai_debug_select_encounter: reset debug encounter state when encounter_idx
@@ -2449,7 +2449,7 @@ void ai_debug_update(void)
  *
  * No __FILE__ string.  Called from ai_debug_select_actor,
  * ai_debug_initialize_for_new_map, ai_debug_change_selected_encounter,
- * FUN_00054e40.
+ * ai_scripting_select.
  *
  * Call-site verification:
  *   ai_debug_initialize_for_new_map @ 0x4c116: PUSH ESI (enc_idx, int) ->
@@ -2656,7 +2656,7 @@ void ai_debug_teleport_to(int encounter_index)
  * boolean and 0x6323dc zeroed as a word).
  *
  * No __FILE__ string.  Called from ai_debug_select_encounter (0x49220),
- * FUN_0004b7a0, ai_debug_change_selected_actor, FUN_00054e20.
+ * ai_debug_select_this_actor, ai_debug_change_selected_actor, ai_scripting_deselect.
  *
  * Call-site verification (only one CALL):
  *   0x4b1ca: PUSH EAX — EAX set from [EBP+0x8] at 0x4b1b3 = encounter_idx
@@ -2778,33 +2778,33 @@ float *ai_debug_drawstack(void)
  *           convention for object-pointer fields with no recovered struct
  *           (see the object+0x2d4 "owner handle" cast earlier in this file).
  *   0x4b6a1 weapon != NULL && *(int*)(weapon+0x2d4) == object_handle (i.e.
- *           the weapon's owner is this unit) selects the FUN_0001aae0 path;
+ *           the weapon's owner is this unit) selects the object_get_bounding_sphere path;
  *           otherwise biped_get_camera_height_and_offset.
- *   0x4b6b8 FUN_0001aae0(weapon_handle, center, &camera_height); the
+ *   0x4b6b8 object_get_bounding_sphere(weapon_handle, center, &camera_height); the
  *           height_offset out-param is not touched by this callee and is set
  *           to 0.0f explicitly right after (0x4b6c0), matching decompile.
  *   0x4b6d6 biped_get_camera_height_and_offset(object_handle, (vector3_t*)
  *           center, &height_offset, &camera_height) — argument order fixed
  *           by push order (EDI pushed last = arg1).
- *   0x4b6e3/0x4b6f3 FCOMP+FNSTSW+TEST AH,0x41/JNZ: branch-B (FUN_00189540) is
+ *   0x4b6e3/0x4b6f3 FCOMP+FNSTSW+TEST AH,0x41/JNZ: branch-B (render_debug_sphere) is
  *           taken when draw_flag==0 OR height_offset<=*(float*)0x2533c0;
- *           branch-A (FUN_00189860) only when draw_flag!=0 AND
+ *           branch-A (render_debug_pill) only when draw_flag!=0 AND
  *           height_offset>that threshold. This matches the decompile's
  *           `(flag=='\0') || (height_offset<=FLOAT_002533c0)` predicate.
- *   0x4b718 FUN_00189860(1, center, height_vec, camera_height, color) where
+ *   0x4b718 render_debug_pill(1, center, height_vec, camera_height, color) where
  *           height_vec = {0.0f, 0.0f, height_offset} is built in-place
  *           (EBP-0x20/-0x1c/-0x18) right before the call; radius arg is the
  *           unscaled camera_height (no FMUL on this path).
- *   0x4b736 FUN_00189540(1, center, camera_height * *(float*)0x25afcc,
+ *   0x4b736 render_debug_sphere(1, center, camera_height * *(float*)0x25afcc,
  *           color) — PUSH ECX is a dummy slot immediately overwritten by
  *           FSTP [ESP] with the FMUL result (FPU_ARG hazard already
  *           resolved: the real float arg is the FSTP value, not the pushed
  *           dummy register).
- *   0x4b759 (only if draw_flag!=0) FUN_00189150(1, center, camera_height *
+ *   0x4b759 (only if draw_flag!=0) render_debug_point(1, center, camera_height *
  *           *(float*)0x255154, color) — same FSTP-over-dummy shape.
  *
  * Uncertain: no __FILE__ string/assert anchor for this function; kept as
- * ai_debug_highlight_unit. Confirmed callers: FUN_0004c920 (0x4caaa, 0x4cad6),
+ * ai_debug_highlight_unit. Confirmed callers: ai_debug_render_actor (0x4caaa, 0x4cad6),
  * not yet ported, so the caller-side register setup is not cross-checked here.
  */
 void ai_debug_highlight_unit(int object_handle, void *color, char draw_flag)
@@ -2825,7 +2825,7 @@ void ai_debug_highlight_unit(int object_handle, void *color, char draw_flag)
   weapon_handle = *(int32_t *)((char *)unit + 0xcc);
   weapon = object_try_and_get_and_verify_type(weapon_handle, 3);
   if (weapon != NULL && *(int32_t *)((char *)weapon + 0x2d4) == object_handle) {
-    FUN_0001aae0(weapon_handle, center, &camera_height);
+    object_get_bounding_sphere(weapon_handle, center, &camera_height);
     height_offset = 0.0f;
   } else {
     biped_get_camera_height_and_offset(object_handle, (vector3_t *)center,
@@ -2833,21 +2833,21 @@ void ai_debug_highlight_unit(int object_handle, void *color, char draw_flag)
   }
 
   if (draw_flag == 0 || height_offset <= *(float *)0x2533c0) {
-    FUN_00189540(1, center, camera_height * *(float *)0x25afcc, color);
+    render_debug_sphere(1, center, camera_height * *(float *)0x25afcc, color);
   } else {
     height_vec[0] = 0.0f;
     height_vec[1] = 0.0f;
     height_vec[2] = height_offset;
-    FUN_00189860(1, center, height_vec, camera_height, color);
+    render_debug_pill(1, center, height_vec, camera_height, color);
   }
 
   if (draw_flag != 0) {
-    FUN_00189150(1, center, camera_height * *(float *)0x255154, color);
+    render_debug_point(1, center, camera_height * *(float *)0x255154, color);
   }
 }
 
-/* FUN_0004b7a0: service the pending "select actor" debug-key request.  Asks
- * FUN_00049c70 for a candidate actor handle; when one exists, describes it into
+/* ai_debug_select_this_actor: service the pending "select actor" debug-key request.  Asks
+ * ai_debug_get_this_actor for a candidate actor handle; when one exists, describes it into
  * the shared error/description buffer at 0x5ab100, echoes "selected %s" to the
  * console, and points the debug encounter/actor selection at that actor's
  * encounter (actor + 0x34) and handle.  When no actor is available the
@@ -2858,10 +2858,10 @@ void ai_debug_highlight_unit(int object_handle, void *color, char draw_flag)
  * No __FILE__ string.  38 instructions, two-branch, no FPU, no loops, no stack
  * locals (no `sub esp`): ESI holds the handle, EDI the datum_get result.
  *
- * FUN_00049c70's kb declaration was `void (void)`; the disassembly does
+ * ai_debug_get_this_actor's kb declaration was `void (void)`; the disassembly does
  * MOV ESI,EAX immediately after the CALL, so it really returns an int handle
  * (-1 = none).  Ghidra models this as `extraout_EAX`.  The kb decl has been
- * corrected to `int FUN_00049c70(void);` (implicit-EAX return, not a register
+ * corrected to `int ai_debug_get_this_actor(void);` (implicit-EAX return, not a register
  * argument).
  *
  * Branch: CMP ESI,-1 / JZ 0x4b7f8 — equality against -1, so the positive
@@ -2895,12 +2895,12 @@ void ai_debug_highlight_unit(int object_handle, void *color, char draw_flag)
  *   [0x5ac9c1] <- 0   byte  (MOV byte ptr [0x005ac9c1],0x0; emitted once per
  *                 branch because the two epilogues differ — the taken branch
  *                 POPs EDI as well as ESI) */
-void FUN_0004b7a0(void)
+void ai_debug_select_this_actor(void)
 {
   int actor_handle;
   char *actor;
 
-  actor_handle = FUN_00049c70();
+  actor_handle = ai_debug_get_this_actor();
   if (actor_handle != -1) {
     actor = (char *)datum_get(actor_data, actor_handle);
     ai_debug_describe_actor(actor_handle, -1, 1, (char *)0x5ab100, 0x100);
@@ -3049,7 +3049,7 @@ void ai_debug_change_selected_actor(int param)
   }
 }
 
-/* FUN_0004c890: draw the camera-follow LOS-hit debug line, then continue the
+/* ai_debug_render_path: draw the camera-follow LOS-hit debug line, then continue the
  * queued path-follow build.
  *
  * Guard: runs only when a target position was captured (DAT_5f91a8, set by
@@ -3058,13 +3058,13 @@ void ai_debug_change_selected_actor(int param)
  * NOT already failed (DAT_60d268 == 0, written by path_state_build_path).
  *
  * Color select (from the 13-entry debug color table documented in
- * ai_debug_render_points_and_lines):
+ * ai_debug_render_lineofsight):
  *   - colors[1] (0x2ee6d8) if neither DAT_5ac9ff nor DAT_5f9228 is set.
  *   - colors[4] (0x2ee6d4) if either is set and DAT_5f925c (int16) == 0.
  *   - colors[11] (0x2ee6e0) if DAT_5f925c (signed int16) >= 0x400.
  *   - colors[7] (0x2ee6e8) otherwise.
  * Draws a line from DAT_5f91ac (captured position) to DAT_5f91c4 (LOS-hit
- * slot 0) via FUN_00189270.
+ * slot 0) via render_debug_line.
  *
  * Confirmed from disassembly (0x4c890-0x4c91a): the color selection is not
  * the nested-if the decompiler's comma-operator reconstruction suggests.
@@ -3079,12 +3079,12 @@ void ai_debug_change_selected_actor(int param)
  *
  * Second half: if DAT_60d2d0 (path-ready flag, set by ai_debug_update) is
  * set, continue the path with ai_debug_drawstack_setup(&DAT_60d2ec) and
- * FUN_0004c560(&DAT_60d2c4).  Both pass the *address* of the global (MOV
+ * ai_debug_render_path_storage(&DAT_60d2c4).  Both pass the *address* of the global (MOV
  * EAX/ESI, imm32 -- no brackets), not its value, matching their @<eax>/@<esi>
  * float-pointer / void-pointer parameter types already recorded in kb.json.
  *
- * No __FILE__ string.  Called from FUN_000534d0 (0x5359e, unconditional). */
-void FUN_0004c890(void)
+ * No __FILE__ string.  Called from ai_debug_render (0x5359e, unconditional). */
+void ai_debug_render_path(void)
 {
   void *color;
 
@@ -3099,22 +3099,22 @@ void FUN_0004c890(void)
     } else {
       color = *(void **)0x2ee6e8;
     }
-    FUN_00189270(1, (float *)0x5f91ac, (float *)0x5f91c4, color);
+    render_debug_line(1, (float *)0x5f91ac, (float *)0x5f91c4, color);
   }
 
   if (*(uint8_t *)0x60d2d0 != 0) {
     ai_debug_drawstack_setup((float *)0x60d2ec);
-    FUN_0004c560((void *)0x60d2c4);
+    ai_debug_render_path_storage((void *)0x60d2c4);
   }
 }
 
-/* FUN_00052ab0: debug-render one text label per active entry of the 32-entry
+/* ai_debug_render_paths_failed: debug-render one text label per active entry of the 32-entry
  * table at [0x331f5c] (stride 0x1ca7c).  For each entry whose two enable bytes
  * at +0x0c and +0x0d are both non-zero, it offsets the entry's world position
  * by the global up vector, pushes that as the debug-text anchor
  * (ai_debug_drawstack_setup), formats the entry's actor description into a
  * 256-byte stack buffer, draws it at the current text cursor, and runs the
- * paired FUN_0004c560 pass for the entry.
+ * paired ai_debug_render_path_storage pass for the entry.
  *
  * Confirmed (0x52ab0-0x52b50):
  *   - Loop is `do { } while (--count)`: XOR EDI,EDI / MOV EBX,0x20 /
@@ -3149,15 +3149,15 @@ void FUN_0004c890(void)
  *     EBP-0x10c); epilogue is MOV ESP,EBP / POP EBP, no `leave`.
  *
  * Uncertain: no __FILE__ string and no assert anchor, so the original symbol
- *   name is unknown; kept as FUN_00052ab0.
+ *   name is unknown; kept as ai_debug_render_paths_failed.
  * Uncertain: the table at 0x331f5c is left as raw offsets.  Only +0x00 (int
  *   actor handle), +0x0c and +0x0d (enable bytes) and +0x28/+0x2c/+0x30
  *   (float position) are observed here, which is far too little to justify a
  *   struct for a 0x1ca7c-byte record.
  *
- * Called from FUN_000534d0 (per-frame ai_debug render dispatch), gated on
+ * Called from ai_debug_render (per-frame ai_debug render dispatch), gated on
  * the byte at 0x5aca9b. */
-void FUN_00052ab0(void)
+void ai_debug_render_paths_failed(void)
 {
   float position[3];
   char buf[256];
@@ -3177,15 +3177,15 @@ void FUN_00052ab0(void)
       position[2] = up[2] + *(float *)(entry + 0x30);
       ai_debug_drawstack_setup(position);
       ai_debug_describe_actor(*(int *)entry, -1, 1, buf, 0x100);
-      FUN_00189cb0(1, ai_debug_drawstack(), buf, *(int *)0x2ee6d0);
-      FUN_0004c560(entry);
+      render_debug_string_at_point(1, ai_debug_drawstack(), buf, *(int *)0x2ee6d0);
+      ai_debug_render_path_storage(entry);
     }
     offset += 0x1ca7c;
     count--;
   } while (count != 0);
 }
 
-/* FUN_000534d0: per-frame ai_debug render dispatch.  Gated on a byte inside
+/* ai_debug_render: per-frame ai_debug render dispatch.  Gated on a byte inside
  * the structure pointed to by the global at 0x632574; when set, refreshes two
  * scratch globals, re-derives the selected encounter index from the selected
  * actor, then fans out to the individual ai_debug renderers, each behind its
@@ -3206,7 +3206,7 @@ void FUN_00052ab0(void)
  *   [0x5ac9f8]) / PUSH EDX / CALL datum_get / MOV EAX,[EAX+0x34] -- cdecl,
  *   last PUSH is the first argument, so datum_get(actor_data, handle).  The
  *   +0x34 field is the actor's encounter index, matching the use in
- *   FUN_0004b7a0 / ai_debug_select_actor above.
+ *   ai_debug_select_this_actor / ai_debug_select_actor above.
  * Confirmed: three call sites carry arguments that the kb declarations
  *   previously typed away as (void):
  *     0x53575  PUSH EAX ([0x5ac9f4]) / CALL 0x52bb0 / ADD ESP,4   -> 1 arg
@@ -3226,7 +3226,7 @@ void FUN_00052ab0(void)
  * Uncertain: the identity of 0x325660 and of the 0x14 bias applied to it.
  *
  * Called from render_debug.c (0x53... debug render pass). */
-void FUN_000534d0(void)
+void ai_debug_render(void)
 {
   char *actor;
 
@@ -3242,55 +3242,55 @@ void FUN_000534d0(void)
     *(int32_t *)0x5ac9f4 = *(int32_t *)(actor + 0x34);
   }
   if (*(uint8_t *)0x5ac9c1 != 0) {
-    FUN_0004b7a0();
+    ai_debug_select_this_actor();
   }
   if (*(uint8_t *)0x5aca65 == 0) {
     return;
   }
 
   if (*(uint8_t *)0x5aca69 != 0) {
-    FUN_000494e0();
+    ai_debug_render_lineoffire();
   }
   if (*(uint8_t *)0x5aca6a != 0) {
-    ai_debug_render_points_and_lines();
+    ai_debug_render_lineofsight();
   }
   if (*(uint8_t *)0x5aca6b != 0) {
-    FUN_000495b0();
+    ai_debug_render_ballistic_lineoffire();
   }
   if (*(int32_t *)0x5ac9f4 != -1) {
-    FUN_00052bb0(*(int32_t *)0x5ac9f4);
+    ai_debug_render_encounter(*(int32_t *)0x5ac9f4);
   }
   if (*(int32_t *)0x5ac9f8 != -1) {
-    FUN_0004c920(*(int32_t *)0x5ac9f8, 1, 0);
+    ai_debug_render_actor(*(int32_t *)0x5ac9f8, 1, 0);
   }
   if (*(uint8_t *)0x5ac9fc != 0) {
-    FUN_0004c890();
+    ai_debug_render_path();
   }
   if (*(uint8_t *)0x5aca9b != 0) {
-    FUN_00052ab0();
+    ai_debug_render_paths_failed();
   }
   if (*(uint8_t *)0x5aca88 != 0) {
-    FUN_00049d60();
+    ai_debug_render_aiming_validity();
   }
   if (*(uint8_t *)0x5aca66 != 0) {
-    FUN_00052b60(*(uint8_t *)0x5aca67);
+    ai_debug_render_all_actors(*(uint8_t *)0x5aca67);
   }
   if (*(uint8_t *)0x5aca89 != 0 || *(uint8_t *)0x5aca53 != 0 ||
       *(uint8_t *)0x5aca93 != 0) {
-    FUN_0004b810();
+    ai_debug_render_speech();
   }
   if (*(uint8_t *)0x5aca76 != 0) {
-    FUN_0004a770();
+    ai_debug_render_idle_look();
   }
   if (*(uint8_t *)0x5aca8c != 0) {
-    FUN_0004a8c0();
+    ai_debug_render_spatial_effects();
   }
   if (*(uint8_t *)0x5aca91 != 0) {
-    FUN_0004bc70();
+    ai_debug_render_vehicles_enterable();
   }
 }
 
-/* set_real_point3d (0x53620): zero the whole 0xeec-byte ai-debug globals
+/* ai_profile_initialize (0x53620): zero the whole 0xeec-byte ai-debug globals
  * block at 0x5abaa0, then set the byte flag at 0x5abaa4.
  *
  * Confirmed (0x53620-0x5363b, 7 instructions, 0x1c bytes):
@@ -3306,23 +3306,23 @@ void FUN_000534d0(void)
  * csmemset call.  The store is byte-width in the original, so it is written
  * through a uint8_t * here; a dword store would clobber 0x5abaa5..0x5abaa7.
  *
- * Inferred: this is the full-reset counterpart of FUN_00053650 below, which
+ * Inferred: this is the full-reset counterpart of ai_profile_initialize_for_new_map below, which
  * clears only the 0xee0 tail at 0x5abaac (the 28 x 0x88 AI meter array).  This
  * function additionally clears the 12-byte header at 0x5abaa0..0x5abaab and
  * raises the flag at 0x5abaa4, i.e. an enabled/initialized marker.
  *
- * Uncertain: the kb name "set_real_point3d" is retained only because the build
+ * Uncertain: the kb name "ai_profile_initialize" is retained only because the build
  * and verification tooling keys off it; it is almost certainly a bad auto-name
  * (no point3d is involved anywhere in the body).  Sibling 0x53650 kept its
  * FUN_ name for the same reason.  Uncertain: the layout and meaning of the
  * 12-byte header, and the exact semantics of the 0x5abaa4 flag. */
-void set_real_point3d(void)
+void ai_profile_initialize(void)
 {
   csmemset((void *)0x5abaa0, 0, 0xeec);
   *(uint8_t *)0x5abaa4 = 1;
 }
 
-/* FUN_00053650: zero the 0xee0-byte ai-debug globals block at 0x5abaac.
+/* ai_profile_initialize_for_new_map: zero the 0xee0-byte ai-debug globals block at 0x5abaac.
  *
  * Confirmed (0x53650-0x53664, 6 instructions, 21 bytes):
  *   PUSH 0xee0 / PUSH 0 / PUSH 0x5abaac / CALL csmemset (0x8db80) / ADD ESP,0xc
@@ -3335,15 +3335,15 @@ void set_real_point3d(void)
  * selection state at 0x5ac9d2/0x5ac9f4/0x5ac9f8.  Its element type and count
  * are unknown; the 0xee0 length is taken verbatim from the immediate.
  *
- * Uncertain: the surrounding kb names (0x53640 ai_debug_lineoffire_success,
- * 0x53670 ai_debug_lineofsight_reset) suggest a *_reset shape, but there is no
+ * Uncertain: the surrounding kb names (0x53640 ai_profile_dispose,
+ * 0x53670 ai_profile_dispose_from_old_map) suggest a *_reset shape, but there is no
  * binary evidence for a specific name, so the FUN_ name is retained. */
-void FUN_00053650(void)
+void ai_profile_initialize_for_new_map(void)
 {
   csmemset((void *)0x5abaac, 0, 0xee0);
 }
 
-/* FUN_00053680: per-tick update of the 28-entry AI meter array.
+/* ai_profile_update: per-tick update of the 28-entry AI meter array.
  *
  * TU attribution: both asserts here reference
  * "c:\halo\SOURCE\ai\ai_profile.c" (@ VA 0x25c0ac, referenced from exactly two
@@ -3352,8 +3352,8 @@ void FUN_00053650(void)
  * src/halo/ai/ai_profile.c (which is documented in its own header as being
  * c:\halo\SOURCE\ai\ai_script.c, 0x540b0+).  The function is kept in
  * ai_debug.obj because that is its current kb.json object membership AND
- * because delinked/ai_debug.obj already bounds it (FUN_00053680 @ +0xa730,
- * next symbol FUN_00053790 @ +0xa840), so the VC71 reference is valid here.
+ * because delinked/ai_debug.obj already bounds it (ai_profile_update @ +0xa730,
+ * next symbol ai_profile_display @ +0xa840), so the VC71 reference is valid here.
  * Splitting a real ai_profile.obj TU out is a separate, larger change.
  *
  * Confirmed (0x53680-0x5378f):
@@ -3366,7 +3366,7 @@ void FUN_00053650(void)
  *   [EBP-4] = definition-cursor spill (EBX is reused as the 0x3c divisor at
  *             0x5374b), [EBP-8] = int scratch feeding FIDIV.
  *
- * The meter array is the same 0xee0-byte block that FUN_00053650 zeroes:
+ * The meter array is the same 0xee0-byte block that ai_profile_initialize_for_new_map zeroes:
  * 28 * 0x88 = 0xee0, base 0x5abaac.  Element layout is taken from the
  * biased-cursor offsets in the disassembly, not from the decompiler.
  *
@@ -3408,7 +3408,7 @@ typedef struct ai_meter {
 #define AI_METER_HISTORY_TICKS 60
 #define NUMBER_OF_AI_METERS 28
 
-void FUN_00053680(void)
+void ai_profile_update(void)
 {
   const ai_meter_definition *definition;
   int divisor;
@@ -3465,7 +3465,7 @@ void FUN_00053680(void)
   } while (index < NUMBER_OF_AI_METERS);
 }
 
-/* FUN_00053790: append the AI pool-usage summary line to an existing string.
+/* ai_profile_display: append the AI pool-usage summary line to an existing string.
  *
  * Formats nine int16 counters from the ai-debug globals block plus the literal
  * 768 into the text buffer, starting at its current NUL terminator:
@@ -3483,7 +3483,7 @@ void FUN_00053680(void)
  * Uncertain: the individual counter fields have no assert/name evidence, so
  * they stay as raw addresses.  "|n" is byte-exact from 0x25c0d0 (Halo's
  * in-string newline escape); the format also uses the printf space flag. */
-void FUN_00053790(char *buf)
+void ai_profile_display(char *buf)
 {
   crt_sprintf(buf + csstrlen(buf),
               "ai enc % 2d/% 3d, actor % 3d/% 3d/% 3d, unit % 3d/% 3d/% 3d, "
@@ -3517,7 +3517,7 @@ void FUN_00053790(char *buf)
  *
  * Inferred: the trailing MOV AX makes this a short-returning function (the
  * new mode index); the sole caller (FUN_000ffe70 in main.c) discards it. */
-int16_t FUN_00053890(void)
+int16_t ai_profile_change_render_spray(void)
 {
   *(int16_t *)0x5abaa2 = (int16_t)((*(int16_t *)0x5abaa2 + 1) % 3);
   console_printf(0, "AI line-spray: %s",
@@ -3542,7 +3542,7 @@ int16_t FUN_00053890(void)
  * result.  Uncertain: the semantic meaning of data_t+0x30 (types.h leaves it
  * unnamed), so no speculative name is applied here.  The original performs no
  * NULL check on the global; none is added. */
-int16_t FUN_000538d0(void)
+int16_t ai_meter_encounter(void)
 {
   return (*(data_t **)0x5ab270)->unk_48;
 }
@@ -3555,7 +3555,7 @@ int16_t FUN_000538d0(void)
  * Confirmed (XBE 0x538f0-0x5393e): frame is PUSH EBP / MOV EBP,ESP /
  *   SUB ESP,0x1c / PUSH ESI.  The single local is the 28-byte (0x1c) iterator
  *   at EBP-0x1c; ESI is the accumulator, zeroed by XOR ESI,ESI at 0x538f7.
- * Confirmed: iterator init is encounter_iterator_next(&iter, 0) -- PUSH ESI
+ * Confirmed: iterator init is actor_iterator_new(&iter, 0) -- PUSH ESI
  *   (0) then PUSH EAX (&iter) at 0x538fc/0x538fd, cdecl, so flag = 0 (all
  *   encounters), matching ai_erase's all-actors branch.
  * Confirmed: ADD ESP,0xc at 0x5390c is *coalesced* cleanup for both preceding
@@ -3574,14 +3574,14 @@ int16_t FUN_000538d0(void)
  * Uncertain: the semantics of record+0x1e (a cached swarm component count in
  * actors_move_randomly terms, but that path reads the count from the swarm
  * datum rather than the actor), so no name is applied to the field. */
-int16_t FUN_000538f0(void)
+int16_t ai_meter_unit(void)
 {
   char iter[0x1c];
   char *record;
   int total;
 
   total = 0;
-  encounter_iterator_next(iter, 0);
+  actor_iterator_new(iter, 0);
   record = (char *)actor_iterator_next(iter);
   while (record != NULL) {
     total += (*(char *)(record + 6) != 0) ? *(int16_t *)(record + 0x1e) : 1;
@@ -3597,7 +3597,7 @@ int16_t FUN_000538f0(void)
  * Confirmed (XBE 0x53960-0x539a1, 29 instructions): frame is PUSH EBP /
  *   MOV EBP,ESP / SUB ESP,0x1c / PUSH ESI.  The single local is the 28-byte
  *   (0x1c) iterator at EBP-0x1c; ESI is the accumulator, zeroed by XOR ESI,ESI.
- * Confirmed: iterator init is encounter_iterator_next(&iter, 0) -- PUSH ESI
+ * Confirmed: iterator init is actor_iterator_new(&iter, 0) -- PUSH ESI
  *   (still 0) then PUSH EAX (&iter), cdecl right-to-left, so flag = 0 (all
  *   encounters), matching the sibling counter at 0x538f0.
  * Confirmed: the ADD ESP,0xc after the second CALL is *coalesced* cleanup for
@@ -3617,14 +3617,14 @@ int16_t FUN_000538f0(void)
  * Uncertain: the semantics of record+6.  The sibling 0x538f0 tests the same
  *   byte for non-zero to select its swarm branch; here it is summed instead,
  *   so no speculative field name is applied. */
-int16_t FUN_00053960(void)
+int16_t ai_meter_swarm_actor(void)
 {
   char iter[0x1c];
   unsigned char *record;
   short total;
 
   total = 0;
-  encounter_iterator_next(iter, 0);
+  actor_iterator_new(iter, 0);
   record = (unsigned char *)actor_iterator_next(iter);
   while (record != NULL) {
     total += record[6];
@@ -3634,12 +3634,12 @@ int16_t FUN_00053960(void)
 }
 
 /* 0x000539c0 - debug overlay row: encounter and t-prop pool usage
- * (FUN_000539c0).
+ * (ai_profile_show_stats).
  *
  * One of the "%d|t..." debug-overlay row family (0x539c0, 0x53a20, 0x53a90,
  * 0x53af0, 0x53b80, 0x53bf0, ...) that all format a line into the shared debug
  * scratch buffer at 0x5ab280 and hand it to the column-layout row printer
- * FUN_00053800 with an array of tab-stop x positions.  This row uses two stops
+ * ai_profile_string with an array of tab-stop x positions.  This row uses two stops
  * {150, 300} for its four fields.
  *
  * Globals (raw pointer-cast idiom, matching this TU):
@@ -3647,10 +3647,10 @@ int16_t FUN_00053960(void)
  *   0x5abb36 (int16)   : encounters in use
  *   0x5abaae (int16)   : encounter pool capacity
  *   0x5abeee (int16)   : t-props in use  (768 is the literal capacity)
- *   0x2ee6c4 (void *)  : row-printer context pointer, passed to FUN_00053800
+ *   0x2ee6c4 (void *)  : row-printer context pointer, passed to ai_profile_string
  *                        in EAX.  Confirmed: MOV EAX,[0x2ee6c4] at 0x53a00,
  *                        i.e. the *contents* of the global, not its address.
- *                        FUN_00053800 itself falls back to the same load when
+ *                        ai_profile_string itself falls back to the same load when
  *                        its EAX argument is NULL (0x5382a).
  *
  * Confirmed (XBE 0x539c0-0x53a17, 24 instructions):
@@ -3663,13 +3663,13 @@ int16_t FUN_00053960(void)
  *   (0x5abeee / 768).
  *   A single ADD ESP,0x24 cleans both calls (6 dwords for the sprintf + 3 for
  *   the row printer); the call-site argument-count audit reads that merged
- *   cleanup as 9 stack args for FUN_00053800, which is a false positive.
+ *   cleanup as 9 stack args for ai_profile_string, which is a false positive.
  *
  * As in the siblings, the original schedules the two column stores between the
  * sprintf argument pushes and its CALL; they target a local, so the observable
  * order is unchanged.
  */
-void FUN_000539c0(void)
+void ai_profile_show_stats(void)
 {
   short column_positions[2];
 
@@ -3678,15 +3678,15 @@ void FUN_000539c0(void)
               (int)*(int16_t *)0x5abeee, 768);
   column_positions[0] = 0x96; /* 150 */
   column_positions[1] = 0x12c; /* 300 */
-  FUN_00053800((char *)0x5ab280, 2, column_positions, *(void **)0x2ee6c4);
+  ai_profile_string((char *)0x5ab280, 2, column_positions, *(void **)0x2ee6c4);
 }
 
-/* 0x00053a20 - debug overlay row: actor and unit pool usage (FUN_00053a20).
+/* 0x00053a20 - debug overlay row: actor and unit pool usage (ai_profile_show_actors).
  *
- * Sibling of FUN_000539c0 in the "%d/%d" debug-overlay row family (0x539c0,
+ * Sibling of ai_profile_show_stats in the "%d/%d" debug-overlay row family (0x539c0,
  * 0x53a20, 0x53a90, 0x53af0, ...): format one line into the shared debug
  * scratch buffer at 0x5ab280, then hand it to the column-layout row printer
- * FUN_00053800 with the same two tab stops {150, 300}.
+ * ai_profile_string with the same two tab stops {150, 300}.
  *
  * Globals (raw pointer-cast idiom, matching this TU):
  *   0x5ab280 (char[])  : shared debug sprintf scratch buffer
@@ -3696,7 +3696,7 @@ void FUN_000539c0(void)
  *   0x5abe66 (int16)   : units field 1
  *   0x5abdde (int16)   : units field 2
  *   0x5abd56 (int16)   : units field 3
- *   0x2ee6c4 (void *)  : row-printer context pointer, passed to FUN_00053800
+ *   0x2ee6c4 (void *)  : row-printer context pointer, passed to ai_profile_string
  *                        in EAX -- the *contents* of the global, not its
  *                        address.
  *
@@ -3715,8 +3715,8 @@ void FUN_000539c0(void)
  *   then reloaded from [0x2ee6c4] for the register argument.
  *   A single ADD ESP,0x2c cleans both calls (8 dwords for the sprintf + 3 for
  *   the row printer); the call-site argument-count audit reads that merged
- *   cleanup as 11 stack args for FUN_00053800, which is a false positive.
- *   Ghidra additionally prints FUN_00053800 with zero arguments and drops both
+ *   cleanup as 11 stack args for ai_profile_string, which is a false positive.
+ *   Ghidra additionally prints ai_profile_string with zero arguments and drops both
  *   column stores; the four arguments above come from the disassembly.
  *
  * The format string is transcribed verbatim from 0x25c154, including the
@@ -3726,7 +3726,7 @@ void FUN_000539c0(void)
  * sprintf argument pushes and its CALL; they target a local, so the observable
  * order is unchanged.
  */
-void FUN_00053a20(void)
+void ai_profile_show_actors(void)
 {
   short column_positions[2];
 
@@ -3736,16 +3736,16 @@ void FUN_00053a20(void)
               (int)*(int16_t *)0x5abdde, (int)*(int16_t *)0x5abd56);
   column_positions[0] = 0x96; /* 150 */
   column_positions[1] = 0x12c; /* 300 */
-  FUN_00053800((char *)0x5ab280, 2, column_positions, *(void **)0x2ee6c4);
+  ai_profile_string((char *)0x5ab280, 2, column_positions, *(void **)0x2ee6c4);
 }
 
 /* 0x00053a90 - debug overlay row: swarm and t-component pool usage
- * (FUN_00053a90).
+ * (ai_profile_show_swarms).
  *
- * Next sibling of FUN_00053a20 in the "%d/%d" debug-overlay row family
+ * Next sibling of ai_profile_show_actors in the "%d/%d" debug-overlay row family
  * (0x539c0, 0x53a20, 0x53a90, 0x53af0, ...): format one line into the shared
  * debug scratch buffer at 0x5ab280, then hand it to the column-layout row
- * printer FUN_00053800.  Unlike the two-column siblings this row uses a single
+ * printer ai_profile_string.  Unlike the two-column siblings this row uses a single
  * tab stop {150}.
  *
  * Globals (raw pointer-cast idiom, matching this TU):
@@ -3753,7 +3753,7 @@ void FUN_00053a20(void)
  *   0x5ac4c6 (int16)   : swarms field 1
  *   0x5ac43e (int16)   : swarms field 2
  *   0x5ac54e (int16)   : t-components field 1
- *   0x2ee6c4 (void *)  : row-printer context pointer, passed to FUN_00053800
+ *   0x2ee6c4 (void *)  : row-printer context pointer, passed to ai_profile_string
  *                        in EAX -- the *contents* of the global, not its
  *                        address.
  *
@@ -3777,9 +3777,9 @@ void FUN_00053a20(void)
  *   middle of the remaining pushes.
  *   A single ADD ESP,0x28 cleans both calls (7 dwords for the sprintf + 3 for
  *   the row printer); the call-site argument-count audit reads that merged
- *   cleanup as 10 stack args for FUN_00053800, which is a false positive --
+ *   cleanup as 10 stack args for ai_profile_string, which is a false positive --
  *   the declared 3 stack args + 1 @<eax> register arg is correct.
- *   Ghidra additionally prints FUN_00053800 with zero arguments and drops the
+ *   Ghidra additionally prints ai_profile_string with zero arguments and drops the
  *   column store; the four arguments above come from the disassembly.
  *
  * The format string is transcribed verbatim from 0x25c174.
@@ -3788,7 +3788,7 @@ void FUN_00053a20(void)
  * sprintf argument pushes and its CALL; it targets a local, so the observable
  * order is unchanged.
  */
-void FUN_00053a90(void)
+void ai_profile_show_swarms(void)
 {
   short column_positions[1];
 
@@ -3796,16 +3796,16 @@ void FUN_00053a90(void)
               (int)*(int16_t *)0x5ac4c6, (int)*(int16_t *)0x5ac43e, 32,
               (int)*(int16_t *)0x5ac54e, 256);
   column_positions[0] = 0x96; /* 150 */
-  FUN_00053800((char *)0x5ab280, 1, column_positions, *(void **)0x2ee6c4);
+  ai_profile_string((char *)0x5ab280, 1, column_positions, *(void **)0x2ee6c4);
 }
 
 /* 0x00053af0 - debug overlay row: t-prop usage by allegiance
- * (FUN_00053af0).
+ * (ai_profile_show_prop_types).
  *
- * Next sibling of FUN_00053a90 in the "%d/%d" debug-overlay row family
+ * Next sibling of ai_profile_show_swarms in the "%d/%d" debug-overlay row family
  * (0x539c0, 0x53a20, 0x53a90, 0x53af0, ...): format one line into the shared
  * debug scratch buffer at 0x5ab280, then hand it to the column-layout row
- * printer FUN_00053800.  This is the widest row in the family: nine counters
+ * printer ai_profile_string.  This is the widest row in the family: nine counters
  * grouped enemy / friend / dead, laid out over three tab stops
  * {150, 300, 450}.
  *
@@ -3820,7 +3820,7 @@ void FUN_00053a90(void)
  *   0x5abf76 (int16)   : dead field 1      (a)
  *   0x5abffe (int16)   : dead field 2      (o)
  *   0x5ac086 (int16)   : dead field 3      (u)
- *   0x2ee6c4 (void *)  : row-printer context pointer, passed to FUN_00053800
+ *   0x2ee6c4 (void *)  : row-printer context pointer, passed to ai_profile_string
  *                        in EAX -- the *contents* of the global, not its
  *                        address.
  *
@@ -3842,9 +3842,9 @@ void FUN_00053a90(void)
  *   the remaining pushes.
  *   A single ADD ESP,0x38 cleans both calls (11 dwords for the sprintf + 3 for
  *   the row printer); the call-site argument-count audit reads that merged
- *   cleanup as 14 stack args for FUN_00053800, which is a false positive --
+ *   cleanup as 14 stack args for ai_profile_string, which is a false positive --
  *   the declared 3 stack args + 1 @<eax> register arg is correct.
- *   Ghidra additionally prints FUN_00053800 with zero arguments and drops the
+ *   Ghidra additionally prints ai_profile_string with zero arguments and drops the
  *   column stores; the four arguments above come from the disassembly.
  *
  * The format string is transcribed verbatim from 0x25c198: the XBE bytes are
@@ -3855,7 +3855,7 @@ void FUN_00053a90(void)
  * sprintf argument pushes and its CALL; they target a local, so the observable
  * order is unchanged.
  */
-void FUN_00053af0(void)
+void ai_profile_show_prop_types(void)
 {
   short column_positions[3];
 
@@ -3869,5 +3869,5 @@ void FUN_00053af0(void)
   column_positions[0] = 0x96; /* 150 */
   column_positions[1] = 0x12c; /* 300 */
   column_positions[2] = 0x1c2; /* 450 */
-  FUN_00053800((char *)0x5ab280, 3, column_positions, *(void **)0x2ee6c4);
+  ai_profile_string((char *)0x5ab280, 3, column_positions, *(void **)0x2ee6c4);
 }

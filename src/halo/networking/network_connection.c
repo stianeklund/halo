@@ -212,7 +212,7 @@ bool network_connection_going_stale(int connection)
   return (conn->flags >> _connection_going_stale_bit) & 1;
 }
 
-/* network_connection_read_unreliable (0x1286e0).
+/* network_client_unreliable_connection_read (0x1286e0).
  * Dequeues one datagram message from the connection's unreliable incoming
  * queue (+0x14).  connection arrives in ESI.  Asserts the connection has an
  * unreliable queue and is not a server-side client, and that message/buffer
@@ -225,7 +225,7 @@ bool network_connection_going_stale(int connection)
  * fills the optional out address (addr+0x10 family=4, addr+0x12=0), writes the
  * payload size back through *size, and returns true.  A partial datagram logs
  * an error, resets the queue, and returns false. */
-bool network_connection_read_unreliable(int connection, void *buffer, int *size,
+bool network_client_unreliable_connection_read(int connection, void *buffer, int *size,
                                         void *addr)
 {
   network_connection *conn;
@@ -297,7 +297,7 @@ bool network_connection_read_unreliable(int connection, void *buffer, int *size,
   return false;
 }
 
-/* network_connection_notify_traffic_event (0x1288e0).
+/* network_connection_log_traffic_event (0x1288e0).
  * Records a traffic event against a connection's statistics and optional debug
  * traffic log.  Registers: event in ECX, enable/amount in EAX, connection in
  * ESI.  All work is gated on enable > 0.  event selects an 8-way switch:
@@ -317,7 +317,7 @@ bool network_connection_read_unreliable(int connection, void *buffer, int *size,
  * referenced by their original rodata address (the exact pointer the original
  * passes to fwprintf).  The signed tick delta is folded to unsigned via
  * _DAT_00265d40 (2^32) before scaling by _DAT_00294bf0 (seconds per tick). */
-void network_connection_notify_traffic_event(int event, int enable,
+void network_connection_log_traffic_event(int event, int enable,
                                              int connection)
 {
   uint8_t addr_buf[24];
@@ -355,7 +355,7 @@ void network_connection_notify_traffic_event(int event, int enable,
         break;
       }
     }
-    FUN_0008dc30(name_buf, (const char *)0x294d58);
+    csstrcat(name_buf, (const char *)0x294d58);
     conn->traffic_log_file = crt_fopen(name_buf, (const char *)0x265938);
     if (conn->traffic_log_file != (void *)0) {
       crt_fprintf(conn->traffic_log_file, (const char *)0x294d10);
@@ -493,7 +493,7 @@ void network_connection_keep_alive(int connection)
  * child-connection slots at +0x3c: for each live child it removes the child's
  * endpoint from the server's endpoint set (+0x38) and recursively deletes the
  * child, then deletes the endpoint set itself.  Finally the connection block
- * is freed.  network_connection_notify_traffic_event takes its arguments in
+ * is freed.  network_connection_log_traffic_event takes its arguments in
  * registers (event=ECX, enable=EAX, connection=ESI), matching the original MOV
  * EAX,1 / MOV ECX,EAX setup with the connection already live in ESI. */
 void network_connection_delete(int connection)
@@ -509,7 +509,7 @@ void network_connection_delete(int connection)
   }
   conn = (network_connection *)connection;
   server = (network_server_connection *)connection;
-  network_connection_notify_traffic_event(1, 1, connection);
+  network_connection_log_traffic_event(1, 1, connection);
   if (conn->reliable_endpoint != 0) {
     destroy_endpoint((int *)conn->reliable_endpoint);
   }
@@ -571,7 +571,7 @@ void network_connection_delete(int connection)
  *    FUN_000831a0; with a destination it uses the addressed writer
  *    FUN_00084740 (result discarded).  Always returns true.
  *
- * network_connection_notify_traffic_event (traffic-event notifier) takes its
+ * network_connection_log_traffic_event (traffic-event notifier) takes its
  * args in registers (event=ECX, enable=EAX, connection=ESI); every call site
  * passes event=2, enable=size, connection=connection.  The +0x18 debug-log
  * block is dead in shipping builds (no log file is ever opened) but is
@@ -609,7 +609,7 @@ bool network_connection_write(void *connection, void *message,
     }
     result =
       FUN_00084740(conn->unreliable_endpoint, message, size, dest_address);
-    network_connection_notify_traffic_event(2, size, (int)conn);
+    network_connection_log_traffic_event(2, size, (int)conn);
     goto finish;
   }
 
@@ -661,12 +661,12 @@ bool network_connection_write(void *connection, void *message,
     if (FUN_000831a0(conn->unreliable_endpoint)) {
       send_endpoint((int *)conn->unreliable_endpoint, (const char *)message,
                     size);
-      network_connection_notify_traffic_event(2, size, (int)conn);
+      network_connection_log_traffic_event(2, size, (int)conn);
     }
     return true;
   }
   FUN_00084740(conn->unreliable_endpoint, message, size, dest_address);
-  network_connection_notify_traffic_event(2, size, (int)conn);
+  network_connection_log_traffic_event(2, size, (int)conn);
   return true;
 
 finish:
@@ -676,7 +676,7 @@ finish:
   return result > 0;
 }
 
-/* network_connection_new_serverside_client (0x129270).
+/* network_connection_create_client_from_endpoint (0x129270).
  * Wraps an already-accepted reliable transport endpoint (passed in EDI) in a
  * fresh server-side client connection.  Asserts the endpoint is non-null,
  * allocates a 0x38-byte connection block, marks it a server-side client
@@ -685,7 +685,7 @@ finish:
  * the connection down and returns null.  On success it fires the
  * connection-created traffic event (event 0, enable 1, via registers) and
  * returns the new connection block. */
-void *network_connection_new_serverside_client(int endpoint)
+void *network_connection_create_client_from_endpoint(int endpoint)
 {
   network_connection *connection;
 
@@ -702,13 +702,13 @@ void *network_connection_new_serverside_client(int endpoint)
       network_connection_delete((int)connection);
       return (void *)0;
     }
-    network_connection_notify_traffic_event(0, 1, (int)connection);
+    network_connection_log_traffic_event(0, 1, (int)connection);
   }
   return connection;
 }
 
-/* network_connection_read_reliable (0x1292f0).
- * Sibling of network_connection_read_unreliable for the reliable stream
+/* network_client_reliable_connection_read (0x1292f0).
+ * Sibling of network_client_unreliable_connection_read for the reliable stream
  * incoming queue (+0x10); connection arrives in EDI.  Peeks the 2-byte header,
  * byte-swaps it, derives payload size (header >> 4).  Rejects messages larger
  * than 0x800 bytes or the caller buffer (resetting the queue).  Returns false
@@ -718,7 +718,7 @@ void *network_connection_new_serverside_client(int endpoint)
  * address (FUN_00083a60), zeroing the 0x18-byte address and setting family=4 on
  * a mismatch.  Writes the payload size back through *size, bumps the
  * stream-messages-received counter (+0x2c), and returns true. */
-bool network_connection_read_reliable(int connection, void *buffer, int *size,
+bool network_client_reliable_connection_read(int connection, void *buffer, int *size,
                                       void *addr)
 {
   network_connection *conn;
@@ -882,7 +882,7 @@ finish:
  * (reliable) and +0x14 (unreliable).  Any failure tears the partial connection
  * down via network_connection_delete and returns 0.  On success it fires the
  * connection-created traffic event (event 0, enable 1) and returns the block.
- * network_connection_notify_traffic_event takes its args in registers
+ * network_connection_log_traffic_event takes its args in registers
  * (event=ECX, enable=EAX, connection=ESI), matching the original MOV EAX,1 /
  * XOR ECX,ECX setup with the connection live in ESI.  The reliable/unreliable
  * guards compare the full dword size against zero (original: MOV EAX,[size];
@@ -993,7 +993,7 @@ int network_connection_new(unsigned int flags, unsigned short well_known_port)
       goto fail;
     }
   }
-  network_connection_notify_traffic_event(0, 1, connection);
+  network_connection_log_traffic_event(0, 1, connection);
   return connection;
 
 fail:
@@ -1001,7 +1001,7 @@ fail:
   return 0;
 }
 
-/* network_connection_idle (0x129a30).
+/* network_connection_idle_server_reliable_endpoint (0x129a30).
  * Services a server connection's endpoint set once per call; connection
  * arrives in EBX and *output is cleared, receiving a newly-accepted client
  * connection when one is created.  Polls the endpoint set (poll_endpoint_set);
@@ -1011,7 +1011,7 @@ fail:
  * accepts a new client — when accepting is enabled (+0x4c) and the set is not
  * full (< 5) it accepts the raw endpoint (FUN_00084450), prepares it
  * (FUN_00083bd0) and wraps it in a reliable connection
- * (network_connection_new_serverside_client, endpoint in EDI), storing it into
+ * (network_connection_create_client_from_endpoint, endpoint in EDI), storing it into
  * the first free child slot (+0x3c[0..3]); otherwise it rejects, either
  * invoking the rejection callback (+0x0c) then destroying the endpoint, or
  * silently dropping it (FUN_00084940).  Activity on an existing child endpoint
@@ -1019,7 +1019,7 @@ fail:
  * drain removes the child's endpoint from the set and marks the child closed
  * (flags|0x10). An endpoint matching no known child asserts "rogue endpoint".
  * Returns the running success flag. */
-bool network_connection_idle(int connection, int *output)
+bool network_connection_idle_server_reliable_endpoint(int connection, int *output)
 {
   network_server_connection *server;
   short poll_result;
@@ -1061,7 +1061,7 @@ bool network_connection_idle(int connection, int *output)
             /* accept a new client */
             accepted = FUN_00084450(endpoint);
             if (accepted == 0 || FUN_00083bd0(accepted, 0) != 0 ||
-                (new_conn = (int)network_connection_new_serverside_client(
+                (new_conn = (int)network_connection_create_client_from_endpoint(
                    accepted)) == 0) {
               error(2, "accept_endpoint() returned NULL");
             } else {

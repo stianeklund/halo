@@ -7,10 +7,10 @@ static float render_camera_warning_values
   [MAXIMUM_RENDER_CAMERA_WARNING_CONDITIONS]; /* 0x4d0d18
                                                */
 
-/* render_camera_check_warning_condition - 0x185770
+/* render_camera_warn_once - 0x185770
  * Tracks maximum frustum-integrity violation distances per condition ID.
  * Logs when a condition exceeds its previous worst value. */
-void render_camera_check_warning_condition(int16_t id, float value)
+void render_camera_warn_once(int16_t id, float value)
 {
   assert_halt(id >= 0 && id < MAXIMUM_RENDER_CAMERA_WARNING_CONDITIONS);
 
@@ -501,115 +501,115 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   d = c0[0] * left_p[0] + c0[1] * left_p[1] + c0[2] * left_p[2] - left_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(0, d);
+  render_camera_warn_once(0, d);
 
   d = c2[0] * left_p[0] + c2[1] * left_p[1] + c2[2] * left_p[2] - left_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(1, d);
+  render_camera_warn_once(1, d);
 
   d = cam_pos[0] * left_p[0] + cam_pos[1] * left_p[1] + cam_pos[2] * left_p[2] -
       left_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(2, d);
+  render_camera_warn_once(2, d);
 
   /* Corners vs right plane */
   d = c1[0] * right_p[0] + c1[1] * right_p[1] + c1[2] * right_p[2] - right_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(3, d);
+  render_camera_warn_once(3, d);
 
   d = c3[0] * right_p[0] + c3[1] * right_p[1] + c3[2] * right_p[2] - right_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(4, d);
+  render_camera_warn_once(4, d);
 
   d = cam_pos[0] * right_p[0] + cam_pos[1] * right_p[1] +
       cam_pos[2] * right_p[2] - right_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(5, d);
+  render_camera_warn_once(5, d);
 
   /* Corners vs bottom plane */
   d = c0[0] * bottom_p[0] + c0[1] * bottom_p[1] + c0[2] * bottom_p[2] -
       bottom_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(6, d);
+  render_camera_warn_once(6, d);
 
   d = c1[0] * bottom_p[0] + c1[1] * bottom_p[1] + c1[2] * bottom_p[2] -
       bottom_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(7, d);
+  render_camera_warn_once(7, d);
 
   d = cam_pos[0] * bottom_p[0] + cam_pos[1] * bottom_p[1] +
       cam_pos[2] * bottom_p[2] - bottom_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(8, d);
+  render_camera_warn_once(8, d);
 
   /* Corners vs top plane */
   d = c2[0] * top_p[0] + c2[1] * top_p[1] + c2[2] * top_p[2] - top_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(9, d);
+  render_camera_warn_once(9, d);
 
   d = c3[0] * top_p[0] + c3[1] * top_p[1] + c3[2] * top_p[2] - top_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(10, d);
+  render_camera_warn_once(10, d);
 
   d = cam_pos[0] * top_p[0] + cam_pos[1] * top_p[1] + cam_pos[2] * top_p[2] -
       top_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(11, d);
+  render_camera_warn_once(11, d);
 
   /* Corners vs far plane */
   d = c0[0] * far_p[0] + c0[1] * far_p[1] + c0[2] * far_p[2] - far_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(12, d);
+  render_camera_warn_once(12, d);
 
   d = c1[0] * far_p[0] + c1[1] * far_p[1] + c1[2] * far_p[2] - far_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(13, d);
+  render_camera_warn_once(13, d);
 
   d = c2[0] * far_p[0] + c2[1] * far_p[1] + c2[2] * far_p[2] - far_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(14, d);
+  render_camera_warn_once(14, d);
 
   d = c3[0] * far_p[0] + c3[1] * far_p[1] + c3[2] * far_p[2] - far_p[3];
   if (d < 0.0f)
     d = -d;
-  render_camera_check_warning_condition(15, d);
+  render_camera_warn_once(15, d);
 
   /* Projection center vs all 6 planes (no fabs — signed distance). */
   d = proj_ctr[0] * left_p[0] + proj_ctr[1] * left_p[1] +
       proj_ctr[2] * left_p[2] - left_p[3];
-  render_camera_check_warning_condition(16, d);
+  render_camera_warn_once(16, d);
 
   d = proj_ctr[0] * right_p[0] + proj_ctr[1] * right_p[1] +
       proj_ctr[2] * right_p[2] - right_p[3];
-  render_camera_check_warning_condition(17, d);
+  render_camera_warn_once(17, d);
 
   d = proj_ctr[0] * bottom_p[0] + proj_ctr[1] * bottom_p[1] +
       proj_ctr[2] * bottom_p[2] - bottom_p[3];
-  render_camera_check_warning_condition(18, d);
+  render_camera_warn_once(18, d);
 
   d = proj_ctr[0] * top_p[0] + proj_ctr[1] * top_p[1] + proj_ctr[2] * top_p[2] -
       top_p[3];
-  render_camera_check_warning_condition(19, d);
+  render_camera_warn_once(19, d);
 
   d = proj_ctr[0] * near_p[0] + proj_ctr[1] * near_p[1] +
       proj_ctr[2] * near_p[2] - near_p[3];
-  render_camera_check_warning_condition(20, d);
+  render_camera_warn_once(20, d);
 
   d = proj_ctr[0] * far_p[0] + proj_ctr[1] * far_p[1] + proj_ctr[2] * far_p[2] -
       far_p[3];
-  render_camera_check_warning_condition(21, d);
+  render_camera_warn_once(21, d);
 }

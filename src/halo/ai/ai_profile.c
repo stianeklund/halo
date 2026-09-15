@@ -47,7 +47,7 @@
 /* NUMBER_OF_AI_COUNT_TYPES — identifier verbatim from the assert predicate
  * "(count_type >= 0) && (count_type < NUMBER_OF_AI_COUNT_TYPES)"
  * (ai_script.c:0x405); value 3 from the bound that assert guards. The three
- * count types are the switch arms in FUN_00055350 (@0x55350):
+ * count types are the switch arms in ai_scripting_count_internal (@0x55350):
  *   0 -> the first count field, 1 -> the second, 2 -> their saturating
  *   difference (first - second, clamped at 0). Which field is which is not yet
  *   proven, so they are not named here.
@@ -149,7 +149,7 @@ bool ai_index_from_string(void *scenario, const char *name, int *out_value)
   slash = strrchr(name, '/');
   if (slash == 0) {
     /* no '/': whole name is a profile name */
-    profile_index = FUN_00053e20(scenario, name);
+    profile_index = scenario_get_encounter_by_name(scenario, name);
     if (profile_index != -1) {
       result = profile_index & 0xffff;
     }
@@ -160,18 +160,18 @@ bool ai_index_from_string(void *scenario, const char *name, int *out_value)
 
       csstrncpy(prefix, name, len);
       prefix[len] = '\0';
-      prefix_index = FUN_00053e20(scenario, prefix);
+      prefix_index = scenario_get_encounter_by_name(scenario, prefix);
       if (prefix_index != -1) {
         /* fetch the encounter element, then resolve the part after '/' */
         element =
           tag_block_get_element((char *)scenario + 0x42c, prefix_index, 0xb0);
-        sub_index = FUN_00053e80(element, slash + 1);
+        sub_index = encounter_definition_get_squad_by_name(element, slash + 1);
         if (sub_index != -1) {
           /* selector 2: element+0x80 sub-block */
           result =
             (((sub_index & 0xff) | 0xffff8000) << 16) | (prefix_index & 0xffff);
         } else {
-          sub_index = FUN_00053ee0(element, slash + 1);
+          sub_index = encounter_definition_get_platoon_by_name(element, slash + 1);
           if (sub_index != -1) {
             /* selector 1: element+0x8c sub-block */
             result =
@@ -314,7 +314,7 @@ void ai_index_platoon_iterator_new(unsigned int combined_index, int *out)
  * Asserts (ai_script.c:0x109) that iter is non-NULL.
  *
  * This is the platoon pair, not the squad pair: the step below resolves the
- * cursor through FUN_00054020(encounter, platoon_index), whose kb.json decl
+ * cursor through encounter_get_platoon(encounter, platoon_index), whose kb.json decl
  * names its second parameter platoon_index. (An earlier revision of this
  * comment called the result "the current encounter's squad pointer" — that was
  * wrong; the squad walker is ai_index_squad_iterator_next @0x545a0, which
@@ -334,7 +334,7 @@ void *ai_index_platoon_iterator_next(int *iter)
 
   handle = iter[0];
   if (handle != -1 && iter[1] <= iter[2]) {
-    encounter = FUN_00054020((char *)datum_get(*(data_t **)0x5ab270, handle),
+    encounter = encounter_get_platoon((char *)datum_get(*(data_t **)0x5ab270, handle),
                              (short)(unsigned short)iter[1]);
     iter[1] = iter[1] + 1;
     result = encounter;
@@ -560,11 +560,11 @@ int ai_index_actor_iterator_next(void *iter_arg)
   return (int)actor;
 }
 
-/* FUN_000547c0 — relay all actors named by an ai_index_reference (plus each
+/* object_list_from_ai_reference — relay all actors named by an ai_index_reference (plus each
  * actor's unit and child chain) through FUN_000ce2b0, keyed by the resource
  * handle from FUN_000ce200. Returns that handle, or -1 on bad input / no
  * resource. 0x710 obj / 0x547c0 XBE. */
-int FUN_000547c0(int encounter_handle)
+int object_list_from_ai_reference(int encounter_handle)
 {
   int iter[6]; /* [ebp-0x18], Layout B */
   int resource;
@@ -605,7 +605,7 @@ int FUN_000547c0(int encounter_handle)
  * at each entry; the AI-enabled gate at *(0x632574)+1 gates the actual work in
  * the attach path.
  *
- * 0x54a80 is deliberately left as FUN_00054a80. It previously carried the name
+ * 0x54a80 is deliberately left as ai_scripting_attach_units. It previously carried the name
  * ai_profile_change_render_spray, which is a real PDB symbol but belongs to the
  * real ai_profile.c near 0x536xx — not to this TU (see the file header). Its
  * behaviour is "ai_attach applied over an object's children", so the correct
@@ -616,10 +616,10 @@ int FUN_000547c0(int encounter_handle)
  * address.
  * ------------------------------------------------------------------------- */
 
-/* FUN_00054860 — ai_attach: create one actor (from the encounter squad named
+/* ai_scripting_attach_unit — ai_attach: create one actor (from the encounter squad named
  * by ai_ref) and attach it to the unit object unit_handle. No-ops if AI is
  * disabled or either handle is the -1 sentinel. 0x7b0 obj / 0x54860 XBE. */
-void FUN_00054860(int unit_handle, unsigned int ai_ref)
+void ai_scripting_attach_unit(int unit_handle, unsigned int ai_ref)
 {
   char buffer[0x100]; /* [ebp-0x10c] */
   void *scenario;
@@ -709,11 +709,11 @@ bad_squad:
   error(2, (const char *)0x25c3c0, element);
 }
 
-/* FUN_00054a80 (FUN_00054a80) — ai_attach
+/* ai_scripting_attach_units (ai_scripting_attach_units) — ai_attach
  * over the children of a parent object: iterates every child
  * (FUN_000ce450/FUN_000ce320) and attaches the same ai_ref to each. 0x9d0 obj /
  * 0x54a80 XBE. */
-void FUN_00054a80(int parent_handle, unsigned int ai_ref)
+void ai_scripting_attach_units(int parent_handle, unsigned int ai_ref)
 {
   int iter_state;
   int child;
@@ -722,15 +722,15 @@ void FUN_00054a80(int parent_handle, unsigned int ai_ref)
   if (child == -1)
     return;
   do {
-    FUN_00054860(child, ai_ref);
+    ai_scripting_attach_unit(child, ai_ref);
     child = FUN_000ce320(parent_handle, &iter_state);
   } while (child != -1);
 }
 
-/* FUN_00054ac0 — ai_detach: detach (delete the attached actor of) one unit
+/* ai_scripting_detach_unit — ai_detach: detach (delete the attached actor of) one unit
  * object. No-op if the handle is -1 or it has no attached actor (object+0x1a4
  * == -1). 0xa10 obj / 0x54ac0 XBE. */
-void FUN_00054ac0(int unit_handle)
+void ai_scripting_detach_unit(int unit_handle)
 {
   void *object;
   int actor_handle;
@@ -751,10 +751,10 @@ void FUN_00054ac0(int unit_handle)
   actor_delete(actor_handle, 0);
 }
 
-/* FUN_00054b20 — ai_detach over the children of a parent object: iterates each
+/* ai_scripting_detach_units — ai_detach over the children of a parent object: iterates each
  * child (FUN_000ce450/FUN_000ce320) and detaches its attached actor (inlines
- * FUN_00054ac0). 0xa70 obj / 0x54b20 XBE. */
-void FUN_00054b20(int parent_handle)
+ * ai_scripting_detach_unit). 0xa70 obj / 0x54b20 XBE. */
+void ai_scripting_detach_units(int parent_handle)
 {
   int iter_state;
   int child;
@@ -780,11 +780,11 @@ void FUN_00054b20(int parent_handle)
   } while (child != -1);
 }
 
-/* FUN_00054bb0 — ai_place: place (spawn) the encounter named by an
+/* ai_scripting_place — ai_place: place (spawn) the encounter named by an
  * ai_index_reference via encounter_create. The two sub-arguments are the
  * sub-index for the matching selector and -1 otherwise. 0xb00 obj/0x54bb0 XBE.
  */
-void FUN_00054bb0(unsigned int ai_ref)
+void ai_scripting_place(unsigned int ai_ref)
 {
   char buffer[0x100];
   int selector;
@@ -816,11 +816,11 @@ void FUN_00054bb0(unsigned int ai_ref)
  * trace gated by the AI-spew flag at 0x5aca59, then performs its work.
  * ------------------------------------------------------------------------- */
 
-/* FUN_00054c40 — kill every actor named by the packed ai_index_reference in
+/* ai_scripting_kill_internal — kill every actor named by the packed ai_index_reference in
  * EAX, forwarding by_player to actor_kill. Walks the Layout B actor iterator;
  * the live actor handle is the embedded iterator's current handle (iter[4]).
  * No-op when ai_ref is the -1 sentinel. 0x990 obj / 0x54c40 XBE. */
-void FUN_00054c40(unsigned int ai_ref /* @<eax> */, char by_player)
+void ai_scripting_kill_internal(unsigned int ai_ref /* @<eax> */, char by_player)
 {
   int iter[6]; /* [ebp-0x18], Layout B actor iterator */
 
@@ -835,9 +835,9 @@ void FUN_00054c40(unsigned int ai_ref /* @<eax> */, char by_player)
   }
 }
 
-/* FUN_00054ca0 — ai_kill: kill the actors named by ai_ref (by_player = 0).
+/* ai_scripting_kill — ai_kill: kill the actors named by ai_ref (by_player = 0).
  * 0x9f0 obj / 0x54ca0 XBE. */
-void FUN_00054ca0(unsigned int ai_ref)
+void ai_scripting_kill(unsigned int ai_ref)
 {
   char buffer[0x100]; /* [ebp-0x100] */
 
@@ -847,12 +847,12 @@ void FUN_00054ca0(unsigned int ai_ref)
           buffer);
   }
 
-  FUN_00054c40(ai_ref, 0);
+  ai_scripting_kill_internal(ai_ref, 0);
 }
 
-/* FUN_00054d00 — ai_kill_silent: kill the actors named by ai_ref silently
+/* ai_scripting_kill_silent — ai_kill_silent: kill the actors named by ai_ref silently
  * (by_player = 1). 0xa50 obj / 0x54d00 XBE. */
-void FUN_00054d00(unsigned int ai_ref)
+void ai_scripting_kill_silent(unsigned int ai_ref)
 {
   char buffer[0x100]; /* [ebp-0x100] */
 
@@ -862,13 +862,13 @@ void FUN_00054d00(unsigned int ai_ref)
           buffer);
   }
 
-  FUN_00054c40(ai_ref, 1);
+  ai_scripting_kill_internal(ai_ref, 1);
 }
 
-/* FUN_00054d60 — ai_erase: erase the encounter/squad named by ai_ref. The
+/* ai_scripting_erase — ai_erase: erase the encounter/squad named by ai_ref. The
  * selector picks which sub-index (squad vs platoon) is passed; a non-matching
  * selector passes the -1 wildcard. 0xab0 obj / 0x54d60 XBE. */
-void FUN_00054d60(unsigned int ai_ref)
+void ai_scripting_erase(unsigned int ai_ref)
 {
   char buffer[0x100]; /* [ebp-0x100] */
   unsigned char sub_byte; /* [ebp+0xa] -> dl */
@@ -892,9 +892,9 @@ void FUN_00054d60(unsigned int ai_ref)
   ai_erase(ai_ref & 0xffff, sub_a, sub_b, 0);
 }
 
-/* FUN_00054df0 — ai_erase_all: erase every encounter (wildcard).
+/* ai_scripting_erase_all — ai_erase_all: erase every encounter (wildcard).
  * 0xb40 obj / 0x54df0 XBE. */
-void FUN_00054df0(void)
+void ai_scripting_erase_all(void)
 {
   if (*(char *)0x5aca59 != 0) {
     error(2, (const char *)0x25c4e4, hs_runtime_get_executing_thread_name());
@@ -903,19 +903,19 @@ void FUN_00054df0(void)
   ai_erase(-1, -1, -1, 0);
 }
 
-/* FUN_00054e20 — ai debug: select all actors (wildcard). Calls
+/* ai_scripting_deselect — ai debug: select all actors (wildcard). Calls
  * ai_debug_select_actor(-1, -1) when AI is enabled (*(0x632574)+1).
  * 0xd70 obj / 0x54e20 XBE. */
-void FUN_00054e20(void)
+void ai_scripting_deselect(void)
 {
   if (*(char *)((char *)*(void **)0x632574 + 1) != 0)
     ai_debug_select_actor(-1, -1);
 }
 
-/* FUN_00054e40 — ai debug: select an encounter. The -1 sentinel selects the
+/* ai_scripting_select — ai debug: select an encounter. The -1 sentinel selects the
  * current/all encounter; otherwise the low 16 bits index it. Gated by
  * *(0x632574)+1 (AI enabled). 0xd90 obj / 0x54e40 XBE. */
-void FUN_00054e40(int encounter_ref)
+void ai_scripting_select(int encounter_ref)
 {
   if (*(char *)((char *)*(void **)0x632574 + 1) == 0)
     return;
@@ -926,13 +926,13 @@ void FUN_00054e40(int encounter_ref)
     ai_debug_select_encounter(encounter_ref & 0xffff);
 }
 
-/* FUN_00054e80 — ai_spawn_actor: spawn the actor(s) named by ai_ref. For a
+/* ai_scripting_spawn_actor — ai_spawn_actor: spawn the actor(s) named by ai_ref. For a
  * direct squad reference (selector 2) the sub-index byte is the squad index;
  * for a profile reference (selector 1) it scans element+0x80 (squad sub-block,
  * stride 0xe8) for the squad whose +0x22 key matches the sub-index byte. On a
  * hit, encounter_spawn_actor(profile_index, squad_index). Gated by
  * *(0x632574)+1. 0xdd0 obj / 0x54e80 XBE. */
-void FUN_00054e80(unsigned int ai_ref)
+void ai_scripting_spawn_actor(unsigned int ai_ref)
 {
   char buffer[0x100]; /* [ebp-0x104] */
   void *element;
@@ -999,9 +999,9 @@ spawn:
  * encounters.obj.
  * ------------------------------------------------------------------------- */
 
-/* FUN_00054f90 — ai_set_respawn: toggle the respawn flag on the named
+/* ai_scripting_set_respawn — ai_set_respawn: toggle the respawn flag on the named
  * encounter. 0xee0 obj / 0x54f90 XBE. */
-void FUN_00054f90(unsigned int combined_index, char flag)
+void ai_scripting_set_respawn(unsigned int combined_index, char flag)
 {
   char name[256]; /* [ebp-0x100] */
 
@@ -1015,9 +1015,9 @@ void FUN_00054f90(unsigned int combined_index, char flag)
   }
 }
 
-/* FUN_00055010 — ai_set_deaf: toggle the deaf flag on the named encounter.
+/* ai_scripting_set_deaf — ai_set_deaf: toggle the deaf flag on the named encounter.
  * 0xf60 obj / 0x55010 XBE. */
-void FUN_00055010(unsigned int combined_index, char flag)
+void ai_scripting_set_deaf(unsigned int combined_index, char flag)
 {
   char name[256]; /* [ebp-0x100] */
 
@@ -1031,9 +1031,9 @@ void FUN_00055010(unsigned int combined_index, char flag)
   }
 }
 
-/* FUN_00055090 — ai_set_blind: toggle the blind flag on the named encounter.
+/* ai_scripting_set_blind — ai_set_blind: toggle the blind flag on the named encounter.
  * 0xfe0 obj / 0x55090 XBE. */
-void FUN_00055090(unsigned int combined_index, char flag)
+void ai_scripting_set_blind(unsigned int combined_index, char flag)
 {
   char name[256]; /* [ebp-0x100] */
 
@@ -1047,11 +1047,11 @@ void FUN_00055090(unsigned int combined_index, char flag)
   }
 }
 
-/* FUN_00055110 — ai_magically_see_unit: make every actor named by
+/* ai_scripting_magically_see_unit — ai_magically_see_unit: make every actor named by
  * combined_handle "magically see" unit_handle. For each actor: force its
- * encounter active (actor+0x34), then look up the unit's slot (FUN_00064b40)
+ * encounter active (actor+0x34), then look up the unit's slot (prop_get_base_by_unit_index)
  * and apply unit-effect 3 (actor_handle_unit_effect). 0x1060 obj / 0x55110. */
-void FUN_00055110(unsigned int combined_handle, int unit_handle)
+void ai_scripting_magically_see_unit(unsigned int combined_handle, int unit_handle)
 {
   char name[256]; /* [ebp-0x118] */
   int iter[6]; /* [ebp-0x18], Layout B actor iterator */
@@ -1076,7 +1076,7 @@ void FUN_00055110(unsigned int combined_handle, int unit_handle)
     if (encounter_handle != -1) {
       encounter_force_activate(encounter_handle);
     }
-    slot = FUN_00064b40(iter[4], unit_handle, 1, 0);
+    slot = prop_get_base_by_unit_index(iter[4], unit_handle, 1, 0);
     if (slot != -1) {
       actor_handle_unit_effect(iter[4], slot, 3);
     }
@@ -1084,11 +1084,11 @@ void FUN_00055110(unsigned int combined_handle, int unit_handle)
   }
 }
 
-/* FUN_000551e0 — ai_magically_see: make all actors named by combined_handle
+/* ai_scripting_magically_see_units — ai_magically_see: make all actors named by combined_handle
  * see every unit in unit_group. Iterates the unit group via
- * FUN_000ce450/FUN_000ce320 and relays each unit through FUN_00055110.
+ * FUN_000ce450/FUN_000ce320 and relays each unit through ai_scripting_magically_see_unit.
  * 0x1130 obj / 0x551e0 XBE. */
-void FUN_000551e0(unsigned int combined_handle, int unit_group)
+void ai_scripting_magically_see_units(unsigned int combined_handle, int unit_group)
 {
   int unit;
   int state; /* [ebp-0x4] */
@@ -1098,14 +1098,14 @@ void FUN_000551e0(unsigned int combined_handle, int unit_group)
     return;
   }
   do {
-    FUN_00055110(combined_handle, unit);
+    ai_scripting_magically_see_unit(combined_handle, unit);
     unit = FUN_000ce320(unit_group, &state);
   } while (unit != -1);
 }
 
-/* FUN_00055220 — ai_timer_start: set the timer-running flag (squad+0x11 = 1)
+/* ai_scripting_timer_start — ai_timer_start: set the timer-running flag (squad+0x11 = 1)
  * on every squad named by combined_index. 0x1170 obj / 0x55220 XBE. */
-void FUN_00055220(unsigned int combined_index)
+void ai_scripting_timer_start(unsigned int combined_index)
 {
   char name[256]; /* [ebp-0x114] */
   int iter[5]; /* [ebp-0x14], Layout A squad iterator */
@@ -1129,10 +1129,10 @@ void FUN_00055220(unsigned int combined_index)
   }
 }
 
-/* FUN_000552b0 — ai_timer_expire: expire the timer on every squad named by
+/* ai_scripting_timer_expire — ai_timer_expire: expire the timer on every squad named by
  * combined_index (encounter_squad_timer_expire(iter[0], iter[2])).
  * 0x1200 obj / 0x552b0 XBE. */
-void FUN_000552b0(unsigned int combined_index)
+void ai_scripting_timer_expire(unsigned int combined_index)
 {
   char name[256]; /* [ebp-0x114] */
   int iter[5]; /* [ebp-0x14], Layout A squad iterator */
@@ -1159,7 +1159,7 @@ void FUN_000552b0(unsigned int combined_index)
 /* ---------------------------------------------------------------------------
  * ai_index_reference count accessor (the "how many of X" query).
  *
- * FUN_00055350 resolves a packed ai_index_reference to a tag record and reports
+ * ai_scripting_count_internal resolves a packed ai_index_reference to a tag record and reports
  * one of three count_type quantities about it:
  *     count_type 0 -> the record's "start"/min index
  *     count_type 1 -> the record's "end"/max index
@@ -1175,7 +1175,7 @@ void FUN_000552b0(unsigned int combined_index)
  * profile's +0x34). count_type arrives in EDI as an int16 (compared via di /
  * sign-extended via movsx). 0x12a0 obj / 0x55350 XBE. Asserts (ai_script.c) on
  * bad count_type and on the unreachable selector/count_type defaults. */
-int FUN_00055350(unsigned int ai_ref, int *out_min, int *out_handle,
+int ai_scripting_count_internal(unsigned int ai_ref, int *out_min, int *out_handle,
                  int count_type /* @<edi> */)
 {
   int ret_val; /* [ebp-0x4], EAX result */
@@ -1243,7 +1243,7 @@ int FUN_00055350(unsigned int ai_ref, int *out_min, int *out_handle,
     sub_index = ((unsigned char *)&ai_ref)[2];
     if (sub_index < 0 || sub_index >= *(short *)((char *)element + 0xa))
       goto done;
-    record = FUN_00054020((char *)element, sub_index);
+    record = encounter_get_platoon((char *)element, sub_index);
 
     switch ((short)count_type) {
     case 0:
@@ -1322,28 +1322,28 @@ done:
   return ret_val;
 }
 
-/* FUN_00055620 — count_type 1 ("end"/max) accessor wrapper. 0x1570 obj. */
-int FUN_00055620(unsigned int ai_ref)
+/* ai_scripting_swarm_count — count_type 1 ("end"/max) accessor wrapper. 0x1570 obj. */
+int ai_scripting_swarm_count(unsigned int ai_ref)
 {
-  return FUN_00055350(ai_ref, 0, 0, 1);
+  return ai_scripting_count_internal(ai_ref, 0, 0, 1);
 }
 
-/* FUN_00055640 — count_type 2 ("span") accessor wrapper. 0x1590 obj. */
-int FUN_00055640(unsigned int ai_ref)
+/* ai_scripting_nonswarm_count — count_type 2 ("span") accessor wrapper. 0x1590 obj. */
+int ai_scripting_nonswarm_count(unsigned int ai_ref)
 {
-  return FUN_00055350(ai_ref, 0, 0, 2);
+  return ai_scripting_count_internal(ai_ref, 0, 0, 2);
 }
 
-/* FUN_00055660 — count_type 0 ("start"/min) accessor wrapper. 0x15b0 obj. */
-int FUN_00055660(unsigned int ai_ref)
+/* ai_scripting_living_count — count_type 0 ("start"/min) accessor wrapper. 0x15b0 obj. */
+int ai_scripting_living_count(unsigned int ai_ref)
 {
-  return FUN_00055350(ai_ref, 0, 0, 0);
+  return ai_scripting_count_internal(ai_ref, 0, 0, 0);
 }
 
-/* FUN_00055680 — ratio accessor: count_type 0 result divided by the record's
+/* ai_scripting_living_fraction — ratio accessor: count_type 0 result divided by the record's
  * *out_min field (numerator = EAX, denominator = the value written through
  * out_min). Returns 0.0f when the denominator is non-positive. 0x15d0 obj. */
-float FUN_00055680(unsigned int ai_ref)
+float ai_scripting_living_fraction(unsigned int ai_ref)
 {
   int denom;
   int numer;
@@ -1353,16 +1353,16 @@ float FUN_00055680(unsigned int ai_ref)
   } zero;
 
   zero.i = 0;
-  numer = FUN_00055350(ai_ref, &denom, 0, 0);
+  numer = ai_scripting_count_internal(ai_ref, &denom, 0, 0);
   if (denom > 0)
     return (float)numer / (float)denom;
   return zero.f;
 }
 
-/* FUN_000556c0 — float-field accessor: count_type 0 resolves the record and
+/* ai_scripting_strength — float-field accessor: count_type 0 resolves the record and
  * writes its handle dword through out_handle; that dword is reinterpreted as a
  * float (bit pattern, not a numeric conversion). 0x1610 obj. */
-float FUN_000556c0(unsigned int ai_ref)
+float ai_scripting_strength(unsigned int ai_ref)
 {
   union {
     int i;
@@ -1370,15 +1370,15 @@ float FUN_000556c0(unsigned int ai_ref)
   } out;
 
   out.i = 0;
-  FUN_00055350(ai_ref, 0, &out.i, 0);
+  ai_scripting_count_internal(ai_ref, 0, &out.i, 0);
   return out.f;
 }
 
-/* FUN_000556f0 — predicate: returns true if the ai_index_reference names any
+/* ai_scripting_is_attacking — predicate: returns true if the ai_index_reference names any
  * encounter whose first byte is zero. Walks the encounter iterator built by
  * ai_index_platoon_iterator_new/ai_index_platoon_iterator_next; returns false
  * if exhausted without a match. 0x1640 obj. */
-bool FUN_000556f0(unsigned int ai_ref)
+bool ai_scripting_is_attacking(unsigned int ai_ref)
 {
   int iter[3];
   char *encounter;
@@ -1413,9 +1413,9 @@ done:
  * gated by 0x5aca59.
  * ------------------------------------------------------------------------- */
 
-/* FUN_00055750 — ai_attack: clear encounter[0] (attack mode) on every named
+/* ai_scripting_attack — ai_attack: clear encounter[0] (attack mode) on every named
  * encounter. 0x16a0 obj / 0x55750 XBE. */
-void FUN_00055750(unsigned int combined_index)
+void ai_scripting_attack(unsigned int combined_index)
 {
   char name[256]; /* [ebp-0x10c] */
   int iter[3]; /* [ebp-0xc] */
@@ -1442,9 +1442,9 @@ void FUN_00055750(unsigned int combined_index)
   } while (encounter != 0);
 }
 
-/* FUN_000557e0 — ai_defend: set encounter[0] (defend mode) on every named
+/* ai_scripting_defend — ai_defend: set encounter[0] (defend mode) on every named
  * encounter. 0x1730 obj / 0x557e0 XBE. */
-void FUN_000557e0(unsigned int combined_index)
+void ai_scripting_defend(unsigned int combined_index)
 {
   char name[256]; /* [ebp-0x10c] */
   int iter[3]; /* [ebp-0xc] */
@@ -1471,9 +1471,9 @@ void FUN_000557e0(unsigned int combined_index)
   } while (encounter != 0);
 }
 
-/* FUN_00055870 — ai_maneuver: set encounter[1] (maneuver flag) on every named
+/* ai_scripting_maneuver — ai_maneuver: set encounter[1] (maneuver flag) on every named
  * encounter. 0x17c0 obj / 0x55870 XBE. */
-void FUN_00055870(unsigned int combined_index)
+void ai_scripting_maneuver(unsigned int combined_index)
 {
   char name[256]; /* [ebp-0x10c] */
   int iter[3]; /* [ebp-0xc] */
@@ -1500,11 +1500,11 @@ void FUN_00055870(unsigned int combined_index)
   } while (encounter != 0);
 }
 
-/* FUN_00055900 — ai_maneuver_enable: enable/disable maneuvering on every named
+/* ai_scripting_maneuver_enable — ai_maneuver_enable: enable/disable maneuvering on every named
  * encounter. Stores the inverse of the enable flag into encounter[2] (a
  * "maneuver disabled" byte): enable -> 0, disable -> 1. 0x1850 obj / 0x55900.
  */
-void FUN_00055900(unsigned int combined_index, char flag)
+void ai_scripting_maneuver_enable(unsigned int combined_index, char flag)
 {
   char name[256]; /* [ebp-0x10c] */
   int iter[3]; /* [ebp-0xc] */
@@ -1533,7 +1533,7 @@ void FUN_00055900(unsigned int combined_index, char flag)
   } while (encounter != 0);
 }
 
-/* FUN_000559a0 — squad-migration core (ai_migrate per-squad mapper). 0x18f0 obj
+/* ai_scripting_migrate_find_target_squad — squad-migration core (ai_migrate per-squad mapper). 0x18f0 obj
  * / 0x559a0 XBE. Given one SOURCE squad (squad_index, with its resolved 'actr'
  * tag actr_tag and 'actv' tag actv_tag, plus the source profile index
  * field_0x34), finds the best matching squad in the DESTINATION encounter
@@ -1549,7 +1549,7 @@ void FUN_00055900(unsigned int combined_index, char flag)
  * (gated by *(char*)0x5aca57) and is range-checked against the dest squads
  * count. If no slot is set but the dest has >=1 squad, returns 0; if the dest
  * has no squads, returns -1. */
-int16_t FUN_000559a0(unsigned int encounter_handle /* @<eax> */, int field_0x34,
+int16_t ai_scripting_migrate_find_target_squad(unsigned int encounter_handle /* @<eax> */, int field_0x34,
                      int16_t squad_index, void *actr_tag, void *actv_tag,
                      char match_flag, const void *debug_str)
 {
@@ -1687,7 +1687,7 @@ int16_t FUN_000559a0(unsigned int encounter_handle /* @<eax> */, int field_0x34,
       void *dst_sq;
       const char *type_name;
       dst_sq = tag_block_get_element(dest_squads, (int)(short)found, 0xe8);
-      type_name = FUN_0003a760(*(short *)((char *)actr_tag + 0x14));
+      type_name = actor_type_get_name(*(short *)((char *)actr_tag + 0x14));
       error(2, (const char *)0x25c6b4 /* "%s -> %s (same-type %s)" */,
             debug_str, dst_sq, type_name);
     }
@@ -1732,16 +1732,16 @@ validate:
   return (int16_t)(short)found;
 }
 
-/* ai_migrate (FUN_00055dd0) — migrate all AI of a source encounter into a
+/* ai_migrate (ai_scripting_migrate_internal) — migrate all AI of a source encounter into a
  * destination encounter. 0x1d20 obj / 0x55dd0 XBE (largest in the TU). Both
  * args are packed ai_index_references (only the low 16 bits matter). Builds a
- * source-squad -> dest-squad map (FUN_000559a0 migration core per squad),
+ * source-squad -> dest-squad map (ai_scripting_migrate_find_target_squad migration core per squad),
  * re-attaches live actors, rewrites pending creation records and BSP-resident
  * actors, then refreshes team status and dirty flags. match_flag =
  * (source==dest) skips identity mappings. encounter_handle (source) is @<eax>;
- * param_3/param_4 drive an optional per-actor FUN_00036dc0 (encounters.c passes
+ * param_3/param_4 drive an optional per-actor actor_stimulus_maneuvering (encounters.c passes
  * 0,0 so that path is inert). */
-void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
+void ai_scripting_migrate_internal(int encounter_handle /* @<eax> */, int dest_encounter,
                   int param_3, int param_4)
 {
   short
@@ -1750,7 +1750,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
   int squad_iter[5]; /* [ebp-0x34], Layout A (ai_index_squad_iterator_new) */
   int actor_iter[3]; /* [ebp-0x2c], encounter_actor_iterator_new
                         (iter[1]=handle) */
-  char enc_iter[0x1c]; /* [ebp-0x3c], encounter_iterator_next */
+  char enc_iter[0x1c]; /* [ebp-0x3c], actor_iterator_new */
   void *scenario; /* [ebp-0x40] */
   void *src_datum; /* [ebp-0xc]  source encounter datum */
   void *dst_datum; /* [ebp-0x1c] dest encounter datum   */
@@ -1831,7 +1831,7 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
 
       crt_sprintf((char *)0x5ab100, (const char *)0x25c864 /* "squad %s" */,
                   sub_element);
-      target_squad_indices[src_squad] = FUN_000559a0(
+      target_squad_indices[src_squad] = ai_scripting_migrate_find_target_squad(
         (unsigned int)dest_encounter, src_index, (int16_t)src_squad,
         (void *)actr_tag, actv_tag, match_flag, (const void *)0x5ab100);
     }
@@ -1860,16 +1860,16 @@ void FUN_00055dd0(int encounter_handle /* @<eax> */, int dest_encounter,
                        "c:\\halo\\SOURCE\\ai\\ai_script.c", 0x65d, 1);
         system_exit(-1);
       }
-      FUN_0003baa0(actor_iter[1], dst_index, (int16_t)mapped);
+      actor_change_encounter(actor_iter[1], dst_index, (int16_t)mapped);
       if ((char)param_3 != 0)
-        FUN_00036dc0(actor_iter[1], (char)param_4, 0);
+        actor_stimulus_maneuvering(actor_iter[1], (char)param_4, 0);
     }
     actor = (void *)encounter_actor_iterator_next(actor_iter);
   }
 
   /* --- Loop 3: rewrite pending records (only if source is active) ------- */
   if (*(char *)((char *)src_datum + 0x1e) != 0) {
-    encounter_iterator_next(enc_iter, 0);
+    actor_iterator_new(enc_iter, 0);
     record = (char *)actor_iterator_next(enc_iter);
     while (record != 0) {
       if ((*(int *)(record + 0x44) & 0xffff) == src_index) {

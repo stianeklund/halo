@@ -13,7 +13,7 @@ typedef struct short_rectangle2d {
   short right;
 } short_rectangle2d;
 
-void FUN_000e0620(int unknown0, int unknown1, float *position)
+void overhead_map_post_rasterize(int unknown0, int unknown1, float *position)
 {
   short_rectangle2d bounds;
   short x;
@@ -317,7 +317,7 @@ bool player_ui_rumble_disabled(short local_player_index)
  * short. The reference's own assert text at line 0x140 names it
  * controller_index, not local_player_index as kb.json had declared it.
  * The controller -> local-player mapping is inlined, not a call: after
- * network_game_in_progress (0x12a000) returns false, the reference searches the
+ * network_game_is_active (0x12a000) returns false, the reference searches the
  * 4-entry single-player controller table with ECX preloaded to -1
  * (OR ECX,0xffffffff), EAX as the counter, and CMP word ptr
  * [EDX*0x2 + 0x46bfc4],SI -- i.e. word_46BFC4[i] == controller_index -- taking
@@ -342,7 +342,7 @@ bool player_ui_autolevel_enabled(short controller_index)
                        controller_index < MAXIMUM_GAMEPADS);
 
   local_player_index = controller_index;
-  if (!network_game_in_progress()) {
+  if (!network_game_is_active()) {
     local_player_index = NONE;
     for (i = 0; i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS; i++) {
       if (word_46BFC4[i] == controller_index) {
@@ -444,7 +444,7 @@ int player_ui_get_player1_last_used_profile_index(void)
  * ADD ESP,0x24 at 0xe0d0d -- which is why the call-site audit reports
  * cleanup=9 stack args for ui_widget_load_by_name_or_tag even though it takes
  * seven. The same coalescing gives ADD ESP,0xc at 0xe0d62 for the 1-dword
- * network_game_set_accept_remote_connections push plus error's two.
+ * network_game_accept_remote_connections push plus error's two.
  * Widget-load arguments are PUSH -1 x4 / PUSH 0 / PUSH -1 / PUSH name, and the
  * first push is the last cdecl argument, so the name leads and every remaining
  * slot is -1 except is_child, which is 0.
@@ -458,8 +458,8 @@ int player_ui_get_player1_last_used_profile_index(void)
 void player_ui_fast_setup_network_server(void)
 {
   ui_widgets_close_all();
-  dispose_global_network_game_client();
   dispose_global_network_game_server();
+  dispose_global_network_game_client();
   set_game_connection(0);
   main_set_multiplayer_map_name("");
   player_ui_globals[0x154] = 0;
@@ -474,16 +474,16 @@ void player_ui_fast_setup_network_server(void)
   }
 
   game_engine_playlist_initialize();
-  network_game_set_accept_remote_connections(1);
-  if (FUN_0012a890() && FUN_0012a250()) {
+  network_game_accept_remote_connections(1);
+  if (create_global_network_game_server() && create_global_network_game_client()) {
     game_engine_playlist_begin();
     set_game_connection(2);
     return;
   }
 
-  dispose_global_network_game_client();
   dispose_global_network_game_server();
-  network_game_set_accept_remote_connections(0);
+  dispose_global_network_game_client();
+  network_game_accept_remote_connections(0);
   error(2, "failed to initiate a multiplayer game server");
   main_goto_main_menu();
 }
@@ -541,7 +541,7 @@ bool player_ui_edit_profile_name_is_dirty(void)
  * SUB EAX,0 / JZ / DEC EAX / JZ switch lowering with both cases sharing one
  * target. The XOR BL,BL feeding both MOV AL,BL exits is the shared `false`
  * return; the accepted path instead falls through with the callee's AL, so it
- * returns virtual_keyboard_set_validation's result directly.
+ * returns virtual_keyboard_launch's result directly.
  *
  * The edited name buffer is player_ui_globals + 0x15c (0x46c03c), 0x18 bytes
  * = 0xc unicode characters, matching the ustrncmp length in the sibling.
@@ -566,7 +566,7 @@ bool player_ui_prompt_user_to_rename_edit_profile(void)
       return started;
     }
 
-    return virtual_keyboard_set_validation((wchar_t *)0x46c03c, 0x18, 0xa);
+    return virtual_keyboard_launch((wchar_t *)0x46c03c, 0x18, 0xa);
   } else {
     error(2, "not currently editing a saved game file");
   }
@@ -693,7 +693,7 @@ void player_ui_activate_all_solo_levels(void)
  * The message pointer arrives in ESI: the function never writes ESI (no
  * PUSH ESI in the prologue, no POP ESI in the epilogue) yet PUSHes it as the
  * second cdecl argument to hud_print_message at 0xe1031. The sole caller,
- * FUN_000e1770 at 0xe178a, does MOV ESI,0x282b78 immediately before the CALL;
+ * player0_look_invert_pitch at 0xe178a, does MOV ESI,0x282b78 immediately before the CALL;
  * 0x282b78 in .rdata is the UTF-16 literal L"Saving...". So ESI is a real
  * register argument, not a decompiler artifact, and the kb.json `(void)`
  * declaration was wrong.
@@ -711,7 +711,7 @@ void player_ui_activate_all_solo_levels(void)
  * shares one cleanup (ADD ESP,0xc folds the iterator_new 8 and the first
  * next 4), which is the bottom-tested `while (player != NULL)` shape spelled
  * below, not a for/do-while. */
-void FUN_000e1000(wchar_t *message)
+void hud_message_to_all(wchar_t *message)
 {
   data_iter_t iter;
   char *player;
@@ -754,7 +754,7 @@ unsigned char player0_look_pitch_is_inverted(void)
  * is kept verbatim. The byte is loaded once into AL and reused across both
  * compares, hence the single local here.
  * What the setting selects is unknown -- no string, assert or PDB evidence
- * reaches offset 0x29 -- so the name stays FUN_000e1060.
+ * reaches offset 0x29 -- so the name stays player0_joystick_set_is_normal.
  * The sole caller is the HaloScript evaluator FUN_000c3940 (call at 0xc394b),
  * which consumes AL immediately into a zeroed dword result slot. No callees.
  * The return is int-width, not byte-width: both exit arms write the whole
@@ -762,7 +762,7 @@ unsigned char player0_look_pitch_is_inverted(void)
  * MOV AL,0x1 / XOR AL,AL -- which is exactly how the byte-returning sibling
  * 0xe1050 ends. Declaring this one `unsigned char` cost the two return
  * instructions (77.8% VC71); `int` matches. */
-int FUN_000e1060(void)
+int player0_joystick_set_is_normal(void)
 {
   unsigned char setting;
 
@@ -888,7 +888,7 @@ void player_ui_clear_multiplayer_joins(void)
  *
  * CALL 0x000e10c0 at 0xe14eb takes no stack arguments; EDI still holds the
  * local player index (nothing writes EDI after 0xe1498), so this is
- * FUN_000e10c0's `short local_player_index@<edi>` register argument. The
+ * set_local_player_controls_from_player_profile's `short local_player_index@<edi>` register argument. The
  * POP EDI that follows is the epilogue restore, not an argument. */
 void player_ui_set_active_player_profile(short local_player_index,
                                          int profile_index, void *profile)
@@ -903,7 +903,7 @@ void player_ui_set_active_player_profile(short local_player_index,
   *(int *)(player_ui_globals + local_player_index * 0x38 + 0x30) =
     profile_index;
   csmemcpy(player_ui_globals + local_player_index * 0x38, profile, 0x30);
-  FUN_000e10c0(local_player_index);
+  set_local_player_controls_from_player_profile(local_player_index);
 }
 
 /* player_ui_end_editing_profile (0xe1760)
@@ -941,26 +941,26 @@ void player_ui_end_editing_profile(void)
  *
  * MOV ESI,0x282b78 / CALL 0x000e1000: 0x282b78 in .rdata is the UTF-16
  * literal L"Saving..." (verified from the XBE image, not from the decompiler),
- * passed in ESI as FUN_000e1000's register argument.
+ * passed in ESI as hud_message_to_all's register argument.
  *
  * PUSH 0x46bee0 / PUSH ECX / CALL 0x001c1bc0 / ADD ESP,0x8 -- cdecl, last push
  * first, so (profile index, player_ui_globals), the same pair 0xe0fd0 passes.
  *
  * XOR EDI,EDI / CALL 0x000e10c0 is a register argument, not dead code:
- * FUN_000e10c0 never writes EDI (its prologue pushes EBP/EBX/ESI only) and
+ * set_local_player_controls_from_player_profile never writes EDI (its prologue pushes EBP/EBX/ESI only) and
  * reads it at 0xe10d4 as `CMP DI,BX` and at 0xe1199 as `MOVSX ESI,DI` before
  * indexing player_ui_globals + DI*0x38 + 0x8, and pushes it at 0xe12ae. So it
  * takes a signed 16-bit local-player index in EDI, and this call site passes
  * local player 0. kb.json's `(void)` declaration was wrong; widened to
  * `short local_player_index@<edi>`. The PUSH EDI/POP EDI around the call is
  * the caller preserving the register, not an argument push. */
-void FUN_000e1770(char invert)
+void player0_look_invert_pitch(char invert)
 {
   player_ui_globals[0x2b] = invert;
   if (*(int *)(player_ui_globals + 0x30) != -1) {
-    FUN_000e1000(L"Saving...");
+    hud_message_to_all(L"Saving...");
     player_profile_get_from_path(*(int *)(player_ui_globals + 0x30),
                                  player_ui_globals);
   }
-  FUN_000e10c0(0);
+  set_local_player_controls_from_player_profile(0);
 }

@@ -1,13 +1,13 @@
 /*
- * FUN_00168230 @ 0x168230 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_CreateTexture @ 0x168230 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::CreateTexture: format/pool/ppTexture arrive in
  * EDX/ECX/EAX, the device argument (s1) is ignored, width/height/levels/
  * usage (s2-s5) are on the stack. EAX passes through from the callee (no
  * explicit return). No direct call sites; RET 0x14. Duplicate template
- * instantiation of FUN_00155380 (rasterizer_xbox.c) in this object.
+ * instantiation of IDirect3DDevice8_CreateTexture_0 (rasterizer_xbox.c) in this object.
  */
 /* 0x168230 */
-void FUN_00168230(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
+void IDirect3DDevice8_CreateTexture(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
                   int s5)
 {
   (void)s1;
@@ -15,15 +15,15 @@ void FUN_00168230(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
 }
 
 /*
- * FUN_00168250 @ 0x168250 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_CreateVolumeTexture @ 0x168250 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::CreateVolumeTexture: format/pool/ppVolumeTexture in
  * EDX/ECX/EAX, device (s1) ignored, width/height/depth/levels/usage
  * (s2-s6) on the stack. EAX passes through from the callee (no explicit
  * return). No direct call sites; RET 0x18. Duplicate template
- * instantiation of FUN_001553a0 (rasterizer_xbox.c) in this object.
+ * instantiation of IDirect3DDevice8_CreateVolumeTexture_0 (rasterizer_xbox.c) in this object.
  */
 /* 0x168250 */
-void FUN_00168250(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
+void IDirect3DDevice8_CreateVolumeTexture(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
                   int s5, int s6)
 {
   (void)s1;
@@ -31,36 +31,36 @@ void FUN_00168250(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
 }
 
 /*
- * FUN_001682c0 @ 0x1682c0 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DTexture8_LockRect_0 @ 0x1682c0 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DTexture8::LockRect: flags/pRect/pLockedRect arrive in
  * EAX/ECX/EDX, texture (s1) and level (s2) on the stack (the texture IS
  * forwarded — no ignored device argument here). Returns S_OK. No direct
- * call sites; RET 0x8. Duplicate template instantiation of FUN_00155b60
+ * call sites; RET 0x8. Duplicate template instantiation of IDirect3DTexture8_LockRect_1
  * (rasterizer_xbox.c) in this object.
  */
 /* 0x1682c0 */
-int FUN_001682c0(int r1, int r2, int r3, int s1, int s2)
+int IDirect3DTexture8_LockRect_0(int r1, int r2, int r3, int s1, int s2)
 {
   D3DTexture_LockRect((void *)s1, s2, (void *)r3, (void *)r2, r1);
   return 0;
 }
 
 /*
- * FUN_00168300 @ 0x168300 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DVolumeTexture8_LockBox @ 0x168300 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DVolumeTexture8::LockBox: flags/pBox/pLockedBox arrive in
  * EAX/ECX/EDX, volume texture (s1) and level (s2) on the stack. Returns
  * S_OK. No direct call sites; RET 0x8. Duplicate template instantiation of
- * FUN_00155cc0 (rasterizer_xbox.c) in this object.
+ * IDirect3DVolumeTexture8_LockBox_0 (rasterizer_xbox.c) in this object.
  */
 /* 0x168300 */
-int FUN_00168300(int r1, int r2, int r3, int s1, int s2)
+int IDirect3DVolumeTexture8_LockBox(int r1, int r2, int r3, int s1, int s2)
 {
   D3DVolumeTexture_LockBox((void *)s1, s2, (void *)r3, (void *)r2, r1);
   return 0;
 }
 
 /*
- * FUN_00168ae0 @ 0x168ae0 — release a bitmap_data's D3D hardware texture
+ * rasterizer_bitmap_delete @ 0x168ae0 — release a bitmap_data's D3D hardware texture
  * resource: called from bitmap_delete (bitmaps.c) via a raw function-pointer
  * cast at 0x168ae0, and cross-referenced
  * unconditionally from editor_editing_sandbox @ 0x7c8fc.
@@ -82,7 +82,7 @@ int FUN_00168300(int r1, int r2, int r3, int s1, int s2)
  * untouched there.
  */
 /* 0x168ae0 */
-void FUN_00168ae0(void *bitmap)
+void rasterizer_bitmap_delete(void *bitmap)
 {
   texture_cache_bitmap_delete(bitmap);
 

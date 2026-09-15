@@ -188,7 +188,7 @@ void render_debug_collision_vertex(int bsp, int vertex_index, float *matrix,
     matrix_transform_point(matrix, point, transformed);
     point = transformed;
   }
-  FUN_00189150(1, point, scale, color);
+  render_debug_point(1, point, scale, color);
 }
 
 /* 0x147570 - render_debug_collision_edge
@@ -205,7 +205,7 @@ void render_debug_collision_vertex(int bsp, int vertex_index, float *matrix,
  *
  * Endpoint order is not swapped: point_a = vertex[edge v0], point_b =
  * vertex[edge v1]; the draw call is (flag=1, point_a, point_b, color).
- * matrix_transform_point/FUN_00189270 return void in kb.json, so the
+ * matrix_transform_point/render_debug_line return void in kb.json, so the
  * transformed points are read from the scratch buffers, not a returned ptr.
  */
 void render_debug_collision_edge(int bsp, int edge_index, int matrix_or_flag,
@@ -226,7 +226,7 @@ void render_debug_collision_edge(int bsp, int edge_index, int matrix_or_flag,
     point_a = xformed_a;
     point_b = xformed_b;
   }
-  FUN_00189270(1, point_a, point_b, color);
+  render_debug_line(1, point_a, point_b, color);
 }
 
 /* 0x1475f0 - render_debug_collision_surface
@@ -542,7 +542,7 @@ int collision_surface_project_point2d(int bsp, int surface_index, int param3,
  * (XOR ECX,ECX / TEST BL,BL / SETE CL at 0x147a41), not as 1 - side.
  *
  * Both endpoints are projected to 2D with the caller's projection basis
- * (param3) and axis sign (param4); FUN_00061df0 writes 2 floats, hence the
+ * (param3) and axis sign (param4); project_point3d writes 2 floats, hence the
  * float[2] scratch pairs rather than scalars (Ghidra's local_18/local_14 and
  * local_20/local_1c are NOT in buffer order -- a2d is [EBP-0x14], b2d is
  * [EBP-0x1c]; lift-decompiler-traps buffer-alias confusion).
@@ -584,8 +584,8 @@ char collision_surface_test_point2d(int bsp, int surface_index, int param3,
     side = (edge[5] == surface_index);
     va = tag_block_get_element((void *)(bsp + 0x54), edge[side], 0x10);
     vb = tag_block_get_element((void *)(bsp + 0x54), edge[!side], 0x10);
-    FUN_00061df0(va, (short)param3, (unsigned char)param4, a2d);
-    FUN_00061df0(vb, (short)param3, (unsigned char)param4, b2d);
+    project_point3d(va, (short)param3, (unsigned char)param4, a2d);
+    project_point3d(vb, (short)param3, (unsigned char)param4, b2d);
     if ((point[1] - b2d[1]) * (point[0] - a2d[0]) -
           (point[0] - b2d[0]) * (point[1] - a2d[1]) >
         0.0f) {
@@ -867,9 +867,9 @@ void FUN_00147ed0(void *state, int surface_index)
                                             edge[side_b], 0x10);
         v1 = (float *)tag_block_get_element((void *)(*(int *)state + 0x54),
                                             edge[!side_b], 0x10);
-        FUN_00061df0(v0, *(short *)((char *)state + 0x21c),
+        project_point3d(v0, *(short *)((char *)state + 0x21c),
                      *(unsigned char *)((char *)state + 0x21e), pa);
-        FUN_00061df0(v1, *(short *)((char *)state + 0x21c),
+        project_point3d(v1, *(short *)((char *)state + 0x21c),
                      *(unsigned char *)((char *)state + 0x21e), pb);
         if ((pa[0] - *(float *)((char *)state + 0x220)) *
                 (pb[1] - *(float *)((char *)state + 0x224)) -
@@ -912,7 +912,7 @@ void FUN_00147ed0(void *state, int surface_index)
  * return is written to AL only (0x148355 MOV AL,0x1 / 0x14835e XOR AL,AL),
  * hence char rather than int.
  *
- * Each edge is projected through FUN_00061df0 with the caller's projection
+ * Each edge is projected through project_point3d with the caller's projection
  * axis and sign, then the 2D cross product decides the side. Operand order is
  * load-order-faithful to 0x148310-0x148330: the four differences are pushed
  * dx, dy, ex, ey and the products are dx*ey then dy*ex. The guard rejects on
@@ -956,8 +956,8 @@ char FUN_00148240(short param_1, unsigned int *bit_vector, int elem_index,
     v0 = (float *)tag_block_get_element((char *)bsp + 0x54, edge[side], 0x10);
     v1 = (float *)tag_block_get_element((char *)bsp + 0x54, edge[!side], 0x10);
 
-    FUN_00061df0(v0, projection, sign, proj0);
-    FUN_00061df0(v1, projection, sign, proj1);
+    project_point3d(v0, projection, sign, proj0);
+    project_point3d(v1, projection, sign, proj1);
 
     dx = point2d[0] - proj0[0];
     dy = point2d[1] - proj0[1];
@@ -1143,7 +1143,7 @@ void FUN_001486e0(void *state, int node_index)
  *
  * The byte flag at 0x148860 is stored as a byte and reloaded as a dword at
  * 0x148866 (Ghidra renders the dead upper bytes as CONCAT31). Every consumer
- * -- FUN_00061df0 and FUN_00148240 -- declares the parameter `unsigned char`,
+ * -- project_point3d and FUN_00148240 -- declares the parameter `unsigned char`,
  * so the upper three bytes are provably dead and the CONCAT is not modelled.
  *
  * The ray point is formed multiply-then-add (t * direction + origin), matching
@@ -1235,7 +1235,7 @@ int FUN_00148780(void *bsp, short param_2, unsigned int *bit_vector,
       point3d[1] = t * direction[1] + origin[1];
       point3d[2] = t * direction[2] + origin[2];
 
-      FUN_00061df0(point3d, axis, sign, point2d);
+      project_point3d(point3d, axis, sign, point2d);
       result = (int)FUN_00146d40((char *)bsp + 0x30, point2d, (int)ref[1]);
 
       if (param_8 == 0) {
@@ -1469,7 +1469,7 @@ void bsp3d_test_sphere_recursive(void *data, int node_index)
                                (unsigned char)((ref[0] & 0x80000000) != 0));
         *(unsigned char *)((char *)data + 0x21e) = sign;
 
-        FUN_00061df0(point, *(unsigned short *)((char *)data + 0x21c), sign,
+        project_point3d(point, *(unsigned short *)((char *)data + 0x21c), sign,
                      (char *)data + 0x220);
         FUN_001486e0(data, ref[1]);
         break;
@@ -1670,7 +1670,7 @@ char FUN_0014dc30(int param_1, float *pos, int param_3)
   int iter_state;
 
   if ((param_1 & 0xe0) != 0) {
-    leaf = bsp3d_find_leaf(FUN_0018e420(), 0, pos);
+    leaf = bsp3d_find_leaf(global_bsp3d_get(), 0, pos);
 
     /* SHR ECX,7 / AND CL,1, then zeroed when the global is set. */
     use_water = (char)(((uint32_t)param_1 >> 7) & 1);

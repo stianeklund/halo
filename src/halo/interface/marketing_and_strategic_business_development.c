@@ -23,7 +23,7 @@
  * The corners are emitted into a stack-resident sprite-vertex array
  * (5 floats per vertex: x, y, z, u, v), then a 0x8c-byte rasterizer
  * descriptor is zero-initialised and a 2x2 transform set to identity
- * (the four 0x3F800000 stores) before rasterizer_sprites_render() is
+ * (the four 0x3F800000 stores) before rasterizer_psuedo_dynamic_screen_quad_draw() is
  * dispatched with that descriptor and the vertex array.
  *
  * Faithful structural lift of the original control flow.  All FPU
@@ -134,7 +134,7 @@ void FUN_000e02d0(int param_1, short *param_2, float *param_3, float param_4,
   *(unsigned short *)(rast_desc + 0x86) =
     (unsigned short)param_7; /* -0x18 ebp */
   *(int *)(rast_desc + 0x0c) = param_1; /* local_98 = -0x94 ebp */
-  rasterizer_sprites_render(rast_desc, local_clip);
+  rasterizer_psuedo_dynamic_screen_quad_draw(rast_desc, local_clip);
 }
 
 /* xbox_demos_available — return cached XDemos availability flag.

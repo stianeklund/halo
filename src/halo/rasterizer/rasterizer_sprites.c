@@ -3,9 +3,9 @@
  * before the jump, so 0x163590 inherits this function's stack arguments and
  * reads the incoming dword as its own [EBP+8].  Semantics of the argument are
  * unknown; it is forwarded unchanged. */
-void FUN_0017cd60(int object_handle)
+void rasterizer_environment_specular_light_begin(int object_handle)
 {
-  FUN_00163590(object_handle);
+  _rasterizer_environment_specular_light_begin(object_handle);
 }
 
 /* Forwarding wrapper (0x17cd70).  The original is four instructions:
@@ -14,9 +14,9 @@ void FUN_0017cd60(int object_handle)
  * reads them as its own [EBP+8] .. [EBP+0x1c] (six dwords).  Semantics of the
  * arguments are unknown; they are forwarded unchanged.  This wrapper is
  * reached only through a data (function-table) reference at 0x195ff3. */
-void FUN_0017cd70(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
+void rasterizer_environment_specular_light_draw(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
 {
-  FUN_00163910((void *)arg1, arg2, arg3, arg4, arg5, (void *)arg6);
+  _rasterizer_environment_specular_light_draw((void *)arg1, arg2, arg3, arg4, arg5, (void *)arg6);
 }
 
 /* Forwarding thunks 0x17cd80..0x17d050.
@@ -40,21 +40,21 @@ void FUN_0017cd70(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
  * the target itself is named, so the mechanical FUN_ names are kept. */
 
 /* 0x17cd80: bare JMP 0x160970.  Reached by a single CALL at 0x196004. */
-void FUN_0017cd80(void)
+void rasterizer_environment_specular_light_end(void)
 {
-  _rasterizer_hud_end();
+  _rasterizer_environment_specular_light_end();
 }
 
 /* 0x17cd90: bare JMP 0x160980.  Reached by a single CALL at 0x13a72f. */
-void FUN_0017cd90(void)
+void rasterizer_environment_specular_lights_end(void)
 {
   FUN_00160980();
 }
 
 /* 0x17cda0: bare JMP 0x163c40.  Reached by a single CALL at 0x195c6e. */
-void FUN_0017cda0(void)
+void rasterizer_environment_specular_lightmaps_begin(void)
 {
-  FUN_00163c40();
+  _rasterizer_environment_specular_lightmaps_begin();
 }
 
 /* Forwarding wrapper (0x17cdb0).  The original is four instructions:
@@ -64,9 +64,9 @@ void FUN_0017cda0(void)
  * `in_stack_00000004`, passed on to 0x155c20).  Semantics of the pointer are
  * unknown; it is forwarded unchanged.  Reached only through a data
  * (function-table) reference at 0x195c8d. */
-void FUN_0017cdb0(void *param_1)
+void rasterizer_environment_specular_lightmap_begin(void *param_1)
 {
-  FUN_00163fe0(param_1);
+  _rasterizer_environment_specular_lightmap_begin(param_1);
 }
 
 /* Forwarding wrapper (0x17cdc0).  The original is four instructions:
@@ -74,22 +74,22 @@ void FUN_0017cdb0(void *param_1)
  * before the jump, so 0x1640d0 inherits this function's stack arguments and
  * reads them as its own [EBP+8] .. [EBP+0x1c] (six dwords).  Semantics of the
  * arguments are unknown; they are forwarded unchanged.  Reached only through a
- * data (function-table) reference at 0x195c88 (in FUN_00195c40). */
-void FUN_0017cdc0(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
+ * data (function-table) reference at 0x195c88 (in structure_render_specular_lightmaps). */
+void rasterizer_environment_specular_lightmap_draw(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
 {
-  FUN_001640d0((void *)arg1, arg2, arg3, arg4, arg5, (void *)arg6);
+  _rasterizer_environment_specular_lightmap_draw((void *)arg1, arg2, arg3, arg4, arg5, (void *)arg6);
 }
 
 /* 0x17cde0: bare JMP 0x1609a0.  Reached by a single CALL at 0x195ca1. */
-void FUN_0017cde0(void)
+void rasterizer_environment_specular_lightmaps_end(void)
 {
-  _rasterizer_dynamic_lit_geometry_draw();
+  _rasterizer_environment_specular_lightmaps_end();
 }
 
 /* 0x17cdf0: bare JMP 0x1643e0.  Reached by a single CALL at 0x195cb9. */
-void FUN_0017cdf0(void)
+void rasterizer_environment_reflection_lightmap_masks_begin(void)
 {
-  FUN_001643e0();
+  _rasterizer_environment_reflection_lightmap_masks_begin();
 }
 
 /* Forwarding wrapper (0x17ce00).  The original is four instructions:
@@ -98,10 +98,10 @@ void FUN_0017cdf0(void)
  * reads the incoming dword as its own [EBP+8].  This wrapper never touches the
  * argument slot itself, so the semantics of the dword are unknown here; it is
  * forwarded unchanged.  Reached only through a data (function-table) reference
- * at 0x195cd8 (in FUN_00195cb0). */
-void FUN_0017ce00(int arg1)
+ * at 0x195cd8 (in structure_render_reflection_lightmap_masks). */
+void rasterizer_environment_reflection_lightmap_mask_begin(int arg1)
 {
-  FUN_00164590((void *)arg1);
+  _rasterizer_environment_reflection_lightmap_mask_begin((void *)arg1);
 }
 
 /* Forwarding wrapper (0x17ce10).  The original is four instructions:
@@ -110,10 +110,10 @@ void FUN_0017ce00(int arg1)
  * reads them as its own [EBP+8] .. [EBP+0x1c] (six dwords).  This wrapper
  * never touches the argument slots itself, so their semantics are unknown
  * here; they are forwarded unchanged.  Reached only through a data
- * (function-table) reference at 0x195cd3 (in FUN_00195cb0). */
-void FUN_0017ce10(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
+ * (function-table) reference at 0x195cd3 (in structure_render_reflection_lightmap_masks). */
+void rasterizer_environment_reflection_lightmap_mask_draw(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
 {
-  FUN_001609b0((void *)arg1, arg2, arg3, arg4, arg5, (void *)arg6);
+  _rasterizer_environment_reflection_lightmap_mask_draw((void *)arg1, arg2, arg3, arg4, arg5, (void *)arg6);
 }
 
 /* 0x17ce30: bare JMP 0x160bc0.  Reached by a single tail JMP at 0x195cec. */
@@ -123,9 +123,9 @@ void FUN_0017ce30(void)
 }
 
 /* 0x17ce40: bare JMP 0x160bd0.  Reached by a single CALL at 0x195d09. */
-void FUN_0017ce40(void)
+void rasterizer_environment_reflection_mirrors_begin(void)
 {
-  FUN_00160bd0();
+  _rasterizer_environment_reflection_mirrors_begin();
 }
 
 /* Forwarding wrapper (0x17ce50).  The original is four instructions:
@@ -135,10 +135,10 @@ void FUN_0017ce40(void)
  * disassembling 0x164690 in the pristine XBE).  This wrapper never touches the
  * argument slots itself, so their semantics are unknown here; they are
  * forwarded unchanged.  Reached only through a data (function-table) reference
- * at 0x195d20 (in FUN_00195d00). */
-void FUN_0017ce50(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
+ * at 0x195d20 (in structure_render_reflection_mirrors). */
+void rasterizer_environment_reflection_mirror_draw(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
 {
-  FUN_00164690((void *)arg1, arg2, arg3, arg4, arg5, (void *)arg6);
+  _rasterizer_environment_reflection_mirror_draw((void *)arg1, arg2, arg3, arg4, arg5, (void *)arg6);
 }
 
 /* 0x17ce60: bare JMP 0x160be0.  Reached by a single tail JMP at 0x195d36. */
@@ -148,9 +148,9 @@ void FUN_0017ce60(void)
 }
 
 /* 0x17ce70: bare JMP 0x160bf0.  Reached by a single CALL at 0x195d68. */
-void FUN_0017ce70(void)
+void rasterizer_environment_reflections_begin(void)
 {
-  FUN_00160bf0();
+  _rasterizer_environment_reflections_begin();
 }
 
 /* Forwarding wrapper (0x17ce80).  The original is four instructions:
@@ -164,23 +164,23 @@ void FUN_0017ce70(void)
  * (c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_environment.c:0x9a6 and
  * :0x9bf); the remaining slots have unknown meaning here and are forwarded
  * unchanged.  Reached only through a data (function-table) reference at
- * 0x195d7f (in FUN_00195d40). */
-void FUN_0017ce80(void *shader, int arg2, int arg3, int arg4, int arg5,
+ * 0x195d7f (in structure_render_reflections). */
+void rasterizer_environment_reflection_draw(void *shader, int arg2, int arg3, int arg4, int arg5,
                   void *vertex_buffer)
 {
-  FUN_00164cf0(shader, arg2, arg3, arg4, arg5, vertex_buffer);
+  _rasterizer_environment_reflection_draw(shader, arg2, arg3, arg4, arg5, vertex_buffer);
 }
 
 /* 0x17ce90: bare JMP 0x160c00.  Reached by a single CALL at 0x195d95. */
-void FUN_0017ce90(void)
+void rasterizer_environment_reflections_end(void)
 {
-  FUN_00160c00();
+  _rasterizer_environment_reflections_end();
 }
 
 /* 0x17cea0: bare JMP 0x160c10.  Reached by a single CALL at 0x195de8. */
-void FUN_0017cea0(void)
+void rasterizer_environment_transparent_geometry_begin(void)
 {
-  FUN_00160c10();
+  _rasterizer_environment_transparent_geometry_begin();
 }
 
 /* Forwarding wrapper (0x17ceb0).  The original is four instructions:
@@ -196,25 +196,25 @@ void FUN_0017cea0(void)
  * unchanged; the two pointer types are the only proven facts (0x165420 reads a
  * word at +0x24 of the first slot's pointer, and three floats at +0x0/+0x4/+0x8
  * of the eighth slot's pointer).  Reached only through a data (function-table)
- * reference at 0x195df2 (in FUN_00195dc0). */
-void FUN_0017ceb0(void *arg1, int arg2, int arg3, int arg4, int arg5, int arg6,
+ * reference at 0x195df2 (in structure_render_transparent_geometry). */
+void rasterizer_environment_transparent_geometry_submit(void *arg1, int arg2, int arg3, int arg4, int arg5, int arg6,
                   int arg7, void *arg8, int arg9, int arg10, int arg11,
                   int arg12)
 {
-  FUN_00165420(arg1, arg2, arg3, arg4, arg5, arg6, arg7, (float *)arg8,
+  _rasterizer_environment_transparent_geometry_submit(arg1, arg2, arg3, arg4, arg5, arg6, arg7, (float *)arg8,
                (uint32_t *)arg9, arg10, arg11, arg12);
 }
 
 /* 0x17cec0: bare JMP 0x160c20.  Reached by a single CALL at 0x195e15. */
-void FUN_0017cec0(void)
+void rasterizer_environment_transparent_geometry_end(void)
 {
-  FUN_00160c20();
+  _rasterizer_environment_transparent_geometry_end();
 }
 
 /* 0x17ced0: bare JMP 0x166400.  Reached by a single CALL at 0x195e68. */
-void FUN_0017ced0(void)
+void rasterizer_environment_fog_begin(void)
 {
-  FUN_00166400();
+  _rasterizer_environment_fog_begin();
 }
 
 /* Forwarding wrapper (0x17cee0).  The original is four instructions:
@@ -232,16 +232,16 @@ void FUN_0017ced0(void)
  * target); the shader slot is only forwarded onward, and the remaining slots
  * have unknown meaning here and are forwarded unchanged.  Reached through a
  * data (function-table) reference used as a surface-draw callback. */
-void FUN_0017cee0(void *shader, int arg2, int arg3, int arg4, int arg5,
+void rasterizer_environment_fog_draw(void *shader, int arg2, int arg3, int arg4, int arg5,
                   void *vertex_buffer)
 {
-  FUN_00165cb0(shader, arg2, arg3, arg4, arg5, vertex_buffer);
+  _rasterizer_environment_fog_draw(shader, arg2, arg3, arg4, arg5, vertex_buffer);
 }
 
 /* 0x17cef0: bare JMP 0x165dd0.  Reached by a single CALL at 0x195e95. */
-void FUN_0017cef0(void)
+void rasterizer_environment_fog_end(void)
 {
-  FUN_00165dd0();
+  _rasterizer_environment_fog_end();
 }
 
 /* Forwarding wrapper (0x17cf00).  The original is four instructions:
@@ -253,14 +253,14 @@ void FUN_0017cef0(void)
  * asserted >= 0 and < 4), +0x0c as a float (FMUL DWORD PTR [EBP+0xc]), and
  * +0x10 as a non-NULL pointer that receives three dwords ([EDI], [EDI+4] and
  * a literal 0 at [EDI+8]).  The sole caller, at 0x166a6e inside
- * FUN_00166890, pushes them in that order (PUSH EAX = LEA [EBP-0x30] out
+ * _rasterizer_environment_fog_screen_begin, pushes them in that order (PUSH EAX = LEA [EBP-0x30] out
  * pointer, PUSH ECX = dword loaded from 0x5a5e1c, PUSH EDX = word loaded from
  * 0x5a5bc2 zero-extended).  The meaning of the index and the scalar is
  * unknown here; they are forwarded unchanged.  The narrowing cast reflects
  * only the declared width of the callee at 0x165de0. */
-void FUN_0017cf00(int param_1, float param_2, float *param_3)
+void rasterizer_environment_fog_screen_wind_get_vector(int param_1, float param_2, float *param_3)
 {
-  FUN_00165de0((int16_t)param_1, param_2, param_3);
+  _rasterizer_environment_fog_screen_wind_get_vector((int16_t)param_1, param_2, param_3);
 }
 
 /* Forwarding wrapper (0x17cf10).  The original is four instructions:
@@ -270,10 +270,10 @@ void FUN_0017cf00(int param_1, float param_2, float *param_3)
  * `MOV DI, WORD PTR [EBP+8]` at 0x16689a -- and immediately asserts
  * "pass==0 || pass==1" (rasterizer_xbox_environment_fog.c:499), so the dword
  * is a 0/1 pass index; the narrowing cast reflects the callee's declared
- * width.  Reached by two calls from FUN_00195ec0 (0x195ecb, 0x195efc). */
-void FUN_0017cf10(int pass_index)
+ * width.  Reached by two calls from structure_render_fog_screen (0x195ecb, 0x195efc). */
+void rasterizer_environment_fog_screen_begin(int pass_index)
 {
-  FUN_00166890((int16_t)pass_index);
+  _rasterizer_environment_fog_screen_begin((int16_t)pass_index);
 }
 
 /* Forwarding wrapper (0x17cf20).  The original is four instructions:
@@ -285,34 +285,34 @@ void FUN_0017cf10(int pass_index)
  * (arg2..arg4 here) are never observed accessed, but they must still exist to
  * place the later ones.  Two slots are proven pointers: the +0x04 slot is
  * passed to shader_get_vertex_shader_permutation, and the +0x18 slot is
- * dereferenced as a word (`*(ushort *)slot6`) to feed FUN_00178b40.  The
+ * dereferenced as a word (`*(ushort *)slot6`) to feed rasterizer_set_vertex_shader_permutation.  The
  * +0x14 slot is an int accumulated into a frame-statistics counter.  Slot
  * semantics beyond that are unknown here and are forwarded unchanged.
  * 0x1677d0 writes nothing back into its argument slots, so a plain call is
  * sufficient.  Reached only through two data (function-table) references at
- * 0x195ee2 and 0x195f13 in FUN_00195ec0. */
-void FUN_0017cf20(void *shader, int arg2, int arg3, int arg4, int arg5,
+ * 0x195ee2 and 0x195f13 in structure_render_fog_screen. */
+void rasterizer_environment_fog_screen_draw(void *shader, int arg2, int arg3, int arg4, int arg5,
                   void *arg6)
 {
-  FUN_001677d0(shader, arg2, arg3, arg4, arg5, arg6);
+  _rasterizer_environment_fog_screen_draw(shader, arg2, arg3, arg4, arg5, arg6);
 }
 
 /* 0x17cf30: bare JMP 0x167920.  Reached by a CALL at 0x195ef5 and a tail JMP at 0x195f29. */
-void FUN_0017cf30(void)
+void rasterizer_environment_fog_screen_end(void)
 {
-  FUN_00167920();
+  _rasterizer_environment_fog_screen_end();
 }
 
 /* 0x17cf40: bare JMP 0x15f1f0.  Reached by a single CALL at 0xd1426. */
-void FUN_0017cf40(void)
+void rasterizer_hud_begin(void)
 {
-  FUN_0015f1f0();
+  _rasterizer_hud_begin();
 }
 
 /* 0x17cf50: bare JMP 0x15f200.  Reached by a single CALL at 0xd151c. */
-void FUN_0017cf50(void)
+void rasterizer_hud_end(void)
 {
-  FUN_0015f200();
+  _rasterizer_hud_end();
 }
 
 /* Forwarding wrapper (0x17cf60).  The original is four instructions:
@@ -347,11 +347,11 @@ void FUN_0017cf50(void)
  * signature; this wrapper's own decl is caller-derived and left unchanged.
  * The wrapper's name is unproven (no string or PDB evidence), so the
  * mechanical name is kept. */
-void FUN_0017cf60(uint32_t source, uint32_t param, int arg3, int arg4,
+void rasterizer_dynamic_unlit_geometry_draw(uint32_t source, uint32_t param, int arg3, int arg4,
                   uint32_t handle, int subcount2, float *origin,
                   uint32_t widget_flags)
 {
-  FUN_0015f630((void *)source, param, arg3, arg4, handle, subcount2, origin,
+  _rasterizer_dynamic_unlit_geometry_draw((void *)source, param, arg3, arg4, handle, subcount2, origin,
                widget_flags);
 }
 
@@ -377,9 +377,9 @@ void FUN_0017cf60(uint32_t source, uint32_t param, int arg3, int arg4,
  * any observed access.  The call is emitted rather than elided because the
  * E9 target is part of the shape being recovered.  No references to
  * 0x17cf70 were found in the binary. */
-void FUN_0017cf70(int param_1)
+void rasterizer_dynamic_lit_geometry_draw(int param_1)
 {
-  FUN_0015f210(param_1);
+  _rasterizer_dynamic_lit_geometry_draw(param_1);
 }
 
 /* Forwarding wrapper (0x17cf80).  The original is four instructions:
@@ -412,7 +412,7 @@ void FUN_0017cf70(int param_1)
  * spellings (caller-cleaned cdecl, callee reads nothing).
  * The wrapper's name is unproven (no string or PDB evidence), so the
  * mechanical name is kept. */
-void FUN_0017cf80(int arg1, int arg2, uint32_t handle, int subcount2)
+void rasterizer_dynamic_screen_geometry_draw(int arg1, int arg2, uint32_t handle, int subcount2)
 {
   FUN_0015f540(arg1, arg2, handle, subcount2);
 }
@@ -429,15 +429,15 @@ void FUN_0017cf80(int arg1, int arg2, uint32_t handle, int subcount2)
  * 0x80, 0x84, 0x86).  The copy direction proves which slot is the
  * destination; the object type is unknown here, so both are void *.  No
  * references to 0x17cf90 were found in the binary. */
-void FUN_0017cf90(void *dest, void *src)
+void rasterizer_dynamic_screen_geometry_add_multitexture_params_to_base(void *dest, void *src)
 {
-  FUN_0015f220(dest, src);
+  _rasterizer_dynamic_screen_geometry_add_multitexture_params_to_base(dest, src);
 }
 
 /* Render sprites by forwarding to the dynavob geometry renderer (0x17cfa0). */
-void rasterizer_sprites_render(void *render_data, void *vertices)
+void rasterizer_psuedo_dynamic_screen_quad_draw(void *render_data, void *vertices)
 {
-  FUN_0015f8e0(render_data, vertices);
+  _rasterizer_psuedo_dynamic_screen_quad_draw(render_data, vertices);
 }
 
 /* Forwarding wrapper (0x17cfb0).  The original is four instructions:
@@ -458,12 +458,12 @@ void rasterizer_sprites_render(void *render_data, void *vertices)
  * the entry guard and group+0x48; the kb decl's semantic parameter names
  * (object_handle / datum / callback) are unproven by any string or PDB
  * evidence and are kept only for prototype agreement.
- * The bundle records one caller (0x13530e in FUN_00135210), not lifted, so no
+ * The bundle records one caller (0x13530e in light_volume_submit), not lifted, so no
  * caller-derived typing or naming is available.  The wrapper's own name is
  * likewise unproven, so the mechanical name is kept. */
-void FUN_0017cfb0(int object_handle, int datum, float *position, int callback)
+void rasterizer_widget_submit(int object_handle, int datum, float *position, int callback)
 {
-  FUN_0017ae90(object_handle, datum, position, callback);
+  _rasterizer_widget_submit(object_handle, datum, position, callback);
 }
 
 /* Forwarding wrapper (0x17cfc0).  The original is four instructions:
@@ -472,9 +472,9 @@ void FUN_0017cfb0(int object_handle, int datum, float *position, int callback)
  * reads them as its own [EBP+8] / [EBP+0xc].  This wrapper never touches the
  * argument slots itself, so their semantics are unknown here; the narrowing
  * casts reflect only the declared widths of the callee at 0x17b000. */
-void FUN_0017cfc0(int param_1, int param_2)
+void rasterizer_widget_begin(int param_1, int param_2)
 {
-  FUN_0017b000((int16_t)param_1, (uint16_t)param_2);
+  _rasterizer_widget_begin((int16_t)param_1, (uint16_t)param_2);
 }
 
 /* Forwarding wrapper (0x17cfd0).  The original is four instructions:
@@ -486,9 +486,9 @@ void FUN_0017cfc0(int param_1, int param_2)
  * widths follow the callee, which loads all three slots as full DWORDs
  * (MOV reg,dword ptr at 0x17b4ac / 0x17b4b5 / 0x17b4b8 / 0x17b4cc), so the
  * third slot is int, not short. */
-char FUN_0017cfd0(int param_1, int param_2, int param_3)
+char rasterizer_widget_set_texture(int param_1, int param_2, int param_3)
 {
-  return FUN_0017b480(param_1, param_2, param_3);
+  return _rasterizer_widget_set_texture(param_1, param_2, param_3);
 }
 
 /* Forwarding wrapper (0x17cfe0).  The original is four instructions:
@@ -508,16 +508,16 @@ char FUN_0017cfd0(int param_1, int param_2, int param_3)
  * would emit a FILD and destroy the value; a union temporary was measured to
  * cost a stack round-trip that blocks the tail call (50% vs the 4-instruction
  * reference). */
-void FUN_0017cfe0(unsigned int value_bits)
+void rasterizer_widget_set_tint_factor(unsigned int value_bits)
 {
-  FUN_0017b540(*(float *)&value_bits);
+  _rasterizer_widget_set_tint_factor(*(float *)&value_bits);
 }
 
 /* Forwarding wrapper (0x17cff0).  Same four-instruction shape as 0x17cfe0:
  * PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x17b580 -- the frame is torn down
  * before the jump, so 0x17b580 inherits this function's stack argument and
  * reads the incoming slot as its own [EBP+8].  kb.json declared this
- * `void FUN_0017cff0(void)` and Ghidra therefore showed a bare call with no
+ * `void rasterizer_widget_set_zbuffer_enable(void)` and Ghidra therefore showed a bare call with no
  * argument; the pass-through is recovered from the POP/JMP pair, not from the
  * decompiler.
  *
@@ -529,23 +529,23 @@ void FUN_0017cfe0(unsigned int value_bits)
  *
  * No xrefs to 0x17cff0 exist in the binary, so the caller-side meaning of the
  * flag is unknown beyond "Z-enable on/off". */
-void FUN_0017cff0(bool enable)
+void rasterizer_widget_set_zbuffer_enable(bool enable)
 {
-  FUN_0017b580(enable);
+  _rasterizer_widget_set_zbuffer_enable(enable);
 }
 
 /* Forwarding wrapper (0x17d000).  The original is four instructions:
  * PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x17b5c0 -- the frame is torn down
  * before the jump, so 0x17b5c0 inherits this function's stack arguments and
  * reads them as its own [EBP+8] .. [EBP+0x1c] (six dwords).  kb.json declared
- * this `void FUN_0017d000(void)` and Ghidra therefore rendered the body as a
- * bare `FUN_0017b5c0()` call with no arguments; the pass-through is recovered
+ * this `void rasterizer_widget_draw_sprite2d(void)` and Ghidra therefore rendered the body as a
+ * bare `_rasterizer_widget_draw_sprite2d()` call with no arguments; the pass-through is recovered
  * from the POP/JMP pair, not from the decompiler.  A `(void)` wrapper would
  * hand the callee a garbage `point`, which its own NULL assert at
  * rasterizer_xbox_widgets.c:0x164 immediately dereferences.
  *
  * The parameter types are the callee's own recovered signature (see
- * FUN_0017b5c0 in src/halo/rasterizer/xbox/rasterizer_xbox_widgets.c): a 2D
+ * _rasterizer_widget_draw_sprite2d in src/halo/rasterizer/xbox/rasterizer_xbox_widgets.c): a 2D
  * point, a >0 radius gate, an optional per-axis scale, an optional integer
  * texcoord repeat count, a rotation angle, and a flat vertex colour.  Matching
  * them exactly keeps the forward conversion-free, which is what lets the tail
@@ -554,10 +554,10 @@ void FUN_0017cff0(bool enable)
  *
  * No xrefs to 0x17d000 exist in the binary, so the caller-side meaning of the
  * arguments is unknown beyond the callee's use of them. */
-void FUN_0017d000(float *point, float radius, float *scale,
+void rasterizer_widget_draw_sprite2d(float *point, float radius, float *scale,
                   float *texcoord_repeat, float theta, unsigned int color)
 {
-  FUN_0017b5c0(point, radius, scale, texcoord_repeat, theta, color);
+  _rasterizer_widget_draw_sprite2d(point, radius, scale, texcoord_repeat, theta, color);
 }
 
 /* Forwarding wrapper (0x17d010).  The original is four instructions:
@@ -574,16 +574,16 @@ void FUN_0017d000(float *point, float radius, float *scale,
  * transfer rather than emitting a CALL, so no trivial-thunk penalty applies
  * here: VC71 measures 100% (4/4 insns) against the four-instruction
  * reference at 0x17d010..0x17d019. */
-void FUN_0017d010(float *position, float radius, float *scale2d, float angle,
+void rasterizer_widget_draw_sprite3d(float *position, float radius, float *scale2d, float angle,
                   uint32_t color)
 {
-  FUN_0017b7d0(position, radius, scale2d, angle, color);
+  _rasterizer_widget_draw_sprite3d(position, radius, scale2d, angle, color);
 }
 
 /* 0x17d020: bare JMP 0x17ad90.  Reached by CALLs at 0x1351fd, 0x181bfd and 0x182428. */
-void FUN_0017d020(void)
+void rasterizer_widget_end(void)
 {
-  FUN_0017ad90();
+  _rasterizer_widget_end();
 }
 
 /* Forwarding wrapper (0x17d030).  The original is four instructions:
@@ -593,19 +593,19 @@ void FUN_0017d020(void)
  * return becomes this function's return value (Ghidra shows `extraout_EAX`).
  *
  * The parameter types are the callee's own recovered signature (see
- * rasterizer_widget_submit_occlusion_test at 0x17ba10 in
+ * _rasterizer_widget_submit_occlusion_test at 0x17ba10 in
  * src/halo/rasterizer/rasterizer.c): a position pointer, a float radius, and
  * an unsigned index.  kb.json previously declared the middle slot `int`; the
  * slot is forwarded untouched by the POP/JMP, so the callee's own type is the
  * binary-backed one, and matching it keeps the forward conversion-free -- an
  * `int` parameter would insert a FILD that the reference does not have.
  *
- * The only reference is a call at 0x181bdb inside FUN_00181a90, which is not
+ * The only reference is a call at 0x181bdb inside rasterizer_lens_flares_submit_occlusion_tests, which is not
  * yet lifted, so the caller-side meaning of the arguments is unknown beyond
  * the callee's use of them. */
-int FUN_0017d030(float *position, float radius, unsigned int index)
+int rasterizer_widget_submit_occlusion_test(float *position, float radius, unsigned int index)
 {
-  return rasterizer_widget_submit_occlusion_test(position, radius, index);
+  return _rasterizer_widget_submit_occlusion_test(position, radius, index);
 }
 
 /* Forwarding wrapper (0x17d040).  The original is four instructions:
@@ -616,7 +616,7 @@ int FUN_0017d030(float *position, float radius, unsigned int index)
  * pair, not from the decompiler (Ghidra renders this as `void (void)` because
  * it cannot see through the tail jump).
  *
- * The callee is rasterizer_widget_get_occlusion_test_result at 0x17adc0 in
+ * The callee is _rasterizer_widget_get_occlusion_test_result at 0x17adc0 in
  * src/halo/rasterizer/xbox/rasterizer_xbox_widgets.c, declared there as
  * `unsigned int (unsigned int index)`.  Unlike the neighbouring 0x17d030 note,
  * the signedness difference against kb.json's `int` costs no instruction (an
@@ -628,15 +628,15 @@ int FUN_0017d030(float *position, float radius, unsigned int index)
  * That caller is the lens-flare occlusion path: the result is scaled by 0xff
  * against a per-flare divisor.  The meaning of `index` beyond the callee's own
  * use of it as a widget/occlusion-query slot is unknown. */
-int FUN_0017d040(int index)
+int rasterizer_widget_get_occlusion_test_result(int index)
 {
-  return (int)rasterizer_widget_get_occlusion_test_result((unsigned int)index);
+  return (int)_rasterizer_widget_get_occlusion_test_result((unsigned int)index);
 }
 
 /* 0x17d050: bare JMP 0x16dee0.  Reached by a single tail JMP at 0xdb23e. */
-void FUN_0017d050(void)
+void rasterizer_hud_motion_sensor_blip_begin(void)
 {
-  FUN_0016dee0();
+  _rasterizer_hud_motion_sensor_blip_begin();
 }
 
 /* Forwarding wrapper (0x17d060).  The original is four instructions:
@@ -659,15 +659,15 @@ void FUN_0017d050(void)
  *     000db4a0: CALL 0x17d060
  *     000db4a5: ADD  ESP,0x14     ; 5 dword slots
  *
- * The callee is unlifted (FUN_0016e160); its string constants place it in
+ * The callee is unlifted (_rasterizer_hud_motion_sensor_blip_draw); its string constants place it in
  * c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_motion_sensor.c and it
  * issues D3DDevice_Begin, D3DDevice_SetVertexData* and D3DDevice_End, so it
  * draws motion-sensor geometry.  The meaning of the individual arguments
  * beyond their slot widths is unknown; they are forwarded unchanged. */
-void FUN_0017d060(void *param_1, int param_2, float param_3, int param_4,
+void rasterizer_hud_motion_sensor_blip_draw(void *param_1, int param_2, float param_3, int param_4,
                   int param_5)
 {
-  FUN_0016e160(param_1, param_2, param_3, param_4, param_5);
+  _rasterizer_hud_motion_sensor_blip_draw(param_1, param_2, param_3, param_4, param_5);
 }
 
 /* 0x17d070: PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x16e2e0 -- the frame is
@@ -691,9 +691,9 @@ void FUN_0017d060(void *param_1, int param_2, float param_3, int param_4,
  * convert the bits instead of passing the slot through.  Plain forwarding
  * preserves the tail call, as for the sibling thunks at 0x17d030/0x17d040/
  * 0x17d060. */
-void FUN_0017d070(float *position, float param_2)
+void rasterizer_hud_motion_sensor_blip_end(float *position, float param_2)
 {
-  FUN_0016e2e0(position, param_2);
+  _rasterizer_hud_motion_sensor_blip_end(position, param_2);
 }
 
 /* 0x17d080: draw a three-segment axis cross centred on `point`, each arm
@@ -730,11 +730,11 @@ void FUN_0017d070(float *position, float param_2)
  * Calls: PUSH EDI / PUSH EDI / PUSH ECX(&end) / PUSH EDX(&start) /
  * CALL 0x15a7f0, three times, with one combined ADD ESP,0x30 (3*4 cdecl
  * slots).  Last push is the first C argument, giving
- * FUN_0015a7f0(start, end, color, color) against the callee decl
- * `void FUN_0015a7f0(float*, float*, float*, float*)` -- the same
+ * _rasterizer_debug_immediate_line(start, end, color, color) against the callee decl
+ * `void _rasterizer_debug_immediate_line(float*, float*, float*, float*)` -- the same
  * single-colour line call the sibling at 0x17d150 makes.
  *
- * kb.json previously declared this `void FUN_0017d080(void)`; the arity and
+ * kb.json previously declared this `void rasterizer_debug_immediate_point(void)`; the arity and
  * types above were corrected by an earlier naming-only pass.  The function
  * has no callers and no code or data xrefs anywhere in the binary, so it is
  * dead code and no call-site arity contract is disturbed; it also means no
@@ -744,7 +744,7 @@ void FUN_0017d070(float *position, float param_2)
  * Shape note: the reference interleaves the argument pushes and the copy MOVs
  * into the FLD/FSTP chains.  There is no call between, so that is MSVC
  * scheduling an x87 chain against the pushes, not a side-effect order. */
-void FUN_0017d080(float *point, float radius, float *color)
+void rasterizer_debug_immediate_point(float *point, float radius, float *color)
 {
   float start[3];
   float end[3];
@@ -757,7 +757,7 @@ void FUN_0017d080(float *point, float radius, float *color)
   end[0] = radius + point[0];
   end[1] = point[1];
   end[2] = point[2];
-  FUN_0015a7f0(start, end, color, color);
+  _rasterizer_debug_immediate_line(start, end, color, color);
 
   start[0] = point[0];
   start[1] = point[1] - radius;
@@ -765,7 +765,7 @@ void FUN_0017d080(float *point, float radius, float *color)
   end[0] = point[0];
   end[1] = radius + point[1];
   end[2] = point[2];
-  FUN_0015a7f0(start, end, color, color);
+  _rasterizer_debug_immediate_line(start, end, color, color);
 
   start[0] = point[0];
   start[1] = point[1];
@@ -773,7 +773,7 @@ void FUN_0017d080(float *point, float radius, float *color)
   end[0] = point[0];
   end[1] = point[1];
   end[2] = radius + point[2];
-  FUN_0015a7f0(start, end, color, color);
+  _rasterizer_debug_immediate_line(start, end, color, color);
 }
 
 /* 0x17d150: draw a debug line from `point` to `point + scale * direction`.
@@ -792,9 +792,9 @@ void FUN_0017d080(float *point, float radius, float *color)
  * operand order per site.
  * Call: PUSH ECX,PUSH ECX,PUSH ECX(&endpoint),PUSH EAX / CALL 0x15a7f0 /
  * ADD ESP,0x10 -- four cdecl slots, last push first, giving
- * FUN_0015a7f0(point, endpoint, colour, colour) against the callee decl
- * `void FUN_0015a7f0(float*, float*, float*, float*)`.
- * kb.json declared `void FUN_0017d150(void)`; the arity/types above are
+ * _rasterizer_debug_immediate_line(point, endpoint, colour, colour) against the callee decl
+ * `void _rasterizer_debug_immediate_line(float*, float*, float*, float*)`.
+ * kb.json declared `void rasterizer_debug_immediate_vector(void)`; the arity/types above are
  * corrected here.  The bundle reports no callers and no xrefs (code or data)
  * to 0x17d150, so no call site or callback-table arity contract is disturbed.
  * Names are behaviour-derived only (no string or PDB evidence) and therefore
@@ -803,14 +803,14 @@ void FUN_0017d080(float *point, float radius, float *color)
  * LEA/PUSH pair into the third FADD/FSTP pair.  There is no call between, so
  * that is MSVC scheduling an x87 chain against the argument pushes, not a
  * side-effect ordering we can or should express in C. */
-void FUN_0017d150(float *point, float *direction, float scale, float *color)
+void rasterizer_debug_immediate_vector(float *point, float *direction, float scale, float *color)
 {
   float endpoint[3];
 
   endpoint[0] = scale * direction[0] + point[0];
   endpoint[1] = scale * direction[1] + point[1];
   endpoint[2] = scale * direction[2] + point[2];
-  FUN_0015a7f0(point, endpoint, color, color);
+  _rasterizer_debug_immediate_line(point, endpoint, color, color);
 }
 
 /* cinematic_screen_effect_globals — game-state block holding the cinematic
@@ -855,7 +855,7 @@ void FUN_0017d150(float *point, float *direction, float scale, float *color)
  * first FSTP; the source order below mirrors both.  `depth` is a plain int
  * (the read still sign-extends the int16_t global) because a 16-bit local made
  * clang emit an extra XOR EAX,EAX plus a 32-bit LEA for the increment. */
-void FUN_0017d1a0(bool param_1)
+void rasterizer_models_begin(bool param_1)
 {
   char collision_result[80];
   float direction[3];
@@ -891,12 +891,12 @@ void FUN_0017d1a0(bool param_1)
     }
     --*(int16_t *)0x4761d8;
 
-    FUN_0016b180(param_1);
+    _rasterizer_models_begin(param_1);
     return;
   }
 
   *(int *)0x47e4cc = -1;
-  FUN_0016b180(param_1);
+  _rasterizer_models_begin(param_1);
 }
 
 /* 0x17d2b0: dump the skinned vertices of one model part that lie under the
@@ -908,13 +908,13 @@ void FUN_0017d1a0(bool param_1)
  * `void rasterizer_debug_model_vertices(void)`.  The disassembly reads three
  * stack dwords and never adjusts ESP on return, so it is a 3-argument cdecl:
  *   [EBP+0x08] compared against the screen-effect reference handle at
- *              0x47e4cc (which FUN_0017d1a0 latches from the collision
+ *              0x47e4cc (which rasterizer_models_begin latches from the collision
  *              result's +0x38), so it is the render-data / geometry handle;
  *   [EBP+0x0c] the skinning block -- [+0] is the node-matrix array base and
  *              [+4] is an int16 count, named `skinning->node_matrix_count` by
  *              the asserts at lines 0x36e/0x36f;
  *   [EBP+0x10] `part`, named by the assert string at line 0x33e.
- * The sole caller (units.c, inside FUN_00123560's opaque pass) already passed
+ * The sole caller (units.c, inside render_model_parts's opaque pass) already passed
  * three arguments through a raw function-pointer cast; correcting the kb decl
  * lets that cast go away.
  *
@@ -944,13 +944,13 @@ void FUN_0017d1a0(bool param_1)
  *
  * Per-vertex decode (vertex stride 0x20 from SHL ESI,0x5):
  *   +0x00 float position[3]  (passed straight to matrix_transform_point)
- *   +0x0c uint32 packed normal, handed to FUN_0017ffc0
+ *   +0x0c uint32 packed normal, handed to uncompress_int32_to_real_vector3d
  *   +0x1c int8  node index 0, +0x1d int8 node index 1 -- both MOVSX then
  *         divided by 3 via the 0x55555556 magic multiply with the
  *         SHR 0x1f / ADD sign fixup, i.e. a signed /3
  *   +0x1e int16 node weight, FILD'd and scaled by the constant at 0x290dd8 =
  *         0x38000100 = 1.0f/32767.0f
- * FUN_0017ffc0 writes exactly three dwords through its first argument and
+ * uncompress_int32_to_real_vector3d writes exactly three dwords through its first argument and
  * returns that same pointer (MOV EAX,[EBP+8] / MOV ECX,EAX, EAX untouched
  * afterwards), so the scratch buffer is a float[3] and the copy that follows
  * reads back through the returned pointer.
@@ -1068,7 +1068,7 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
       normal1[1] = 0.0f;
       normal1[2] = 0.0f;
 
-      unpacked = FUN_0017ffc0(decompressed, *(unsigned int *)(vertex + 0xc));
+      unpacked = uncompress_int32_to_real_vector3d(decompressed, *(unsigned int *)(vertex + 0xc));
       vertex_normal[0] = unpacked[0];
       vertex_normal[1] = unpacked[1];
       vertex_normal[2] = unpacked[2];
@@ -1171,18 +1171,18 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
         for (k = 0; k < points[j].index_count; k++) {
           crt_sprintf(index_text, "%d%c", points[j].index_list[k],
                       k != points[j].index_count - 1 ? ',' : ' ');
-          FUN_0008dc30((char *)0x5ab100, index_text);
+          csstrcat((char *)0x5ab100, index_text);
         }
-        FUN_0008dc30((char *)0x5ab100, "\nV=");
+        csstrcat((char *)0x5ab100, "\nV=");
         for (k = 0; k < points[j].vertex_count; k++) {
           crt_sprintf(vertex_text, "%d%c", points[j].vertex_list[k],
                       k != points[j].vertex_count - 1 ? ',' : ' ');
-          FUN_0008dc30((char *)0x5ab100, vertex_text);
+          csstrcat((char *)0x5ab100, vertex_text);
         }
-        FUN_00189150(0, points[j].position, 0.03125f, *(void **)0x2ee6d0);
-        FUN_00189cb0(0, points[j].position, (void *)0x5ab100, *(int *)0x2ee6e0);
+        render_debug_point(0, points[j].position, 0.03125f, *(void **)0x2ee6d0);
+        render_debug_string_at_point(0, points[j].position, (void *)0x5ab100, *(int *)0x2ee6e0);
       } else {
-        FUN_00189150(0, points[j].position, 0.03125f, *(void **)0x2ee6c4);
+        render_debug_point(0, points[j].position, 0.03125f, *(void **)0x2ee6c4);
       }
     }
   }
@@ -1200,7 +1200,7 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
  * the caller at 0x17dc70 (call sites 0x17dcd4, 0x17dcf8, 0x17dd61,
  * 0x17dd85).  The int cast is the left operand to keep the
  * FILD-then-FMUL-memory shape. */
-float FUN_0017d8f0(void)
+float sub_17D8F0(void)
 {
   return (float)game_time_get() * *(float *)0x2546a4;
 }
@@ -1247,7 +1247,7 @@ void rasterizer_screen_effects_initialize(void)
  * +0x6c and +0x70 stores; that is MSVC scheduling, not an ordering
  * requirement.  No string or PDB evidence names this function, so the FUN_
  * name is kept. */
-void FUN_0017d950(void)
+void rasterizer_screen_effects_initialize_for_new_map(void)
 {
   void *globals;
 
@@ -1268,7 +1268,7 @@ void FUN_0017d950(void)
  * genuinely empty function in the shipped debug build, not a placeholder
  * for unrecovered logic.  Reached by a single CALL at 0x155070.  Nothing in the binary
  * names it or shows what it did in a build where it was non-empty. */
-void FUN_0017d980(void)
+void rasterizer_screen_effects_dispose_from_old_map(void)
 {
 }
 
@@ -1278,7 +1278,7 @@ void FUN_0017d980(void)
  * genuinely empty function in the shipped debug build, not a placeholder
  * for unrecovered logic.  Reached by a single CALL at 0x155bc2.  Nothing in the binary
  * names it or shows what it did in a build where it was non-empty. */
-void FUN_0017d990(void)
+void rasterizer_screen_effects_dispose(void)
 {
 }
 
@@ -1289,7 +1289,7 @@ void FUN_0017d990(void)
  * exit at 0x17d9c6), then sign-extended (MOVSX EAX,AX) to index a dword-scaled
  * slot.  The value is a float: FLD float ptr [EBP+0xc] (0x17d9bc) / FSTP float
  * ptr [ECX+EAX*4+0x64] (0x17d9c2) -- this is direct evidence that the four
- * slots at +0x64..+0x70 written by FUN_0017d950 are floats, not just an
+ * slots at +0x64..+0x70 written by rasterizer_screen_effects_initialize_for_new_map are floats, not just an
  * inference from the 0x3f800000 bit pattern stored there.
  * Guarded on the pointer being non-null (MOV ECX,[0x47e4d4] / TEST ECX,ECX /
  * JZ 0x17d9c6).  The global is loaded ONCE into ECX and reused for the store;
@@ -1297,7 +1297,7 @@ void FUN_0017d990(void)
  * noise, not a second load.  No callees, no callers or xrefs in the binary,
  * and no string or PDB evidence names this function or the indexed field
  * group -- the FUN_ name is kept and the slot meanings stay unknown. */
-void FUN_0017d9a0(int16_t param_1, float param_2)
+void rasterizer_script_screen_effect_set_value(int16_t param_1, float param_2)
 {
   void *globals;
 
@@ -1308,7 +1308,7 @@ void FUN_0017d9a0(int16_t param_1, float param_2)
 }
 
 /* 0x17d9d0: read one float back out of the cinematic screen-effect globals'
- * float group at +0x64 -- the getter counterpart to the setter FUN_0017d9a0
+ * float group at +0x64 -- the getter counterpart to the setter rasterizer_script_screen_effect_set_value
  * directly above, with the identical guard shape.  The index is read as a
  * signed WORD (MOV AX,word ptr [EBP+0x8] at 0x17d9e3) and bounds-checked
  * against [0,4) with signed compares (TEST AX,AX / JL and CMP AX,0x4 / JGE,
@@ -1328,7 +1328,7 @@ void FUN_0017d9a0(int16_t param_1, float param_2)
  * the global is loaded ONCE into ECX.
  * No callees.  No string or PDB evidence names this function or the indexed
  * field group -- the FUN_ name is kept and the slot meanings stay unknown. */
-float FUN_0017d9d0(int16_t param_1)
+float rasterizer_script_screen_effect_get_value(int16_t param_1)
 {
   void *globals;
   float result;
@@ -1370,7 +1370,7 @@ float FUN_0017d9d0(int16_t param_1)
  * unknown and the offsets stay raw.  The only xref is the CALL at 0x0c3681 in
  * FUN_000c3660 (hs.c).  The one-byte stack argument is proven by this
  * function's own MOV CL,byte ptr [EBP + 0x8] and matches the kb decl. */
-void FUN_0017da00(char param_1)
+void rasterizer_screen_effect_start(char param_1)
 {
   void *globals;
 
@@ -1447,7 +1447,7 @@ void FUN_0017da00(char param_1)
  * float and the +0x48 sum are bit-identical -- this is an instruction-count
  * difference only, not a precision or ordering difference, and it is not
  * worth chasing with the permuter. */
-void FUN_0017da40(int16_t param_1, uint16_t param_2, float param_3,
+void rasterizer_screen_effect_set_convolution(int16_t param_1, uint16_t param_2, float param_3,
                   float param_4, float param_5)
 {
   void *globals;
@@ -1516,7 +1516,7 @@ void FUN_0017da40(int16_t param_1, uint16_t param_2, float param_3,
  * local across each call-free run of stores, exactly as sequenced above.
  *
  * The 0x5c/0x60 pair is the same seconds-per-tick timestamp idiom as
- * FUN_0017d8f0 above: game_time_get() spilled to a slot, FILD'd, and
+ * sub_17D8F0 above: game_time_get() spilled to a slot, FILD'd, and
  * multiplied by the float at 0x2546a4.  Note the FLD ST0 / FSTP / FADD
  * ordering: the *narrowed* product is stored at +0x5c, but +0x60 adds
  * param_6 to the still-80-bit x87 copy, not to a reload of +0x5c.  Under
@@ -1527,7 +1527,7 @@ void FUN_0017da40(int16_t param_1, uint16_t param_2, float param_3,
  *
  * The four dwords at 0x4c..0x58 are copied raw -- there is no FLD/FSTP for
  * them in the original -- so the three float parameters go through a dword
- * pun like FUN_0017db20 below rather than through float lvalues, which would
+ * pun like rasterizer_screen_effect_set_filter_desaturation_tint below rather than through float lvalues, which would
  * double-round.  (Our clang build still lowers the bit-copy through
  * FLDS/FSTPS because the float parameters are x87-live at entry; that is
  * value-identical, not a second semantic.)  param_5 is a one-byte value,
@@ -1544,7 +1544,7 @@ void FUN_0017da40(int16_t param_1, uint16_t param_2, float param_3,
  * change no side effect and no ordering -- both are derived from the same
  * already-loaded `globals` the neighbouring stores use -- but folding them
  * back into the store expressions costs the match. */
-void FUN_0017dab0(int param_1, float param_2, float param_3, float param_4,
+void rasterizer_screen_effect_set_filter(int param_1, float param_2, float param_3, float param_4,
                   char param_5, float param_6)
 {
   void *globals;
@@ -1599,7 +1599,7 @@ void FUN_0017dab0(int param_1, float param_2, float param_3, float param_4,
  * semantic.)  The block layout is unknown; the meaning of the
  * three stored dwords is unproven, so the offsets stay raw.  The only xref is
  * the CALL at 0x0c378f in FUN_000c3760. */
-void FUN_0017db20(int param_1, float param_2, float param_3)
+void rasterizer_screen_effect_set_filter_desaturation_tint(int param_1, float param_2, float param_3)
 {
   void *globals;
 
@@ -1637,7 +1637,7 @@ void FUN_0017db20(int param_1, float param_2, float param_3)
  * [EAX+0x24],CX.  The kb decl keeps `int` (the hs.c caller at 0x0c37d9 widens
  * a uint16 field into the slot); the truncation is expressed at the store.
  * The float parameter is copied as a raw dword -- there is no FLD/FSTP in the
- * original -- so it goes through a dword pun like FUN_0017db20 above, while
+ * original -- so it goes through a dword pun like rasterizer_screen_effect_set_filter_desaturation_tint above, while
  * the 1.0f immediate at +0x30 (0x3f800000) is a plain float store.
  *
  * Both tag lookups reuse the already-pushed 0x30/0 slots as
@@ -1701,7 +1701,7 @@ void rasterizer_screen_effect_set_video(int mode, float value)
   *(void **)(globals + 0x34) = bitmap_data;
 }
 
-/* FUN_0017dc60 (0x17dc60).  Clears the byte at +0x38 of the 0x78-byte screen
+/* rasterizer_screen_effect_stop (0x17dc60).  Clears the byte at +0x38 of the 0x78-byte screen
  * effect globals block held at [0x47e4d4], guarded by a null test on the block
  * pointer.  The whole body is five instructions:
  *
@@ -1719,7 +1719,7 @@ void rasterizer_screen_effect_set_video(int mode, float value)
  * rasterizer_screen_effect_set_video (0x17db40) clears with csmemset, so it is
  * a separate flag from that effect's own state -- but nothing in the binary
  * proves what it selects, so no name is asserted here. */
-void FUN_0017dc60(void)
+void rasterizer_screen_effect_stop(void)
 {
   char *globals;
 
@@ -1753,7 +1753,7 @@ void FUN_0017dc60(void)
  * 0x17dead); MSVC also reused that same slot as the home for the second fade
  * scalar.  kb.json's `void *effect` is kept as-is: it matches the observed
  * one-dword-in/one-dword-out ABI, and the sole caller (UNCONDITIONAL_CALL from
- * 0x170ccf in FUN_00170c90) is not lifted, so nothing depends on a better
+ * 0x170ccf in _rasterizer_screen_effect) is not lifted, so nothing depends on a better
  * guess.  The second fade scalar is spelled as an ordinary local here rather
  * than punned through the parameter slot.
  *
@@ -1815,7 +1815,7 @@ void *rasterizer_screen_effect_get_cinematic_parameters(void *effect)
     convolution_blend = 0.0f;
   } else {
     fade_start = (const float *)((char *)globals + 0x44);
-    if ((FUN_0017d8f0() - *fade_start) /
+    if ((sub_17D8F0() - *fade_start) /
           (*(float *)((char *)cinematic_screen_effect_globals + 0x48) -
            *fade_start) >
         *(float *)0x2533c8) {
@@ -1823,7 +1823,7 @@ void *rasterizer_screen_effect_get_cinematic_parameters(void *effect)
     }
     fade_start = (const float *)((char *)globals + 0x44);
     convolution_blend =
-      (FUN_0017d8f0() - *fade_start) /
+      (sub_17D8F0() - *fade_start) /
       (*(float *)((char *)cinematic_screen_effect_globals + 0x48) -
        *fade_start);
   }
@@ -1845,7 +1845,7 @@ convolution_done:
     saturation_blend = 0.0f;
   } else {
     fade_start = (const float *)((char *)globals + 0x5c);
-    if ((FUN_0017d8f0() - *fade_start) /
+    if ((sub_17D8F0() - *fade_start) /
           (*(float *)((char *)cinematic_screen_effect_globals + 0x60) -
            *fade_start) >
         *(float *)0x2533c8) {
@@ -1853,7 +1853,7 @@ convolution_done:
     }
     fade_start = (const float *)((char *)globals + 0x5c);
     saturation_blend =
-      (FUN_0017d8f0() - *fade_start) /
+      (sub_17D8F0() - *fade_start) /
       (*(float *)((char *)cinematic_screen_effect_globals + 0x60) -
        *fade_start);
   }
@@ -1912,7 +1912,7 @@ saturation_done:
   return globals;
 }
 
-/* FUN_0017dec0 (0x17dec0).  Stores its single dword argument into +0x74 of the
+/* rasterizer_set_near_clip_distance (0x17dec0).  Stores its single dword argument into +0x74 of the
  * 0x78-byte screen effect globals block held at [0x47e4d4], guarded by a null
  * test on the block pointer.  The whole body is nine instructions:
  *
@@ -1927,14 +1927,14 @@ saturation_done:
  *     0017ded3: RET
  *
  * The global is loaded ONCE (single MOV, reused as the store base), so it is
- * held in a local rather than re-read, matching FUN_0017dc60 above.  The
+ * held in a local rather than re-read, matching rasterizer_screen_effect_stop above.  The
  * argument is moved through ECX as a plain dword -- there is no FLD/FSTP -- so
  * the kb decl's `int` is kept even though the neighbouring slots +0x64..+0x70
- * that FUN_0017d950 initialises are floats; adjacency is a lead, not evidence.
+ * that rasterizer_screen_effects_initialize_for_new_map initialises are floats; adjacency is a lead, not evidence.
  * The Ghidra artifact records no callers, no callees and no string/assert for
  * this address, so both the function name and the meaning of the +0x74 field
  * are unproven and stay raw. */
-void FUN_0017dec0(int param_1)
+void rasterizer_set_near_clip_distance(int param_1)
 {
   char *globals;
 
@@ -1962,17 +1962,17 @@ void FUN_0017dec0(int param_1)
  * default (MOV ECX at 0x17dee0 precedes FLD at 0x17dee6), so the two locals
  * are assigned in that order here.
  *
- * +0x74 is a float field: FUN_0017dec0 (0x17dec0) stores one dword into the
+ * +0x74 is a float field: rasterizer_set_near_clip_distance (0x17dec0) stores one dword into the
  * same slot and this function loads it with FLD.  That store is dword-wide and
- * therefore bit-identical either way, so FUN_0017dec0's `int param_1` decl is
+ * therefore bit-identical either way, so rasterizer_set_near_clip_distance's `int param_1` decl is
  * left alone.
  *
  * [0x2af1ac] is UNKNOWN -- no string or PDB evidence names it, and its only
  * other appearance (a 4-dword block copy in rasterizer.c) is adjacency, not
  * meaning.  It is kept as a raw address.  The sole xref is an unconditional
- * CALL from 0x15796c in FUN_00157940, which names nothing, so the FUN_ name
+ * CALL from 0x15796c in _rasterizer_frame_begin, which names nothing, so the FUN_ name
  * is kept. */
-float FUN_0017dee0(void)
+float rasterizer_get_near_clip_distance(void)
 {
   void *globals;
   float value;
@@ -1986,7 +1986,7 @@ float FUN_0017dee0(void)
   return value;
 }
 
-/* FUN_0017df10 (0x17df10).  Reserves one slot in a debug-geometry buffer and
+/* rasterizer_debug_new_primitive (0x17df10).  Reserves one slot in a debug-geometry buffer and
  * returns its index, or -1 when either the caller's own per-buffer counter
  * (*count) or the shared global counter [0x47e4f4] has already reached the
  * 0x2000 cap.
@@ -2010,7 +2010,7 @@ float FUN_0017dee0(void)
  *
  * The error() call pushes exactly two arguments (ADD ESP,0x8 at 0x17df69);
  * the ARG_COUNT hazard on it is the varargs "..." counted as a third param. */
-int FUN_0017df10(int *count)
+int rasterizer_debug_new_primitive(int *count)
 {
   int index;
   int result;
@@ -2058,7 +2058,7 @@ done:
  *
  * 0x47e4d8 is a BYTE, not an int: the stores are MOV byte ptr
  * [0x0047e4d8],BL (0x17dfe6) and MOV [0x0047e4d8],AL (0x17e001).  This is the
- * same flag class as 0x47e4f8 in FUN_0017df10 above.
+ * same flag class as 0x47e4f8 in rasterizer_debug_new_primitive above.
  *
  * The __FILE__ argument at 0x2af4b8 is "c:\halo\SOURCE\rasterizer\
  * rasterizer_debug.c" with lines 0x60/0x61/0x62 -- the original TU was
@@ -2072,7 +2072,7 @@ done:
  *   - error "cleanup=2 vs decl=3" is the `...` of
  *     void error(unsigned __int16, const char *, ...) counted as a slot;
  *     exactly two arguments are pushed (PUSH 0x2af48c / PUSH 2 / ADD ESP,8). */
-bool FUN_0017df80(void)
+bool rasterizer_debug_initialize(void)
 {
   *(void **)0x47e4dc = debug_malloc(
     0x78000, false, "c:\\halo\\SOURCE\\rasterizer\\rasterizer_debug.c", 0x60);
@@ -2095,14 +2095,14 @@ bool FUN_0017df80(void)
  * arguments, no return value.
  *
  * The four dwords are written as signed int to stay consistent with
- * FUN_0017df10 above, which compares [0x47e4f4] with JGE (signed) and uses the
+ * rasterizer_debug_new_primitive above, which compares [0x47e4f4] with JGE (signed) and uses the
  * same raw-cast form.  Meanings of [0x47e4e0], [0x47e4e8] and [0x47e4f0] are
  * unknown; only their width (dword) and their reset-to-zero role are proven.
  *
  * Explicit unknown: the dwords at 0x47e4e4 and 0x47e4ec lie between the four
  * written slots and are NOT touched here.  Whether they belong to the same
  * record is unproven by this function. */
-void FUN_0017e010(void)
+void rasterizer_debug_begin(void)
 {
   *(int *)0x47e4e0 = 0;
   *(int *)0x47e4e8 = 0;
@@ -2116,7 +2116,7 @@ void FUN_0017e010(void)
  * genuinely empty function in the shipped debug build, not a placeholder
  * for unrecovered logic.  Reached by a single CALL at 0x159056.  Nothing in the binary
  * names it or shows what it did in a build where it was non-empty. */
-void FUN_0017e030(void)
+void rasterizer_debug_end(void)
 {
 }
 
@@ -2143,9 +2143,9 @@ void FUN_0017e030(void)
  * noreturn.  The ARG_COUNT hazard on the last debug_free is that coalescing.
  *
  * Explicit unknown: the layout of the `debug_data` record these three fields
- * belong to, and whether the neighbouring dwords zeroed by FUN_0017e010
+ * belong to, and whether the neighbouring dwords zeroed by rasterizer_debug_begin
  * (0x47e4e0 / 0x47e4e8 / 0x47e4f0) are counters paired with them. */
-void FUN_0017e040(void)
+void rasterizer_debug_dispose(void)
 {
   if (*(char *)0x47e4d8 != 0) {
     if (*(void **)0x47e4dc == 0) {
@@ -2206,7 +2206,7 @@ void FUN_0017e040(void)
  * The PUSH EBX / MOV BL / TEST BL / POP EBX at 0017e143..0017e149 is MSVC
  * spending a callee-saved register on one byte test; it is not reproducible
  * from C. */
-int FUN_0017e130(void *record_a, void *record_b)
+int compare_debug_primitives(void *record_a, void *record_b)
 {
   int result;
 
@@ -2239,12 +2239,12 @@ int FUN_0017e130(void *record_a, void *record_b)
  * Globals, all spelled by raw address exactly as the rest of this TU does (the
  * assert texts name them as `debug_data.*` fields, but the code only ever
  * touches the separate addresses, so no struct is synthesised):
- *   0x47e4d8  char  "debug buffers valid" flag set by FUN_0017df80
+ *   0x47e4d8  char  "debug buffers valid" flag set by rasterizer_debug_initialize
  *   0x47e4dc  void* opaque_triangles buffer      0x47e4e0 int its count
  *   0x47e4e4  void* opaque_lines buffer          0x47e4e8 int its count
  *   0x47e4ec  void* non_opaque_primitives buffer 0x47e4f0 int its count
  *   0x47e4f4  int   shared total primitive count
- *   0x3256dd  char  the same rendering-enabled byte FUN_0015a560 tests
+ *   0x3256dd  char  the same rendering-enabled byte rasterizer_debug_drawing_begin tests
  *   0x325652  word  render-phase marker: 0xd for the duration, 0 on the way
  *                   out (MOV word ptr at 0x17e308 and 0x17e596).  The three
  *                   top guards exit via 0x17e5a0, which does NOT store 0, so
@@ -2263,9 +2263,9 @@ int FUN_0017e130(void *record_a, void *record_b)
  * one ADD ESP over several calls (ADD ESP,0x14 at 0x17e2e2 for the assert
  * group, ADD ESP,0x1c at 0x17e3b5/0x17e495 and ADD ESP,0x28 at 0x17e54a for
  * the unlock/draw group) -- the same artifact class already documented for
- * FUN_0017e040, not an argument-count bug.
+ * rasterizer_debug_dispose, not an argument-count bug.
  *
- * FUN_0015a560 unknown: the reference pushes TWO dwords at each of the three
+ * rasterizer_debug_drawing_begin unknown: the reference pushes TWO dwords at each of the three
  * call sites -- (1,0) at 0x17e39e, (1,0x10) at 0x17e47e, (0,0) at 0x17e530 --
  * but the lifted callee (rasterizer_xbox_decals.c) reads only [ESP+4], and its
  * kb decl is one `char` parameter.  The second dword is left uncalled here; its
@@ -2274,7 +2274,7 @@ int FUN_0017e130(void *record_a, void *record_b)
  * The 4th argument of the last draw is zero-extended in the reference
  * (XOR EAX,EAX / MOV AX,word ptr at 0x17e539) unlike the MOVSX reads
  * elsewhere, so that one read is spelled unsigned. */
-void FUN_0017e190(void)
+void rasterizer_debug_draw(void)
 {
   char ok;
   int handle;
@@ -2325,16 +2325,16 @@ void FUN_0017e190(void)
     *(int *)0x47e4f4 <= 0x2000);
 
   qsort(*(void **)0x47e4ec, (size_t) * (int *)0x47e4f0, 0x3c,
-        (qsort_compar_proc)FUN_0017e130);
+        (qsort_compar_proc)compare_debug_primitives);
   *(uint16_t *)0x325652 = 0xd;
 
   if (*(int *)0x47e4e0 > 0) {
-    handle = rasterizer_widget_set_zbuffer_enable(9, *(int *)0x47e4e0 * 3);
+    handle = rasterizer_dynamic_vertices_new(9, *(int *)0x47e4e0 * 3);
     if (handle == -1) {
       ok = 0;
       goto finished;
     }
-    vertices = (void *)rasterizer_widget_draw_sprite3d(handle);
+    vertices = (void *)rasterizer_dynamic_vertices_lock(handle);
     if (vertices != (void *)0) {
       vertex_index = 0;
       primitive_count = *(int *)0x47e4e0;
@@ -2350,28 +2350,28 @@ void FUN_0017e190(void)
           remaining--;
         } while (remaining != 0);
       }
-      rasterizer_widget_end(handle);
-      FUN_0015a560(1);
+      rasterizer_dynamic_vertices_unlock(handle);
+      rasterizer_debug_drawing_begin(1);
       rasterizer_draw_dynamic_vertices(0, primitive_count, handle, 3);
-      FUN_0015a290();
+      rasterizer_debug_drawing_end();
     } else {
       error(2, "### ERROR failed to lock dynamic vertex buffers for debug "
                "primitives");
       ok = 0;
     }
-    FUN_0017c9f0(handle);
+    rasterizer_dynamic_vertices_delete(handle);
     if (ok == 0) {
       goto finished;
     }
   }
 
   if (*(int *)0x47e4e8 > 0) {
-    handle = rasterizer_widget_set_zbuffer_enable(9, *(int *)0x47e4e8 * 2);
+    handle = rasterizer_dynamic_vertices_new(9, *(int *)0x47e4e8 * 2);
     if (handle == -1) {
       ok = 0;
       goto finished;
     }
-    vertices = (void *)rasterizer_widget_draw_sprite3d(handle);
+    vertices = (void *)rasterizer_dynamic_vertices_lock(handle);
     if (vertices != (void *)0) {
       vertex_index = 0;
       primitive_count = *(int *)0x47e4e8;
@@ -2387,16 +2387,16 @@ void FUN_0017e190(void)
           remaining--;
         } while (remaining != 0);
       }
-      rasterizer_widget_end(handle);
-      FUN_0015a560(1);
+      rasterizer_dynamic_vertices_unlock(handle);
+      rasterizer_debug_drawing_begin(1);
       rasterizer_draw_dynamic_vertices(0, primitive_count, handle, 2);
-      FUN_0015a290();
-      FUN_0017c9f0(handle);
+      rasterizer_debug_drawing_end();
+      rasterizer_dynamic_vertices_delete(handle);
     } else {
       error(2, "### ERROR failed to lock dynamic vertex buffers for debug "
                "primitives");
       ok = 0;
-      FUN_0017c9f0(handle);
+      rasterizer_dynamic_vertices_delete(handle);
     }
   }
 
@@ -2410,25 +2410,25 @@ finished:
       }
       record = (char *)*(void **)0x47e4ec + record_offset;
       handle =
-        rasterizer_widget_set_zbuffer_enable(9, (int)*(short *)(record + 0x30));
+        rasterizer_dynamic_vertices_new(9, (int)*(short *)(record + 0x30));
       if (handle == -1) {
         ok = 0;
       } else {
-        vertices = (void *)rasterizer_widget_draw_sprite3d(handle);
+        vertices = (void *)rasterizer_dynamic_vertices_lock(handle);
         if (vertices != (void *)0) {
           csmemcpy(vertices, record,
                    (size_t)((int)*(short *)(record + 0x30) << 4));
-          rasterizer_widget_end(handle);
-          FUN_0015a560(0);
+          rasterizer_dynamic_vertices_unlock(handle);
+          rasterizer_debug_drawing_begin(0);
           rasterizer_draw_dynamic_vertices(0, 1, handle,
                                            *(unsigned short *)(record + 0x30));
-          FUN_0015a290();
-          FUN_0017c9f0(handle);
+          rasterizer_debug_drawing_end();
+          rasterizer_dynamic_vertices_delete(handle);
         } else {
           error(2, "### ERROR failed to lock dynamic vertex buffers for debug "
                    "primitives");
           ok = 0;
-          FUN_0017c9f0(handle);
+          rasterizer_dynamic_vertices_delete(handle);
         }
       }
       index++;
@@ -2454,14 +2454,14 @@ finished:
  * (lines 0xab..0xae) -- Bungie's TU was rasterizer_debug.c, but kb.json maps
  * this address into rasterizer_sprites.obj, so the string is copied verbatim
  * as binary data and the object mapping is left alone, exactly as for
- * FUN_0017df80 / FUN_0017e040 / FUN_0017e190 above.
+ * rasterizer_debug_initialize / rasterizer_debug_dispose / rasterizer_debug_draw above.
  *
- * Globals are the same debug_data set FUN_0017e190 documents: 0x47e4d8 the
+ * Globals are the same debug_data set rasterizer_debug_draw documents: 0x47e4d8 the
  * byte "buffers valid" flag, 0x3256dd the byte rendering-enabled flag,
  * 0x47e4e4/0x47e4e8 the opaque_lines buffer and its count, 0x47e4ec/0x47e4f0
  * the non_opaque_primitives buffer and its count.  0x5a5bc8/cc/d0 is the
  * camera position and 0x5a5bd4/d8/dc the camera forward vector (the same two
- * triples FUN_0017d1a0 uses).
+ * triples rasterizer_models_begin uses).
  *
  * Two guards decide the destination list:
  *   - FLD [colour] / FCOMP [0x2533c0] twice, where 0x2533c0 is 0x00000000 =
@@ -2475,22 +2475,22 @@ finished:
  *     list, otherwise the non_opaque_primitives list.
  *
  * The record is 0x3c bytes (IMUL EAX,EAX,0x3c), matching the qsort element
- * size and the ADD EDI,0x3c stride in FUN_0017e190.  Store offsets taken from
+ * size and the ADD EDI,0x3c stride in rasterizer_debug_draw.  Store offsets taken from
  * the raw MOV/FSTP destinations:
  *   +0x00/+0x04/+0x08  p0 xyz, copied as three dword MOVs (MSVC copies the
  *                      12-byte point as integers, not FLD/FSTP)
- *   +0x0c              FUN_000d1c90(color0) -- the packed colour returned in
+ *   +0x0c              real_argb_color_to_pixel32(color0) -- the packed colour returned in
  *                      EAX and stored as a dword (MOV [ESI+0xc],EAX), so it
  *                      is a uint32_t, not a float
  *   +0x10/+0x14/+0x18  p1 xyz (written through LEA ECX,[ESI+0x10])
- *   +0x1c              FUN_000d1c90(color1)
+ *   +0x1c              real_argb_color_to_pixel32(color1)
  *   +0x20..+0x2f       never written here -- the third vertex slot, used only
  *                      by the triangle entry point
- *   +0x30              word 2, the int16 vertex count FUN_0017e130 sorts on
- *                      and FUN_0017e190 MOVSXs (2 vertices = a line)
+ *   +0x30              word 2, the int16 vertex count compare_debug_primitives sorts on
+ *                      and rasterizer_debug_draw MOVSXs (2 vertices = a line)
  *   +0x34              float sort key
  *   +0x38              byte flag, the opaque selector, the same byte
- *                      FUN_0017e130 tests
+ *                      compare_debug_primitives tests
  *
  * The sort key is the dot product of the camera forward vector with
  * (camera_position - point) for each endpoint, the smaller of the two.  The
@@ -2504,9 +2504,9 @@ finished:
  * at EBP-0x1 (EBP-0x4..-0x2 unused).
  *
  * Call-site audit note: ADD ESP,0x8 at 0017e799 is the coalesced cleanup for
- * the two 1-argument FUN_000d1c90 calls, the same artifact class already
- * documented for FUN_0017e040. */
-void FUN_0017e5b0(float *p0, float *p1, float *color0, float *color1)
+ * the two 1-argument real_argb_color_to_pixel32 calls, the same artifact class already
+ * documented for rasterizer_debug_dispose. */
+void rasterizer_debug_line_shaded(float *p0, float *p1, float *color0, float *color1)
 {
   float delta1[3];
   float delta0[3];
@@ -2541,7 +2541,7 @@ void FUN_0017e5b0(float *p0, float *p1, float *color0, float *color1)
         opaque = 0;
         count = (int *)0x47e4f0;
       }
-      index = FUN_0017df10(count);
+      index = rasterizer_debug_new_primitive(count);
       if (index != -1) {
         buffer = *(char **)0x47e4e4;
         if (opaque == 0) {
@@ -2561,8 +2561,8 @@ void FUN_0017e5b0(float *p0, float *p1, float *color0, float *color1)
         *(uint32_t *)(record + 0x10) = ((uint32_t *)p1)[0];
         *(uint32_t *)(record + 0x14) = ((uint32_t *)p1)[1];
         *(uint32_t *)(record + 0x18) = ((uint32_t *)p1)[2];
-        *(uint32_t *)(record + 0x0c) = FUN_000d1c90(color0);
-        *(uint32_t *)(record + 0x1c) = FUN_000d1c90(color1);
+        *(uint32_t *)(record + 0x0c) = real_argb_color_to_pixel32(color0);
+        *(uint32_t *)(record + 0x1c) = real_argb_color_to_pixel32(color1);
         distance0 = *(float *)0x5a5bdc * delta0[2] +
                     *(float *)0x5a5bd8 * delta0[1] +
                     *(float *)0x5a5bd4 * delta0[0];
@@ -2580,7 +2580,7 @@ void FUN_0017e5b0(float *p0, float *p1, float *color0, float *color1)
 }
 
 /* 0x17e800: append one debug triangle to the debug-geometry record list.  The
- * triangle sibling of FUN_0017e5b0 above -- same globals, same 0x3c record,
+ * triangle sibling of rasterizer_debug_line_shaded above -- same globals, same 0x3c record,
  * same guards, one more vertex.
  *
  * The six parameters are string-proven by the assert at rasterizer_debug.c
@@ -2605,11 +2605,11 @@ void FUN_0017e5b0(float *p0, float *p1, float *color0, float *color1)
  *
  * Store offsets, from the raw MOV/FSTP destinations:
  *   +0x00/+0x04/+0x08  p0 xyz (dword MOVs through ECX = ESI)
- *   +0x0c              FUN_000d1c90(color0), a uint32_t packed colour in EAX
+ *   +0x0c              real_argb_color_to_pixel32(color0), a uint32_t packed colour in EAX
  *   +0x10/+0x14/+0x18  p1 xyz (through LEA ECX,[ESI+0x10])
- *   +0x1c              FUN_000d1c90(color1)
+ *   +0x1c              real_argb_color_to_pixel32(color1)
  *   +0x20/+0x24/+0x28  p2 xyz (through LEA ECX,[ESI+0x20])
- *   +0x2c              FUN_000d1c90(color2)
+ *   +0x2c              real_argb_color_to_pixel32(color2)
  *   +0x30              word 3
  *   +0x34              float sort key
  *   +0x38              byte opaque flag
@@ -2631,8 +2631,8 @@ void FUN_0017e5b0(float *p0, float *p1, float *color0, float *color1)
  * distance1 never leaves the x87 stack.
  *
  * Call-site audit note: ADD ESP,0xc at 0017ea59 is the coalesced cleanup for
- * the three 1-argument FUN_000d1c90 calls, the same artifact class documented
- * for FUN_0017e040. */
+ * the three 1-argument real_argb_color_to_pixel32 calls, the same artifact class documented
+ * for rasterizer_debug_dispose. */
 void rasterizer_debug_triangle_shaded(float *p0, float *p1, float *p2,
                                       float *color0, float *color1,
                                       float *color2)
@@ -2673,7 +2673,7 @@ void rasterizer_debug_triangle_shaded(float *p0, float *p1, float *p2,
         opaque = 0;
         count = (int *)0x47e4f0;
       }
-      index = FUN_0017df10(count);
+      index = rasterizer_debug_new_primitive(count);
       if (index != -1) {
         buffer = *(char **)0x47e4dc;
         if (opaque == 0) {
@@ -2699,9 +2699,9 @@ void rasterizer_debug_triangle_shaded(float *p0, float *p1, float *p2,
         *(uint32_t *)(record + 0x20) = ((uint32_t *)p2)[0];
         *(uint32_t *)(record + 0x24) = ((uint32_t *)p2)[1];
         *(uint32_t *)(record + 0x28) = ((uint32_t *)p2)[2];
-        *(uint32_t *)(record + 0x0c) = FUN_000d1c90(color0);
-        *(uint32_t *)(record + 0x1c) = FUN_000d1c90(color1);
-        *(uint32_t *)(record + 0x2c) = FUN_000d1c90(color2);
+        *(uint32_t *)(record + 0x0c) = real_argb_color_to_pixel32(color0);
+        *(uint32_t *)(record + 0x1c) = real_argb_color_to_pixel32(color1);
+        *(uint32_t *)(record + 0x2c) = real_argb_color_to_pixel32(color2);
         distance1 = *(float *)0x5a5bdc * delta1[2] +
                     *(float *)0x5a5bd8 * delta1[1] +
                     *(float *)0x5a5bd4 * delta1[0];
@@ -2733,9 +2733,9 @@ void rasterizer_debug_triangle_shaded(float *p0, float *p1, float *p2,
  * float pointers.  This wrapper's own slot stays `int` because its ten call
  * sites in render_debug.c / hud.c already pass `(int)color`; the cast is done
  * here rather than churning those TUs. */
-void FUN_0017eb10(float *vert_a, float *vert_b, int param_3)
+void rasterizer_debug_line(float *vert_a, float *vert_b, int param_3)
 {
-  FUN_0017e5b0(vert_a, vert_b, (float *)param_3, (float *)param_3);
+  rasterizer_debug_line_shaded(vert_a, vert_b, (float *)param_3, (float *)param_3);
 }
 
 /* Forwarding wrapper (0x17eb30).  Full EBP frame, cdecl call, no tail call:
@@ -2762,7 +2762,7 @@ void FUN_0017eb10(float *vert_a, float *vert_b, int param_3)
  * the ADD ESP,0x18 here proves six cdecl dword arguments and the decl is
  * widened accordingly.  The return stays void: EAX is not consumed after the
  * CALL at 0x17eb45. */
-void FUN_0017eb30(float *point0, float *point1, float *point2, void *color)
+void rasterizer_debug_triangle(float *point0, float *point1, float *point2, void *color)
 {
   rasterizer_debug_triangle_shaded(point0, point1, point2, color, color, color);
 }
@@ -2787,7 +2787,7 @@ void FUN_0017eb30(float *point0, float *point1, float *point2, void *color)
  *
  * Explicit unknown: what the 0x24000-byte block at 0x47ec40 holds.  It is read
  * elsewhere as an opaque pointer (rasterizer_text.c). */
-bool FUN_0017eb50(void)
+bool rasterizer_frame_statistics_initialize(void)
 {
   *(void **)0x47ec40 = debug_malloc(
     0x24000, false,
@@ -2804,14 +2804,14 @@ bool FUN_0017eb50(void)
  * CALL csmemset / ADD ESP,0xc / RET -- with no frame, no arguments and no
  * return value; the csmemset result in EAX is discarded.
  *
- * The debug counter at 0x5a5540 documented on FUN_0017df10 above lies inside
+ * The debug counter at 0x5a5540 documented on rasterizer_debug_new_primitive above lies inside
  * this range (0x5a5400 + 0x170 == 0x5a5570), so this function resets it.  That
  * is containment only: it does not prove the 0x170 bytes form one record.
  *
  * Explicit unknown: the layout and meaning of the block.  Only its base, its
  * size, and its reset-to-zero role are proven here.  csmemset (0x8db80) is
  * called by name rather than memset so the call is not lowered inline. */
-void FUN_0017eb90(void)
+void rasterizer_frame_statistics_begin(void)
 {
   csmemset((void *)0x5a5400, 0, 0x170);
 }
@@ -2861,7 +2861,7 @@ void FUN_0017eb90(void)
  *
  * Explicit unknowns: the meaning of the 0x3256ba gate, and why the delta
  * clamp floor is 1 rather than 0 (only "values below 2 become 1" is proven). */
-void FUN_0017ebb0(float *stats_out)
+void rasterizer_frame_statistics_get_fps(float *stats_out)
 {
   unsigned int now;
   unsigned int min_delta;
@@ -2957,7 +2957,7 @@ void FUN_0017ebb0(float *stats_out)
  * discriminates, so the two dwords are copied independently rather than as one
  * 64-bit quantity.  The zero written to 0x47ec4c is likewise unexplained --
  * only its position between the timestamp and the copied pair is proven. */
-void FUN_0017ed30(void)
+void rasterizer_fps_accumulate(void)
 {
   *(unsigned char *)0x3256b8 = 1;
   *(unsigned int *)0x47ec48 = system_milliseconds();
@@ -2967,7 +2967,7 @@ void FUN_0017ed30(void)
 }
 
 
-/* FUN_0017ed90 @ 0x17ed90 -- returns an index/vertex count selected by a
+/* rasterizer_frame_statistics_count_static_vertices @ 0x17ed90 -- returns an index/vertex count selected by a
  * 16-bit tag at the head of the first buffer.
  *
  * Traced from disassembly (the decompiler loses the frame here and emits a
@@ -2986,7 +2986,7 @@ void FUN_0017ed30(void)
  * dword at +4 of each buffer is the only field this function touches, so no
  * struct is claimed.  The NOP at 0x17edbf lies inside the bounds entry and is
  * not expressible in C. */
-int FUN_0017ed90(void *triangle_buffer, void *vertex_buffer)
+int rasterizer_frame_statistics_count_static_vertices(void *triangle_buffer, void *vertex_buffer)
 {
   int count;
   short kind;
@@ -3008,7 +3008,7 @@ int FUN_0017ed90(void *triangle_buffer, void *vertex_buffer)
  * parks both early exits past the main RET -- the negative-argument decode at
  * 0x17eecb and the "widget == 0 -> return 0" tail at 0x17eef2 -- so the C is
  * written main-path-first to keep that order rather than as a leading guard. */
-int rasterizer_frame_statistics_count_static_vertices(
+int rasterizer_frame_statistics_count_dynamic_vertices(
   int vertices_per_primitive, int a2, int triangle_count)
 {
   void *volatile base;
@@ -3022,7 +3022,7 @@ int rasterizer_frame_statistics_count_static_vertices(
 
   unique_count = 0;
   if (vertices_per_primitive >= 0) {
-    widget = rasterizer_widget_begin(vertices_per_primitive);
+    widget = rasterizer_dynamic_triangles_lock(vertices_per_primitive);
     base = widget;
     if (widget != 0) {
       assert_halt_msg_at(
@@ -3038,7 +3038,7 @@ int rasterizer_frame_statistics_count_static_vertices(
       csmemcpy(*(void **)0x47ec40, (void *)((char *)base + a2 * 6),
                triangle_count * 6);
       FUN_00091da0(*(void **)0x47ec40, index_count,
-                   (void *)rasterizer_frame_statistics_sort_index_compare);
+                   (void *)eat_my_shorts);
 
       previous = 0xffff;
       {
@@ -3053,7 +3053,7 @@ int rasterizer_frame_statistics_count_static_vertices(
         }
       }
 
-      rasterizer_widget_set_texture(*(volatile int *)&vertices_per_primitive);
+      rasterizer_dynamic_triangles_unlock(*(volatile int *)&vertices_per_primitive);
       return *(volatile int *)&unique_count;
     }
     return 0;
