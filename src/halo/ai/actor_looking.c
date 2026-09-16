@@ -286,27 +286,27 @@ char action_converse_setup(int actor_handle, int action_handle, int *state_data)
   return 1;
 }
 
-/* actor_update_prop_desire (0x14360)
+/* action_converse_perform (0x14360)
  * Update actor's desire to reach its prop target.
  *
  * If the actor has no current prop (field_ac == -1) but has a follow-prop
  * handle (field_a8 != -1), acquires a prop near the follow target via
- * FUN_00064b40.  Then, if a prop is held, checks whether the prop's type
+ * prop_get_base_by_unit_index.  Then, if a prop is held, checks whether the prop's type
  * qualifies (field_32 >= 2) and its distance (field_11c) is within the
  * actor's tolerance (field_a4), or the prop distance is less than 0.7f; if
  * so, marks the actor as ready (field_a1 = 1).  When ready, calls
- * FUN_0002f1a0 (perception acknowledge) and returns the current state byte
+ * actor_move_halt (perception acknowledge) and returns the current state byte
  * (field_a0).  Otherwise tries to move toward the prop via
  * actor_move_to_prop; sets field_a0 = 1 if no prop at all, or if
  * actor_move_to_prop returns 0.
  *
- * Confirmed: EBX = 1 set at 0x1438c; used as literal arg to FUN_00064b40
+ * Confirmed: EBX = 1 set at 0x1438c; used as literal arg to prop_get_base_by_unit_index
  *   and as byte written to field_a1 at 0x14408 and field_a0 at 0x14447.
  * Confirmed: actor_move_to_prop pushes [ESI+0xa4] raw (float bits) as 3rd arg.
  * Confirmed: field_32 comparison is signed short CMP vs 2 (JL 0x143f5).
  * Confirmed: float threshold at 0x2533c4 = 0.7f (0x3f333333).
  * Confirmed: early return at 0x1441e returns field_a0 without setting it. */
-char actor_update_prop_desire(int actor_handle)
+char action_converse_perform(int actor_handle)
 {
   char *actor;
   char *prop;
@@ -318,7 +318,7 @@ char actor_update_prop_desire(int actor_handle)
   }
   if ((*(int *)(actor + 0xac) == -1) && (*(int *)(actor + 0xa8) != -1)) {
     *(int *)(actor + 0xac) =
-      FUN_00064b40(actor_handle, *(int *)(actor + 0xa8), 1, 1);
+      prop_get_base_by_unit_index(actor_handle, *(int *)(actor + 0xa8), 1, 1);
   }
   if (*(int *)(actor + 0xac) == -1) {
     ((actor_t *)actor)->field_0a0 = 1;
@@ -334,7 +334,7 @@ char actor_update_prop_desire(int actor_handle)
     }
   }
   if (((actor_t *)actor)->field_0a1 != '\0') {
-    FUN_0002f1a0(actor_handle);
+    actor_move_halt(actor_handle);
     return ((actor_t *)actor)->field_0a0;
   }
   if (actor_move_to_prop(actor_handle, *(int *)(actor + 0xac),
@@ -399,7 +399,7 @@ void action_converse_control(int actor_handle)
   }
 }
 
-/* actor_set_prop_if_match (0x14510)
+/* action_converse_replace_prop (0x14510)
  * Conditionally replace an actor's prop handle if it matches old_prop.
  *
  * If the actor's current prop handle at actor+0xac equals old_prop, replace
@@ -409,7 +409,7 @@ void action_converse_control(int actor_handle)
  * Confirmed: datum_get(actor_data, actor_handle) from decompile.
  * Confirmed: compare *(int *)(actor+0xac) == old_prop; store new_prop on
  *   match. */
-void actor_set_prop_if_match(int actor_handle, int old_prop, int new_prop)
+void action_converse_replace_prop(int actor_handle, int old_prop, int new_prop)
 {
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -421,14 +421,14 @@ void actor_set_prop_if_match(int actor_handle, int old_prop, int new_prop)
 /* actor_conversation_control (0x14540)
  * Initialize actor looking state from the scripted look target at activation.
  *
- * Called during actor activation (FUN_0003ec80) after prop and movement init.
+ * Called during actor activation (actor_update) after prop and movement init.
  * Reads the actor's scripted-look target handle at actor+0x1dc.  If set (not
  * -1) and the actor also has a secondary-look object handle at actor+0x1e0,
  * it attempts to find an existing look-at entry for that object via
  * prop_get_active_by_unit_index.  If one is found it is passed as an
  * object-handle look target (type 1); otherwise the object's position is
  * fetched via unit_get_head_position and a position look target (type 3) is
- * issued via FUN_00027a60.
+ * issued via actor_look_secondary.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x14552.
  * Confirmed: guard on [actor+0x1dc] != -1 AND [actor+0x1e0] != -1 at
@@ -438,11 +438,11 @@ void actor_set_prop_if_match(int actor_handle, int old_prop, int new_prop)
  * type=1 path: MOV word [EBP-0x10],1; MOV [EBP-0xc],EAX at 0x14581/0x14587.
  * Confirmed: type=3 path: MOV word [EBP-0x10],3 at 0x14597; CALL 0x1a9200
  *   with args ([actor+0x1e0], &buf[1]) at 0x1459d.
- * Confirmed: FUN_00027a60(actor_handle, 8, 5, &buf) at 0x145ae.
- * Confirmed: cdecl: ADD ESP,0x10 after FUN_00027a60; ADD ESP,0x8 after
+ * Confirmed: actor_look_secondary(actor_handle, 8, 5, &buf) at 0x145ae.
+ * Confirmed: cdecl: ADD ESP,0x10 after actor_look_secondary; ADD ESP,0x8 after
  *   prop_get_active_by_unit_index and unit_get_head_position. */
 #if defined(_MSC_VER) && !defined(__clang__)
-__declspec(noinline) int FUN_00027a60(int actor_handle, short look_type,
+__declspec(noinline) int actor_look_secondary(int actor_handle, short look_type,
                                       short priority, short *look_buf);
 #endif
 void actor_conversation_control(int actor_handle)
@@ -451,7 +451,7 @@ void actor_conversation_control(int actor_handle)
   int look_entry; /* return from prop_get_active_by_unit_index: existing look
                      entry or -1 */
 
-  /* Buffer passed to FUN_00027a60: { int16_t type; int16_t pad; int data[3]; }
+  /* Buffer passed to actor_look_secondary: { int16_t type; int16_t pad; int data[3]; }
    * type=1 (object handle look): data[0] = look_entry handle
    * type=3 (position look):      data[0..2] = xyz position from
    * unit_get_head_position Total: 2 + 2(pad) + 12 = 16 bytes (0x10), matching
@@ -480,7 +480,7 @@ void actor_conversation_control(int actor_handle)
     unit_get_head_position(look_object, (float *)&look_buf[2]);
   }
 
-  FUN_00027a60(actor_handle, 8, 5, look_buf);
+  actor_look_secondary(actor_handle, 8, 5, look_buf);
 }
 
 /* actor_conversation_end (0x145c0)
@@ -607,7 +607,7 @@ void action_fight_control(int actor_handle)
  *
  * Evaluates the actor's combat targeting state. Two execution paths:
  *   PATH A (field_358 && tag_bit5): quick check via
- * actor_has_accessible_firing_position. Success → encounter checks + optional
+ * actor_nearby_firing_positions. Success → encounter checks + optional
  * firing position reset → tail. Failure → fall through to PATH B. PATH B:
  * evaluation pipeline (csmemset → actor_active_select_firing_position → actor_change_firing_position), then randomized
  * delay timer from tag range and weapon rate-of-fire. TAIL: if actor->field_268
@@ -622,7 +622,7 @@ void action_fight_control(int actor_handle)
  * actor_combat_get_firing_variant_definition at 0x147d7. Confirmed: field_160
  * (suppressed) guard at 0x147e8. Confirmed: field_358+tag_bit5 branch at
  * 0x147f0-0x14801. Confirmed: actor_find_pathfinding_location at 0x14808;
- * actor_has_accessible_firing_position at 0x1481e. Confirmed: encounter/fp
+ * actor_nearby_firing_positions at 0x1481e. Confirmed: encounter/fp
  * distance check at 0x1484f-0x1489e. Confirmed: field_504/1fc prop check at
  * 0x148a2-0x148ee. Confirmed: evaluation pipeline at 0x14912-0x1496a.
  * Confirmed: random timer with weapon rate cap at 0x1498f-0x14a1f.
@@ -671,7 +671,7 @@ unsigned int action_fight_perform(int actor_handle)
   if (((actor_t *)actor)->field_358 != '\0' && (*tag & 0x20)) {
     actor_find_pathfinding_location(actor_handle);
 
-    if (actor_has_accessible_firing_position(
+    if (actor_nearby_firing_positions(
           actor_handle, (float *)(actor + 0x168), ((actor_t *)actor)->field_164,
           0) != '\0') {
       within_range = 0;
@@ -747,7 +747,7 @@ unsigned int action_fight_perform(int actor_handle)
 
 reset_fp:
   ((actor_t *)actor)->firing_positions_current_position_index = -1;
-  FUN_0002f1a0(actor_handle);
+  actor_move_halt(actor_handle);
 
 tail:
   if (((actor_t *)actor)->target_target_type < 7)
@@ -1011,7 +1011,7 @@ void action_flee_find_flee_position(int actor_handle, void *state_data, int para
     path_input_new(path_buf, *(unsigned int *)(tag + 0x8c), 0, target_pos);
     path_input_set_start(path_buf, (float *)(sec_target + 0xf0),
                          *(int *)(sec_target + 0xec));
-    paths_dispose(path_buf, ((actor_t *)actor)->field_018);
+    path_input_set_target_object(path_buf, ((actor_t *)actor)->field_018);
     path_state_new(path_buf, path_state_buf, 0);
     /* fp_result_ptr->field_0x14 = *(int*)((char*)fp_result_ptr + 0x14) */
     FUN_0005e0d0(path_state_buf, (float *)fp_result_ptr,
@@ -1286,7 +1286,7 @@ void action_flee_update(int actor_handle)
  *   - actor+0x424 = 1, actor+0x425 = 0
  *
  * Then dispatches the look target:
- *   - If actor+0xa4 == -1: call FUN_0002f1a0 and return.
+ *   - If actor+0xa4 == -1: call actor_move_halt and return.
  *   - If actor+0x4c != 0: try actor_move_to_firing_position.
  *     On success: copy actor+0xa4..0xa6 into actor+0x3b8..0x3ba and return.
  *     On failure: if actor+0x3b8 != -1, dispatch actor_discard_firing_position + FUN_0002f1a0
@@ -1351,7 +1351,7 @@ FUN_00015250_tail:
   ((actor_t *)actor)->field_425 = 0;
 
   if (*(short *)(actor + 0xa4) == -1) {
-    FUN_0002f1a0(actor_handle);
+    actor_move_halt(actor_handle);
     return;
   }
   if (((actor_t *)actor)->field_04c != 0) {
@@ -1367,7 +1367,7 @@ FUN_00015250_tail:
       actor_discard_firing_position(actor_handle,
                    ((actor_t *)actor)->firing_positions_current_position_index,
                    0);
-      FUN_0002f1a0(actor_handle);
+      actor_move_halt(actor_handle);
       ((actor_t *)actor)->firing_positions_current_position_index = -1;
     }
     *(short *)(actor + 0xa4) = -1;
@@ -1604,7 +1604,7 @@ skip_mark_unable:
   look_anim = *(int16_t *)(state + 0xc);
   if (look_anim >= 9 && look_anim <= 12) {
     if (((actor_t *)actor)->field_018 != -1) {
-      if ((char)FUN_001a6bc0(((actor_t *)actor)->field_018) == 0) {
+      if ((char)unit_is_speaking(((actor_t *)actor)->field_018) == 0) {
         *(char *)(state + 0x10) = 0;
       }
     }
@@ -1624,9 +1624,9 @@ skip_mark_unable:
   /* Dispatch flee vocal/sound based on look_anim type */
   look_anim = *(int16_t *)(state + 0xc);
   if (look_anim == 0xc || look_anim == 0xb) {
-    FUN_001a74d0(((actor_t *)actor)->field_018, 2);
+    unit_scream(((actor_t *)actor)->field_018, 2);
   } else if (look_anim == 9 || look_anim == 0xa) {
-    FUN_001a74d0(((actor_t *)actor)->field_018, 1);
+    unit_scream(((actor_t *)actor)->field_018, 1);
   } else {
     /* Encounter-based flee sound */
     enc_val = -1;
@@ -1826,7 +1826,7 @@ void action_guard_begin(int actor_handle)
   }
 }
 
-/* actor_clear_guard_state (0x15b70)
+/* action_guard_end (0x15b70)
  * Clears the actor's prop/guard encounter state when the prop-ready flag is
  * set.
  *
@@ -1834,10 +1834,10 @@ void action_guard_begin(int actor_handle)
  * Confirmed: branch on ((actor_t *)actor)->field_0a1 != 0 from decompile.
  * Confirmed: ((actor_t *)actor)->field_1e4 = 0; ((actor_t *)actor)->field_1e8 =
  * -1 from decompile. Inferred: actor+0xa1 = prop-ready flag (set by
- * actor_update_prop_desire at 0x14360). Inferred: actor+0x1e4 = guard/prop
+ * action_converse_perform at 0x14360). Inferred: actor+0x1e4 = guard/prop
  * state index (int16_t). Inferred: actor+0x1e8 = guard/prop encounter handle,
  * reset to invalid (-1). */
-void actor_clear_guard_state(int actor_handle)
+void action_guard_end(int actor_handle)
 {
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -1930,7 +1930,7 @@ wake:
   ((actor_t *)actor)->field_0aa = 1;
 }
 
-/* actor_reset_action_state (0x15eb0)
+/* action_guard_flush_position_indices (0x15eb0)
  * If actor is active (actor+0xa4 != 0) and in state 3, clears the prop flags
  * at a4, a6, a8. If state==3 or (state==1 and not suppressed at 0x160),
  * resets action state: c0=0 (idle), c4=0xffff, aa=1.
@@ -1939,7 +1939,7 @@ wake:
  * Confirmed: field offsets a4, a6, a8, aa, c0, c4, 160 from disassembly.
  * Inferred: state 3 = fleeing/post-action; state 1 = normal; 0x160 = suppressed
  * flag. */
-void actor_reset_action_state(int actor_handle)
+void action_guard_flush_position_indices(int actor_handle)
 {
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -1957,7 +1957,7 @@ void actor_reset_action_state(int actor_handle)
   }
 }
 
-/* actor_clear_flee_target (0x15f30)
+/* action_guard_flush_structure_indices (0x15f30)
  * If the actor is in flee state (action state 2 at actor+0xc0), clears the
  * flee target handle at actor+0xd0 to -1 (invalid datum).
  *
@@ -1965,7 +1965,7 @@ void actor_reset_action_state(int actor_handle)
  * Confirmed: cmp word ptr [eax+0xc0], 2 and mov dword ptr [eax+0xd0], -1 from
  * disassembly. Inferred: actor+0xc0 = action state enum; actor+0xd0 =
  * flee-target datum handle. */
-void actor_clear_flee_target(int actor_handle)
+void action_guard_flush_structure_indices(int actor_handle)
 {
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -2011,7 +2011,7 @@ void action_guard_modify_color(int actor_handle, int *param_2)
   param_2[3] = src[3];
 }
 
-/* actor_replace_prop_handle (0x16000)
+/* action_guard_replace_prop (0x16000)
  * Replace all references to old_handle in actor prop fields with new_handle.
  *
  * Checks actor+0xd8 (prop field) and actor+0xac (scripted-look prop handle).
@@ -2026,7 +2026,7 @@ void action_guard_modify_color(int actor_handle, int *param_2)
  *   MOV byte [EAX+0xf],0 at 0x1602e-0x1603b.
  * Inferred: actor+0xd8 = prop datum handle; actor+0xac = scripted-look prop
  * handle; actor+0xab = scripted-look prop valid flag. */
-void actor_replace_prop_handle(int actor_handle, int old_handle, int new_handle)
+void action_guard_replace_prop(int actor_handle, int old_handle, int new_handle)
 {
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -2072,7 +2072,7 @@ int action_guard_setup_from_combat_transition(int actor_handle, short *param_2)
       system_exit(-1);
     }
     if (((actor_t *)actor)->field_314 != '\0') {
-      cVar1 = actor_has_accessible_firing_position(
+      cVar1 = actor_nearby_firing_positions(
         actor_handle, (float *)(actor + 0x318), ((actor_t *)actor)->field_324,
         1);
       if (cVar1 != '\0') {
@@ -2312,7 +2312,7 @@ unsigned int action_guard_perform(int actor_handle)
  *
  * Sets look-flag bytes actor+0x426/427/428/424/425 from actr tag bits and
  * actor stance (a4/a6). Dispatches:
- *   0/1 → retreat (FUN_0002f1a0)
+ *   0/1 → retreat (actor_move_halt)
  *   2   → approach position (actor_move_to_point or retreat)
  *   3   → move to firing position (actor_move_to_firing_position)
  * On approach success: fires action_guard_speak_post_combat if prop-ready (actor+0xa1) and
@@ -2369,14 +2369,14 @@ void action_guard_control(int actor_handle)
   switch (((actor_t *)actor)->field_0c0) {
   case 0:
   case 1:
-    FUN_0002f1a0(actor_handle);
+    actor_move_halt(actor_handle);
     bVar2 = 1;
     break;
   case 2:
     fsq = distance_squared3d((float *)(actor + 0x12c), (float *)(actor + 0xc4));
     thresh = ((actor_t *)actor)->field_0d4;
     if (fsq < thresh * thresh) {
-      FUN_0002f1a0(actor_handle);
+      actor_move_halt(actor_handle);
     } else {
       actor_move_to_point(actor_handle, (float *)(actor + 0xc4),
                           ((actor_t *)actor)->field_0d0, -1);
@@ -2417,7 +2417,7 @@ void action_guard_control(int actor_handle)
       prop = (char *)datum_get(prop_data, *(int *)(actor + 0xac));
       ((actor_t *)actor)->field_0ab = 0;
       *(int *)(actor + 0xac) = -1;
-      FUN_000369c0(actor_handle, 2, 600);
+      actor_stimulus_suspicion(actor_handle, 2, 600);
       ai_communication_event(7, ((actor_t *)actor)->field_018, *(int *)(prop + 0x18), -1,
                    -1, 2, 0);
     }
@@ -2541,7 +2541,7 @@ void action_obey_command_end(volatile int actor_handle, int unit_handle,
   case 0: /* case 1 */
   case 1: /* case 2 */
     if (unit_handle == ((actor_t *)actor)->field_018) {
-      FUN_0002f1a0(actor_handle);
+      actor_move_halt(actor_handle);
     }
     if (param_4 != 0) {
       *(char *)(param_4 + 4) = 0;
@@ -2559,7 +2559,7 @@ void action_obey_command_end(volatile int actor_handle, int unit_handle,
   case 0x17: /* case 0x18 */
   case 0x18: /* case 0x19 */
     if (unit_handle == ((actor_t *)actor)->field_018) {
-      FUN_00027870(actor_handle);
+      actor_look_secondary_stop(actor_handle);
     }
     break;
   case 6: /* case 7 */
@@ -2615,7 +2615,7 @@ void action_obey_command_end(volatile int actor_handle, int unit_handle,
   }
 }
 
-/* actor_look_secondary_stop / actor_look_secondary_stop (0x16bd0)
+/* action_obey_individual_setup / action_obey_individual_setup (0x16bd0)
  * Command-list initialization callback for prop interest dispatch.
  *
  * Clears 0x24 bytes of state_data, sets first byte to 0xff. Asserts
@@ -2625,7 +2625,7 @@ void action_obey_command_end(volatile int actor_handle, int unit_handle,
  *
  * Confirmed: csmemset(param_4, 0, 0x24); MOV byte [ESI],0xff.
  * Confirmed: assert "targeting_reference" at line 0x550 of action_obey.c. */
-void actor_look_secondary_stop(int param_1, int param_2, int param_3,
+void action_obey_individual_setup(int param_1, int param_2, int param_3,
                                char *param_4, int param_5, char *param_6)
 {
   csmemset(param_4, 0, 0x24);
@@ -2674,7 +2674,7 @@ void action_obey_individual_begin(int param_1, int param_2, short param_3)
 
 /* action_obey_individual_advance (0x16cd0) — Prop-interest reset callback.
  * Sets bit 3 (0x08) and clears bit 4 (0x10) in byte at param_4+4.
- * Called by actor_look_compute_prop_interest as the reset callback.
+ * Called by action_obey_individuals_iterate as the reset callback.
  * Dispatcher passes: (actor_handle, object_handle, index, state_data_ptr, ...)
  */
 void action_obey_individual_advance(int param_1, int param_2, int param_3, char *param_4)
@@ -2703,7 +2703,7 @@ void action_obey_individual_end(int param_1, int param_2, short param_3, int par
   *(int *)(unit + 0x1b4) = *(int *)(unit + 0x1b4) & 0xffffefff;
 }
 
-/* actor_look_compute_prop_interest (0x16d40)
+/* action_obey_individuals_iterate (0x16d40)
  * Iterate an actor's prop list (or each swarm unit's list for swarm actors)
  * and invoke the callback for each active entry.
  *
@@ -2716,7 +2716,7 @@ void action_obey_individual_end(int param_1, int param_2, short param_3, int par
  * Confirmed: datum_get(actor_data, actor_handle) at 0x16d4e.
  * Confirmed: CALL 0x16d40 from action_obey_advance_command_list at 0x170b2.
  * Confirmed: swarm_data=DAT_006325a0, swarm_component_data=DAT_0063259c. */
-void actor_look_compute_prop_interest(int actor_handle, int param_2,
+void action_obey_individuals_iterate(int actor_handle, int param_2,
                                       short *param_3, void (*callback)(void),
                                       int param_5)
 {
@@ -2765,7 +2765,7 @@ void actor_look_compute_prop_interest(int actor_handle, int param_2,
  * Validates the command-list index against the scenario encounter table,
  * checks BSP compatibility, extracts command flags, optionally stops
  * scripted look, and dispatches initialization via
- * actor_look_compute_prop_interest with the actor_look_secondary_stop callback.
+ * action_obey_individuals_iterate with the action_obey_individual_setup callback.
  *
  * Confirmed: datum_get(actor_data, actor_handle) → actor.
  * Confirmed: global_scenario_get, tag_block_get_element(scenario+0x438,
@@ -2810,14 +2810,14 @@ int action_obey_command_list_setup(int actor_handle, short param_2, char *param_
         stop_look = ~(char)(flags >> 2) & 1;
         bit3 = ~(char)(flags >> 3) & 1;
         if (stop_look == 0) {
-          FUN_00027870(actor_handle);
+          actor_look_secondary_stop(actor_handle);
         }
         *(char *)(param_3 + 2) = bit0;
         param_3[3] = stop_look;
         *(char *)(param_3 + 4) = bit3;
-        actor_look_compute_prop_interest(
+        action_obey_individuals_iterate(
           actor_handle, 1, (short *)param_3,
-          (void (*)(void))actor_look_secondary_stop, (int)&bit1);
+          (void (*)(void))action_obey_individual_setup, (int)&bit1);
         return 1;
       }
       if (*(char *)(actor + 8) == '\0') {
@@ -2839,7 +2839,7 @@ int action_obey_command_list_setup(int actor_handle, short param_2, char *param_
  *
  * Fetches actor record; prop_state = (short*)(actor+0x9c).  If the prop
  * index (*prop_state) is valid (>= 0) and within the scenario prop count
- * (*(int*)(scenario+0x438)), delegates to actor_look_compute_prop_interest
+ * (*(int*)(scenario+0x438)), delegates to action_obey_individuals_iterate
  * with reset=0, callback=action_obey_individual_flush_command_indices, param_5=0.  Otherwise marks the
  * prop as invalid: *prop_state = -1, actor+0xa1 = 1, then calls
  * actor_action_change(actor_handle, 0, 0).
@@ -2860,7 +2860,7 @@ void action_obey_flush_command_indices(int actor_handle)
   prop_state = (short *)(actor + 0x9c);
   scenario = (int)global_scenario_get();
   if ((*prop_state >= 0) && ((int)*prop_state < *(int *)(scenario + 0x438))) {
-    actor_look_compute_prop_interest(actor_handle, 0, prop_state,
+    action_obey_individuals_iterate(actor_handle, 0, prop_state,
                                      (void (*)(void))action_obey_individual_flush_command_indices, 0);
     return;
   }
@@ -2869,13 +2869,13 @@ void action_obey_flush_command_indices(int actor_handle)
   actor_action_change(actor_handle, 0, 0);
 }
 
-/* actor_clear_aim_target (0x17060)
+/* action_obey_flush_structure_indices (0x17060)
  * If the actor's aiming-active flag (actor+0xcc) is set, resets the aim
  * target handle (actor+0xdc) to the -1 sentinel.
  *
  * Confirmed: datum_get(DAT_006325a4, param_1) from decompile.
  * Confirmed: actor+0xcc flag check (char), actor+0xdc reset to 0xffffffff. */
-void actor_clear_aim_target(int actor_handle)
+void action_obey_flush_structure_indices(int actor_handle)
 {
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
@@ -2887,7 +2887,7 @@ void actor_clear_aim_target(int actor_handle)
 /* action_obey_advance_command_list (0x17090)
  * Compute actor prop-interest for the prop list at actor+0x9c.
  *
- * Fetches the actor record, then calls actor_look_compute_prop_interest with
+ * Fetches the actor record, then calls action_obey_individuals_iterate with
  * reset=0, prop_state=actor+0x9c, callback=action_obey_individual_advance, param_5=0.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x1709e.
@@ -2898,7 +2898,7 @@ void action_obey_advance_command_list(int actor_handle)
 {
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
-  actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
+  action_obey_individuals_iterate(actor_handle, 0, (short *)(actor + 0x9c),
                                    (void (*)(void))action_obey_individual_advance, 0);
 }
 
@@ -2909,13 +2909,13 @@ void action_obey_advance_command_list(int actor_handle)
  * Same pattern as action_obey_advance_command_list but selects the guard-specific callback.
  *
  * Confirmed: datum_get(actor_data, actor_handle);
- * actor_look_compute_prop_interest with callback=action_obey_individual_begin, reset=0,
+ * action_obey_individuals_iterate with callback=action_obey_individual_begin, reset=0,
  * prop_state=actor+0x9c, param_5=0. */
 void action_obey_begin(int actor_handle)
 {
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
-  actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
+  action_obey_individuals_iterate(actor_handle, 0, (short *)(actor + 0x9c),
                                    (void (*)(void))action_obey_individual_begin, 0);
 }
 
@@ -2926,13 +2926,13 @@ void action_obey_begin(int actor_handle)
  * Same pattern as action_obey_advance_command_list but selects the danger-update callback.
  *
  * Confirmed: datum_get(actor_data, actor_handle);
- * actor_look_compute_prop_interest with callback=action_obey_individual_end, reset=0,
+ * action_obey_individuals_iterate with callback=action_obey_individual_end, reset=0,
  * prop_state=actor+0x9c, param_5=0. */
 void action_obey_end(int actor_handle)
 {
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
-  actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
+  action_obey_individuals_iterate(actor_handle, 0, (short *)(actor + 0x9c),
                                    (void (*)(void))action_obey_individual_end, 0);
 }
 
@@ -3084,7 +3084,7 @@ void action_obey_describe_command(void *scenario_data, short *cmd, char *out_buf
     return;
   }
   case 16:
-    snprintf(out_buf, out_size, "vocalize %s", FUN_001a67b0(sub_type, 0));
+    snprintf(out_buf, out_size, "vocalize %s", dialogue_get_vocalization_name(sub_type, 0));
     return;
   case 17: {
     const char *toggle_names[2] = { "enable", "disable" };
@@ -3186,22 +3186,22 @@ void negate_vector3d(float *a, float *result)
   result[2] = -a[2];
 }
 
-/* FUN_00017940 (0x17940)
+/* random_range (0x17940)
  * Draw a random int16_t in [min, max] using the global random seed.
  *
  * Calls get_global_random_seed_address() to obtain a pointer to the global
- * RNG seed, then passes it together with min and max to random_range.
+ * RNG seed, then passes it together with min and max to seed_random_range.
  *
  * Note: MSVC pre-pushed min/max before calling get_global_random_seed_address
  * (which is void), reusing that stack space.  The seed pointer (EAX) is then
- * pushed last, making it the first C argument to random_range.
+ * pushed last, making it the first C argument to seed_random_range.
  *
  * Confirmed: PUSH EAX (max); PUSH ECX (min); CALL 0x10b0d0
  *   (get_global_random_seed_address, takes no params); PUSH EAX (seed);
- *   CALL 0x10b2d0 (random_range); ADD ESP,0xc. */
-int16_t FUN_00017940(int16_t min, int16_t max)
+ *   CALL 0x10b2d0 (seed_random_range); ADD ESP,0xc. */
+int16_t random_range(int16_t min, int16_t max)
 {
-  return random_range((unsigned int *)get_global_random_seed_address(), min,
+  return seed_random_range((unsigned int *)get_global_random_seed_address(), min,
                       max);
 }
 
@@ -3232,7 +3232,7 @@ void action_obey_directmovement_update_facing(char *state_data, int actor_handle
     facing[1] = ((actor_t *)actor)->input_facing_vector[1];
     facing[2] = ((actor_t *)actor)->input_facing_vector[2];
   } else {
-    units_debug_get_closest_unit(object_handle, &facing[0]);
+    unit_get_facing_vector(object_handle, &facing[0]);
   }
 
   switch (*(short *)(state_data + 8)) {
@@ -3427,7 +3427,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx, char *state
       if (mode >= 0 && (int)mode < *(int *)(cmd_list + 0x3c)) {
         mode2 = atom[7];
         if (mode2 >= 0 && (int)mode2 < *(int *)(cmd_list + 0x3c)) {
-          fp_index = FUN_00017940(mode, (short)(mode2 + 1));
+          fp_index = random_range(mode, (short)(mode2 + 1));
           if (*(float *)(atom + 2) == *(float *)0x2533c0 &&
               *(float *)(atom + 4) == *(float *)0x2533c0) {
             radius = FUN_000121e0(*(float *)(actr_def + 0xec),
@@ -3439,8 +3439,8 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx, char *state
       }
     } else if (cmd_type == 0x18) {
       best = 3.4028235e+38f;
-      FUN_00064540(prop_iter, actor_handle);
-      prop = FUN_00064570(prop_iter);
+      prop_iterator_new(prop_iter, actor_handle);
+      prop = prop_iterator_next(prop_iter);
       if (prop != 0) {
         do {
           if (*(short *)(prop + 0x24) >= 2 && *(short *)(prop + 0x24) <= 3 &&
@@ -3448,7 +3448,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx, char *state
             best = *(float *)(prop + 0x11c);
             prop_handle = prop_iter[0];
           }
-          prop = FUN_00064570(prop_iter);
+          prop = prop_iterator_next(prop_iter);
         } while (prop != 0);
         if (prop_handle != -1) {
           goto LAB_look_merge;
@@ -3509,7 +3509,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx, char *state
         *(int *)(look_target + 8) = elem[1];
         *(int *)(look_target + 0xc) = elem[2];
       }
-      FUN_00027a60(actor_handle, 0xd, (short)style, (short *)look_target);
+      actor_look_secondary(actor_handle, 0xd, (short)style, (short *)look_target);
       *(short *)(state_data + 2) = (short)(int)(radius * *(float *)0x253394);
       result = 1;
     }
@@ -3552,7 +3552,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx, char *state
       *(short *)(state_data + 8) = mode;
     }
     if (unit_handle == ((actor_t *)actor)->field_018) {
-      FUN_0002f1a0(actor_handle);
+      actor_move_halt(actor_handle);
     }
     state_data[5] = (char)((state_data[5] & 0xfd) | 1);
     break;
@@ -3922,7 +3922,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx, char *state
     seat_slot = *(unsigned short *)(atom + 1);
     unit_out = -1;
     seat_count =
-      FUN_001a68d0(unit_handle, 6, 1, 1, 0, (short *)&seat_slot, &unit_out);
+      unit_test_speech(unit_handle, 6, 1, 1, 0, (short *)&seat_slot, &unit_out);
     if (seat_count < 1) {
       break;
     }
@@ -3931,7 +3931,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx, char *state
     *(int *)(comm + 4) = unit_out;
     *(short *)comm = 6;
     ai_communication_packet_new(comm + 0x10);
-    FUN_001a6ef0(unit_handle, seat_count, comm);
+    unit_speak(unit_handle, seat_count, comm);
     result = 1;
     break;
 
@@ -3944,7 +3944,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx, char *state
       break;
     }
     elem = (int *)tag_block_get_element(cmd_list + 0x3c, (int)mode, 0x14);
-    units_debug_get_closest_unit(unit_handle, pos);
+    unit_get_facing_vector(unit_handle, pos);
     mode = atom[7];
     if (mode >= 0 && (int)mode < *(int *)(cmd_list + 0x3c)) {
       elem2 = (int *)tag_block_get_element(cmd_list + 0x3c, (int)mode, 0x14);
@@ -3967,11 +3967,11 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx, char *state
          * ("unit-preprocess-nodes"). */
         pos[2] = 0.0f;
         if (magnitude3d(pos) == *(float *)0x2533c0) {
-          units_debug_get_closest_unit(unit_handle, pos);
+          unit_get_facing_vector(unit_handle, pos);
         }
       } else {
         if (normalize3d(pos) == *(float *)0x2533c0) {
-          units_debug_get_closest_unit(unit_handle, pos);
+          unit_get_facing_vector(unit_handle, pos);
         }
       }
     }
@@ -3979,8 +3979,8 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx, char *state
     object_reset(unit_handle);
     object_update_children_recursive(unit_handle);
     if (unit_handle == ((actor_t *)actor)->field_018) {
-      FUN_0003bde0(actor_handle, ((actor_t *)actor)->field_018, actor + 0x120);
-      FUN_0002f1a0(actor_handle);
+      actor_input_sample_position(actor_handle, ((actor_t *)actor)->field_018, actor + 0x120);
+      actor_move_halt(actor_handle);
     }
     result = 1;
     break;
@@ -4154,7 +4154,7 @@ bool action_obey_command_perform(int unit_handle, int actor_handle, short scenar
           return 0;
         }
       }
-      FUN_0002f1a0(actor_handle);
+      actor_move_halt(actor_handle);
       return result;
     }
     break;
@@ -4293,7 +4293,7 @@ bool action_obey_command_perform(int unit_handle, int actor_handle, short scenar
 /* action_obey_individual_perform (0x19110)
  * Action-obey command-list step callback (prop-interest update).
  *
- * Called by actor_look_compute_prop_interest via action_obey_perform.
+ * Called by action_obey_individuals_iterate via action_obey_perform.
  * Steps through atoms in the encounter's command list:
  *   - Validates the current atom via action_obey_command_perform (if cVar5 set).
  *   - If validated, advances the atom index and calls action_obey_command_end to execute
@@ -4420,20 +4420,20 @@ void action_obey_individual_update(int actor_handle, int object_handle, int unus
  * Same pattern as action_obey_advance_command_list but selects the scripted-look callback.
  *
  * Confirmed: datum_get(actor_data, actor_handle);
- * actor_look_compute_prop_interest with callback=action_obey_individual_update, reset=0,
+ * action_obey_individuals_iterate with callback=action_obey_individual_update, reset=0,
  * prop_state=actor+0x9c, param_5=0. */
 void action_obey_update(int actor_handle)
 {
   char *actor;
   actor = (char *)datum_get(actor_data, actor_handle);
-  actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
+  action_obey_individuals_iterate(actor_handle, 0, (short *)(actor + 0x9c),
                                    (void (*)(void))action_obey_individual_update, 0);
 }
 
 /* action_obey_perform (0x192b0)
  * Execute actor command-list "obey" action update.
  *
- * Dispatches the prop-interest iteration via actor_look_compute_prop_interest
+ * Dispatches the prop-interest iteration via action_obey_individuals_iterate
  * with the action_obey_individual_perform callback. If the finished-flag is set and the actor
  * hasn't posted combat yet, checks encounter flags and actor-type flags to
  * decide whether to post combat. Returns 1 if actor's current action (0x6c)
@@ -4441,7 +4441,7 @@ void action_obey_update(int actor_handle)
  *
  * Confirmed: datum_get(actor_data, actor_handle) → actor.
  * Confirmed: LEA ECX,[EBP-1] → address of local_finished byte.
- * Confirmed: actor_look_compute_prop_interest callback=action_obey_individual_perform. */
+ * Confirmed: action_obey_individuals_iterate callback=action_obey_individual_perform. */
 int action_obey_perform(int actor_handle)
 {
   char *actor;
@@ -4451,7 +4451,7 @@ int action_obey_perform(int actor_handle)
 
   actor = (char *)datum_get(actor_data, actor_handle);
   finished = 1;
-  actor_look_compute_prop_interest(actor_handle, 0, (short *)(actor + 0x9c),
+  action_obey_individuals_iterate(actor_handle, 0, (short *)(actor + 0x9c),
                                    (void (*)(void))action_obey_individual_perform,
                                    (int)&finished);
   if (finished != '\0' && ((actor_t *)actor)->field_0a1 == '\0') {
@@ -4493,7 +4493,7 @@ LAB_done:
  *
  * Post-initialization:
  *   - Copies field_c8 to 426/427, field_ca to 42c.
- *   - If field_f8 is set and FUN_0002a360 passes: dispatches
+ *   - If field_f8 is set and actor_move_animation_busy passes: dispatches
  *     actor_move_animation_impulse and ai_communication_event for firing-position
  * targets.
  *   - field_a9&1: copies field_b0/ac to 430-43c.
@@ -4599,7 +4599,7 @@ LAB_done:
   ((actor_t *)actor)->field_42c = ((actor_t *)actor)->field_0ca;
 
   if (((actor_t *)actor)->field_0f8 != '\0' &&
-      (char)FUN_0002a360(actor_handle) == '\0') {
+      (char)actor_move_animation_busy(actor_handle) == '\0') {
     animation_impulse = ((actor_t *)actor)->field_0fa;
     if (animation_impulse != -1) {
       tmp_v[1] = ((actor_t *)actor)->control_desired_facing_vector[1];
@@ -4990,7 +4990,7 @@ void action_search_begin(int actor_handle)
   *(int *)(actor + 0xc0) = ticks;
 }
 
-/* actor_look_secondary (0x19d00) — Secondary actor aim/fire target evaluation.
+/* action_search_perform (0x19d00) — Secondary actor aim/fire target evaluation.
  *
  * Evaluates whether the actor should engage a secondary aim target when the
  * primary look-target condition (field_9e) is not met.  Branches:
@@ -5009,14 +5009,14 @@ void action_search_begin(int actor_handle)
  * 0x19d91-0x19d9f. Confirmed: field_a4==1 branch: squared-distance to field_b0
  * at 0x19ddf/0x19de4, FCOM [0x253dd0] / FCOMP [0x253dcc] at 0x19de4/0x19dff,
  *   unit_estimate_position + ai_test_line_of_sight at 0x19e24/0x19e59.
- * Confirmed: actor iteration with FUN_00064540/FUN_00064570 at 0x19e97/0x19ea0,
+ * Confirmed: actor iteration with prop_iterator_new/prop_iterator_next at 0x19e97/0x19ea0,
  *   loop head at 0x19eb2, actors_searching_same_position at 0x19ee0, inner
  * datum_get at 0x19ef7. Confirmed: encounter support
  * encounter_mark_examined_pursuit_position at 0x19fac. Confirmed: fallback
  * actor_move_to_prop(actor_handle, field_270, 3.0f) at 0x19feb. or
  * actor_move_to_firing_position(actor_handle, field_a6, 0) at 0x19fa2a.
- * Confirmed: FUN_0002f1a0(actor_handle) call at 0x1a035. */
-int actor_look_secondary(int actor_handle)
+ * Confirmed: actor_move_halt(actor_handle) call at 0x1a035. */
+int action_search_perform(int actor_handle)
 {
   char *actor;
   char *threat;
@@ -5083,8 +5083,8 @@ int actor_look_secondary(int actor_handle)
       ((actor_t *)actor)->field_0a1 == '\0') {
     found_count = 0;
     nearby_count = 0;
-    FUN_00064540((void *)iter_ctx, actor_handle);
-    iter_actor = (char *)FUN_00064570((void *)iter_ctx);
+    prop_iterator_new((void *)iter_ctx, actor_handle);
+    iter_actor = (char *)prop_iterator_next((void *)iter_ctx);
     while (iter_actor != NULL) {
       if (*(short *)(iter_actor + 0x24) >= 2 &&
           *(short *)(iter_actor + 0x24) <= 3 &&
@@ -5103,7 +5103,7 @@ int actor_look_secondary(int actor_handle)
           nearby_count = nearby_count + 1;
         }
       }
-      iter_actor = (char *)FUN_00064570((void *)iter_ctx);
+      iter_actor = (char *)prop_iterator_next((void *)iter_ctx);
     }
 
     if (((actor_t *)actor)->field_0a0 == '\0' &&
@@ -5146,7 +5146,7 @@ int actor_look_secondary(int actor_handle)
     }
   }
 
-  FUN_0002f1a0(actor_handle);
+  actor_move_halt(actor_handle);
   return *(int *)(actor + 0x9c);
 }
 
@@ -6460,8 +6460,8 @@ char firing_position_forced_evaluation(void *state, int actor_handle, char *acto
   return *(char *)((char *)state + 0x30);
 }
 
-/* actor_has_accessible_firing_position (0x25a00) —
- * actor_has_accessible_firing_position Tests whether the given position is an
+/* actor_nearby_firing_positions (0x25a00) —
+ * actor_nearby_firing_positions Tests whether the given position is an
  * accessible firing position for the actor.  Checks that the position belongs
  * to the actor's encounter's firing- position list, is within range, and (for
  * non-swarm actors) is reachable via a path-state ray cast.
@@ -6481,7 +6481,7 @@ char firing_position_forced_evaluation(void *state, int actor_handle, char *acto
  * dist_sq threshold at 0x254e74 = 16.0f. Confirmed: huge path-state buffer at
  * EBP-0x140e0 (82080 bytes); ray-init struct at EBP-0x54 (84 bytes). Source
  * file string: c:\halo\SOURCE\ai\actor_firing_position.c */
-char actor_has_accessible_firing_position(int actor_handle, float *position,
+char actor_nearby_firing_positions(int actor_handle, float *position,
                                           int surface_index, int group_mask)
 {
   /* C89: all declarations at top */
@@ -6854,9 +6854,9 @@ short actor_select_firing_position(int actor_handle, void *eval_ctx, int *out_re
   /* group-scan: pull nearby allied prop positions into the ctx+0x54 list. */
   if (*(float *)(actor_tag + 0x3cc) > *(float *)0x2533c0 &&
       (mode = *(short *)(ctx + 0x4), mode == 0 || mode == 3 || mode == 6)) {
-    FUN_00064540(prop_iter, actor_handle);
+    prop_iterator_new(prop_iter, actor_handle);
     while (*(int *)(ctx + 0x50) < 0x20) {
-      int it = FUN_00064570(prop_iter);
+      int it = prop_iterator_next(prop_iter);
       if (it == 0)
         break;
       if (*(short *)(it + 0x24) >= 2 && *(short *)(it + 0x24) <= 3 &&
@@ -6890,9 +6890,9 @@ short actor_select_firing_position(int actor_handle, void *eval_ctx, int *out_re
     case 3:
     case 6:
       if (prop_scan) {
-        FUN_00064540(prop_iter, actor_handle);
+        prop_iterator_new(prop_iter, actor_handle);
         while (*(short *)(ctx + 0x254) < 0x20) {
-          int it = FUN_00064570(prop_iter);
+          int it = prop_iterator_next(prop_iter);
           if (it == 0)
             break;
           if (*(short *)(it + 0x24) >= 2 && *(short *)(it + 0x24) <= 3 &&
@@ -6925,7 +6925,7 @@ short actor_select_firing_position(int actor_handle, void *eval_ctx, int *out_re
               *(short *)(ctx + *(short *)(ctx + 0x254) * 0x1c + 0x25c) = 2;
               *(vector3_t *)(ctx + *(short *)(ctx + 0x254) * 0x1c + 0x260) =
                 *(vector3_t *)(it + 0xbc);
-              unit_scripting_unit_driver(
+              unit_get_aiming_vector(
                 aim, ctx + *(short *)(ctx + 0x254) * 0x1c + 0x26c);
               *(short *)(ctx + 0x254) = *(short *)(ctx + 0x254) + 1;
               *(short *)(ctx + 0x258) = *(short *)(ctx + 0x258) + 1;
@@ -6976,7 +6976,7 @@ short actor_select_firing_position(int actor_handle, void *eval_ctx, int *out_re
             *(int *)((char *)fp + 0x14) != -1) {
           int keep = 1;
           if (*(short *)(ctx + 0x4) == 5) {
-            if (actor_has_accessible_firing_position(
+            if (actor_nearby_firing_positions(
                   actor_handle, (float *)fp, *(int *)((char *)fp + 0x14), 1) ==
                 '\0')
               keep = 0;
@@ -7205,7 +7205,7 @@ short actor_select_firing_position(int actor_handle, void *eval_ctx, int *out_re
                      "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x83c, 1);
       system_exit(-1);
     }
-    rec_idx = random_range((unsigned int *)get_global_random_seed_address(), 0,
+    rec_idx = seed_random_range((unsigned int *)get_global_random_seed_address(), 0,
                            (short)rec_count);
     *(char *)out_found = 0;
     selected = rec_idx;
@@ -7469,7 +7469,7 @@ short actor_active_select_firing_position(int actor_handle, void *param_2, void 
 /* actor_change_firing_position (0x272d0)
  * Assign a firing position to an actor, evicting any previous occupant.
  *
- * If param_2 == -1: clears actor firing position via FUN_0002f1a0, sets
+ * If param_2 == -1: clears actor firing position via actor_move_halt, sets
  * actor+0x3b8 = -1. Else: validates encounter, displaces any current
  * holder of the slot (param_4), sets actor+0x3b8 = param_2, updates the
  * platform prop if needed, and calls
@@ -7487,7 +7487,7 @@ short actor_change_firing_position(int actor_handle, short param_2, void *param_
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if ((short)param_2 == -1) {
-    FUN_0002f1a0(actor_handle);
+    actor_move_halt(actor_handle);
   } else {
     if (*(int *)(actor + 0x34) == -1) {
       display_assert("actor->meta.encounter_index != NONE",
@@ -7509,7 +7509,7 @@ short actor_change_firing_position(int actor_handle, short param_2, void *param_
                        1);
         system_exit(-1);
       }
-      FUN_0002f1a0(param_4);
+      actor_move_halt(param_4);
       *(short *)(prev_actor + 0x3b8) = -1;
     }
     if (((actor_t *)actor)->firing_positions_current_position_index !=
@@ -7709,7 +7709,7 @@ void pre_evaluator_attack(int actor_handle, void *ctx, unsigned short fp_count,
   } while (n != 0);
 }
 
-/* FUN_00027870 (0x27870)
+/* actor_look_secondary_stop (0x27870)
  * Stop scripted look: log debug message and clear the scripted-look fields.
  *
  * If the scripted-look counter at actor+0x544 is > 0 AND the AI debug display
@@ -7727,7 +7727,7 @@ void pre_evaluator_attack(int actor_handle, void *ctx, unsigned short fp_count,
  *   MOV word [ESI+0x548],0x0 at 0x278c0-0x278d3.
  * Inferred: actor+0x544 = scripted-look state counter (int16_t).
  * Inferred: actor+0x546, actor+0x548 = scripted-look type/state words. */
-void FUN_00027870(int actor_handle)
+void actor_look_secondary_stop(int actor_handle)
 {
   char *actor;
   char *desc;
@@ -7743,7 +7743,7 @@ void FUN_00027870(int actor_handle)
   ((actor_t *)actor)->secondary_look_timer = 0;
 }
 
-/* FUN_000278e0 (0x278e0)
+/* actor_look_compute_prop_interest (0x278e0)
  * Compute a prop's threat importance score for actor look targeting.
  *
  * Evaluates an actor-prop pair and returns a float score based on the
@@ -7753,7 +7753,7 @@ void FUN_00027870(int actor_handle)
  * Confirmed: datum_get(actor_data, actor_handle) and datum_get(prop_data,
  * prop_handle). Confirmed: switch on prop[0x123] (1=half,2=identity,3=double
  * awareness modifier). */
-float FUN_000278e0(int actor_handle, int prop_handle)
+float actor_look_compute_prop_interest(int actor_handle, int prop_handle)
 {
   char *actor;
   char *prop;
@@ -7851,7 +7851,7 @@ int actor_look_get_looking_definition(int actor_handle)
   return (int)(tag + 0xf4);
 }
 
-/* FUN_00027a60 (0x27a60)
+/* actor_look_secondary (0x27a60)
  * Set an actor's secondary scripted-look target.
  *
  * Validates look_type (0-13), checks priority against current look state,
@@ -7869,7 +7869,7 @@ int actor_look_get_looking_definition(int actor_handle)
  * 0x27da0-0x27db9. Confirmed: debug type_names[14] at EBP-0x64, prio_names[9]
  * at EBP-0x34; literal XBE addresses 0x2551e0..0x255178 (type) and
  * 0x255244..0x2551ec (prio). */
-int FUN_00027a60(int actor_handle, short look_type, short priority,
+int actor_look_secondary(int actor_handle, short look_type, short priority,
                  short *look_buf)
 {
   char *actor;
@@ -8205,8 +8205,8 @@ char actor_look_idle_find_prop(int actor_handle, char param_2, char param_3, sho
     ai_debug_idle_look_clear(actor_handle);
   }
 
-  FUN_00064540(iter, actor_handle);
-  item = (char *)FUN_00064570(iter);
+  prop_iterator_new(iter, actor_handle);
+  item = (char *)prop_iterator_next(iter);
 
   if (item != 0) {
     do {
@@ -8262,7 +8262,7 @@ char actor_look_idle_find_prop(int actor_handle, char param_2, char param_3, sho
         }
       }
 
-      item = (char *)FUN_00064570(iter);
+      item = (char *)prop_iterator_next(iter);
     } while (item != 0);
 
     if (best_index != -1) {
@@ -8641,7 +8641,7 @@ void actor_look_update(int actor_handle)
   if (((actor_t *)actor)->field_161) {
     is_attacking = 1;
   } else if (look_type == 0 || look_type == 2) {
-    iVar10 = actor_attacking_target(actor_handle);
+    iVar10 = actor_get_weapon(actor_handle);
     is_attacking = (char)(iVar10 != -1);
   } else {
     is_attacking = 0;
@@ -9264,7 +9264,7 @@ LAB_00029e6d:
          * `je` fires when C0=C3=0, i.e. dot > snap_cos -- the snap is KEPT
          * while the vector is still inside the cone. This lift had the
          * test inverted (dot <= snap_cos), clearing actor+0x590 and
-         * calling FUN_00036e50 exactly when it should have been left. */
+         * calling actor_stimulus_abandon_stationary_facing exactly when it should have been left. */
         if (dot4 > snap_cos)
           goto LAB_0002a0c3;
       }
@@ -9293,7 +9293,7 @@ LAB_00029e6d:
     }
   LAB_0002a0a7:
     ((actor_t *)actor)->field_590 = 0;
-    FUN_00036e50(actor_handle);
+    actor_stimulus_abandon_stationary_facing(actor_handle);
   }
 
 LAB_0002a0c3:

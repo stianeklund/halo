@@ -6,7 +6,7 @@
  *
  * Naming is INFERRED, not string-proven: the assert file string is
  * player_queues_new.c and the assert line (0xeb = 235) falls between
- * update_server_start (0xcf) and update_server_get_update (0x11a), i.e. the
+ * update_server_start (0xcf) and update_server_build_server_update (0x11a), i.e. the
  * exact source position mirroring update_client_add_player relative to
  * update_client_start. Shape is byte-for-byte the client sibling with the
  * server global substituted. */
@@ -108,7 +108,7 @@ void update_client_queue_push(void)
 
 /* Return the number of queued action ticks (inclusive range from
  * first_action_index to last_action_index in the client globals). */
-int update_get_maximum_actions(void)
+int update_client_get_maximum_actions(void)
 {
   return *(int *)0x45b1d8 - *(int *)0x45b1d4 +
          1; /* hazard-ok: value-arithmetic (queue count = last-first+1) */
@@ -144,7 +144,7 @@ int player_new_queue(int handle)
  * circular buffer at 0x4570cc (32 entries of 0x208 bytes each), or NULL
  * if the index is outside the valid window [current - 32, current).
  * snapshot_index is passed in EAX (register arg). */
-void *update_get_buffer_entry(int snapshot_index /* @<eax> */)
+void *update_server_get_update(int snapshot_index /* @<eax> */)
 {
   if (*(uint8_t *)0x4570c0 == 0) {
     display_assert("update_server_globals.initialized",
@@ -255,7 +255,7 @@ void update_server_start(void)
  * that snapshot index (via the internal helper at 0xb9040 with @eax),
  * and copies 0x204 bytes from entry+4 into update_buf. Then increments
  * the datum's snapshot counter. */
-void update_server_get_update(int machine_index, void *update_buf,
+void update_server_build_server_update(int machine_index, void *update_buf,
                               int *update_number)
 {
   void *datum_ptr;
@@ -290,7 +290,7 @@ void update_server_get_update(int machine_index, void *update_buf,
 
   if (*update_number != -1) {
     /* Look up the update buffer entry for this snapshot index. */
-    update_entry = update_get_buffer_entry(*update_number);
+    update_entry = update_server_get_update(*update_number);
     if (update_entry != NULL) {
       csmemcpy(update_buf, (char *)update_entry + 4, 0x204);
     }
@@ -322,7 +322,7 @@ void update_server_get_update(int machine_index, void *update_buf,
  *
  * On success, increments first_action_index and returns true.
  * Returns false if the action buffer has no valid data available. */
-bool player_control_get_current_actions(void *action_buf)
+bool update_client_dequeue(void *action_buf)
 {
   int first;
   int slot_addr;
@@ -479,7 +479,7 @@ bool player_control_get_current_actions(void *action_buf)
  * over-full (>16), or the tick exceeds the valid range. The returned
  * value represents the "game time" — the furthest tick for which the
  * client has submitted valid action data. */
-int update_get_game_time(void)
+int update_client_get_maximum_possible_server_time(void)
 {
   int first;
   int last;
@@ -529,7 +529,7 @@ int update_get_game_time(void)
  * (rejects NaN/Inf values where the exponent bits are all 1s).
  *
  * The actions pointer advances by 0x20 bytes per player slot. */
-void update_server_apply_actions(int16_t machine_index, void *actions)
+void update_server_handle_client_update(int16_t machine_index, void *actions)
 {
   int *player_list;
   int player_handle;
@@ -603,7 +603,7 @@ void update_server_apply_actions(int16_t machine_index, void *actions)
  * If neither, and not in the main menu, logs three error messages.
  *
  * Tail-calls main_menu_is_active() when game_connection() returns 0..2. */
-void FUN_000b97b0(void *data, int sequence_index)
+void update_client_handle_server_update(void *data, int sequence_index)
 {
   /* first_action_index (0x45b1d4), last_action_index (0x45b1d8) */
   int first_idx;
@@ -631,8 +631,8 @@ void FUN_000b97b0(void *data, int sequence_index)
     }
   }
 
-  if (network_game_client_get() != (void *)0) {
-    if (network_game_server_get() != (void *)0) {
+  if (global_network_game_client_get() != (void *)0) {
+    if (global_network_game_server_get() != (void *)0) {
       goto done;
     }
   }
@@ -668,7 +668,7 @@ done:
  *
  * Finally, calls the internal store function at 0xb97b0 to push the
  * snapshot into the client-side action buffer. */
-void update_server_create_snapshot(void)
+void update_server_next_update(void)
 {
   int old_index;
   void *entry;
@@ -688,7 +688,7 @@ void update_server_create_snapshot(void)
   *(int *)0x4570c4 = old_index + 1;
 
   /* Look up the circular update buffer entry for old_index. */
-  entry = update_get_buffer_entry(old_index);
+  entry = update_server_get_update(old_index);
   if (entry == NULL) {
     display_assert("update", "c:\\halo\\SOURCE\\game\\player_queues_new.c",
                    0x100, 1);
@@ -713,7 +713,7 @@ void update_server_create_snapshot(void)
 
   /* Call internal store function at 0xb97b0(action_count_ptr, old_index)
    * to push the snapshot into the client action buffer. */
-  FUN_000b97b0(action_count_ptr, old_index);
+  update_client_handle_server_update(action_count_ptr, old_index);
 }
 
 /* Apply queued client actions for the given number of simulation ticks.
@@ -722,14 +722,14 @@ void update_server_create_snapshot(void)
  * the client update globals are initialized. Copies the current 0x80-byte
  * action state from update_client_globals+0x0C (0x45b1dc) into a local
  * buffer, then applies those actions to the server queue via
- * update_server_apply_actions(0, ...).
+ * update_server_handle_client_update(0, ...).
  *
  * For each tick, creates a new server update snapshot via
- * update_server_create_snapshot(), then retrieves the update data into a
- * local 0x204-byte buffer via update_server_get_update(0, ..., &ticks).
- * The ticks parameter is passed by address to update_server_get_update,
+ * update_server_next_update(), then retrieves the update data into a
+ * local 0x204-byte buffer via update_server_build_server_update(0, ..., &ticks).
+ * The ticks parameter is passed by address to update_server_build_server_update,
  * which may modify it as the update number. */
-void update_client_apply_actions(int16_t ticks)
+void update_client_local_ticks(int16_t ticks)
 {
   char local_actions[0x80];
   char update_buf[0x204];
@@ -748,13 +748,13 @@ void update_client_apply_actions(int16_t ticks)
   }
 
   csmemcpy(local_actions, (void *)0x45b1dc, 0x80);
-  update_server_apply_actions(0, local_actions);
+  update_server_handle_client_update(0, local_actions);
 
   if (ticks > 0) {
     tick_count = (uint16_t)ticks;
     do {
-      update_server_create_snapshot();
-      update_server_get_update(0, update_buf, (int *)&ticks);
+      update_server_next_update();
+      update_server_build_server_update(0, update_buf, (int *)&ticks);
       tick_count--;
     } while (tick_count != 0);
   }

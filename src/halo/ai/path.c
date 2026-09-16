@@ -51,7 +51,7 @@ void path_input_new(void *param_1, uint32_t param_2, uint8_t param_3,
  *
  * Disassembly: MOV EAX,[EBP+0xc]; MOV ECX,[EBP+0x8]; MOV [ECX+0xc],EAX; RET
  */
-void paths_dispose(void *param_1, int param_2)
+void path_input_set_target_object(void *param_1, int param_2)
 {
   *(int *)((char *)param_1 + 0xc) = param_2;
 }

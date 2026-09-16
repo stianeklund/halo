@@ -1175,13 +1175,13 @@ char FUN_00095790(int object_handle)
  * note datum_get above receives the SIGN-extended index (MOVSX at 0x957fc).
  * Its AL result plus the sign of the target power picks which of three
  * definition-supplied values (+0x2f4, +0x304, +0x314) is handed to
- * FUN_000967a0.
+ * device_effect_new.
  *
  * Constant: 0x253398 = 0.5f (confirmed in units.c / real_math.c), reproduced
  * here as the literal 0.5f.
  *
  * Callees (all cdecl, stack args): object_get_and_verify_type, tag_get,
- * datum_get, display_assert, system_exit, FUN_00096f20, FUN_000967a0.
+ * datum_get, display_assert, system_exit, FUN_00096f20, device_effect_new.
  */
 void control_toggle(int object_handle)
 {
@@ -1228,18 +1228,18 @@ void control_toggle(int object_handle)
 
   if (FUN_00096f20((int)*(unsigned short *)((char *)object + 0x1b4), target)) {
     if (target > 0.5f) {
-      FUN_000967a0(object_handle, *(int *)(definition + 0x2f4));
+      device_effect_new(object_handle, *(int *)(definition + 0x2f4));
     } else {
-      FUN_000967a0(object_handle, *(int *)(definition + 0x304));
+      device_effect_new(object_handle, *(int *)(definition + 0x304));
     }
   } else {
-    FUN_000967a0(object_handle, *(int *)(definition + 0x314));
+    device_effect_new(object_handle, *(int *)(definition + 0x314));
   }
 }
 
 /* FUN_000958f0 @ 0x000958f0
  *
- * Control-device "set real value" handler, reached from device_group_set_real
+ * Control-device "set real value" handler, reached from device_touched
  * (0x966d0) when the device type at +0x64 is 8. Two cdecl args; only the first
  * is read ([ebp+8] -> EBX at 0x958f4), matching the machine twin FUN_00095be0.
  *

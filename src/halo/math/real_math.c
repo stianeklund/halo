@@ -6991,8 +6991,8 @@ char *FUN_00113160(int gz, int *errnum)
                              "c:\\halo\\SOURCE\\memory\\zlib\\gzio.c", 0x366);
   *(void **)(gz + 0x50) = buf;
   csstrcpy(buf, *(char **)(gz + 0x54));
-  FUN_0008dc30(*(char **)(gz + 0x50), (char *)0x28d3ec);
-  FUN_0008dc30(*(char **)(gz + 0x50), pcVar4);
+  csstrcat(*(char **)(gz + 0x50), (char *)0x28d3ec);
+  csstrcat(*(char **)(gz + 0x50), pcVar4);
   return *(char **)(gz + 0x50);
 }
 

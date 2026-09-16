@@ -391,7 +391,7 @@ void bink_playback_render_frame(void)
     rect2d_offset(screen_pos, 0, 0x20);
 
     /* Set up text rendering. */
-    interface_draw_text(1, -1, 0, 0, 5, 0);
+    interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
     draw_string_set_color(*(const void **)0x2ee6d4);
     draw_string_set_tab_stops(&frame_info[0], 1);
     rasterizer_text_draw(screen_pos, NULL, (void *)&frame_info[8], -4,
@@ -612,7 +612,7 @@ void bink_playback_check_stop(void)
 
   /* Check if user wants to skip the video. */
   if ((flags & 2) != 0) {
-    if ((flags & 0x40) == 0 || !ui_widget_initialization_in_progress()) {
+    if ((flags & 0x40) == 0 || !filesystem_check_thread_is_active()) {
       if (bink_playback_check_any_button()) {
         bink_playback_stop();
         return;

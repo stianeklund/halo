@@ -87,7 +87,7 @@ void console_initialize_for_new_map(void)
 void console_flush(void)
 {
   if (*(uint8_t *)0x46cf60 != 0) {
-    terminal_dispose((void *)0x46cf64);
+    terminal_gets_end((void *)0x46cf64);
     *(uint8_t *)0x46cf60 = 0;
   }
 }
@@ -103,13 +103,13 @@ bool console_is_active(void)
  *
  * If channel is non-zero, shows the terminal overlay first. Formats
  * the message with vsprintf into a 1024-byte stack buffer, outputs it
- * via terminal_output, and optionally logs to telnet.
+ * via terminal_printf, and optionally logs to telnet.
  *
  * Confirmed: SUB ESP, 0x400 — 1024-byte buffer.
  * Confirmed: local_305 = 0 (null-terminates at byte 255 of the buffer).
  * Confirmed: CALL 0x1da209 (vsprintf) with va_list at [EBP+0x10].
- * Confirmed: CALL 0xe3a10 (terminal_output) with (NULL, format_str, buffer).
- * Confirmed: CALL 0xe34a0 (terminal_show) if channel != 0.
+ * Confirmed: CALL 0xe3a10 (terminal_printf) with (NULL, format_str, buffer).
+ * Confirmed: CALL 0xe34a0 (terminal_clear) if channel != 0.
  * Confirmed: if telnet flag at 0x46d924, calls csstrcat +
  * debug_string_to_display.
  */
@@ -120,14 +120,14 @@ void console_printf(int channel, const char *format, ...)
   char *arglist = (char *)&format + sizeof(format);
 
   if (channel != 0) {
-    terminal_show();
+    terminal_clear();
   }
 
   vsprintf(buffer, format, arglist);
-  terminal_output(NULL, (const char *)0x257984, (buffer[255] = 0, buffer));
+  terminal_printf(NULL, (const char *)0x257984, (buffer[255] = 0, buffer));
 
   if (*console_telnet_enabled() != 0) {
-    csstrcat(buffer, (const char *)0x261f2c, 0x400);
+    csstrncat(buffer, (const char *)0x261f2c, 0x400);
     debug_string_to_display(buffer, 1);
   }
 }
@@ -139,7 +139,7 @@ void console_printf(int channel, const char *format, ...)
  * Similar to console_printf but uses a fixed color pointer from
  * 0x2ee6d0 instead of NULL, and has no channel argument.
  *
- * Confirmed: no terminal_show call.
+ * Confirmed: no terminal_clear call.
  * Confirmed: color pointer loaded from [0x2ee6d0] (indirect).
  * Confirmed: va_list starts at [EBP+0xc].
  */
@@ -152,10 +152,10 @@ void console_warning(const char *format, ...)
   vsprintf(buffer, format, arglist);
   buffer[255] = 0;
 
-  terminal_output(*(void **)0x2ee6d0, (const char *)0x257984, buffer);
+  terminal_printf(*(void **)0x2ee6d0, (const char *)0x257984, buffer);
 
   if (*console_telnet_enabled() != 0) {
-    csstrcat(buffer, (const char *)0x261f2c, 0x400);
+    csstrncat(buffer, (const char *)0x261f2c, 0x400);
     debug_string_to_display(buffer, 1);
   }
 }
@@ -272,8 +272,8 @@ void console_process_enter(void)
       if (!large_list) {
         console_printf(0, token_array[idx]);
       } else {
-        FUN_0008dc30(accum, token_array[idx]);
-        FUN_0008dc30(accum, (char *)0x28094c);
+        csstrcat(accum, token_array[idx]);
+        csstrcat(accum, (char *)0x28094c);
         if (idx % 4 == 3) {
           console_printf(0, accum);
           accum[0] = 0;
@@ -353,12 +353,12 @@ void console_startup(void)
  * console_dispose — close the console if it is open.
  *
  * Confirmed: checks byte at 0x46cf60 (console_is_open).
- * Confirmed: calls terminal_dispose(0x46cf64) then clears flag.
+ * Confirmed: calls terminal_gets_end(0x46cf64) then clears flag.
  */
 void console_dispose(void)
 {
   if (*console_is_open() != 0) {
-    terminal_dispose(console_terminal_state());
+    terminal_gets_end(console_terminal_state());
     *console_is_open() = 0;
   }
 }
@@ -389,7 +389,7 @@ static char *console_hud_chat_flag(void)
  * Returns whether the console is currently open.
  *
  * Confirmed: input_key_is_down(0x10) to toggle open (key 0x10 identity TBD).
- * Confirmed: terminal_open(0x46cf64), terminal_dispose(0x46cf64).
+ * Confirmed: terminal_gets_begin(0x46cf64), terminal_gets_end(0x46cf64).
  * Confirmed: key events at 0x46cf68, 4 bytes each, key_code at +0.
  *   The sentinel test and the dispatch read the SAME halfword. In the
  *   original the two are spelled differently -- the sentinel indexes
@@ -429,7 +429,7 @@ bool console_update(void)
         case 0x10:
         case_10:
           if (*console_is_open() != 0) {
-            terminal_dispose(console_terminal_state());
+            terminal_gets_end(console_terminal_state());
             *console_is_open() = 0;
           }
           break;
@@ -478,7 +478,7 @@ bool console_update(void)
   } else {
     if (input_key_is_down(0x10) == 1 && *console_is_open() == 0) {
       *console_input_buffer() = 0;
-      *console_is_open() = terminal_open(console_terminal_state());
+      *console_is_open() = terminal_gets_begin(console_terminal_state());
       *console_hud_chat_flag() = 0;
     }
   }

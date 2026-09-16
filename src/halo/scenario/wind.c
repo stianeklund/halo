@@ -59,7 +59,7 @@ typedef char wind_record_size_check[(sizeof(wind_record) == 0x20) ? 1 : -1];
  * stack (caller-cleaned). Constants: 1/3=0x259ec0, 8.0f=0x253f78,
  * 2^23=0x2b229c. Wind tick 0x5064c8 is re-read every iteration. Sole caller
  * FUN_00190240 (also wind.c). */
-void FUN_0018ff00(float *out, float *position, float scale, float magnitude)
+void wind_variance_get(float *out, float *position, float scale, float magnitude)
 {
   float timescale[3];
   float mag;
@@ -132,7 +132,7 @@ void wind_update(void)
     wind = (float *)tag_get(0x77696e64 /* 'wind' */, *(int *)(elem + 0x8c));
 
     seed = random_math_get_local_seed_address();
-    delta = (random_range(seed, 0, 2) != 0) ? 0.01f : -0.01f;
+    delta = (seed_random_range(seed, 0, 2) != 0) ? 0.01f : -0.01f;
     {
       float val_t = rec->t + delta;
       rec->t = val_t;
@@ -144,7 +144,7 @@ void wind_update(void)
     }
 
     seed = random_math_get_local_seed_address();
-    delta = (random_range(seed, 0, 2) != 0) ? 0.01f : -0.01f;
+    delta = (seed_random_range(seed, 0, 2) != 0) ? 0.01f : -0.01f;
     {
       float val_yaw = rec->yaw_perturbation + delta;
       rec->yaw_perturbation = val_yaw;
@@ -156,7 +156,7 @@ void wind_update(void)
     }
 
     seed = random_math_get_local_seed_address();
-    delta = (random_range(seed, 0, 2) != 0) ? 0.01f : -0.01f;
+    delta = (seed_random_range(seed, 0, 2) != 0) ? 0.01f : -0.01f;
     {
       float val_pitch = rec->pitch_perturbation + delta;
       rec->pitch_perturbation = val_pitch;

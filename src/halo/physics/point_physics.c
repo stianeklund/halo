@@ -152,7 +152,7 @@ void compute_ground_plane(int ignore_object_handle, void *point_definition,
 
     if ((hit_info[0x28] & 8) == 0 &&
         (hit_object == -1 ||
-         ((1 << (FUN_000f68b0(hit_object) & 0x1f)) & 0x40) != 0)) {
+         ((1 << (object_get_type(hit_object) & 0x1f)) & 0x40) != 0)) {
       *(int *)mass_point = *(int *)mass_point & 0xfffffffb;
     } else {
       *(int *)mass_point = *(int *)mass_point | 4;

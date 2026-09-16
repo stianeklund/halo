@@ -1,7 +1,7 @@
 #include "x87_math.h"
 
 /* MSVC 7.1 /Oi intrinsics memset() to inline `rep stos` for constant
- * zero-fills (e.g. the 60-byte level-array clears in FUN_000d8ff0), matching
+ * zero-fills (e.g. the 60-byte level-array clears in crosshairs_draw), matching
  * the reference; the game's own csmemset() stays a real CALL.  Declared extern
  * like structure_detail_objects.c / main.c do for the same pattern. */
 extern void *__cdecl memset(void *, int, unsigned int);
@@ -15,17 +15,17 @@ extern void *__cdecl memset(void *, int, unsigned int);
 
 
 /* Pointer to the weapon-HUD globals buffer (0x1e4 bytes), allocated by
- * hud_weapon_initialize and stored at the fixed global 0x46bd24. */
+ * hud_initialize_weapon_interface and stored at the fixed global 0x46bd24. */
 #define weapon_hud_globals (*(void **)0x46bd24)
 
-/* hud_weapon_initialize (0xd8af0) — allocate the weapon-HUD globals buffer from
+/* hud_initialize_weapon_interface (0xd8af0) — allocate the weapon-HUD globals buffer from
  * the game-state heap and stash it at 0x46bd24.  Asserts on allocation failure.
  *
- * Name evidence (T2): called from hud_new (hud.c:31) in the same position as
+ * Name evidence (T2): called from hud_initialize (hud.c:31) in the same position as
  * hud_messaging_initialize, and mirrors that function body-for-body
  * (game_state_malloc of the subsystem globals).  The allocation tag string
  * "hud weapon interface" and the assert __FILE__ pin the subsystem. */
-void hud_weapon_initialize(void)
+void hud_initialize_weapon_interface(void)
 {
   weapon_hud_globals = game_state_malloc("hud weapon interface", 0, 0x1e4);
   if (weapon_hud_globals == 0) {
@@ -35,13 +35,13 @@ void hud_weapon_initialize(void)
   }
 }
 
-/* hud_weapon_initialize_for_new_map (0xd8b30) — reset the weapon-HUD globals
+/* hud_initialize_weapon_interface_for_new_map (0xd8b30) — reset the weapon-HUD globals
  * buffer to all-0xff (NONE handles) on new-map initialisation.
  *
  * Name evidence (T2): called from hud_initialize_for_new_map (hud.c:59)
- * alongside hud_messaging_initialize_for_new_map, whose body is the same
+ * alongside hud_initialize_nav_points_for_new_map, whose body is the same
  * csmemset-to-0xff of its own subsystem globals. */
-void hud_weapon_initialize_for_new_map(void)
+void hud_initialize_weapon_interface_for_new_map(void)
 {
   if (weapon_hud_globals == 0) {
     display_assert("weapon_hud_globals",
@@ -51,27 +51,27 @@ void hud_weapon_initialize_for_new_map(void)
   csmemset(weapon_hud_globals, -1, 0x1e4);
 }
 
-/* hud_weapon_dispose_from_old_map (0xd8b70) — old-map teardown hook for the
+/* hud_dispose_weapon_interface_from_old_map (0xd8b70) — old-map teardown hook for the
  * weapon HUD.  The original is an empty body (single RET).
  *
  * Name evidence (T2): called from hud_dispose_from_old_map (hud.c:68) next to
- * hud_messaging_dispose_from_old_map, which is likewise an empty stub. */
-void hud_weapon_dispose_from_old_map(void)
+ * hud_dispose_nav_points_from_old_map, which is likewise an empty stub. */
+void hud_dispose_weapon_interface_from_old_map(void)
 {
 }
 
-/* hud_weapon_dispose (0xd8b80) — dispose hook for the weapon HUD.  The original
+/* hud_dispose_weapon_interface (0xd8b80) — dispose hook for the weapon HUD.  The original
  * is an empty body (single RET).
  *
  * Name evidence (T2): called from hud_dispose (hud.c:42) next to
- * hud_messaging_dispose, which is likewise an empty stub. */
-void hud_weapon_dispose(void)
+ * hud_dispose_nav_points, which is likewise an empty stub. */
+void hud_dispose_weapon_interface(void)
 {
 }
 
-/* FUN_000d8b90 (0xd8b90) — set (nonzero) or clear (zero) bit 0 of the weapon
+/* scripted_hud_show_crosshair (0xd8b90) — set (nonzero) or clear (zero) bit 0 of the weapon
  * HUD globals flags word at +0x1e0. */
-void FUN_000d8b90(char show)
+void scripted_hud_show_crosshair(char show)
 {
   char *g;
   unsigned int value;
@@ -85,9 +85,9 @@ void FUN_000d8b90(char show)
   *(unsigned int *)(g + 0x1e0) = value & ~1u;
 }
 
-/* FUN_000d8bc0 (0xd8bc0) — per-local-player weapon-HUD state accessor.
+/* get_hud_state (0xd8bc0) — per-local-player weapon-HUD state accessor.
  * Returns &globals[local_player_index] at stride 0x28.  Index in ESI. */
-__declspec(noinline) void *FUN_000d8bc0(int16_t local_player_index /* @<esi> */)
+void *get_hud_state(int16_t local_player_index /* @<esi> */)
 {
   if (local_player_index < 0 || local_player_index >= 4) {
     display_assert("local_player_index>=0 && "
@@ -103,9 +103,9 @@ __declspec(noinline) void *FUN_000d8bc0(int16_t local_player_index /* @<esi> */)
   return (char *)weapon_hud_globals + local_player_index * 0x28;
 }
 
-/* FUN_000d8c30 (0xd8c30) — per-local-player accessor into a second globals
+/* get_crosshair_state (0xd8c30) — per-local-player accessor into a second globals
  * region: &globals[local_player_index+2] at stride 0x50.  Index in ESI. */
-__declspec(noinline) void *FUN_000d8c30(int16_t local_player_index /* @<esi> */)
+void *get_crosshair_state(int16_t local_player_index /* @<esi> */)
 {
   if (local_player_index < 0 || local_player_index >= 4) {
     display_assert("local_player_index>=0 && "
@@ -121,11 +121,11 @@ __declspec(noinline) void *FUN_000d8c30(int16_t local_player_index /* @<esi> */)
   return (char *)weapon_hud_globals + (local_player_index + 2) * 0x50;
 }
 
-/* FUN_000d8ca0 (0xd8ca0) — refresh the tracked weapon object for a local
+/* play_weapon_hud_sounds (0xd8ca0) — refresh the tracked weapon object for a local
  * player's HUD.  EAX = current object handle (gate: skip when NONE),
  * ESI = local player index.  Looks up the player record and re-verifies the
  * unit object it references (type mask 3). */
-void FUN_000d8ca0(int object_handle /* @<eax> */,
+void play_weapon_hud_sounds(int object_handle /* @<eax> */,
                   int16_t local_player_index /* @<esi> */)
 {
   int player_index;
@@ -144,12 +144,12 @@ void FUN_000d8ca0(int object_handle /* @<eax> */,
   }
 }
 
-/* FUN_000d8cf0 (0xd8cf0) — draw a weapon's crosshair / grenade / heat HUD for
+/* render_grenade_hud (0xd8cf0) — draw a weapon's crosshair / grenade / heat HUD for
  * one object (param_2 = unit object handle) into the interface pass param_1.
  * Skips drawing when the weapon prevents grenade throwing, when the unit is a
  * seat's parent, or when there is no current grenade.  Uses the return-address
  * canary + guard-buffer stack-corruption idiom. */
-void FUN_000d8cf0(int param_1, int param_2)
+void render_grenade_hud(int param_1, int param_2)
 {
   int canary;
   int guard[128];
@@ -170,11 +170,11 @@ void FUN_000d8cf0(int param_1, int param_2)
   short count;
   int off_148;
 
-  canary = FUN_000d1540();
+  canary = get_return_eip();
   csmemset(guard, 0x62, 0x200);
 
   obj = (int)object_get_and_verify_type(param_2, 3);
-  weapon = unit_get_weapon(param_2, *(short *)(obj + 0x2a2));
+  weapon = unit_inventory_get_weapon(param_2, *(short *)(obj + 0x2a2));
   unit = (int *)object_get_and_verify_type(param_2, 3);
   tag_get(0x756e6974 /* 'unit' */, *unit);
 
@@ -189,7 +189,7 @@ void FUN_000d8cf0(int param_1, int param_2)
     element =
       (int)tag_block_get_element((char *)gg + 0x128, (int)grenade_type, 0x44);
     whud_index = *(int *)(element + 0x20);
-    state = FUN_000d8bc0((short)param_1);
+    state = get_hud_state((short)param_1);
 
     if (whud_index != -1) {
       off_148 = 0x148;
@@ -217,17 +217,17 @@ void FUN_000d8cf0(int param_1, int param_2)
       }
 
       if (*(int *)(grhi + 0x54) != -1) {
-        FUN_000d3fe0(param_1, (short *)grhi, grhi + 0x24, flags7,
+        hud_draw_static_element(param_1, (short *)grhi, grhi + 0x24, flags7,
                      *(int *)((char *)state + 0x24));
       }
       if (*(int *)(grhi + 0xbc) != -1) {
-        FUN_000d3fe0(param_1, (short *)grhi, grhi + 0x8c, flags7,
+        hud_draw_static_element(param_1, (short *)grhi, grhi + 0x8c, flags7,
                      *(int *)((char *)state + 0x24));
       }
       if (*(char *)(grhi + 0x138) != 0) {
         grenade_type = unit_get_current_grenade_type(param_2);
         count = unit_get_grenade_count(param_2, grenade_type);
-        FUN_000d3860((short)param_1, (void *)grhi, (void *)(grhi + 0xf4), count,
+        hud_draw_numbers((short)param_1, (void *)grhi, (void *)(grhi + 0xf4), count,
                      -1, flags7, *(int *)((char *)state + 0x24), 0.0f);
       }
       if (*(int *)(grhi + 0x158) != -1) {
@@ -245,7 +245,7 @@ void FUN_000d8cf0(int param_1, int param_2)
           flags8 = flags8 & ~4;
         }
         sVar = local_player_count();
-        FUN_000d4260(param_1, grhi, grhi + 0x14c, (short)flags8 | 8,
+        hud_draw_weapon_overlays(param_1, grhi, grhi + 0x14c, (short)flags8 | 8,
                      *(int *)((char *)state + 0x24), flags7, (1 < sVar));
       }
     }
@@ -260,7 +260,7 @@ void FUN_000d8cf0(int param_1, int param_2)
   } while (0 <= sVar);
   sVar = -1;
 LAB_corrupt:
-  if (canary != FUN_000d1540()) {
+  if (canary != get_return_eip()) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x3a2, 1);
     system_exit(-1);
@@ -273,9 +273,9 @@ LAB_corrupt:
   }
 }
 
-/* FUN_000d8fd0 (0xd8fd0) — return the filename portion of a path (text after
+/* strip_path_name (0xd8fd0) — return the filename portion of a path (text after
  * the last '\\'), or the whole string when there is no separator. */
-char *FUN_000d8fd0(char *path)
+char *strip_path_name(char *path)
 {
   char *sep;
 
@@ -286,20 +286,20 @@ char *FUN_000d8fd0(char *path)
   return path;
 }
 
-/* FUN_000d8ff0 (0xd8ff0) — draw the full weapon-HUD crosshair hierarchy for one
+/* crosshairs_draw (0xd8ff0) — draw the full weapon-HUD crosshair hierarchy for one
  * weapon.  @<eax> = weapon-HUD-hierarchy tag index (wphi), @<ecx> = player
  * datum pointer, stack = referencing weapon object handle and a per-weapon
  * state buffer (buf).  Walks the wphi child chain (up to 16 levels); for each
  * crosshair block and each overlay element it evaluates the state selector,
  * resolves the bitmap frame, and draws it.  Guarded by the return-address
  * canary + 0x200-byte stack-corruption sentinel idiom. */
-void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
+void crosshairs_draw(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                   int weapon_handle, int buf)
 {
   int canary;
   int guard[128];
   int player_obj;
-  int *state; /* per-player HUD block (FUN_000d8c30) */
+  int *state; /* per-player HUD block (get_crosshair_state) */
   int *wphi; /* wphi tag base, then reused as current-level hud */
   unsigned int render_flags;
   int unit_obj;
@@ -343,12 +343,12 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
   char *tag_name;
   char *slash;
 
-  canary = FUN_000d1540();
+  canary = get_return_eip();
   csmemset(guard, 0x62, 0x200);
   if (((*(unsigned char *)((char *)weapon_hud_globals + 0x1e0) & 1) != 0) &&
       (whud_index != -1)) {
     player_obj = *(int *)((char *)player + 0x34);
-    state = (int *)FUN_000d8c30(*(short *)((char *)player + 2));
+    state = (int *)get_crosshair_state(*(short *)((char *)player + 2));
     wphi = (int *)tag_get(0x77706869 /* 'wphi' */, whud_index);
     render_flags =
       (unsigned int)(*(short *)((char *)global_scenario_get() + 0x3c) != 2);
@@ -474,7 +474,7 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                           frame_index = *(int *)(overlay_elem + 0x24);
                         } else {
                           frame_index =
-                            FUN_000d2320((int *)(overlay_elem + 0x24), 0);
+                            get_flash_color((int *)(overlay_elem + 0x24), 0);
                         }
                         goto LAB_have_frame;
                       case 1:
@@ -492,7 +492,7 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                           goto LAB_check_frame;
                         }
                         frame_index =
-                          FUN_000d2320((int *)(overlay_elem + 0x24), 0);
+                          get_flash_color((int *)(overlay_elem + 0x24), 0);
                         goto LAB_check_frame;
                       case 8:
                       case 9:
@@ -548,7 +548,7 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                           goto LAB_state_check;
                       LAB_set_invalid:
                         cur_valid = 0;
-                        hold = FUN_000d2300(overlay_elem + 0x24);
+                        hold = get_flash_duration(overlay_elem + 0x24);
                         if (game_time_get() - *state_slot < hold)
                           goto LAB_state_check;
                         goto LAB_kill_slot;
@@ -587,7 +587,7 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                           frame_index = *(int *)(overlay_elem + 0x24);
                           goto LAB_check_frame;
                         }
-                        frame_index = FUN_000d2320((int *)(overlay_elem + 0x24),
+                        frame_index = get_flash_color((int *)(overlay_elem + 0x24),
                                                    *state_slot);
                         goto LAB_check_frame;
                       default:
@@ -642,7 +642,7 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                                             8);
                           }
                           flags = (unsigned int)(*bitm == 4);
-                          FUN_000d3fa0(bitmap_elem, rect, overlay_elem,
+                          hud_draw_bitmap(bitmap_elem, rect, overlay_elem,
                                        (int)uvs, *(int *)&scale, 0, frame_index,
                                        stereo_flag, flags, 1);
                         } else {
@@ -697,7 +697,7 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
                           rect2d[1] = dx + rect2d[1];
                           rect2d[2] = rect2d[2] - dy;
                           rect2d[3] = dy + rect2d[3];
-                          FUN_000d3fa0(bitmap_elem, rect, overlay_elem,
+                          hud_draw_bitmap(bitmap_elem, rect, overlay_elem,
                                        (int)rect2d, *(int *)&scale, 0,
                                        frame_index, stereo_flag, is32bpp, 1);
                         }
@@ -727,7 +727,7 @@ void FUN_000d8ff0(int whud_index /* @<eax> */, int *player /* @<ecx> */,
   } while (-1 < frame);
   frame = -1;
 LAB_corrupt:
-  if (canary != FUN_000d1540()) {
+  if (canary != get_return_eip()) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x4e2, 1);
     system_exit(-1);
@@ -740,12 +740,12 @@ LAB_corrupt:
   }
 }
 
-/* FUN_000d98c0 (0xd98c0) — transfer the whole weapon-HUD per-local-player
+/* hud_fix_weapon_data (0xd98c0) — transfer the whole weapon-HUD per-local-player
  * state from one local-player slot to another (src = old slot, dst = new).
  * Called from players.c:505 when a player is reassigned to a controller.
  *
- * Both copies are whole-struct: 0xa dwords (0x28 bytes) out of FUN_000d8bc0's
- * region and 0x14 dwords (0x50 bytes) out of FUN_000d8c30's region.  MSVC 7.1
+ * Both copies are whole-struct: 0xa dwords (0x28 bytes) out of get_hud_state's
+ * region and 0x14 dwords (0x50 bytes) out of get_crosshair_state's region.  MSVC 7.1
  * /Oi lowers both memcpy() calls to the reference's `rep movsd`.  Direction is
  * confirmed by the ESI/EDI shuffle at 0xd9926 (MOV ESI,EDI restores the OLD
  * block as the source after the second accessor call).
@@ -756,7 +756,7 @@ LAB_corrupt:
  * this address as the first function of event_manager.obj.  Note the address
  * is NON-MONOTONIC with source order: lines 137/138 sit at 0xd98c0, after the
  * line-430/439 accessors at 0xd8bc0/0xd8c30. */
-void FUN_000d98c0(short old_local_player_index, short new_local_player_index)
+void hud_fix_weapon_data(short old_local_player_index, short new_local_player_index)
 {
   if (old_local_player_index == -1) {
     display_assert("old_local_player_index!=NONE",
@@ -769,8 +769,8 @@ void FUN_000d98c0(short old_local_player_index, short new_local_player_index)
     system_exit(-1);
   }
 
-  qmemcpy(FUN_000d8bc0(new_local_player_index),
-          FUN_000d8bc0(old_local_player_index), 0x28);
-  qmemcpy(FUN_000d8c30(new_local_player_index),
-          FUN_000d8c30(old_local_player_index), 0x50);
+  qmemcpy(get_hud_state(new_local_player_index),
+          get_hud_state(old_local_player_index), 0x28);
+  qmemcpy(get_crosshair_state(new_local_player_index),
+          get_crosshair_state(old_local_player_index), 0x50);
 }

@@ -51,7 +51,7 @@ extern "C" {
 /* Player powerup slots.  The BOUND is proven by our own binary: the assert at
  * players.c line 0xaea reads
  * "powerup_type>=0 && powerup_type<NUMBER_OF_PLAYER_POWERUPS" against a
- * `cmp 2`, and player_update_weapon_timers walks exactly two int16_t entries
+ * `cmp 2`, and player_update_powerups walks exactly two int16_t entries
  * from player+0x68.
  *
  * The member SPELLINGS are borrowed from halocea's player_powerup.h

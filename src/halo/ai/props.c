@@ -36,7 +36,7 @@
  * through the common.h -> decl.h include chain. No re-declaration needed. */
 
 /* 0x63e30 — thin wrapper over FUN_000639e0 (same scenario/bsp/origin/node/
- * target parameter family as sibling FUN_00063e90).
+ * target parameter family as sibling structure_test_pill2d).
  *
  * Confirmed from disassembly (0x63e30-0x63e81):
  *   frame  = PUSH EBP / MOV EBP,ESP / SUB ESP,0x1c -> one 0x1c-byte local
@@ -62,7 +62,7 @@
  * Ghidra's decompile of this function is misleading in three ways: the stale
  * void(void) kb prototype turned all five parameters into in_stack_* pseudo-
  * args, it dropped every return value, and it sized the buffer as char[4]. */
-int FUN_00063e30(int scenario, unsigned char bsp_idx, float *origin,
+int structure_surface_index_from_point(int scenario, unsigned char bsp_idx, float *origin,
                  int node_handle, float *target)
 {
   char result_buf[0x1c];
@@ -96,14 +96,14 @@ void props_initialize(void)
 
 /* 0x64140 — props_dispose.
  * Empty stub. Binary contains a single RET — no teardown needed. */
-void FUN_00064140(void)
+void props_dispose(void)
 {
 }
 
 /* 0x64150 — props_initialize_for_new_map.
  * Deletes all prop entries (resets indices, clears active count).
  * Called before loading a new map so the pool is empty. */
-void FUN_00064150(void)
+void props_initialize_for_new_map(void)
 {
   data_delete_all(prop_data);
 }
@@ -111,7 +111,7 @@ void FUN_00064150(void)
 /* 0x64160 — props_dispose_from_old_map.
  * Marks the prop data table as invalid (clears the valid signature).
  * Called when unloading a map. */
-void FUN_00064160(void)
+void props_dispose_from_old_map(void)
 {
   data_make_invalid(prop_data);
 }
@@ -132,7 +132,7 @@ void FUN_00064160(void)
  *   second call.
  *
  * Ghidra's decompile is wrong in three ways and must not be transcribed:
- * the stale `void FUN_000643d0(void)` kb prototype hid the single [EBP+8]
+ * the stale `void prop_new_blank(void)` kb prototype hid the single [EBP+8]
  * parameter, the EAX return (via ESI) was dropped, and prop_add appeared
  * argument-less.  `OR EAX,0xffffffff` before the CALL is prop_add's @<eax>
  * register argument (unit_handle = NONE), not dead code.
@@ -152,7 +152,7 @@ void FUN_00064160(void)
  *
  * Store-offset table: none — this function writes no struct or stack buffer.
  */
-int FUN_000643d0(int actor_handle)
+int prop_new_blank(int actor_handle)
 {
   int prop_handle;
 
@@ -165,7 +165,7 @@ int FUN_000643d0(int actor_handle)
  *
  * Splices prop_handle out of the actor's singly-linked prop chain.  The chain
  * is rooted at actor+0x50 and linked through prop+0x8 (the next-handle field
- * confirmed by prop_iterator_next / FUN_00064570).
+ * confirmed by prop_delete / prop_iterator_next).
  *
  * Before unlinking, four NDEBUG assertions verify the prop is not still
  * referenced by any actor look-direction or idle-direction slot:
@@ -190,7 +190,7 @@ int FUN_000643d0(int actor_handle)
  * and a singly-linked pointer is updated):
  *   actor+0x50        : prop chain head handle (read & conditionally written)
  *   prop+0x8          : next-handle link (read and used as splice target) */
-void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
+void prop_remove(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
 {
   char *actor;
   char *head_prop;
@@ -252,7 +252,7 @@ void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
   }
 
   /* Splice prop_handle out of the singly-linked chain rooted at actor+0x50.
-   * Chain links through prop+0x8 (confirmed from prop_iterator_next). */
+   * Chain links through prop+0x8 (confirmed from prop_delete). */
   head_handle = ((actor_t *)actor)->field_050;
   head_prop = (char *)datum_get(prop_data, head_handle);
 
@@ -280,9 +280,9 @@ void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
  *
  * Reads actor->field_0x50 (the actor's prop chain head handle) and stores it
  * into out[1] (out+4).  The caller (e.g. 0x12350) then passes *out to
- * FUN_00064570 to step through props one at a time.
+ * prop_iterator_next to step through props one at a time.
  *
- * out[0] (out+0) is NOT written here — FUN_00064570 likely owns that slot.
+ * out[0] (out+0) is NOT written here — prop_iterator_next likely owns that slot.
  *
  * Store-offset table (derived from disasm, not decompiler):
  *   out+0: not written by this function
@@ -294,18 +294,18 @@ void FUN_00064400(int actor_handle, int prop_handle) /* @<eax>, @<edi> */
  *   MOV EDX,[EAX+0x50]            -> actor->field_0x50
  *   MOV [param_1+4],EDX           -> out[1]
  */
-void FUN_00064540(int *out, int actor_handle)
+void prop_iterator_new(int *out, int actor_handle)
 {
   void *actor = datum_get(actor_data, actor_handle);
   out[1] = ((actor_t *)actor)->field_050;
 }
 
-/* 0x64570 — prop_iterator_next.
+/* 0x64570 — prop_delete.
  * Advances a prop iterator and returns a pointer to the next prop record,
  * or NULL when the chain is exhausted.
  *
  * The iterator is a 2-slot int array (matches the layout used by
- * FUN_00064540 / FUN_00064540):
+ * prop_iterator_new / prop_iterator_new):
  *   iter[0] — current prop handle (written here before each datum_get)
  *   iter[1] — next prop handle    (updated to prop->field_0x8)
  *
@@ -322,7 +322,7 @@ void FUN_00064540(int *out, int actor_handle)
  * Store-offset table (from disasm MOV [ESI+N]):
  *   ESI+0x0 : handle (iter[1] before call — becomes current)
  *   ESI+0x4 : prop->field_0x8 (next handle) */
-int FUN_00064570(int *iter)
+int prop_iterator_next(int *iter)
 {
   int handle;
   char *prop;
@@ -357,7 +357,7 @@ int FUN_00064570(int *iter)
  *   the nearest rejected prop wins; otherwise the nearest accepted prop wins
  *   but only if at least `flag ? 6 : 4` flag-matching candidates were seen;
  *   otherwise a brand-new prop datum is allocated.  A reused prop is
- *   unlinked from the actor (FUN_0003b410 + FUN_00064400) and cleared to zero
+ *   unlinked from the actor (actor_switch_props + prop_remove) and cleared to zero
  *   except for its datum identifier before being re-added.
  *
  * Ghidra's decompile of this function must NOT be transcribed: the stale
@@ -408,16 +408,16 @@ int FUN_00064570(int *iter)
  *   0x6474b / 0x64771 display_assert (4 args) + PUSH EBX(-1); system_exit.
  *     The second assert at line 0x9f re-reads [ESI+0xc] (0x64756) — MSVC did
  *     not treat system_exit as noreturn, so both asserts are emitted.
- *   0x64785 FUN_0003b410 (3 stack args):
+ *   0x64785 actor_switch_props (3 stack args):
  *     1 | PUSH EBX (reloaded [EBP+8] at 0x64780) | actor_handle | YES
  *     2 | PUSH EDI                               | prop_index   | YES
  *     3 | PUSH EBX (still -1 from OR at 0x64730) | NONE         | YES
  *     EBX is reused here (NONE, then actor_handle) — a register-aliasing trap.
- *   0x6478c FUN_00064400 (register args, no pushes):
+ *   0x6478c prop_remove (register args, no pushes):
  *     1 | MOV EAX,EBX at 0x6478a  | actor_handle @<eax> | YES
  *     2 | EDI live from selection | prop_index   @<edi> | YES
  *   0x6479c csmemset (3 stack args; the ADD ESP,0x18 at 0x647a1 is MSVC
- *   coalescing this call's 3 pushes with FUN_0003b410's 3 — the ARG_COUNT
+ *   coalescing this call's 3 pushes with actor_switch_props's 3 — the ARG_COUNT
  *   audit warning of 6 args is that artifact, not a real mismatch):
  *     1 | PUSH ESI       | prop  | YES
  *     2 | PUSH 0         | 0     | YES
@@ -536,8 +536,8 @@ int prop_new_unacknowledged(int actor_handle, int unit_handle, bool flag)
                      "c:\\halo\\SOURCE\\ai\\props.c", 0x9f, 1);
       system_exit(none_handle);
     }
-    FUN_0003b410(actor_handle, prop_index, none_handle);
-    FUN_00064400(actor_handle, prop_index);
+    actor_switch_props(actor_handle, prop_index, none_handle);
+    prop_remove(actor_handle, prop_index);
     identifier = *(short *)prop;
     csmemset(prop, 0, 0x138);
     *(short *)prop = identifier;
@@ -557,7 +557,7 @@ int prop_new_unacknowledged(int actor_handle, int unit_handle, bool flag)
  *   data_new_at_index: PUSH [0x5ab23c] -> prop_data
  *   prop_add:          EAX=-1, PUSH ESI -> new handle,
  *                      PUSH [EBP+8] -> actor_handle
- *   FUN_000647c0:      EAX=EBX -> prop_handle,
+ *   prop_setup_orphan:      EAX=EBX -> prop_handle,
  *                      PUSH ESI -> new handle,
  *                      PUSH [EBP+8] -> actor_handle
  *
@@ -586,7 +586,7 @@ int prop_orphan_transition(int actor_handle, int prop_handle)
                      "c:\\halo\\SOURCE\\ai\\props.c", 0x156, 1);
       system_exit(-1);
     }
-    FUN_000647c0(prop_handle, actor_handle, orphan_handle);
+    prop_setup_orphan(prop_handle, actor_handle, orphan_handle);
     *(int *)(parent_prop + 0xc) = orphan_handle;
     *(int *)(orphan_prop + 0xc) = prop_handle;
   }
@@ -597,7 +597,7 @@ int prop_orphan_transition(int actor_handle, int prop_handle)
  *
  * Same allocate-and-link idiom as prop_orphan_transition (0x648a0), but the
  * new orphan is initialized from a *friend* prop rather than from the parent:
- * FUN_000647c0 receives friend_prop_handle in EAX, and the friend's 16-bit
+ * prop_setup_orphan receives friend_prop_handle in EAX, and the friend's 16-bit
  * state field is copied into the new orphan when it falls in [4,5].
  *
  * Call-site verification (disasm 0x64970):
@@ -612,7 +612,7 @@ int prop_orphan_transition(int actor_handle, int prop_handle)
  *   0x649cb datum_get:         PUSH EDX = prop_data, PUSH ECX = [EBP+0x10]
  *                              -> [EBP-8] = friend_prop
  *                              (one coalesced ADD ESP,0x18 covers all three)
- *   0x64a28 FUN_000647c0:      MOV EAX,[EBP+0x10] (@eax friend_prop_handle),
+ *   0x64a28 prop_setup_orphan:      MOV EAX,[EBP+0x10] (@eax friend_prop_handle),
  *                              PUSH EBX -> actor_handle, PUSH ESI -> orphan
  *
  * Store offsets (from disasm, not the decompiler):
@@ -649,7 +649,7 @@ int prop_orphan_from_friend(int actor_handle, int prop_handle,
                      "c:\\halo\\SOURCE\\ai\\props.c", 0x16e, 1);
       system_exit(-1);
     }
-    FUN_000647c0(friend_prop_handle, actor_handle, orphan_handle);
+    prop_setup_orphan(friend_prop_handle, actor_handle, orphan_handle);
     *(int *)(parent_prop + 0xc) = orphan_handle;
     *(int *)(orphan_prop + 0xc) = prop_handle;
     state = *(short *)(friend_prop + 0x24);
@@ -662,7 +662,7 @@ int prop_orphan_from_friend(int actor_handle, int prop_handle,
 
 /* 0x64a60 — prop_orphan_update_information.
  *
- * Thin cdecl forwarder onto FUN_000647c0 (the orphan-information copy shared
+ * Thin cdecl forwarder onto prop_setup_orphan (the orphan-information copy shared
  * with prop_orphan_transition at 0x648a0 and prop_orphan_from_friend at
  * 0x64970).  The wrapper exists only to re-order the three handles into that
  * callee's mixed register/stack ABI.
@@ -684,29 +684,29 @@ int prop_orphan_from_friend(int actor_handle, int prop_handle,
 void prop_orphan_update_information(int actor_handle, int orphan_prop_handle,
                                     int parent_prop_handle)
 {
-  FUN_000647c0(parent_prop_handle, actor_handle, orphan_prop_handle);
+  prop_setup_orphan(parent_prop_handle, actor_handle, orphan_prop_handle);
 }
 
 /* 0x64a80 — prop_detach.
  * Removes the prop record identified by prop_handle from the actor's prop
  * chain and then frees it from prop_data.
  *
- * Calls FUN_00064400 (@eax=actor_handle, @edi=prop_handle) to splice the
+ * Calls prop_remove (@eax=actor_handle, @edi=prop_handle) to splice the
  * prop out of the actor's singly-linked chain, then datum_delete to free
  * the slot.
  *
  * Call-site verification (disasm 0x64a80):
- *   MOV EAX,[EBP+0x8]  → actor_handle → @eax for FUN_00064400  YES
- *   MOV EDI,[EBP+0xc]  → prop_handle  → @edi for FUN_00064400  YES
+ *   MOV EAX,[EBP+0x8]  → actor_handle → @eax for prop_remove  YES
+ *   MOV EDI,[EBP+0xc]  → prop_handle  → @edi for prop_remove  YES
  *   CALL 0x64400                                                 YES
  *   MOV EAX,[0x5ab23c] → prop_data    → datum_delete arg1       YES
  *   PUSH EDI            → prop_handle  → datum_delete arg2       YES
  *   PUSH EAX            → datum_delete arg1                      YES
  *   CALL 0x1196d0                                                YES
  *   ADD ESP,0x8         → 2-arg cdecl cleanup                   YES */
-void prop_iterator_next(int actor_handle, int prop_handle)
+void prop_delete(int actor_handle, int prop_handle)
 {
-  FUN_00064400(actor_handle, prop_handle);
+  prop_remove(actor_handle, prop_handle);
   datum_delete(prop_data, prop_handle);
 }
 
@@ -783,7 +783,7 @@ int prop_get_active_by_unit_index(int actor_handle, int object_handle)
   }
 }
 
-/* 0x64b40 — FUN_00064b40.
+/* 0x64b40 — prop_get_base_by_unit_index.
  *
  * "Find or create" companion to prop_get_active_by_unit_index (0x64ab0):
  * searches actor actor_handle's prop chain for a prop referencing
@@ -874,7 +874,7 @@ int prop_get_active_by_unit_index(int actor_handle, int object_handle)
  * agrees with the already-lifted callers in actor_perception.c
  * (`char position_data_a[0x38]`).  The frame reserves 0x4c with a 4-byte hole
  * at EBP-0x10 that this function never touches. */
-int FUN_00064b40(int actor_handle, int object_handle, bool create_if_missing,
+int prop_get_base_by_unit_index(int actor_handle, int object_handle, bool create_if_missing,
                  bool acknowledge)
 {
   int target; /* [EBP-0x04] */
@@ -988,7 +988,7 @@ int FUN_00064b40(int actor_handle, int object_handle, bool create_if_missing,
  *   debug_free calls:
  *     raw data: PUSH [ESI+0x12c], PUSH file_str, PUSH 0x37
  *     tif self: PUSH ESI, PUSH file_str, PUSH 0x3d */
-void FUN_00064ee0(int tif_)
+void TIFFClose(int tif_)
 {
   char *tif = (char *)tif_;
   void (*cleanup_fn)(int);
@@ -1022,12 +1022,12 @@ void FUN_00064ee0(int tif_)
   debug_free(tif, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_close.c", 0x3d);
 }
 
-/* FUN_00064f50 (0x64f50) — return the size in bytes of an open file
+/* TIFFGetFileSize (0x64f50) — return the size in bytes of an open file
  * descriptor, or 0 if the stat call fails.
  *
  * NOTE ON OBJECT ATTRIBUTION: kb.json maps this address to props.obj
  * (ai/props.c), but the body is CRT/libtiff file-IO logic, not AI prop
- * logic — same situation as FUN_00064ee0 (TIFFClose) above, which is
+ * logic — same situation as TIFFClose (TIFFClose) above, which is
  * already hosted here. The shape is byte-for-byte the libtiff
  * `_tiffSizeProc` idiom (`fstat(fd,&sb) < 0 ? 0 : sb.st_size`), so the
  * real TU is most likely libtiff's tif_unix.c-equivalent. Left in
@@ -1066,7 +1066,7 @@ void FUN_00064ee0(int tif_)
  * SETL (signed) means the success predicate is `rc >= 0`, matching CRT
  * _fstat semantics (0 on success, -1 on failure). The branchless
  * SETL/DEC/AND sequence is MSVC codegen for the ternary below. */
-int FUN_00064f50(int file)
+int TIFFGetFileSize(int file)
 {
   int stat_buf[9]; /* struct _stat, 0x24 bytes */
   int rc;

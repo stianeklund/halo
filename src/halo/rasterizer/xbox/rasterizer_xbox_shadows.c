@@ -416,7 +416,7 @@ void FUN_00173090(void *shader, int param_2, int vertices_per_primitive,
       csmemset((void *)0x5a5ac0, 0, 0xf0);
       *(uint32_t *)0x5a5b98 = 0x21;
       *(uint32_t *)0x5a5b94 = 4;
-      *(uint32_t *)0x5a5ae8 = FUN_000d1dd0((float *)0x47e46c);
+      *(uint32_t *)0x5a5ae8 = real_rgb_color_to_pixel32((float *)0x47e46c);
       *(uint32_t *)0x5a5b08 = 0xffffff;
       *(uint32_t *)0x5a5b48 = 0x14200000;
       *(uint32_t *)0x5a5b74 = 0xc0;

@@ -34,7 +34,7 @@ enum {
 
 /* Rejection callback installed by
  * network_connection_set_connection_rejection_procedure and invoked from
- * network_connection_idle's reject path with the raw accepted endpoint. */
+ * network_connection_idle_server_reliable_endpoint's reject path with the raw accepted endpoint. */
 typedef void (*connection_rejection_procedure)(int endpoint);
 
 /* The transport connection block.  Layout recovered from access sites in
@@ -46,7 +46,7 @@ typedef void (*connection_rejection_procedure)(int endpoint);
  * ("datagrams sent\t%ld", "datagrams received\t%ld", "stream messages
  * sent\t%ld", "stream messages received\t%ld"). sizeof == 0x38 == the
  * clientside-client debug_malloc size in network_connection_new /
- * network_connection_new_serverside_client. */
+ * network_connection_create_client_from_endpoint. */
 typedef struct network_connection {
   int reliable_endpoint; /* 0x00 transport endpoint handle */
   int unreliable_endpoint; /* 0x04 transport endpoint handle */
@@ -86,11 +86,11 @@ co(network_connection, flags, 0x30);
 co(network_connection, well_known_port, 0x34);
 
 /* Server-role connection: embeds the base block (the binary assert
- * "connection->connection.reliable_endpoint" in network_connection_idle
+ * "connection->connection.reliable_endpoint" in network_connection_idle_server_reliable_endpoint
  * proves the original nested a plain connection at +0x00) and appends the
  * endpoint set (assert "connection->endpoint_set"), the four child
  * serverside-client connection slots walked by network_connection_delete /
- * network_connection_idle, and the accept gate stored by
+ * network_connection_idle_server_reliable_endpoint, and the accept gate stored by
  * network_server_allow_client_connections.
  * sizeof == 0x50 == the server debug_malloc size in network_connection_new. */
 typedef struct network_server_connection {

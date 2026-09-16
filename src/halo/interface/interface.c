@@ -4,8 +4,8 @@ void FUN_000dc7f0(void);
 
 void interface_initialize(void)
 {
-  FUN_000e33a0();
-  hud_new();
+  terminal_initialize();
+  hud_initialize();
   FUN_0019b320();
   FUN_000dc750();
 }
@@ -20,7 +20,7 @@ void interface_dispose_from_old_map(void)
 void interface_dispose(void)
 {
   FUN_0019b3b0();
-  FUN_000e33e0();
+  terminal_dispose();
   hud_dispose();
   FUN_000dc790();
 }
@@ -56,7 +56,7 @@ int interface_get_tag_index(int interface_tag_index)
  * Color data is 4 floats (ARGB) at offset 0x20 within each entry.
  * The color_index is taken modulo the block count (as a short).
  * Returns out_color. */
-void *interface_get_color(int interface_tag_index, short color_index,
+void *interface_get_real_argb_color(int interface_tag_index, short color_index,
                           void *out_color)
 {
   int tag_idx;
@@ -93,14 +93,14 @@ void *interface_get_color(int interface_tag_index, short color_index,
  * Resolves font_index to a tag_index, looks up an ARGB color from the
  * interface color table (indexed by color_tag_index / color_index), then
  * configures the draw_string subsystem with those parameters. */
-void interface_draw_text(int font_index, int style, int justify, int flags,
+void interface_set_bitmap_text_draw_mode(int font_index, int style, int justify, int flags,
                          int color_tag_index, short color_index)
 {
   float color[4];
   int tag_index;
 
   tag_index = interface_get_tag_index(font_index);
-  interface_get_color(color_tag_index, color_index, color);
+  interface_get_real_argb_color(color_tag_index, color_index, color);
   draw_string_set_font(tag_index, style, justify, flags, color);
 }
 
@@ -133,7 +133,7 @@ int FUN_000dedf0(int32_t *out_value)
         perspective != 3 && perspective != 2 && *(int *)(player + 0x34) != -1) {
       unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
       weapon_handle =
-        unit_get_weapon(*(int *)(player + 0x34), *(int16_t *)(unit + 0x2a2));
+        unit_get_weapon(*(int16_t *)(unit + 0x2a2), unit);
       if (weapon_handle != -1) {
         object = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
         value = *(int32_t *)(object + 0x2f8);
@@ -149,7 +149,7 @@ int FUN_000dedf0(int32_t *out_value)
           goto done;
         object = (char *)object_get_and_verify_type(*(int *)(unit + 0xcc), 3);
         weapon_handle =
-          unit_get_weapon(*(int *)(unit + 0xcc), *(int16_t *)(object + 0x2a2));
+          unit_get_weapon(*(int16_t *)(object + 0x2a2), object);
       }
       if (weapon_handle != -1) {
         object = (char *)object_get_and_verify_type(weapon_handle, 4);
@@ -193,7 +193,7 @@ void profile_graph_toggle(const char *value_name)
  * 3 players: horizontal bar at y=239-241 top half; vertical bar at x=319-321
  *            bottom half (y=319-480).
  * 4 players: same as 3-player plus vertical bar top half (y=0-480). */
-void interface_draw_splitscreen_dividers(void)
+void interface_splitscreen_render(void)
 {
   bool forced_single;
   bool cinematic;
@@ -255,7 +255,7 @@ void interface_initialize_for_new_map(void)
 
   hud_initialize_for_new_map();
   FUN_0019B330();
-  FUN_000dc7a0();
+  first_person_weapons_initialize_for_new_map();
 
   globals = (char *)game_globals_get();
   if (*(int *)(globals + 0x140) != 0) {
@@ -271,9 +271,9 @@ void interface_initialize_for_new_map(void)
 void interface_draw_fullscreen_overlays(void)
 {
   cinematic_render();
-  interface_draw_splitscreen_dividers();
+  interface_splitscreen_render();
   hud_render_timer();
   terminal_draw();
   main_framerate_render();
-  FUN_000df4e0();
+  render_debug_profile();
 }

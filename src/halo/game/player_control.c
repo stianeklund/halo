@@ -57,7 +57,7 @@
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma auto_inline(off)
 #endif
-void *player_control_get_data(int16_t local_player_index)
+void *player_control_get(int16_t local_player_index)
 {
   assert_halt(local_player_index >= 0 &&
               local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
@@ -106,7 +106,7 @@ void scripted_player_control_set_camera_control(bool camera_control)
 /* Set action flags on a local player's control slot.
  * ORs the given flags into the player's action_flags field, and
  * optionally into the persistent_action_flags field as well. */
-void player_control_set_action_flags(int16_t local_player_index, uint16_t flags,
+void player_control_inhibit_buttons(int16_t local_player_index, uint16_t flags,
                                      bool persistent)
 {
   player_control_t *pc;
@@ -187,7 +187,7 @@ float evaluate_piecewise_linear_function(int16_t count, float *function,
  *   MOV EDX,[EAX+ECX+0x10] / LEA EAX,[EAX+ECX+0x10] / PUSH EDX /
  *   CALL unit_get_aiming_unit_index / ADD ESP,4 / RET.
  * The LEA computes the slot pointer that the MOV already used, i.e. the
- * original called an inlined player_control_get_data; the `pc` local here
+ * original called an inlined player_control_get; the `pc` local here
  * reproduces that shape.
  * The result is never touched after the call, so the return value is the
  * callee's implicit EAX (lift-learnings SS16 void-EAX) -- Ghidra's
@@ -213,7 +213,7 @@ int32_t player_control_get_aiming_unit_index(int16_t local_player_index)
  *   MOV EDX,[EAX+ECX+0x38] / LEA ESI,[EAX+ECX+0x10] /
  *   PUSH -1 / PUSH EDX / CALL object_try_and_get_and_verify_type / ADD ESP,8 /
  *   TEST EAX,EAX / JZ -> OR EAX,-1 ; else MOV EAX,[ESI+0x28] / RET.
- * The LEA reproduces the inlined player_control_get_data; EDX is the same slot
+ * The LEA reproduces the inlined player_control_get; EDX is the same slot
  * field the fallthrough re-reads, i.e. pc->target_object_index at +0x28
  * (globals base + idx*0x40 + 0x10 + 0x28 = the +0x38 displacement above).
  * The success path returns the datum HANDLE, not the pointer the callee
@@ -242,7 +242,7 @@ int32_t player_control_get_target_object_index(int16_t local_player_index)
  * ZERO-extended) for its zoomed field of view; the weapon call is a tail
  * return of ST0. With no weapon the unit tag's own base field of view
  * (unit_tag+0x1a0) is used instead.
- * tag_get's result is live in EBX across unit_get_weapon -- Ghidra discards
+ * tag_get's result is live in EBX across unit_inventory_get_weapon -- Ghidra discards
  * it (lift-learnings SS11 discarded-result); it is the source of both
  * +0x1a0 reads. Ghidra also reports `void (void)`: the parameter is the
  * MOVSX word at [EBP+8] and the return is a float in ST0. */
@@ -264,7 +264,7 @@ real player_control_get_field_of_view(int16_t local_player_index)
     unit_obj = (char *)object_get_and_verify_type(pc->unit_index, 3);
     unit_tag = (char *)tag_get(0x756e6974 /* 'unit' */, *(int *)unit_obj);
     weapon_handle =
-      unit_get_weapon(pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
+      unit_inventory_get_weapon(pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
     if (weapon_handle != NONE)
       return weapon_get_field_of_view(weapon_handle,
                                       *(real *)(unit_tag + 0x1a0),
@@ -277,7 +277,7 @@ real player_control_get_field_of_view(int16_t local_player_index)
 /* Fill a camera-info block for a local player's controlled unit.
  *
  * camera_info layout (the caller reserves 0x28 bytes -- see
- * player_control_update_desired_angles):
+ * player_control_modify_desired_angles):
  *   +0x00 int     object handle the camera follows (unit, or its vehicle)
  *   +0x04 int16   seat index within that vehicle (NONE when on foot)
  *   +0x08 void*   camera/seat limit block (vehicle seat +0x84, else unit
@@ -371,15 +371,15 @@ int32_t player_control_get_unit_index(int16_t local_player_index)
  *   LEA EAX,[EAX+ECX+0x10]           -> the local player's control slot
  *   CMP [EAX],ESI                    -> slot->unit_index == unit_handle?
  *   XOR EDX,EDX / MOV DX,[EAX+0x20]  -> slot->desired_weapon_index
- *   PUSH EDX / PUSH ESI / CALL unit_get_weapon / CMP EAX,-1 / JNZ ->return
+ *   PUSH EDX / PUSH ESI / CALL unit_inventory_get_weapon / CMP EAX,-1 / JNZ ->return
  * and otherwise falls through to
  *   PUSH 3 / PUSH ESI / CALL object_get_and_verify_type
- *   MOVSX EAX,word [EAX+0x2a2] / PUSH EAX / PUSH ESI / CALL unit_get_weapon
+ *   MOVSX EAX,word [EAX+0x2a2] / PUSH EAX / PUSH ESI / CALL unit_inventory_get_weapon
  *   ADD ESP,0x10 (MSVC merged both slow-path cleanups; each call still
  *                 pushes exactly two args) / POP ESI / POP EBP / RET.
  * Ghidra's `void (void)` is wrong on BOTH the parameters and the return:
  * the RET does no callee cleanup (cdecl, two stack args) and both exits
- * leave unit_get_weapon's EAX untouched (lift-learnings SS16 void-EAX).
+ * leave unit_inventory_get_weapon's EAX untouched (lift-learnings SS16 void-EAX).
  * The two 16-bit loads deliberately differ in extension and are preserved:
  * slot+0x20 is ZERO-extended (XOR EDX,EDX / MOV DX), unit+0x2a2 is
  * SIGN-extended (MOVSX) -- see the identical unit+0x2a2 reads above. */
@@ -397,12 +397,12 @@ int player_control_get_desired_weapon(int16_t local_player_index,
                             local_player_index * 0x40 + 0x10);
   if (pc->unit_index == unit_handle) {
     weapon_handle =
-      unit_get_weapon(unit_handle, (uint16_t)pc->desired_weapon_index);
+      unit_inventory_get_weapon(unit_handle, (uint16_t)pc->desired_weapon_index);
     if (weapon_handle != NONE)
       return weapon_handle;
   }
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
-  return unit_get_weapon(unit_handle, *(int16_t *)(unit_obj + 0x2a2));
+  return unit_inventory_get_weapon(unit_handle, *(int16_t *)(unit_obj + 0x2a2));
 }
 
 /* Return the aim-assist ("autoaim") level for a local player.
@@ -447,7 +447,7 @@ int16_t unit_get_local_player_index(int unit_handle)
 /* Reset every local player's desired zoom level to NONE (un-zoom all).
  * No frame (PUSH ESI / PUSH EDI only): ESI is the 16-bit loop counter and
  * EDI is a byte-offset accumulator advanced by the 0x40 slot stride.  The
- * loop head re-tests the inlined player_control_get_data assert on every
+ * loop head re-tests the inlined player_control_get assert on every
  * iteration (TEST SI,SI / JL fail; CMP SI,4 / JL body), and the tail test
  * (CMP SI,4 / JGE return) is the loop's own bound -- so the assert is not
  * hoisted out.  The globals pointer is re-read inside the loop
@@ -476,7 +476,7 @@ void players_unzoom_all(void)
  * Looks up the player datum via the unit's player handle (unit+0x1c8), then
  * finds the local player index (player+0x2), retrieves the player control slot,
  * and resets the weapon interaction field (slot+0x24) to NONE. */
-void player_clear_aim_assist(int unit_handle)
+void player_control_unzoom(int unit_handle)
 {
   char *unit_obj;
   int player_handle;
@@ -490,7 +490,7 @@ void player_clear_aim_assist(int unit_handle)
     player = (char *)datum_get(player_data, player_handle);
     local_player_index = *(int16_t *)(player + 0x2);
     if (local_player_index != NONE) {
-      pc = (player_control_t *)player_control_get_data(
+      pc = (player_control_t *)player_control_get(
         (int16_t)local_player_index);
       pc->desired_zoom_level = NONE;
     }
@@ -511,7 +511,7 @@ int16_t player_control_get_zoom_level(int16_t local_player_index)
 
   zoom_level = NONE;
   if (local_player_index != NONE) {
-    pc = (player_control_t *)player_control_get_data(local_player_index);
+    pc = (player_control_t *)player_control_get(local_player_index);
     zoom_level = pc->desired_zoom_level;
   }
   return zoom_level;
@@ -992,7 +992,7 @@ bool player_control_action_test_look_relative_down(void)
  * == 0 arm uses bit 0x8 (TEST AL,0x8 @0xb6d58, OR EAX,0x8 @0xb6d62). That is
  * what the binary does and is preserved verbatim; it may well be an original
  * bug, but this is not the place to fix it. */
-void FUN_000b6bd0(char *input_state)
+void player_control_action_test_check_reset_input_blob(char *input_state)
 {
   uint32_t *fields;
 
@@ -1297,7 +1297,7 @@ void player_control_set_facing(int16_t local_player_index, float *direction)
  *
  * Two things the original inlines and this lift must inline too, or the codegen
  * diverges:
- *   1. player_control_get_data(): the slot arithmetic appears literally here
+ *   1. player_control_get(): the slot arithmetic appears literally here
  *      (MOV ECX,[player_control_globals]; MOVSX EAX,SI; SHL EAX,6;
  *      LEA ESI,[EAX+ECX+0x10]) with no CALL to 0xb6380, and it carries that
  *      helper's own assert line (0xb1).  The helper is defined above under
@@ -1312,7 +1312,7 @@ void player_control_set_facing(int16_t local_player_index, float *direction)
  *      FCOMP <bound> / FNSTSW AX / TEST AH,0x41 / JP <assert>, and JP is taken
  *      only when C0=C3=0 (ST0 > bound) or unordered -- equality (C3=1) falls
  *      through to the pass path.  A strict `<` here asserted the moment the
- *      player looked fully up in MP: player_control_update_desired_angles
+ *      player looked fully up in MP: player_control_modify_desired_angles
  *      clamps desired_angles.pitch to pc->pitch_maximum, which eases to
  *      exactly 1.4922565f (0x3fbf0243, the same bit pattern this bound holds),
  *      so pitch lands ON the bound rather than below it.
@@ -1325,7 +1325,7 @@ real *player_control_get_facing_angles(int16_t local_player_index)
 {
   player_control_t *player;
 
-  /* inlined player_control_get_data() -- keeps that helper's assert line */
+  /* inlined player_control_get() -- keeps that helper's assert line */
   assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0xb1,
                  local_player_index >= 0 &&
                    local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
@@ -1376,7 +1376,7 @@ real *player_control_get_facing_angles(int16_t local_player_index)
 real *player_control_get_facing_direction(int16_t local_player_index,
                                           real *facing_out)
 {
-  player_build_action_update(
+  player_aiming_vector_from_facing(
     local_player_get_player_index(local_player_index), facing_out,
     player_control_get_facing_angles(local_player_index));
   return facing_out;
@@ -1386,7 +1386,7 @@ real *player_control_get_facing_direction(int16_t local_player_index,
  * Resolves the unit's player handle (unit+0x1c8), looks up the local player
  * index (player+0x2), retrieves the player control slot, and writes
  * seat_index into the desired weapon field (slot+0x20). */
-void player_control_set_unit_seat(int unit_handle, int seat_index)
+void player_control_set_desired_weapon(int unit_handle, int seat_index)
 {
   char *unit_obj;
   int player_handle;
@@ -1400,7 +1400,7 @@ void player_control_set_unit_seat(int unit_handle, int seat_index)
     player = (char *)datum_get(player_data, player_handle);
     local_player_index = *(int16_t *)(player + 0x2);
     if (local_player_index != NONE) {
-      pc = (player_control_t *)player_control_get_data(local_player_index);
+      pc = (player_control_t *)player_control_get(local_player_index);
       pc->desired_weapon_index = (int16_t)seat_index;
     }
   }
@@ -1422,7 +1422,7 @@ void player_control_set_unit_seat(int unit_handle, int seat_index)
  * advances last and is clamped to the just-updated limits.
  *
  * c:\halo\SOURCE\game\player_control.c */
-void player_control_update_desired_angles(int16_t local_player_index,
+void player_control_modify_desired_angles(int16_t local_player_index,
                                           float yaw_delta, float pitch_delta)
 {
   player_control_t *pc;
@@ -1712,7 +1712,7 @@ __declspec(noinline) void player_control_new_unit(int16_t local_player_index,
  * weapon switching and grenade throwing, detect autoaim idle, validate
  * facing angles, and submit the resulting action to the game engine.
  * Called once per local player per frame from player_control_update. */
-void player_control_get_facing(int16_t local_player_index, float delta_time)
+void handle_one_player_input(int16_t local_player_index, float delta_time)
 {
   player_control_t *pc; /* player control struct (ESI) */
   void *game_tag_elem;
@@ -1769,7 +1769,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
       if (flags & 0x10)
         new_weapon = units_debug_get_next_unit(pc->unit_index);
       else
-        new_weapon = FUN_001AA170(pc->unit_index);
+        new_weapon = units_debug_get_closest_unit(pc->unit_index);
       if (new_weapon != NONE)
         players_set_local_player_unit(local_player_index, new_weapon);
     }
@@ -1792,17 +1792,17 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
     /* look up unit definition tag and current weapon */
     tag_get(0x756e6974, *(int *)unit_obj);
     weapon_datum =
-      unit_get_weapon(pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
+      unit_inventory_get_weapon(pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
 
     /* validate player weapon index */
     if (pc->desired_weapon_index == NONE ||
-        unit_get_weapon(pc->unit_index, pc->desired_weapon_index) == NONE) {
+        unit_inventory_get_weapon(pc->unit_index, pc->desired_weapon_index) == NONE) {
       pc->desired_weapon_index = *(int16_t *)(unit_obj + 0x2a4);
     }
 
     /* weapon interaction (action bit 0) */
     if ((*(uint8_t *)&input.action_flags & 1) ||
-        unit_get_weapon(pc->unit_index, pc->desired_weapon_index) == NONE ||
+        unit_inventory_get_weapon(pc->unit_index, pc->desired_weapon_index) == NONE ||
         pc->desired_weapon_index == NONE) {
       int16_t new_wp =
         unit_inventory_next_weapon(pc->unit_index, pc->desired_weapon_index,
@@ -1848,7 +1848,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
     /* apply turning/look input (unless scripted camera); the yaw and pitch
      * deltas for this frame live at action+0x0c / action+0x10. */
     if (!director_inhibited_facing(local_player_index)) {
-      player_control_update_desired_angles(
+      player_control_modify_desired_angles(
         local_player_index, input.look_yaw_delta, input.look_pitch_delta);
     }
 
@@ -1968,7 +1968,7 @@ bool player_control_update(float delta_time)
   collision_log_begin_period(2);
   update_client_queue_push();
   for (i = 0; i < 4; i++)
-    player_control_get_facing(i, delta_time);
+    handle_one_player_input(i, delta_time);
   collision_log_end_period();
   if (profile_global_enable && *(char *)0x2f02a0)
     profile_exit_private((void *)0x2f0298);
@@ -1979,13 +1979,13 @@ bool player_control_update(float delta_time)
 /* Forward a packed look-delta pair to a local player's desired-angle update.
  * delta points at two floats: delta[0] is the yaw (turn) delta and delta[1]
  * the pitch (look) delta -- established from the push order at the
- * player_control_update_desired_angles call site (first PUSH is the last
+ * player_control_modify_desired_angles call site (first PUSH is the last
  * argument, so [delta+4] becomes pitch_delta and [delta+0] yaw_delta).
  * The deltas are only forwarded, never computed here.
  *
  * c:\halo\SOURCE\game\player_control.c */
-void FUN_000b8cf0(int16_t local_player_index, float *delta)
+void player_control_permanent_impulse(int16_t local_player_index, float *delta)
 {
   assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0x467, delta);
-  player_control_update_desired_angles(local_player_index, delta[0], delta[1]);
+  player_control_modify_desired_angles(local_player_index, delta[0], delta[1]);
 }

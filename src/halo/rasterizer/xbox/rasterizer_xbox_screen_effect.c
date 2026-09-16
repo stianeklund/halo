@@ -91,7 +91,7 @@ real_vector2d FUN_001700d0(real_vector2d *v)
  * enabled (*(char *)0x3256ff != 0) and a flash type is selected
  * (*(short *)0x5a5df8 != 0):
  *   1. Builds two intensity-scaled ARGB colours and converts both to packed
- *      pixels via FUN_000d1c90 - set A is the raw colour, set B inverts
+ *      pixels via real_argb_color_to_pixel32 - set A is the raw colour, set B inverts
  *      components 1..3 (1.0f - c).  Component 0 is shared by both sets (the
  *      original stores it with a non-popping FST).
  *   2. Programs cull/colour-mask/one common render state, then a per-flash-type
@@ -143,8 +143,8 @@ void FUN_00171bc0(void)
     color_b[1] = (*(float *)0x2533c8 - *(float *)0x5a5e04) * *(float *)0x5a5dfc;
     color_b[2] = (*(float *)0x2533c8 - *(float *)0x5a5e08) * *(float *)0x5a5dfc;
     color_b[3] = (*(float *)0x2533c8 - *(float *)0x5a5e0c) * *(float *)0x5a5dfc;
-    color_a_pixel = FUN_000d1c90(color_a);
-    color_b_pixel_then_width = FUN_000d1c90(color_b);
+    color_a_pixel = real_argb_color_to_pixel32(color_a);
+    color_b_pixel_then_width = real_argb_color_to_pixel32(color_b);
 
     D3DDevice_SetRenderState_CullMode(0x901);
     D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,

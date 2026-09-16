@@ -30,7 +30,7 @@
  * encounter_definition — one element of the scenario "encounters" tag-block
  * (element stride 0xb0, block at scenario+0x42c). This is READ-ONLY tag data.
  * The mutable per-map runtime encounter record (data_t pool *0x5ab270) is a
- * DIFFERENT struct with its own offsets — see encounters.c FUN_0005a120, which
+ * DIFFERENT struct with its own offsets — see encounters.c encounter_new, which
  * copies encounter_def->field_24 into runtime encounter+0x2. Do not conflate
  * the two: identical numeric offsets on each are unrelated fields.
  *
@@ -41,7 +41,7 @@
  * (encounters.c:0x5a4).
  * ------------------------------------------------------------------------- */
 typedef struct encounter_definition {
-    char       name[0x20];       /* +0x00: <=32-byte name; strnicmp(elem,name,0x20) in FUN_00053e20 @0x53e20 */
+    char       name[0x20];       /* +0x00: <=32-byte name; strnicmp(elem,name,0x20) in scenario_get_encounter_by_name @0x53e20 */
     uint32_t   flags;            /* +0x20: bit1/2/3 -> runtime 0x3c/0x40/0x41 (encounters.c:2688-2692); bit4 tested (actors.c:8205, actor_looking.c:4407) */
     int16_t    field_24;         /* +0x24: copied to runtime encounter+0x2 (encounters.c:2684) */
     uint8_t    pad_26[0x58];     /* +0x26: no access observed */
