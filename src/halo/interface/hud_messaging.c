@@ -1,19 +1,19 @@
 #include "x87_math.h"
 
 /* hud_draw_element_wrapper (0xd3fa0)
- * Wraps FUN_000d3080 with crosshair_overlay=0, passing through remaining
+ * Wraps hud_draw_bitmap_with_meter with crosshair_overlay=0, passing through remaining
  * params. */
-void FUN_000d3fa0(int param_1, short *param_2, int param_3, int param_4,
+void hud_draw_bitmap(int param_1, short *param_2, int param_3, int param_4,
                   int param_5, int param_6, int param_7, int param_8,
                   int param_9, int param_10)
 {
-  FUN_000d3080(param_4, param_3, param_1, 0, param_2, *(float *)&param_5,
+  hud_draw_bitmap_with_meter(param_4, param_3, param_1, 0, param_2, *(float *)&param_5,
                param_6, param_7, param_8, param_9, param_10);
 }
 
 /* hud_draw_element (0xd3fe0)
  * Draw a HUD element with bitmap lookup, texture caching, and stack canary. */
-void FUN_000d3fe0(int param_1, short *param_2, int param_3,
+void hud_draw_static_element(int param_1, short *param_2, int param_3,
                   unsigned int param_4, int param_5)
 {
   int i1;
@@ -36,29 +36,29 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
   int l_c;
   short *l_8;
 
-  l_20 = FUN_000d1540();
+  l_20 = get_return_eip();
   csmemset(l_24c, 0x62, 0x200);
   i1 = verify_tag_reference((int *)(param_3 + 0x24));
   l_8 = (short *)tag_get(0x6269746d, i1);
   l_c =
-    (int)FUN_00077040(*(int *)(param_3 + 0x30), *(short *)(param_3 + 0x54), 0);
+    (int)bitmap_group_get_bitmap_from_sequence(*(int *)(param_3 + 0x30), *(short *)(param_3 + 0x54), 0);
   i2 = (int)xbox_texture_cache_get_hardware_format((void *)l_c, 0, 1);
   if (i2 != 0) {
     pu3 =
-      (float *)FUN_000d1580(verify_tag_reference((int *)(param_3 + 0x24)),
+      (float *)get_sprite_clip_rect(verify_tag_reference((int *)(param_3 + 0x24)),
                             *(short *)(param_3 + 0x54), 0);
     if ((param_4 & 2) == 0) {
       if ((param_4 & 1) == 0) {
         u4 = *(int *)(param_3 + 0x34);
       } else {
-        u4 = FUN_000d2320((int *)(param_3 + 0x34), param_5);
+        u4 = get_flash_color((int *)(param_3 + 0x34), param_5);
       }
     } else {
       u4 = *(int *)(param_3 + 0x4c);
     }
     s6 = *l_8;
     l_14 = (s6 == 4);
-    FUN_000d3080((int)pu3, (int)param_3, l_c, 0, param_2, 1.0f, 0, u4,
+    hud_draw_bitmap_with_meter((int)pu3, (int)param_3, l_c, 0, param_2, 1.0f, 0, u4,
                  (param_4 >> 2) & 0xffffff01, (char)l_14, 0);
     l_8 = (short *)0;
     if (0 < *(int *)(param_3 + 0x58)) {
@@ -86,15 +86,15 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
             (draw_flag = 1, (*(unsigned char *)(param_3 + 0xc) & 1) != 0)) {
           draw_flag = 0;
         }
-        FUN_000d1f40((short)*(int *)0x506548, (unsigned short *)param_2,
+        hud_calculate_point((short)*(int *)0x506548, (unsigned short *)param_2,
                      (short *)param_3, 0, draw_flag, 0, (short *)l_18);
         /* d1890: @<eax>=l_4c (out corners), @<edi>=pu3 (in rect),
          * @<bl>=c5 (align flag); 2 stack args: bitmap, screen index. */
-        FUN_000d1890((float *)l_4c, pu3, c5, (short *)l_c,
+        hud_calculate_bitmap_bounds((float *)l_4c, pu3, c5, (short *)l_c,
                      *param_2);
         /* d27a0: @<ecx>=l_1c (element ptr), @<eax>=scale[2];
          * 6 stack args; 6th = u4 (color, raw int bitpattern). */
-        FUN_000d27a0(l_1c, scale, param_1, l_18, pu3,
+        hud_draw_multitexture_overlay(l_1c, scale, param_1, l_18, pu3,
                      (float *)l_4c, 0, u4);
         i2 = i2 + 1;
         i2 = (int)(short)i2;
@@ -114,7 +114,7 @@ void FUN_000d3fe0(int param_1, short *param_2, int param_3,
   } while (-1 < s6);
   s6 = -1;
 LAB_000d41e7:
-  i2 = FUN_000d1540();
+  i2 = get_return_eip();
   if (l_20 != i2) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x2ad, 1);
@@ -132,8 +132,8 @@ LAB_000d41e7:
  * Draw overlay bitmap elements for a HUD widget. Iterates over the overlay
  * element tag block, performs bitmap lookup with optional animation cycling,
  * optional color interpolation, and renders each visible element via
- * FUN_000d3080. Protected by a stack canary (0x200 bytes of 0x62). */
-void FUN_000d4260(int param_1, int param_2, int param_3, unsigned int param_4,
+ * hud_draw_bitmap_with_meter. Protected by a stack canary (0x200 bytes of 0x62). */
+void hud_draw_weapon_overlays(int param_1, int param_2, int param_3, unsigned int param_4,
                   int param_5, unsigned char param_6, int param_7)
 {
   int element;
@@ -148,7 +148,7 @@ void FUN_000d4260(int param_1, int param_2, int param_3, unsigned int param_4,
   int out_bitmap;
   int l_4;
 
-  l_14 = FUN_000d1540();
+  l_14 = get_return_eip();
   csmemset(l_214, 0x62, 0x200);
   l_4 = 0;
   if (0 < *(int *)(param_3 + 0x10)) {
@@ -164,7 +164,7 @@ void FUN_000d4260(int param_1, int param_2, int param_3, unsigned int param_4,
             (param_6 & 1) == 0) {
           color = *(int *)(element + 0x24);
         } else {
-          color = FUN_000d2320((int *)(element + 0x24), param_5);
+          color = get_flash_color((int *)(element + 0x24), param_5);
         }
         if ((*(unsigned char *)(element + 0x4c) & 1) == 0 ||
             (param_6 & 1) == 0 || *(short *)(element + 0x44) < 1) {
@@ -176,12 +176,12 @@ void FUN_000d4260(int param_1, int param_2, int param_3, unsigned int param_4,
         }
         out_bitmap = 0;
         out_sprite = 0;
-        FUN_000d16a0(*(int *)(param_3 + 0xc),
+        hud_retrieve_bitmap_and_bounding_rect(*(int *)(param_3 + 0xc),
                      *(unsigned short *)(element + 0x48), frame_idx,
                      &out_bitmap, &out_sprite);
         if (out_bitmap != 0 && (int)xbox_texture_cache_get_hardware_format(
                                  (void *)out_bitmap, 0, 1) != 0) {
-          FUN_000d3080(out_sprite, element, out_bitmap, 0, (short *)param_2,
+          hud_draw_bitmap_with_meter(out_sprite, element, out_bitmap, 0, (short *)param_2,
                        1.0f, 0, color, param_7, 0, 0);
         }
       }
@@ -196,7 +196,7 @@ void FUN_000d4260(int param_1, int param_2, int param_3, unsigned int param_4,
   } while (-1 < s5);
   s5 = -1;
 LAB_000d43f5:
-  i1 = FUN_000d1540();
+  i1 = get_return_eip();
   if (l_14 != i1) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x2ec, 1);
@@ -213,7 +213,7 @@ LAB_000d43f5:
 /* hud_draw_text_element (0xd4470)
  * Draw a text element on the HUD, with optional icon rendering.
  * ABI: @esi=src_rect, @edi=dst_rect, @ebx=text, stack: param_1=use_icons */
-void FUN_000d4470(char param_1, short *src_rect, short *dst_rect, void *text)
+void render_state_text_0(char param_1, short *src_rect, short *dst_rect, void *text)
 {
   short l_8[4];
 
@@ -229,14 +229,14 @@ void FUN_000d4470(char param_1, short *src_rect, short *dst_rect, void *text)
       return;
     }
   }
-  rasterizer_draw_string(l_8, 0, 0, 0, (unsigned short *)text);
+  rasterizer_draw_unicode_string(l_8, 0, 0, 0, (unsigned short *)text);
   *dst_rect = *src_rect;
 }
 
 /* hud_draw_icon_sprite (0xd44f0)
  * Look up a bitmap element and draw it as a sprite.
  * ABI: @esi=element, @ebx=cursor */
-void FUN_000d44f0(int cursor, short *element, int param_1, int param_2)
+void render_state_bitmap_0(int cursor, short *element, int param_1, int param_2)
 {
   int i4;
   short s2;
@@ -253,7 +253,7 @@ void FUN_000d44f0(int cursor, short *element, int param_1, int param_2)
     i4 = game_time_get();
     i4 = i4 / (int)*(char *)((int)element + 12);
   }
-  FUN_000d16a0(*(int *)(*(int *)0x46bd0c + 0xb0), *element, i4, &l_c,
+  hud_retrieve_bitmap_and_bounding_rect(*(int *)(*(int *)0x46bd0c + 0xb0), *element, i4, &l_c,
                &l_14);
   if (l_c != 0 &&
       (int)xbox_texture_cache_get_hardware_format((void *)l_c, 0, 1) != 0) {
@@ -270,7 +270,7 @@ void FUN_000d44f0(int cursor, short *element, int param_1, int param_2)
     if ((*(unsigned char *)((int)element + 0xd) & 2) != 0) {
       param_2 = *(int *)(element + 4);
     }
-    FUN_000d3200(l_c, 2, l_10, l_14, scale, 0, param_2, 0);
+    hud_draw_bitmap_direct(l_c, 2, l_10, l_14, scale, 0, param_2, 0);
     if ((*(unsigned char *)((int)element + 0xd) & 4) != 0) {
       *(short *)(cursor + 2) =
         (short)((float)(int)element[1] * scale + (float)(int)l_10[0]);
@@ -301,9 +301,9 @@ void hud_messaging_initialize(void)
   *(void **)0x46bd18 = game_state_malloc("hud messaging", 0, 0x11a8);
 }
 
-/* FUN_000d46a0 (0xd46a0)
+/* hud_messaging_initialize_for_new_map (0xd46a0)
  * Sets the player globals pointer and zeroes the hud messaging buffer. */
-void FUN_000d46a0(void)
+void hud_messaging_initialize_for_new_map(void)
 {
   void *buf;
   int val;
@@ -313,15 +313,15 @@ void FUN_000d46a0(void)
   csmemset(buf, 0, 0x11a8);
 }
 
-/* FUN_000d46d0 (0xd46d0)
+/* hud_messaging_dispose_from_old_map (0xd46d0)
  * Shared RET stub, tail-called from hud_dispose_from_old_map. Empty body. */
-void FUN_000d46d0(void)
+void hud_messaging_dispose_from_old_map(void)
 {
 }
 
-/* FUN_000d46e0 (0xd46e0)
+/* hud_messaging_dispose (0xd46e0)
  * Shared RET stub, tail-called from hud_dispose. Empty body. */
-void FUN_000d46e0(void)
+void hud_messaging_dispose(void)
 {
 }
 
@@ -650,19 +650,19 @@ void hud_render_timer(void)
     l_8 = i8;
     l_4 = i8;
     i8 = (int)((float)l_4 * *(float *)0x2546a4 * *(float *)0x25634c);
-    FUN_000d3860((short)*(int *)0x506548, &l_90, &l_68, i8, -1,
+    hud_draw_numbers((short)*(int *)0x506548, &l_90, &l_68, i8, -1,
                  i6, *(int *)timer, 2.0f);
     l_4 = (int)(short)l_c;
     l_14 = (double)l_4 * *(double *)0x281b40;
     l_4 = (int)*(short *)&l_68;
     *(short *)&l_68 = (short)(int)((double)l_4 + l_14);
     i8 = (l_8 / 30) % 60;
-    FUN_000d3860((short)*(int *)0x506548, &l_90, &l_68, i8, -1,
+    hud_draw_numbers((short)*(int *)0x506548, &l_90, &l_68, i8, -1,
                  i6, *(int *)timer, 2.0f);
     l_4 = (int)*(short *)&l_68;
     *(short *)&l_68 = (short)(int)((double)l_4 + l_14);
     i8 = ((l_8 % 1800) * 100) / 30;
-    FUN_000d3860((short)*(int *)0x506548, &l_90, &l_68, i8, -1,
+    hud_draw_numbers((short)*(int *)0x506548, &l_90, &l_68, i8, -1,
                  i6, *(int *)timer, 2.0f);
   }
   if (*(int *)0x2f66e4 != -1) {
@@ -672,7 +672,7 @@ void hud_render_timer(void)
     }
     crt_sprintf((char *)0x5ab100, (const char *)0x25acb8,
                 loading_time - *(int *)0x2f66e4);
-    FUN_00189c40(1, (const char *)0x5ab100);
+    render_debug_string(1, (const char *)0x5ab100);
   }
 }
 
@@ -801,7 +801,7 @@ int hud_messaging_get_objective(void)
 /* Find a message slot in the 4-entry array at base (each 0x8c bytes).
  * Prefers: exact match (tag_handle + param2), then free slot, then oldest.
  * tag_handle passed in ESI (register arg). */
-void *hud_find_message_slot(int base, int param2, int tag_handle /* @<esi> */)
+void *find_free_hud_message(int base, int param2, int tag_handle /* @<esi> */)
 {
   int16_t i;
   int16_t best_index;
@@ -839,13 +839,13 @@ void *hud_find_message_slot(int base, int param2, int tag_handle /* @<esi> */)
   return result;
 }
 
-/* hud_messaging_slot_compare (0xd50f0)
+/* compare_messages (0xd50f0)
  * qsort comparator for hud message slots. Sort order:
  * primary: display timer (int at +0), ascending (oldest first);
  * secondary: int field at +0x84;
  * tertiary: byte priority field at +0x83.
  * Confirmed: three-level comparison via Ghidra decompile. */
-int hud_messaging_slot_compare(int *param_1, int *param_2)
+int compare_messages(int *param_1, int *param_2)
 {
   int diff;
 
@@ -926,7 +926,7 @@ void hud_print_message(__int16 player, wchar_t *message)
 
   base = (int)player * 0x460 + *(int *)0x46bd18;
   /* Find a message slot. ESI = -1 means "don't match any vehicle". */
-  slot = (char *)hud_find_message_slot(base, 0, -1);
+  slot = (char *)find_free_hud_message(base, 0, -1);
   ustrncpy((wchar_t *)(slot + 4), message, 0x3f);
   *(int *)(slot + 0x84) = -1;
   *(int *)slot = game_time_get();
@@ -941,7 +941,7 @@ void hud_print_message(__int16 player, wchar_t *message)
  * stores the vehicle tag handle and seat info, and initializes the
  * display timer. param_3 accumulates into the slot's counter at +0x88
  * if the slot was already active; otherwise the counter is reset first. */
-void hud_messaging_set_vehicle_notification(int16_t local_player_index,
+void hud_add_item_message(int16_t local_player_index,
                                             int vehicle_tag_handle,
                                             int16_t param_3, int param_4)
 {
@@ -954,7 +954,7 @@ void hud_messaging_set_vehicle_notification(int16_t local_player_index,
 
   base = (int)local_player_index * 0x460 + *(int *)0x46bd18;
   /* Find a message slot, matching vehicle tag handle via @esi. */
-  slot = (char *)hud_find_message_slot(base, param_4, vehicle_tag_handle);
+  slot = (char *)find_free_hud_message(base, param_4, vehicle_tag_handle);
   if (*(uint8_t *)(slot + 0x82) == 0) {
     *(int16_t *)(slot + 0x88) = 0;
   }
@@ -969,7 +969,7 @@ void hud_messaging_set_vehicle_notification(int16_t local_player_index,
   *(uint8_t *)(base + 0x45e) = 0;
 }
 
-/* FUN_000d52e0 (0xd52e0)
+/* hud_broadcast_team_message (0xd52e0)
  * Sends a scripted HUD message to all local players whose object is
  * on the same team as the given actor. Iterates all 4 local player
  * slots, looks up each player's object, compares team (offset 0x20)
@@ -979,7 +979,7 @@ void hud_messaging_set_vehicle_notification(int16_t local_player_index,
  * Confirmed: game_engine_running at 0xa8e30; local_player_get_player_index
  * at 0xba3c0; datum_get(0x5aa6d4) for player objects; +0x20 = team field;
  * hud_print_message at 0xd51c0. */
-void FUN_000d52e0(int actor_handle, wchar_t *message)
+void hud_broadcast_team_message(int actor_handle, wchar_t *message)
 {
   char c1;
   int player_obj;
@@ -1004,12 +1004,12 @@ void FUN_000d52e0(int actor_handle, wchar_t *message)
   }
 }
 
-/* FUN_000d5350 (0xd5350)
+/* hud_messaging_update (0xd5350)
  * Main HUD messaging renderer. Draws objectives, state messages, and custom
  * text elements for a single local player. Handles three message sources:
  * objective messages, state messages, and per-slot queued messages (vehicle
  * notifications, pickups, etc). */
-void FUN_000d5350(int param_1)
+void hud_messaging_update(int param_1)
 {
   char c1;
   short s2;
@@ -1075,7 +1075,7 @@ void FUN_000d5350(int param_1)
   {
     short s3;
     s3 = local_player_count();
-    FUN_000d1f40((short)param_1, (unsigned short *)*(int *)0x5aa68c,
+    hud_calculate_point((short)param_1, (unsigned short *)*(int *)0x5aa68c,
                  (short *)(*(int *)0x5aa68c + 0x24), 0, 1 < s3, 0,
                  position_out);
   }
@@ -1134,7 +1134,7 @@ void FUN_000d5350(int param_1)
         color[1] = *(float *)(*(int *)0x5aa68c + 0x74);
         color[2] = *(float *)(*(int *)0x5aa68c + 0x78);
         color[3] = *(float *)(*(int *)0x5aa68c + 0x7c);
-        packed_color = FUN_000d1c90(color);
+        packed_color = real_argb_color_to_pixel32(color);
       } else {
         if (*(char *)(*(int *)0x46bd18 + 0x1184) == '\0') {
           if ((*(unsigned char *)(*(int *)0x46bd0c + 0xe2) & 1) == 0) {
@@ -1144,7 +1144,7 @@ void FUN_000d5350(int param_1)
           }
         } else {
           packed_color =
-            (uint32_t)FUN_000d2320((int *)(*(int *)0x46bd0c + 0xd0),
+            (uint32_t)get_flash_color((int *)(*(int *)0x46bd0c + 0xd0),
                                    *(int *)(*(int *)0x46bd18 + 0x1180));
         }
         pixel32_to_real_argb_color(packed_color, color);
@@ -1152,7 +1152,7 @@ void FUN_000d5350(int param_1)
     } else {
       i12 = *(int *)0x46bd0c + 0x100;
       i16 = game_time_get();
-      packed_color = (uint32_t)FUN_000d2320(
+      packed_color = (uint32_t)get_flash_color(
         (int *)i12, i16 + (((int)*(short *)(*(int *)0x46bd18 + 0x1194) -
                                   (int)*(short *)(i12 + 0x1c)) -
                                  (int)*(short *)(i12 + 0x1e)));
@@ -1167,7 +1167,7 @@ void FUN_000d5350(int param_1)
         }
         color[0] = fade * color[0];
       }
-      packed_color = FUN_000d1c90(color);
+      packed_color = real_argb_color_to_pixel32(color);
     }
 
     rect_a[3] = *(short *)0x50658a - *(short *)0x50657e;
@@ -1202,7 +1202,7 @@ void FUN_000d5350(int param_1)
         goto LAB_000d57ad;
       }
       if (*l_38_p != 0) {
-        FUN_000d4470(1, rect_b, rect_a, (void *)l_38_p);
+        render_state_text_0(1, rect_b, rect_a, (void *)l_38_p);
       }
     } else {
       if (*(int *)(*(int *)0x46bd18 + 0x1190) == 0 ||
@@ -1257,7 +1257,7 @@ void FUN_000d5350(int param_1)
             FUN_0019cdb0(rect_a, (void *)u7, bounds_a, rect_b);
             rect_b[1] = rect_b[1] - 3;
             bounds_a[1] = rect_a[1];
-            rasterizer_draw_string(bounds_a, 0, 0, 0, (unsigned short *)u7);
+            rasterizer_draw_unicode_string(bounds_a, 0, 0, 0, (unsigned short *)u7);
             rect_a[0] = rect_b[0];
             l_30_dw =
               l_30_dw + (int)(unsigned short)(unsigned char)pc9[1];
@@ -1298,7 +1298,7 @@ void FUN_000d5350(int param_1)
                       2,
                       "help message using old code. get latest code and tags.");
                   } else {
-                    FUN_000d44f0(
+                    render_state_bitmap_0(
                       (int)rect_b,
                       (short *)(*(int *)((char *)ps13 + ci * 4 + 0x204)),
                       (int)rect_a, (int)packed_color);
@@ -1330,7 +1330,7 @@ void FUN_000d5350(int param_1)
                       (wchar_t *)FUN_0019d420(*(int *)(scenario + 0x580),
                                               (int)(unsigned short)icon_ref);
                   }
-                  FUN_000d4470(0, rect_b, rect_a, (void *)icon_text);
+                  render_state_text_0(0, rect_b, rect_a, (void *)icon_text);
                   ps13 = l_38_p;
                 }
                 goto LAB_000d5b78;
@@ -1345,7 +1345,7 @@ void FUN_000d5350(int param_1)
               icon_element = (int)tag_block_get_element(
                 (void *)(*(int *)0x46bd0c + 0xc4), (int)remapped, 0x10);
               if ((*(unsigned char *)(icon_element + 0xd) & 1) == 0) {
-                FUN_000d44f0((int)rect_b, (short *)icon_element, (int)rect_a,
+                render_state_bitmap_0((int)rect_b, (short *)icon_element, (int)rect_a,
                              (int)packed_color);
               } else {
                 if ((*(unsigned char *)(icon_element + 0xd) & 2) != 0) {
@@ -1361,7 +1361,7 @@ void FUN_000d5350(int param_1)
                 FUN_0019cdb0(rect_a, (void *)u7, bounds_b, rect_b);
                 rect_b[1] = rect_b[1] - 3;
                 bounds_b[1] = rect_a[1];
-                rasterizer_draw_string(bounds_b, 0, 0, 0,
+                rasterizer_draw_unicode_string(bounds_b, 0, 0, 0,
                                        (unsigned short *)u7);
                 rect_a[0] = rect_b[0];
                 draw_string_set_font(font_index, -1, 0, 0, color);
@@ -1373,7 +1373,7 @@ void FUN_000d5350(int param_1)
                            rect_b);
               rect_b[1] = rect_b[1] - 3;
               bounds_c[1] = rect_a[1];
-              rasterizer_draw_string(bounds_c, 0, 0, 0,
+              rasterizer_draw_unicode_string(bounds_c, 0, 0, 0,
                                      (unsigned short *)L"<no button icon>");
               rect_a[0] = rect_b[0];
             }
@@ -1419,7 +1419,7 @@ void FUN_000d5350(int param_1)
 
 LAB_000d5c20:
   qsort((void *)slot_base, 4, 0x8c,
-        (int(__cdecl *)(const void *, const void *))hud_messaging_slot_compare);
+        (int(__cdecl *)(const void *, const void *))compare_messages);
   msg_slot_idx = 0;
   if (0 < (short)max_slots) {
     do {
@@ -1488,12 +1488,12 @@ LAB_000d5c20:
           }
           usprintf(format_buf, (const wchar_t *)pi10,
                    (int)(short)pi14[0x22] / (int)max_count);
-          rasterizer_draw_string(rect_b, 0, 0, 0, (unsigned short *)format_buf);
+          rasterizer_draw_unicode_string(rect_b, 0, 0, 0, (unsigned short *)format_buf);
         }
       }
       goto LAB_000d5e65_skip;
     LAB_000d5e5d:
-      rasterizer_draw_string(rect_b, 0, 0, 0, (unsigned short *)pi10);
+      rasterizer_draw_unicode_string(rect_b, 0, 0, 0, (unsigned short *)pi10);
     LAB_000d5e65_skip:
       slot_offset = game_ticks - *pi14;
       {
@@ -1513,9 +1513,9 @@ LAB_000d5c20:
   return;
 }
 
-/* hud_find_nav_point_by_name (0xd5ec0)
+/* find_nav_point (0xd5ec0)
  * Search the nav point definitions for a matching name, return its index. */
-short hud_find_nav_point_by_name(const char *param_1)
+short find_nav_point(const char *param_1)
 {
   short found;
   short i;
@@ -1538,9 +1538,9 @@ short hud_find_nav_point_by_name(const char *param_1)
   return found;
 }
 
-/* hud_get_nav_point_data (0xd5f40)
+/* get_nav_point_datum (0xd5f40)
  * Returns pointer to a player's nav point data (0x30 bytes per player). */
-__declspec(noinline) int hud_get_nav_point_data(short param_1)
+int get_nav_point_datum(short param_1)
 {
   if (param_1 < 0 || param_1 >= 4) {
     display_assert("local_player_index>=0&&local_player_index<MAXIMUM_NUMBER_"
@@ -1556,9 +1556,9 @@ __declspec(noinline) int hud_get_nav_point_data(short param_1)
   return param_1 * 0x30 + *(int *)0x46bd1c;
 }
 
-/* hud_nav_points_initialize (0xd5fb0)
+/* hud_initialize_nav_points (0xd5fb0)
  * Allocates nav point data via game_state_malloc. */
-void hud_nav_points_initialize(void)
+void hud_initialize_nav_points(void)
 {
   *(int *)0x46bd1c = (int)game_state_malloc("hud nav points", 0, 0xc0);
   if (*(int *)0x46bd1c == 0) {
@@ -1568,30 +1568,30 @@ void hud_nav_points_initialize(void)
   }
 }
 
-/* hud_messaging_initialize_for_new_map: clear the messaging slot table.
+/* hud_initialize_nav_points_for_new_map: clear the messaging slot table.
  * Called from hud_initialize_for_new_map (0xd0360).
  * Fills *(void**)0x46bd1c with 0xff for 0xc0 bytes (all slots invalid). */
-void hud_messaging_initialize_for_new_map(void)
+void hud_initialize_nav_points_for_new_map(void)
 {
   csmemset(*(void **)0x46bd1c, 0xff, 0xc0);
 }
 
-/* hud_messaging_dispose_from_old_map: no-op stub.
+/* hud_dispose_nav_points_from_old_map: no-op stub.
  * Called from hud_dispose_from_old_map (0xd03e0). */
-void hud_messaging_dispose_from_old_map(void)
+void hud_dispose_nav_points_from_old_map(void)
 {
 }
 
-/* hud_messaging_dispose: no-op stub.
+/* hud_dispose_nav_points: no-op stub.
  * Called from hud_dispose (0xd0340). */
-void hud_messaging_dispose(void)
+void hud_dispose_nav_points(void)
 {
 }
 
 /* nav_point_set: add or update a nav point entry for a player (0xd6030).
  * Searches for existing match or empty slot in the 4-entry array.
  * ABI: @eax=player_handle, stack: type_value, nav_type, object_handle, extra */
-void FUN_000d6030(int player_handle, short type_value, short nav_type,
+void hud_activate_nav_point(int player_handle, short type_value, short nav_type,
                   int object_handle, int extra)
 {
   short local_player;
@@ -1609,7 +1609,7 @@ void FUN_000d6030(int player_handle, short type_value, short nav_type,
       type_value == -1)
     return;
 
-  nav_data = hud_get_nav_point_data(local_player);
+  nav_data = get_nav_point_datum(local_player);
   best = -1;
   i = 0;
   do {
@@ -1640,31 +1640,31 @@ void FUN_000d6030(int player_handle, short type_value, short nav_type,
 }
 
 /* nav_point_set_flag wrapper (0xd6120).
- * Calls FUN_000d6030 with nav_type=2 (flag). */
-void FUN_000d6120(int param_1, int player_handle, short param_3, int param_4)
+ * Calls hud_activate_nav_point with nav_type=2 (flag). */
+void hud_activate_nav_point_with_game_engine_flag(int param_1, int player_handle, short param_3, int param_4)
 {
-  FUN_000d6030(player_handle, (short)param_1, 2, (int)param_3, param_4);
+  hud_activate_nav_point(player_handle, (short)param_1, 2, (int)param_3, param_4);
 }
 
 /* nav_point_set_object wrapper (0xd6140).
- * Calls FUN_000d6030 with nav_type=0 (object). */
-void FUN_000d6140(int param_1, int player_handle, short param_3, int param_4)
+ * Calls hud_activate_nav_point with nav_type=0 (object). */
+void hud_activate_nav_point_with_flag(int param_1, int player_handle, short param_3, int param_4)
 {
-  FUN_000d6030(player_handle, (short)param_1, 0, (int)param_3, param_4);
+  hud_activate_nav_point(player_handle, (short)param_1, 0, (int)param_3, param_4);
 }
 
 /* nav_point_set_enemy wrapper (0xd6160).
- * Calls FUN_000d6030 with nav_type=1 (enemy). */
-void FUN_000d6160(int param_1, int player_handle, int param_3, int param_4)
+ * Calls hud_activate_nav_point with nav_type=1 (enemy). */
+void hud_activate_nav_point_with_object(int param_1, int player_handle, int param_3, int param_4)
 {
-  FUN_000d6030(player_handle, (short)param_1, 1, param_3, param_4);
+  hud_activate_nav_point(player_handle, (short)param_1, 1, param_3, param_4);
 }
 
-/* FUN_000d6180 (0xd6180)
+/* hud_activate_team_nav_point (0xd6180)
  * Set nav point for all players on a matching team.
  * ABI: @ebx=nav_type, @esi=extra, @edi=object_handle, stack: type_value, team,
  * param_3 */
-void FUN_000d6180(int type_value, short team, int param_3, short nav_type,
+void hud_activate_team_nav_point(int type_value, short team, int param_3, short nav_type,
                   int extra, int object_handle)
 {
   int iter[4];
@@ -1680,40 +1680,40 @@ void FUN_000d6180(int type_value, short team, int param_3, short nav_type,
        * enemy navs (nav_type 0/1) that corrupts the tracked handle, so
        * nav_point_visibility_test's hit-object compare (collision_result+0x38
        * == handle) never matches and the nav never hides when you board or
-       * look at the tracked object. NOTE: the sibling FUN_000d6280 genuinely
+       * look at the tracked object. NOTE: the sibling hud_activate_global_nav_point genuinely
        * truncates in the original (000d62ba: MOVSX EAX,DI), so its (short)
        * cast is faithful and is deliberately left untouched. */
-      FUN_000d6030(iter[2], (short)type_value, nav_type, object_handle, extra);
+      hud_activate_nav_point(iter[2], (short)type_value, nav_type, object_handle, extra);
     }
     datum = (int)data_iterator_next((void *)iter);
   }
 }
 
-/* FUN_000d61f0 (0xd61f0)
+/* hud_activate_team_nav_point_with_game_engine_flag (0xd61f0)
  * Set flag nav point for all players on a team. */
-void FUN_000d61f0(int type_value, int team, short object_handle, int extra)
+void hud_activate_team_nav_point_with_game_engine_flag(int type_value, int team, short object_handle, int extra)
 {
-  FUN_000d6180(type_value, (short)team, extra, 2, 0, (int)object_handle);
+  hud_activate_team_nav_point(type_value, (short)team, extra, 2, 0, (int)object_handle);
 }
 
-/* FUN_000d6220 (0xd6220)
+/* hud_activate_team_nav_point_with_flag (0xd6220)
  * Set object nav point for all players on a team. */
-void FUN_000d6220(int type_value, int team, short object_handle, int extra)
+void hud_activate_team_nav_point_with_flag(int type_value, int team, short object_handle, int extra)
 {
-  FUN_000d6180(type_value, (short)team, extra, 0, 0, (int)object_handle);
+  hud_activate_team_nav_point(type_value, (short)team, extra, 0, 0, (int)object_handle);
 }
 
-/* FUN_000d6250 (0xd6250)
+/* hud_activate_team_nav_point_with_object (0xd6250)
  * Set enemy nav point for all players on a team. */
-void FUN_000d6250(int type_value, int team, int object_handle, int extra)
+void hud_activate_team_nav_point_with_object(int type_value, int team, int object_handle, int extra)
 {
-  FUN_000d6180(type_value, (short)team, extra, 1, 0, object_handle);
+  hud_activate_team_nav_point(type_value, (short)team, extra, 1, 0, object_handle);
 }
 
-/* FUN_000d6280 (0xd6280)
+/* hud_activate_global_nav_point (0xd6280)
  * Set nav points for all players.
  * ABI: @ebx=nav_type, @edi=object_handle, stack: type_value, extra */
-void FUN_000d6280(int type_value, int extra, short nav_type, int object_handle)
+void hud_activate_global_nav_point(int type_value, int extra, short nav_type, int object_handle)
 {
   int iter[4];
   int datum;
@@ -1722,23 +1722,23 @@ void FUN_000d6280(int type_value, int extra, short nav_type, int object_handle)
   datum = (int)data_iterator_next((void *)iter);
   while (datum != 0) {
     if (*(short *)(datum + 2) != -1) {
-      FUN_000d6030(iter[2], (short)type_value, nav_type,
+      hud_activate_nav_point(iter[2], (short)type_value, nav_type,
                    (int)(short)object_handle, extra);
     }
     datum = (int)data_iterator_next((void *)iter);
   }
 }
 
-/* FUN_000d62f0 (0xd62f0)
+/* hud_activate_global_nav_point_with_game_engine_flag (0xd62f0)
  * Set flag nav points for all players. */
-void FUN_000d62f0(int type_value, int object_handle, int extra)
+void hud_activate_global_nav_point_with_game_engine_flag(int type_value, int object_handle, int extra)
 {
-  FUN_000d6280(type_value, extra, 2, object_handle);
+  hud_activate_global_nav_point(type_value, extra, 2, object_handle);
 }
 
 /* nav_point_clear: remove a nav point entry for a player (0xd6320).
  * ABI: @eax=player_handle, @esi=nav_type, @edi=object_handle */
-void FUN_000d6320(int player_handle, short nav_type, int object_handle)
+void hud_deactivate_nav_point(int player_handle, short nav_type, int object_handle)
 {
   short local_player;
   int nav_data;
@@ -1753,7 +1753,7 @@ void FUN_000d6320(int player_handle, short nav_type, int object_handle)
   if (local_player < 0 || local_player >= 4 || object_handle == -1)
     return;
 
-  nav_data = hud_get_nav_point_data(local_player);
+  nav_data = get_nav_point_datum(local_player);
   i = 0;
   do {
     entry = (short *)(nav_data + i * 0xc);
@@ -1770,29 +1770,29 @@ void FUN_000d6320(int player_handle, short nav_type, int object_handle)
 
 /* nav_point_clear_flag wrapper (0xd6390).
  * Clears a flag nav point (type=2). */
-void FUN_000d6390(int player_handle, short object_handle)
+void hud_deactivate_nav_point_with_game_engine_flag(int player_handle, short object_handle)
 {
-  FUN_000d6320(player_handle, 2, (int)object_handle);
+  hud_deactivate_nav_point(player_handle, 2, (int)object_handle);
 }
 
 /* nav_point_clear_object wrapper (0xd63b0).
  * Clears an object nav point (type=0). */
-void FUN_000d63b0(int player_handle, short object_handle)
+void hud_deactivate_nav_point_with_flag(int player_handle, short object_handle)
 {
-  FUN_000d6320(player_handle, 0, (int)object_handle);
+  hud_deactivate_nav_point(player_handle, 0, (int)object_handle);
 }
 
 /* nav_point_clear_enemy wrapper (0xd63d0).
  * Clears an enemy nav point (type=1). */
-void FUN_000d63d0(int player_handle, int object_handle)
+void hud_deactivate_nav_point_with_object(int player_handle, int object_handle)
 {
-  FUN_000d6320(player_handle, 1, object_handle);
+  hud_deactivate_nav_point(player_handle, 1, object_handle);
 }
 
-/* FUN_000d63f0 (0xd63f0)
+/* hud_deactivate_team_nav_point (0xd63f0)
  * Clear nav points for all players on a given team.
  * ABI: @eax=object_handle, @ecx=nav_type, @ebx=team_handle */
-void FUN_000d63f0(int object_handle, short nav_type, int team_handle)
+void hud_deactivate_team_nav_point(int object_handle, short nav_type, int team_handle)
 {
   int iter[4];
   int datum;
@@ -1802,25 +1802,25 @@ void FUN_000d63f0(int object_handle, short nav_type, int team_handle)
   while (datum != 0) {
     if (*(short *)(datum + 2) != -1 &&
         (int)(short)team_handle == *(int *)(datum + 0x20)) {
-      FUN_000d6320(iter[2], nav_type, object_handle);
+      hud_deactivate_nav_point(iter[2], nav_type, object_handle);
     }
     datum = (int)data_iterator_next((void *)iter);
   }
 }
 
-/* FUN_000d6450 (0xd6450) — clear object nav points by team. */
-void FUN_000d6450(int team_handle, short object_handle)
+/* hud_deactivate_team_nav_point_with_flag (0xd6450) — clear object nav points by team. */
+void hud_deactivate_team_nav_point_with_flag(int team_handle, short object_handle)
 {
-  FUN_000d63f0((int)object_handle, 0, team_handle);
+  hud_deactivate_team_nav_point((int)object_handle, 0, team_handle);
 }
 
-/* FUN_000d6470 (0xd6470) — clear enemy nav points by team. */
-void FUN_000d6470(int team_handle, int object_handle)
+/* hud_deactivate_team_nav_point_with_object (0xd6470) — clear enemy nav points by team. */
+void hud_deactivate_team_nav_point_with_object(int team_handle, int object_handle)
 {
-  FUN_000d63f0(object_handle, 1, team_handle);
+  hud_deactivate_team_nav_point(object_handle, 1, team_handle);
 }
 
-/* FUN_000d6490 (0xd6490) — set object nav point for a unit's player.
+/* hud_unit_activate_nav_point_with_flag (0xd6490) — set object nav point for a unit's player.
  *
  * param_4 is a FLOAT, proven by the only XBE caller, the HaloScript handler
  * 0xc2cd0: it materializes the argument with `FLD dword [EAX+0xc]` and passes
@@ -1829,71 +1829,71 @@ void FUN_000d6470(int team_handle, int object_handle)
  * declared `int` here, which would have compiled that call site to an integer
  * PUSH and silently changed the argument's codegen.
  *
- * The value is forwarded to FUN_000d6030's `extra` parameter, which is still
+ * The value is forwarded to hud_activate_nav_point's `extra` parameter, which is still
  * declared `int` and stores it raw (`*(int *)(entry + 2) = extra`) into the
  * nav-point record — so `extra` is really a float too, but retyping it would
  * turn two bit-exact MOV stores in 0xd6030 into x87 FLD/FSTP pairs and touch
  * its three other callers.  Forwarding through `*(int *)&param_4` reads this
  * function's own incoming frame slot as a dword, which is bit-exact and emits
  * the same `PUSH [EBP+0x14]` as before, leaving 0xd6030 untouched. */
-void FUN_000d6490(int param_1, int unit_handle, short param_3, float param_4)
+void hud_unit_activate_nav_point_with_flag(int param_1, int unit_handle, short param_3, float param_4)
 {
   int player_index;
 
   player_index = player_index_from_unit_index(unit_handle);
   if (player_index != -1) {
-    FUN_000d6030(player_index, (short)param_1, 0, (int)param_3,
+    hud_activate_nav_point(player_index, (short)param_1, 0, (int)param_3,
                  *(int *)&param_4);
   }
 }
 
-/* FUN_000d64c0 (0xd64c0) — set enemy nav point for a unit's player.
+/* hud_unit_activate_nav_point_with_object (0xd64c0) — set enemy nav point for a unit's player.
  *
  * param_4 is a float for the same reason as its sibling 0xd6490 above: the
  * 0xc2d20 call site materializes it with the MSVC push-then-fstp idiom, which
  * only happens when the callee's parameter is float.  It is forwarded to
- * FUN_000d6030's still-`int` `extra` parameter through `*(int *)&param_4`,
+ * hud_activate_nav_point's still-`int` `extra` parameter through `*(int *)&param_4`,
  * reading this function's own incoming frame slot as a dword — bit-exact, and
  * it emits the same `PUSH [EBP+0x14]` as the previous `int` declaration. */
-void FUN_000d64c0(int param_1, int unit_handle, int param_3, float param_4)
+void hud_unit_activate_nav_point_with_object(int param_1, int unit_handle, int param_3, float param_4)
 {
   int player_index;
 
   player_index = player_index_from_unit_index(unit_handle);
   if (player_index != -1) {
-    FUN_000d6030(player_index, (short)param_1, 1, param_3, *(int *)&param_4);
+    hud_activate_nav_point(player_index, (short)param_1, 1, param_3, *(int *)&param_4);
   }
 }
 
-/* FUN_000d64f0 (0xd64f0) — clear object nav point for a unit's player.
+/* hud_unit_deactivate_nav_point_with_flag (0xd64f0) — clear object nav point for a unit's player.
  * param_2 is a 16-bit object handle: the original sign-extends it
- * (MOVSX EDI,word[EBP+0xc]) before the full 32-bit compare in FUN_000d6320,
+ * (MOVSX EDI,word[EBP+0xc]) before the full 32-bit compare in hud_deactivate_nav_point,
  * so it must be a short here, not an int. */
-void FUN_000d64f0(int param_1, short param_2)
+void hud_unit_deactivate_nav_point_with_flag(int param_1, short param_2)
 {
   int player_index;
 
   player_index = player_index_from_unit_index(param_1);
   if (player_index != -1) {
-    FUN_000d6320(player_index, 0, (int)param_2);
+    hud_deactivate_nav_point(player_index, 0, (int)param_2);
   }
 }
 
-/* FUN_000d6520 (0xd6520)
+/* hud_unit_deactivate_nav_point_with_object (0xd6520)
  * Clear enemy nav point for a unit's player. */
-void FUN_000d6520(int param_1, int param_2)
+void hud_unit_deactivate_nav_point_with_object(int param_1, int param_2)
 {
   int player_index;
 
   player_index = player_index_from_unit_index(param_1);
   if (player_index != -1) {
-    FUN_000d6320(player_index, 1, param_2);
+    hud_deactivate_nav_point(player_index, 1, param_2);
   }
 }
 
 /* nav_point_visibility_test (0xd6550)
  * Ray-cast from param_2 to param_3 to check if the nav point is visible. */
-short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4)
+short hud_get_nav_point_render_type(int param_1, float *param_2, float *param_3, int param_4)
 {
   int player_handle;
   int player;
@@ -1944,7 +1944,7 @@ short FUN_000d6550(int param_1, float *param_2, float *param_3, int param_4)
 
 /* nav_point_draw_single (0xd6660)
  * Draw a single nav point indicator with distance/angle calculations. */
-void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
+void custom_render_nav_point(int param_1, float *param_2, short param_3, short param_4)
 {
   float f1;
   float f2;
@@ -1969,7 +1969,7 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   float screen_pos[2] = { 0, 0 };
   float l_8;
   short screen_coords[2];
-  l_34 = FUN_000d1540();
+  l_34 = get_return_eip();
   csmemset(l_2ac, 0x62, 0x200);
   i8 = (int)tag_block_get_element((void *)(*(int *)0x46bd0c + 0x160),
                                      (int)param_3, 0x68);
@@ -2052,19 +2052,19 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   }
   i9 = 0;
   u11 = 0;
-  FUN_000d16a0(*(int *)(*(int *)0x46bd0c + 0x15c),
+  hud_retrieve_bitmap_and_bounding_rect(*(int *)(*(int *)0x46bd0c + 0x15c),
                *(short *)(i8 + 0x34 + s7 * 2), 0, &i9, &u11);
   if (i9 != 0 &&
       (int)xbox_texture_cache_get_hardware_format((void *)i9, 0, 1) != 0) {
     {
-      int alpha_round = FUN_000d1c50(*(float *)(i8 + 0x2c));
+      int alpha_round = fast_ftol_C(*(float *)(i8 + 0x2c));
       int alpha_scaled = alpha_round * 0xff;
       if (alpha_scaled < 0) {
         b12 = 0;
       } else if (alpha_scaled > 0xff) {
         b12 = 0xff;
       } else {
-        b12 = (unsigned char)(-(char)FUN_000d1c50(*(float *)(i8 + 0x2c)));
+        b12 = (unsigned char)(-(char)fast_ftol_C(*(float *)(i8 + 0x2c)));
       }
     }
     pixel32_to_real_rgb_color(*(unsigned int *)(i8 + 0x28), l_24);
@@ -2094,10 +2094,10 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
     }
     l_24[2] = f2 * l_24[2];
     u13 = (unsigned int)b12 << 0x18;
-    u10 = FUN_000d1dd0(l_24);
+    u10 = real_rgb_color_to_pixel32(l_24);
     screen_coords[0] = (short)screen_pos[0];
     screen_coords[1] = (short)screen_pos[1];
-    FUN_000d3200(i9, 4, screen_coords, u11, l_14, l_8,
+    hud_draw_bitmap_direct(i9, 4, screen_coords, u11, l_14, l_8,
                  u10 | u13, 0);
 
     if (s7 != 1) {
@@ -2119,8 +2119,8 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
        * Disasm: stores at
        * [EBP-0x60]/[EBP-0x5c]/[EBP-0x40]/[EBP-0x3f]/[EBP-0x3e] =
        * text_pos_buf+0x24/+0x28/+0x44/+0x45/+0x46 (base EBP-0x84). */
-      *(unsigned int *)(text_pos_buf + 0x24) = FUN_000d1dd0(l_24) | u13;
-      *(unsigned int *)(text_pos_buf + 0x28) = FUN_000d1dd0(l_24) | u13;
+      *(unsigned int *)(text_pos_buf + 0x24) = real_rgb_color_to_pixel32(l_24) | u13;
+      *(unsigned int *)(text_pos_buf + 0x28) = real_rgb_color_to_pixel32(l_24) | u13;
       text_pos_buf[0x44] = 3;
       text_pos_buf[0x46] = 1;
       text_pos_buf[0x45] = 5;
@@ -2163,8 +2163,8 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
       }
 
       {
-        int rounded = FUN_000d1c50(distance);
-        FUN_000d3860((short)param_1, text_element, text_pos_buf, rounded,
+        int rounded = fast_ftol_C(distance);
+        hud_draw_numbers((short)param_1, text_element, text_pos_buf, rounded,
                      text_value, 0, 0, 0.0f);
       }
     }
@@ -2177,7 +2177,7 @@ void FUN_000d6660(int param_1, float *param_2, short param_3, short param_4)
   } while (-1 < s7);
   s7 = -1;
 LAB_000d6c45:
-  i8 = FUN_000d1540();
+  i8 = get_return_eip();
   if (l_34 != i8) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x2a3, 1);
@@ -2193,7 +2193,7 @@ LAB_000d6c45:
 
 /* nav_point_render (0xd6cc0)
  * Render nav points for a player. */
-void FUN_000d6cc0(int param_1)
+void hud_render_nav_points(int param_1)
 {
   int nav_data;
   int player;
@@ -2207,7 +2207,7 @@ void FUN_000d6cc0(int param_1)
    * The case-1 (object waypoint) branch below reuses param_1's stack slot as a
    * throwaway scratch for object_get_bounding_sphere's radius out-param, so param_1 itself is
    * clobbered. The original keeps the real index in u1 and uses it for
-   * FUN_000d6660 and game_engine_render_nav_points; the prior lift dropped that
+   * custom_render_nav_point and game_engine_render_nav_points; the prior lift dropped that
    * save and reused the clobbered param_1, tripping the players.c#133
    * local_player_index range assert on object-tracking nav points. */
   int local_player_index = param_1;
@@ -2224,7 +2224,7 @@ void FUN_000d6cc0(int param_1)
   if (*(int *)(*(int *)0x46bd0c + 0x15c) == -1)
     goto done;
 
-  nav_data = hud_get_nav_point_data((short)local_player_index);
+  nav_data = get_nav_point_datum((short)local_player_index);
   pu6 = (unsigned short *)(nav_data + 8);
   loop_count = 4;
   do {
@@ -2259,7 +2259,7 @@ void FUN_000d6cc0(int param_1)
         break;
       }
       position[2] = position[2] + *(float *)((char *)pu6 - 4);
-      FUN_000d6660(
+      custom_render_nav_point(
         local_player_index, position, (short)pu6[-4],
         (short)((unsigned short)(*(unsigned char *)((char *)pu6 - 6))
                 << 8) >>
@@ -2276,7 +2276,7 @@ done:
 
 /* nav_point_update (0xd6e50)
  * Update nav point visibility flags for a player. */
-void FUN_000d6e50(int param_1)
+void hud_update_nav_point_local_player(int param_1)
 {
   int nav_data;
   int unit_handle;
@@ -2294,9 +2294,9 @@ void FUN_000d6e50(int param_1)
   int obj_handle;
   char vis;
 
-  l_18 = FUN_000d1540();
+  l_18 = get_return_eip();
   csmemset(l_234, 0x62, 0x200);
-  nav_data = hud_get_nav_point_data((short)param_1);
+  nav_data = get_nav_point_datum((short)param_1);
   player = local_player_get_player_index((short)param_1);
   if (player == -1) {
     unit_handle = -1;
@@ -2344,7 +2344,7 @@ void FUN_000d6e50(int param_1)
       }
       target_pos[2] = target_pos[2] + *(float *)(pu6 + 1);
       {
-        vis = (char)FUN_000d6550(param_1, l_28, target_pos, obj_handle);
+        vis = (char)hud_get_nav_point_render_type(param_1, l_28, target_pos, obj_handle);
         {
           int shifted = (int)vis << 4;
           *pu6 =
@@ -2366,7 +2366,7 @@ void FUN_000d6e50(int param_1)
   } while (s >= 0);
   s = -1;
 check:
-  i2 = FUN_000d1540();
+  i2 = get_return_eip();
   if (l_18 != i2) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_nav_points.c", 0x1f0, 1);
@@ -2380,9 +2380,9 @@ check:
   }
 }
 
-/* FUN_000d7080 (0xd7080)
+/* hud_update_nav_points (0xd7080)
  * Iterate all local players and update nav point rendering. */
-void FUN_000d7080(void)
+void hud_update_nav_points(void)
 {
   int result;
   short s;
@@ -2390,7 +2390,7 @@ void FUN_000d7080(void)
   result = (int)local_player_get_next(-1);
   s = (short)result;
   while (s != -1) {
-    FUN_000d6e50(result);
+    hud_update_nav_point_local_player(result);
     result = (int)local_player_get_next((short)result);
     s = (short)result;
   }
@@ -2398,7 +2398,7 @@ void FUN_000d7080(void)
 
 /* hud_sounds_update (0xd70b0)
  * Update HUD sound effects based on state flags. */
-void FUN_000d70b0(short param_1, unsigned int param_2, int *param_3,
+void hud_play_sound(short param_1, unsigned int param_2, int *param_3,
                   int param_4, unsigned short *param_5)
 {
   int i1;
@@ -2466,7 +2466,7 @@ void FUN_000d70b0(short param_1, unsigned int param_2, int *param_3,
 /* unit_hud_slot_reset (0xd7240)
  * Reset a unit HUD slot to default values.
  * ABI: @esi=slot_pointer */
-void FUN_000d7240(int slot)
+void initialize_hud_state(int slot)
 {
   csmemset((void *)(slot + 0x22), 0xff, 2);
   *(int *)(slot + 4) = (int)0xbf800000;
@@ -2480,7 +2480,7 @@ void FUN_000d7240(int slot)
 /* unit_hud_get_slot (0xd7280)
  * Returns pointer to a player's unit HUD slot.
  * ABI: @esi=local_player_index */
-__declspec(noinline) int FUN_000d7280(short local_player_index)
+int get_hud_state_0(short local_player_index)
 {
   if (local_player_index < 0 || local_player_index >= 4) {
     display_assert("local_player_index>=0 && "
@@ -2498,7 +2498,7 @@ __declspec(noinline) int FUN_000d7280(short local_player_index)
 
 /* unit_hud_initialize (0xd72f0)
  * Allocates the unit HUD interface globals buffer. */
-void FUN_000d72f0(void)
+void hud_initialize_unit_interface(void)
 {
   *(int *)0x46bd20 = (int)game_state_malloc("hud unit interface", 0, 0x164);
   if (*(int *)0x46bd20 == 0) {
@@ -2508,11 +2508,11 @@ void FUN_000d72f0(void)
   }
 }
 
-/* FUN_000d7330 (0xd7330)
+/* hud_initialize_unit_interface_for_new_map (0xd7330)
  * Initialize unit_hud_globals: clears the global buffer (0x164 bytes),
  * then for each of 4 local players sets float fields to -1.0f (0xbf800000),
  * marks int fields as -1, and fills remaining slot bytes with 0xff. */
-void FUN_000d7330(void)
+void hud_initialize_unit_interface_for_new_map(void)
 {
   int *slot;
   int i;
@@ -2553,20 +2553,20 @@ void FUN_000d7330(void)
   } while (j < 4);
 }
 
-/* FUN_000d7420 (0xd7420)
+/* hud_dispose_unit_interface_from_old_map (0xd7420)
  * Shared RET stub, tail-called from hud_dispose_from_old_map. Empty body. */
-void FUN_000d7420(void)
+void hud_dispose_unit_interface_from_old_map(void)
 {
 }
 
-/* FUN_000d7430 (0xd7430)
+/* hud_dispose_unit_interface (0xd7430)
  * Shared RET stub, tail-called from hud_dispose. Empty body. */
-void FUN_000d7430(void)
+void hud_dispose_unit_interface(void)
 {
 }
 
 /* show_hud (0xd7440) — toggle HUD visibility flag bit 0. */
-void FUN_000d7440(char param_1)
+void scripted_hud_show_health(char param_1)
 {
   if (param_1 == '\0') {
     *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
@@ -2578,7 +2578,7 @@ void FUN_000d7440(char param_1)
 }
 
 /* show_hud_help_text (0xd7470) — toggle help text flag bit 1. */
-void FUN_000d7470(char param_1)
+void scripted_hud_blink_health(char param_1)
 {
   if (param_1 != '\0') {
     *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
@@ -2590,7 +2590,7 @@ void FUN_000d7470(char param_1)
 }
 
 /* show_hud_health (0xd74a0) — toggle health display flag bit 2. */
-void FUN_000d74a0(char param_1)
+void scripted_hud_show_shield(char param_1)
 {
   if (param_1 == '\0') {
     *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
@@ -2602,7 +2602,7 @@ void FUN_000d74a0(char param_1)
 }
 
 /* show_hud_motion_sensor (0xd74d0) — toggle motion sensor flag bit 3. */
-void FUN_000d74d0(char param_1)
+void scripted_hud_blink_shield(char param_1)
 {
   if (param_1 != '\0') {
     *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
@@ -2614,7 +2614,7 @@ void FUN_000d74d0(char param_1)
 }
 
 /* show_hud_crosshair (0xd7500) — toggle crosshair display flag bit 4. */
-void FUN_000d7500(char param_1)
+void scripted_hud_show_motion_sensor(char param_1)
 {
   if (param_1 == '\0') {
     *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
@@ -2626,7 +2626,7 @@ void FUN_000d7500(char param_1)
 }
 
 /* show_hud_ammo (0xd7530) — toggle ammo display flag bit 5. */
-void FUN_000d7530(char param_1)
+void scripted_hud_blink_motion_sensor(char param_1)
 {
   if (param_1 != '\0') {
     *(unsigned int *)(*(int *)0x46bd20 + 0x160) =
@@ -2639,7 +2639,7 @@ void FUN_000d7530(char param_1)
 
 /* unit_hud_update_sounds (0xd7560)
  * Build sound state flags from unit properties and update HUD sounds. */
-void FUN_000d7560(int param_1, char param_2)
+void hud_play_unit_sounds(int param_1, char param_2)
 {
   char c1;
   short s2;
@@ -2649,7 +2649,7 @@ void FUN_000d7560(int param_1, char param_2)
   int i7;
   unsigned int u8;
 
-  pf3 = (int *)FUN_000d7280(*(short *)(param_1 + 2));
+  pf3 = (int *)get_hud_state_0(*(short *)(param_1 + 2));
   i4 = *(int *)(param_1 + 0x34);
   if (i4 == -1) {
     i4 = pf3[7];
@@ -2658,7 +2658,7 @@ void FUN_000d7560(int param_1, char param_2)
   if (pu5 != (int *)0) {
     i7 = (int)tag_get(0x756e6974, *pu5);
     s2 = local_player_count();
-    i7 = FUN_001a6820(i7, 1 < s2);
+    i7 = unit_definition_get_active_hud_index(i7, 1 < s2);
     if (i7 != -1) {
       i7 = (int)tag_get(0x756e6869, i7);
       u8 = 0;
@@ -2717,7 +2717,7 @@ void FUN_000d7560(int param_1, char param_2)
           }
         }
       }
-      FUN_000d70b0(*(short *)(param_1 + 2), u8, (int *)(i7 + 0x3c0),
+      hud_play_sound(*(short *)(param_1 + 2), u8, (int *)(i7 + 0x3c0),
                    (int)(pf3 + 10), (unsigned short *)(pf3 + 9));
     }
   }
@@ -2725,7 +2725,7 @@ void FUN_000d7560(int param_1, char param_2)
 
 /* unit_hud_copy_slot (0xd7780)
  * Copy unit HUD data from old player to new player. */
-void FUN_000d7780(short old_player, short new_player)
+void hud_fix_unit_data(short old_player, short new_player)
 {
   int *src;
   int *dst;
@@ -2740,15 +2740,15 @@ void FUN_000d7780(short old_player, short new_player)
                    "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x1ac, 1);
     system_exit(-1);
   }
-  src = (int *)FUN_000d7280(old_player);
-  dst = (int *)FUN_000d7280(new_player);
+  src = (int *)get_hud_state_0(old_player);
+  dst = (int *)get_hud_state_0(new_player);
   memcpy(dst, src, 0x58);
 }
 
 /* unit_hud_update_shield_health (0xd7800)
  * Track shield/health changes and manage regen timing.
  * ABI: @eax=player_handle */
-void FUN_000d7800(int player_handle)
+void hud_update_unit_local_player(int player_handle)
 {
   char c1;
   int i2;
@@ -2757,7 +2757,7 @@ void FUN_000d7800(int player_handle)
   int l_20c[128];
   int l_c;
 
-  l_c = FUN_000d1540();
+  l_c = get_return_eip();
   csmemset(l_20c, 0x62, 0x200);
   i2 = local_player_get_player_index(player_handle);
   if (i2 == -1)
@@ -2767,7 +2767,7 @@ void FUN_000d7800(int player_handle)
   if (*(int *)(i2 + 0x34) == -1)
     goto LAB_000d794f;
   i2 = (int)object_get_and_verify_type(*(int *)(i2 + 0x34), 3);
-  pf4 = (float *)FUN_000d7280((short)player_handle);
+  pf4 = (float *)get_hud_state_0((short)player_handle);
   if (pf4[1] == -1.0f) {
     pf4[1] = *(float *)(i2 + 0x90);
   }
@@ -2803,7 +2803,7 @@ LAB_000d794f:
     i2 = local_player_get_player_index(player_handle);
     if (i2 != -1) {
       i2 = (int)datum_get(*(data_t **)0x5aa6d4, i2);
-      FUN_000d7560(i2, **(char **)0x46bd10);
+      hud_play_unit_sounds(i2, **(char **)0x46bd10);
     }
   }
   s7 = 0x7f;
@@ -2814,7 +2814,7 @@ LAB_000d794f:
   } while (-1 < s7);
   s7 = -1;
 LAB_000d79a8:
-  i2 = FUN_000d1540();
+  i2 = get_return_eip();
   if (l_c != i2) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x201, 1);
@@ -2830,7 +2830,7 @@ LAB_000d79a8:
 
 /* hud_render_damage_indicators (0xd7a20)
  * Render motion sensor direction indicators for incoming damage. */
-void FUN_000d7a20(int param_1)
+void hud_render_damage_indicators(int param_1)
 {
   int i3;
   int i5;
@@ -2866,7 +2866,7 @@ void FUN_000d7a20(int param_1)
   i3 = *(int *)0x46bd0c;
   pESI = (short *)(i3 + 0x310);
   s2 = local_player_count();
-  f7 = FUN_000d1690(1 < s2);
+  f7 = hud_globals_get_scale(1 < s2);
   player_effect_get_damage_indicators(param_1, l_18);
   l_14 = 4;
   i5 = 0;
@@ -2915,12 +2915,12 @@ void FUN_000d7a20(int param_1)
       }
       l_8 = 0;
       l_c = 0;
-      FUN_000d16a0(i6, s2, 0, &l_8, &l_c);
+      hud_retrieve_bitmap_and_bounding_rect(i6, s2, 0, &l_8, &l_c);
       if (l_8 != 0 && (int)xbox_texture_cache_get_hardware_format(
                             (void *)l_8, 0, 1) != 0) {
         l_10[0] = (short)pos_x;
         l_10[1] = (short)pos_y;
-        FUN_000d3200(l_8, 4, l_10, l_c, f7, *(float *)&param_1,
+        hud_draw_bitmap_direct(l_8, 4, l_10, l_c, f7, *(float *)&param_1,
                      *(int *)((char *)pESI + 0x3c), 0);
       }
     }
@@ -2929,23 +2929,23 @@ void FUN_000d7a20(int param_1)
   } while (l_14 != 0);
 }
 
-/* FUN_000d7cd0 (0xd7cd0)
+/* hud_tick_shield (0xd7cd0)
  * Subtract damage amount from a player's HUD damage indicator. */
-void FUN_000d7cd0(int player_handle, float param_2)
+void hud_tick_shield(int player_handle, float param_2)
 {
   int player;
   float *pf2;
 
   player = (int)datum_get(*(data_t **)0x5aa6d4, player_handle);
   if (*(short *)(player + 2) != -1) {
-    pf2 = (float *)FUN_000d7280(*(short *)(player + 2));
+    pf2 = (float *)get_hud_state_0(*(short *)(player + 2));
     *pf2 = *pf2 - param_2;
   }
 }
 
-/* FUN_000d7d10 (0xd7d10)
+/* hud_update_unit (0xd7d10)
  * Iterate local players and update unit HUD for each. */
-void FUN_000d7d10(void)
+void hud_update_unit(void)
 {
   int result;
   short s;
@@ -2953,18 +2953,18 @@ void FUN_000d7d10(void)
   result = (int)local_player_get_next(-1);
   s = (short)result;
   while (s != -1) {
-    FUN_000d7800(s);
+    hud_update_unit_local_player(s);
     result = (int)local_player_get_next(s);
     s = (short)result;
   }
 }
 
-/* FUN_000d7d40 (0xd7d40)
+/* hud_render_unit_interface (0xd7d40)
  * Full HUD unit render for a single player. Draws shield meters,
  * health bars, damage indicators, motion tracker, and overlay widgets.
  * Uses a 0x200-byte stack canary (0x62 fill) with post-check.
  * Source: c:\halo\SOURCE\interface\hud_unit.c line 0x209. */
-void FUN_000d7d40(int param_1)
+void hud_render_unit_interface(int param_1)
 {
   int canary_buf[128];
   int handle_slots[18];
@@ -2979,7 +2979,7 @@ void FUN_000d7d40(int param_1)
    * only for type==0, so the indexed read is structurally always
    * fraction_slots[0]; slots [1..3] are dead on the read path and the latent
    * OOB for overlay_type>=4 cannot occur here. The discrete float[4] is
-   * therefore faithful. (See FUN_000d7d40 disasm 0x87d2-0x87e1.)
+   * therefore faithful. (See hud_render_unit_interface disasm 0x87d2-0x87e1.)
    */
   float fraction_slots[4];
   unsigned int full_shield;
@@ -3017,7 +3017,7 @@ void FUN_000d7d40(int param_1)
   float *pf6;
   unsigned char *unit_tag_data;
 
-  canary_cookie = FUN_000d1540();
+  canary_cookie = get_return_eip();
   csmemset(canary_buf, 0x62, 0x200);
 
   if (*(short *)(param_1 + 2) != *(short *)0x506548) {
@@ -3035,13 +3035,13 @@ void FUN_000d7d40(int param_1)
   unit_tag_data = (unsigned char *)tag_get(0x756e6974, *unit_ptr);
   local_player_idx = (unsigned int)(unsigned short)*(short *)(param_1 + 2);
   player_index = local_player_get_player_index(local_player_idx);
-  pf6 = (float *)FUN_000d7280((short)local_player_idx);
+  pf6 = (float *)get_hud_state_0((short)local_player_idx);
 
   handle_slots[0] = *(int *)(param_1 + 0x34);
   csmemset(handle_slots + 1, 0, 17 * 4);
 
   s4 = local_player_count();
-  tag_indices[0] = FUN_001a6820((int)unit_tag_data, 1 < s4);
+  tag_indices[0] = unit_definition_get_active_hud_index((int)unit_tag_data, 1 < s4);
 
   csmemset(tag_indices + 1, 0, 17 * 4);
 
@@ -3073,9 +3073,9 @@ void FUN_000d7d40(int param_1)
       0x11c);
     unit_tag_data = (unsigned char *)seat_element;
 
-    FUN_000d7280((short)local_player_idx);
+    get_hud_state_0((short)local_player_idx);
     s4 = local_player_count();
-    i8 = FUN_001a6820(vehicle_tag, 1 < s4);
+    i8 = unit_definition_get_active_hud_index(vehicle_tag, 1 < s4);
 
     if ((*unit_tag_data & 4) != 0) {
       if (i8 != -1) {
@@ -3096,7 +3096,7 @@ void FUN_000d7d40(int param_1)
             *(short *)(next_unit + 0x2a0) != -1) {
           handle_slots[slot_count] = i13;
           s4 = local_player_count();
-          i13 = FUN_001a6870(
+          i13 = unit_definition_get_seat_active_hud_index(
             vehicle_tag, *(unsigned short *)(next_unit + 0x2a0), 1 < s4);
           tag_indices[slot_count] = i13;
           slot_count = slot_count + 1;
@@ -3146,7 +3146,7 @@ void FUN_000d7d40(int param_1)
         if (1 < s4) {
           b = b | 4;
         }
-        FUN_000d3fe0(local_player_idx, (short *)i7, i7 + 0x24,
+        hud_draw_static_element(local_player_idx, (short *)i7, i7 + 0x24,
                      (unsigned int)b, (int)0xFFFFFFFF);
       }
 
@@ -3296,7 +3296,7 @@ void FUN_000d7d40(int param_1)
                     meter_data_ptr = widget_meter_data;
                   }
 
-                  FUN_000d3340(local_player_idx, unhi_tag, (int)meter_data_ptr,
+                  hud_draw_meter(local_player_idx, unhi_tag, (int)meter_data_ptr,
                                clamp_b, clamp_a, flags, flash_param_int,
                                l_34);
                 }
@@ -3311,7 +3311,7 @@ void FUN_000d7d40(int param_1)
           i21 = unhi_tag;
 
           if (*(int *)(unhi_tag + 0xbc) != -1) {
-            FUN_000d3fe0(local_player_idx, (short *)unhi_tag, unhi_tag + 0x8c,
+            hud_draw_static_element(local_player_idx, (short *)unhi_tag, unhi_tag + 0x8c,
                          flags, *(int *)((char *)pf6 + 0x10));
             i8 = unit_data;
             i21 = unhi_tag;
@@ -3380,40 +3380,40 @@ void FUN_000d7d40(int param_1)
 
             meter_scale = (float)(int)health_max;
 
-            i7 = FUN_000d1c50(meter_scale * *(float *)(unit_data + 0x90));
+            i7 = fast_ftol_C(meter_scale * *(float *)(unit_data + 0x90));
             if (i7 < 0) {
               health_alpha = 0;
             } else {
-              i7 = FUN_000d1c50(meter_scale * *(float *)(i8 + 0x90));
+              i7 = fast_ftol_C(meter_scale * *(float *)(i8 + 0x90));
               if (i7 < 0x100) {
                 health_alpha =
-                  FUN_000d1c50(meter_scale * *(float *)(i8 + 0x90));
+                  fast_ftol_C(meter_scale * *(float *)(i8 + 0x90));
               } else {
                 health_alpha = 0xff;
               }
             }
 
-            i7 = FUN_000d1c50(meter_scale * *(float *)(i8 + 0x90));
+            i7 = fast_ftol_C(meter_scale * *(float *)(i8 + 0x90));
             if (i7 < 0) {
               health_flash_alpha = 0;
             } else {
-              i7 = FUN_000d1c50(meter_scale * *(float *)(i8 + 0x90));
+              i7 = fast_ftol_C(meter_scale * *(float *)(i8 + 0x90));
               if (i7 < 0x100) {
                 health_flash_alpha =
-                  FUN_000d1c50(meter_scale * *(float *)(i8 + 0x90));
+                  fast_ftol_C(meter_scale * *(float *)(i8 + 0x90));
               } else {
                 health_flash_alpha = 0xff;
               }
             }
 
-            FUN_000d3340(local_player_idx, i13, (int)health_meter_data,
+            hud_draw_meter(local_player_idx, i13, (int)health_meter_data,
                          health_flash_alpha, health_alpha, flags,
                          (int)0xbf800000, *(float *)(i8 + 0x90));
             i21 = unhi_tag;
           }
 
           if (*(int *)(i21 + 0x1ac) != -1) {
-            FUN_000d3fe0(local_player_idx, (short *)i21, i21 + 0x17c,
+            hud_draw_static_element(local_player_idx, (short *)i21, i21 + 0x17c,
                          flags, *(int *)((char *)pf6 + 0x14));
           }
 
@@ -3439,16 +3439,16 @@ void FUN_000d7d40(int param_1)
 
           i13 = unhi_tag;
           if (*(int *)(unhi_tag + 0x29c) != -1) {
-            FUN_000d3fe0(local_player_idx, l_130, unhi_tag + 0x26c,
+            hud_draw_static_element(local_player_idx, l_130, unhi_tag + 0x26c,
                          (unsigned int)b, (int)0xFFFFFFFF);
           }
           if (*(int *)(i13 + 0x304) != -1) {
-            FUN_000d3fe0(local_player_idx, l_130, i13 + 0x2d4,
+            hud_draw_static_element(local_player_idx, l_130, i13 + 0x2d4,
                          (unsigned int)b, (int)0xFFFFFFFF);
           }
 
           s4 = local_player_count();
-          FUN_000d1f40((short)local_player_idx, (unsigned short *)l_130,
+          hud_calculate_point((short)local_player_idx, (unsigned short *)l_130,
                        (short *)(i13 + 0x35c), 0, 1 < s4, 0,
                        (short *)l_78_buf);
 
@@ -3486,12 +3486,12 @@ void FUN_000d7d40(int param_1)
                   0) {
                 if ((*(unsigned char *)(widget_element + 0x6a) & 1) != 0) {
                   unsigned int packed_color;
-                  packed_color = FUN_000d1dd0((float *)(unit_data + 0x138));
+                  packed_color = real_rgb_color_to_pixel32((float *)(unit_data + 0x138));
                   *(unsigned int *)(widget_element + 0x34) =
                     packed_color | 0xff000000;
                 }
 
-                FUN_000d3fe0(local_player_idx, (short *)widget_base,
+                hud_draw_static_element(local_player_idx, (short *)widget_base,
                              widget_element, (unsigned int)widget_flags_mask,
                              (int)0xFFFFFFFF);
               }
@@ -3537,7 +3537,7 @@ void FUN_000d7d40(int param_1)
                       (short *)((char *)pf6 + overlay_type * 2 + 0x22);
                     if (*ps22 != -1) {
                       ps22 = (short *)((char *)pf6 + *ps12 * 2 + 0x22);
-                      i13 = FUN_000d2300((int)(ps12 + 0x24));
+                      i13 = get_flash_duration((int)(ps12 + 0x24));
                       if (*ps22 < i13)
                         goto overlay_active_no_shield;
                     }
@@ -3553,7 +3553,7 @@ void FUN_000d7d40(int param_1)
 
                     if (tag_ref_result != (int)0xFFFFFFFF) {
                       int time_val = game_time_get();
-                      FUN_000d3fe0(local_player_idx, (short *)unhi_tag,
+                      hud_draw_static_element(local_player_idx, (short *)unhi_tag,
                                    (int)(ps12 + 10),
                                    ((unsigned int)((s4 < 2) - 1) & 4) | 1,
                                    time_val -
@@ -3580,12 +3580,12 @@ void FUN_000d7d40(int param_1)
                   *ps22 = *ps22 + s5;
 
                   ps22 = (short *)((char *)pf6 + *ps12 * 2 + 0x22);
-                  i13 = FUN_000d2300((int)(ps12 + 0x24));
+                  i13 = get_flash_duration((int)(ps12 + 0x24));
                   *ps22 = (short)((int)*ps22 % (i13 << 1));
 
                   if (tag_ref_result != (int)0xFFFFFFFF) {
                     int time_val2 = game_time_get();
-                    FUN_000d3fe0(
+                    hud_draw_static_element(
                       local_player_idx, (short *)unhi_tag, (int)(ps12 + 10),
                       flags,
                       time_val2 -
@@ -3627,7 +3627,7 @@ void FUN_000d7d40(int param_1)
                       }
                     }
 
-                    FUN_000d3340(local_player_idx, unhi_tag,
+                    hud_draw_meter(local_player_idx, unhi_tag,
                                  (int)(ps12 + 0x3e), alpha_b2, alpha_a2,
                                  flags, (int)0xbf800000, frac_value);
                   }
@@ -3659,7 +3659,7 @@ done_canary_check: {
   canary_idx = -1;
 
 canary_found: {
-  int cookie_check = FUN_000d1540();
+  int cookie_check = get_return_eip();
   if (canary_cookie != cookie_check) {
     display_assert("corrupt return address!",
                    "c:\\halo\\SOURCE\\interface\\hud_unit.c", 0x3c9, 1);

@@ -13,7 +13,7 @@
  *   0x3256fc  char  - occlusion-query feature flag (byte, !=0 gate)
  */
 
-/* 0x17adc0 — rasterizer_widget_get_occlusion_test_result
+/* 0x17adc0 — _rasterizer_widget_get_occlusion_test_result
  *
  * Blocking read of a D3D visibility (occlusion) query result.  Issues
  * GetVisibilityTestResult; while the query is still pending
@@ -21,7 +21,7 @@
  * rasterizer_spin_begin(0x1a)/rasterizer_spin_end() bracket.
  *
  * Name evidence: the trailing error() string at 0x2ae788 is
- * "### ERROR rasterizer_widget_get_occlusion_test_result failed".
+ * "### ERROR _rasterizer_widget_get_occlusion_test_result failed".
  *
  * Shape notes (all from disassembly, not the decompiler):
  *   - The 0xffffffff seed of the result local is stored at 0x17adcd, i.e.
@@ -36,7 +36,7 @@
  *   - The assert tail at 0x17ae56 is system_exit(-1), not
  *     halt_and_catch_fire.
  */
-unsigned int rasterizer_widget_get_occlusion_test_result(unsigned int index)
+unsigned int _rasterizer_widget_get_occlusion_test_result(unsigned int index)
 {
   unsigned int occlusion_test_result; /* [EBP-0x4] — also the return value */
   /* [EBP-0xc] — out param, unused after.  This slot is EIGHT bytes, not four:
@@ -78,7 +78,7 @@ unsigned int rasterizer_widget_get_occlusion_test_result(unsigned int index)
 
     if (hr < 0) {
       ok = 0;
-      FUN_00167ff0(hr, "hr");
+      rasterizer_error(hr, "hr");
     } else {
       ok = 1;
     }
@@ -91,17 +91,17 @@ unsigned int rasterizer_widget_get_occlusion_test_result(unsigned int index)
       system_exit(-1);
     }
     if (ok == 0) {
-      error(2, "### ERROR rasterizer_widget_get_occlusion_test_result failed");
+      error(2, "### ERROR _rasterizer_widget_get_occlusion_test_result failed");
     }
     return occlusion_test_result;
   }
   return 1;
 }
 
-/* 0x17ae90 — FUN_0017ae90
+/* 0x17ae90 — _rasterizer_widget_submit
  *
  * Builds a transparent-geometry group for a widget: allocates the next group
- * slot (rasterizer_transparent_geometry_group_new, 0x184330), stores the three
+ * slot (rasterizer_transparent_geometry_new_group, 0x184330), stores the three
  * caller-supplied handles, zero-initialises the group record and computes the
  * signed plane distance of the supplied centroid against the view plane.
  *
@@ -118,7 +118,7 @@ unsigned int rasterizer_widget_get_occlusion_test_result(unsigned int index)
  * it) 0x5a5bd4/d8/dc  float  - view plane normal 0x47e4ca        char   -
  * one-shot "already reported" flag for the error()
  *
- * Group record: stride 0xa0 (see rasterizer_transparent_geometry_group_new).
+ * Group record: stride 0xa0 (see rasterizer_transparent_geometry_new_group).
  * Mixed store widths taken from the disassembly, NOT the decompiler:
  *   dword +0x00 +0x04 +0x08 +0x0c +0x44 +0x48 +0x4c +0x50 +0x54 +0x58 +0x5c
  *         +0x60 +0x68 +0x6c +0x80..+0x8c +0x98
@@ -153,7 +153,7 @@ typedef struct {
   unsigned int field_c;
 } rasterizer_widget_block16;
 
-void FUN_0017ae90(unsigned int arg_4c, unsigned int arg_50, float *centroid,
+void _rasterizer_widget_submit(unsigned int arg_4c, unsigned int arg_50, float *centroid,
                   unsigned int arg_48)
 {
   char *group;
@@ -166,7 +166,7 @@ void FUN_0017ae90(unsigned int arg_4c, unsigned int arg_50, float *centroid,
   float d0, d1, d2; /* held in ST(2)/ST(1)/ST(0) by the original */
 
   if (arg_48 != 0) {
-    group = (char *)rasterizer_transparent_geometry_group_new();
+    group = (char *)rasterizer_transparent_geometry_new_group();
 
     if (centroid == (float *)0) {
       display_assert("centroid",
@@ -229,7 +229,7 @@ void FUN_0017ae90(unsigned int arg_4c, unsigned int arg_50, float *centroid,
   }
 }
 
-/* 0x17b000 — FUN_0017b000
+/* 0x17b000 — _rasterizer_widget_begin
  *
  * Programs the fixed render state + screen-space projection used by the
  * two supported widget draw types.  Two shapes only: type 5 (blended,
@@ -260,7 +260,7 @@ void FUN_0017ae90(unsigned int arg_4c, unsigned int arg_50, float *centroid,
  * Uncertain: the meaning of widget types 5/6 and of the render-state
  * shadow globals at 0x1fb7xx; they are written verbatim.
  */
-void FUN_0017b000(int16_t widget_type, uint16_t flags)
+void _rasterizer_widget_begin(int16_t widget_type, uint16_t flags)
 {
   float vs_constants[20];
   int type;
@@ -313,7 +313,7 @@ void FUN_0017b000(int16_t widget_type, uint16_t flags)
 
     D3DDevice_SetRenderState_ZBias(*(const unsigned int *)0x32570c);
 
-    FUN_00178b40(0x38, 6, 0);
+    rasterizer_set_vertex_shader_permutation(0x38, 6, 0);
 
     screen_width = *(const short *)0x5a5bfa - *(const short *)0x5a5bf6;
     screen_height = (short)(*(const int *)0x5a5bf8 - *(const int *)0x5a5bf4);
@@ -383,9 +383,9 @@ void FUN_0017b000(int16_t widget_type, uint16_t flags)
 
   /* PUSH 0x3f800000 — the raw IEEE bit pattern for 1.0f is forwarded as a
    * dword through the int-typed parameter, exactly as the original does. */
-  FUN_0017cfe0(0x3f800000);
+  rasterizer_widget_set_tint_factor(0x3f800000);
 
-  FUN_00178b40(0x38, 6, 0);
+  rasterizer_set_vertex_shader_permutation(0x38, 6, 0);
 
   screen_width = *(const short *)0x5a5bfa - *(const short *)0x5a5bf6;
   screen_height = (short)(*(const int *)0x5a5bf8 - *(const int *)0x5a5bf4);
@@ -428,7 +428,7 @@ void FUN_0017b000(int16_t widget_type, uint16_t flags)
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
 }
 
-/* 0x17b480 — FUN_0017b480
+/* 0x17b480 — _rasterizer_widget_set_texture
  *
  * Binds a bitmap to a texture stage for widget drawing.  If the bind fails,
  * the stage's addressing and filtering states are forced to a fixed
@@ -439,7 +439,7 @@ void FUN_0017b000(int16_t widget_type, uint16_t flags)
  * from the object at global 0x476204 (a pointer; the index lives at +0x6c).
  * Any other value goes through the tag-driven path with bitmap_type 1.
  *
- * Signature (from disassembly — the kb decl was `char FUN_0017b480(int, int,
+ * Signature (from disassembly — the kb decl was `char _rasterizer_widget_set_texture(int, int,
  * short)` and Ghidra dropped all three cdecl slots, rendering them as
  * in_stack_XXXX):
  *   [EBP+0x08] stage         -> first arg of both bind calls
@@ -480,7 +480,7 @@ void FUN_0017b000(int16_t widget_type, uint16_t flags)
  * Uncertain: the identity of the object at global 0x476204 and the meaning of
  * its +0x6c field (used here as a bitmap tag index, unnamed in the binary).
  */
-char FUN_0017b480(int stage, int bitmap_index, int frame_index)
+char _rasterizer_widget_set_texture(int stage, int bitmap_index, int frame_index)
 {
   char ok; /* BL — bind result: branch predicate and return value */
 
@@ -514,13 +514,13 @@ char FUN_0017b480(int stage, int bitmap_index, int frame_index)
   return ok;
 }
 
-/* 0x17b540 — FUN_0017b540
+/* 0x17b540 — _rasterizer_widget_set_tint_factor
  *
  * Pushes a single scalar into Xbox vertex data register 10 as a 2-component
  * float, with the second component forced to zero.  Guarded by the same
  * `global_d3d_device` assert every other entry point in this TU carries.
  *
- * Signature (from disassembly — kb.json declared `void FUN_0017b540(void)`
+ * Signature (from disassembly — kb.json declared `void _rasterizer_widget_set_tint_factor(void)`
  * and Ghidra rendered the argument as `in_stack_00000004`):
  *   [EBP+0x08] value -> second argument of D3DDevice_SetVertexData2f
  * `MOV EAX,dword ptr [EBP+0x8]` at 0x17b56c is forwarded unconverted by the
@@ -547,7 +547,7 @@ char FUN_0017b480(int stage, int bitmap_index, int frame_index)
  * literal 0xa here and no D3DVSDE_* enum exists in the project headers yet, so
  * the raw number is reproduced verbatim rather than named.
  */
-void FUN_0017b540(float value)
+void _rasterizer_widget_set_tint_factor(float value)
 {
   if (*(void **)0x476ab0 == (void *)0) {
     display_assert("global_d3d_device",
@@ -560,13 +560,13 @@ void FUN_0017b540(float value)
   D3DDevice_SetVertexData2f(0xa, value, 0.0f);
 }
 
-/* 0x17b580 — FUN_0017b580
+/* 0x17b580 — _rasterizer_widget_set_zbuffer_enable
  *
  * Sets the D3D Z-enable render state from a single caller-supplied byte,
  * guarded by the same `global_d3d_device` assert every other entry point in
  * this TU carries.
  *
- * Signature (from disassembly — kb.json declared `void FUN_0017b580(void)`
+ * Signature (from disassembly — kb.json declared `void _rasterizer_widget_set_zbuffer_enable(void)`
  * and Ghidra rendered the argument as `in_stack_00000004`):
  *   [EBP+0x08] enable -> only argument of D3DDevice_SetRenderState_ZEnable.
  * `MOVZX EAX,byte ptr [EBP+0x8]` at 0x17b5a2 loads exactly one byte and
@@ -587,7 +587,7 @@ void FUN_0017b540(float value)
  *     (first PUSH is the last C argument): PUSH 1 (halt), PUSH 0x14e (line),
  *     PUSH __FILE__, PUSH "global_d3d_device".
  */
-void FUN_0017b580(bool enable)
+void _rasterizer_widget_set_zbuffer_enable(bool enable)
 {
   if (*(void **)0x476ab0 == (void *)0) {
     display_assert("global_d3d_device",
@@ -600,13 +600,13 @@ void FUN_0017b580(bool enable)
   D3DDevice_SetRenderState_ZEnable((uint32_t)enable);
 }
 
-/* 0x17b5c0 — FUN_0017b5c0
+/* 0x17b5c0 — _rasterizer_widget_draw_sprite2d
  *
  * Emits one axis-aligned-or-rotated screen-space quad (D3DPT_QUADLIST) around
  * a 2D point, with an optional per-axis scale, an optional integer texcoord
  * repeat count, an optional rotation angle, and a flat vertex colour.
  *
- * Signature (from disassembly — kb.json declared `void FUN_0017b5c0(void)`
+ * Signature (from disassembly — kb.json declared `void _rasterizer_widget_draw_sprite2d(void)`
  * and Ghidra therefore rendered every argument as `in_stack_000000NN`):
  *   [EBP+0x08] float *point            (float[2]; ESI holds it for the body)
  *   [EBP+0x0c] float  radius           (only a >0 gate; never otherwise read)
@@ -655,7 +655,7 @@ void FUN_0017b580(bool enable)
  * numbers are reproduced verbatim.  `radius` is named from its role as the
  * sole >0 gate; the binary gives no other evidence for it.
  */
-void FUN_0017b5c0(float *point, float radius, float *scale,
+void _rasterizer_widget_draw_sprite2d(float *point, float radius, float *scale,
                   float *texcoord_repeat, float theta, unsigned int color)
 {
   float cos_theta;

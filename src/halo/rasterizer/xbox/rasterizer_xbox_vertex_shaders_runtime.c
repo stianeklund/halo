@@ -118,7 +118,7 @@ typedef struct packed_vertex_shader {
  * other shader is set with IDirect3DDevice8_SetVertexShader, which evicts the
  * packed set.
  */
-void FUN_00178b40(int vertex_shader_index, int vertex_type,
+void rasterizer_set_vertex_shader_permutation(int vertex_shader_index, int vertex_type,
                   int permutation_index)
 {
   const short *translation_table;
@@ -300,7 +300,7 @@ void FUN_00178b40(int vertex_shader_index, int vertex_type,
         success = true;
       } else {
         success = false;
-        FUN_00167ff0(0,
+        rasterizer_error(0,
                      "IDirect3DDevice8_GetVertexShaderSize(global_d3d_device,"
                      " vertex_shader_table[packed_shaders[packed_shader_index]"
                      ".vertex_shader_index].handle, &size)");
@@ -333,7 +333,7 @@ void FUN_00178b40(int vertex_shader_index, int vertex_type,
         success = true;
       } else {
         success = false;
-        FUN_00167ff0(0, "IDirect3DDevice8_SelectVertexShader(global_d3d_device,"
+        rasterizer_error(0, "IDirect3DDevice8_SelectVertexShader(global_d3d_device,"
                         " 0L, (UINT)offset)");
       }
       /* already resident: the instruction counter is not bumped again */
@@ -355,7 +355,7 @@ void FUN_00178b40(int vertex_shader_index, int vertex_type,
       success = true;
     } else {
       success = false;
-      FUN_00167ff0(0, "IDirect3DDevice8_LoadVertexShader(global_d3d_device, "
+      rasterizer_error(0, "IDirect3DDevice8_LoadVertexShader(global_d3d_device, "
                       "(DWORD)handle, (UINT)offset)");
     }
 
@@ -364,7 +364,7 @@ void FUN_00178b40(int vertex_shader_index, int vertex_type,
       success = true;
     } else {
       success = false;
-      FUN_00167ff0(0, "IDirect3DDevice8_SelectVertexShader(global_d3d_device, "
+      rasterizer_error(0, "IDirect3DDevice8_SelectVertexShader(global_d3d_device, "
                       "(DWORD)handle, (UINT)offset)");
     }
     packed_shaders[packed_shader_index].loaded = true;
@@ -381,7 +381,7 @@ void FUN_00178b40(int vertex_shader_index, int vertex_type,
       success = true;
     } else {
       success = false;
-      FUN_00167ff0(
+      rasterizer_error(
         0,
         "IDirect3DDevice8_SetVertexShader(global_d3d_device, (DWORD)handle)");
     }

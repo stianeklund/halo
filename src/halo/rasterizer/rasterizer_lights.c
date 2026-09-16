@@ -2,7 +2,7 @@
  *
  * TU proven by the __FILE__ string
  * "c:\halo\SOURCE\rasterizer\rasterizer_lights.c" at 0x2b01b4, referenced by
- * every assert in FUN_00181670. */
+ * every assert in rasterizer_lens_flare_submit. */
 
 #define RASTERIZER_LIGHTS_FILE "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c"
 
@@ -25,7 +25,7 @@ typedef struct lens_flare_definition {
 
 /* Submission parameters, 0x28 bytes, copied wholesale into the frame queue.
  * Offsets confirmed against the disassembly and against the caller
- * FUN_00181900 (rasterizer_text.c), which fills the same buffer. */
+ * rasterizer_lens_flare_submit_for_cluster (rasterizer_text.c), which fills the same buffer. */
 typedef struct lens_flare_parameters {
   lens_flare_definition *definition; /* +0x00 */
   real position[3];                  /* +0x04 FLD dword, not FILD */
@@ -69,10 +69,10 @@ typedef struct window_parameters {
  * window, the frame queue has room, the flare is nearer than its definition's
  * cutoff distance along the view direction, and its color has a non-zero
  * alpha. Accepted flares are copied into a queue slot obtained from
- * FUN_00181020 and tagged either as a directly-queued flare, a structure
+ * lens_flare_parameters_get and tagged either as a directly-queued flare, a structure
  * marker flare, or a map light flare (which also resets that light's cached
  * state when its definition changes). */
-void FUN_00181670(int *params)
+void rasterizer_lens_flare_submit(int *params)
 {
   lens_flare_parameters *parameters;
   lens_flare_parameters *queued;
@@ -110,7 +110,7 @@ void FUN_00181670(int *params)
         if ((parameters->color & 0xff000000) > 0) {
           *(int *)0x4d0480 = queued_count + 1;
           queued =
-            (lens_flare_parameters *)FUN_00181020((short)queued_count);
+            (lens_flare_parameters *)lens_flare_parameters_get((short)queued_count);
           csmemcpy(queued, parameters, 0x28);
           light_index = parameters->light_index;
           if (parameters->field_1c == -1) {

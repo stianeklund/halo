@@ -91,18 +91,18 @@ void rumble_player_impulse(short unit_index, float *rumble_def,
   *(float *)(slot_base + 0x1e0 + slot_index * 4) = 0.0f;
 }
 
-void rumble_clear_for_local_player(int16_t local_player_index)
+void rumble_player_clear(int16_t local_player_index)
 {
   csmemset(rumble_globals + local_player_index * 0x208, 0, 0x208);
 }
 
-/* rumble_clear_all_players (0xb9d60)
+/* rumble_clear_all_now (0xb9d60)
  *
  * Clears the entire rumble globals block (all 4 player slots) and then
  * calls input_set_rumble(i, 0, 0) for each gamepad that is present.
  * Unlike rumble_dispose_from_old_map, only checks input_has_gamepad — no
  * double pass. */
-void rumble_clear_all_players(void)
+void rumble_clear_all_now(void)
 {
   int i;
 
@@ -114,7 +114,7 @@ void rumble_clear_all_players(void)
 }
 
 /* Set direct rumble motor values for a player slot. */
-void rumble_set_direct_motors(short local_player_index, int left_motor,
+void rumble_player_continuous(short local_player_index, int left_motor,
                               int right_motor)
 {
   char *slot = rumble_globals + (int)local_player_index * 0x208;

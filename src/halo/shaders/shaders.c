@@ -1,7 +1,7 @@
 /* Shader tag base.
  *
  * The assert at c:\halo\SOURCE\shaders\shader_definitions.c:0x85d inside
- * FUN_001906b0 stringizes "shader->base.type==shader_type", which names the
+ * shader_get_and_verify_type stringizes "shader->base.type==shader_type", which names the
  * member (`base`) and the field (`type`); the disassembly proves the offset and
  * width (MOV AX, word ptr [ESI+0x24]). Nothing past +0x24 is proven from this
  * function, so nothing else is declared here. */
@@ -40,7 +40,7 @@ typedef struct shader_definition {
  * Otherwise the sky's 'wind' tag is fetched through the scenario wind palette
  * block (scenario + 0x1b4, element stride 0xf0, tag index at element+0x8c)
  * and its three floats are used as: +0x10 amount, +0x14 scale, +0x18
- * attenuation. FUN_0018ff00 samples direction+turbulence into a local
+ * attenuation. wind_variance_get samples direction+turbulence into a local
  * float[3] with scale = tag+0x14 and magnitude = tag+0x10 * record velocity
  * (the magnitude argument is the PUSH ECX / FSTP [ESP] slot at 0x1902c6, not
  * the pushed ECX value). The result is blended with the record's own
@@ -53,7 +53,7 @@ typedef struct shader_definition {
  * ([EBP+0x14]) once the index has been sign-extended; the frame reserves only
  * the float[3] scratch (SUB ESP,0xc).
  */
-void FUN_00190240(float *position, float *out, uint32_t flags,
+void scenario_get_current_from_weather_palette(float *position, float *out, uint32_t flags,
                   int16_t sky_index)
 {
   typedef struct {
@@ -91,7 +91,7 @@ void FUN_00190240(float *position, float *out, uint32_t flags,
       } else {
         amount = *(float *)(wind_tag + 0x10);
       }
-      FUN_0018ff00(turbulence, position, *(float *)(wind_tag + 0x14),
+      wind_variance_get(turbulence, position, *(float *)(wind_tag + 0x14),
                    *(float *)(wind_tag + 0x10) * record->velocity);
       t = *(float *)0x2533c8 - amount;
       out[0] = t * record->direction[0] + turbulence[0];
@@ -109,7 +109,7 @@ void FUN_00190240(float *position, float *out, uint32_t flags,
 }
 
 /* 0x190550 — resolve the sky index (and the indoor-fog answer) for a BSP
- * location, then hand the result to FUN_00190240.
+ * location, then hand the result to scenario_get_current_from_weather_palette.
  *
  * The base pointer comes from 0x18e3c0 (kb: scenario_get). The three tag blocks
  * read here have exactly the offsets and strides that scenario.c's fog helpers
@@ -129,7 +129,7 @@ void FUN_00190240(float *position, float *out, uint32_t flags,
  * EAX,EDX) is a branchless select of `position` or NULL; it is written as the
  * same mask expression rather than an if/else to keep the codegen.
  */
-bool FUN_00190550(void *location, void *position, int32_t param_3,
+bool scenario_get_current(void *location, void *position, int32_t param_3,
                   uint32_t flags)
 {
   char *bsp;
@@ -177,7 +177,7 @@ bool FUN_00190550(void *location, void *position, int32_t param_3,
       }
     }
   }
-  FUN_00190240((float *)position, (float *)param_3, flags, sky_index);
+  scenario_get_current_from_weather_palette((float *)position, (float *)param_3, flags, sky_index);
   return is_indoor;
 }
 
@@ -188,37 +188,37 @@ bool FUN_00190550(void *location, void *position, int32_t param_3,
  * EBP,ESP, no locals and no SUB ESP, then MOV EAX,[EBP+0x14] / OR EAX,0x8 as
  * the only logic, four right-to-left pushes, CALL 0x190550, ADD ESP,0x10 (which
  * is what proves four cdecl stack arguments), POP EBP / RET. Argument types are
- * taken from FUN_00190550's recovered signature — the wrapper only moves them
+ * taken from scenario_get_current's recovered signature — the wrapper only moves them
  * through GPRs and dereferences nothing, so it carries no type evidence itself.
  *
- * Declared void even though FUN_00190550 returns bool and the wrapper leaves AL
+ * Declared void even though scenario_get_current returns bool and the wrapper leaves AL
  * untouched across its epilogue: with bit 3 forced on, 0x190550's `is_indoor`
  * can never become true (its only assignment sits behind `(flags & 8) == 0`),
  * so the value reaching the caller is the constant false. Both spellings emit
  * identical bytes, so the binary does not arbitrate; the constant return is why
  * void is the narrower reading. No XBE caller exists to settle it.
  */
-void FUN_00190670(void *location, void *position, int32_t param_3,
+void scenario_get_wind(void *location, void *position, int32_t param_3,
                   uint32_t flags)
 {
-  FUN_00190550(location, position, param_3, flags | 8);
+  scenario_get_current(location, position, param_3, flags | 8);
 }
 
 /* 0x190690 — the "ignore position" entry point for the 0x190550 sky lookup:
  * forwards all four arguments and ORs bit 2 (0x4) into `flags`.
  *
- * Byte-identical to FUN_00190670 apart from the OR immediate and the CALL
+ * Byte-identical to scenario_get_wind apart from the OR immediate and the CALL
  * displacement (0x190670 is `83 c8 08`, 0x190690 is `83 c8 04`); both spans are
  * 32 bytes. PUSH EBP / MOV EBP,ESP, no locals and no SUB ESP, then
  * MOV EAX,[EBP+0x14] / OR EAX,0x4 as the only logic, four right-to-left pushes,
  * CALL 0x190550, ADD ESP,0x10 (which is what proves four cdecl stack
- * arguments), POP EBP / RET. Argument types are taken from FUN_00190550's
+ * arguments), POP EBP / RET. Argument types are taken from scenario_get_current's
  * recovered signature — the wrapper only moves them through GPRs and
  * dereferences nothing, so it carries no type evidence of its own.
  *
  * Inside 0x190550 bit 2 is `suppress_position`: it NULLs the position argument
  * to FUN_0018f2d0 and closes the non-indoor sky override. Unlike bit 3 (see
- * FUN_00190670, which forces the constant false), bit 2 leaves the
+ * scenario_get_wind, which forces the constant false), bit 2 leaves the
  * `(flags & 8) == 0` indoor path open, so `is_indoor` stays reachable and the
  * value EAX carries across this wrapper's epilogue is genuinely variable —
  * which is why this one is spelled bool and 0x190670 is spelled void. The
@@ -226,16 +226,16 @@ void FUN_00190670(void *location, void *position, int32_t param_3,
  * the RET, so both spellings emit identical bytes, and a scan of every E8
  * rel32 in the image finds no direct caller of 0x190690 to settle it.
  */
-bool FUN_00190690(void *location, void *position, int32_t param_3,
+bool scenario_get_water_current(void *location, void *position, int32_t param_3,
                   uint32_t flags)
 {
-  return FUN_00190550(location, position, param_3, flags | 4);
+  return scenario_get_current(location, position, param_3, flags | 4);
 }
 
 /* 0x1906b0 — assert that `shader` is a non-NULL shader tag of the expected
  * type, then hand it straight back. Callers use it as a checked downcast (see
  * rasterizer.c, which adds the per-shader-type field offset to the result). */
-void *FUN_001906b0(void *shader_pointer, int16_t shader_type)
+void *shader_get_and_verify_type(void *shader_pointer, int16_t shader_type)
 {
   shader_definition *shader = (shader_definition *)shader_pointer;
 
@@ -253,11 +253,11 @@ void *FUN_001906b0(void *shader_pointer, int16_t shader_type)
  * Only four of the shader types contribute a non-zero permutation; every other
  * type (and the -1 sentinel) yields 0.  The per-type field offsets below are
  * raw because each switch arm looks at a *different* shader definition struct
- * (FUN_001906b0 is a checked downcast) and none of those layouts is recovered
+ * (shader_get_and_verify_type is a checked downcast) and none of those layouts is recovered
  * yet.  Field widths are taken from the disassembly: +0x58 is a dword compared
  * against -1, +0x5c and +0x2a are words, +0x29 is a byte tested against 0x8.
  *
- * The two FUN_001906b0 calls per arm are genuine — the original re-casts the
+ * The two shader_get_and_verify_type calls per arm are genuine — the original re-casts the
  * shader instead of caching the result. */
 int shader_get_vertex_shader_permutation(void *shader_pointer)
 {
@@ -274,7 +274,7 @@ int shader_get_vertex_shader_permutation(void *shader_pointer)
     /* Arm order follows the original's code layout (the type-4 arm precedes the
      * type-1 arm at 0x190755), which MSVC emits in source order. */
     case 4:
-      data = (char *)FUN_001906b0(shader, 4);
+      data = (char *)shader_get_and_verify_type(shader, 4);
       /* FLD [EAX+0x38]; FCOMP 0.0f; TEST AH,0x41; JNZ -> strictly greater. */
       if (*(float *)(data + 0x38) > 0.0f)
         permutation = 1;
@@ -282,19 +282,19 @@ int shader_get_vertex_shader_permutation(void *shader_pointer)
         permutation = 0;
       break;
     case 1:
-      data = (char *)FUN_001906b0(shader, 1);
+      data = (char *)shader_get_and_verify_type(shader, 1);
       if (*(int32_t *)(data + 0x58) != -1) {
-        data = (char *)FUN_001906b0(shader, 1);
+        data = (char *)shader_get_and_verify_type(shader, 1);
         permutation = (int16_t)(*(int16_t *)(data + 0x5c) + 1);
       } else {
         permutation = 0;
       }
       break;
     case 5:
-      data = (char *)FUN_001906b0(shader, 5);
+      data = (char *)shader_get_and_verify_type(shader, 5);
       permutation = (int16_t)(*(int16_t *)(data + 0x2a) + 1);
       if (permutation == 1) {
-        data = (char *)FUN_001906b0(shader, 5);
+        data = (char *)shader_get_and_verify_type(shader, 5);
         if ((*(uint8_t *)(data + 0x29) & 8) == 0)
           permutation = 0;
       }
@@ -302,10 +302,10 @@ int shader_get_vertex_shader_permutation(void *shader_pointer)
         permutation = 5;
       break;
     case 6:
-      data = (char *)FUN_001906b0(shader, 6);
+      data = (char *)shader_get_and_verify_type(shader, 6);
       permutation = (int16_t)(*(int16_t *)(data + 0x2a) + 1);
       if (permutation == 1) {
-        data = (char *)FUN_001906b0(shader, 6);
+        data = (char *)shader_get_and_verify_type(shader, 6);
         if ((*(uint8_t *)(data + 0x29) & 8) == 0)
           permutation = 0;
       }
@@ -328,7 +328,7 @@ int shader_get_vertex_shader_permutation(void *shader_pointer)
  * 2) Every other type, and NULL, answers 0.
  *
  * The offsets stay raw for the same reason as in shader_is_decal: each arm
- * looks at a *different* shader definition struct behind the FUN_001906b0
+ * looks at a *different* shader definition struct behind the shader_get_and_verify_type
  * checked downcast, and neither of those layouts is recovered.  Widths come
  * from the disassembly: +0x2d0 is a byte (MOV AL, byte ptr) and +0x8a is a word
  * (CMP word ptr) — using `int` for either would be a field-width bug.
@@ -359,12 +359,12 @@ char shader_is_mirror(void *shader_pointer)
      */
     switch (shader->base.type) {
     case 3:
-      data = (char *)FUN_001906b0(shader, 3);
+      data = (char *)shader_get_and_verify_type(shader, 3);
       mirror = *(uint8_t *)(data + 0x2d0);
       mirror &= 1;
       break;
     case 8:
-      data = (char *)FUN_001906b0(shader, 8);
+      data = (char *)shader_get_and_verify_type(shader, 8);
       mirror = (unsigned char)(*(int16_t *)(data + 0x8a) == 2);
       break;
     }
@@ -380,7 +380,7 @@ char shader_is_mirror(void *shader_pointer)
  *
  * The offsets are raw for the same reason as in
  * shader_get_vertex_shader_permutation: each arm looks at a *different* shader
- * definition struct behind the FUN_001906b0 checked downcast, and none of those
+ * definition struct behind the shader_get_and_verify_type checked downcast, and none of those
  * layouts is recovered.  Widths and bit positions are read off the disassembly:
  *   types 5 and 6:  MOV AL,[EAX+0x29]; SHR AL,1; AND AL,1
  *   type 8:         MOV AL,[EAX+0x28]; SHR AL,1; AND AL,1
@@ -404,25 +404,25 @@ char shader_is_decal(void *shader_pointer)
      */
     switch (shader->base.type) {
     case 5:
-      data = (char *)FUN_001906b0(shader, 5);
+      data = (char *)shader_get_and_verify_type(shader, 5);
       decal = *(uint8_t *)(data + 0x29);
       decal >>= 1;
       decal &= 1;
       break;
     case 6:
-      data = (char *)FUN_001906b0(shader, 6);
+      data = (char *)shader_get_and_verify_type(shader, 6);
       decal = *(uint8_t *)(data + 0x29);
       decal >>= 1;
       decal &= 1;
       break;
     case 8:
-      data = (char *)FUN_001906b0(shader, 8);
+      data = (char *)shader_get_and_verify_type(shader, 8);
       decal = *(uint8_t *)(data + 0x28);
       decal >>= 1;
       decal &= 1;
       break;
     case 9:
-      data = (char *)FUN_001906b0(shader, 9);
+      data = (char *)shader_get_and_verify_type(shader, 9);
       decal = *(uint8_t *)(data + 0x28);
       decal &= 1;
       break;
@@ -442,7 +442,7 @@ char shader_is_decal(void *shader_pointer)
  * 5, which fixes the arm order.
  *
  * The offsets stay raw for the same reason as in shader_is_decal: each arm
- * looks at a *different* shader definition struct behind the FUN_001906b0
+ * looks at a *different* shader definition struct behind the shader_get_and_verify_type
  * checked downcast, and none of those layouts is recovered.
  *
  * As in shader_is_decal, the arms accumulate into a byte the prologue clears
@@ -462,13 +462,13 @@ char shader_is_water_decal(void *shader_pointer)
      */
     switch (shader->base.type) {
     case 5:
-      data = (char *)FUN_001906b0(shader, 5);
+      data = (char *)shader_get_and_verify_type(shader, 5);
       water_decal = *(uint8_t *)(data + 0x29);
       water_decal >>= 4;
       water_decal &= 1;
       break;
     case 6:
-      data = (char *)FUN_001906b0(shader, 6);
+      data = (char *)shader_get_and_verify_type(shader, 6);
       water_decal = *(uint8_t *)(data + 0x29);
       water_decal >>= 4;
       water_decal &= 1;
@@ -488,7 +488,7 @@ char shader_is_water_decal(void *shader_pointer)
  * rather than a jump table; the chain starting at 5 fixes the arm order.
  *
  * The offsets stay raw for the same reason as in shader_is_decal: each arm
- * looks at a *different* shader definition struct behind the FUN_001906b0
+ * looks at a *different* shader definition struct behind the shader_get_and_verify_type
  * checked downcast, and none of those layouts is recovered.
  *
  * As in shader_is_water_decal, the arms accumulate into a byte the prologue
@@ -511,13 +511,13 @@ char shader_ignores_effect(void *shader_pointer)
      */
     switch (shader->base.type) {
     case 5:
-      data = (char *)FUN_001906b0(shader, 5);
+      data = (char *)shader_get_and_verify_type(shader, 5);
       ignores_effect = *(uint8_t *)(data + 0x29);
       ignores_effect >>= 5;
       ignores_effect &= 1;
       break;
     case 6:
-      data = (char *)FUN_001906b0(shader, 6);
+      data = (char *)shader_get_and_verify_type(shader, 6);
       ignores_effect = *(uint8_t *)(data + 0x29);
       ignores_effect >>= 5;
       ignores_effect &= 1;
@@ -530,7 +530,7 @@ char shader_ignores_effect(void *shader_pointer)
 /* 0x1909d0 — is this shader *type* one of the transparent shader classes?
  *
  * Unlike its neighbours this takes the shader type directly rather than a tag
- * pointer, so there is no NULL test, no FUN_001906b0 downcast and no frame
+ * pointer, so there is no NULL test, no shader_get_and_verify_type downcast and no frame
  * beyond PUSH EBP/MOV EBP,ESP (no `sub esp`: no spilled locals).
  *
  * The selector is loaded once and sign-extended (MOVSX ECX, word ptr [EBP+8]),
@@ -821,7 +821,7 @@ void numeric_countdown_timer_set(int time, char enabled)
  * upper half of EAX is whatever the divide left behind -- which is what Ghidra
  * renders as CONCAT22(...) ten times over. That is a return-WIDTH fact, not a
  * CONCAT hazard: the return type is 16-bit, so the garbage high half is never
- * reproduced. Confirmed from the caller side -- FUN_000be6a0's reference does
+ * reproduced. Confirmed from the caller side -- numeric_countdown_timer_get_evaluate's reference does
  * MOV word ptr [EBP-4],AX into a zero-initialised int slot before reading it
  * back, i.e. it consumes a 16-bit return. The kb decl was previously int. */
 int16_t numeric_countdown_timer_get(int a1)

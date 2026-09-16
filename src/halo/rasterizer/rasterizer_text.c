@@ -1,7 +1,7 @@
 #include "x87_math.h"
 
-/* FUN_0017ff50: stub (0x17ff50) */
-void FUN_0017ff50(void)
+/* rasterizer_frame_statistics_end: stub (0x17ff50) */
+void rasterizer_frame_statistics_end(void)
 {
 }
 
@@ -9,7 +9,7 @@ void FUN_0017ff50(void)
 
 /* rasterizer_frame_statistics_dispose: free frame statistics buffer if
  * allocated (0x17ff60) */
-void FUN_0017ff60(void)
+void rasterizer_frame_statistics_dispose(void)
 {
   void *ptr;
   ptr = *(void **)0x47ec40;
@@ -23,20 +23,20 @@ void FUN_0017ff60(void)
 /* rasterizer_geometry.c */
 
 /* scale byte 0-255 to float via constant at 0x261518 (0x17ff80) */
-__declspec(noinline) float FUN_0017ff80(unsigned char param_1)
+__declspec(noinline) float uncompress_int8_to_real(unsigned char param_1)
 {
   return (float)param_1 * *(float *)0x261518;
 }
 
 /* scale signed short to float: (2*param_1 + 1.0f) * scale (0x17ffa0) */
-float FUN_0017ffa0(short param_1)
+float uncompress_int16_to_real(short param_1)
 {
   return ((float)(int)param_1 + (float)(int)param_1 + *(float *)0x2533c8) *
          *(float *)0x2647f4;
 }
 
 /* decode packed 32-bit normal to float[3] output, returns param_1 (0x17ffc0) */
-float *FUN_0017ffc0(float *param_1, unsigned int param_2)
+float *uncompress_int32_to_real_vector3d(float *param_1, unsigned int param_2)
 {
   float fVar1;
   *param_1 =
@@ -88,10 +88,10 @@ int rasterizer_geometry_get_vertex_size(short param_1)
  * Texcoord short->float formula: (s16 * 2 + 1) * (1.0f / 65535.0f)
  * Node weight byte->float:       byte * (1.0f / 255.0f)
  */
-void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
+void rasterizer_geometry_uncompress_vertices(short param_1, int param_2, int param_3, int param_4,
                   int param_5, int param_6)
 {
-  /* Three 12-byte (3-float) scratch buffers for FUN_0017ffc0 output */
+  /* Three 12-byte (3-float) scratch buffers for uncompress_int32_to_real_vector3d output */
   float buf_c[3]; /* at EBP-0xc */
   float buf_18[3]; /* at EBP-0x18 */
   float buf_24[3]; /* at EBP-0x24 */
@@ -148,17 +148,17 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
         out32[-5] = in32[-3];
         out32[-4] = in32[-2];
         /* unpack normal from in[12] into buf_24 */
-        result = FUN_0017ffc0(buf_24, in32[-1]);
+        result = uncompress_int32_to_real_vector3d(buf_24, in32[-1]);
         out32[-3] = ((unsigned int *)result)[0];
         out32[-2] = ((unsigned int *)result)[1];
         out32[-1] = ((unsigned int *)result)[2];
         /* unpack binormal from in[16] into buf_18 */
-        result = FUN_0017ffc0(buf_18, in32[0]);
+        result = uncompress_int32_to_real_vector3d(buf_18, in32[0]);
         out32[0] = ((unsigned int *)result)[0];
         out32[1] = ((unsigned int *)result)[1];
         out32[2] = ((unsigned int *)result)[2];
         /* unpack tangent from in[20] into buf_c */
-        result = FUN_0017ffc0(buf_c, in32[1]);
+        result = uncompress_int32_to_real_vector3d(buf_c, in32[1]);
         out32[3] = ((unsigned int *)result)[0];
         out32[4] = ((unsigned int *)result)[1];
         out32[5] = ((unsigned int *)result)[2];
@@ -195,7 +195,7 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
       in16 = (signed short *)(param_5 + 6);
       for (i = 0; i < count; i++) {
         /* unpack normal from in[0] into buf_24 */
-        result = FUN_0017ffc0(buf_24, *(unsigned int *)(in16 - 3));
+        result = uncompress_int32_to_real_vector3d(buf_24, *(unsigned int *)(in16 - 3));
         out32[-4] = ((unsigned int *)result)[0];
         out32[-3] = ((unsigned int *)result)[1];
         out32[-2] = ((unsigned int *)result)[2];
@@ -239,17 +239,17 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
         out32[-5] = in32[-3];
         out32[-4] = in32[-2];
         /* unpack normal from in[12] into buf_c */
-        result = FUN_0017ffc0(buf_c, in32[-1]);
+        result = uncompress_int32_to_real_vector3d(buf_c, in32[-1]);
         out32[-3] = ((unsigned int *)result)[0];
         out32[-2] = ((unsigned int *)result)[1];
         out32[-1] = ((unsigned int *)result)[2];
         /* unpack binormal from in[16] into buf_18 */
-        result = FUN_0017ffc0(buf_18, in32[0]);
+        result = uncompress_int32_to_real_vector3d(buf_18, in32[0]);
         out32[0] = ((unsigned int *)result)[0];
         out32[1] = ((unsigned int *)result)[1];
         out32[2] = ((unsigned int *)result)[2];
         /* unpack tangent from in[20] into buf_24 */
-        result = FUN_0017ffc0(buf_24, in32[1]);
+        result = uncompress_int32_to_real_vector3d(buf_24, in32[1]);
         out32[3] = ((unsigned int *)result)[0];
         out32[4] = ((unsigned int *)result)[1];
         out32[5] = ((unsigned int *)result)[2];
@@ -297,7 +297,7 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
 
 /* rasterizer_geometry_vertex_get_position: copy 3-float position from vertex
  * to output (0x180500) */
-void FUN_00180500(float *param_1, float *param_2)
+void environment_vertex_compressed_get_point(float *param_1, float *param_2)
 {
   if (param_1 == 0) {
     display_assert("vertex",
@@ -317,7 +317,7 @@ void FUN_00180500(float *param_1, float *param_2)
 
 /* rasterizer_geometry_vertex_get_normal: unpack normal from compressed vertex
  * +0xc (0x180570) */
-void FUN_00180570(int param_1, float *param_2)
+void environment_vertex_compressed_get_normal(int param_1, float *param_2)
 {
   float local_out[3];
   float *result;
@@ -333,7 +333,7 @@ void FUN_00180570(int param_1, float *param_2)
                    1);
     system_exit(-1);
   }
-  result = FUN_0017ffc0(local_out, *(unsigned int *)(param_1 + 0x0c));
+  result = uncompress_int32_to_real_vector3d(local_out, *(unsigned int *)(param_1 + 0x0c));
   param_2[0] = result[0];
   param_2[1] = result[1];
   {
@@ -345,7 +345,7 @@ void FUN_00180570(int param_1, float *param_2)
 
 /* rasterizer_geometry_vertex_get_texcoord: copy 2-float texcoord from
  * compressed vertex to output (0x1805f0) */
-void FUN_001805f0(int param_1, float *param_2)
+void environment_vertex_compressed_get_texcoord(int param_1, float *param_2)
 {
   if (param_1 == 0) {
     display_assert("vertex",
@@ -365,7 +365,7 @@ void FUN_001805f0(int param_1, float *param_2)
 
 /* rasterizer_geometry_vertex_get_normal_packed: unpack normal from packed value
  * ptr (0x180660) */
-void FUN_00180660(unsigned int *param_1, float *param_2)
+void environment_lightmap_vertex_compressed_get_incident_radiosity(unsigned int *param_1, float *param_2)
 {
   float local_out[3];
   float *result;
@@ -381,7 +381,7 @@ void FUN_00180660(unsigned int *param_1, float *param_2)
                    1);
     system_exit(-1);
   }
-  result = FUN_0017ffc0(local_out, *param_1);
+  result = uncompress_int32_to_real_vector3d(local_out, *param_1);
   param_2[0] = result[0];
   {
     int i;
@@ -393,7 +393,7 @@ void FUN_00180660(unsigned int *param_1, float *param_2)
 
 /* rasterizer_geometry_vertex_get_texcoord_short: decode compressed short
  * texcoords from vertex to float[2] output (0x1806e0) */
-void FUN_001806e0(int param_1, float *param_2)
+void environment_lightmap_vertex_compressed_get_texcoord(int param_1, float *param_2)
 {
   if (param_1 == 0) {
     display_assert("vertex",
@@ -427,7 +427,7 @@ void FUN_001806e0(int param_1, float *param_2)
  * diverged with a plain (int) cast, e.g. alpha=0.5 -> 128 vs 127).
  * x87_round_to_int keeps the original rounding. Return is the low byte of the
  * 32-bit conversion result (MOV AL). (0x180770) */
-unsigned char FUN_00180770(float alpha)
+unsigned char compress_real_to_int8(float alpha)
 {
   int quantized;
   if (!(alpha >= 0.0f && alpha <= 1.0f)) {
@@ -446,7 +446,7 @@ extern double floor(double);
 /* rasterizer_geometry_float_to_uint8: clamp float [0,1] to byte via scale
  * 255.0. FISTP round-to-nearest in original; C cast truncates — structural
  * rounding delta at midpoints. (0x1807d0) */
-unsigned char FUN_001807d0(float param_1)
+unsigned char compress_real_to_int8_clamp(float param_1)
 {
   float clamped;
   if (param_1 < 0.0f) {
@@ -493,7 +493,7 @@ short compress_real_to_int16(float z)
 }
 
 /*
- * FUN_00180890: clamping variant of compress_real_to_int16 (0x180890).
+ * compress_real_to_int16_clamp: clamping variant of compress_real_to_int16 (0x180890).
  *
  * Same compression as 0x180820 (scale by 32767.5f, floor, narrow to int16),
  * but the out-of-range guard is a silent clamp instead of an assert. The
@@ -517,7 +517,7 @@ short compress_real_to_int16(float z)
  * Constant pool values verified from the XBE: 0x255e94 = -1.0f,
  * 0x2533c8 = +1.0f, 0x2b00b4 = 32767.5f.
  */
-short FUN_00180890(float f)
+short compress_real_to_int16_clamp(float f)
 {
   float clamped;
   if (f < -1.0f) {
@@ -533,10 +533,10 @@ short FUN_00180890(float f)
 
 /* rasterizer_geometry_pack_normal_11_11_10_validated: pack float[3] normal
  * into 11-11-10 uint, asserting components in [-1.0, 1.0]. Encodes via
- * floor(component * scale) + FISTP. Verifies round-trip via FUN_0017ffc0.
+ * floor(component * scale) + FISTP. Verifies round-trip via uncompress_int32_to_real_vector3d.
  * Structural cap: FUCOMPP-based range asserts cannot be matched exactly.
  * layout: bits[10:0]=i, bits[21:11]=j, bits[31:22]=k (10-bit). (0x1808f0) */
-unsigned int FUN_001808f0(float *param_1)
+unsigned int compress_real_vector3d_to_int32(float *param_1)
 {
   float decoded_i;
   float decoded_j;
@@ -568,7 +568,7 @@ unsigned int FUN_001808f0(float *param_1)
   tmp = (int)floor((double)(param_1[2] * *(float *)0x2b0114));
   packed = (((unsigned int)tmp & 0x3ff) << 11 | j_11) << 11 | i_11;
 
-  decoded = FUN_0017ffc0(local_buf, packed);
+  decoded = uncompress_int32_to_real_vector3d(local_buf, packed);
   decoded_i = decoded[0];
   decoded_j = decoded[1];
   decoded_k = decoded[2];
@@ -595,10 +595,10 @@ unsigned int FUN_001808f0(float *param_1)
 }
 
 /* rasterizer_geometry_pack_normal_11_11_10_clamped: clamp float[3] normal to
- * [-1.0, 1.0] then pack to 11-11-10 uint. Same encoding as FUN_001808f0 but
- * silently clamps out-of-range values. Verifies round-trip via FUN_0017ffc0.
+ * [-1.0, 1.0] then pack to 11-11-10 uint. Same encoding as compress_real_vector3d_to_int32 but
+ * silently clamps out-of-range values. Verifies round-trip via uncompress_int32_to_real_vector3d.
  * layout: bits[10:0]=i, bits[21:11]=j, bits[31:22]=k (10-bit). (0x180b10) */
-unsigned int FUN_00180b10(float *param_1)
+unsigned int compress_real_vector3d_to_int32_clamp(float *param_1)
 {
   float ci;
   float cj;
@@ -614,7 +614,7 @@ unsigned int FUN_00180b10(float *param_1)
   float local_buf[3];
 
   if (param_1 == 0) {
-    display_assert("parameters",
+    display_assert("v",
                    "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x68,
                    1);
     system_exit(-1);
@@ -649,7 +649,7 @@ unsigned int FUN_00180b10(float *param_1)
   tmp = (int)floor((double)(ck * *(float *)0x2b0114));
   packed = (((unsigned int)tmp & 0x3ff) << 11 | j_11) << 11 | i_11;
 
-  decoded = FUN_0017ffc0(local_buf, packed);
+  decoded = uncompress_int32_to_real_vector3d(local_buf, packed);
   decoded_i = decoded[0];
   decoded_j = decoded[1];
   decoded_k = decoded[2];
@@ -677,7 +677,7 @@ unsigned int FUN_00180b10(float *param_1)
 
 /* rasterizer_geometry_vertex_compress: compress vertex buffer (0x180d10)
  * ported=false: structural cap, too complex for reliable VC71 match */
-void FUN_00180d10(short param_1, int param_2, int param_3, int param_4,
+void rasterizer_geometry_compress_vertices(short param_1, int param_2, int param_3, int param_4,
                   void *param_5, int param_6)
 {
   (void)param_1;
@@ -694,7 +694,7 @@ void FUN_00180d10(short param_1, int param_2, int param_3, int param_4,
  *
  * The queue base is 0x4c6480 and the stride is 0x28 (40 bytes); 0x4d0480 is
  * local_lens_flare_count, the number of slots filled so far this frame. Both
- * globals and the stride are the same ones FUN_00181180 below walks.
+ * globals and the stride are the same ones rasterizer_lights_begin_for_new_frame below walks.
  *
  * The index arrives in SI (kb.json: @<si>) — the original has no frame at all
  * (0x181020 opens with TEST SI,SI) and never reads the stack. It is
@@ -704,13 +704,13 @@ void FUN_00180d10(short param_1, int param_2, int param_3, int param_4,
  *
  * TU is rasterizer_lights.c (proven by the __FILE__ assert string at 0x2b01b4,
  * referenced at 0x181036); it lives here only because of the kb.json object
- * grouping, like FUN_00181150/FUN_00181180 below.
+ * grouping, like rasterizer_lights_reset_for_new_map/rasterizer_lights_begin_for_new_frame below.
  *
  * kb.json declares the return as int *; callers cast it to the 0x28-byte
- * submission struct (see FUN_00181670 in rasterizer_lights.c). Assert tail is
+ * submission struct (see rasterizer_lens_flare_submit in rasterizer_lights.c). Assert tail is
  * display_assert + system_exit(-1) (PUSH -1; CALL 0x8e2f0 at 0x181047), NOT
  * halt_and_catch_fire as Ghidra renders it. */
-int *FUN_00181020(short lens_flare_index)
+int *lens_flare_parameters_get(short lens_flare_index)
 {
   if (lens_flare_index < 0 || lens_flare_index >= *(int *)0x4d0480) {
     display_assert(
@@ -722,7 +722,7 @@ int *FUN_00181020(short lens_flare_index)
 }
 
 /* rasterizer_lights_initialize: clear lights buffers and counter (0x181150) */
-void FUN_00181150(void)
+void rasterizer_lights_reset_for_new_map(void)
 {
   csmemset((void *)0x4bed80, 0, 0x7722);
   csmemset((void *)0x47ed60, 0, 0x40020);
@@ -730,10 +730,10 @@ void FUN_00181150(void)
 }
 
 /* rasterizer_lights_update_lens_flare_alphas: end-of-frame pass over the queued
- * lens flares. For each flare the occlusion query result (FUN_0017d040) is
+ * lens flares. For each flare the occlusion query result (rasterizer_widget_get_occlusion_test_result) is
  * converted to an 8-bit alpha ratio against the flare's sample count
  * (element+0x24), then blended into the persistent alpha byte returned by
- * FUN_00181060. The queue is emptied afterwards. (0x181180)
+ * lens_flare_occlusion_test_results_get. The queue is emptied afterwards. (0x181180)
  *
  * TU is rasterizer_lights.c (proven by the __FILE__ assert string at 0x1811e9);
  * it lives in rasterizer_text.c only because of the kb.json object grouping.
@@ -753,18 +753,18 @@ void FUN_00181150(void)
  *   new < old : *p = (old + new) / 2       (CDQ; SUB EAX,EDX; SAR 1)
  *   new == old: no store at all
  */
-void FUN_00181180(void)
+void rasterizer_lights_begin_for_new_frame(void)
 {
   short i; /* 16-bit loop counter (ESI after MOVSX) */
   int idx; /* [EBP-4] 32-bit widened counter */
   char *elem; /* &DAT_004c6480 + idx * 0x28 (EDI) */
-  unsigned char *alpha_ptr; /* return of FUN_00181060 */
+  unsigned char *alpha_ptr; /* return of lens_flare_occlusion_test_results_get */
   /* elem[+0x24] sample count is re-read inline, never cached */
   int quotient; /* (occlusion * 255 + denom/2) / denom, signed IDIV */
   unsigned char old_alpha; /* *alpha_ptr before the blend (AL) */
   unsigned char new_alpha; /* clamped alpha ratio (CL) */
 
-  FUN_0016f910(0x18);
+  rasterizer_profile_begin(0x18);
 
   if (*(char *)0x3256d7 != 0 && *(short *)0x46e008 <= 1 &&
       (*(short *)0x46e008 != 1 || *(short *)0x31fa98 <= 1)) {
@@ -780,7 +780,7 @@ void FUN_00181180(void)
         }
 
         elem = (char *)0x4c6480 + idx * 0x28;
-        alpha_ptr = FUN_00181060((void *)elem);
+        alpha_ptr = lens_flare_occlusion_test_results_get((void *)elem);
 
         if (*(int *)(elem + 0x24) <= 0) {
           *alpha_ptr = 0;
@@ -788,7 +788,7 @@ void FUN_00181180(void)
           /* signed rounding division: (occluded * 255 + count/2) / count.
            * The count field is re-read rather than cached, matching the two
            * separate `mov 0x24(%edi)` loads in the original. */
-          quotient = (FUN_0017d040(idx) * 0xff + (*(int *)(elem + 0x24) >> 1)) /
+          quotient = (rasterizer_widget_get_occlusion_test_result(idx) * 0xff + (*(int *)(elem + 0x24) >> 1)) /
                      *(int *)(elem + 0x24);
           if (quotient < 0xff) {
             new_alpha = (unsigned char)quotient;
@@ -816,16 +816,16 @@ void FUN_00181180(void)
     *(int *)0x4d0480 = 0;
   }
 
-  FUN_0016fa40(0x18);
+  rasterizer_profile_end(0x18);
 }
 
 /* rasterizer_lights_reset_stat: zero stat counter at 0x5a37e0 (0x1812b0) */
-void FUN_001812b0(void)
+void rasterizer_lights_begin(void)
 {
   *(int *)0x5a37e0 = 0;
 }
 
-/* rasterizer_lights_submit: append one light to the per-window light array and
+/* rasterizer_light_submit: append one light to the per-window light array and
  * return its index, or -1 when the array is full (0x1812c0).
  *
  * TU is rasterizer_lights.c (proven by the __FILE__ assert string); it lives in
@@ -841,7 +841,7 @@ void FUN_001812b0(void)
  * The 56-byte element copy is a whole-struct assignment (REP MOVSD of 0xE
  * dwords in the original). Only color.red/green/blue at +0x28/+0x2c/+0x30 are
  * identified; the rest of the element is opaque here. */
-int rasterizer_lights_submit(void *parameters)
+int rasterizer_light_submit(void *parameters)
 {
   struct rasterizer_light_element {
     int data[14]; /* 0x38 bytes */
@@ -897,16 +897,16 @@ int rasterizer_lights_submit(void *parameters)
   return light_index;
 }
 
-/* FUN_00181410: stub (0x181410) */
-void FUN_00181410(void)
+/* rasterizer_lights_end: stub (0x181410) */
+void rasterizer_lights_end(void)
 {
 }
 
 /* lens_flare_scenery_queue: queue lens flares from scenario scenery lights for
  * rendering. Iterates light-marker block entries for param_1 scenery_light
- * index. Builds a 0x28-byte params struct and calls FUN_00181670 (the lens
+ * index. Builds a 0x28-byte params struct and calls rasterizer_lens_flare_submit (the lens
  * flare queue submission function) for each entry. (0x181900) */
-void FUN_00181900(short param_1)
+void rasterizer_lens_flare_submit_for_cluster(short param_1)
 {
   int scenario; /* scenario base ptr */
   int light_block; /* scenario->scenery_lights[param_1] element ptr */
@@ -918,14 +918,14 @@ void FUN_00181900(short param_1)
   int dir_x; /* signed byte at entry+0xc */
   int dir_y; /* signed byte at entry+0xd */
   int dir_z; /* signed byte at entry+0xe */
-  /* params struct for FUN_00181670: 0x28-byte contiguous buffer.
+  /* params struct for rasterizer_lens_flare_submit: 0x28-byte contiguous buffer.
    * Layout (confirmed from disassembly at 0x181a2c..0x181a67):
    *   +0x00: tag_get('lens', def->tag_index) result
    *   +0x04: entry->xyz[0] (float, from puVar2[0..2])
    *   +0x08: entry->xyz[1]
    *   +0x0c: entry->xyz[2]
-   *   +0x10: FUN_00180b10(&dir_vec) = compressed normal of direction
-   *   +0x14: FUN_00180b10(&perp_vec) = compressed normal of perpendicular
+   *   +0x10: compress_real_vector3d_to_int32_clamp(&dir_vec) = compressed normal of direction
+   *   +0x14: compress_real_vector3d_to_int32_clamp(&perp_vec) = compressed normal of perpendicular
    *   +0x18: 0xffffffff (color/alpha = -1)
    *   +0x1c: 0xffff word (light_index = -1 -> scenery path)
    *   +0x1e: entry_index >> 16 (hi word of scenery marker index)
@@ -988,8 +988,8 @@ void FUN_00181900(short param_1)
     *(int *)((char *)params + 0x04) = *(int *)(entry + 0x00);
     *(int *)((char *)params + 0x08) = *(int *)(entry + 0x04);
     *(int *)((char *)params + 0x0c) = *(int *)(entry + 0x08);
-    *(unsigned int *)((char *)params + 0x10) = (unsigned int)FUN_00180b10(dir);
-    *(unsigned int *)((char *)params + 0x14) = (unsigned int)FUN_00180b10(perp);
+    *(unsigned int *)((char *)params + 0x10) = (unsigned int)compress_real_vector3d_to_int32_clamp(dir);
+    *(unsigned int *)((char *)params + 0x14) = (unsigned int)compress_real_vector3d_to_int32_clamp(perp);
     *(int *)((char *)params + 0x18) = -1;
     *(short *)((char *)params + 0x1c) = -1;
     *(short *)((char *)params + 0x1e) = (short)(entry_idx >> 16);
@@ -997,69 +997,69 @@ void FUN_00181900(short param_1)
     *(unsigned char *)((char *)params + 0x22) = *(unsigned char *)0x50654a;
     *(unsigned char *)((char *)params + 0x23) = 0;
 
-    FUN_00181670(params);
+    rasterizer_lens_flare_submit(params);
 
     i++;
   } while (i < (int)*(unsigned short *)(light_block + 0x42));
 }
 
 /* lens_flare_occlusion_submit: for each queued lens flare entry, compute the
- * occlusion test position and submit via FUN_0017d030. Wrapped by
- * FUN_0016f910/FUN_0016fa40 rasterizer widget begin/end. (0x181a90) */
-void FUN_00181a90(void)
+ * occlusion test position and submit via rasterizer_widget_submit_occlusion_test. Wrapped by
+ * rasterizer_profile_begin/rasterizer_profile_end rasterizer widget begin/end. (0x181a90) */
+void rasterizer_lens_flares_submit_occlusion_tests(void)
 {
-  int *entry; /* pointer to queued lens flare slot (from FUN_00181020) */
+  int *entry; /* pointer to queued lens flare slot (from lens_flare_parameters_get) */
   volatile unsigned int loop_index_shadow; /* store-once/reload copy of i; matches VC71 frame shape */
   int definition; /* *entry = definition tag ptr */
-  float *dir_result; /* return of FUN_0017ffc0 (3-float direction vec) */
+  float *dir_result; /* return of uncompress_int32_to_real_vector3d (3-float direction vec) */
   int occlusion_dir; /* *(short *)(definition + 0x14) */
   int vis_param; /* *(int *)(definition + 0x10) as int (passes to thunk) */
   int lf_count; /* DAT_004d0480 */
   int i; /* loop index */
   float perp[3]; /* perpendicular output (12 bytes, EBP-0x2c) */
-  float dir[3]; /* direction vec copied from FUN_0017ffc0 result */
+  float dir[3]; /* direction vec copied from uncompress_int32_to_real_vector3d result */
   float pos[3]; /* output position vec for occlusion test (EBP-0x14) */
 
-  FUN_0016f910(0x17);
+  rasterizer_profile_begin(0x17);
 
   if (*(char *)0x3256d7 == 0) {
-    FUN_0016fa40(0x17);
+    rasterizer_profile_end(0x17);
     return;
   }
   if (*(short *)0x46e008 > 1) {
-    FUN_0016fa40(0x17);
+    rasterizer_profile_end(0x17);
     return;
   }
   if (*(short *)0x46e008 == 1 && *(short *)0x31fa98 > 1) {
-    FUN_0016fa40(0x17);
+    rasterizer_profile_end(0x17);
     return;
   }
 
   if (*(short *)0x5a5bc0 != 0) {
-    FUN_0016fa40(0x17);
+    rasterizer_profile_end(0x17);
     return;
   }
 
   lf_count = *(int *)0x4d0480;
   if (lf_count <= 0) {
-    FUN_0016fa40(0x17);
+    rasterizer_profile_end(0x17);
     return;
   }
 
-  FUN_0017cfc0(6, 1);
+  rasterizer_widget_begin(6, 1);
 
   lf_count = *(int *)0x4d0480;
   if (lf_count > 0) {
     i = 0;
     do {
-      /* FUN_00181020 takes index via SI register; build system provides
+      /* lens_flare_parameters_get takes index via SI register; build system provides
        * a thunk that loads the arg into SI before the call. */
-      entry = FUN_00181020((short)i);
+      entry = lens_flare_parameters_get((short)i);
       definition = *entry;
 
-      /* FUN_0017ffc0(&perp, entry[4]) fills perp[] and returns a
+      /* uncompress_int32_to_real_vector3d(&perp, entry[4]) fills perp[] and returns a
        * pointer to a 3-float direction vec; copy it into dir[]. */
-      dir_result = FUN_0017ffc0(perp, (unsigned int)entry[4]);
+      dir_result = uncompress_int32_to_real_vector3d(perp, (unsigned int)entry[4]);
       dir[0] = dir_result[0];
       dir[1] = dir_result[1];
       loop_index_shadow = i;
@@ -1098,29 +1098,29 @@ void FUN_00181a90(void)
           break;
         }
 
-        entry[9] = FUN_0017d030(pos, vis_param, loop_index_shadow);
+        entry[9] = rasterizer_widget_submit_occlusion_test(pos, vis_param, loop_index_shadow);
       }
 
       i++;
     } while (i < *(int *)0x4d0480);
   }
 
-  /* FUN_0017d020 (thunk → FUN_0017ad90) is called after the loop whenever
+  /* rasterizer_widget_end (thunk → _rasterizer_widget_end) is called after the loop whenever
    * the first lf_count check passed (i.e. when lf_count > 0), matching
    * the original control-flow shape (0x181bfd falls through to 0x181c02
    * regardless of the inner lf_count re-check). */
-  FUN_0017d020();
+  rasterizer_widget_end();
 
-  FUN_0016fa40(0x17);
+  rasterizer_profile_end(0x17);
 }
 
 /* rasterizer_lights_draw_lens_flares: render all queued lens flare reflections
  * for the current frame. Iterates the lens flare queue (DAT_004c6480,
  * count = DAT_004d0480), computes per-flare brightness/rotation/position,
  * then for each reflection element calls the widget draw path
- * (FUN_0017d010 / FUN_0017b7d0). A second pass renders sun-glow overlays
+ * (rasterizer_widget_draw_sprite3d / _rasterizer_widget_draw_sprite3d). A second pass renders sun-glow overlays
  * (DAT_003256fe guard). (0x181c20) */
-void FUN_00181c20(void)
+void rasterizer_lens_flares_draw(void)
 {
   /* atan2 from libm (used for flare screen-angle computation) */
   extern double atan2(double, double);
@@ -1130,8 +1130,8 @@ void FUN_00181c20(void)
   int i; /* outer loop counter (ESI, sign-extended as CX) */
   int outer_ctr; /* [EBP-0x78] inner loop index within outer */
   int *entry; /* lens flare queue entry: &DAT_004c6480 + i*0x28 (EBX) */
-  unsigned char *light_data; /* return of FUN_00181060 (ESI after call) */
-  float *dir_ptr; /* FUN_0017ffc0 return (3-float decoded direction) */
+  unsigned char *light_data; /* return of lens_flare_occlusion_test_results_get (ESI after call) */
+  float *dir_ptr; /* uncompress_int32_to_real_vector3d return (3-float decoded direction) */
   int definition; /* entry[0] = tag definition ptr (EDI) */
 
   /* Relative position of flare to camera */
@@ -1144,8 +1144,8 @@ void FUN_00181c20(void)
   float refl_off_y; /* [EBP-0x44] */
   float refl_off_z; /* [EBP-0x40] */
 
-  /* Decoded perpendicular direction of the flare (from FUN_0017ffc0) */
-  float dir_local[3]; /* [EBP-0xb4] buffer passed to FUN_0017ffc0 (12 bytes) */
+  /* Decoded perpendicular direction of the flare (from uncompress_int32_to_real_vector3d) */
+  float dir_local[3]; /* [EBP-0xb4] buffer passed to uncompress_int32_to_real_vector3d (12 bytes) */
   float dir_x; /* [EBP-0x68] copy of dir_ptr[0] = local_6c */
   float dir_y; /* [EBP-0x64] copy of dir_ptr[1] = local_68 */
   float dir_z; /* [EBP-0x60] copy of dir_ptr[2] = local_64 */
@@ -1163,7 +1163,7 @@ void FUN_00181c20(void)
 
   /* Corona rotation */
   float
-    corona_rot; /* [EBP-0x9c] = local_9c, output of FUN_00181420 * def[0x84] */
+    corona_rot; /* [EBP-0x9c] = local_9c, output of lens_flare_evaluate_corona_rotation_function * def[0x84] */
   float flare_angle; /* [EBP-0xa0] = local_a0, fpatan result * scale */
 
   /* Visibility array [5]: [0]=1.0, [1]=near_clip, [2]=direction, [3]=backward,
@@ -1181,15 +1181,15 @@ void FUN_00181c20(void)
   int refl_ivar; /* iVar7 inner loop counter */
 
   /* Reflection color */
-  unsigned int color; /* packed ARGB for FUN_0017d010 (uVar11) */
+  unsigned int color; /* packed ARGB for rasterizer_widget_draw_sprite3d (uVar11) */
   unsigned int tex_flags; /* [EBP-0x5c] local_60 */
   float anim_color[4]; /* [EBP-0x58..-0x4c] = { alpha, red, green, blue } */
 
-  /* Animation color: alpha from scalars_interpolate, RGB[3] from FUN_0007c270.
+  /* Animation color: alpha from scalars_interpolate, RGB[3] from rgb_colors_interpolate.
    * In MSVC layout: anim_alpha_out at EBP-0x3c (local_40),
    * anim_rgb[0..2] at EBP-0x38/0x34/0x30 (local_3c/38/34). */
   float anim_alpha_out; /* [EBP-0x3c] = local_40, from scalars_interpolate */
-  float anim_rgb[3]; /* [EBP-0x38..0x30] = local_3c/38/34, from FUN_0007c270 */
+  float anim_rgb[3]; /* [EBP-0x38..0x30] = local_3c/38/34, from rgb_colors_interpolate */
 
   /* Reflection size and position output */
   float refl_size; /* current reflection size (local_8 reused = local_c in
@@ -1200,18 +1200,18 @@ void FUN_00181c20(void)
   float scale2d[2]; /* [EBP-0x94] = local_98/local_94 */
   unsigned short refl_flags; /* *puVar8 */
   unsigned int stencil_mode; /* uVar15 */
-  char occlusion_result; /* cVar4 return of FUN_0017cfd0 */
+  char occlusion_result; /* cVar4 return of rasterizer_widget_set_texture */
   int iVar1; /* iVar1 = i * 0x28 */
   float *camera_forward_x;
 
-  FUN_0016f910(0x19);
+  rasterizer_profile_begin(0x19);
 
   if (*(char *)0x3256d7 == '\0' || *(short *)0x5a5bc0 != 0 ||
       *(int *)0x4d0480 <= 0) {
     goto cleanup;
   }
 
-  FUN_0017cfc0(5, 0);
+  rasterizer_widget_begin(5, 0);
 
   lf_count = *(int *)0x4d0480;
   outer_ctr = 0;
@@ -1230,12 +1230,12 @@ void FUN_00181c20(void)
       /* entry = &DAT_004c6480 + i*0x28 (5*8 = 0x28 bytes per entry) */
       entry = (int *)((char *)0x4c6480 + iVar1);
 
-      /* FUN_00181060 takes @eax = entry (lens_flare_params ptr).
+      /* lens_flare_occlusion_test_results_get takes @eax = entry (lens_flare_params ptr).
        * Returns pointer to light color/alpha byte in the light table. */
-      light_data = FUN_00181060((void *)entry);
+      light_data = lens_flare_occlusion_test_results_get((void *)entry);
 
-      /* FUN_0017ffc0 decodes packed normal entry[4] into dir_local[3] */
-      dir_ptr = FUN_0017ffc0(dir_local, (unsigned int)entry[4]);
+      /* uncompress_int32_to_real_vector3d decodes packed normal entry[4] into dir_local[3] */
+      dir_ptr = uncompress_int32_to_real_vector3d(dir_local, (unsigned int)entry[4]);
       dir_x = dir_ptr[0];
       dir_y = dir_ptr[1];
       dir_z = dir_ptr[2];
@@ -1287,16 +1287,16 @@ void FUN_00181c20(void)
           }
         }
 
-        /* FUN_0017ff80: scale byte to float */
+        /* uncompress_int8_to_real: scale byte to float */
         brightness = brightness_byte * brightness *
-                     FUN_0017ff80(*(unsigned char *)((char *)entry + 0x1b));
+                     uncompress_int8_to_real(*(unsigned char *)((char *)entry + 0x1b));
 
-        /* FUN_00181420: corona rotation size.
+        /* lens_flare_evaluate_corona_rotation_function: corona rotation size.
          * Takes @esi = entry (lens_flare_params), @di =
          * *(short*)(definition+0x80). Returns float (ST0) = corona rotation
          * size. */
         corona_rot =
-          FUN_00181420((void *)entry, *(short *)(definition + 0x80)) *
+          lens_flare_evaluate_corona_rotation_function((void *)entry, *(short *)(definition + 0x80)) *
           *(float *)(definition + 0x84);
 
         /* fpatan of screen-space projection */
@@ -1371,7 +1371,7 @@ void FUN_00181c20(void)
 
         if (brightness > *(float *)0x2533c0) {
           /* vis[4] = rotation function output for animation */
-          vis[4] = FUN_0017ff80(*(unsigned char *)((char *)entry + 0x23));
+          vis[4] = uncompress_int8_to_real(*(unsigned char *)((char *)entry + 0x23));
 
           refl_idx = 0;
           refl_count = *(int *)(definition + 0xc4);
@@ -1416,7 +1416,7 @@ void FUN_00181c20(void)
                     *(float *)((char *)refl + 0x4c) == *(float *)0x2533c0) {
                   /* No tint: use alpha from light_data byte, color from entry
                    */
-                  color = (unsigned int)FUN_00180770(anim_color[0]) << 0x18 |
+                  color = (unsigned int)compress_real_to_int8(anim_color[0]) << 0x18 |
                           (*(unsigned int *)((char *)entry + 0x18) & 0xffffff);
                   tex_flags = 0x3f800000;
                 } else {
@@ -1442,7 +1442,7 @@ void FUN_00181c20(void)
 
                     /* Interpolate RGB into anim_rgb[3] (EBP-0x38..EBP-0x30):
                      * output, mode, lower, upper, t */
-                    FUN_0007c270(
+                    rgb_colors_interpolate(
                       anim_rgb,
                       (unsigned int)(*(unsigned char *)((char *)refl + 0x70) &
                                      3),
@@ -1502,7 +1502,7 @@ void FUN_00181c20(void)
                     anim_color[3] = anim_color[3] * anim_rgb[2];
                   }
 
-                  color = FUN_000d1c90(anim_color);
+                  color = real_argb_color_to_pixel32(anim_color);
                   tex_flags = *(unsigned int *)((char *)refl + 0x40);
                 }
 
@@ -1545,15 +1545,15 @@ void FUN_00181c20(void)
                   pos[2] = refl_off_z * fVar2 + entry_z;
                 }
 
-                /* FUN_0017cfd0: check occlusion / stencil */
+                /* rasterizer_widget_set_texture: check occlusion / stencil */
                 occlusion_result =
-                  FUN_0017cfd0(0, *(unsigned int *)(definition + 0x2c),
+                  rasterizer_widget_set_texture(0, *(unsigned int *)(definition + 0x2c),
                                *(unsigned short *)((char *)refl + 4));
                 if (occlusion_result != '\0') {
                   break; /* exit inner loop */
                 }
 
-                FUN_0017cfe0(tex_flags);
+                rasterizer_widget_set_tint_factor(tex_flags);
 
                 /* stencil mode */
                 if ((refl_flags & 8) != 0 &&
@@ -1562,12 +1562,12 @@ void FUN_00181c20(void)
                 } else {
                   stencil_mode = 0;
                 }
-                FUN_00158ae0((short)stencil_mode);
+                rasterizer_set_stencil_mode((short)stencil_mode);
 
                 /* Draw the lens flare reflection:
-                 * FUN_0017d010(&pos, refl_size, &scale2d,
+                 * rasterizer_widget_draw_sprite3d(&pos, refl_size, &scale2d,
                  *              flare_size_angle * deg2rad_scale, color) */
-                FUN_0017d010(pos, refl_size, scale2d,
+                rasterizer_widget_draw_sprite3d(pos, refl_size, scale2d,
                              flare_size_angle * *(float *)0x253d4c, color);
 
                 saved_refl_idx = refl_idx;
@@ -1587,8 +1587,8 @@ void FUN_00181c20(void)
     } while (i < lf_count);
   }
 
-  FUN_00158ae0(0);
-  FUN_0017ad90();
+  rasterizer_set_stencil_mode(0);
+  _rasterizer_widget_end();
 
   /* Second pass: render sun glow overlays (DAT_003256fe guard) */
   if (*(char *)0x3256fe != '\0') {
@@ -1612,7 +1612,7 @@ void FUN_00181c20(void)
           sun_def = *(int *)sun_entry;
           if (*(int *)(sun_def + 0x10) == 0x42480000 ||
               (*(unsigned char *)(sun_def + 0x30) & 1) != 0) {
-            FUN_00169fd0((int *)sun_entry);
+            rasterizer_sun_glow_draw((int *)sun_entry);
           }
         }
 
@@ -1624,14 +1624,14 @@ void FUN_00181c20(void)
   }
 
 cleanup:
-  FUN_0016fa40(0x19);
+  rasterizer_profile_end(0x19);
 }
 
 /* rasterizer_memory_pool.c */
 
-/* rasterizer_memory_pool_new: allocate global rasterizer memory pool (0x1824e0)
+/* rasterizer_memory_pool_initialize: allocate global rasterizer memory pool (0x1824e0)
  */
-int rasterizer_memory_pool_new(void)
+int rasterizer_memory_pool_initialize(void)
 {
   void *pool;
   char result;
@@ -1646,16 +1646,16 @@ int rasterizer_memory_pool_new(void)
   return result;
 }
 
-/* rasterizer_memory_pool_reset: reset pool allocation cursor to zero (0x182520)
+/* rasterizer_memory_pool_begin: reset pool allocation cursor to zero (0x182520)
  */
-void rasterizer_memory_pool_reset(void)
+void rasterizer_memory_pool_begin(void)
 {
   *(int *)0x4d048c = 0;
 }
 
-/* rasterizer_memory_pool_alloc: allocate from memory pool, optionally copying
+/* rasterizer_memory_alloc: allocate from memory pool, optionally copying
  * data (0x182530) */
-int rasterizer_memory_pool_alloc(int data, int size)
+int rasterizer_memory_alloc(int data, int size)
 {
   unsigned int new_offset;
   int result;
@@ -1675,9 +1675,9 @@ int rasterizer_memory_pool_alloc(int data, int size)
   return result;
 }
 
-/* rasterizer_memory_pool_copy: assert data non-null then copy into pool
+/* rasterizer_memory_alloc_const: assert data non-null then copy into pool
  * (0x182590) */
-int rasterizer_memory_pool_copy(int data, int size)
+int rasterizer_memory_alloc_const(int data, int size)
 {
   if (data == 0) {
     display_assert("data",
@@ -1685,17 +1685,17 @@ int rasterizer_memory_pool_copy(int data, int size)
                    0x42, 1);
     system_exit(-1);
   }
-  return rasterizer_memory_pool_alloc(data, size);
+  return rasterizer_memory_alloc(data, size);
 }
 
-/* FUN_001825d0: stub (0x1825d0) */
-void FUN_001825d0(void)
+/* rasterizer_memory_pool_end: stub (0x1825d0) */
+void rasterizer_memory_pool_end(void)
 {
 }
 
-/* rasterizer_memory_pool_delete: free the global rasterizer memory pool
+/* rasterizer_memory_pool_dispose: free the global rasterizer memory pool
  * (0x1825e0) */
-void rasterizer_memory_pool_delete(void)
+void rasterizer_memory_pool_dispose(void)
 {
   if (*(void **)0x4d0488 != 0) {
     debug_free(*(void **)0x4d0488,
@@ -1707,7 +1707,7 @@ void rasterizer_memory_pool_delete(void)
 
 /* rasterizer_swizzle.c */
 
-/* FUN_00182610: build three disjoint bit-interleave masks into the globals at
+/* compute_swizzle_masks: build three disjoint bit-interleave masks into the globals at
  * 0x4d0498 / 0x4d0494 / 0x4d0490 (0x182610).
  *
  * A single shifting bit (EAX) is shared across all three accumulators and only
@@ -1719,7 +1719,7 @@ void rasterizer_memory_pool_delete(void)
  *
  * The third accumulator lives in EDI for the whole loop and is stored to
  * 0x4d0490 once, after the loop. */
-void FUN_00182610(short param_1, short param_2, short param_3)
+void compute_swizzle_masks(short param_1, short param_2, short param_3)
 {
   unsigned int acc_2; /* EDI: stored to 0x4d0490 after the loop */
   unsigned int probe; /* EDX */
@@ -1757,11 +1757,11 @@ void FUN_00182610(short param_1, short param_2, short param_3)
   *(unsigned int *)0x4d0490 = acc_2;
 }
 
-/* rasterizer_swizzle_compute_masks: compute swizzle bit-interleave masks for a
+/* bitmap_swizzle_vector2d: compute swizzle bit-interleave masks for a
  * texture surface (0x182690).
  * param_1/param_2: log2 of width/height; param_3/param_4: u/v tile indices;
  * param_5[0] = u mask, param_5[1] = v mask. */
-void rasterizer_swizzle_compute_masks(short param_1, short param_2,
+void bitmap_swizzle_vector2d(short param_1, short param_2,
                                       unsigned short param_3,
                                       unsigned short param_4,
                                       unsigned int *param_5)
@@ -1828,12 +1828,12 @@ void rasterizer_swizzle_compute_masks(short param_1, short param_2,
   param_5[1] = uVar4;
 }
 
-/* rasterizer_swizzle_interleave_bits: interleave bits from up to 3 channels
+/* bitmap_swizzle_vector3d: interleave bits from up to 3 channels
  * into a Morton (Z-order) swizzle address (0x1827c0).
  * param_1/param_2/param_3: bit counts for each channel;
  * param_4/param_5/param_6: channel values (x/y/z);
  * param_7[0]=x bits, param_7[1]=y bits, param_7[2]=z bits. */
-void rasterizer_swizzle_interleave_bits(short param_1, short param_2,
+void bitmap_swizzle_vector3d(short param_1, short param_2,
                                         short param_3, unsigned int param_4,
                                         unsigned int param_5,
                                         unsigned int param_6,
@@ -1881,7 +1881,7 @@ void rasterizer_swizzle_interleave_bits(short param_1, short param_2,
  * TU is c:\halo\SOURCE\rasterizer\rasterizer_swizzle.c (proven by the
  * __FILE__ assert string at 0x2b087c; the two asserts are lines 0x93/0x94).
  *
- * FUN_00182610 builds the disjoint bit-interleave masks into the globals
+ * compute_swizzle_masks builds the disjoint bit-interleave masks into the globals
  * 0x4d0498 (u / column) and 0x4d0494 (v / row); the third mask (0x4d0490)
  * is unused here because the third dimension passed in is 1.
  *
@@ -1922,7 +1922,7 @@ void rasterizer_xbox_bitmap_swizzle2d_byte(void *dst, const void *src,
     system_exit(-1);
   }
 
-  FUN_00182610(width, height, 1);
+  compute_swizzle_masks(width, height, 1);
 
   if (height > 0) {
     rows = (unsigned short)height;
@@ -1953,7 +1953,7 @@ void rasterizer_xbox_bitmap_swizzle2d_byte(void *dst, const void *src,
  * 0x93 / 0x94).  Same TU:
  * c:\halo\SOURCE\rasterizer\rasterizer_swizzle.c (__FILE__ string at 0x2b087c).
  *
- * FUN_00182610 builds the disjoint bit-interleave masks into the globals
+ * compute_swizzle_masks builds the disjoint bit-interleave masks into the globals
  * 0x4d0498 (u / column) and 0x4d0494 (v / row); the third mask (0x4d0490) is
  * unused here because the third dimension passed in is 1.  Its first argument
  * (width) is a register argument in ESI -- see kb.json.
@@ -1998,7 +1998,7 @@ void rasterizer_xbox_bitmap_swizzle2d_word(void *dst, const void *src,
     system_exit(-1);
   }
 
-  FUN_00182610(width, height, 1);
+  compute_swizzle_masks(width, height, 1);
   umask = *(unsigned int *)0x4d0498;
 
   if (height > 0) {
@@ -2066,7 +2066,7 @@ void rasterizer_xbox_bitmap_swizzle2d_long(void *dst, const void *src,
     system_exit(-1);
   }
 
-  FUN_00182610(width, height, 1);
+  compute_swizzle_masks(width, height, 1);
   umask = *(unsigned int *)0x4d0498;
 
   if (height > 0) {
@@ -2095,7 +2095,7 @@ void rasterizer_xbox_bitmap_swizzle2d_long(void *dst, const void *src,
  * c:\halo\SOURCE\rasterizer\rasterizer_swizzle.c (__FILE__ string at 0x2b087c).
  * Assert line numbers here are 0xeb / 0xec.
  *
- * FUN_00182610 builds the three disjoint bit-interleave masks into the globals
+ * compute_swizzle_masks builds the three disjoint bit-interleave masks into the globals
  * 0x4d0498 (u / column), 0x4d0494 (v / row) and 0x4d0490 (w / slice).  Unlike
  * the 2D siblings, which pass a literal 1 as the third dimension, this variant
  * passes the real `depth` (verified at 0x182b1f-0x182b2a: EAX=[EBP+0x18]=depth
@@ -2163,7 +2163,7 @@ void rasterizer_xbox_bitmap_swizzle3d_byte(void *dst, const void *src,
     system_exit(-1);
   }
 
-  FUN_00182610(width, height, depth);
+  compute_swizzle_masks(width, height, depth);
 
   if (depth > 0) {
     vmask = *(unsigned int *)0x4d0494;
@@ -2208,7 +2208,7 @@ void rasterizer_xbox_bitmap_swizzle3d_byte(void *dst, const void *src,
  * Same TU: c:\halo\SOURCE\rasterizer\rasterizer_swizzle.c (__FILE__ string at
  * 0x2b087c).
  *
- * FUN_00182610 builds the three disjoint bit-interleave masks into the globals
+ * compute_swizzle_masks builds the three disjoint bit-interleave masks into the globals
  * 0x4d0498 (u / column), 0x4d0494 (v / row) and 0x4d0490 (w / slice).  Like
  * the 8-bit volume sibling -- and unlike the 2D variants, which pass a literal
  * 1 as the third dimension -- this one passes the real `depth`
@@ -2274,7 +2274,7 @@ void rasterizer_xbox_bitmap_swizzle3d_word(void *dst, const void *src,
     system_exit(-1);
   }
 
-  FUN_00182610(width, height, depth);
+  compute_swizzle_masks(width, height, depth);
 
   if (depth > 0) {
     vmask = *(unsigned int *)0x4d0494;
@@ -2321,7 +2321,7 @@ void rasterizer_xbox_bitmap_swizzle3d_word(void *dst, const void *src,
  * 0x2b087c; the two assert reason strings are "dst" at 0x2b08ac and "src" at
  * 0x2b07dc).  Both assert tails are `PUSH -1; CALL 0x8e2f0` = system_exit(-1).
  *
- * FUN_00182610 builds the three disjoint bit-interleave masks into the globals
+ * compute_swizzle_masks builds the three disjoint bit-interleave masks into the globals
  * 0x4d0498 (u / column), 0x4d0494 (v / row) and 0x4d0490 (w / slice).  Like
  * the other two volume siblings -- and unlike the 2D variants, which pass a
  * literal 1 as the third dimension -- this one passes the real `depth`
@@ -2388,7 +2388,7 @@ void rasterizer_xbox_bitmap_swizzle3d_long(void *dst, const void *src,
     system_exit(-1);
   }
 
-  FUN_00182610(width, height, depth);
+  compute_swizzle_masks(width, height, depth);
 
   if (depth > 0) {
     vmask = *(unsigned int *)0x4d0494;
@@ -2444,13 +2444,13 @@ void rasterizer_xbox_bitmap_swizzle3d_long(void *dst, const void *src,
  *
  * Register/frame notes (from disassembly, Ghidra dropped ALL of the swizzler
  * arguments and the width/height/depth results): width lives in ESI, height in
- * EBX, depth in [EBP-0xc].  bitmap_mipmap_width's result is moved with a plain
+ * EBX, depth in [EBP-0xc].  bitmap_mipmap_get_width's result is moved with a plain
  * MOV ESI,EAX (no MOVSX), so width/height/depth are int locals here, while
  * bytes_per_pixel at [EBP-0x14] is stored word-wide (a later MOVSX reads it
  * back) and so stays short.  MSVC reuses [EBP-0x14] for the six-face counter
  * and [EBP-0xc] for the destination delta; those are separate locals here.
  * Assert __LINE__ values (0x14e..0x1b8) belong to rasterizer_swizzle.c. */
-void FUN_00182e00(int param_1)
+void rasterizer_xbox_bitmap_swizzle(int param_1)
 {
   int mip_index; /* [EBP-0x10] */
   int mip_size; /* [EBP-0x18] */
@@ -2495,14 +2495,14 @@ void FUN_00182e00(int param_1)
         temp = debug_malloc(
           (unsigned int)mip_size, 0,
           "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x15f);
-        width = bitmap_mipmap_width((void *)param_1, mip_index);
+        width = bitmap_mipmap_get_width((void *)param_1, mip_index);
         height = bitmap_mipmap_get_height((void *)param_1, (short)mip_index);
         depth = bitmap_mipmap_get_depth((void *)param_1, (short)mip_index);
         if (temp != (void *)0) {
-          bytes_per_pixel = (short)(bitmap_format_bits_per_pixel(
+          bytes_per_pixel = (short)(bitmap_format_get_bits_per_pixel(
                                       *(short *)(param_1 + 0xc)) /
                                     8);
-          FUN_00182610(width, height, depth);
+          compute_swizzle_masks(width, height, depth);
           switch (*(short *)(param_1 + 10)) {
             case 0: /* 2D */
               switch (bytes_per_pixel) {
@@ -2619,7 +2619,7 @@ void FUN_00182e00(int param_1)
  * NOTE: the MAX chain is evaluated twice per branch (once for the compare,
  * once for the returned value) -- that is the original macro expansion; do
  * not hoist it into a temporary. */
-short FUN_00183120(void *param_1)
+short rasterizer_xbox_bitmap_get_max_mipmap_count(void *param_1)
 {
   unsigned short flags;
   short result;
@@ -2695,7 +2695,7 @@ short FUN_00183120(void *param_1)
 /* rasterizer_swizzle_bitmap_mipmaps: compute total swizzle buffer size
  * needed for all mipmaps of a bitmap (0x183290).
  * Returns total byte count, aligned to 128 bytes (or x6 for cubemaps). */
-int FUN_00183290(void *param_1)
+int rasterizer_xbox_bitmap_get_pixel_data_size(void *param_1)
 {
   int bitmap;
   short sVar2;
@@ -2709,7 +2709,7 @@ int FUN_00183290(void *param_1)
   bitmap = (int)param_1;
   iVar4 = 0;
   local_8 = 0;
-  sVar2 = FUN_00183120((void *)param_1);
+  sVar2 = rasterizer_xbox_bitmap_get_max_mipmap_count((void *)param_1);
   mip_index = 0;
   if (-1 < (int)sVar2) {
     do {
@@ -2769,7 +2769,7 @@ int rasterizer_xbox_bitmap_rebuild_hardware_format(int param_1)
   short adjusted_face_index;
   short local_1c;
 
-  total_size = FUN_00183290((void *)param_1);
+  total_size = rasterizer_xbox_bitmap_get_pixel_data_size((void *)param_1);
   iVar8 = 0;
   /* face_count: 1 for 2D textures, 6 for cubemaps */
   face_count = (unsigned short)(*(short *)(param_1 + 10) != 2) - 1 & 5;
@@ -2783,11 +2783,11 @@ int rasterizer_xbox_bitmap_rebuild_hardware_format(int param_1)
   swizzle_buf = (int)debug_malloc(
     total_size, 0, "c:\\halo\\SOURCE\\rasterizer\\rasterizer_swizzle.c", 0x228);
   if (swizzle_buf != 0) {
-    FUN_00182e00(param_1);
+    rasterizer_xbox_bitmap_swizzle(param_1);
     face_index = 0;
     if (local_1c > 0) {
       do {
-        sVar2 = FUN_00183120((void *)param_1);
+        sVar2 = rasterizer_xbox_bitmap_get_max_mipmap_count((void *)param_1);
         if (sVar2 >= 0) {
           local_c = 0;
           do {
@@ -2880,7 +2880,7 @@ int rasterizer_text_cache_initialize(void)
   texture_handle = (int)bitmap_2d_new(128, 128, 0, 9);
   if (texture_handle != 0) {
     csmemset((void *)0x4d04a0, 0, 0x810);
-    success = FUN_00168370((void *)texture_handle);
+    success = rasterizer_bitmap_new((void *)texture_handle);
     if (success != 0) {
       *(int *)0x4d04ac = texture_handle;
       *(char *)0x4d04a0 = 1;
@@ -2949,10 +2949,10 @@ void rasterizer_text_cache_dispose(void)
  *       +0x6 (short):  screen_y
  */
 
-/* rasterizer_text_get_character_position: get hardware character screen
+/* hardware_character_cache_get_origin: get hardware character screen
  * position. Original ABI: AX=index, EBX=*out_y, stack=*out_x
  */
-__declspec(noinline) void rasterizer_text_get_character_position(short index, short *out_y,
+void hardware_character_cache_get_origin(short index, short *out_y,
                                             short *out_x)
 {
   if (*(char *)0x4d04a0 == 0) {
@@ -2975,10 +2975,10 @@ __declspec(noinline) void rasterizer_text_get_character_position(short index, sh
   *out_y = *(short *)(0x4d04b6 + index * 8);
 }
 
-/* rasterizer_text_evict_character: evict a hardware character from the cache.
+/* flush_hardware_character: evict a hardware character from the cache.
  * Original ABI: ESI=slot (pointer to character pointer in cache)
  */
-void rasterizer_text_evict_character(int **slot)
+void flush_hardware_character(int **slot)
 {
   int *character;
 
@@ -2998,10 +2998,10 @@ void rasterizer_text_evict_character(int **slot)
   }
 }
 
-/* rasterizer_text_cache_character: cache a hardware character into the texture
+/* cache_hardware_format_character: cache a hardware character into the texture
  * cache. Original ABI: EDI=character pointer, stack=font pointer
  */
-void rasterizer_text_cache_character(void *font_character, void *font)
+void cache_hardware_format_character(void *font_character, void *font)
 {
   int character = (int)font_character;
   int **character_slot;
@@ -3084,7 +3084,7 @@ void rasterizer_text_cache_character(void *font_character, void *font)
           if (*(short *)(0x4d04b6 + i * 8) <= 0) {
             break;
           }
-          rasterizer_text_evict_character((int **)(0x4d04b0 + i * 8));
+          flush_hardware_character((int **)(0x4d04b0 + i * 8));
           i = (i + 1) & 0xFF;
         }
         *(unsigned short *)0x4d04a2 = (unsigned short)i;
@@ -3113,7 +3113,7 @@ void rasterizer_text_cache_character(void *font_character, void *font)
               (short)cache_bottom <= *(short *)(0x4d04b6 + i * 8)) {
             break;
           }
-          rasterizer_text_evict_character((int **)(0x4d04b0 + i * 8));
+          flush_hardware_character((int **)(0x4d04b0 + i * 8));
           i = (i + 1) & 0xFF;
         } while (i != (write_index & 0xFF));
         *(unsigned short *)0x4d04a2 = (unsigned short)i;
@@ -3135,20 +3135,7 @@ void rasterizer_text_cache_character(void *font_character, void *font)
     if ((unsigned char)(*(unsigned char *)0x4d04a4 + 1) ==
         *(unsigned char *)0x4d04a2) {
       character_slot = (int **)(0x4d04b0 + *(short *)0x4d04a2 * 8);
-      if (character_slot == (int **)0) {
-        display_assert("hardware_character",
-                       "c:\\halo\\SOURCE\\rasterizer\\rasterizer_text.c",
-                       0x262, 1);
-        system_exit(-1);
-      }
-      if (*character_slot != (int *)0) {
-        *(short *)((char *)*character_slot + 0xc) = -1;
-        if (*(short *)((char *)*character_slot + 0xe) ==
-            *(short *)0x325748) {
-          error(3, "font cache overwrote character in use");
-        }
-        *character_slot = (int *)0;
-      }
+      flush_hardware_character(character_slot);
       *(unsigned short *)0x4d04a2 =
         (unsigned short)(unsigned char)(*(unsigned char *)0x4d04a2 + 1);
     }
@@ -3174,19 +3161,19 @@ void rasterizer_text_cache_character(void *font_character, void *font)
       }
     }
 
-    FUN_00168b10(*(void **)0x4d04ac);
+    rasterizer_bitmap_changed(*(void **)0x4d04ac);
 
     *(short *)0x4d04a6 += *(short *)(character + 4);
     *(unsigned short *)0x4d04a4 =
       (unsigned short)(unsigned char)(*(unsigned char *)0x4d04a4 + 1);
 }
 
-/* rasterizer_text_draw_cached_char: draw a single cached character quad.
+/* rasterizer_draw_character: draw a single cached character quad.
  * Vertex format is 5 floats each (screen x, screen y, texel u, texel v,
  * packed color) — 4 verts = 20 floats — in winding order TL, TR, BR, BL.
  * cache_offset_x/y (param 7/8) are added to the TEXEL coords (the atlas
  * position), not the screen position. */
-void rasterizer_text_draw_cached_char(void *arg0, void *font,
+void rasterizer_draw_character(void *arg0, void *font,
                                       void *font_character, unsigned int color,
                                       short x, short y, int cache_offset_x,
                                       int cache_offset_y, short width,
@@ -3198,10 +3185,10 @@ void rasterizer_text_draw_cached_char(void *arg0, void *font,
   short tx;
   short ty;
 
-  rasterizer_text_cache_character(font_character, font);
+  cache_hardware_format_character(font_character, font);
 
   if (*(short *)((int)font_character + 0xc) != -1) {
-    rasterizer_text_get_character_position(
+    hardware_character_cache_get_origin(
       *(short *)((int)font_character + 0xc), &cache_y, &cache_x);
     ty = (short)(cache_y + cache_offset_y);
     tx = (short)(cache_x + cache_offset_x);
@@ -3220,11 +3207,11 @@ void rasterizer_text_draw_cached_char(void *arg0, void *font,
     quad_verts[8] = quad_verts[3] = (float)ty;
     quad_verts[18] = quad_verts[13] = (float)(ty + height);
 
-    FUN_001741d0(quad_verts);
+    rasterizer_text_draw_character(quad_verts);
   }
 }
 
-/* rasterizer_text_draw_cached_chars: draw character string via hardware cache.
+/* rasterizer_draw_character_with_dropshadow: draw character string via hardware cache.
  * This is the callback used by the text drawing system. It draws the glyph
  * twice: pass 1 is the drop shadow (offset +1.0 in x/y, shadow color), pass 2
  * is the glyph itself (no offset, actual color). Vertex format is 5 floats
@@ -3232,7 +3219,7 @@ void rasterizer_text_draw_cached_char(void *arg0, void *font,
  * in winding order TL, TR, BR, BL. cache_offset_x/y (param 7/8) are added to
  * the TEXEL coords, not the screen position; the shadow offset is what moves
  * the screen position. */
-void rasterizer_text_draw_cached_chars(void *arg0, void *font,
+void rasterizer_draw_character_with_dropshadow(void *arg0, void *font,
                                        void *font_character, unsigned int color,
                                        short x, short y, int cache_offset_x,
                                        int cache_offset_y, short width,
@@ -3254,7 +3241,7 @@ void rasterizer_text_draw_cached_chars(void *arg0, void *font,
   int first_pass;
   int was_first;
 
-  rasterizer_text_cache_character(font_character, font);
+  cache_hardware_format_character(font_character, font);
 
   if (*(short *)((int)font_character + 0xc) != -1) {
     shadow_off_x = 1.0f;
@@ -3270,7 +3257,7 @@ void rasterizer_text_draw_cached_chars(void *arg0, void *font,
     first_pass = 1;
 
     while (1) {
-      rasterizer_text_get_character_position(
+      hardware_character_cache_get_origin(
         *(short *)((int)font_character + 0xc), &cache_y, &cache_x);
       was_first = first_pass;
       tx = (short)(cache_x + (short)cache_offset_x);
@@ -3294,7 +3281,7 @@ void rasterizer_text_draw_cached_chars(void *arg0, void *font,
       quad_verts[8] = quad_verts[3] = (float)ty;
       quad_verts[18] = quad_verts[13] = (float)(ty + height);
 
-      FUN_001741d0(quad_verts);
+      rasterizer_text_draw_character(quad_verts);
 
       if (was_first == 0) {
         break;
@@ -3306,8 +3293,8 @@ void rasterizer_text_draw_cached_chars(void *arg0, void *font,
   }
 }
 
-/* rasterizer_text_draw: draw ASCII string (0x183e60) */
-void rasterizer_text_draw(void *screen_pos, short *bounds, const void *color,
+/* rasterizer_draw_string: draw ASCII string (0x183e60) */
+void rasterizer_draw_string(void *screen_pos, short *bounds, const void *color,
                           int flags, const char *text)
 {
   int draw_bounds[4];
@@ -3387,15 +3374,15 @@ void rasterizer_text_draw(void *screen_pos, short *bounds, const void *color,
     widget_params[16] = texel_width;
     widget_params[17] = texel_height;
 
-    FUN_00173b40(widget_params);
-    draw_string(rasterizer_text_draw_cached_chars, draw_bounds, color,
+    rasterizer_text_begin(widget_params);
+    draw_string(rasterizer_draw_character_with_dropshadow, draw_bounds, color,
                  clip_bounds, flags, (char *)text);
-    FUN_00173ae0();
+    rasterizer_text_end();
   }
 }
 
-/* rasterizer_draw_string: draw wide-character string (0x184060) */
-void rasterizer_draw_string(void *screen_pos, short *bounds, const void *color,
+/* rasterizer_draw_unicode_string: draw wide-character string (0x184060) */
+void rasterizer_draw_unicode_string(void *screen_pos, short *bounds, const void *color,
                             int flags, unsigned short *text)
 {
   int draw_bounds[4];
@@ -3475,18 +3462,18 @@ void rasterizer_draw_string(void *screen_pos, short *bounds, const void *color,
     widget_params[16] = texel_width;
     widget_params[17] = texel_height;
 
-    FUN_00173b40(widget_params);
-    FUN_0019c960(rasterizer_text_draw_cached_chars, draw_bounds, color,
+    rasterizer_text_begin(widget_params);
+    FUN_0019c960(rasterizer_draw_character_with_dropshadow, draw_bounds, color,
                  clip_bounds, flags, text);
-    FUN_00173ae0();
+    rasterizer_text_end();
   }
 }
 
 /* rasterizer_transparent_geometry.c */
 
-/* rasterizer_transparent_geometry_new: allocate transparent geometry buffers
+/* rasterizer_transparent_geometry_initialize: allocate transparent geometry buffers
  * and init vertex cache (0x184260) */
-char rasterizer_transparent_geometry_new(void)
+char rasterizer_transparent_geometry_initialize(void)
 {
   char success;
   void *transparent_geometry_buffer;
@@ -3508,7 +3495,7 @@ char rasterizer_transparent_geometry_new(void)
     error(2, "### ERROR failed to allocate transparent geometry buffer");
     return 0;
   } else {
-    success = FUN_00174bd0();
+    success = rasterizer_transparent_geometry_initialize_aux_buffer();
     if (success != 0) {
       return 1;
     }
@@ -3526,9 +3513,9 @@ void rasterizer_transparent_geometry_begin(void)
   *(int *)0x4d0cf8 = 0;
 }
 
-/* rasterizer_transparent_geometry_group_new: allocate next transparent geometry
+/* rasterizer_transparent_geometry_new_group: allocate next transparent geometry
  * group slot (0x184330) */
-void *rasterizer_transparent_geometry_group_new(void)
+void *rasterizer_transparent_geometry_new_group(void)
 {
   int index;
   void *group;
@@ -3543,9 +3530,9 @@ void *rasterizer_transparent_geometry_group_new(void)
   return group;
 }
 
-/* rasterizer_secondary_geometry_group_new: allocate next secondary geometry
+/* rasterizer_transparent_geometry_new_group2: allocate next secondary geometry
  * group slot (0x184360) */
-void *rasterizer_secondary_geometry_group_new(void)
+void *rasterizer_transparent_geometry_new_group2(void)
 {
   int index;
   void *group;
@@ -3560,9 +3547,9 @@ void *rasterizer_secondary_geometry_group_new(void)
   return group;
 }
 
-/* rasterizer_secondary_geometry_groups_get: return secondary groups buffer;
+/* rasterizer_transparent_geometry_get_groups2: return secondary groups buffer;
  * optionally write count (0x184390) */
-void *rasterizer_secondary_geometry_groups_get(short *out_count)
+void *rasterizer_transparent_geometry_get_groups2(short *out_count)
 {
   if (out_count != (short *)0) {
     *out_count = (short)*(int *)0x4d0cf8;
@@ -3604,9 +3591,9 @@ void *rasterizer_transparent_geometry_next_group(void *group)
   return (void *)0;
 }
 
-/* rasterizer_transparent_geometry_group_get: return group by presorted index
+/* rasterizer_transparent_geometry_get_group_from_presorted_index: return group by presorted index
  * (0x184460) */
-void *rasterizer_transparent_geometry_group_get(short group_presorted_index)
+void *rasterizer_transparent_geometry_get_group_from_presorted_index(short group_presorted_index)
 {
   if (group_presorted_index < 0 || group_presorted_index >= *(int *)0x4d0cf4) {
     display_assert(
@@ -3619,9 +3606,9 @@ void *rasterizer_transparent_geometry_group_get(short group_presorted_index)
   return (void *)(group_presorted_index * 0xa0 + *(int *)0x4d0cec);
 }
 
-/* rasterizer_transparent_geometry_group_to_presorted_index: convert group
+/* rasterizer_transparent_geometry_get_group_presorted_index: convert group
  * pointer to presorted index (0x1844b0) */
-short rasterizer_transparent_geometry_group_to_presorted_index(
+short rasterizer_transparent_geometry_get_group_presorted_index(
   unsigned int group)
 {
   short index;

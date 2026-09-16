@@ -296,7 +296,7 @@ void game_dispose_from_old_map()
   decals_dispose_from_old_map();
   breakable_surfaces_dispose_from_old_map();
   structures_dispose_from_old_map();
-  j__render_dispose_from_old_map();
+  render_dispose_from_old_map();
   objects_dispose_from_old_map();
   director_dispose_from_old_map();
   observer_dispose_from_old_map();
@@ -873,7 +873,7 @@ int FUN_000b45c0(int param_1)
                    0x2a7, 1);
     system_exit(-1);
   }
-  sVar1 = random_range((unsigned int *)get_global_random_seed_address(), 0,
+  sVar1 = seed_random_range((unsigned int *)get_global_random_seed_address(), 0,
                        (short)count);
   piVar6 = (int *)(iVar2 + 0x378);
   iVar5 = (int)sVar1;
@@ -1170,7 +1170,7 @@ void find_next_target(int player_index)
       }
     } while (data_iterator_next(&iterator) != 0);
     if (count > 0) {
-      count = random_range((unsigned int *)get_global_random_seed_address(), 0,
+      count = seed_random_range((unsigned int *)get_global_random_seed_address(), 0,
                            (int16_t)count);
       data_iterator_new(&iterator, player_data);
       while (data_iterator_next(&iterator) != 0) {

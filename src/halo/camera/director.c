@@ -634,7 +634,7 @@ void director_script_camera(int value)
       *(int16_t *)(base + 0x50) = perspective;
     }
 
-    FUN_00084fe0(script_control);
+    scripted_camera_enable(script_control);
   }
 }
 
@@ -1512,7 +1512,7 @@ void editor_camera_update(int param_1, unsigned short *param_2,
 
   if (*(char *)0x335698 != 0) {
     if (*((char *)param_2 + 2) == 0) {
-      FUN_000853c0(0, param_2, param_3);
+      scripted_camera_update(0, param_2, param_3);
       return;
     }
 
@@ -1620,11 +1620,11 @@ void editor_camera_set_scripted(unsigned char enable)
     target = *(int *)0x2ee66c;
     if (target != -1) {
       globals = *(char **)0x2ee670;
-      FUN_00085280((float *)0x3356b8, (float *)(globals + 0x1c),
+      scripted_camera_set_camera_point_relative((float *)0x3356b8, (float *)(globals + 0x1c),
                    (float *)(globals + 0x28), 1.2217305f, 0, target);
     } else {
       globals = *(char **)0x2ee670;
-      FUN_00085280((float *)(globals + 0x10), (float *)(globals + 0x1c),
+      scripted_camera_set_camera_point_relative((float *)(globals + 0x10), (float *)(globals + 0x1c),
                    (float *)(globals + 0x28), 1.2217305f, 0, -1);
     }
   } else {

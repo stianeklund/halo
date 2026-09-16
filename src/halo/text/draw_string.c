@@ -708,7 +708,7 @@ void bitmap_draw_character(int unused_param_1, const char *font_definition,
 
   for (row = 0; row < dy; row++) {
     dst = (x0 << dcs_pixel_shift) +
-          y0 * ((bitmap_format_bits_per_pixel(dcs_bitmap_format) *
+          y0 * ((bitmap_format_get_bits_per_pixel(dcs_bitmap_format) *
                  dcs_bitmap_width) /
                 8) +
           dcs_bitmap_pixels;

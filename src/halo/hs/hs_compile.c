@@ -26,7 +26,7 @@ char *hs_compile_initialize(int source_file_size, void *source_ptr)
 /* 0xc57d0 — Search the HS source string table for a name. The source buffer
  * at 0x46b6ec is a packed sequence of null-terminated strings; returns the
  * byte offset of the matching string, or -1 if not found. */
-int FUN_000c57d0(char *str)
+int hs_find_string_constant(char *str)
 {
   int offset;
 
@@ -45,7 +45,7 @@ int FUN_000c57d0(char *str)
  * compatibility and sets the variable_ref flag (bit 2). If the node's type
  * is unparsed (0), propagates the global's type.
  */
-bool FUN_000c5840(int datum_index)
+bool hs_parse_variable(int datum_index)
 {
   char *node;
   int16_t type;
@@ -151,7 +151,7 @@ void hs_compile_resolve_predicate(
 
 /* 0xc5a20 — Compile a boolean literal expression. Compares the source string
  * against known true/false synonyms and stores 1 or 0 in the value field. */
-bool FUN_000c5a20(int datum_index)
+bool hs_parse_boolean(int datum_index)
 {
   char *node;
   char *str;
@@ -191,7 +191,7 @@ bool FUN_000c5a20(int datum_index)
 /* 0xc5b50 — Validate and parse a real (float) literal from an HS expression.
  * Checks each character is a digit or single decimal point, then calls atof
  * to store the parsed value. Sets compile error on invalid input. */
-bool FUN_000c5b50(int datum_index)
+bool hs_parse_real(int datum_index)
 {
   char c;
   char seen_dot;
@@ -247,7 +247,7 @@ done:
 /* 0xc5c40 — Validate and parse an integer literal (short or long) from an HS
  * expression. Checks each character is a digit, then calls atol. For short
  * integers (type 7) validates range [-32768, 32767]. */
-bool FUN_000c5c40(int datum_index)
+bool hs_parse_integer(int datum_index)
 {
   char c;
   char *node;
@@ -313,7 +313,7 @@ store_long:
 /* 0xc5d60 — Compile a string literal expression. Asserts type is
  * _hs_type_string (9), stores the string pointer (source_offset + source_base)
  * in the value field, and always returns true. */
-bool FUN_000c5d60(int datum_index)
+bool hs_parse_string(int datum_index)
 {
   char *node;
 
@@ -337,7 +337,7 @@ bool FUN_000c5d60(int datum_index)
 
 /* 0xc5de0 — Compile a script name reference. Asserts type is _hs_type_script
  * (10), looks up the script by name, stores the index in the value field. */
-bool FUN_000c5de0(int datum_index)
+bool hs_parse_script(int datum_index)
 {
   int16_t script_idx;
   char *node;
@@ -372,7 +372,7 @@ bool FUN_000c5de0(int datum_index)
  * (0x18..0x1f), looks up the matching scenario source file by name and tag
  * group, stores the tag datum index from element+0x24 into node+0x10.
  * Always returns true regardless of whether a match is found. */
-bool FUN_000c5e90(int datum_index)
+bool hs_parse_tag_reference(int datum_index)
 {
   char *node;
   char *scenario;
@@ -461,19 +461,19 @@ bool hs_parse_enum(int datum_index)
               ((const char **)0x2f14a8)[(int)*(int16_t *)(node + 0x4)]);
 
   for (i = 0; i < *(int16_t *)enum_definition - 1; i++) {
-    FUN_0008dc30((char *)0x46b704, "\"");
-    FUN_0008dc30((char *)0x46b704,
+    csstrcat((char *)0x46b704, "\"");
+    csstrcat((char *)0x46b704,
                  (*(const char ***)(enum_definition + 0x4))[i]);
-    FUN_0008dc30((char *)0x46b704, "\", ");
+    csstrcat((char *)0x46b704, "\", ");
   }
 
   if (*(int16_t *)enum_definition > 1) {
-    FUN_0008dc30((char *)0x46b704, "or ");
+    csstrcat((char *)0x46b704, "or ");
   }
 
-  FUN_0008dc30((char *)0x46b704, "\"");
-  FUN_0008dc30((char *)0x46b704, (*(const char ***)(enum_definition + 0x4))[i]);
-  FUN_0008dc30((char *)0x46b704, "\".");
+  csstrcat((char *)0x46b704, "\"");
+  csstrcat((char *)0x46b704, (*(const char ***)(enum_definition + 0x4))[i]);
+  csstrcat((char *)0x46b704, "\".");
 
   *(const char **)0x46b6fc = (const char *)0x46b704;
   *(int *)0x46b700 = *(int *)(node + 0xc);
@@ -486,7 +486,7 @@ bool hs_parse_enum(int datum_index)
  * element+offset against the node's source string using case-insensitive match.
  * On match, stores the element index (as short) into node+0x10.
  * On failure, formats "this is not a valid %s name" error. */
-bool FUN_000c6130(int datum_index, void *tag_block, int element_size,
+bool hs_parse_scenario_datum(int datum_index, void *tag_block, int element_size,
                   short offset)
 {
   char *node;
@@ -530,9 +530,9 @@ bool FUN_000c6130(int datum_index, void *tag_block, int element_size,
 }
 
 /* 0xc6230 — Compile trigger_volume literal. Asserts type==0xb, then delegates
- * to FUN_000c6130 searching scenario+0x360 (trigger volumes, elem size 0x60,
+ * to hs_parse_scenario_datum searching scenario+0x360 (trigger volumes, elem size 0x60,
  * name at offset 4). */
-bool FUN_000c6230(int datum_index)
+bool hs_parse_trigger_volume(int datum_index)
 {
   char *node;
   char *scenario;
@@ -545,11 +545,11 @@ bool FUN_000c6230(int datum_index)
     system_exit(-1);
   }
   scenario = (char *)global_scenario_get();
-  return FUN_000c6130(datum_index, (void *)(scenario + 0x360), 0x60, 4);
+  return hs_parse_scenario_datum(datum_index, (void *)(scenario + 0x360), 0x60, 4);
 }
 
 /* 0xc62a0 — Compile cutscene_flag literal (type 0xc). */
-bool FUN_000c62a0(int datum_index)
+bool hs_parse_cutscene_flag(int datum_index)
 {
   char *node;
   char *scenario;
@@ -562,11 +562,11 @@ bool FUN_000c62a0(int datum_index)
     system_exit(-1);
   }
   scenario = (char *)global_scenario_get();
-  return FUN_000c6130(datum_index, (void *)(scenario + 0x4e4), 0x5c, 4);
+  return hs_parse_scenario_datum(datum_index, (void *)(scenario + 0x4e4), 0x5c, 4);
 }
 
 /* 0xc6310 — Compile cutscene_camera_point literal (type 0xd). */
-bool FUN_000c6310(int datum_index)
+bool hs_parse_cutscene_camera_point(int datum_index)
 {
   char *node;
   char *scenario;
@@ -579,11 +579,11 @@ bool FUN_000c6310(int datum_index)
     system_exit(-1);
   }
   scenario = (char *)global_scenario_get();
-  return FUN_000c6130(datum_index, (void *)(scenario + 0x4f0), 0x68, 4);
+  return hs_parse_scenario_datum(datum_index, (void *)(scenario + 0x4f0), 0x68, 4);
 }
 
 /* 0xc6380 — Compile cutscene_title literal (type 0xe). */
-bool FUN_000c6380(int datum_index)
+bool hs_parse_cutscene_title(int datum_index)
 {
   char *node;
   char *scenario;
@@ -596,11 +596,11 @@ bool FUN_000c6380(int datum_index)
     system_exit(-1);
   }
   scenario = (char *)global_scenario_get();
-  return FUN_000c6130(datum_index, (void *)(scenario + 0x4fc), 0x60, 4);
+  return hs_parse_scenario_datum(datum_index, (void *)(scenario + 0x4fc), 0x60, 4);
 }
 
 /* 0xc63f0 — Compile cutscene_recording literal (type 0xf). */
-bool FUN_000c63f0(int datum_index)
+bool hs_parse_cutscene_recording(int datum_index)
 {
   char *node;
   char *scenario;
@@ -613,11 +613,11 @@ bool FUN_000c63f0(int datum_index)
     system_exit(-1);
   }
   scenario = (char *)global_scenario_get();
-  return FUN_000c6130(datum_index, (void *)(scenario + 0x36c), 0x40, 0);
+  return hs_parse_scenario_datum(datum_index, (void *)(scenario + 0x36c), 0x40, 0);
 }
 
 /* 0xc6460 — Compile device_group literal (type 0x10). */
-bool FUN_000c6460(int datum_index)
+bool hs_parse_device_group(int datum_index)
 {
   char *node;
   char *scenario;
@@ -630,7 +630,7 @@ bool FUN_000c6460(int datum_index)
     system_exit(-1);
   }
   scenario = (char *)global_scenario_get();
-  return FUN_000c6130(datum_index, (void *)(scenario + 0x288), 0x34, 0);
+  return hs_parse_scenario_datum(datum_index, (void *)(scenario + 0x288), 0x34, 0);
 }
 
 /* 0xc64d0 — Compile AI encounter/squad literal (type 0x11).
@@ -638,7 +638,7 @@ bool FUN_000c6460(int datum_index)
  * ai_index_from_string to look up an AI encounter or squad by name from the
  * scenario.
  */
-bool FUN_000c64d0(int datum_index)
+bool hs_parse_ai(int datum_index)
 {
   char *node;
   bool result;
@@ -667,7 +667,7 @@ bool FUN_000c64d0(int datum_index)
 }
 
 /* 0xc6580 — Compile ai_command_list literal (type 0x12). */
-bool FUN_000c6580(int datum_index)
+bool hs_parse_ai_command_list(int datum_index)
 {
   char *node;
   char *scenario;
@@ -680,11 +680,11 @@ bool FUN_000c6580(int datum_index)
     system_exit(-1);
   }
   scenario = (char *)global_scenario_get();
-  return FUN_000c6130(datum_index, (void *)(scenario + 0x438), 0x60, 0);
+  return hs_parse_scenario_datum(datum_index, (void *)(scenario + 0x438), 0x60, 0);
 }
 
 /* 0xc65f0 — Compile starting_profile literal (type 0x13). */
-bool FUN_000c65f0(int datum_index)
+bool hs_parse_starting_profile(int datum_index)
 {
   char *node;
   char *scenario;
@@ -697,11 +697,11 @@ bool FUN_000c65f0(int datum_index)
     system_exit(-1);
   }
   scenario = (char *)global_scenario_get();
-  return FUN_000c6130(datum_index, (void *)(scenario + 0x348), 0x68, 0);
+  return hs_parse_scenario_datum(datum_index, (void *)(scenario + 0x348), 0x68, 0);
 }
 
 /* 0xc6660 — Compile conversation literal (type 0x14). */
-bool FUN_000c6660(int datum_index)
+bool hs_parse_conversation(int datum_index)
 {
   char *node;
   char *scenario;
@@ -714,7 +714,7 @@ bool FUN_000c6660(int datum_index)
     system_exit(-1);
   }
   scenario = (char *)global_scenario_get();
-  return FUN_000c6130(datum_index, (void *)(scenario + 0x468), 0x74, 0);
+  return hs_parse_scenario_datum(datum_index, (void *)(scenario + 0x468), 0x74, 0);
 }
 
 /* 0xc66d0 — Compile an object-name literal (types 0x2b-0x30).
@@ -728,7 +728,7 @@ bool FUN_000c6660(int datum_index)
  * is not cached across the lookup); asserts at lines 0x771 and 0x77a; the
  * single-exit `result` flag matches XORB BL,BL / MOVB BL,AL in the original,
  * while the type-mask success path returns via MOVB $1,AL. */
-bool FUN_000c66d0(int datum_index)
+bool hs_parse_object_name(int datum_index)
 {
   char *node;
   char *object;
@@ -771,8 +771,8 @@ bool FUN_000c66d0(int datum_index)
 
 /* 0xc6810 — Compile object name literal (types 0x25-0x2a).
  * "none" resolves to -1. Otherwise adds 6 to type (mapping object types to
- * enum range 0x2b-0x30), delegates to FUN_000c66d0, then restores type. */
-bool FUN_000c6810(int datum_index)
+ * enum range 0x2b-0x30), delegates to hs_parse_object_name, then restores type. */
+bool hs_parse_object(int datum_index)
 {
   char *node;
   bool result;
@@ -790,7 +790,7 @@ bool FUN_000c6810(int datum_index)
   }
   *(short *)(node + 0x4) += 6;
   *(short *)(node + 0x2) = *(short *)(node + 0x4);
-  result = FUN_000c66d0(datum_index);
+  result = hs_parse_object_name(datum_index);
   *(short *)(node + 0x4) -= 6;
   return result;
 }
@@ -798,7 +798,7 @@ bool FUN_000c6810(int datum_index)
 /* 0xc68b0 — Compile navpoint literal (type 0x15).
  * Looks up a waypoint by name from the HUD globals tag (hudg+0x160,
  * element size 0x68). Returns false if no HUD globals tag is available. */
-bool FUN_000c68b0(int datum_index)
+bool hs_parse_navpoint(int datum_index)
 {
   char *node;
   int tag_index;
@@ -815,7 +815,7 @@ bool FUN_000c68b0(int datum_index)
     return false;
   }
   hud_tag = (char *)tag_get(0x68756467, interface_get_tag_index(6));
-  return FUN_000c6130(datum_index, (void *)(hud_tag + 0x160), 0x68, 0);
+  return hs_parse_scenario_datum(datum_index, (void *)(hud_tag + 0x160), 0x68, 0);
 }
 
 /* 0xc6940 — Compile HUD-message literal (type 0x16).
@@ -826,7 +826,7 @@ bool FUN_000c68b0(int datum_index)
  * Confirmed: PUSH 0x686d7420 before tag_get; two separate CALLs to
  * global_scenario_get (the -1 test re-reads +0x5a0 after the second call);
  * assert at line 0x7bf; the result flag matches XORB BL,BL / MOVB BL,AL. */
-bool FUN_000c6940(int datum_index)
+bool hs_parse_hud_message(int datum_index)
 {
   char *node;
   bool result;
@@ -840,7 +840,7 @@ bool FUN_000c6940(int datum_index)
     system_exit(-1);
   }
   if (*(int *)((char *)global_scenario_get() + 0x5a0) != -1) {
-    result = FUN_000c6130(
+    result = hs_parse_scenario_datum(
       datum_index,
       (char *)tag_get(0x686d7420,
                       *(int *)((char *)global_scenario_get() + 0x5a0)) +
@@ -851,9 +851,9 @@ bool FUN_000c6940(int datum_index)
 }
 
 /* 0xc69d0 — Compile object_list literal (type 0x17).
- * Temporarily sets type/constant_type to 0x2b (enum range for FUN_000c66d0),
- * delegates to FUN_000c66d0, then restores type to 0x17. */
-bool FUN_000c69d0(int datum_index)
+ * Temporarily sets type/constant_type to 0x2b (enum range for hs_parse_object_name),
+ * delegates to hs_parse_object_name, then restores type to 0x17. */
+bool hs_parse_object_list(int datum_index)
 {
   char *node;
   bool result;
@@ -866,7 +866,7 @@ bool FUN_000c69d0(int datum_index)
   }
   *(short *)(node + 0x2) = 0x2b;
   *(short *)(node + 0x4) = 0x2b;
-  result = FUN_000c66d0(datum_index);
+  result = hs_parse_object_name(datum_index);
   *(short *)(node + 0x4) = 0x17;
   return result;
 }
@@ -903,7 +903,7 @@ int16_t FUN_000c6a30(const char *name, const char **entries, int16_t count)
  *
  * If hs_compile_globals.validating (0x46b808) is 0 or the node has flag bit 2
  * set, first attempts to resolve the expression as a global variable reference
- * via FUN_000c5840. If that succeeds, returns the result directly.
+ * via hs_parse_variable. If that succeeds, returns the result directly.
  *
  * Otherwise dispatches through the function-pointer table at 0x27bb80[type*4]
  * (indexed by the expression's type). Each table entry is a cdecl function
@@ -917,13 +917,13 @@ int16_t FUN_000c6a30(const char *name, const char **entries, int16_t count)
 
 /* 0xc6a70 — Intern a string into the HS string constant pool.
  * Returns the byte offset of the string in the pool, deduplicating
- * via FUN_000c57d0. Asserts if the pool is full. */
-int FUN_000c6a70(char *str)
+ * via hs_find_string_constant. Asserts if the pool is full. */
+int hs_concatenate_string_constant(char *str)
 {
   int offset;
   int len;
 
-  offset = FUN_000c57d0(str);
+  offset = hs_find_string_constant(str);
   if (offset == -1) {
     len = (int)(short)(csstrlen(str) + 1);
     if (len < *(int *)0x46b6f4) {
@@ -944,7 +944,7 @@ int FUN_000c6a70(char *str)
  * Validates exactly 3 args, matches type name, checks name length < 32,
  * ensures no duplicate global, type-checks the value expression, and
  * allocates a new entry in the scenario globals tag block. */
-bool FUN_000c6b00(int datum_index)
+bool hs_add_global(int datum_index)
 {
   char *node;
   int type_arg;
@@ -1070,7 +1070,7 @@ bool FUN_000c6b00(int datum_index)
  *   +0x24 int      root_node datum_index
  *   +0x28 int      (init expression, used by globals; not touched here)
  */
-bool FUN_000c6d90(int datum_index)
+bool hs_add_script(int datum_index)
 {
   char *node;
   int type_arg; /* first child of the "script" node */
@@ -1425,7 +1425,7 @@ void hs_skip_whitespace(
   return;
 }
 
-bool FUN_000c73a0(int datum_index)
+bool hs_parse_primitive(int datum_index)
 {
   char *node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
   int16_t type = *(int16_t *)(node + 0x4);
@@ -1454,7 +1454,7 @@ bool FUN_000c73a0(int datum_index)
   /* Attempt variable-reference resolution when not strictly validating or
    * when the node already carries the variable-resolved flag (bit 2). */
   if (*(uint8_t *)0x46b808 == 0 || (*(uint8_t *)(node + 0x6) & 0x4)) {
-    bool result = FUN_000c5840(datum_index);
+    bool result = hs_parse_variable(datum_index);
     if (result)
       return result;
   }
@@ -1500,9 +1500,9 @@ bool FUN_000c73a0(int datum_index)
  *
  * If compiled and type == 1 (hs_special_form):
  *   - Compares the child's string (child->string_offset + compiled_source)
- *     against "global" (strcmp). If matched, calls FUN_000c6b00 (global
+ *     against "global" (strcmp). If matched, calls hs_add_global (global
  *     variable compile pass) with datum_index.
- *   - Otherwise compares against "script". If matched, calls FUN_000c6d90
+ *   - Otherwise compares against "script". If matched, calls hs_add_script
  *     (script compile pass) with datum_index.
  *   - Otherwise sets error "i expected \"script\" or \"global\"." and returns
  *     false.
@@ -1525,7 +1525,7 @@ bool FUN_000c73a0(int datum_index)
  *
  * Returns true on success, false on error.
  */
-bool FUN_000c74c0(int datum_index)
+bool hs_parse_nonprimitive(int datum_index)
 {
   char *node;
   char *node2;
@@ -1576,10 +1576,10 @@ bool FUN_000c74c0(int datum_index)
     /* hs_special_form: child string must be "global" or "script". */
     char *str = (char *)(*(int *)(child_node + 0xc) + *(int *)0x46b6e8);
     if (csstrcmp(str, "global") == 0) {
-      return FUN_000c6b00(datum_index);
+      return hs_add_global(datum_index);
     }
     if (csstrcmp(str, "script") == 0) {
-      return FUN_000c6d90(datum_index);
+      return hs_add_script(datum_index);
     }
     *(const char **)0x46b6fc = "i expected \"script\" or \"global\".";
     *(int *)0x46b700 = *(int *)(child_node + 0xc);
@@ -1718,16 +1718,16 @@ void hs_syntax_node_reintern_strings(
     if (type == 2) {
       str_offset = *(int *)(node + 0xc);
       if (str_offset != -1) {
-        *(int *)(node + 0xc) = FUN_000c6a70((char *)(str_offset + *(int *)0x46b6e8));
+        *(int *)(node + 0xc) = hs_concatenate_string_constant((char *)(str_offset + *(int *)0x46b6e8));
         return;
       }
       fn_desc = hs_function_table_get((int16_t)*(uint16_t *)(node + 0x2));
-      *(int *)(node + 0xc) = FUN_000c6a70(*(char **)((char *)fn_desc + 0x4));
+      *(int *)(node + 0xc) = hs_concatenate_string_constant(*(char **)((char *)fn_desc + 0x4));
       return;
     }
 
     if ((*(uint8_t *)(node + 0x6) & 0x4) || type >= 9) {
-      *(int *)(node + 0xc) = FUN_000c6a70((char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
+      *(int *)(node + 0xc) = hs_concatenate_string_constant((char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
       return;
     }
   } else {
@@ -1746,7 +1746,7 @@ void hs_syntax_node_reintern_strings(
 /* 0xc7be0 — Allocate and initialize a new HS syntax node, then dispatch to
  * the atom parser (FUN_000c71c0) or parenthesized expression parser
  * (FUN_000c7ca0) depending on whether the cursor points to '('. */
-int FUN_000c7be0(char **cursor)
+int hs_tokenize(char **cursor)
 {
   int datum_index;
   char *node;
@@ -1783,7 +1783,7 @@ int FUN_000c7be0(char **cursor)
 
 /* 0xc7ca0 — Parse a parenthesized HS expression. Advances cursor past '(',
  * then loops: skip whitespace (null-terminating gaps), parse sub-expressions
- * via FUN_000c7be0, and chain them via each node's next_node field (+0x8).
+ * via hs_tokenize, and chain them via each node's next_node field (+0x8).
  * Stops at ')' (null-terminates it) or NUL (unmatched paren error).
  * Sets "this expression is empty." if no children were parsed. */
 void hs_parse_parenthesized_expression(
@@ -1821,7 +1821,7 @@ void hs_parse_parenthesized_expression(
         break;
       }
 
-      child_index = FUN_000c7be0(cursor);
+      child_index = hs_tokenize(cursor);
       *link_ptr = child_index;
       if (child_index != -1) {
         child_node = (char *)datum_get(*(data_t **)0x5aa6c8, child_index);
@@ -1839,7 +1839,7 @@ void hs_parse_parenthesized_expression(
 
 /* Type-check an HS syntax node (0xc7d80).
  * If the node is untyped (type==0), sets its type to check_type and
- * dispatches to FUN_000c73a0 (function-call nodes) or FUN_000c74c0
+ * dispatches to hs_parse_primitive (function-call nodes) or hs_parse_nonprimitive
  * (expression nodes) based on the node's flag bit 0. Returns true
  * if the node was already typed. */
 bool hs_type_check(int datum_index, int16_t check_type)
@@ -1872,11 +1872,11 @@ bool hs_type_check(int datum_index, int16_t check_type)
     char *node2 = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
     if (*(uint8_t *)(node2 + 6) & 1) {
       *(int16_t *)(node + 2) = check_type;
-      return FUN_000c73a0(datum_index);
+      return hs_parse_primitive(datum_index);
     }
   }
 
-  return FUN_000c74c0(datum_index);
+  return hs_parse_nonprimitive(datum_index);
 }
 
 /* 0xc7e50 — Parse a macro (built-in) function call's argument list.
@@ -2199,7 +2199,7 @@ bool hs_parse_cond(int16_t function_index, int datum_index)
  * back into the variable node (+0x4) and, when the call node already carries a
  * type, checked for compatibility with it; an incompatible pair formats the
  * message into the compile-error buffer at 0x46b704.  Otherwise the variable
- * node is re-parsed as a variable name (FUN_000c5840, asserted), the call
+ * node is re-parsed as a variable name (hs_parse_variable, asserted), the call
  * node inherits the global's type when it is still untyped (0), and the value
  * form is type-checked against the global's type. */
 bool hs_parse_set(int16_t function_index, int datum_index)
@@ -2249,7 +2249,7 @@ bool hs_parse_set(int16_t function_index, int datum_index)
             return false;
           }
 
-          if (!FUN_000c5840(variable_index)) {
+          if (!hs_parse_variable(variable_index)) {
             display_assert(
               "asserted", "c:\\halo\\source\\hs\\hs_library_internal_compile.h",
               0x126, 1);
@@ -2292,15 +2292,15 @@ bool hs_parse_set(int16_t function_index, int datum_index)
  * Walks the sibling list starting at the call node's second child and types
  * every argument as boolean (5).  hs_type_check is INLINED here rather than
  * called: the body carries its own copy of the !hs_compile_globals.error
- * assert (hs_compile.c line 0x48e) and dispatches straight to FUN_000c73a0
+ * assert (hs_compile.c line 0x48e) and dispatches straight to hs_parse_primitive
  * (@EDI, constant-flag nodes, which also get constant_type=5 at +0x2) or
- * FUN_000c74c0 (@EBX).  Already-typed arguments (type != 0) are skipped and
+ * hs_parse_nonprimitive (@EBX).  Already-typed arguments (type != 0) are skipped and
  * leave the running result untouched — note BL is re-seeded to true at the
  * top of every iteration (0xc8625), so only the LAST argument's outcome can
  * end the walk.
  * Fewer than two arguments emits the arity error into the compile-error
  * globals (message at 0x46b6fc, source offset at 0x46b700). */
-bool FUN_000c85b0(int16_t function_index, int datum_index)
+bool hs_parse_logical(int16_t function_index, int datum_index)
 {
   bool valid;
   char *node;
@@ -2337,9 +2337,9 @@ bool FUN_000c85b0(int16_t function_index, int datum_index)
       node = (char *)datum_get(*(data_t **)0x5aa6c8, child_index);
       if (*(uint8_t *)(node + 0x6) & 1) {
         *(int16_t *)(argument + 0x2) = 5;
-        valid = FUN_000c73a0(child_index);
+        valid = hs_parse_primitive(child_index);
       } else {
-        valid = FUN_000c74c0(child_index);
+        valid = hs_parse_nonprimitive(child_index);
       }
     }
 

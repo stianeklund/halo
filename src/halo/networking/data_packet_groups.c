@@ -9,8 +9,8 @@
  *                        (__FILE__ literal at VA 0x28f498)
  *
  * The DECODE-side counterparts of these functions
- * (verify_packet_group_definitions 0x11a930, FUN_0011aa40 0x11aa40,
- * FUN_0011b2a0 0x11b2a0) live in networking/network_messages.c and are not
+ * (data_packet_group_initialize 0x11a930, data_packet_group_decode_packet 0x11aa40,
+ * _data_packet_decode 0x11b2a0) live in networking/network_messages.c and are not
  * duplicated here.
  *
  * Packet field descriptor: 5 shorts (stride 0xa), terminated by type == 9.
@@ -22,7 +22,7 @@
  *   field[4] = size            (+0x08)  cached byte size, written by
  *                                       compute_packet_field_sizes
  * No struct is declared for it: network_messages.c's already-ported
- * FUN_0011b2a0 uses the same `short *` + index convention, and no assert
+ * _data_packet_decode uses the same `short *` + index convention, and no assert
  * string names the members, so the layout stays index-addressed.
  */
 
@@ -32,7 +32,7 @@
 #define packet_header_bs_def ((void *)0x3220c0)
 
 /* Last packet-group encode/decode error string, global at 0x46e804.
- * Written by both encode_packet_group and its decode twin FUN_0011aa40. */
+ * Written by both encode_packet_group and its decode twin data_packet_group_decode_packet. */
 #define s_last_decode_error (*(char **)0x46e804)
 
 /* ========================================================================
@@ -121,7 +121,7 @@ bool encode_packet_group(group_definition *group, void *data,
                      packet->definition != NULL);
   /* Arg 6 is a 16-bit read of the dword field at group+0xc
    * (XOR EDX,EDX / MOV DX,word [EDI+0xc] at 0x11ad67). */
-  if (FUN_0011b650((int)packet->definition, version, data, encoded_packet,
+  if (data_packet_encode((int)packet->definition, version, data, encoded_packet,
                    encoded_packet_size,
                    (short)group->maximum_encoded_packet_size)) {
     if (!data_packet_group_append_packet_header(
@@ -243,14 +243,14 @@ void compute_packet_field_sizes(packet_definition *definition,
 }
 
 /* _data_packet_encode (0x11afa0) — encode a packet's fields from `data` into
- * `encode_state`.  Mirror of FUN_0011b2a0 (decode) in network_messages.c.
+ * `encode_state`.  Mirror of _data_packet_decode (decode) in network_messages.c.
  *
  * Field types drive the encoder helpers:
  *   1 -> raw bytes            FUN_00119cc0(state, src, count,  1)
  *   2 -> 16-bit array         FUN_00119cc0(state, src, count, -2)
  *   3 -> 32-bit array         FUN_00119cc0(state, src, count, -4)
  *   4 -> 64-bit array         FUN_00119cc0(state, src, count, -8)
- *   5 -> string               FUN_0011a230(state, src, count)
+ *   5 -> string               data_encode_string(state, src, count)
  *   6 -> counted byte block   count prefix + raw bytes
  *   7 -> counted struct array count prefix + recursion per element
  *   8 -> raw bytes            same as 1 (separate MSVC block at 0x11b0ba)
@@ -298,7 +298,7 @@ void _data_packet_encode(packet_definition *definition, int *encode_state,
           FUN_00119cc0(encode_state, (int)data_cursor, field[1], -8);
           break;
         case 5:
-          FUN_0011a230(encode_state, data_cursor, field[1]);
+          data_encode_string(encode_state, data_cursor, field[1]);
           break;
         case 6:
           element_count = *(short *)data_cursor;

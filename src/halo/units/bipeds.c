@@ -8,7 +8,7 @@
 #include "../../x87_math.h"
 #include "halo/math/rng_trace.h"
 
-/* FUN_001a01d0 (0x1a01d0)
+/* validate_real_vector3d_axes3 (0x1a01d0)
  *
  * Builds an orthonormal forward/left/up basis (biped_limp_noodle.c:0x217).
  * Each supplied vector is normalized; a zero-length vector is replaced by the
@@ -21,7 +21,7 @@
  * Cross products: left = up x forward, up = forward x left, left = up x forward
  * (operand order transcribed from disassembly).
  */
-void FUN_001a01d0(float *forward, float *left, float *up)
+void validate_real_vector3d_axes3(float *forward, float *left, float *up)
 {
   float lc0;
   float lc1;
@@ -96,7 +96,7 @@ void FUN_001a01d0(float *forward, float *left, float *up)
   }
 }
 
-/* FUN_001a03c0 (0x1a03c0)
+/* biped_limp_noodle_adjust_orientations (0x1a03c0)
  *
  * Biped limp-noodle (ragdoll) node orientation updater.
  * Called once per frame to update the orientation (forward/left/up basis) of
@@ -143,7 +143,7 @@ void FUN_001a01d0(float *forward, float *left, float *up)
  * Inferred: positions[0] is unused (loop body guarded by local_1c != 0).
  * Uncertain: exact semantics of node +0x10 and +0x1c fields.
  */
-void FUN_001a03c0(int unit_handle, int node_count, float *positions,
+void biped_limp_noodle_adjust_orientations(int unit_handle, int node_count, float *positions,
                   void *nodes)
 {
   /* unit_handle passed in EAX; nodes passed in EDI — see kb.json decl.
@@ -240,13 +240,13 @@ void FUN_001a03c0(int unit_handle, int node_count, float *positions,
              * parent_idx*0x34 + nodes + offset at EVERY call site.
              * Reproduce that re-read pattern faithfully. */
 
-            /* First valid_real_vector3d_axes3 / FUN_001a01d0 block */
+            /* First valid_real_vector3d_axes3 / validate_real_vector3d_axes3 block */
             base = nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34;
             axis_ok = valid_real_vector3d_axes3((float *)(base + 0x4),
                                                 (float *)(base + 0x10),
                                                 (float *)(base + 0x1c));
             if (!axis_ok) {
-              FUN_001a01d0((float *)(base + 0x4), (float *)(base + 0x10),
+              validate_real_vector3d_axes3((float *)(base + 0x4), (float *)(base + 0x10),
                            (float *)(base + 0x1c));
             }
 
@@ -277,13 +277,13 @@ void FUN_001a03c0(int unit_handle, int node_count, float *positions,
                                   (int)(*(short *)(elem + 0x24)) * 0x34 +
                                   0x10));
 
-            /* Second valid_real_vector3d_axes3 / FUN_001a01d0 block */
+            /* Second valid_real_vector3d_axes3 / validate_real_vector3d_axes3 block */
             base = nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34;
             axis_ok = valid_real_vector3d_axes3((float *)(base + 0x4),
                                                 (float *)(base + 0x10),
                                                 (float *)(base + 0x1c));
             if (!axis_ok) {
-              FUN_001a01d0((float *)(base + 0x4), (float *)(base + 0x10),
+              validate_real_vector3d_axes3((float *)(base + 0x4), (float *)(base + 0x10),
                            (float *)(base + 0x1c));
               pfx = saved_pfx;
             }
@@ -299,7 +299,7 @@ void FUN_001a03c0(int unit_handle, int node_count, float *positions,
   } while (i < block[0]);
 }
 
-/* FUN_001a0680 (0x1a0680)
+/* biped_limp_noodle_relax_nodes_onto_environment (0x1a0680)
  *
  * Updates biped limp-noodle (ragdoll/physics) node positions. Gets the biped
  * object and its 'bipd' tag, then looks up the 'antr' animation tag via the
@@ -308,7 +308,7 @@ void FUN_001a03c0(int unit_handle, int node_count, float *positions,
  * node step count (byte at biped_obj+0x47c) >= the maximum step count (byte
  * at biped_obj+0x47d); otherwise copies node positions into the scratch buffer
  * at 0x4e49f0, calls FUN_0019fa20 to process limp-noodle physics, calls
- * FUN_001a03c0 to apply the updated positions back, increments the step
+ * biped_limp_noodle_adjust_orientations to apply the updated positions back, increments the step
  * counter (capped at 0x7f), and returns 0.
  *
  * Confirmed: CALL 0x13d680 (object_get_and_verify_type) type 1 (biped).
@@ -318,10 +318,10 @@ void FUN_001a03c0(int unit_handle, int node_count, float *positions,
  * pattern). Confirmed: node stride 0x34 (13 floats), position offset +0x28
  * within node. Confirmed: scratch buffer at 0x4e49f0 (DAT_004e49f0). Confirmed:
  * antr node count at antr+0x68. Confirmed: step counter cap at 0x7f (JNC =
- * unsigned compare). Inferred: FUN_001a03c0 @<eax>=unit_handle,
+ * unsigned compare). Inferred: biped_limp_noodle_adjust_orientations @<eax>=unit_handle,
  * @<edi>=node_block_ptr.
  */
-char FUN_001a0680(int unit_handle)
+char biped_limp_noodle_relax_nodes_onto_environment(int unit_handle)
 {
   char *biped_obj;
   char *bipd_tag;
@@ -364,7 +364,7 @@ char FUN_001a0680(int unit_handle)
 
   FUN_0019fa20(unit_handle, node_block);
   /* @<eax>=unit_handle, node_count, positions=scratch buf, @<edi>=node_block */
-  FUN_001a03c0(unit_handle, *(int *)((char *)antr_tag + 0x68),
+  biped_limp_noodle_adjust_orientations(unit_handle, *(int *)((char *)antr_tag + 0x68),
                (float *)0x4e49f0, node_block);
 
   if (*(unsigned char *)(biped_obj + 0x47c) < 0x7f) {
@@ -612,7 +612,7 @@ void biped_stop_limp_body_physics(int unit_handle)
   *(uint32_t *)(obj + 0x424) = flags424;
 }
 
-/* FUN_001a0a40 (0x1a0a40)
+/* biped_bumped_object (0x1a0a40)
  *
  * Per-frame melee-contact/bump handler for bipeds. Tracks a timer (obj+0x458)
  * and triggers AI bump notification and optional player-unit reassignment.
@@ -647,7 +647,7 @@ void biped_stop_limp_body_physics(int unit_handle)
  * unit_handle)). Confirmed: [EDX+0x64] word = some vehicle-seat type field
  * checked == 0. Inferred: 0xf1 timer value = "reset/cleared" sentinel.
  */
-void FUN_001a0a40(int contact_handle /* @edi */, int unit_handle /* @ebx */,
+void biped_bumped_object(int contact_handle /* @edi */, int unit_handle /* @ebx */,
                   float *velocity_ptr)
 {
   char *obj;
@@ -702,7 +702,7 @@ void FUN_001a0a40(int contact_handle /* @edi */, int unit_handle /* @ebx */,
  * Checks whether a biped is stuck in an unreachable (bad) position and erases
  * it if so. Triggered once per update frame from the biped update loop.
  *
- * Register arg (confirmed from caller FUN_001a6350 at 0x1a6727):
+ * Register arg (confirmed from caller biped_update at 0x1a6727):
  *   @edi  unit_handle  — biped datum handle
  *
  * Conditions to erase (all must hold):
@@ -759,7 +759,7 @@ char FUN_001a0b30(int unit_handle /* @edi */)
   return 0;
 }
 
-/* FUN_001a0be0 (0x1a0be0)
+/* biped_falling_damage (0x1a0be0)
  *
  * Per-frame biped world-boundary check. If the biped falls outside the world
  * or below the kill-volume threshold, applies damage and/or erases the biped.
@@ -796,7 +796,7 @@ char FUN_001a0b30(int unit_handle /* @edi */)
  * Uncertain: exact semantics of obj+0x1b4 bit 0x1000 (possibly "in vehicle" or
  *   "has shield").
  */
-void FUN_001a0be0(float vertical_speed, int unit_handle /* @edi */)
+void biped_falling_damage(float vertical_speed, int unit_handle /* @edi */)
 {
   char *obj;
   char *biped_tag;
@@ -909,7 +909,7 @@ int biped_flying_through_air(int unit_handle)
   return 0;
 }
 
-/* FUN_001a0e00 (0x1a0e00)
+/* biped_start_landing (0x1a0e00)
  *
  * Advances a biped animation/transition phase based on an elapsed-time
  * threshold. The biped tag stores three phase boundaries (in ticks) at
@@ -925,7 +925,7 @@ int biped_flying_through_air(int unit_handle)
  * arg. _ftol2 (0x1d9068) is the MSVC float->int intrinsic — written as (int).
  * Constant 0x2546a4 = seconds-per-tick (1/30); 0x253394 = TICKS_PER_SECOND.
  */
-void FUN_001a0e00(float threshold, int unit_handle)
+void biped_start_landing(float threshold, int unit_handle)
 {
   char *unit_obj;
   char *biped_tag;
@@ -973,7 +973,7 @@ void FUN_001a0e00(float threshold, int unit_handle)
   }
 }
 
-/* FUN_001a0f10 (0x1a0f10)
+/* biped_make_footstep (0x1a0f10)
  *
  * Spawns a biped contact/footstep effect from one entry of the biped tag's
  * contact-point block. Looks up the biped tag ('bipd') from the unit, brackets
@@ -982,34 +982,34 @@ void FUN_001a0e00(float threshold, int unit_handle)
  * (line 0xf60). If the requested contact index (register BX) is in range of the
  * tag's contact-point block at tag+0x4e8 AND the effect tag reference at
  * tag+0x398 is valid (!= -1), and the object's animation/contact gate
- * FUN_0009f3b0(object+0x50) passes, it fetches contact-point element BX
+ * material_effect_visible(object+0x50) passes, it fetches contact-point element BX
  * (element size 0x40), resolves the named marker (name at element+0x20) on the
  * object via object_get_markers_by_string_id (one marker, into a 108-byte
  * result buffer), and on success spawns the effect (tag+0x398) at the marker's
- * world position (buffer+0x60) via FUN_0009f570.
+ * world position (buffer+0x60) via material_effect_new_from_point.
  *
  * Confirmed (disasm): cdecl, 2 stack params [EBP+8]=unit_handle, [EBP+0xc];
  *   index is register-passed in BX (MOVSX EBX,BX at 0x1a0f73 reads BX before
  *   any write; callers 0x1a2440 load EBX immediately before each CALL). void
  *   return. The marker-result buffer is one contiguous region: Ghidra split it
  *   into local_74[96]+local_14[12], but object_get_markers_by_string_id writes
- *   to offset 0x6c (108 bytes) and FUN_0009f570 reads the position at +0x60
+ *   to offset 0x6c (108 bytes) and material_effect_new_from_point reads the position at +0x60
  *   (LEA [EBP-0x70] vs LEA [EBP-0x10] differ by exactly 0x60).
  * Inferred: 'bipd' contact-point footstep-effect spawn semantics from the
  *   tag-block index + effect-tag + marker-position spawn shape.
- * Uncertain: precise meaning of param_2 (forwarded unchanged to FUN_0009f570);
+ * Uncertain: precise meaning of param_2 (forwarded unchanged to material_effect_new_from_point);
  *   callers pass 3 or 4 (region/permutation selector). Layout of the 108-byte
  *   marker-result buffer beyond "transform copy at +0x38..0x6c, position at
  *   +0x60" is opaque (no named struct in headers yet).
  */
-void FUN_001a0f10(int unit_handle, int param_2, short index /* @bx */)
+void biped_make_footstep(int unit_handle, int param_2, short index /* @bx */)
 {
   unsigned int *object;
   int biped_tag;
   int depth;
   void *contact_elem;
   /* One contiguous marker-result buffer. object_get_markers_by_string_id
-   * writes up to offset 0x6c (108 bytes); FUN_0009f570 reads the marker
+   * writes up to offset 0x6c (108 bytes); material_effect_new_from_point reads the marker
    * world position at +0x60. Sized so the MSVC frame totals 0x70 with the
    * 4-byte object pointer (do not split into separate locals). */
   char marker_buf[0x6c];
@@ -1029,12 +1029,12 @@ void FUN_001a0f10(int unit_handle, int param_2, short index /* @bx */)
 
   if (((int)index < *(int *)(biped_tag + 0x4e8)) &&
       (*(int *)(biped_tag + 0x398) != -1)) {
-    if (FUN_0009f3b0((char *)object + 0x50) != false) {
+    if (material_effect_visible((char *)object + 0x50) != false) {
       contact_elem =
         tag_block_get_element((void *)(biped_tag + 0x4e8), (int)index, 0x40);
       if (object_get_markers_by_string_id(
             unit_handle, (char *)contact_elem + 0x20, marker_buf, 1) != 0) {
-        FUN_0009f570(*(int *)(biped_tag + 0x398), param_2, marker_buf + 0x60,
+        material_effect_new_from_point(*(int *)(biped_tag + 0x398), param_2, marker_buf + 0x60,
                      0);
       }
     }
@@ -1554,8 +1554,8 @@ epilogue:
  * Debug-visualization for a biped's camera/aim geometry, gated by two debug
  * globals. When 0x5054fe is set, draws the camera height/offset: if the height
  * offset is at/below the small threshold (0x2533c0), renders a point
- * (FUN_00189540); otherwise scales the world-up vector by the height offset and
- * renders a vector arrow (FUN_00189860). When 0x5054fd is set, fetches the
+ * (render_debug_sphere); otherwise scales the world-up vector by the height offset and
+ * renders a vector arrow (render_debug_pill). When 0x5054fd is set, fetches the
  * autoaim pill (biped_get_autoaim_pill) and renders the axis as an arrow if its
  * squared length exceeds the threshold, else a point. Render context pointers
  * come from [0x2ee6c4] (camera) and [0x2ee6d0] (autoaim).
@@ -1580,9 +1580,9 @@ void biped_render_debug(int unit_handle)
       scaled[0] = height_offset * global_up_vector_ptr[0];
       scaled[1] = height_offset * global_up_vector_ptr[1];
       scaled[2] = height_offset * global_up_vector_ptr[2];
-      FUN_00189860(1, &out_pos, scaled, camera_height, *(void **)0x2ee6c4);
+      render_debug_pill(1, &out_pos, scaled, camera_height, *(void **)0x2ee6c4);
     } else {
-      FUN_00189540(1, &out_pos, camera_height, *(void **)0x2ee6c4);
+      render_debug_sphere(1, &out_pos, camera_height, *(void **)0x2ee6c4);
     }
   }
   if (*(char *)0x5054fd != '\0') {
@@ -1590,14 +1590,14 @@ void biped_render_debug(int unit_handle)
                            (int *)&camera_height);
     if (scaled[2] * scaled[2] + scaled[1] * scaled[1] + scaled[0] * scaled[0] >
         *(float *)0x2533c0) {
-      FUN_00189860(1, &out_pos, scaled, camera_height, *(void **)0x2ee6d0);
+      render_debug_pill(1, &out_pos, scaled, camera_height, *(void **)0x2ee6d0);
       return;
     }
-    FUN_00189540(1, &out_pos, camera_height, *(void **)0x2ee6d0);
+    render_debug_sphere(1, &out_pos, camera_height, *(void **)0x2ee6d0);
   }
 }
 
-/* FUN_001a1a10 (0x1a1a10)
+/* biped_find_ground_surface (0x1a1a10)
  *
  * Casts a collision ray (vector) from the unit's world position along a caller-
  * supplied direction (scaled) and reports the hit. Computes the ray origin as
@@ -1630,7 +1630,7 @@ void biped_render_debug(int unit_handle)
  *   (scale); full layout of the 0x414-byte collision-result buffer beyond the
  *   three fields read here.
  */
-int FUN_001a1a10(float scale, float *out_point, void *out_vec,
+int biped_find_ground_surface(float scale, float *out_point, void *out_vec,
                  float *direction /* @eax */, int unit_handle /* @edi */)
 {
   /* One contiguous collision-result buffer (frame base EBP-0x434). Sized to
@@ -1703,7 +1703,7 @@ int FUN_001a1a10(float scale, float *out_point, void *out_vec,
 
 /* biped_approximate_surface_index (0x1a1b90)
  *
- * Thin wrapper over the biped collision probe (FUN_001a1a10): casts a ray of
+ * Thin wrapper over the biped collision probe (biped_find_ground_surface): casts a ray of
  * length 2.0 from the biped's world position along the global direction vector
  * at [0x31fc50], with no surface-vector output. The keystone's collision-result
  * index is returned unchanged in EAX (-1 = no hit). out_point, when non-NULL,
@@ -1716,7 +1716,7 @@ int FUN_001a1a10(float scale, float *out_point, void *out_vec,
  */
 int biped_approximate_surface_index(int unit_handle, float *out_point)
 {
-  return FUN_001a1a10(2.0f, out_point, (void *)0, *(float **)0x31fc50,
+  return biped_find_ground_surface(2.0f, out_point, (void *)0, *(float **)0x31fc50,
                       unit_handle);
 }
 
@@ -1785,7 +1785,7 @@ int biped_find_pathfinding_surface_index(int unit_handle, vector3_t *pos)
       unit_obj[0x10d] = unit_obj[0x112];
     }
     if (unit_obj[0x10d] == -1) {
-      unit_obj[0x10d] = FUN_001a1a10(2.0f, position, (void *)0,
+      unit_obj[0x10d] = biped_find_ground_surface(2.0f, position, (void *)0,
                                      *(float **)0x31fc50, unit_handle);
     }
     if (unit_obj[0x10d] != -1) {
@@ -1866,13 +1866,13 @@ void biped_exit_seat_end(int unit_handle, int seat_handle)
  * If the probe misses, OR (after fetching the biped's world position) the
  * biped's clearance field (obj+0x20) is small and the vertical drop to the
  * probe point exceeds the physics fall threshold (physics+0x94 squared), it
- * triggers the recovery path FUN_001a74d0(unit_handle, 0).
+ * triggers the recovery path unit_scream(unit_handle, 0).
  *
  * Confirmed (disasm 0x1a1e70): cdecl unit_handle at [EBP+8] (caller 0x1a6350
  * PUSH EDI; ADD ESP,4); object_get_and_verify_type(unit,1); tag_get('bipd');
  * game_time_get; tag_block_get_element(game_globals_get()+0x188, 0, 0x98);
  * keystone direction@<eax>=*(float**)0x31fc50, unit@<edi>, scale=6.0f
- * (0x40c00000); object_get_world_position; FUN_001a74d0(unit,0). Return
+ * (0x40c00000); object_get_world_position; unit_scream(unit,0). Return
  * discarded (void).
  *
  * Inferred: obj+0x20 = clearance/height float; physics+0x94 = fall-distance
@@ -1903,7 +1903,7 @@ void FUN_001a1e70(int unit_handle)
         (int)tag_block_get_element((char *)game_globals_get() + 0x188, 0, 0x98);
       unit_obj[0x114] = game_time;
       dir_ptr = *(float **)0x31fc50;
-      if ((FUN_001a1a10(6.0f, probe_hit, (void *)0, dir_ptr, unit_handle) ==
+      if ((biped_find_ground_surface(6.0f, probe_hit, (void *)0, dir_ptr, unit_handle) ==
            -1) ||
           (object_get_world_position(unit_handle, (vector3_t *)world_pos),
            !(*(float *)((char *)unit_obj + 0x20) > *(float *)0x2533c0) &&
@@ -1912,13 +1912,13 @@ void FUN_001a1e70(int unit_handle)
                 *(float *)((char *)unit_obj + 0x20) *
                     *(float *)((char *)unit_obj + 0x20) +
                   fall_term + fall_term)))) {
-        FUN_001a74d0(unit_handle, 0);
+        unit_scream(unit_handle, 0);
       }
     }
   }
 }
 
-/* FUN_001a1fb0 (0x1a1fb0)
+/* biped_vehicle_speech (0x1a1fb0)
  *
  * Vehicle-rider variant of the stuck/ejection check (mirrors FUN_001a1e70 for a
  * biped riding a vehicle seat). Gates on the vehicle tag flag (vehi+0x17c bit
@@ -1945,7 +1945,7 @@ void FUN_001a1e70(int unit_handle)
  * obj+0x450 recheck timestamp. phys[6..8] = obj+0x18/0x1c/0x20 vehicle
  * velocity.
  */
-void FUN_001a1fb0(int unit_handle /* @eax */)
+void biped_vehicle_speech(int unit_handle /* @eax */)
 {
   int *unit_obj;
   int *vehi_obj;
@@ -1964,7 +1964,7 @@ void FUN_001a1fb0(int unit_handle /* @eax */)
     if ((*(unsigned char *)((char *)vehi_obj + 0x428) > 0x1e) &&
         ((unit_obj[0x114] == -1) || (unit_obj[0x114] + 0xf < game_time))) {
       unit_obj[0x114] = game_time;
-      if (FUN_001a1a10(8.0f, (float *)0, (void *)0, *(float **)0x31fc50,
+      if (biped_find_ground_surface(8.0f, (float *)0, (void *)0, *(float **)0x31fc50,
                        unit_handle) == -1) {
         scaled_vel[0] =
           *(float *)((char *)vehi_obj + 0x18) * *(float *)0x2b4ee4;
@@ -1977,7 +1977,7 @@ void FUN_001a1fb0(int unit_handle /* @eax */)
           ai_communication_event(0x28, unit_handle, -1, -1, -1, -1, 0);
           return;
         }
-        if ((FUN_001a1a10(8.0f, (float *)0, probe_vec, scaled_vel,
+        if ((biped_find_ground_surface(8.0f, (float *)0, probe_vec, scaled_vel,
                           unit_handle) == -1) ||
             (*(float *)&probe_vec[2] <= *(float *)0x2533e4)) {
           ai_communication_event(0x28, unit_handle, -1, -1, -1, -1, 0);
@@ -2062,7 +2062,7 @@ void FUN_001a2160(int unit_handle)
   }
 }
 
-/* FUN_001a2290 (0x1a2290)
+/* biped_jump (0x1a2290)
  *
  * Attempts to make a biped "jump"/launch along its up axis. Skips if already
  * launched (unit+0x424 bit0) or in a blocking state (unit+0x460 == 1). Computes
@@ -2077,7 +2077,7 @@ void FUN_001a2160(int unit_handle)
  * Confirmed offsets/calls from disassembly; max-speed denom uses arg reuse
  * (game_globals_get(0,0xf4) shares its 0/0xf4 with tag_block_get_element).
  */
-char FUN_001a2290(int unit_handle)
+char biped_jump(int unit_handle)
 {
   char *unit_obj;
   char *biped_tag;
@@ -2148,16 +2148,16 @@ char FUN_001a2290(int unit_handle)
   *(int *)(unit_obj + 0x424) |= 1;
   *(unsigned char *)(unit_obj + 0x45c) = zero_idx;
   *(int *)(unit_obj + 0x430) = -1;
-  FUN_001a0f10(unit_handle, 4, 0);
-  FUN_001a0f10(unit_handle, 4, 1);
+  biped_make_footstep(unit_handle, 4, 0);
+  biped_make_footstep(unit_handle, 4, 1);
     return success;
   }
   return (char)zero_idx;
 }
 
-/* FUN_001a2440 (0x1a2440) — per-tick footstep / animation-marker event step
+/* biped_try_to_make_footsteps (0x1a2440) — per-tick footstep / animation-marker event step
  *
- * Step in the biped update dispatcher (FUN_001a6350). Classifies the biped's
+ * Step in the biped update dispatcher (biped_update). Classifies the biped's
  * movement state (object+0x253):
  *   - states 2,3  -> walking (is_walking)
  *   - states 4..7 -> moving fast enough if horizontal velocity squared
@@ -2182,9 +2182,9 @@ char FUN_001a2290(int unit_handle)
  * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd',...)
  * and tag_get('antr', object+0x7c); tag_block_get_element(antr+0x74, idx,
  * 0xb4); jump table at 0x1a25c0 (states 2..7); velocity sum-of-squares vs
- * 0x25337c; FUN_001a0f10(unit, param_2, idx) idx routed to BX.
+ * 0x25337c; biped_make_footstep(unit, param_2, idx) idx routed to BX.
  */
-void FUN_001a2440(int unit_handle /* @edi */)
+void biped_try_to_make_footsteps(int unit_handle /* @edi */)
 {
   unsigned int *object;
   char *anim_elem;
@@ -2224,8 +2224,8 @@ void FUN_001a2440(int unit_handle /* @edi */)
       anim_elem + 0x74, (int)*(short *)((int)object + 0x80), 0xb4);
     if (is_walking) {
       if (*(short *)((int)object + 0x82) == 0) {
-        FUN_001a0f10(unit_handle, 3, 0);
-        FUN_001a0f10(unit_handle, 3, 1);
+        biped_make_footstep(unit_handle, 3, 0);
+        biped_make_footstep(unit_handle, 3, 1);
       }
     } else if (is_fast && ((anim_elem[0x40] != 0) || (anim_elem[0x41] != 0)) &&
                ((*(short *)((int)object + 0x82) ==
@@ -2234,7 +2234,7 @@ void FUN_001a2440(int unit_handle /* @edi */)
                  (unsigned char)anim_elem[0x41]))) {
       matched_second =
         (*(short *)((int)object + 0x82) != (unsigned char)anim_elem[0x40]);
-      FUN_001a0f10(unit_handle, (*(char *)((int)object + 0x257) == 2),
+      biped_make_footstep(unit_handle, (*(char *)((int)object + 0x257) == 2),
                    matched_second);
     }
   }
@@ -2249,8 +2249,8 @@ void FUN_001a2440(int unit_handle /* @edi */)
     if (counter < 4) {
       return;
     }
-    FUN_001a0f10(unit_handle, 3, 0);
-    FUN_001a0f10(unit_handle, 3, 1);
+    biped_make_footstep(unit_handle, 3, 0);
+    biped_make_footstep(unit_handle, 3, 1);
     break;
   case 1:
     *(char *)((int)object + 0x45b) = 1;
@@ -2382,7 +2382,7 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
   *(int16_t *)0x4761d8 = (int16_t)(*(int16_t *)0x4761d8 - 1);
 }
 
-/* FUN_001a2800 (0x1a2800)
+/* biped_verify_object_vectors (0x1a2800)
  *
  * Biped vector-failure assert: validates that the biped's forward axis
  * (unit+0x24) and up axis (unit+0x30) are perpendicular unit vectors
@@ -2399,7 +2399,7 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
  * bipeds.c:0x55d. Inferred: "vector failure" / mode-string semantics from the
  * format string.
  */
-void FUN_001a2800(int unit_handle /* @eax */, const char *failure_kind)
+void biped_verify_object_vectors(int unit_handle /* @eax */, const char *failure_kind)
 {
   char *unit_obj;
   char *biped_tag;
@@ -2446,9 +2446,9 @@ void FUN_001a2800(int unit_handle /* @eax */, const char *failure_kind)
   }
 }
 
-/* FUN_001a2900 (0x1a2900) — post-airborne update step
+/* biped_update_airborne (0x1a2900) — post-airborne update step
  *
- * Step in the biped update dispatcher (FUN_001a6350), reached when the biped
+ * Step in the biped update dispatcher (biped_update), reached when the biped
  * is airborne (object+0x424 bit 0). When the biped is flying through the air
  * (biped_flying_through_air) and the tag allows airborne aiming control
  * (tag+0x2f4 bit 8 / 0x100), and the movement state (object+0x253) is neither
@@ -2474,7 +2474,7 @@ void FUN_001a2800(int unit_handle /* @eax */, const char *failure_kind)
  * vector3d_from_angle (0x10cc70); vector3d_scale_add (0x12f80) into
  * object+0x3c.
  */
-void FUN_001a2900(int unit_handle, char *state)
+void biped_update_airborne(int unit_handle, char *state)
 {
   unsigned int *object;
   int biped_tag;
@@ -2521,29 +2521,29 @@ void FUN_001a2900(int unit_handle, char *state)
     *state = 0x14;
   }
 
-  FUN_001a2800(unit_handle, "post-airborne");
+  biped_verify_object_vectors(unit_handle, "post-airborne");
 }
 
-/* FUN_001a2a60 (0x1a2a60) — post-landing update step
+/* biped_update_landing (0x1a2a60) — post-landing update step
  *
- * Step in the biped update dispatcher (FUN_001a6350), reached when the biped
+ * Step in the biped update dispatcher (biped_update), reached when the biped
  * has a landing-animation index (object+0x460 != NONE). Increments the
  * landing-frame counter (object+0x428); once it reaches the landing frame
  * count (object+0x429) the landing animation index (object+0x460) is cleared
  * to NONE (0xffff). When no cinematic is running and the landing has just
  * begun (counter == 2) or is effectively a one-frame landing (index already
  * cleared and frame count < 2), fires two collision-user events via
- * FUN_001a0f10 with selector indices 0 then 1 (param_2 = 5). Writes the
+ * biped_make_footstep with selector indices 0 then 1 (param_2 = 5). Writes the
  * resulting landing-sound id into *state (0x16 if index == 1, else 0x15) and
- * emits the "post-landing" timing marker via FUN_001a2800.
+ * emits the "post-landing" timing marker via biped_verify_object_vectors.
  *
  * unit_handle arrives in EDI (register parameter); state is the only stack
  * argument (caller pushes &update_state byte).
  *
  * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd',...);
- * cinematic_in_progress (0x930a0); FUN_001a0f10(unit, 5, idx) idx->BX (0,1).
+ * cinematic_in_progress (0x930a0); biped_make_footstep(unit, 5, idx) idx->BX (0,1).
  */
-void FUN_001a2a60(int unit_handle /* @edi */, char *state)
+void biped_update_landing(int unit_handle /* @edi */, char *state)
 {
   unsigned char *object;
   char counter;
@@ -2560,24 +2560,24 @@ void FUN_001a2a60(int unit_handle /* @edi */, char *state)
   if ((cinematic_in_progress() == 0) &&
       (((char)object[0x428] == 2) ||
        ((*(short *)(object + 0x460) == -1) && ((char)object[0x429] < 2)))) {
-    FUN_001a0f10(unit_handle, 5, 0);
-    FUN_001a0f10(unit_handle, 5, 1);
+    biped_make_footstep(unit_handle, 5, 0);
+    biped_make_footstep(unit_handle, 5, 1);
   }
 
   *state = (char)((*(short *)(object + 0x460) == 1) + 0x15);
-  FUN_001a2800(unit_handle, "post-landing");
+  biped_verify_object_vectors(unit_handle, "post-landing");
 }
 
 /* FUN_001a2b10 (0x1a2b10) — post-slipping update step
  *
- * Step in the biped update dispatcher (FUN_001a6350). If the biped's slipping
+ * Step in the biped update dispatcher (biped_update). If the biped's slipping
  * counter (object+0x45a) has exceeded 3 ticks AND the object's linear velocity
  * magnitude squared (object+0x18..0x20) exceeds the "moving" threshold at
- * 0x25620c (== 1/900), fires two collision-user events via FUN_001a0f10 with
+ * 0x25620c (== 1/900), fires two collision-user events via biped_make_footstep with
  * selector indices 0 then 1 (param_2 = 2). Always emits the "post-slipping"
- * timing marker via FUN_001a2800.
+ * timing marker via biped_verify_object_vectors.
  *
- * unit_handle arrives in EDI (register parameter). The caller (FUN_001a6350)
+ * unit_handle arrives in EDI (register parameter). The caller (biped_update)
  * also pushes a pointer to its update-state byte buffer, but this function
  * never reads it; it is not declared as a parameter because the original is
  * frameless (no EBP frame, no stack-arg load) — the caller's cdecl push and
@@ -2585,7 +2585,7 @@ void FUN_001a2a60(int unit_handle /* @edi */, char *state)
  *
  * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd',...);
  * velocity sum-of-squares at +0x18/+0x1c/+0x20 vs threshold 0x25620c;
- * FUN_001a0f10(unit, 2, idx) with idx routed to BX (0 then 1).
+ * biped_make_footstep(unit, 2, idx) with idx routed to BX (0 then 1).
  */
 void FUN_001a2b10(int unit_handle /* @edi */)
 {
@@ -2600,20 +2600,20 @@ void FUN_001a2b10(int unit_handle /* @edi */)
       (velocity[2] * velocity[2] + velocity[1] * velocity[1] +
          velocity[0] * velocity[0] >
        *(float *)0x25620c)) {
-    FUN_001a0f10(unit_handle, 2, 0);
-    FUN_001a0f10(unit_handle, 2, 1);
+    biped_make_footstep(unit_handle, 2, 0);
+    biped_make_footstep(unit_handle, 2, 1);
   }
 
-  FUN_001a2800(unit_handle, "post-slipping");
+  biped_verify_object_vectors(unit_handle, "post-slipping");
 }
 
-/* FUN_001a2b90 (0x1a2b90) — airborne aim / landing-rumble update step
+/* biped_update_jumping (0x1a2b90) — airborne aim / landing-rumble update step
  *
  * Step in the biped update dispatcher (FUN_001a5300). When the biped is not
  * yet airborne (object+0x424 bit 0 clear) and its landing index (object+0x460)
  * isn't 1, advances the airborne-frame counter (object+0x45c, capped at 0x7f);
  * if the biped has the relevant control flag (object+0x1b8 bit 1) and the
- * counter exceeds 5, runs FUN_001a2290.
+ * counter exceeds 5, runs biped_jump.
  *
  * If a controlling unit (player) is bound (global 0x5aa891 set, object+0x1c8 is
  * a valid datum) it fetches the player record (datum_get) and, depending on
@@ -2635,11 +2635,11 @@ void FUN_001a2b10(int unit_handle /* @edi */)
  * update-state pointer, but this function never reads it.
  *
  * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd',...);
- * FUN_001a2290 (@edi=unit_handle); datum_get(0x5aa6d4, object+0x1c8);
+ * biped_jump (@edi=unit_handle); datum_get(0x5aa6d4, object+0x1c8);
  * FUN_00013070 dot/angle of object+0x18 and object+0x1ec; vector3d_scale_add
  * (0x12f80) x3; FUN_00012fb0 damp; csmemset+rumble_player_impulse (0xb9bc0).
  */
-void FUN_001a2b90(int unit_handle /* @eax */)
+void biped_update_jumping(int unit_handle /* @eax */)
 {
   unsigned int *object;
   int player;
@@ -2662,7 +2662,7 @@ void FUN_001a2b90(int unit_handle /* @eax */)
     }
     if (((*(unsigned char *)((int)object + 0x1b8) & 2) != 0) &&
         (*(char *)((int)object + 0x45c) > 5)) {
-      FUN_001a2290(unit_handle);
+      biped_jump(unit_handle);
     }
   }
 
@@ -3860,7 +3860,7 @@ LAB_001a4062_done:
   (void)fdist;
 }
 
-/* FUN_001a4990 (0x1a4990)
+/* biped_new (0x1a4990)
  *
  * Biped unit callback referenced from a function-pointer table at DATA
  * 0x323d6c. Loads the biped tag, restores four default float constants
@@ -3890,9 +3890,9 @@ LAB_001a4062_done:
  *   return value of 1.
  * Uncertain: exact semantics of the +0x42b/+0x42c/+0x444/+0x448/+0x44c
  *   fields and of the return value (bool success vs. dispatch-table
- *   convention); no strong naming evidence yet, kept as FUN_001a4990.
+ *   convention); no strong naming evidence yet, kept as biped_new.
  */
-char FUN_001a4990(int unit_handle)
+char biped_new(int unit_handle)
 {
   char *unit_obj;
   char *biped_tag;
@@ -3929,23 +3929,23 @@ char FUN_001a4990(int unit_handle)
   return 1;
 }
 
-/* FUN_001a4a50 (0x1a4a50) — "preprocess-nodes" timing marker
+/* biped_preprocess_node_orientations (0x1a4a50) — "preprocess-nodes" timing marker
  *
  * One-instruction-body wrapper: loads its cdecl stack argument into EAX and
- * tail-calls FUN_001a2800(unit_handle@eax, "preprocess-nodes"). Same family
+ * tail-calls biped_verify_object_vectors(unit_handle@eax, "preprocess-nodes"). Same family
  * as the "post-airborne"/"post-landing"/"post-slipping" markers above, but
  * unlike those (which take unit_handle in a register from a frameless
  * caller), this one has a normal EBP frame and reads unit_handle from
  * [EBP+8] -- confirmed by disassembly (PUSH EBP; MOV EBP,ESP; MOV
- * EAX,[EBP+8]; PUSH "preprocess-nodes"; CALL FUN_001a2800). No callers are
+ * EAX,[EBP+8]; PUSH "preprocess-nodes"; CALL biped_verify_object_vectors). No callers are
  * present in the current evidence bundle (xrefs_to empty); kb.json's prior
  * void(void) decl did not match the observed stack read, corrected here to
  * a single int parameter to match the evidence.
  *
  * Confirmed: MOV EAX,[EBP+8]; PUSH 0x2b5160 ("preprocess-nodes"); CALL
- * FUN_001a2800(unit_handle@eax, failure_kind).
+ * biped_verify_object_vectors(unit_handle@eax, failure_kind).
  */
-void FUN_001a4a50(int unit_handle)
+void biped_preprocess_node_orientations(int unit_handle)
 {
-  FUN_001a2800(unit_handle, "preprocess-nodes");
+  biped_verify_object_vectors(unit_handle, "preprocess-nodes");
 }

@@ -44,7 +44,7 @@ bool shell_initialize(void)
     tag_files_close();
     real_math_initialize();
     game_state_lruv_cache_new();
-    result = rasterizer_window_set_fog();
+    result = rasterizer_initialize();
     if (result) {
       input_initialize();
       sound_initialize();
@@ -76,7 +76,7 @@ void shell_dispose(void)
 {
   FUN_001cb820();
   FUN_000cf490();
-  rasterizer_dynamic_screen_geometry_draw();
+  rasterizer_dispose();
   real_math_dispose();
   tag_groups_checksum();
   errors_dispose();
@@ -186,7 +186,7 @@ bool FUN_001911b0(void)
                                                    launch_data) == 0) &&
       (launch_data_type == 0)) {
     if (csstrcmp(launch_data, "XDEMOS") == 0) {
-      csstrcat((char *)0x4d8a88, "xdemo ", 7);
+      csstrncat((char *)0x4d8a88, "xdemo ", 7);
       *(char *)0x4d8a8f = 0;
     }
   }

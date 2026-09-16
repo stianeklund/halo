@@ -1,7 +1,7 @@
 #include "x87_math.h"
 
 /* 0xa3e60 */
-void *FUN_000a3e60(int16_t local_player_index /* @<esi> */)
+void *weather_particle_system_get(int16_t local_player_index /* @<esi> */)
 {
   assert_halt_msg_at("local_player_index>=0 && "
                      "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
@@ -14,7 +14,7 @@ void *FUN_000a3e60(int16_t local_player_index /* @<esi> */)
 }
 
 /* 0xa3ea0 */
-void *FUN_000a3ea0(void *weather_particle_system /* @<edi> */,
+void *weather_particle_system_get_type(void *weather_particle_system /* @<edi> */,
                    int16_t type_index /* @<esi> */)
 {
   void *definition;
@@ -76,7 +76,7 @@ void weather_particle_systems_dispose(void)
  * camera). FUN_001daf7e == _CIfmod / C fmod (x87 FPREM w/ C2-reduction
  * loop) -- see x87_fmod / lift-learnings for why this is NOT the FPREM1
  * xbox_fmod macro. */
-void FUN_000a4000(float *vector_out /* @<edi> */, float *vector_in /* @<esi> */,
+void weather_particle_system_wrap_point(float *vector_out /* @<edi> */, float *vector_in /* @<esi> */,
                   float extent)
 {
   float wrap_bias;
@@ -107,7 +107,7 @@ void FUN_000a4000(float *vector_out /* @<edi> */, float *vector_in /* @<esi> */,
 }
 
 /* 0xa40a0 */
-void FUN_000a40a0(int16_t local_player_index, int particle_system_tag_index,
+void weather_particle_system_new(int16_t local_player_index, int particle_system_tag_index,
                   float scale)
 {
   char *weather_particle_system;
@@ -169,7 +169,7 @@ void FUN_000a40a0(int16_t local_player_index, int particle_system_tag_index,
   }
 }
 
-void FUN_000a4200(int16_t local_player_index)
+void weather_particle_system_delete(int16_t local_player_index)
 {
   char *weather_particle_system;
   void *definition;
@@ -226,7 +226,7 @@ void FUN_000a4200(int16_t local_player_index)
  * allocates a datum, randomizes position/direction/scale/color/rotation from
  * the type definition's ranges, then push-fronts it on the per-type particle
  * list. Returns the new particle handle, or NONE when the pool is full. */
-int FUN_000a4310(int16_t type_index /* @<eax> */,
+int weather_particle_system_new_particle(int16_t type_index /* @<eax> */,
                  int16_t local_player_index /* @<ecx> */)
 {
   char *weather_particle_system;
@@ -252,7 +252,7 @@ int FUN_000a4310(int16_t type_index /* @<eax> */,
 
     weather_particle_system = (char *)0x4557f4 + (int)local_player_index * 0x9c;
     definition = tag_get(0x7261696e, *(int *)weather_particle_system);
-    particle_type = (char *)FUN_000a3ea0(weather_particle_system, type_index);
+    particle_type = (char *)weather_particle_system_get_type(weather_particle_system, type_index);
     type_element = tag_block_get_element((void *)((char *)definition + 0x24),
                                          (int)type_index, 0x25c);
     particle = (char *)datum_get(weather_particle_system_data, particle_handle);
@@ -309,7 +309,7 @@ int FUN_000a4310(int16_t type_index /* @<eax> */,
     }
 
     sequence_index =
-      random_range(random_math_get_local_seed_address(), 0,
+      seed_random_range(random_math_get_local_seed_address(), 0,
                    (int16_t)*(uint16_t *)(bitmap + 0x54));
     *(int16_t *)(particle + 0x28) = sequence_index;
     sequence_element =
@@ -318,7 +318,7 @@ int FUN_000a4310(int16_t type_index /* @<eax> */,
       random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
                         (float)*(int *)((char *)sequence_element + 0x34));
 
-    FUN_0007c270((float *)(particle + 0x38),
+    rgb_colors_interpolate((float *)(particle + 0x38),
                  *(uint32_t *)((char *)type_element + 0x20),
                  (float *)((char *)type_element + 0x138),
                  (float *)((char *)type_element + 0x148),
@@ -338,12 +338,12 @@ int FUN_000a4310(int16_t type_index /* @<eax> */,
 }
 
 /* 0xa45d0 */
-/* Wraps `vector_in` into [0, extent) via FUN_000a4000, then rewrites
+/* Wraps `vector_in` into [0, extent) via weather_particle_system_wrap_point, then rewrites
  * `vector_out` as the offset from the wrapped point back to the input. */
-void FUN_000a45d0(float *vector_out /* @<eax> */, float *vector_in /* @<ecx> */,
+void weather_particle_system_box_offset_from_point3d(float *vector_out /* @<eax> */, float *vector_in /* @<ecx> */,
                   float extent)
 {
-  FUN_000a4000(vector_out, vector_in, extent);
+  weather_particle_system_wrap_point(vector_out, vector_in, extent);
   vector_out[0] = vector_in[0] - vector_out[0];
   vector_out[1] = vector_in[1] - vector_out[1];
   vector_out[2] = vector_in[2] - vector_out[2];
@@ -361,7 +361,7 @@ void FUN_000a45d0(float *vector_out /* @<eax> */, float *vector_in /* @<ecx> */,
  * not an operand-order or FSUB-direction bug. The ref also reads
  * local_direction back out of EAX after random_seed_get_direction3d, which
  * returns void; we address the array directly instead (lift-learnings 16). */
-void FUN_000a4610(int16_t type_index /* @<eax> */,
+void weather_particle_update_physics(int16_t type_index /* @<eax> */,
                   int16_t local_player_index /* @<ecx> */,
                   int16_t particle_index)
 {
@@ -466,7 +466,7 @@ void FUN_000a4610(int16_t type_index /* @<eax> */,
   position[1] = local_direction[1] * *(float *)0x255ef8 + position[1];
   position[2] = local_direction[2] * *(float *)0x255ef8 + position[2];
 
-  FUN_000a4000(position, position, *(float *)(particle_type + 4));
+  weather_particle_system_wrap_point(position, position, *(float *)(particle_type + 4));
 }
 
 /* 0xa48c0 */
@@ -474,7 +474,7 @@ void FUN_000a4610(int16_t type_index /* @<eax> */,
  * from the global camera state, stores the forward vector at +0x40, and at
  * +0x4c the plane distance dot(camera_position + forward*clip_distance,
  * forward). */
-void FUN_000a48c0(void *planes /* @<ecx> */, float clip_distance)
+void weather_particle_system_build_clipping_planes(void *planes /* @<ecx> */, float clip_distance)
 {
   float *plane_block;
   float *forward;
@@ -521,7 +521,7 @@ void FUN_000a48c0(void *planes /* @<ecx> */, float clip_distance)
 }
 
 /* 0xa4a00 */
-int16_t FUN_000a4a00(int *visible_indices, float range)
+int16_t weather_polyhedra_find(int *visible_indices, float range)
 {
   char *scenario;
   int *weather_polyhedra;
@@ -565,7 +565,7 @@ int16_t FUN_000a4a00(int *visible_indices, float range)
 }
 
 /* 0xa4ab0 */
-void FUN_000a4ab0(int16_t local_player_index, int16_t type_index /* @<eax> */,
+void weather_particle_system_update_particle_count(int16_t local_player_index, int16_t type_index /* @<eax> */,
                   float scale)
 {
   char *weather_particle_system;
@@ -613,7 +613,7 @@ void FUN_000a4ab0(int16_t local_player_index, int16_t type_index /* @<eax> */,
 
   current_count = *(int16_t *)(particle_type + 8);
   while (current_count < target_count) {
-    particle_handle = FUN_000a4310(type_index, local_player_index);
+    particle_handle = weather_particle_system_new_particle(type_index, local_player_index);
     if (particle_handle == -1)
       break;
     current_count = *(int16_t *)(particle_type + 8);
@@ -637,7 +637,7 @@ void FUN_000a4ab0(int16_t local_player_index, int16_t type_index /* @<eax> */,
  * clock, then for every particle type spawns new particles at a rate faded by
  * the camera's height band, and steps each live particle's bitmap sequence,
  * rotation, and physics. */
-void FUN_000a4be0(int16_t local_player_index)
+void weather_particle_system_update(int16_t local_player_index)
 {
   char *weather_particle_system;
   char *particle_type;
@@ -712,7 +712,7 @@ void FUN_000a4be0(int16_t local_player_index)
       else if (far_fade > 1.0f)
         far_fade = 1.0f;
 
-      FUN_000a4ab0(local_player_index, type_index,
+      weather_particle_system_update_particle_count(local_player_index, type_index,
                    (1.0f - far_fade) *
                      (*(float *)(weather_particle_system + 0xc) * near_fade));
 
@@ -746,7 +746,7 @@ void FUN_000a4be0(int16_t local_player_index)
               *(float *)(weather_particle_system + 8) +
             *(float *)(particle + 0x30);
 
-          FUN_000a4610(type_index, local_player_index,
+          weather_particle_update_physics(type_index, local_player_index,
                        (int16_t)particle_handle);
 
           particle_handle = *(int *)(particle + 0x50);
@@ -822,7 +822,7 @@ void weather_particle_system_render(int16_t local_player_index /* @<eax> */)
   weather_particle_system = (char *)0x4557f4 + (int)local_player_index * 0x9c;
   definition = (char *)tag_get(0x7261696e, *(int *)weather_particle_system);
   scenario = (char *)scenario_get();
-  FUN_000a4be0(local_player_index);
+  weather_particle_system_update(local_player_index);
 
   particle_types = (int *)(definition + 0x24);
   for (type_index = 0; (int)type_index < *particle_types; ++type_index) {
@@ -833,9 +833,9 @@ void weather_particle_system_render(int16_t local_player_index /* @<eax> */)
       continue;
 
     visible_polyhedron_count =
-      FUN_000a4a00((int *)visible_polyhedra, *(float *)(particle_type + 4));
-    FUN_000a48c0(camera_planes, *(float *)(particle_type + 4));
-    FUN_000a4000(box_position[0], (float *)0x506550,
+      weather_polyhedra_find((int *)visible_polyhedra, *(float *)(particle_type + 4));
+    weather_particle_system_build_clipping_planes(camera_planes, *(float *)(particle_type + 4));
+    weather_particle_system_wrap_point(box_position[0], (float *)0x506550,
                  *(float *)(particle_type + 4));
 
     /* Snap the camera down to the extent grid: box 0's origin. */

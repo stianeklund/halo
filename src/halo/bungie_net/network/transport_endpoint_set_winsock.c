@@ -131,7 +131,7 @@ __declspec(noinline) bool transport_nonce_is_equal(const void *src,
  * ESP,8 at 0x81ffc).
  *
  * The result is RETURNED, not discarded: nothing between the CALL and the RET
- * touches EAX, and the sole caller (0x1272c1 in FUN_00127260) does TEST AL,AL
+ * touches EAX, and the sole caller (0x1272c1 in network_game_client_handle_message_server_game_advertise) does TEST AL,AL
  * / JE at 0x1272c9 on the value, so this is a bool-in-AL return.
  *
  * Uncertain: the name is behavioural only — no string or symbol in the binary
@@ -879,7 +879,7 @@ int FUN_00082a30(int endpoint_set)
  *
  * Uncertain: the reference ends with XOR AX,AX before the epilogue, i.e. it
  * materializes a 16-bit zero in the return register.  The single caller
- * (0x12ef51 in FUN_0012eef0) ignores it and no other evidence types the
+ * (0x12ef51 in network_game_server_create) ignores it and no other evidence types the
  * result, so the kb.json declaration is left as void and that one instruction
  * is not reproduced.  The two locals are untyped blobs; no field of either is
  * read here, so no struct is invented for them.

@@ -574,7 +574,7 @@ void profile_frame_get_messages(void *iterator)
  * 0x1128 -- same ring profile_frame_end's qmemcpy writes and
  * profile_frame_iterator_next indexes). Entry+0x111c (word) goes to
  * *out_a, entry+0x1120 (dword) goes to *out_b, and entry+0x1118 (dword)
- * is the return value. Only caller: FUN_000df4e0 (unlifted); field
+ * is the return value. Only caller: render_debug_profile (unlifted); field
  * meanings beyond their offsets are unconfirmed -- "stalls" is the
  * auto-lift-assigned name, not source/PDB evidence. */
 int32_t profile_frame_get_stalls(void *iterator, int16_t *out_a, int32_t *out_b)

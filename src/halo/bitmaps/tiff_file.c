@@ -9,7 +9,7 @@ bool tiff_get_bounds(file_ref_t *info, int *width_out, int *height_out)
   if (tiff != 0) {
     TIFFGetField(tiff, 0x100, width_out);
     TIFFGetField(tiff, 0x101, height_out);
-    FUN_00064ee0(tiff);
+    TIFFClose(tiff);
     ok = 1;
   }
   return ok;
@@ -58,7 +58,7 @@ const char *tiff_export(file_ref_t *info, __int16 *bitmap)
 
   tiff = FUN_0006d8e0(file_reference_get_name(info, 0xd, path), "w");
   if (tiff != 0) {
-    tiff_format = bitmap_format_bits_per_pixel(tiff_format);
+    tiff_format = bitmap_format_get_bits_per_pixel(tiff_format);
     row_size = (unsigned int)(short)((int)tiff_format * (int)bitmap[2] / 8);
     row_buffer = (uint8_t *)debug_malloc(
       row_size, 0, "c:\\halo\\SOURCE\\bitmaps\\tiff_file.c", 0x6b);
@@ -174,11 +174,11 @@ const char *tiff_export(file_ref_t *info, __int16 *bitmap)
       }
 
       debug_free(row_buffer, "c:\\halo\\SOURCE\\bitmaps\\tiff_file.c", 0xe7);
-      FUN_00064ee0(tiff);
+      TIFFClose(tiff);
       return error_message;
     }
     error_message = "out of memory";
-    FUN_00064ee0(tiff);
+    TIFFClose(tiff);
     return error_message;
   }
   return "failed to open tiff";
@@ -375,20 +375,20 @@ const char *tiff_import(file_ref_t *info, void **bitmap_out,
                 if (row_buffer != NULL)
                   debug_free(row_buffer,
                              "c:\\halo\\SOURCE\\bitmaps\\tiff_file.c", 0x1a6);
-                FUN_00064ee0(tiff);
+                TIFFClose(tiff);
                 return error_message;
               }
               error_message = "TIFF too large";
-              FUN_00064ee0(tiff);
+              TIFFClose(tiff);
               return error_message;
             }
             error_message =
               "unsupported TIFF photometric, planar configuration";
-            FUN_00064ee0(tiff);
+            TIFFClose(tiff);
             return error_message;
           }
           error_message = "unsupported format";
-          FUN_00064ee0(tiff);
+          TIFFClose(tiff);
           return error_message;
         }
         snprintf((char *)0x334580, 0x200,
@@ -396,11 +396,11 @@ const char *tiff_import(file_ref_t *info, void **bitmap_out,
                  (unsigned int)(unsigned short)bits_per_sample,
                  (unsigned int)(unsigned short)samples_per_pixel);
         error_message = (const char *)0x334580;
-        FUN_00064ee0(tiff);
+        TIFFClose(tiff);
         return error_message;
       }
       error_message = "unsupported TIFF orientation (must be top left)";
-      FUN_00064ee0(tiff);
+      TIFFClose(tiff);
       return error_message;
     }
     return "not a TIFF file";

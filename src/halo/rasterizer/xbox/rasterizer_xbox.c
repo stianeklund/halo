@@ -1,11 +1,11 @@
 /*
- * FUN_00155350 @ 0x155350 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_Present @ 0x155350 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::Present: pDummy2/pDummy1/pDestPointsArray arrive in
  * EAX/ECX/EDX, the device argument (s1) is ignored and pSourceRectsArray
  * (s2) is on the stack. Returns S_OK. No direct call sites; RET 0x8.
  */
 /* 0x155350 */
-int FUN_00155350(int r1, int r2, int r3, int s1, int s2)
+int IDirect3DDevice8_Present(int r1, int r2, int r3, int s1, int s2)
 {
   (void)s1;
   D3DDevice_Present((void *)s2, (void *)r3, (void *)r2, (void *)r1);
@@ -13,14 +13,14 @@ int FUN_00155350(int r1, int r2, int r3, int s1, int s2)
 }
 
 /*
- * FUN_00155380 @ 0x155380 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_CreateTexture_0 @ 0x155380 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::CreateTexture: format/pool/ppTexture arrive in
  * EDX/ECX/EAX, the device argument (s1) is ignored, width/height/levels/
  * usage (s2-s5) are on the stack. EAX passes through from the callee (no
  * explicit return). No direct call sites; RET 0x14.
  */
 /* 0x155380 */
-void FUN_00155380(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
+void IDirect3DDevice8_CreateTexture_0(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
                   int s5)
 {
   (void)s1;
@@ -28,14 +28,14 @@ void FUN_00155380(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
 }
 
 /*
- * FUN_001553a0 @ 0x1553a0 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_CreateVolumeTexture_0 @ 0x1553a0 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::CreateVolumeTexture: format/pool/ppVolumeTexture in
  * EDX/ECX/EAX, device (s1) ignored, width/height/depth/levels/usage
  * (s2-s6) on the stack. EAX passes through from the callee. No direct
  * call sites; RET 0x18.
  */
 /* 0x1553a0 */
-void FUN_001553a0(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
+void IDirect3DDevice8_CreateVolumeTexture_0(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
                   int s5, int s6)
 {
   (void)s1;
@@ -43,21 +43,21 @@ void FUN_001553a0(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
 }
 
 /*
- * FUN_001553d0 @ 0x1553d0 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_CreateCubeTexture_0 @ 0x1553d0 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::CreateCubeTexture: format/pool/ppCubeTexture in
  * EDX/ECX/EAX, device (s1) ignored, edge_length/levels/usage (s2-s4) on
  * the stack. EAX passes through from the callee. No direct call sites;
  * RET 0x10.
  */
 /* 0x1553d0 */
-void FUN_001553d0(int r1, int r2, int r3, int s1, int s2, int s3, int s4)
+void IDirect3DDevice8_CreateCubeTexture_0(int r1, int r2, int r3, int s1, int s2, int s3, int s4)
 {
   (void)s1;
   D3DDevice_CreateCubeTexture(s2, s3, s4, r3, r2, (void *)r1);
 }
 
 /*
- * rasterizer_preinitialize (0x1553f0)
+ * rasterizer_preinitialize__fill_you_up_with_the_devils_cock (0x1553f0)
  *
  * Creates the IDirect3D8 object and performs a probe CreateDevice call to
  * verify that D3D hardware is usable.  The device is created with a fixed
@@ -120,7 +120,7 @@ typedef struct {
 #pragma pack(pop)
 
 /* 0x1553f0 */
-char rasterizer_preinitialize(void)
+char rasterizer_preinitialize__fill_you_up_with_the_devils_cock(void)
 {
   d3d_present_parameters_t d3dpp;
   char success;
@@ -148,7 +148,7 @@ char rasterizer_preinitialize(void)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(hr, "IDirect3D8_CreateDevice(d3d, D3DADAPTER_DEFAULT, "
+      rasterizer_error(hr, "IDirect3D8_CreateDevice(d3d, D3DADAPTER_DEFAULT, "
                        "D3DDEVTYPE_HAL, NULL, "
                        "RASTERIZER_DEVICE_CREATION_FLAGS, "
                        "&d3d_present_parameters, &global_d3d_device)");
@@ -164,8 +164,8 @@ char rasterizer_preinitialize(void)
      *
      * The original's other arm — hr < 0 with a NON-null out-pointer — is not
      * transcribed as a shared fall-through body: 0x476ab0 is zero at boot,
-     * rasterizer_preinitialize has a single call site (shell_xbox.c), and only
-     * this function and rasterizer_initialize write that global, so hr < 0
+     * rasterizer_preinitialize__fill_you_up_with_the_devils_cock has a single call site (shell_xbox.c), and only
+     * this function and rasterizer_profile_get_string write that global, so hr < 0
      * always leaves it 0 and lands in the arm below.  Writing the body as a
      * genuine shared fall-through costs 10pp of VC71 match (83.5% vs 93.4%)
      * because cl.exe then relocates the shared "preinitialize failed" tail. */
@@ -178,7 +178,7 @@ char rasterizer_preinitialize(void)
       D3DDevice_Present(0, 0, 0, 0);
       success = 1;
       /* Probe device torn down again — the real device is created later by
-       * rasterizer_initialize (FUN_00157010). */
+       * rasterizer_profile_get_string (_rasterizer_initialize). */
       if (*(void **)0x476ab0 != 0) {
         D3DDevice_Release();
         *(void **)0x476ab0 = 0;
@@ -189,12 +189,12 @@ char rasterizer_preinitialize(void)
       return success;
     }
   }
-  error(2, "### ERROR rasterizer_preinitialize failed");
+  error(2, "### ERROR rasterizer_preinitialize__fill_you_up_with_the_devils_cock failed");
   return success;
 }
 
 /*
- * FUN_00155560 @ 0x155560 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_Clear_0 @ 0x155560 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::Clear: stencil arrives in EAX, color in EDX (ECX is
  * clobbered before use), device (s1) ignored, count/rects/flags/z (s2-s5)
  * on the stack. s5 is typed float to match the callee's z parameter so the
@@ -202,7 +202,7 @@ char rasterizer_preinitialize(void)
  * No direct call sites; RET 0x14.
  */
 /* 0x155560 */
-int FUN_00155560(int r1, int r3, int s1, int s2, int s3, int s4, float s5)
+int IDirect3DDevice8_Clear_0(int r1, int r3, int s1, int s2, int s3, int s4, float s5)
 {
   (void)s1;
   D3DDevice_Clear(s2, (void *)s3, s4, r3, s5, r1);
@@ -210,13 +210,13 @@ int FUN_00155560(int r1, int r3, int s1, int s2, int s3, int s4, float s5)
 }
 
 /*
- * rasterizer_get_default_hardware_format (0x155580)
+ * rasterizer_get_bitmap_default_hardware_format (0x155580)
  *
  * Returns the default D3D texture pointer for a bitmap based on its type.
  * Bitmap types 0 (2D) and 1 (volume) map to the 2D default at 0x3256a4.
  * Bitmap type 2 (cubemap) maps to the cubemap default at 0x3256ac.
- * These globals are populated by rasterizer_filthy_bitmap_default_initialize
- * (FUN_00156e00).
+ * These globals are populated by rasterizer_filthy_bitmap_defaults_initialize
+ * (rasterizer_filthy_bitmap_defaults_initialize).
  *
  * Globals:
  *   0x3256a4  void *  – default 2D hardware texture format
@@ -224,7 +224,7 @@ int FUN_00155560(int r1, int r3, int s1, int s2, int s3, int s4, float s5)
  *   0x3256ac  void *  – default cubemap texture format
  */
 /* 0x155580 */
-void *rasterizer_get_default_hardware_format(void *bitmap_data)
+void *rasterizer_get_bitmap_default_hardware_format(void *bitmap_data)
 {
   void *result;
 
@@ -268,7 +268,7 @@ void *rasterizer_get_default_hardware_format(void *bitmap_data)
 }
 
 /*
- * FUN_00155620 @ 0x155620 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_SetViewport @ 0x155620 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetViewport: the viewport pointer arrives in EAX, the
  * device argument (s1) is ignored. Returns S_OK. No direct call sites;
  * frameless in the original; RET 0x4.
@@ -280,7 +280,7 @@ void *rasterizer_get_default_hardware_format(void *bitmap_data)
  * strip; accepted at ceiling.
  */
 /* 0x155620 */
-int FUN_00155620(int r1, int s1)
+int IDirect3DDevice8_SetViewport(int r1, int s1)
 {
   (void)s1;
   D3DDevice_SetViewport((void *)r1);
@@ -288,7 +288,7 @@ int FUN_00155620(int r1, int s1)
 }
 
 /*
- * FUN_00155630 @ 0x155630 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_SetRenderState_16 @ 0x155630 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetRenderState: state arrives in ESI, value in EDI,
  * the device argument (s1) is ignored. States < 0x52 map through the
  * D3D "simple" render-state register table at 0x282b90 and mirror the
@@ -305,7 +305,7 @@ int FUN_00155620(int r1, int s1)
  * ceiling.
  */
 /* 0x155630 */
-int FUN_00155630(int state, int value, int s1)
+int IDirect3DDevice8_SetRenderState_16(int state, int value, int s1)
 {
   (void)s1;
   if (state < 0x52) {
@@ -432,16 +432,16 @@ int FUN_00155630(int state, int value, int s1)
 }
 
 /*
- * FUN_00155850 @ 0x155850 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_GetRenderState @ 0x155850 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::GetRenderState: state arrives in EAX, the out-value
  * pointer in EDX, the device argument (s1) is ignored. Reads the host-side
- * render-state shadow table at 0x1fb698 (written by FUN_00155630). Returns
+ * render-state shadow table at 0x1fb698 (written by IDirect3DDevice8_SetRenderState_16). Returns
  * S_OK. No direct call sites; frameless in the original; RET 0x4.
- * VC71 72.7% = @reg-DEFINED prologue ceiling (same class as FUN_00155620);
+ * VC71 72.7% = @reg-DEFINED prologue ceiling (same class as IDirect3DDevice8_SetViewport);
  * 4-insn body verified; accepted at ceiling.
  */
 /* 0x155850 */
-int FUN_00155850(int state, int out_value, int s1)
+int IDirect3DDevice8_GetRenderState(int state, int out_value, int s1)
 {
   (void)s1;
   *(uint32_t *)out_value = *(uint32_t *)(0x1fb698 + state * 4);
@@ -449,13 +449,13 @@ int FUN_00155850(int state, int out_value, int s1)
 }
 
 /*
- * FUN_00155860 @ 0x155860 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_SetTexture_0 @ 0x155860 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetTexture: texture arrives in EAX, stage in ECX, the
  * device argument (s1) is ignored. Returns S_OK. No direct call sites;
  * frameless in the original; RET 0x4.
  */
 /* 0x155860 */
-int FUN_00155860(int texture, int stage, int s1)
+int IDirect3DDevice8_SetTexture_0(int texture, int stage, int s1)
 {
   (void)s1;
   D3DDevice_SetTexture(stage, (void *)texture);
@@ -463,13 +463,13 @@ int FUN_00155860(int texture, int stage, int s1)
 }
 
 /*
- * FUN_00155870 @ 0x155870 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_SetPalette @ 0x155870 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetPalette: palette arrives in EAX, stage in ECX, the
  * device argument (s1) is ignored. Returns S_OK. No direct call sites;
  * frameless in the original; RET 0x4.
  */
 /* 0x155870 */
-int FUN_00155870(int palette, int stage, int s1)
+int IDirect3DDevice8_SetPalette(int palette, int stage, int s1)
 {
   (void)s1;
   D3DDevice_SetPalette(stage, (void *)palette);
@@ -477,7 +477,7 @@ int FUN_00155870(int palette, int stage, int s1)
 }
 
 /*
- * FUN_00155880 @ 0x155880 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_GetTextureStageState @ 0x155880 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::GetTextureStageState: stage arrives in EAX, state in
  * ECX, device (s1) ignored, out-value pointer (s2) on the stack. Reads the
  * host-side deferred texture-state shadow table at 0x1fb498
@@ -490,7 +490,7 @@ int FUN_00155870(int palette, int stage, int s1)
  * accepted at ceiling.
  */
 /* 0x155880 */
-int FUN_00155880(int r1, int r2, int s1, int s2)
+int IDirect3DDevice8_GetTextureStageState(int r1, int r2, int s1, int s2)
 {
   (void)s1;
   *(uint32_t *)s2 = *(uint32_t *)(0x1fb498 + (r1 * 0x20 + r2) * 4);
@@ -613,8 +613,8 @@ void _rasterizer_frame_end(void)
   success = 1;
   hr = 0; /* inline D3D8 wrappers below always return S_OK */
 
-  FUN_0016FDD0();
-  FUN_0017ff50();
+  rasterizer_profile_frame_end();
+  rasterizer_frame_statistics_end();
 
   /* Both loops are transcribed in the original's two-induction-variable
    * down-counter form (INC ESI / DEC EDI / JNZ). VC71 will not strength-reduce
@@ -625,7 +625,7 @@ void _rasterizer_frame_end(void)
     D3DDevice_SetTexture((uint32_t)index, (void *)0);
     success = success && hr >= 0;
     if (!success) {
-      FUN_00167ff0(
+      rasterizer_error(
         hr, "IDirect3DDevice8_SetTexture(global_d3d_device, index, NULL)");
     }
     index++;
@@ -638,7 +638,7 @@ void _rasterizer_frame_end(void)
     D3DDevice_SetStreamSource((uint32_t)index, (void *)0, 0);
     success = success && hr >= 0;
     if (!success) {
-      FUN_00167ff0(hr, "IDirect3DDevice8_SetStreamSource(global_d3d_device, "
+      rasterizer_error(hr, "IDirect3DDevice8_SetStreamSource(global_d3d_device, "
                        "index, NULL, 0)");
     }
     index++;
@@ -648,20 +648,20 @@ void _rasterizer_frame_end(void)
   D3DDevice_SetIndices((void *)0, 0);
   success = success && hr >= 0;
   if (!success) {
-    FUN_00167ff0(hr, "IDirect3DDevice8_SetIndices(global_d3d_device, NULL, 0)");
+    rasterizer_error(hr, "IDirect3DDevice8_SetIndices(global_d3d_device, NULL, 0)");
     error(2, "### ERROR rasterizer_frame_end failed");
   }
 }
 
 /*
- * FUN_00155b60 @ 0x155b60 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DTexture8_LockRect_1 @ 0x155b60 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DTexture8::LockRect: flags/pRect/pLockedRect arrive in
  * EAX/ECX/EDX, texture (s1) and level (s2) on the stack (the texture IS
  * forwarded — no ignored device argument here). Returns S_OK. No direct
  * call sites; RET 0x8.
  */
 /* 0x155b60 */
-int FUN_00155b60(int r1, int r2, int r3, int s1, int s2)
+int IDirect3DTexture8_LockRect_1(int r1, int r2, int r3, int s1, int s2)
 {
   D3DTexture_LockRect((void *)s1, s2, (void *)r3, (void *)r2, r1);
   return 0;
@@ -682,17 +682,17 @@ int FUN_00155b60(int r1, int r2, int r3, int s1, int s2)
 /* 0x155b90 */
 void _rasterizer_dispose(void)
 {
-  rasterizer_memory_pool_delete();
-  FUN_0015e9e0();
-  FUN_00184690();
+  rasterizer_memory_pool_dispose();
+  rasterizer_dynamic_geometry_dispose();
+  rasterizer_transparent_geometry_dispose();
   rasterizer_vertex_shaders_dispose();
-  FUN_0017e040();
-  FUN_0017ff60();
+  rasterizer_debug_dispose();
+  rasterizer_frame_statistics_dispose();
   rasterizer_text_cache_dispose();
-  FUN_0015c680();
-  FUN_0016fec0();
-  FUN_00165a10();
-  FUN_0017d990();
+  rasterizer_detail_objects_dispose();
+  rasterizer_profile_dispose();
+  rasterizer_environment_fog_screen_dispose();
+  rasterizer_screen_effects_dispose();
   texture_cache_delete();
 
   if (*(void **)0x476ab0 != 0) {
@@ -706,12 +706,12 @@ void _rasterizer_dispose(void)
 }
 
 /*
- * FUN_00155c10 @ 0x155c10 — forwards a callback pointer to
+ * _rasterizer_set_vblank_callback @ 0x155c10 — forwards a callback pointer to
  * D3DDevice_SetVerticalBlankCallback. Plain cdecl, one stack arg; EAX
  * passes through from the callee. Called from 0x17c954.
  */
 /* 0x155c10 */
-void FUN_00155c10(void *callback)
+void _rasterizer_set_vblank_callback(void *callback)
 {
   D3DDevice_SetVerticalBlankCallback(callback);
 }
@@ -770,13 +770,13 @@ char rasterizer_set_texture_bitmap_data(short stage, void *bitmap_data)
 }
 
 /*
- * FUN_00155cc0 @ 0x155cc0 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DVolumeTexture8_LockBox_0 @ 0x155cc0 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DVolumeTexture8::LockBox: flags/pBox/pLockedBox arrive in
  * EAX/ECX/EDX, volume texture (s1) and level (s2) on the stack. Returns
  * S_OK. No direct call sites; RET 0x8.
  */
 /* 0x155cc0 */
-int FUN_00155cc0(int r1, int r2, int r3, int s1, int s2)
+int IDirect3DVolumeTexture8_LockBox_0(int r1, int r2, int r3, int s1, int s2)
 {
   D3DVolumeTexture_LockBox((void *)s1, s2, (void *)r3, (void *)r2, r1);
   return 0;
@@ -789,7 +789,7 @@ int FUN_00155cc0(int r1, int r2, int r3, int s1, int s2)
  * Looks the tag up with tag_get('bitm', bitmap_tag_index), reads the bitmap
  * count at +0x60, wraps `frame_index` into that count with a signed IDIV
  * (`MOVSX EAX,word [EBP+0x10]; CDQ; IDIV ECX` — proving frame_index is
- * int16), then resolves the bitmap_data through FUN_00076ff0 and forwards to
+ * int16), then resolves the bitmap_data through bitmap_group_try_and_get_bitmap and forwards to
  * rasterizer_set_texture_bitmap_data.
  *
  * Parameter widths: `stage` is compared with `TEST DI,DI` / `CMP DI,4` and
@@ -823,7 +823,7 @@ char rasterizer_set_texture_direct(short stage, int bitmap_tag_index,
   if (bitmap_tag_index != -1) {
     bitmap = tag_get(0x6269746d /* 'bitm' */, bitmap_tag_index);
     if (*(int *)((char *)bitmap + 0x60) > 0) {
-      bitmap_data = FUN_00076ff0(bitmap_tag_index,
+      bitmap_data = bitmap_group_try_and_get_bitmap(bitmap_tag_index,
                                  frame_index % *(int *)((char *)bitmap + 0x60));
       if (bitmap_data != 0) {
         rasterizer_set_texture_bitmap_data(stage, bitmap_data);
@@ -878,7 +878,7 @@ char rasterizer_set_texture_direct_non_blocking(short stage,
   if (bitmap_tag_index != -1) {
     bitmap = tag_get(0x6269746d /* 'bitm' */, bitmap_tag_index);
     if (*(int *)((char *)bitmap + 0x60) > 0) {
-      bitmap_data = FUN_00076ff0(bitmap_tag_index,
+      bitmap_data = bitmap_group_try_and_get_bitmap(bitmap_tag_index,
                                  frame_index % *(int *)((char *)bitmap + 0x60));
       if (bitmap_data != 0) {
         if (xbox_texture_cache_get_hardware_format(bitmap_data, false, true) !=
@@ -977,7 +977,7 @@ void *rasterizer_set_texture(short stage, short type, short usage,
   if ((*(char *)0x3256e1 != 0 || usage != 3) && bitmap_tag_index != -1) {
     bitmap = tag_get(0x6269746d /* 'bitm' */, bitmap_tag_index);
     if (*(int *)((char *)bitmap + 0x60) > 0) {
-      bitmap_data = FUN_00076ff0(bitmap_tag_index,
+      bitmap_data = bitmap_group_try_and_get_bitmap(bitmap_tag_index,
                                  frame_index % *(int *)((char *)bitmap + 0x60));
       /* Type match is the fall-through here (JNZ to the error block at
        * 0x155f97), so the bind is written inline rather than as the goto the
@@ -998,7 +998,7 @@ void *rasterizer_set_texture(short stage, short type, short usage,
 
   default_tag_index = *(int *)(*(char **)0x476204 + type * 0x10 + 0xb8);
   if (default_tag_index != -1) {
-    bitmap_data = FUN_00076ff0(default_tag_index, usage);
+    bitmap_data = bitmap_group_try_and_get_bitmap(default_tag_index, usage);
     if (bitmap_data != 0) {
       rasterizer_set_texture_bitmap_data(stage, bitmap_data);
       *(short *)0x476a4c = *(short *)((char *)bitmap_data + 4);
@@ -1019,13 +1019,13 @@ done:
 }
 
 /*
- * FUN_00156070 @ 0x156070 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DCubeTexture8_LockRect_0 @ 0x156070 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DCubeTexture8::LockRect: flags/pRect/pLockedRect arrive in
  * EAX/ECX/EDX, cube texture (s1), face (s2) and level (s3) on the stack.
  * Returns S_OK. No direct call sites; RET 0xc.
  */
 /* 0x156070 */
-int FUN_00156070(int r1, int r2, int r3, int s1, int s2, int s3)
+int IDirect3DCubeTexture8_LockRect_0(int r1, int r2, int r3, int s1, int s2, int s3)
 {
   D3DCubeTexture_LockRect((void *)s1, s2, s3, (void *)r3, (void *)r2, r1);
   return 0;
@@ -1053,7 +1053,7 @@ int FUN_00156070(int r1, int r2, int r3, int s1, int s2, int s3)
  * Cache probe push order: PUSH 1; PUSH 0; PUSH ESI (cdecl) =
  * xbox_texture_cache_get_hardware_format(bitmap_data, block=false,
  * load=true); the ADD ESP,0x14 at 0x156176 is the merged cleanup for that
- * call plus the preceding FUN_00076ff0.
+ * call plus the preceding bitmap_group_try_and_get_bitmap.
  *
  * The type-match branch is `JZ LAB_001561da` into the shared bind block, so
  * the goto is transcribed rather than duplicating the bind (the blocking
@@ -1100,7 +1100,7 @@ char rasterizer_set_texture_non_blocking(short stage, short type, short usage,
   if ((*(char *)0x3256e1 != 0 || usage != 3) && bitmap_tag_index != -1) {
     bitmap = tag_get(0x6269746d /* 'bitm' */, bitmap_tag_index);
     if (*(int *)((char *)bitmap + 0x60) > 0) {
-      bitmap_data = FUN_00076ff0(bitmap_tag_index,
+      bitmap_data = bitmap_group_try_and_get_bitmap(bitmap_tag_index,
                                  frame_index % *(int *)((char *)bitmap + 0x60));
       /* Positive test with the bail-out in the `else` so VC71 exiles the
        * `return 1` block to the tail, matching the original's
@@ -1122,7 +1122,7 @@ char rasterizer_set_texture_non_blocking(short stage, short type, short usage,
 
   default_tag_index = *(int *)(*(char **)0x476204 + type * 0x10 + 0xb8);
   if (default_tag_index != -1) {
-    bitmap_data = FUN_00076ff0(default_tag_index, usage);
+    bitmap_data = bitmap_group_try_and_get_bitmap(default_tag_index, usage);
     if (bitmap_data != 0) {
     bind:
       rasterizer_set_texture_bitmap_data(stage, bitmap_data);
@@ -1153,7 +1153,7 @@ char rasterizer_set_texture_non_blocking(short stage, short type, short usage,
  * `XOR ESI,ESI` — i.e. a NULL-initialised result variable that each case
  * overwrites, tail-duplicated by MSVC into per-case epilogues.
  *
- * The surface globals match the table already documented for FUN_00158140 in
+ * The surface globals match the table already documented for rasterizer_set_target in
  * rasterizer_xbox_decals.c (which inlines the same selection):
  *   0x476a5c  target 0    0x476a80  target 3    0x476a98[4] target 6 (water)
  *   0x476a6c  target 1    0x476a88  target 4
@@ -1690,7 +1690,7 @@ void rasterizer_set_model_lighting_point_light(int light_index,
 }
 
 /*
- * FUN_001569f0 @ 0x1569f0 — writes one light into the vertex-shader lighting
+ * rasterizer_set_model_lighting_distant_light @ 0x1569f0 — writes one light into the vertex-shader lighting
  * constant block.
  *
  * The kb declaration was `void (void)`; Ghidra surfaced all three arguments
@@ -1730,7 +1730,7 @@ void rasterizer_set_model_lighting_point_light(int light_index,
  * and made it worse (63.6%), so the fall-through form is kept.
  */
 /* 0x1569f0 */
-void FUN_001569f0(void *light, short light_index, void *lighting_constants)
+void rasterizer_set_model_lighting_distant_light(void *light, short light_index, void *lighting_constants)
 {
   char *dst_a;
   char *dst_b;
@@ -1764,13 +1764,13 @@ void FUN_001569f0(void *light, short light_index, void *lighting_constants)
 }
 
 /*
- * FUN_00156a90 @ 0x156a90 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DSurface8_LockRect @ 0x156a90 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DSurface8::LockRect: flags/pRect/pLockedRect arrive in
  * EAX/ECX/EDX, surface (s1) on the stack. Returns S_OK. No direct call
  * sites; RET 0x4.
  */
 /* 0x156a90 */
-int FUN_00156a90(int r1, int r2, int r3, int s1)
+int IDirect3DSurface8_LockRect(int r1, int r2, int r3, int s1)
 {
   D3DSurface_LockRect((void *)s1, (void *)r3, (void *)r2, r1);
   return 0;
@@ -1791,7 +1791,7 @@ int FUN_00156a90(int r1, int r2, int r3, int s1)
  * Constant block layout:
  *   0x00..0x5f  two 0x30-byte point-light records
  * (set_model_lighting_point_light) 0x60..0x9f  two distant-light records
- * (FUN_001569f0) 0xa0..0xab  ambient colour 0xac..0xaf is left uninitialised on
+ * (rasterizer_set_model_lighting_distant_light) 0xa0..0xab  ambient colour 0xac..0xaf is left uninitialised on
  * the lit path in the original (nothing writes it and there is no memset), so
  * it is left uninitialised here too.
  *
@@ -1859,7 +1859,7 @@ void rasterizer_set_model_lighting(void *lighting)
     }
 
     for (light_index = 0; light_index < 2; light_index++) {
-      FUN_001569f0(*(short *)((char *)lighting + 0xc) > light_index ?
+      rasterizer_set_model_lighting_distant_light(*(short *)((char *)lighting + 0xc) > light_index ?
                      (char *)lighting + 0x10 + light_index * 0x18 :
                      (char *)0,
                    light_index, lighting_constants);
@@ -1995,7 +1995,7 @@ void rasterizer_set_frustum_z(float near_z, float far_z)
  * loop rather than four memcpys. The 0x90-dword block is a bare memcpy, which
  * VC71 lowers to the same MOV ECX,0x90 / REP MOVSD.
  *
- * Base addresses cross-checked against FUN_00155630 / FUN_00155880 in this
+ * Base addresses cross-checked against IDirect3DDevice8_SetRenderState_16 / IDirect3DDevice8_GetTextureStageState in this
  * file, which use 0x1fb698 as the render-state shadow and 0x1fb498 as the
  * deferred texture-state shadow (0x20 dwords per stage).
  *
@@ -2026,15 +2026,15 @@ void SetupSmartStates(void)
 }
 
 /*
- * rasterizer_filthy_bitmap_default_initialize @ 0x156e00 — creates the three
+ * rasterizer_filthy_bitmap_defaults_initialize @ 0x156e00 — creates the three
  * 4x4 A4R4G4B4 "missing texture" checkerboards used as the default hardware
  * formats and publishes them to 0x3256a4/a8/ac.
  *
  * The function name comes from the failure assert string at 0x29e258
- * ("### ERROR rasterizer_filthy_bitmap_default_initialize failed", line 0x137)
+ * ("### ERROR rasterizer_filthy_bitmap_defaults_initialize failed", line 0x137)
  * and the global roles from the argument-echo strings the error reporter is
  * handed, which name default_2d/3d/cm_hardware_format explicitly.  Those match
- * rasterizer_get_default_hardware_format in this file (0x3256a4 = 2D,
+ * rasterizer_get_bitmap_default_hardware_format in this file (0x3256a4 = 2D,
  * 0x3256a8 = volume, 0x3256ac = cubemap).
  *
  * Argument values verified against the disassembly (stdcall, right-to-left):
@@ -2065,7 +2065,7 @@ void SetupSmartStates(void)
  * assert tail instead of inline at its test.
  */
 /* 0x156e00 */
-void rasterizer_filthy_bitmap_default_initialize(void)
+void rasterizer_filthy_bitmap_defaults_initialize(void)
 {
   void *default_2d;
   void *default_3d;
@@ -2092,7 +2092,7 @@ void rasterizer_filthy_bitmap_default_initialize(void)
     success = 1;
   } else {
     success = 0;
-    FUN_00167ff0(hr,
+    rasterizer_error(hr,
                  "IDirect3DDevice8_CreateTexture(global_d3d_device, 4, 4,"
                  " 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
                  "&(IDirect3DTexture8*)default_2d_hardware_format)");
@@ -2103,7 +2103,7 @@ void rasterizer_filthy_bitmap_default_initialize(void)
     success = 1;
   } else {
     success = 0;
-    FUN_00167ff0(hr,
+    rasterizer_error(hr,
                  "IDirect3DDevice8_CreateVolumeTexture(global_d3d_device,"
                  " 4, 4, 4, 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
                  "&(IDirect3DVolumeTexture8*)default_3d_hardware_format)");
@@ -2114,7 +2114,7 @@ void rasterizer_filthy_bitmap_default_initialize(void)
    * (JGE over / PUSH msg / PUSH hr / CALL / JMP LAB_00156fc5); the success
    * body is the jumped-to block. */
   if (success == 0 || hr < 0) {
-    FUN_00167ff0(hr,
+    rasterizer_error(hr,
                  "IDirect3DDevice8_CreateCubeTexture(global_d3d_device, 4, 1, "
                  "0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
                  "&(IDirect3DCubeTexture8*)default_cm_hardware_format)");
@@ -2155,7 +2155,7 @@ void rasterizer_filthy_bitmap_default_initialize(void)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(
+          rasterizer_error(
             0, "IDirect3DCubeTexture8_LockRect((IDirect3DCubeTexture8*)"
                "default_cm_hardware_format, face_index, 0, "
                "&d3d_locked_rect, NULL, 0)");
@@ -2173,7 +2173,7 @@ void rasterizer_filthy_bitmap_default_initialize(void)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(
+          rasterizer_error(
             0, "IDirect3DCubeTexture8_UnlockRect((IDirect3DCubeTexture8*)"
                "default_cm_hardware_format, face_index, 0)");
         }
@@ -2192,7 +2192,7 @@ void rasterizer_filthy_bitmap_default_initialize(void)
    * and the publish stores are the jumped-to block placed last -- the
    * original falls out of the noreturn system_exit straight into them. */
 failed:
-  display_assert("### ERROR rasterizer_filthy_bitmap_default_initialize "
+  display_assert("### ERROR rasterizer_filthy_bitmap_defaults_initialize "
                  "failed",
                  "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c", 0x137,
                  true);
@@ -2205,7 +2205,7 @@ publish:
 }
 
 /*
- * FUN_00157010 @ 0x157010 — rasterizer initialize.
+ * _rasterizer_initialize @ 0x157010 — rasterizer initialize.
  *
  * Creates the IDirect3D8 object and the real device, publishes the screen /
  * title-safe bounds, allocates the D3D resource headers that stand in for the
@@ -2247,7 +2247,7 @@ publish:
  *                       D3DDevice_SetRenderState_Simple
  */
 /* 0x157010 */
-char FUN_00157010(void)
+char _rasterizer_initialize(void)
 {
   d3d_present_parameters_t d3dpp;
   void *palette_data;
@@ -2328,7 +2328,7 @@ char FUN_00157010(void)
     success =
       (hr >= 0) ?
         1 :
-        (FUN_00167ff0(hr, "IDirect3D8_CreateDevice(d3d, D3DADAPTER_DEFAULT, "
+        (rasterizer_error(hr, "IDirect3D8_CreateDevice(d3d, D3DADAPTER_DEFAULT, "
                           "D3DDEVTYPE_HAL, NULL, "
                           "RASTERIZER_DEVICE_CREATION_FLAGS, "
                           "&d3d_present_parameters, &global_d3d_device)"),
@@ -2348,7 +2348,7 @@ char FUN_00157010(void)
       hr = D3DDevice_CreatePalette(0, (void **)0x476ab4);
       success = (hr >= 0) ?
                   1 :
-                  (FUN_00167ff0(hr, "IDirect3DDevice8_CreatePalette("
+                  (rasterizer_error(hr, "IDirect3DDevice8_CreatePalette("
                                     "global_d3d_device, D3DPALETTE_256, "
                                     "&d3d_palette)"),
                    0);
@@ -2356,7 +2356,7 @@ char FUN_00157010(void)
       D3DPalette_Lock(*(void **)0x476ab4, &palette_data, 0);
       success = (success != 0) ?
                   1 :
-                  (FUN_00167ff0(0, "IDirect3DPalette8_Lock(d3d_palette, "
+                  (rasterizer_error(0, "IDirect3DPalette8_Lock(d3d_palette, "
                                    "&palette_data, 0)"),
                    0);
 
@@ -2365,32 +2365,32 @@ char FUN_00157010(void)
        * success test survives. */
       success = (success != 0) ?
                   1 :
-                  (FUN_00167ff0(0, "IDirect3DPalette8_Unlock(d3d_palette)"), 0);
+                  (rasterizer_error(0, "IDirect3DPalette8_Unlock(d3d_palette)"), 0);
 
       D3DDevice_SetPalette(0, *(void **)0x476ab4);
       success = (success != 0) ?
                   1 :
-                  (FUN_00167ff0(0, "IDirect3DDevice8_SetPalette("
+                  (rasterizer_error(0, "IDirect3DDevice8_SetPalette("
                                    "global_d3d_device, 0, d3d_palette)"),
                    0);
 
       D3DDevice_SetPalette(1, *(void **)0x476ab4);
       success = (success != 0) ?
                   1 :
-                  (FUN_00167ff0(0, "IDirect3DDevice8_SetPalette("
+                  (rasterizer_error(0, "IDirect3DDevice8_SetPalette("
                                    "global_d3d_device, 1, d3d_palette)"),
                    0);
 
       D3DDevice_SetPalette(2, *(void **)0x476ab4);
       success = (success != 0) ?
                   1 :
-                  (FUN_00167ff0(0, "IDirect3DDevice8_SetPalette("
+                  (rasterizer_error(0, "IDirect3DDevice8_SetPalette("
                                    "global_d3d_device, 2, d3d_palette)"),
                    0);
 
       D3DDevice_SetPalette(3, *(void **)0x476ab4);
       if (success == 0) {
-        FUN_00167ff0(0, "IDirect3DDevice8_SetPalette(global_d3d_device, 3, "
+        rasterizer_error(0, "IDirect3DDevice8_SetPalette(global_d3d_device, 3, "
                         "d3d_palette)");
       } else {
         D3DDevice_GetBackBuffer(0, 0, (void **)0x476a5c);
@@ -2398,7 +2398,7 @@ char FUN_00157010(void)
         hr = D3DDevice_GetDepthStencilSurface((void **)0x476a60);
         success = (hr >= 0) ?
                     1 :
-                    (FUN_00167ff0(hr, "IDirect3DDevice8_GetDepthStencilSurface("
+                    (rasterizer_error(hr, "IDirect3DDevice8_GetDepthStencilSurface("
                                       "global_d3d_device, "
                                       "&global_d3d_surface_render_primary_z)"),
                      0);
@@ -2455,7 +2455,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr,
                "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                "RASTERIZER_TARGET_RENDER_SECONDARY_WIDTH, "
@@ -2468,7 +2468,7 @@ char FUN_00157010(void)
           D3DTexture_GetSurfaceLevel(*(void **)0x476a64, 0, (void **)0x476a6c);
         success = (success != 0 && hr >= 0) ?
                     1 :
-                    (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+                    (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                                       "global_d3d_texture_render_secondary, 0, "
                                       "&global_d3d_surface_render_secondary)"),
                      0);
@@ -2482,7 +2482,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr, "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                    "RASTERIZER_TARGET_WATER_SIZE, "
                    "RASTERIZER_TARGET_WATER_SIZE, "
@@ -2500,7 +2500,7 @@ char FUN_00157010(void)
           success =
             (success != 0 && hr >= 0) ?
               1 :
-              (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+              (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                                 "global_d3d_texture_water, mipmap_index, "
                                 "&global_d3d_surface_water[mipmap_index])"),
                0);
@@ -2513,7 +2513,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr, "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                    "RASTERIZER_TARGET_SHADOW_PRIMARY_SIZE, "
                    "RASTERIZER_TARGET_SHADOW_PRIMARY_SIZE, 1, "
@@ -2525,7 +2525,7 @@ char FUN_00157010(void)
           D3DTexture_GetSurfaceLevel(*(void **)0x476a74, 0, (void **)0x476a78);
         success = (success != 0 && hr >= 0) ?
                     1 :
-                    (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+                    (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                                       "global_d3d_texture_shadow_primary, 0, "
                                       "&global_d3d_surface_shadow_primary)"),
                      0);
@@ -2537,7 +2537,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr, "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                    "RASTERIZER_TARGET_SHADOW_SECONDARY_SIZE, "
                    "RASTERIZER_TARGET_SHADOW_SECONDARY_SIZE, 1, "
@@ -2549,7 +2549,7 @@ char FUN_00157010(void)
           D3DTexture_GetSurfaceLevel(*(void **)0x476a7c, 0, (void **)0x476a80);
         success = (success != 0 && hr >= 0) ?
                     1 :
-                    (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+                    (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                                       "global_d3d_texture_shadow_secondary, 0, "
                                       "&global_d3d_surface_shadow_secondary)"),
                      0);
@@ -2561,7 +2561,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr, "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                    "RASTERIZER_TARGET_SUN_GLOW_SIZE, "
                    "RASTERIZER_TARGET_SUN_GLOW_SIZE, 1, "
@@ -2573,7 +2573,7 @@ char FUN_00157010(void)
           D3DTexture_GetSurfaceLevel(*(void **)0x476a84, 0, (void **)0x476a88);
         success = (success != 0 && hr >= 0) ?
                     1 :
-                    (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+                    (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                                       "global_d3d_texture_sun_glow_primary, 0, "
                                       "&global_d3d_surface_sun_glow_primary)"),
                      0);
@@ -2585,7 +2585,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr, "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                    "RASTERIZER_TARGET_SUN_GLOW_SIZE, "
                    "RASTERIZER_TARGET_SUN_GLOW_SIZE, 1, "
@@ -2598,7 +2598,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+            (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                               "global_d3d_texture_sun_glow_secondary, 0, "
                               "&global_d3d_surface_sun_glow_secondary)"),
              0);
@@ -2651,20 +2651,20 @@ char FUN_00157010(void)
     }
   }
 
-  rasterizer_filthy_bitmap_default_initialize();
+  rasterizer_filthy_bitmap_defaults_initialize();
 
   success =
-    (success != 0 && (char)rasterizer_memory_pool_new() != 0 &&
-     FUN_0015e800() != 0 && (char)rasterizer_transparent_geometry_new() != 0 &&
-     rasterizer_vertex_shaders_initialize() != 0 && FUN_0017df80() != 0 &&
-     FUN_0017eb50() != 0 && (char)rasterizer_text_cache_initialize() != 0 &&
-     FUN_0015c2d0() != 0 && FUN_0016f6c0() != 0 && FUN_001659a0() != 0) ?
+    (success != 0 && (char)rasterizer_memory_pool_initialize() != 0 &&
+     rasterizer_dynamic_geometry_initialize() != 0 && (char)rasterizer_transparent_geometry_initialize() != 0 &&
+     rasterizer_vertex_shaders_initialize() != 0 && rasterizer_debug_initialize() != 0 &&
+     rasterizer_frame_statistics_initialize() != 0 && (char)rasterizer_text_cache_initialize() != 0 &&
+     rasterizer_detail_objects_initialize() != 0 && rasterizer_profile_initialize() != 0 && rasterizer_environment_fog_screen_initialize() != 0) ?
       1 :
       0;
 
   rasterizer_screen_effects_initialize();
   texture_cache_new();
-  FUN_0017e010();
+  rasterizer_debug_begin();
 
   if (success != 0) {
     *(char *)0x325650 = 1;
@@ -2674,8 +2674,8 @@ char FUN_00157010(void)
   return success;
 }
 
-/* FUN_00157940 @ 0x157940 — begins the Xbox rasterizer frame update. */
-void FUN_00157940(float *elapsed)
+/* _rasterizer_frame_begin @ 0x157940 — begins the Xbox rasterizer frame update. */
+void _rasterizer_frame_begin(float *elapsed)
 {
   if (*(void **)0x476ab0 == 0) {
     display_assert("global_d3d_device",
@@ -2684,16 +2684,16 @@ void FUN_00157940(float *elapsed)
     system_exit(-1);
   }
 
-  *(float *)0x325694 = FUN_0017dee0();
+  *(float *)0x325694 = rasterizer_get_near_clip_distance();
   *(float *)0x5a5e18 = *elapsed;
-  FUN_0016f730();
-  FUN_0017eb90();
-  FUN_001792a0(0);
-  FUN_00181180();
+  rasterizer_profile_frame_begin();
+  rasterizer_frame_statistics_begin();
+  rasterizer_water_set_visibility_for_frame(0);
+  rasterizer_lights_begin_for_new_frame();
   texture_cache_idle();
   D3DDevice_SetRenderState_Dxt1NoiseEnable(*(uint8_t *)0x325701);
   if (*(uint8_t *)0x3256cd != 0) {
-    FUN_0015b220();
+    rasterizer_decal_vertices_begin_update();
     decals_update();
   }
 }

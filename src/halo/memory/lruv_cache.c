@@ -1,7 +1,7 @@
 /* 0x11c530: Mark a cached block dirty / most-recently-used. Requires a
  * non-NULL user pointer (asserted, line 0x12a). Runs the cache post-touch
- * bookkeeping (FUN_0011c290, cache in EAX) then the block-relink step
- * (FUN_0011c210, cache in EBX + block header in ESI, header = pointer-0x10),
+ * bookkeeping (verify_lra_cache, cache in EAX) then the block-relink step
+ * (verify_lra_cache_block, cache in EBX + block header in ESI, header = pointer-0x10),
  * and finally SETS bit0 of the dword at pointer-0xc (header+4), marking the
  * block in-use. Source: c:\halo\SOURCE\memory\lra_cache.c */
 void FUN_0011c530(int cache, int block)
@@ -12,15 +12,15 @@ void FUN_0011c530(int cache, int block)
                    1);
     system_exit(-1);
   }
-  FUN_0011c290(cache);
-  FUN_0011c210(cache, header);
+  verify_lra_cache(cache);
+  verify_lra_cache_block(cache, header);
   *(unsigned int *)(header + 4) |= 1;
 }
 
 /* 0x11c580: Release a cached block back to its cache. Requires a non-NULL user
  * pointer (asserted, line 0x13a). The block header sits 0x10 bytes before the
- * user pointer. Runs the cache post-touch bookkeeping (FUN_0011c290, cache in
- * EAX) then the block-release step (FUN_0011c210, cache in EBX + header in
+ * user pointer. Runs the cache post-touch bookkeeping (verify_lra_cache, cache in
+ * EAX) then the block-release step (verify_lra_cache_block, cache in EBX + header in
  * ESI), and finally CLEARS bit0 of the dword at pointer-0xc (header+4),
  * marking the block not-in-use. Source: c:\halo\SOURCE\memory\lra_cache.c */
 void FUN_0011c580(int cache, void *pointer)
@@ -31,26 +31,26 @@ void FUN_0011c580(int cache, void *pointer)
                    1);
     system_exit(-1);
   }
-  FUN_0011c290(cache);
-  FUN_0011c210(cache, (int)block);
+  verify_lra_cache(cache);
+  verify_lra_cache_block(cache, (int)block);
   *(unsigned int *)(block + 4) &= 0xfffffffe;
 }
 
-/* 0x11c5d0: Touch an lrar_cache block (FUN_0011c210 relink bookkeeping) and
+/* 0x11c5d0: Touch an lrar_cache block (verify_lra_cache_block relink bookkeeping) and
  * return its byte offset from the cache's minimum address
  * (block - cache->minimum_address@+0x24). block in EAX, cache in ECX. */
 int FUN_0011c5d0(int block, int cache)
 {
-  FUN_0011c210(cache, block);
+  verify_lra_cache_block(cache, block);
   return block - *(int *)(cache + 0x24);
 }
 
 /* 0x11c5f0: 'hlbA' least-recently-used contiguous block allocator. Runs the
- * cache post-touch bookkeeping (FUN_0011c290, cache in @eax), grows the request
+ * cache post-touch bookkeeping (verify_lra_cache, cache in @eax), grows the request
  * by the 0x10-byte block header and rounds it up to 4 bytes, then rejects it if
  * it cannot fit under the cache capacity (+0x20). It walks the forward-linked
  * block list (head @cache+0x2c, next @block+0xc), touching each visited block
- * (FUN_0011c210, cache in @ebx + block in @esi) and remembering the first free
+ * (verify_lra_cache_block, cache in @ebx + block in @esi) and remembering the first free
  * (bit0-clear) block. When the running placement offset leaves room before the
  * next block -- or the list end is reached -- it checks the region capacity:
  * on a fit it evicts every not-yet-marked block in [free_block, cursor) via the
@@ -78,7 +78,7 @@ void *FUN_0011c5f0(int cache, int size, void *data)
   int prev_wrapped;
 
   result = (void *)0x0;
-  FUN_0011c290(cache);
+  verify_lra_cache(cache);
 
   size = size + 0x10;
   if ((size & 3) != 0) {
@@ -101,7 +101,7 @@ void *FUN_0011c5f0(int cache, int size, void *data)
     if (prev_block == (int *)0x0) {
       base_offset = 0;
     } else {
-      FUN_0011c210(cache, (int)prev_block);
+      verify_lra_cache_block(cache, (int)prev_block);
       base_offset = (prev_block[2] - *(int *)(cache + 0x24)) + (int)prev_block;
     }
 
@@ -109,8 +109,8 @@ void *FUN_0011c5f0(int cache, int size, void *data)
       goto cap_check;
     }
 
-    FUN_0011c210(cache, (int)cur);
-    FUN_0011c210(cache, (int)cur);
+    verify_lra_cache_block(cache, (int)cur);
+    verify_lra_cache_block(cache, (int)cur);
     if ((base_offset + size) <= (int)((int)cur - *(int *)(cache + 0x24))) {
       goto cap_check; /* candidate fits before this block */
     }

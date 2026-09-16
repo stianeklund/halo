@@ -2,7 +2,7 @@
 
 /* 0x2a3a0 — Reset actor path/movement state. Clears the path-active flag,
  * sets is_moving to 1, and zeroes the path step counter. */
-void FUN_0002a3a0(int actor_handle)
+void actor_path_clear(int actor_handle)
 {
   char *actor;
 
@@ -293,7 +293,7 @@ bool actor_move_force_stop(int actor_handle)
  *   param_4        = EBP+0x14 distance/threshold control (>= 0.0)
  *   out_flag       = EBP+0x18 optional char* out (set to local_5)
  *   result         = EBP+0x1c >=28-byte collision/path result buffer
- *                    (asserted non-NULL; FUN_00063e90 fills 7 dwords)
+ *                    (asserted non-NULL; structure_test_pill2d fills 7 dwords)
  *
  * Returns BL (char): 1 if a usable move/evasion vector was found, else 0.
  *
@@ -305,7 +305,7 @@ bool actor_move_force_stop(int actor_handle)
  * Confirmed: target point local[0]=scale*evasion[0]+actor[0x12c],
  * local[1]=scale*evasion[1]+actor[0x130] at 0x2a963-0x2a981 (2 floats).
  * Confirmed: actor_find_pathfinding_location(actor_handle) at 0x2a984.
- * Confirmed: 9-arg FUN_00063e90(scenario_get(), (u8)actor[0x376],
+ * Confirmed: 9-arg structure_test_pill2d(scenario_get(), (u8)actor[0x376],
  * (float*)actor[0x168], actor[0x164], &local_target, -1, actr_tag[0x8c], 0,
  * result) at 0x2a9bf — Ghidra mis-grouped the 8 pushes onto the inner
  * zero-arg scenario_get(); cleanup ADD ESP,0x24=36=9 cdecl args proves it.
@@ -356,7 +356,7 @@ char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector,
     local_target[0] = scale * evasion_vector[0] + ((actor_t *)actor)->field_12c;
     local_target[1] = scale * evasion_vector[1] + ((actor_t *)actor)->field_130;
     actor_find_pathfinding_location(actor_handle);
-    if (FUN_00063e90((int)scenario_get(), ((actor_t *)actor)->field_376,
+    if (structure_test_pill2d((int)scenario_get(), ((actor_t *)actor)->field_376,
                      (float *)(actor + 0x168), ((actor_t *)actor)->field_164,
                      local_target, 0xffffffff, *(float *)(actr_tag + 0x8c), 0,
                      (unsigned int *)result) == '\0') {
@@ -518,7 +518,7 @@ char actor_move_try_evasion_direction(int actor_handle, float *alignment_vector,
  *
  * Checks actor->swarm_element (-1 at actor[0x158]) and mounted state
  * (actor[0x6] != 0). If mounted, delegates to the actor-type vtable via
- * FUN_0003a920 and clears actor[0x530]. If not mounted but jump-aim is
+ * actor_type_swarm_aim_jump and clears actor[0x530]. If not mounted but jump-aim is
  * active (actor[0x530] != 0), reads the stored jump velocity:
  *   param_5[0] = actor[0x534] * actor[0x53c]
  *   param_5[1] = actor[0x538] * actor[0x53c]
@@ -532,7 +532,7 @@ char actor_move_try_evasion_direction(int actor_handle, float *alignment_vector,
  * Confirmed: datum_get(actor_data, actor_handle) at 0x2acf0.
  * Confirmed: CMP [ESI+0x158],-1 at 0x2acf7-0x2ad03.
  * Confirmed: TEST [ESI+0x6],AL / JZ at 0x2ad09-0x2ad0e.
- * Confirmed: FUN_0003a920(actor_handle, a2, param_4, param_5) at 0x2ad1d.
+ * Confirmed: actor_type_swarm_aim_jump(actor_handle, a2, param_4, param_5) at 0x2ad1d.
  * Confirmed: TEST [ESI+0x530] at 0x2ad34-0x2ad3c.
  * Confirmed: CMP [ESI+0x6c],10 && CMP [ESI+0xa0],3 condition at
  * 0x2ad42-0x2ad55.
@@ -556,7 +556,7 @@ bool actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
   actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
   if (((actor_t *)actor)->field_158 == -1) {
     if (((actor_t *)actor)->field_006 != 0) {
-      FUN_0003a920(actor_handle, a2, param_4, param_5);
+      actor_type_swarm_aim_jump(actor_handle, a2, param_4, param_5);
       ((actor_t *)actor)->field_530 = 0;
       return 1;
     }
@@ -614,7 +614,7 @@ bool actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
  *   record[0x40]=handle, [0x44..0x4c]=center xyz, [0x4c] RMW to
  *   center[2]-(obj_radius-maxdist), [0x50]=max(2*obj_radius-2*maxdist,
  *   *0x2533c0), [0x54]=maxdist. Record stride 0x18, base actor+0x40. */
-void FUN_0002ade0(int actor_handle)
+void actor_move_avoidance_setup(int actor_handle)
 {
   int handles[2048];
   float world_matrix[13];
@@ -730,7 +730,7 @@ void FUN_0002ade0(int actor_handle)
  * avoidance_data's per-instance world matrix, then cast it against the BSP and
  * a list of obstacle spheres to find the nearest collision time.
  *
- * Register args (confirmed from caller FUN_0002bd80 @ 0x2c01f-0x2c02b and
+ * Register args (confirmed from caller actor_move_vector_avoidance @ 0x2c01f-0x2c02b and
  * 0x2c166-0x2c17b):
  *   avoidance_ray  @<eax>  : packed ray data, floats [1..6] used in transform
  *   ray_origin     @<ebx>  : float[3] world-space ray origin output
@@ -755,7 +755,7 @@ void FUN_0002ade0(int actor_handle)
  * a scratch float (EBP-0x4) that is compared against *collision_t.  This
  * scratch is distinct from avoidance_ray[6], which Ghidra aliases as the same
  * slot. */
-short FUN_0002b020(float *avoidance_ray, float *ray_origin, int avoidance_data,
+short actor_move_test_avoidance_vector(float *avoidance_ray, float *ray_origin, int avoidance_data,
                    float *ray_direction, float *collision_t, char *param_3)
 {
   float *mtx;
@@ -885,7 +885,7 @@ short FUN_0002b020(float *avoidance_ray, float *ray_origin, int avoidance_data,
  * query direction within a fan of direction records and linearly interpolate a
  * fractional index plus an associated value.
  *
- * Register args (confirmed from caller FUN_0002bd80 @ 0x2c4c7-0x2c4cf and
+ * Register args (confirmed from caller actor_move_vector_avoidance @ 0x2c4c7-0x2c4cf and
  * 0x2c765-0x2c76d):
  *   direction @<ecx> : query direction vector (direction[0..2])
  *   count     @<ebx> : number of records (always 8 at both call sites; used as
@@ -912,7 +912,7 @@ short FUN_0002b020(float *avoidance_ray, float *ray_origin, int avoidance_data,
  * <= 0). Confirmed: dot test FCOMP [0x2533c0]; TEST AH,0x41; JZ at
  * 0x2b380-0x2b38b (enters success for dot > 0).  Confirmed: success-block
  * index/value interpolation FILD/FMUL/FSUBP/FDIV at 0x2b3b3-0x2b3ec. */
-char FUN_0002b310(float *direction, short count, int records, float *values,
+char actor_move_vector_avoidance_find_direction(float *direction, short count, int records, float *values,
                   float *out_index, float *out_value)
 {
   float prev_cross;
@@ -964,7 +964,7 @@ char FUN_0002b310(float *direction, short count, int records, float *values,
  * from the dereferenced pointer at *0x31fc38 (translation at +0x0/+0x4/+0x8).
  *
  * cdecl, all stack args (confirmed: PUSH EBP / RET, no RET N; caller
- * FUN_0004c920 @ 0x4d39c-0x4d39d pushes EAX=[EDI+0x1a0] last).
+ * ai_debug_render_actor @ 0x4d39c-0x4d39d pushes EAX=[EDI+0x1a0] last).
  *   matrix   : per-instance struct, 3x3 rotation rows at +0x18..+0x38
  *   in_vec   : float[3] local-space direction
  *   out_vec  : float[3] world-space output
@@ -1013,7 +1013,7 @@ void actor_move_transform_avoidance_vector(int matrix, float *in_vec,
  * actor_move_transform_avoidance_vector.
  *
  * cdecl, all stack args (confirmed: PUSH EBP / RET, no RET N; caller
- * FUN_0004c920 @ 0x4d26a-0x4d26b and 0x4d2d7-0x4d2d8).
+ * ai_debug_render_actor @ 0x4d26a-0x4d26b and 0x4d2d7-0x4d2d8).
  *   matrix      : per-instance struct (passed through to the transform)
  *   dir_index   : float fractional sector index in [0,8)
  *   out_vec     : float[3] world-space output
@@ -1228,7 +1228,7 @@ char actor_path_3d_available(int actor_handle, float *dest_pos, float *dist_out)
   return result;
 }
 
-/* 0x2b830 — FUN_0002b830: choose a desired facing vector.
+/* 0x2b830 — actor_move_calculate_controlled_by_aiming: choose a desired facing vector.
  *
  * Builds four candidate facing vectors in a local [4][3] array:
  *   cand0 = normalized in_vec (z zeroed first when use_3d == 0)
@@ -1251,7 +1251,7 @@ char actor_path_3d_available(int actor_handle, float *dest_pos, float *dist_out)
  * 0x2dd9a-0x2ddb4: ECX = facing_basis (this+0x174), EAX = in_vec (the desired
  * vector), EDI = weight_vec (this+0x524); cdecl stack: use_3d, out_vector,
  * out_index (caller cleans 0xc bytes). */
-void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
+void actor_move_calculate_controlled_by_aiming(float *facing_basis /* @<ecx> */, char use_3d,
                   float *out_vector, short *out_index,
                   float *in_vec /* @<eax> */, float *weight_vec /* @<edi> */)
 {
@@ -1379,7 +1379,7 @@ void FUN_0002b830(float *facing_basis /* @<ecx> */, char use_3d,
  *   Asserts: real_normal2d(movement) @0x785, real_normal2d(facing) @0x786,
  *   realcmp(movement->k) @0x787, realcmp(facing->k) @0x788 (k-component must
  *   be finite and below the *0x2549d8 bound). */
-void FUN_0002bab0(char use_3d /* @<al> */,
+void actor_move_calculate_free(char use_3d /* @<al> */,
                   float *movement_direction /* @<esi> */,
                   float *facing_direction /* @<edi> */, float *out /* @<ebx> */)
 {
@@ -1484,7 +1484,7 @@ void FUN_0002bab0(char use_3d /* @<al> */,
  * Confirmed: FUN_001d90e0 is _chkstk (frame > 0x1000), not SEH.  The scattered
  * decompiler stores into local_1c/uStack_18/local_24/local_28 are chkstk/frame
  * scheduling noise and are not real stores. */
-void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
+void actor_move_vector_avoidance(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
                   float *speed_out)
 {
   unsigned char avoidance_state[0x6048];
@@ -1578,7 +1578,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
   *(float *)((char *)state + 0x6040) = 1.0f;
   *(float *)((char *)state + 0x6044) = 12.0f;
 
-  FUN_0002ade0((int)state);
+  actor_move_avoidance_setup((int)state);
 
   /* zero the 8-direction weight array, reset running max. */
   csmemset(weights, 0, 0x20);
@@ -1604,7 +1604,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
   }
 
   /* First avoidance ray pass: 9 rays.  Each ray is transformed and cast by
-   * FUN_0002b020 (avoidance_ray@<eax>, ray_origin@<ebx>, avoidance_data@<esi>).
+   * actor_move_test_avoidance_vector (avoidance_ray@<eax>, ray_origin@<ebx>, avoidance_data@<esi>).
    * The per-ray origin/direction are recorded at avd+0x6220/avd+0x628c (stride
    * 3 floats); the hit count goes to avd+0x61e8 (stride 2, short) and the
    * collision time to avd+0x61fc (stride 4, float). */
@@ -1618,7 +1618,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
     float ray_origin[3];
     float collision_t;
     for (n = 9; n != 0; n--) {
-      hit_count = (short)FUN_0002b020((float *)table, ray_origin, (int)state,
+      hit_count = (short)actor_move_test_avoidance_vector((float *)table, ray_origin, (int)state,
                                       ray_dir, &collision_t, (char *)0);
       rec[-0x1b] = ray_origin[0];
       rec[-0x1a] = ray_origin[1];
@@ -1677,7 +1677,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
         float pd[3];
         float po[3];
         float pt;
-        probe_hits[k] = (short)FUN_0002b020(
+        probe_hits[k] = (short)actor_move_test_avoidance_vector(
           (float *)probe_table, po, (int)state, pd, &pt, (char *)(pbi - 1));
         probe_origin[k * 3 + 0] = po[0];
         probe_origin[k * 3 + 1] = po[1];
@@ -1783,7 +1783,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
       work[2] = inv * work[2];
       if (*(float *)0x2533c0 < dlen) {
         char ok =
-          FUN_0002b310(work, 8, 0x632780, weights, &em_index, &em_value);
+          actor_move_vector_avoidance_find_direction(work, 8, 0x632780, weights, &em_index, &em_value);
         em_scl = *(float *)0x2533c0;
         if (ok != '\0' && *(float *)0x253398 < em_value) {
           int j2;
@@ -1871,7 +1871,7 @@ void FUN_0002bd80(int actor_handle /* @<ecx> */, float *facing, float *vel_out,
         work[1] = work[1] * inv;
         work[2] = inv * work[2];
         if (*(float *)0x2533c0 < mag) {
-          FUN_0002b310(work, 8, 0x632780, weights, &move_amt, &move_value);
+          actor_move_vector_avoidance_find_direction(work, 8, 0x632780, weights, &move_amt, &move_value);
           if ((move_amt < *(float *)0x2533c0) ||
               (move_amt > *(float *)0x253f78)) {
             display_assert("(movement_direction_approximation >= 0) && "
@@ -2454,7 +2454,7 @@ LAB_check_dest:
      * Normal on-foot pathfinding pipeline:
      *  1. actor_path_input_new(actor_handle, local_nav): initialize nav-state
      * struct (actor position, facing, vehicle info, etc.).
-     *  2. paths_dispose(local_nav, actor[0x480]): if ignore_object!=-1,
+     *  2. path_input_set_target_object(local_nav, actor[0x480]): if ignore_object!=-1,
      *     store it at local_nav+0xc.
      *  3. (Optional) path_input_set_attractor: encode movement-constraint
      * orders into local_nav when actor has standing orders (actor[0x280]>0,
@@ -2476,7 +2476,7 @@ LAB_check_dest:
     actor_path_input_new(actor_handle, local_nav);
     if (((actor_t *)actor)
           ->control_path_destination_orders_ignore_target_object_index != -1) {
-      paths_dispose(
+      path_input_set_target_object(
         local_nav,
         ((actor_t *)actor)
           ->control_path_destination_orders_ignore_target_object_index);
@@ -2521,18 +2521,18 @@ LAB_check_dest:
      *   FLD [ESI+0x4bc]; FCOMP 0.0f; TEST AH,0x41; JNZ done
      *   FLD dist; FCOMP [ESI+0x498]; TEST AH,0x5; JP done
      *   FLD dist; FSUB [ESI+0x4bc]; FCOMP [0x253398]; TEST AH,0x5; JP done
-     *   CALL FUN_0002a3a0(actor_handle)
+     *   CALL actor_path_clear(actor_handle)
      */
     if ((((actor_t *)actor)->field_4bc > 0.0f) &&
         (dist < *(float *)(actor + 0x498)) &&
         (dist - ((actor_t *)actor)->field_4bc < *(float *)0x253398)) {
-      FUN_0002a3a0(actor_handle);
+      actor_path_clear(actor_handle);
     }
     return path_found;
   }
 
 LAB_fail:
-  FUN_0002a3a0(actor_handle);
+  actor_path_clear(actor_handle);
   return '\0';
 
 LAB_path_ok:
@@ -2744,7 +2744,7 @@ void actor_destination_update(int actor_handle)
 
       if (((actor_t *)actor)->field_4c0 != '\0') {
         /* Path has a loop/done handler — call actor_path_stop. */
-        FUN_0002a3a0(actor_handle);
+        actor_path_clear(actor_handle);
       } else if (*(char *)0x5aca62 != '\0') {
         /* Debug: log "fell off end of unfinished path".
          * ai_debug_describe_actor: actor_describe_name(actor_handle, -1, 1,
@@ -3169,8 +3169,8 @@ char actor_move_to_prop(int actor_handle, int encounter_handle, float distance)
  * Confirmed: 4-way move_dir switch (jump table 0x2e524) at 0x2db64; second
  *            4-way move_type switch (table 0x2e534) at 0x2dedf; third
  *            move_type switch (table 0x2e544) at 0x2e110.
- * Confirmed: FUN_0002bab0(use_z@al [MOV AL,[EBP+0xc]], mvdir@esi, fdir@edi,
- *            avoid_vec@ebx) at 0x2dbf7, and FUN_0002b830(...) at 0x2ddb4
+ * Confirmed: actor_move_calculate_free(use_z@al [MOV AL,[EBP+0xc]], mvdir@esi, fdir@edi,
+ *            avoid_vec@ebx) at 0x2dbf7, and actor_move_calculate_controlled_by_aiming(...) at 0x2ddb4
  *            (both reg-arg). NB: @al here is use_z (stack [EBP+0xc]), not the
  *            incoming want_facing@<al> register arg.
  * Confirmed: actor_get_stopping_distances(actor_handle, &min_dist, &slow_dist)
@@ -3201,8 +3201,8 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
   float src[3]; /* [EBP-0x28..-0x20] movement candidate scratch */
   float scratch2[3]; /* [EBP-0x34..-0x2c] second candidate / steer vec */
   float avoid_vec[3]; /* [EBP-0x40..-0x38] avoidance / steer result */
-  float *mvdir; /* movement_direction arg to FUN_0002bab0 (@esi) */
-  float *fdir; /* facing_direction arg to FUN_0002bab0 (@edi) */
+  float *mvdir; /* movement_direction arg to actor_move_calculate_free (@esi) */
+  float *fdir; /* facing_direction arg to actor_move_calculate_free (@edi) */
   char use_perp; /* [EBP-0x1] */
   float facing_dot;
   float mag_sq;
@@ -3299,7 +3299,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
       }
       move_type = 0;
     } else {
-      FUN_0002b830((float *)(actor + 0x174), use_z, facing, &move_type,
+      actor_move_calculate_controlled_by_aiming((float *)(actor + 0x174), use_z, facing, &move_type,
                    movement, (float *)(actor + 0x524));
     }
   } else {
@@ -3347,7 +3347,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
       mvdir = src;
       fdir = facing;
     bab0_converge:
-      FUN_0002bab0(use_z, mvdir, fdir, avoid_vec);
+      actor_move_calculate_free(use_z, mvdir, fdir, avoid_vec);
       move_type = 4;
     }
   }
@@ -3597,7 +3597,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
  * actor_move_compute_facing to resolve the final facing/throttle and applies
  * crouch/jump unit control.
  *
- * cdecl, sole arg actor_handle (confirmed: caller FUN_0003ec80 @ 0x3ed88,
+ * cdecl, sole arg actor_handle (confirmed: caller actor_update @ 0x3ed88,
  * prologue MOV EDI,[EBP+0x8] is the only stack arg, RET with MOV ESP,EBP).
  *
  * Confirmed: datum_get(*0x6325a4, actor_handle) at 0x2e573; tag_get('actr',
@@ -3607,7 +3607,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
  * Confirmed: actor[0x430] branch (0x2e64d) copies actor[0x434] vec into
  *            actor[0x518] and resets the smoothing state (0x5dc..0x5ec).
  * Confirmed: vehicle smoothing path when actor[0x15e]==4 (0x2e6bf) via
- *            FUN_0002bd80(actor+0x518 or scaled, &slerp, &weight)@<ecx>.
+ *            actor_move_vector_avoidance(actor+0x518 or scaled, &slerp, &weight)@<ecx>.
  * Confirmed: facing-direction resolution from actor[0x42c]/0x429/0x428/0x6a
  *            at 0x2e8b7 -> actor[0x6dc].
  * Confirmed: big move-state switch on actor[0x15e] (vehicle / >0 path) at
@@ -3631,7 +3631,7 @@ void actor_move_update(int actor_handle)
   float maximum_throttle; /* [EBP-0x18] */
   char use_z; /* [EBP-0x14] -> compute_facing arg1 */
   float max_speed_sq; /* [EBP-0x10] */
-  float weight; /* [EBP-0x8] (FUN_0002bd80 speed out) */
+  float weight; /* [EBP-0x8] (actor_move_vector_avoidance speed out) */
   char want_facing; /* [EBP-0x1]  -> compute_facing want_facing@al */
   char need_jump; /* [EBP-0x2]  seed-fallback gate */
   char leap_jump; /* [EBP-0x3]  unit-control-jump gate */
@@ -3707,7 +3707,7 @@ void actor_move_update(int actor_handle)
     } else {
       src = actor + 0x518;
     }
-    FUN_0002bd80(actor_handle, (float *)src, slerp, &weight);
+    actor_move_vector_avoidance(actor_handle, (float *)src, slerp, &weight);
     fade = *(float *)0x2533e8;
     if (*(float *)(actor + 0x5e4) * *(float *)(actor + 0x5e4) +
           *(float *)(actor + 0x5e0) * *(float *)(actor + 0x5e0) +
@@ -4034,7 +4034,7 @@ seed_fallback:
     ((actor_t *)actor)->field_530 = 0;
     goto store_prev;
   }
-  if (FUN_0002a360(actor_handle) != '\0' ||
+  if (actor_move_animation_busy(actor_handle) != '\0' ||
       ((actor_t *)actor)->field_440 == '\0') {
     goto store_prev;
   }

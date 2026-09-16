@@ -518,7 +518,7 @@ int sound_impulse_start(int sound_tag_index, float scale)
   *(float *)(source + 0x08) = 1.0f;
 
   /* original returns the sound datum handle (or -1) from this tail call;
-   * callers like hud_sounds_update (FUN_000d70b0) store it for
+   * callers like hud_sounds_update (hud_play_sound) store it for
    * sound_stop_impulse. */
   return sound_start(sound_tag_index, source, NONE, 0, 0, 0);
 }
@@ -1183,7 +1183,7 @@ void sound_compute_source_obstruction(int channel_index, void *source,
     /* Query cluster sound path encoding between camera and source clusters. */
     bsp = scenario_get();
     new_var = (char *)source + 0x38;
-    sound_encoding = structure_bsp_cluster_sound_encoding(
+    sound_encoding = structure_bsp_get_cluster_encoded_sound_distance(
       bsp, *(int16_t *)((char *)camera + 0x10), source_cluster);
     encoding_bits = (uint32_t)(sound_encoding & 0x7f);
     cluster_distance = (float)(int)encoding_bits * *(float *)0x256148;
@@ -1193,7 +1193,7 @@ void sound_compute_source_obstruction(int channel_index, void *source,
 
       /* Get cluster audibility bitfield for the camera's cluster. */
       bsp = scenario_get();
-      audibility = structure_bsp_get_cluster_sound_data(
+      audibility = structure_bsp_get_cluster_pvs(
         bsp, *(int16_t *)((char *)camera + 0x10));
 
       /* Check if the source cluster is audible from the camera cluster. */

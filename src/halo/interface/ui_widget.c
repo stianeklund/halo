@@ -4,7 +4,7 @@
  * widget accepts input from any controller (local_player_index == -1, at
  * widget+8) or if the widget's local_player_index matches the event's
  * controller_index (at event+2). Same check is inlined below as
- * "allowed_player" in ui_widget_process_event. */
+ * "allowed_player" in widget_instance_process_one_event_recursive. */
 int event_controller_index_compatible_with_widget(void *event, void *widget)
 {
   short player_index;
@@ -197,23 +197,23 @@ bool ui_widgets_active(void)
   return active;
 }
 
-/* ui_widget_set_events_suppressed — sets or clears the events-suppressed
+/* ui_widgets_inhibit_processing — sets or clears the events-suppressed
  * flag at 0x46cc85 in the widget globals block. When suppressed, the
  * per-frame event dispatch in process_ui_widgets skips input processing.
  * Asserts that the widget subsystem has been initialized (0x46cc82). */
-void ui_widget_set_events_suppressed(bool suppress)
+void ui_widgets_inhibit_processing(bool suppress)
 {
   assert_halt(*(uint8_t *)0x46cc82);
   *(uint8_t *)0x46cc85 = (uint8_t)suppress;
 }
 
-/* ui_widget_get_last_child (0xe4310) — walks the parent chain (field +0x30,
- * the same field walked by ui_widget_apply_focus/ui_widget_set_focus above
- * and by the inline root-walk at ui_widget_close(ui_widget_get_last_child(w))
+/* widget_instance_get_topmost_parent (0xe4310) — walks the parent chain (field +0x30,
+ * the same field walked by widget_instance_give_focus_directly/widget_instance_give_focus_by_tag above
+ * and by the inline root-walk at ui_widget_delete(widget_instance_get_topmost_parent(w))
  * below) from widget up to the top-most ancestor with no parent, and returns
  * that root. 0xe4313-0xe432a: MOV EAX,[EBP+8]; MOV ECX,[EAX+0x30]; TEST/JZ;
  * loop MOV EAX,ECX; MOV ECX,[EAX+0x30]; TEST/JNZ while ECX!=0; RET EAX. */
-void *ui_widget_get_last_child(void *widget)
+void *widget_instance_get_topmost_parent(void *widget)
 {
   void *parent;
 
@@ -253,7 +253,7 @@ void widget_instance_set_visibility_recursive(void *widget, bool visible)
 }
 
 /* main_menu_active — sets or clears the "main menu active" byte at 0x46cc88,
- * checked by ui_widget_is_main_menu_loaded() (below) and main_menu_is_active()
+ * checked by main_menu_screen_is_active() (below) and main_menu_is_active()
  * (0xe43e0). Called from main.c's main_menu_unload/main_menu_load
  * teardown/setup paths with a literal false/true argument. */
 void main_menu_active(bool active)
@@ -269,7 +269,7 @@ bool main_menu_is_active(void)
   return (bool)(*(uint8_t *)0x46cc88);
 }
 
-bool ui_widget_is_main_menu_loaded(void)
+bool main_menu_screen_is_active(void)
 {
   int root_widget;
 
@@ -295,7 +295,7 @@ void ui_widget_load_progress_widget(void)
            "halo gravy");
 }
 
-bool ui_widget_initialization_in_progress(void)
+bool filesystem_check_thread_is_active(void)
 {
   return *(int *)0x46cc7c != 0;
 }
@@ -319,7 +319,7 @@ void display_error_when_main_menu_loaded(int16_t error_handle)
 
 /* display_error_abort_to_dashboard_deferred (0xe4590) — queues a single
  * "abort to dashboard" error (the error_handle/allow_abort pair consumed
- * by ui_widget_load_error_screen(), whose "error_abort_to_dashboard"
+ * by display_error_abort_to_dashboard(), whose "error_abort_to_dashboard"
  * widget name this function's name mirrors) for the deferred-dispatch
  * check on the next per-frame widget update (word at 0x46cc68 == -1
  * means "slot empty", byte at 0x46cc6a is the paired allow_abort flag).
@@ -339,13 +339,13 @@ void display_error_abort_to_dashboard_deferred(int16_t error_handle,
            "this one!");
 }
 
-/* ui_widget_start_title_music — starts the main menu looping music track.
+/* ui_start_main_menu_music — starts the main menu looping music track.
  * Checks whether title music is already playing (0x46cc86) and whether a
  * game is in progress (0x1006c0). If neither, looks up the "lsnd" tag
  * "sound\music\title1\title1" via the tag system (0x1b9930) and starts
  * it as a looping sound (0x1c8510) with volume 1.0. Sets the
  * title_music_playing flag on success. */
-void ui_widget_start_title_music(void)
+void ui_start_main_menu_music(void)
 {
   int tag_index;
 
@@ -365,7 +365,7 @@ void ui_widget_start_title_music(void)
   error(2, "title music tag not found");
 }
 
-void ui_widget_stop_attract_mode(void)
+void ui_stop_main_menu_music(void)
 {
   int tag_index;
 
@@ -385,7 +385,7 @@ void ui_widget_stop_attract_mode(void)
   *(uint8_t *)0x46cc86 = 0;
 }
 
-bool ui_widget_get_attract_mode_flag(void)
+bool ui_main_menu_music_active(void)
 {
   return *(bool *)0x46cc86;
 }
@@ -396,9 +396,9 @@ void ui_widgets_disable_pause_game(int duration_ticks)
   dword_46CC44 = duration_ticks;
 }
 
-void ui_widget_pending_load_push_internal(int *head, void *record);
+void push_widget(int *head, void *record);
 
-void ui_widget_pending_load_pop(int *head, void *output);
+void pop_widget(int *head, void *output);
 
 /* ui_widget_add_child (0xe4800) — appends child to the end of parent's
  * sibling list. `child` arrives in EBX (see kb.json @<ebx>), `parent` on the
@@ -437,13 +437,13 @@ void ui_widget_add_child(void *child, void *parent)
   }
 }
 
-/* ui_widget_close_children — walks the first_child linked list of a widget
- * and closes each child via ui_widget_close. Asserts that each child's
+/* ui_widget_delete_children_recursive — walks the first_child linked list of a widget
+ * and closes each child via ui_widget_delete. Asserts that each child's
  * prev_sibling is NULL (since it should be the head of the sibling list)
  * and that the next sibling's prev_sibling points back correctly. After
  * closing each child, clears the next sibling's prev_sibling link before
  * advancing. */
-void ui_widget_close_children(void *widget)
+void ui_widget_delete_children_recursive(void *widget)
 {
   int *child;
   int *next;
@@ -460,7 +460,7 @@ void ui_widget_close_children(void *widget)
     assert_halt_msg(next == NULL || *(int *)((char *)next + 0x28) == (int)child,
                     "next->previous == child");
 
-    ui_widget_close(child);
+    ui_widget_delete(child);
 
     if (next != NULL)
       *(int *)((char *)next + 0x28) = 0;
@@ -472,11 +472,11 @@ void ui_widget_close_children(void *widget)
 int ui_widget_load_widget_children(void *definition, void *widget);
 void ui_widget_link_child(void *parent, void *child);
 
-/* ui_widget_find_by_tag — depth-first search over a widget subtree for the
+/* widget_instance_find_by_tag_index_recursive — depth-first search over a widget subtree for the
  * first node whose tag handle (offset +0x0) equals tag_handle.  Checks the
  * current node first, then recurses into each child from first_child (+0x34)
  * following next_sibling (+0x2c). Returns NULL when no match exists. */
-int *ui_widget_find_by_tag(int *widget, int tag_handle)
+int *widget_instance_find_by_tag_index_recursive(int *widget, int tag_handle)
 {
   int *result;
   int *child;
@@ -490,7 +490,7 @@ int *ui_widget_find_by_tag(int *widget, int tag_handle)
     if (*child == tag_handle) {
       result = child;
     } else {
-      result = ui_widget_find_by_tag(child, tag_handle);
+      result = widget_instance_find_by_tag_index_recursive(child, tag_handle);
     }
     child = *(int **)((char *)child + 0x2c);
   }
@@ -498,19 +498,19 @@ int *ui_widget_find_by_tag(int *widget, int tag_handle)
   return result;
 }
 
-/* FUN_000e4980 (0xe4980) — widget ancestor-chain check, called from
- * ui_widget_pending_load_apply (0xe5090). Returns false immediately if the
+/* widget_instance_can_receive_events (0xe4980) — widget ancestor-chain check, called from
+ * widget_instance_set_focused_child_by_index (0xe5090). Returns false immediately if the
  * widget is disabled (+0x12 != 0). Otherwise walks up the parent chain
- * (+0x30 — the same field ui_widget_apply_focus and ui_widget_set_focus use
+ * (+0x30 — the same field widget_instance_give_focus_directly and widget_instance_give_focus_by_tag use
  * to climb to the root widget) starting at the widget's immediate parent.
  * For each ancestor, looks up its DeLa tag definition
  * (tag_get(0x44654c61, ancestor[0])) and requires either the *previous*
  * ancestor's tag definition to have bit 0 of field_0x2c set, or the
  * *current* ancestor's type field (+0xe) to be 2 or 3 (list types — same
- * values ui_widget_apply_focus tests). The first ancestor that fails this
+ * values widget_instance_give_focus_directly tests). The first ancestor that fails this
  * check stops the walk and yields false; running out of ancestors (or
  * having none at all) yields true. */
-bool FUN_000e4980(void *widget)
+bool widget_instance_can_receive_events(void *widget)
 {
   int *w;
   int *parent;
@@ -548,16 +548,16 @@ bool FUN_000e4980(void *widget)
   return result;
 }
 
-/* FUN_000e4a80 (0xe4a80) — linear case-insensitive search of the 0x28-entry
+/* get_icon_type (0xe4a80) — linear case-insensitive search of the 0x28-entry
  * (40) wide-string table at 0x31e098 (Ghidra label PTR_u_a_button_0031e098)
  * for an entry matching the implicit @<ebx> argument. Comparison is
  * __wcsnicmp(name, table[i], _wcslen(table[i])) — i.e. name only needs to
  * match table[i]'s full length as a prefix. Returns the matching table
  * index (0..0x27), or -1 if none of the 0x28 entries match. Table
  * contents/semantics not otherwise evidenced by this bundle; name kept
- * mechanical. Callers: FUN_000e4ce0, FUN_000e5de0, FUN_000e4da0 (x4) — none
+ * mechanical. Callers: string_has_icons_to_draw, FUN_000e5de0, FUN_000e4da0 (x4) — none
  * ported yet, so caller-side intent is not available as corroboration. */
-int16_t FUN_000e4a80(const wchar_t *name)
+int16_t get_icon_type(const wchar_t *name)
 {
   const wchar_t *entry;
   size_t entry_length;
@@ -579,7 +579,7 @@ int16_t FUN_000e4a80(const wchar_t *name)
   return index;
 }
 
-/* FUN_000e4c70 (0xe4c70) — draws text into dst_rect using the indent
+/* render_state_text (0xe4c70) — draws text into dst_rect using the indent
  * difference between src_rect and dst_rect (row 1, e.g. "top"), then copies
  * src_rect back into dst_rect. A negative computed indent is clamped to 0
  * and reported via error() with the message "initial_indent<0 in
@@ -591,7 +591,7 @@ int16_t FUN_000e4a80(const wchar_t *name)
  * dst_rect/src_rect naming are taken directly from this function's own
  * disassembly (matches FUN_0019cdb0's out_rect/in_rect argument order) and
  * from the structurally identical draw_string_set_indents/FUN_0019cdb0/
- * rasterizer_draw_string sequence already lifted as FUN_000d4470's non-icon
+ * rasterizer_draw_unicode_string sequence already lifted as render_state_text_0's non-icon
  * path in hud_messaging.c. The incoming ESI register (PUSH ESI at entry,
  * POP ESI at exit) is a callee-saved scratch register the original compiler
  * reused for the indent computation, not a real argument: its low 16 bits
@@ -600,7 +600,7 @@ int16_t FUN_000e4a80(const wchar_t *name)
  * a stack dword for a `short` parameter (draw_string_set_indents), which the
  * callee never reads — so its incoming value has no observable effect.
  * ABI: @ebx=dst_rect, @edi=src_rect, stack: text */
-void FUN_000e4c70(short *dst_rect, void *text, short *src_rect)
+void render_state_text(short *dst_rect, void *text, short *src_rect)
 {
   short indent;
   short local_bounds[4];
@@ -618,11 +618,11 @@ void FUN_000e4c70(short *dst_rect, void *text, short *src_rect)
   FUN_0019cdb0(dst_rect, text, local_bounds, src_rect);
   src_rect[1] = src_rect[1] - 3;
   local_bounds[1] = dst_rect[1];
-  rasterizer_draw_string(local_bounds, NULL, NULL, 0, (unsigned short *)text);
+  rasterizer_draw_unicode_string(local_bounds, NULL, NULL, 0, (unsigned short *)text);
   *dst_rect = *src_rect;
 }
 
-/* FUN_000e4d40 (0xe4d40) — evaluates whether a local player's input
+/* should_flip_sticks_for_local_player (0xe4d40) — evaluates whether a local player's input
  * preferences select control scheme 1 or 3. If local_player_index is -1
  * (unspecified), resolves it via local_player_get_next(-1) first. Builds a
  * 0x18-byte zeroed preferences block on the stack, fills it via
@@ -630,7 +630,7 @@ void FUN_000e4c70(short *dst_rect, void *text, short *src_rect)
  * player was found, then tests the int16 field at buffer offset 0x14
  * against 1 and 3. field_14: offset is accessed, meaning unproven.
  * Callers: FUN_000e4da0 (x2, both unconditional calls per xrefs_to). */
-bool FUN_000e4d40(int16_t local_player_index)
+bool should_flip_sticks_for_local_player(int16_t local_player_index)
 {
   uint8_t preferences[0x18];
   int16_t control_scheme;
@@ -651,14 +651,14 @@ bool FUN_000e4d40(int16_t local_player_index)
   return (control_scheme == 1) || (control_scheme == 3);
 }
 
-/* ui_widget_apply_focus — applies focus to target_widget within the root's
+/* widget_instance_give_focus_directly — applies focus to target_widget within the root's
  * focus chain. Walks to the top-most parent (+0x30), snapshots the current
  * focused-descendant chain head (+0x38), optionally retargets when the input
  * widget is disabled (+0x12==1) by scanning sibling/parent lists for a
  * focusable widget (DeLa handlers>0 or type 2/3), then rewrites ancestor
  * focused-descendant links (+0x38). If the previous and new focus share the
  * same direct parent, updates only that parent and exits early. */
-void ui_widget_apply_focus(void *root_widget, void *target_widget)
+void widget_instance_give_focus_directly(void *root_widget, void *target_widget)
 {
   int root;
   int focused;
@@ -745,13 +745,13 @@ void ui_widget_apply_focus(void *root_widget, void *target_widget)
   }
 }
 
-void ui_widget_pending_load_apply(int pending_a6, int widget, int16_t a7);
+void widget_instance_set_focused_child_by_index(int pending_a6, int widget, int16_t a7);
 
-void ui_widget_update_list_selection(void *widget, void *definition);
+void column_list_update(void *widget, void *definition);
 
-void ui_widget_list_prev(void *widget);
+void widget_instance_tab_to_next_valid_widget(void *widget);
 
-void ui_widget_list_next(void *widget);
+void widget_instance_tab_to_previous_valid_widget(void *widget);
 
 /* Local shape-only float4, not a claimed Bungie struct: mirrors the
  * reference's whole-struct copy (see get_ui_argb_white below) so the
@@ -783,21 +783,21 @@ float *get_ui_argb_white(float *out_color)
   return out_color;
 }
 
-/* FUN_000e5590 (0xe5590) — saved-game filesystem-check thread procedure.
+/* filesystem_initialization_thread_proc(x) (0xe5590) — saved-game filesystem-check thread procedure.
  * Registered with thread_new as the background thread entry point by
- * ui_widget_begin_filesystem_checks, and also invoked directly (synchronously,
+ * perform_filesystem_initialization, and also invoked directly (synchronously,
  * with param_1 = 0) if thread creation fails. `RET 0x4` marks it __stdcall
  * with one unused thread-proc parameter (the Win32 thread lpParameter slot).
  * Calls saved_game_perform_file_system_checks and stores its bool/short
  * result to the filesystem-check result word at 0x46cc80 (read back by
- * ui_widget_close_and_reload's caller as 1 == "no saved games", 2 == "disk
+ * widget_instance_go_back_to_previous's caller as 1 == "no saved games", 2 == "disk
  * error"). Only on success (result == 0) does it run the two saved-game
  * enumeration helpers at 0x1c26b0/0x1c0d50 (each takes -1 plus out-params
  * pointing at two EBP locals shared between both calls: local_4 is
  * pre-initialized to 1 before the first call so the callee can read a caller
  * default; local_8 is left uninitialized for the callee to fill) and the
  * profile-index getter, whose return value is unused here. */
-void __stdcall FUN_000e5590(int param_1)
+void __stdcall filesystem_initialization_thread_proc(int param_1)
 {
   int local_4;
   int local_8;
@@ -838,16 +838,16 @@ uint32_t modulate_pixel32_by_real_alpha(uint32_t pixel, float alpha)
   return (pixel & 0x00ffffff) | ((uint32_t)x87_round_to_int(scaled) << 24);
 }
 
-/* ui_widget_close — tears down a single UI widget and frees its memory.
+/* ui_widget_delete — tears down a single UI widget and frees its memory.
  * Handles the "widget deleted" event handlers (type 0x19) from the widget's
  * DeLa tag definition, firing each matching handler via
- * ui_widget_event_handler_dispatch and optionally spawning replacement widgets.
+ * ui_widget_event_handler_function_invoke and optionally spawning replacement widgets.
  * Manages the pause counter (if the widget pauses the game), unlinks the
  * widget from its sibling/parent chains, performs type-specific cleanup
  * (text data for type 1, list data for types 2-3), frees the widget from
  * the stack memory pool, and clears any root widget slot that pointed to it.
  * The being_deleted flag at +0x14 prevents re-entrant closing. */
-void ui_widget_close(void *widget)
+void ui_widget_delete(void *widget)
 {
   int *w;
   int tag_data;
@@ -876,7 +876,7 @@ void ui_widget_close(void *widget)
 
   /* notify player control if this widget has a local player and no parent */
   if (*(int16_t *)((char *)w + 0x8) != -1 && w[0xc] == 0) {
-    player_control_set_action_flags(*(int16_t *)((char *)w + 0x8), 0xfff, 1);
+    player_control_inhibit_buttons(*(int16_t *)((char *)w + 0x8), 0xfff, 1);
   }
 
   /* look up the DeLa (UI widget definition) tag */
@@ -891,7 +891,7 @@ void ui_widget_close(void *widget)
 
       if (*(int16_t *)(handler + 0x4) == 0x19 && (int8_t)handler[0] < 0) {
         widget_deleted = false;
-        handler_result = ui_widget_event_handler_dispatch(
+        handler_result = ui_widget_event_handler_function_invoke(
           w, 0, *(uint16_t *)(handler + 0x6), &widget_deleted);
 
         assert_halt_msg(!widget_deleted,
@@ -900,7 +900,7 @@ void ui_widget_close(void *widget)
 
         if (handler_result && (handler[0] & 0x8) != 0 &&
             *(int *)(handler + 0x14) != -1) {
-          if (ui_widget_spawn_from_event_handler(w, *(int *)(handler + 0x14)) ==
+          if (ui_widget_launch_widget(w, *(int *)(handler + 0x14)) ==
               0) {
             error(2, "event handler failed to spawn widget");
           }
@@ -937,7 +937,7 @@ void ui_widget_close(void *widget)
   }
 
   /* close all children of this widget */
-  ui_widget_close_children(w);
+  ui_widget_delete_children_recursive(w);
 
   /* unlink from prev sibling */
   prev = w[0xa];
@@ -980,7 +980,7 @@ void ui_widget_close(void *widget)
       stack_memory_pool_deallocate(*(void **)0x31e04c, (void *)w[0x13]);
     }
     if (w[0x12] != 0) {
-      ui_widget_close((void *)w[0x12]);
+      ui_widget_delete((void *)w[0x12]);
     }
   }
 
@@ -997,7 +997,7 @@ void ui_widget_close(void *widget)
 }
 
 /* ui_widgets_close_all — iterates over the 4 UI widget stacks and tears
- * them down. For each stack, closes the root widget via ui_widget_close
+ * them down. For each stack, closes the root widget via ui_widget_delete
  * (0xe5620), then walks the linked list at 0x46cc30[i] and deallocates
  * each widget node from the stack memory pool at [0x31e04c]. The list
  * is linked through offset +0xc in each widget node. */
@@ -1012,7 +1012,7 @@ void ui_widgets_close_all(void)
   do {
     /* close the root widget for this stack if present */
     if (list_heads[-4] != 0) {
-      ui_widget_close((void *)list_heads[-4]);
+      ui_widget_delete((void *)list_heads[-4]);
     }
     /* walk the linked list at list_heads[i], freeing each node */
     widget = *list_heads;
@@ -1029,15 +1029,15 @@ void ui_widgets_close_all(void)
   } while ((int)list_heads < 0x46cc40);
 }
 
-/* ui_widgets_close_for_local_player (0xe5910) — like ui_widgets_close_all
+/* ui_widgets_close_all_for_local_player (0xe5910) — like ui_widgets_close_all
  * above, but only tears down the one root-widget stack (of the 4 at
  * 0x46cc20..2c / 0x46cc30..3c) whose root widget's local_player_index field
- * (+8) matches local_player_index: closes that root via ui_widget_close
+ * (+8) matches local_player_index: closes that root via ui_widget_delete
  * (0xe5620), then drains its pending-close list at 0x46cc30[i] (linked
  * through +0xc) back to the stack memory pool at [0x31e04c]. Asserts
  * local_player_index is in [0,4) -- unlike ui_widgets_pop_stack below,
  * -1 is NOT special-cased to player 0 here. */
-void ui_widgets_close_for_local_player(int16_t local_player_index)
+void ui_widgets_close_all_for_local_player(int16_t local_player_index)
 {
   int *list_heads;
   int root;
@@ -1055,7 +1055,7 @@ void ui_widgets_close_for_local_player(int16_t local_player_index)
   do {
     root = list_heads[-4];
     if (root != 0 && *(int16_t *)(root + 8) == local_player_index) {
-      ui_widget_close((void *)root);
+      ui_widget_delete((void *)root);
 
       widget = *list_heads;
       if (widget != 0) {
@@ -1074,7 +1074,7 @@ void ui_widgets_close_for_local_player(int16_t local_player_index)
 
 /* ui_widgets_pop_stack — drains one pending queued entry from the
  * pending-load list at 0x46cc30[local_player_index] (see
- * ui_widget_pending_load_pop / ui_widget_pending_load_push_internal above).
+ * pop_widget / push_widget above).
  * local_player_index == -1 is treated as player 0; otherwise it must be in
  * [0, MAXIMUM_NUMBER_OF_LOCAL_PLAYERS). The popped record is discarded --
  * this only drains one node, it does not apply it. */
@@ -1096,7 +1096,7 @@ void ui_widgets_pop_stack(int16_t local_player_index)
   }
 
   if (*(int *)(0x46cc30 + (int)local_player_index * 4) != 0) {
-    ui_widget_pending_load_pop((int *)(0x46cc30 + (int)local_player_index * 4),
+    pop_widget((int *)(0x46cc30 + (int)local_player_index * 4),
                                (void *)&record);
   }
 }
@@ -1107,7 +1107,7 @@ void ui_widgets_pop_stack(int16_t local_player_index)
  * then for each eligible root stamps the fade duration (+0x20) with
  * duration_ms and the timeout (+0x1c) with (current_tick - start_tick) + 100
  * ticks, where start_tick is +0x18 and current_tick is the global at
- * 0x46cc40 (see ui_widget_event_handler_dispatch's timeout check against
+ * 0x46cc40 (see ui_widget_event_handler_function_invoke's timeout check against
  * +0x18/+0x1c/+0x20 above). Finally frees every widget already queued on
  * that stack's pending-close list (0x46cc30[i], linked through +0xc) back
  * to the stack memory pool — the same list-drain as ui_widgets_close_all,
@@ -1121,7 +1121,7 @@ void main_screen_shell_begin_fade(int duration_ms)
   int next;
   void *pool;
 
-  ui_widget_stop_attract_mode();
+  ui_stop_main_menu_music();
 
   root_slots = (int *)0x46cc20;
   do {
@@ -1185,7 +1185,7 @@ void ui_play_audio_feedback_sound(short sound_selector)
   }
 }
 
-/* render_text_box_widget (0xe6140) — refreshes and draws a text-box widget.
+/* widget_instance_render_text_box (0xe6140) — refreshes and draws a text-box widget.
  *
  * Register ABI confirmed from the prologue: MOV ESI,EAX / MOV EBX,ECX, so
  * EAX carries the widget *definition* (tag data: offsets 0x24..0x132) and
@@ -1213,7 +1213,7 @@ void ui_play_audio_feedback_sound(short sound_selector)
  * by the global UI "white" colour when the caller asks for it or when the
  * definition's RGB is exactly (1,1,1); the alpha is always the definition's
  * alpha scaled by the widget's inherited opacity (the product of field_24 up
- * the parent chain, computed by FUN_000e4960 and returned in ST0 — the
+ * the parent chain, computed by widget_instance_get_cumulative_alpha_modifier and returned in ST0 — the
  * original keeps it live on the x87 stack across the whole colour selection,
  * which is not expressible in C).  Flag 0x4 at +0x11e adds a cosine pulse
  * driven by the UI millisecond clock at 0x46cc40 (FILD plus a negative fixup
@@ -1226,7 +1226,7 @@ void ui_play_audio_feedback_sound(short sound_selector)
  * is a packed {int16 x; int16 y} pair; x shifts left/right, y shifts
  * top/bottom, and the top-left corner additionally picks up the definition's
  * text offsets at +0x132 (y) and +0x130 (x). */
-void render_text_box_widget(void *definition, void *widget,
+void widget_instance_render_text_box(void *definition, void *widget,
                             const int32_t *position_override,
                             int32_t position_offset, bool use_white_color)
 {
@@ -1283,8 +1283,8 @@ void render_text_box_widget(void *definition, void *widget,
     function_name =
       *(const char **)((char *)definition + 0x64) + function_offset;
     if (function_name != NULL && *function_name != '\0') {
-      FUN_000e5180(ascii_to_wide(function_name, name, 0x40),
-                   ui_widget_text_search_and_replace_function_invoke(
+      search_and_replace(ascii_to_wide(function_name, name, 0x40),
+                   ui_widget_search_and_replace_invoke(
                      widget, *(const uint16_t *)(function_name + 0x20)),
                    text);
     }
@@ -1310,7 +1310,7 @@ void render_text_box_widget(void *definition, void *widget,
     return;
   }
 
-  opacity = FUN_000e4960(widget);
+  opacity = widget_instance_get_cumulative_alpha_modifier(widget);
 
   *(int32_t *)&position[0] = *(int32_t *)((char *)definition + 0x24);
   *(int32_t *)&position[2] = *(int32_t *)((char *)definition + 0x28);
@@ -1364,18 +1364,18 @@ void render_text_box_widget(void *definition, void *widget,
 
   draw_string_set_font(font_tag, -1, justification, 0, color);
 
-  if (FUN_000e4ce0(*text)) {
+  if (string_has_icons_to_draw(*text)) {
     draw_string_and_hack_in_icons(position, (int)bounds, 0, 0, *text, 0);
   } else {
-    rasterizer_draw_string(position, bounds, NULL, 0, (unsigned short *)*text);
+    rasterizer_draw_unicode_string(position, bounds, NULL, 0, (unsigned short *)*text);
   }
 }
 
-/* ui_widget_set_focus — walks up the parent chain (field_0x30) from the given
+/* widget_instance_give_focus_by_tag — walks up the parent chain (field_0x30) from the given
  * widget to the root, then searches the widget tree for one matching
- * tag_handle.  If found, calls ui_widget_apply_focus; otherwise logs an error.
+ * tag_handle.  If found, calls widget_instance_give_focus_directly; otherwise logs an error.
  */
-void ui_widget_set_focus(void *widget, int tag_handle, int16_t player_index)
+void widget_instance_give_focus_by_tag(void *widget, int tag_handle, int16_t player_index)
 {
   void *root = widget;
   void *found;
@@ -1385,25 +1385,25 @@ void ui_widget_set_focus(void *widget, int tag_handle, int16_t player_index)
   while (*(void **)((char *)root + 0x30) != NULL)
     root = *(void **)((char *)root + 0x30);
 
-  found = ui_widget_find_by_tag(root, tag_handle);
+  found = widget_instance_find_by_tag_index_recursive(root, tag_handle);
   if (found != NULL) {
-    ui_widget_apply_focus(root, found);
+    widget_instance_give_focus_directly(root, found);
     return;
   }
 
   error(2, "failed to find event focus target widget");
 }
 
-void ui_widget_close_and_reload(void *widget);
+void widget_instance_go_back_to_previous(void *widget);
 
-/* ui_widget_begin_filesystem_checks — spawns a background thread to perform
+/* perform_filesystem_initialization — spawns a background thread to perform
  * filesystem and saved-game file enumeration. Asserts that no initialization
  * thread is already running (0x46cc7c == NULL) and that the widget subsystem
  * is initialized (0x46cc82). Suppresses UI events (0x46cc85 = 1) and resets
  * the filesystem check result word at 0x46cc80 to 0 before spawning the
  * thread via thread_new (0x81630). If thread creation fails, runs the check
  * procedure synchronously (0xe5590) and re-clears the suppress flag. */
-void ui_widget_begin_filesystem_checks(void)
+void perform_filesystem_initialization(void)
 {
   assert_halt(*(int *)0x46cc7c == 0);
   error(2, "begining filesystem checks & saved game file enumeration...");
@@ -1438,17 +1438,17 @@ void ui_widgets_dispose(void)
   csmemset((void *)0x46cc20, 0, 0x68);
 }
 
-int ui_widget_list_next_item(void *widget, void *event_data,
+int widget_event_function_list_widget_goto_next_item(void *widget, void *event_data,
                              char *widget_deleted);
 
-int ui_widget_list_prev_item(void *widget, void *event_data,
+int widget_event_function_list_widget_goto_previous_item(void *widget, void *event_data,
                              char *widget_deleted);
 
-void ui_widget_handle_event_handler(void *widget, void *definition,
+void event_handler_dispatch(void *widget, void *definition,
                                     void *event_data, void *event_handler,
                                     char *widget_deleted);
 
-/* FUN_000e76b0 — called from the widget-tree recursive render helper at
+/* widget_instance_render_column_list — called from the widget-tree recursive render helper at
  * 0xe73c0 (xref 0xe75e9; that function is itself still unported — the
  * calls below reach its original binary code through the kb.json redirect
  * thunk). Two independent steps:
@@ -1461,7 +1461,7 @@ void ui_widget_handle_event_handler(void *widget, void *definition,
  *      children via 0xe73c0, flagging the child at index +0x3c as the
  *      last one (bool arg 5).
  * Clears widget+0x3e (a pending-count field) on every exit path. */
-void FUN_000e76b0(int widget, int param_2, viewport_bounds_t *bounds,
+void widget_instance_render_column_list(int widget, int param_2, viewport_bounds_t *bounds,
                   int param_4, int param_5)
 {
   int target;
@@ -1480,7 +1480,7 @@ void FUN_000e76b0(int widget, int param_2, viewport_bounds_t *bounds,
       parent = *(int *)(parent + 0x30);
     }
     *(float *)(target + 0x24) = scale;
-    FUN_000e73c0(target, bounds, param_4, 0, 1);
+    widget_instance_render_recursive(target, bounds, param_4, 0, 1);
   }
 
   if ((*(unsigned char *)(param_2 + 0x150) & 1) != 0) {
@@ -1490,7 +1490,7 @@ void FUN_000e76b0(int widget, int param_2, viewport_bounds_t *bounds,
       if (index >= (int)*(uint16_t *)(widget + 0x44))
         break;
       is_last = (index == (int)*(int16_t *)(widget + 0x3c));
-      FUN_000e73c0(child, bounds, param_4, param_5, is_last);
+      widget_instance_render_recursive(child, bounds, param_4, param_5, is_last);
       child = *(int *)(child + 0x2c);
       index++;
     }
@@ -1601,7 +1601,7 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
       font_tag = tag_loaded(0x666f6e74, "ui\\small_ui", -1, 0, 0, color);
       ((void (*)(int))0x19b8b0)(font_tag);
       tag_name = tag_get_name(*(int *)(0x46cc20 + i * 4));
-      rasterizer_text_draw(&local_bounds, 0, 0, 0, tag_name);
+      rasterizer_draw_string(&local_bounds, 0, 0, 0, tag_name);
     }
   }
 
@@ -1622,7 +1622,7 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
   }
 }
 
-void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
+void widget_instance_process_one_event_recursive(void *widget, void *widget_tag, void *event_data,
                              void *handled)
 {
   int *w;
@@ -1677,7 +1677,7 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
 
     if (widget_player >= 0 && widget_player < 4) {
       if (input_has_gamepad(widget_player)) {
-        ui_widget_close(ui_widget_get_last_child(w));
+        ui_widget_delete(widget_instance_get_topmost_parent(w));
         widget_deleted = true;
       }
     } else {
@@ -1693,7 +1693,7 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           while (*(int *)(child + 0x30) != 0) {
             child = *(int *)(child + 0x30);
           }
-          ui_widget_close((void *)child);
+          ui_widget_delete((void *)child);
           widget_deleted = true;
           break;
         }
@@ -1718,7 +1718,7 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
         }
 
         if (!found) {
-          ui_widget_close_and_reload(w);
+          widget_instance_go_back_to_previous(w);
           sound_effect = 3;
           widget_deleted = true;
           consumed = true;
@@ -1738,7 +1738,7 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
         while (*(int *)(child + 0x30) != 0) {
           child = *(int *)(child + 0x30);
         }
-        ui_widget_close((void *)child);
+        ui_widget_delete((void *)child);
         widget_deleted = true;
         goto after_local_handling;
       }
@@ -1770,7 +1770,7 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
         }
       }
     } else if (*(int16_t *)((char *)w + 0xe) == 3) {
-      ui_widget_update_list_selection(w, definition);
+      column_list_update(w, definition);
     }
 
     if (allowed_player) {
@@ -1780,21 +1780,21 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           !widget_deleted) {
         if (*(int16_t *)event == 3 && event[5] == 1) {
           if (event[4] == 8) {
-            ui_widget_list_next(w);
+            widget_instance_tab_to_previous_valid_widget(w);
             sound_effect = 1;
             consumed = true;
           } else if (event[4] == 9) {
-            ui_widget_list_prev(w);
+            widget_instance_tab_to_next_valid_widget(w);
             sound_effect = 1;
             consumed = true;
           }
         } else if (*(int16_t *)event == 1) {
           if (*(int16_t *)(event + 6) == (int16_t)0x8000) {
-            ui_widget_list_prev(w);
+            widget_instance_tab_to_next_valid_widget(w);
             sound_effect = 1;
             consumed = true;
           } else if (*(int16_t *)(event + 6) == 0x7fff) {
-            ui_widget_list_next(w);
+            widget_instance_tab_to_previous_valid_widget(w);
             sound_effect = 1;
             consumed = true;
           }
@@ -1805,13 +1805,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           !widget_deleted) {
         if (*(int16_t *)event == 3 && event[5] == 1) {
           if (event[4] == 0xa) {
-            ui_widget_list_next(w);
+            widget_instance_tab_to_previous_valid_widget(w);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (event[4] == 0xb) {
-            ui_widget_list_prev(w);
+            widget_instance_tab_to_next_valid_widget(w);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -1819,13 +1819,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           }
         } else if (*(int16_t *)event == 1) {
           if (*(int16_t *)(event + 4) == (int16_t)0x8000) {
-            ui_widget_list_next(w);
+            widget_instance_tab_to_previous_valid_widget(w);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (*(int16_t *)(event + 4) == 0x7fff) {
-            ui_widget_list_prev(w);
+            widget_instance_tab_to_next_valid_widget(w);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -1839,13 +1839,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           !widget_deleted) {
         if (*(int16_t *)event == 3 && event[5] == 1) {
           if (event[4] == 8) {
-            ui_widget_list_prev_item(w, event, (char *)&widget_deleted);
+            widget_event_function_list_widget_goto_previous_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (event[4] == 9) {
-            ui_widget_list_next_item(w, event, (char *)&widget_deleted);
+            widget_event_function_list_widget_goto_next_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -1853,13 +1853,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           }
         } else if (*(int16_t *)event == 1) {
           if (*(int16_t *)(event + 6) == (int16_t)0x8000) {
-            ui_widget_list_next_item(w, event, (char *)&widget_deleted);
+            widget_event_function_list_widget_goto_next_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (*(int16_t *)(event + 6) == 0x7fff) {
-            ui_widget_list_prev_item(w, event, (char *)&widget_deleted);
+            widget_event_function_list_widget_goto_previous_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -1872,13 +1872,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           !widget_deleted) {
         if (*(int16_t *)event == 3 && event[5] == 1) {
           if (event[4] == 0xa) {
-            ui_widget_list_prev_item(w, event, (char *)&widget_deleted);
+            widget_event_function_list_widget_goto_previous_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (event[4] == 0xb) {
-            ui_widget_list_next_item(w, event, (char *)&widget_deleted);
+            widget_event_function_list_widget_goto_next_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -1886,13 +1886,13 @@ void ui_widget_process_event(void *widget, void *widget_tag, void *event_data,
           }
         } else if (*(int16_t *)event == 1) {
           if (*(int16_t *)(event + 4) == (int16_t)0x8000) {
-            ui_widget_list_prev_item(w, event, (char *)&widget_deleted);
+            widget_event_function_list_widget_goto_previous_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
             consumed = true;
           } else if (*(int16_t *)(event + 4) == 0x7fff) {
-            ui_widget_list_next_item(w, event, (char *)&widget_deleted);
+            widget_event_function_list_widget_goto_next_item(w, event, (char *)&widget_deleted);
             if (sound_effect == 0) {
               sound_effect = 1;
             }
@@ -1952,7 +1952,7 @@ after_local_handling:
 
       if (matches) {
         consumed = true;
-        ui_widget_handle_event_handler(w, definition, event, event_handler,
+        event_handler_dispatch(w, definition, event, event_handler,
                                        (char *)&widget_deleted);
       }
 
@@ -1977,7 +1977,7 @@ after_local_handling:
         int16_t child_player = *(int16_t *)(child + 8);
         if (child_player == -1 || child_player == *(int16_t *)(event + 2)) {
           child_tag = *(int *)child;
-          ui_widget_process_event((void *)(uintptr_t)child,
+          widget_instance_process_one_event_recursive((void *)(uintptr_t)child,
                                   tag_get(0x44654c61, child_tag), event,
                                   (char *)&widget_deleted);
         }
@@ -1988,7 +1988,7 @@ after_local_handling:
         int16_t child_player = *(int16_t *)(child + 8);
         if (child_player == -1 || child_player == *(int16_t *)(event + 2)) {
           child_tag = *(int *)child;
-          ui_widget_process_event((void *)(uintptr_t)child,
+          widget_instance_process_one_event_recursive((void *)(uintptr_t)child,
                                   tag_get(0x44654c61, child_tag), event,
                                   (char *)&widget_deleted);
           if (widget_deleted) {
@@ -2105,7 +2105,7 @@ __declspec(noinline) void *ui_widget_load_by_name_or_tag(const char *name,
     root_widget = *(int *)(0x46cc20 + (int)stack_index * 4);
     if (root_widget != 0) {
       previous_stack_player = *(int16_t *)(root_widget + 8);
-      ui_widget_close((void *)root_widget);
+      ui_widget_delete((void *)root_widget);
     } else {
       previous_stack_player = -1;
     }
@@ -2119,7 +2119,7 @@ __declspec(noinline) void *ui_widget_load_by_name_or_tag(const char *name,
       pending_load.a6 = a6;
       pending_load.a7 = (int16_t)a7;
       pending_load.widget_stack = previous_stack_player;
-      ui_widget_pending_load_push_internal(
+      push_widget(
         (int *)(0x46cc30 + (int)stack_index * 4), &pending_load);
     }
   }
@@ -2146,7 +2146,7 @@ __declspec(noinline) void *ui_widget_load_by_name_or_tag(const char *name,
     }
   }
 
-  ui_widget_load_from_tag_internal((void *)tag_data, (void *)widget, (void *)a3,
+  widget_instance_initialize((void *)tag_data, (void *)widget, (void *)a3,
                                    tag_index, widget_stack, widget_stack_base);
   return (void *)widget;
 }
@@ -2185,7 +2185,7 @@ void main_screen_shell_load(void)
     } else {
       error(2, "xbox command line= '%s'", command_line);
     }
-    ui_widget_begin_filesystem_checks();
+    perform_filesystem_initialization();
     input_abstraction_mark_time();
     if (!play_main_menu)
       goto done;
@@ -2201,15 +2201,15 @@ void main_screen_shell_load(void)
   }
 
   if (word_46CC48 != -1) {
-    ui_widget_display_error(word_46CC48, -1, 1, 0);
+    display_error(word_46CC48, -1, 1, 0);
     word_46CC48 = -1;
   }
 
   if (*(uint8_t *)0x46cc86 == 0) {
-    ui_widget_start_title_music();
+    ui_start_main_menu_music();
   }
 
-  ui_widget_clear_last_error_index();
+  reset_last_player1_profile_index();
 
 done:
   if (!virtual_keyboard_initialize()) {
@@ -2218,7 +2218,7 @@ done:
   *(uint8_t *)0x31e050 = 0;
 }
 
-void ui_widget_display_error(int16_t error_handle, int local_player_index,
+void display_error(int16_t error_handle, int local_player_index,
                              char is_modal, char pause_game)
 {
   int16_t stack_index;
@@ -2418,7 +2418,7 @@ void ui_widget_display_error(int16_t error_handle, int local_player_index,
   }
 }
 
-/* ui_widget_load_error_screen — displays a fatal/abort error overlay that
+/* display_error_abort_to_dashboard — displays a fatal/abort error overlay that
  * forces the player back to the Xbox dashboard. If allow_abort is true
  * (== 1), the "error_abort_to_dashboard" widget is shown (user can confirm);
  * otherwise "error_abort_to_dashboard_you_have_no_choice" is shown and all
@@ -2427,7 +2427,7 @@ void ui_widget_display_error(int16_t error_handle, int local_player_index,
  * (+0x15) is set, and the global "last displayed error" at 0x31e054 is
  * updated. Asserts that the widget's type (+0x0e) is 1 (text box).
  * Source line: 0x90f in ui_widget.c. */
-void ui_widget_load_error_screen(int16_t error_handle, int allow_abort)
+void display_error_abort_to_dashboard(int16_t error_handle, int allow_abort)
 {
   const char *widget_name;
   void *widget;
@@ -2458,7 +2458,7 @@ void ui_widget_load_error_screen(int16_t error_handle, int allow_abort)
   error(2, "failed to load '%s' widget", widget_name);
 }
 
-bool ui_widgets_process_pause(void)
+bool ui_check_for_pause_game(void)
 {
   int stack_index;
   int i;
@@ -2475,7 +2475,7 @@ bool ui_widgets_process_pause(void)
   void *client;
 
   handled = false;
-  network_game = network_game_in_progress();
+  network_game = network_game_is_active();
 
   if (game_in_progress() && !cinematic_in_progress() &&
       game_connection() != 3 && *(uint8_t *)0x46cc88 == 0 &&
@@ -2513,9 +2513,9 @@ bool ui_widgets_process_pause(void)
             target_local_player == (int16_t)stack_index) {
           root_widget = *(int *)(0x46cc20 + stack_index * 4);
           if (root_widget == 0) {
-            client = network_game_client_get();
+            client = global_network_game_client_get();
+            network_game_client_get_game(client);
             network_game_client_get_machine_index(client);
-            FUN_00124c40(client);
 
             switch (local_player_count) {
             case 1:
@@ -2549,7 +2549,7 @@ bool ui_widgets_process_pause(void)
               error(2, "failed to load multiplayer pause game window");
             }
           } else {
-            ui_widget_close((void *)root_widget);
+            ui_widget_delete((void *)root_widget);
           }
         }
       } else {
@@ -2611,8 +2611,8 @@ bool ui_widgets_process_pause(void)
   return handled;
 }
 
-/* ui_widget_spawn_from_event_handler — creates a new widget from an event
- * handler's spawn tag_index (called from ui_widget_close when a "widget
+/* ui_widget_launch_widget — creates a new widget from an event
+ * handler's spawn tag_index (called from ui_widget_delete when a "widget
  * deleted" handler has the spawn bit set). Looks up the DeLa (UI widget
  * definition) tag for tag_index and resolves the target widget_stack slot
  * from the tag's own controller_index field (offset +2, same field/values
@@ -2629,7 +2629,7 @@ bool ui_widgets_process_pause(void)
  * Finally loads the new widget via ui_widget_load_by_name_or_tag, passing
  * the root ancestor's tag_index, the immediate parent's tag_index (or -1
  * if there is no parent), and the sibling index (or -1 if not found). */
-void *ui_widget_spawn_from_event_handler(void *widget, int tag_index)
+void *ui_widget_launch_widget(void *widget, int tag_index)
 {
   int tag_data;
   int widget_stack;
@@ -2788,19 +2788,19 @@ void process_ui_widgets(void)
     if (thread_is_done((void *)*(int *)0x46cc7c) != 0) {
       thread_close((void *)*(int *)0x46cc7c);
       *(int *)0x46cc7c = 0;
-      ui_widget_set_events_suppressed(false);
+      ui_widgets_inhibit_processing(false);
       if (*(int16_t *)0x46cc80 == 1) {
         if (bink_playback_has_video()) {
           bink_playback_stop();
         }
-        ui_widget_load_error_screen(0x21, 1);
+        display_error_abort_to_dashboard(0x21, 1);
         return;
       }
       if (*(int16_t *)0x46cc80 == 2) {
         if (bink_playback_has_video()) {
           bink_playback_stop();
         }
-        ui_widget_load_error_screen(0x22, 1);
+        display_error_abort_to_dashboard(0x22, 1);
         return;
       }
     }
@@ -2827,7 +2827,7 @@ void process_ui_widgets(void)
 
   /* If a pending error screen load is queued, dispatch it now. */
   if (*(int16_t *)0x46cc68 != -1) {
-    ui_widget_load_error_screen(*(int16_t *)0x46cc68, *(uint8_t *)0x46cc6a);
+    display_error_abort_to_dashboard(*(int16_t *)0x46cc68, *(uint8_t *)0x46cc6a);
     *(int16_t *)0x46cc68 = -1;
     return;
   }
@@ -2836,7 +2836,7 @@ void process_ui_widgets(void)
   if ((*(int16_t *)0x46cc50 == -1) && (*(int16_t *)0x46cc56 == -1) &&
       (*(int16_t *)0x46cc5c == -1) && (*(int16_t *)0x46cc62 == -1)) {
     /* Normal widget event processing path. */
-    blocked_by_pause = ui_widgets_process_pause() != 0;
+    blocked_by_pause = ui_check_for_pause_game() != 0;
 
     active_widget_stacks[0] =
       (*(int *)0x46cc20 != 0) && (*(uint8_t *)(*(int *)0x46cc20 + 0x15) == 1);
@@ -2879,7 +2879,7 @@ void process_ui_widgets(void)
         do {
           handled = 0;
           if (blocked_by_pause == 0) {
-            ui_widget_process_event((void *)widget, widget_tag, &process_data,
+            widget_instance_process_one_event_recursive((void *)widget, widget_tag, &process_data,
                                     &handled);
           }
           if ((handled == 1) || (widget != *widget_roots)) {
@@ -2890,19 +2890,19 @@ void process_ui_widgets(void)
       } else if (blocked_by_pause == 0) {
         process_data.unk2 = *(uint16_t *)(widget + 8);
         handled = 0;
-        ui_widget_process_event((void *)widget, widget_tag, &process_data,
+        widget_instance_process_one_event_recursive((void *)widget, widget_tag, &process_data,
                                 &handled);
       }
 
       did_work = 1;
       if ((*widget_roots == 0) && (widget_roots[4] != 0)) {
-        ui_widget_pending_load_pop(&widget_roots[4], (void *)&pending_load);
+        pop_widget(&widget_roots[4], (void *)&pending_load);
         if (pending_load.tag_index != -1) {
           loaded_widget = ui_widget_load_by_name_or_tag(
             0, pending_load.tag_index, 0, pending_load.widget_stack, -1, -1,
             -1);
           if (loaded_widget != 0) {
-            ui_widget_pending_load_apply(pending_load.a6, (int)loaded_widget,
+            widget_instance_set_focused_child_by_index(pending_load.a6, (int)loaded_widget,
                                          pending_load.a7);
           }
         }
@@ -2921,12 +2921,12 @@ void process_ui_widgets(void)
   deferred_error = (ui_widget_deferred_error_t *)0x46cc50;
   while ((int)deferred_error < 0x46cc68) {
     if (deferred_error->error_handle != -1) {
-      if ((*(uint8_t *)0x46cc88 == 0) && (!network_game_in_progress()) &&
+      if ((*(uint8_t *)0x46cc88 == 0) && (!network_game_is_active()) &&
           (game_time_get() < 0x1e)) {
         error(2, "waiting for %d ticks before displaying deferred errors",
               0x1e);
       } else {
-        ui_widget_display_error(
+        display_error(
           deferred_error->error_handle, deferred_error->local_player_index,
           (char)deferred_error->a3, (char)deferred_error->a4);
         deferred_error->error_handle = -1;
@@ -2941,7 +2941,7 @@ void process_ui_widgets(void)
  * The global at 0x31e4c0 tracks which error was most recently displayed
  * by the UI widget error system.
  */
-__declspec(noinline) void ui_widget_clear_last_error_index(void)
+__declspec(noinline) void reset_last_player1_profile_index(void)
 {
   *(int *)0x31e4c0 = -1;
 }
@@ -3037,7 +3037,7 @@ bool ui_widget_initialize_single_player_level_list(void *widget,
 /* dispose sp level list (event handler table index 7, 0x0e9a60) — clears the
  * 0x50-byte single-player level list scratch block at 0x46cce8 and drops the
  * widget's cached list pointer/count at +0x40/+0x44. */
-bool ui_widget_dispose_single_player_level_list(void *widget, void *event_data,
+bool solo_level_dispose_list(void *widget, void *event_data,
                                                 bool *widget_deleted)
 {
   csmemset((void *)0x46cce8, 0, 0x50);
@@ -3051,7 +3051,7 @@ bool ui_widget_dispose_single_player_level_list(void *widget, void *event_data,
  * resolved to a specific gamepad (not NONE/-1); asserts and exits otherwise.
  * Forwards the (zero/sign-extended) index to
  * player_ui_local_player_joined_multiplayer_game and always returns true. */
-bool ui_widget_join_controller_to_multiplayer_game(void *widget,
+bool player_wants_to_join_multiplayer_game(void *widget,
                                                    void *event_data,
                                                    bool *widget_deleted)
 {
@@ -3078,19 +3078,19 @@ bool ui_widget_join_controller_to_multiplayer_game(void *widget,
  * index 17, 0x0e9d40) — disposes any existing server, clears the cached
  * multiplayer variant UI text, and re-enables incoming connections. If no
  * server is currently advertised, initializes the game engine playlist and
- * attempts to start hosting (FUN_0012a890); on success, fetches the fresh
+ * attempts to start hosting (create_global_network_game_server); on success, fetches the fresh
  * server handle, pauses its countdown, begins the playlist, and switches
  * the local game connection state to 2 (host). Once past that gate (or if
  * a server was already up), checks for a local client and, if none,
- * re-derives the result via FUN_0012a250. On any failure the server and
+ * re-derives the result via create_global_network_game_client. On any failure the server and
  * client are torn down, "accept connections" is cleared, the multiplayer
  * variant text is re-cleared, and error 2 "failed to initiate a
  * multiplayer game server" is reported. widget/event_data/widget_deleted
  * are unused — the original never establishes a stack frame and never
  * touches its incoming event-handler params. Called both through the
  * dispatch table above and directly (tail-propagated) by
- * ui_widget_start_server_if_none_advertised (0x0f01d0). */
-bool FUN_000E9D40(void *widget, void *event_data, bool *widget_deleted)
+ * start_network_game_if_no_advertised_servers (0x0f01d0). */
+bool network_game_start_new_server(void *widget, void *event_data, bool *widget_deleted)
 {
   bool result;
   void *server;
@@ -3101,15 +3101,15 @@ bool FUN_000E9D40(void *widget, void *event_data, bool *widget_deleted)
   (void)widget_deleted;
 
   result = true;
-  dispose_global_network_game_server();
+  dispose_global_network_game_client();
   player_ui_clear_multiplayer_variant();
-  network_game_set_accept_remote_connections(1);
-  server = network_game_server_get();
+  network_game_accept_remote_connections(1);
+  server = global_network_game_server_get();
   if (server == NULL) {
     game_engine_playlist_initialize();
-    result = FUN_0012a890();
+    result = create_global_network_game_server();
     if (result) {
-      server = network_game_server_get();
+      server = global_network_game_server_get();
       network_game_server_pause_countdown(server, 1);
       game_engine_playlist_begin();
       set_game_connection(2);
@@ -3119,18 +3119,18 @@ bool FUN_000E9D40(void *widget, void *event_data, bool *widget_deleted)
     }
   }
 
-  client = network_game_client_get();
+  client = global_network_game_client_get();
   if (client == NULL) {
-    result = FUN_0012a250();
+    result = create_global_network_game_client();
   }
   if (result) {
     return result;
   }
 
 fail:
-  dispose_global_network_game_client();
   dispose_global_network_game_server();
-  network_game_set_accept_remote_connections(0);
+  dispose_global_network_game_client();
+  network_game_accept_remote_connections(0);
   player_ui_clear_multiplayer_variant();
   error(2, "failed to initiate a multiplayer game server");
   return result;
@@ -3200,8 +3200,8 @@ bool FUN_000e9dd0(void *widget, void *event_data, bool *widget_deleted)
             *(uint16_t *)(join_params + 2) = 0;
             network_game_generate_join_game_token(join_params + 0x12);
             if (network_game_client_initiate_join_game(
-                  network_game_client_get(), entry, join_params, address)) {
-              last_child = ui_widget_get_last_child(widget);
+                  global_network_game_client_get(), entry, join_params, address)) {
+              last_child = widget_instance_get_topmost_parent(widget);
               player_index_ptr = *(int **)((char *)widget + 0x30);
               if (player_index_ptr != NULL) {
                 player_index = *player_index_ptr;
@@ -3253,7 +3253,7 @@ done:
 
 /* dispose net game server list (event handler table index 18, 0x0e9fd0) —
  * drops the widget's cached list pointer/count at +0x40/+0x44. */
-bool ui_widget_dispose_network_game_server_list(void *widget, void *event_data,
+bool network_server_list_dispose(void *widget, void *event_data,
                                                 bool *widget_deleted)
 {
   *(int *)((char *)widget + 0x40) = 0;
@@ -3262,7 +3262,7 @@ bool ui_widget_dispose_network_game_server_list(void *widget, void *event_data,
 }
 
 /* start split-screen game networking (0x0ea010, single data xref at
- * 0x31e1ac) — counterpart to FUN_000E9D40's "failed to initiate a
+ * 0x31e1ac) — counterpart to network_game_start_new_server's "failed to initiate a
  * multiplayer game server" path, but for split screen: disallows remote
  * connections, then if no network game server exists yet, spins one up
  * via the game engine playlist and switches the connection to server
@@ -3272,17 +3272,17 @@ bool ui_widget_dispose_network_game_server_list(void *widget, void *event_data,
  * needed. On any failure, tears down both client and server, clears
  * the multiplayer variant, and reports the error. Returns true on
  * success. */
-bool FUN_000ea010(void)
+bool split_screen_game_initialize(void)
 {
   void *server;
   void *client;
   bool result;
 
-  network_game_set_accept_remote_connections(0);
-  server = network_game_server_get();
+  network_game_accept_remote_connections(0);
+  server = global_network_game_server_get();
   if (server == NULL) {
     game_engine_playlist_initialize();
-    result = FUN_0012a890();
+    result = create_global_network_game_server();
     if (!result) {
       goto fail;
     }
@@ -3290,17 +3290,17 @@ bool FUN_000ea010(void)
     set_game_connection(2);
   }
   result = true;
-  client = network_game_client_get();
+  client = global_network_game_client_get();
   if (client == NULL) {
-    result = FUN_0012a250();
+    result = create_global_network_game_client();
   }
   if (result) {
     return result;
   }
 
 fail:
-  dispose_global_network_game_client();
   dispose_global_network_game_server();
+  dispose_global_network_game_client();
   player_ui_clear_multiplayer_variant();
   error(2, "failed to initiate split screen game networking");
   return result;
@@ -3311,13 +3311,13 @@ fail:
  * exactly 3 items ("multiplayer level list", same assert-file/line
  * pattern as the profile-list siblings above), points its list
  * pointer/count at the built-in level_name_table (13 entries) at
- * +0x40/+0x44 — the inverse of ui_widget_multiplayer_level_list_dispose
+ * +0x40/+0x44 — the inverse of multiplayer_level_list_dispose
  * (0x0ea1f0) below, which clears the same two fields — then, if there is
  * a remembered last-used multiplayer map, linearly scans the table for a
  * case-insensitive name match and leaves the matching index selected at
  * +0x3c (reset to 0 if no match is found; left untouched if no map was
  * remembered). Always returns true. */
-bool ui_widget_multiplayer_level_list_initialize(void *widget, void *event_data,
+bool multiplayer_level_list_initialize(void *widget, void *event_data,
                                                  bool *widget_deleted)
 {
   short *list_tag;
@@ -3368,7 +3368,7 @@ bool ui_widget_multiplayer_level_list_initialize(void *widget, void *event_data,
 
 /* mp level list dispose (event handler table index 27, 0x0ea1f0) — drops the
  * widget's cached list pointer/count at +0x40/+0x44. */
-bool ui_widget_multiplayer_level_list_dispose(void *widget, void *event_data,
+bool multiplayer_level_list_dispose(void *widget, void *event_data,
                                               bool *widget_deleted)
 {
   *(int *)((char *)widget + 0x40) = 0;
@@ -3472,7 +3472,7 @@ bool ui_widget_multiplayer_level_select(void *widget, void *event_data,
   main_set_multiplayer_map_name(map_name);
   game_engine_override_map_name(map_name);
 
-  server = network_game_server_get();
+  server = global_network_game_server_get();
   if (server != NULL) {
     network_game_server_change_map_name((int)server, map_name);
   }
@@ -3585,7 +3585,7 @@ bool ui_widget_multiplayer_profiles_list_initialize(void *widget,
  * above (mp level list dispose, sp level list dispose, dispose net game
  * server list, ...), this variant owns and frees its buffer. event_data
  * and widget_deleted are unused. Always returns true. */
-bool FUN_000ea540(void *widget, void *event_data, bool *widget_deleted)
+bool multiplayer_profiles_list_dispose(void *widget, void *event_data, bool *widget_deleted)
 {
   void *list_ptr;
 
@@ -3614,9 +3614,9 @@ bool FUN_000ea540(void *widget, void *event_data, bool *widget_deleted)
  * found, the player is already present and the function returns
  * immediately. Otherwise it asks the client to add the player via
  * network_game_client_add_player(client, controller_index), logging
- * "failed to send join request" via network_game_log on failure. Always
+ * "failed to send join request" via network_event on failure. Always
  * returns true; widget and widget_deleted are unused. */
-bool FUN_000ea900(void *widget, void *event_data, bool *widget_deleted)
+bool netgame_join_player(void *widget, void *event_data, bool *widget_deleted)
 {
   void *client;
   int16_t state;
@@ -3640,7 +3640,7 @@ bool FUN_000ea900(void *widget, void *event_data, bool *widget_deleted)
     system_exit(-1);
   }
 
-  client = network_game_client_get();
+  client = global_network_game_client_get();
   if (client != NULL) {
     state = network_game_client_get_state(client, &state_out);
     if (state == 2) {
@@ -3673,7 +3673,7 @@ bool FUN_000ea900(void *widget, void *event_data, bool *widget_deleted)
       added =
         network_game_client_add_player(client, (uint16_t)controller_index);
       if (!added) {
-        network_game_log("failed to send join request");
+        network_event("failed to send join request");
       }
     }
   }
@@ -3682,12 +3682,12 @@ bool FUN_000ea900(void *widget, void *event_data, bool *widget_deleted)
 }
 
 /* dispose owned list, duplicate table entry (event handler, 0x0eab70; data
- * xref at 0x31e1e4, 0x14 bytes after FUN_000ea540's 0x31e1d0 entry) —
- * byte-identical body to FUN_000ea540 above: if the widget's cached list
+ * xref at 0x31e1e4, 0x14 bytes after multiplayer_profiles_list_dispose's 0x31e1d0 entry) —
+ * byte-identical body to multiplayer_profiles_list_dispose above: if the widget's cached list
  * pointer at +0x40 is non-NULL, frees it via widget_free and clears the
  * pointer; always clears the 16-bit count at +0x44. event_data and
  * widget_deleted are unused. Always returns true. */
-bool FUN_000eab70(void *widget, void *event_data, bool *widget_deleted)
+bool player_profiles_list_dispose(void *widget, void *event_data, bool *widget_deleted)
 {
   void *list_ptr;
 
@@ -3704,10 +3704,10 @@ bool FUN_000eab70(void *widget, void *event_data, bool *widget_deleted)
 }
 
 /* apply selected game engine item (event handler, data xref 0x31e1f8,
- * 0x14 bytes after FUN_000eab70's 0x31e1e4 entry, same
+ * 0x14 bytes after player_profiles_list_dispose's 0x31e1e4 entry, same
  * ui_widget_event_handler_fn pointer array as the select_game_engine_item
  * table entry at 0x31e220) — 0xeb020. Runs the inverse of
- * ui_widget_game_data_select_game_engine_item's (0xecd50) profile-to-widget
+ * playlist_profile_initialize_game_engine's (0xecd50) profile-to-widget
  * table: fetches the in-progress playlist-profile edit copy
  * (player_ui_get_edit_playlist_profile, called unconditionally first,
  * before the parent-widget check — order preserved), then asserts the
@@ -3733,7 +3733,7 @@ bool FUN_000eab70(void *widget, void *event_data, bool *widget_deleted)
  * path; event_data and widget_deleted are unused, same "3-arg handler
  * typedef pushed by the dispatcher regardless" shape noted at
  * select_game_engine_item. */
-bool FUN_000eb020(void *widget, void *event_data, bool *widget_deleted)
+bool playlist_profile_set_game_engine(void *widget, void *event_data, bool *widget_deleted)
 {
   void *profile;
   void *parent;
@@ -3792,8 +3792,8 @@ bool FUN_000eb020(void *widget, void *event_data, bool *widget_deleted)
 
 /* select game engine item (event handler table index 50, data xref
  * 0x31e220 in the same ui_widget_event_handler_fn pointer array
- * ui_widget_event_handler_dispatch indexes at 0x31e158; single-param
- * shape matches ui_widget_game_data_select_difficulty_item (0xf0640,
+ * ui_widget_event_handler_function_invoke indexes at 0x31e158; single-param
+ * shape matches difficulty_menu_initialize (0xf0640,
  * table index 99) — the 3-arg handler typedef is pushed by the
  * dispatcher regardless, event_data/widget_deleted are simply not read
  * here) — 0xecd50. Fetches the in-progress playlist-profile edit copy
@@ -3809,7 +3809,7 @@ bool FUN_000eb020(void *widget, void *event_data, bool *widget_deleted)
  * pointed-to type of the profile is void* upstream, offset falls in
  * game_variant_t's un-split unk_2[] padding) through a fixed table
  * into the widget's selected-index field (+0x3c, the same "selected
- * list item" slot ui_widget_game_data_select_difficulty_item uses):
+ * list item" slot difficulty_menu_initialize uses):
  * profile field 1 (and anything outside [1,5], unsigned) -> 0, 2 -> 2,
  * 3 -> 3, 4 -> 1, 5 -> 4. This exact case/value pairing is Ghidra's
  * resolved jump-table decode (0xecd95 JMP [EAX*4+0xecdf0]) and is not
@@ -3823,7 +3823,7 @@ bool FUN_000eb020(void *widget, void *event_data, bool *widget_deleted)
  * stores the resulting child pointer at the selected-child field
  * (+0x38, paired with +0x3c the same way across this widget family).
  * Always returns true on the profile-found path. */
-bool ui_widget_game_data_select_game_engine_item(void *widget)
+bool playlist_profile_initialize_game_engine(void *widget)
 {
   void *profile;
   void *child;
@@ -3876,11 +3876,11 @@ bool ui_widget_game_data_select_game_engine_item(void *widget)
  * disassembly), then asserts widget itself (not a parent) is a text box
  * widget (+0xe == 1), same "expected text box widget for profile name"
  * display_assert/system_exit(-1) shape as the sibling handlers, and the
- * same +0xe==1 text-box check render_text_box_widget's siblings use.
+ * same +0xe==1 text-box check widget_instance_render_text_box's siblings use.
  *
  * If a profile is being edited, (re)allocates a 0x100-byte name buffer
  * through ui_widget_realloc (same stack_memory_pool_realloc wrapper and
- * +0x3c buffer-pointer slot render_text_box_widget above uses), passing
+ * +0x3c buffer-pointer slot widget_instance_render_text_box above uses), passing
  * the widget's existing +0x3c buffer pointer as the realloc input. The
  * result is stored back to +0x3c unconditionally right after the call
  * (MOV before the NULL-test JZ in the disassembly, order preserved).
@@ -3898,7 +3898,7 @@ bool ui_widget_game_data_select_game_engine_item(void *widget)
  * sibling handlers) and returns false; event_data and widget_deleted are
  * unused, same 3-arg handler typedef shape as the sibling handlers
  * above. */
-bool ui_widget_multiplayer_profile_init_name(void *widget, void *event_data,
+bool playlist_profile_initialize_name(void *widget, void *event_data,
                                              bool *widget_deleted)
 {
   void *profile;

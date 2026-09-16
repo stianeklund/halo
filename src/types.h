@@ -65,7 +65,7 @@ typedef uint32_t dword;
 typedef float    real;
 
 /* Bungie's 2D real vector. Lives here rather than in its recovering TU
- * (rasterizer_xbox_screen_effect.c) because FUN_001700d0 returns it by value,
+ * (rasterizer_xbox_screen_effect.c) because __reciprocal_vector2d returns it by value,
  * so the type appears in that function's kb.json decl and therefore in the
  * generated decl.h, which every TU includes.
  *
@@ -287,10 +287,10 @@ typedef struct {
  * Values 1-5 are T2 (name_source: halocea, DB-verified there via
  * types_enum_values _270498BB874CAD5ECABAECA7DA81ECAE).  Our binary proves
  * their MEANING independently — the dispatch in
- * player_set_action_result_for_equipment routes each to an already-named
+ * player_handle_powerup_equipment routes each to an already-named
  * handler: game_set_players_are_double_speed (1), object_double_charge_shield
- * + player_apply_overshield_effect (2), powerup slot 0 (3), powerup slot 1
- * (4), object_restore_body + player_apply_health_effect (5).  The spellings
+ * + player_over_shield_screen_effect (2), powerup slot 0 (3), powerup slot 1
+ * (4), object_restore_body + player_health_pack_screen_effect (5).  The spellings
  * are still borrowed.
  *
  * No bound is named: 6 is the largest value our binary compares against, which
@@ -571,7 +571,7 @@ typedef struct {
 typedef struct {
   int32_t unit_index;            ///< offset=0x00 owning unit datum handle
   int32_t field_0x04;            ///< offset=0x04
-  uint16_t action_flags;         ///< offset=0x08 (player_control_set_action_flags)
+  uint16_t action_flags;         ///< offset=0x08 (player_control_inhibit_buttons)
   uint16_t persistent_action_flags; ///< offset=0x0a (persistent variant)
   real    desired_angles_yaw;    ///< offset=0x0c player->desired_angles.yaw
   real    desired_angles_pitch;  ///< offset=0x10 player->desired_angles.pitch
@@ -610,7 +610,7 @@ co(player_control_t, pitch_maximum,          0x3c);
 /// size=0x20
 /// One frame of controller input for a local player, filled by
 /// get_local_player_input_blob (0xb70b0, buffer in EBX) and consumed by
-/// player_control_get_facing. Bungie calls the parameter "input" -- recovered
+/// handle_one_player_input. Bungie calls the parameter "input" -- recovered
 /// from that function's own assert string "input->primary_trigger", which
 /// guards a load of +0x08. Field widths are taken from the producer's stores
 /// (byte at +0x14/+0x15, dword elsewhere); field_0xNN are offsets whose
@@ -628,7 +628,7 @@ typedef struct {
   uint32_t action_flags;         ///< offset=0x1c bit1 grenade switch, bit2 melee/throw
 } player_input_t;
 /// size=0x20
-/// The action player_control_get_facing builds from a player control slot and
+/// The action handle_one_player_input builds from a player control slot and
 /// hands to update_client_queue. Bungie calls the local "action" and the angle
 /// pair "desired_facing" -- both verbatim from this function's own assert
 /// strings "action.desired_facing.yaw"/".pitch" (player_control.c:0x369-0x36a),
@@ -900,14 +900,14 @@ cs(packet_header, 0x1);
 co(packet_header, type, 0x00);
 
 /* ai_firing_pos_entry_t — one slot in the firing-position candidate buffer
- * built by FUN_00041420 and consumed by ai_test_line_of_fire.
+ * built by ai_find_line_of_fire_friend_pills and consumed by ai_test_line_of_fire.
  * Entry stride = 0x28 bytes; buffer holds up to 0x20 entries.
  *
  * Note: vec_b[3] as declared occupies +0x10..+0x18, but the binary only ever
- * writes two elements (vec_b[0] and vec_b[1] = 0.0f) via FUN_000413c0.
+ * writes two elements (vec_b[0] and vec_b[1] = 0.0f) via ai_generate_line_of_fire_pill.
  * scalar_a at +0x18 shares the same offset as vec_b[2] — the name
  * distinguishes its role (height_offset from biped_get_camera_height_and_offset).
- * Layout confirmed from FUN_000413c0 disasm stores at 0x41402–0x4141a. */
+ * Layout confirmed from ai_generate_line_of_fire_pill disasm stores at 0x41402–0x4141a. */
 typedef struct {
     bool       occupied;   /* +0x00: 0 = candidate; 1 = selected winner */
     bool       is_sphere;  /* +0x01: 0 = segment test; 1 = sphere test  */
@@ -916,7 +916,7 @@ typedef struct {
     float      vec_b[2];   /* +0x10: line direction or zero for sphere   */
     float      scalar_a;   /* +0x18: height_offset (biped camera height) */
     int        handle_a;   /* +0x1c: actor handle (return from prop_get_active_by_unit_index / local_10[0]) */
-    int        handle_b;   /* +0x20: object/unit handle (EDI at call to FUN_000413c0) */
+    int        handle_b;   /* +0x20: object/unit handle (EDI at call to ai_generate_line_of_fire_pill) */
     float      radius;     /* +0x24: camera_height + DAT_00256140        */
 } ai_firing_pos_entry_t;   /* size = 0x28 */
 cs(ai_firing_pos_entry_t, 0x28);
@@ -1010,7 +1010,7 @@ co(ai_firing_pos_entry_t, radius,    0x24);
  *
  * Everything not cited stays `pad_XXX`. Unobserved is not the same as absent:
  * a pad byte means "never seen accessed", not "padding in the original".
- * Cross-reference: the prose block above FUN_0003dc20 in halo/ai/actors.c
+ * Cross-reference: the prose block above actor_input_update in halo/ai/actors.c
  * records further INFERRED offsets (0x158 vehicle_handle, 0x1b0
  * active_grenade_handle, ...) which are deliberately NOT promoted to fields
  * here — they lack assert-string evidence. It also notes actor+0x120 is

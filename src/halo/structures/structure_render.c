@@ -12,7 +12,7 @@
  *
  * Copies are plain dword moves in the original (no FPU ops), so the parameter
  * is treated as raw dwords rather than float loads/stores. */
-void FUN_001954e0(void *fog_offset)
+void structure_render_set_fog_offset(void *fog_offset)
 {
   uint32_t *src = (uint32_t *)fog_offset;
 

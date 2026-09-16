@@ -14,7 +14,7 @@
  *
  * The tag_block_get_element result is intentionally discarded: the original
  * makes the call (for its bounds assert / side effect) and never reads EAX. */
-void FUN_0009f570(int effect_tag_index, int param_2, void *position,
+void material_effect_new_from_point(int effect_tag_index, int param_2, void *position,
                   float param_4)
 {
   float origin[3];
@@ -47,13 +47,13 @@ void FUN_0009f570(int effect_tag_index, int param_2, void *position,
       FUN_0018f3e0(collision_result + 0x0c, collision_result + 0x18, NULL) ?
         0x1c :
         *(int *)(collision_result + 0x34);
-    FUN_0009f430(effect_tag_index, param_2, surface_index,
+    material_effect_new(effect_tag_index, param_2, surface_index,
                  collision_result + 0x18, collision_result + 0x24,
                  collision_result + 0x0c, param_4);
     return;
   }
   if (*(char *)0x4557e9 != '\0') {
-    FUN_00189540(0, position, 0.05f, *(void **)0x2ee6d0);
+    render_debug_sphere(0, position, 0.05f, *(void **)0x2ee6d0);
   }
 }
 
@@ -155,7 +155,7 @@ void particle_systems_reconnect_to_structure_bsp(void)
  *   - If ping-pong mode (flag bit 1): bounce off ends, flip direction
  *   - Else: wrap to state 0
  * - Otherwise: terminate by setting both current_state and next_state to -1 */
-void FUN_0009f920(void *type_state_arg, void *type_def_arg, void *ps_datum)
+void particle_system_next_type_state_index(void *type_state_arg, void *type_def_arg, void *ps_datum)
 {
   char *type_state = (char *)type_state_arg;
   char *type_def = (char *)type_def_arg;
@@ -204,7 +204,7 @@ void FUN_0009f920(void *type_state_arg, void *type_def_arg, void *ps_datum)
 }
 
 /* Advance particle state to next state index (0x9f9d0).
- * Similar to FUN_0009f920 but operates on individual particle state rather
+ * Similar to particle_system_next_type_state_index but operates on individual particle state rather
  * than type state. Computes next_state = current_state + delta, where delta
  * is +1 or -1 based on the direction flag at particle+0x2. If next_state is
  * valid (0 <= next_state < particle_states.count at sys_def+0x74), stores it.
@@ -213,7 +213,7 @@ void FUN_0009f920(void *type_state_arg, void *type_def_arg, void *ps_datum)
  *   - If ping-pong mode (flag bit 3): bounce off ends, flip direction
  *   - Else: wrap to state 0
  * - Otherwise: terminate by setting both current/next_state to -1 */
-void FUN_0009f9d0(void *particle_arg, void *sys_def_arg)
+void particle_system_next_particle_state_index(void *particle_arg, void *sys_def_arg)
 {
   char *particle = (char *)particle_arg;
   char *sys_def = (char *)sys_def_arg;
@@ -273,7 +273,7 @@ void FUN_0009f9d0(void *particle_arg, void *sys_def_arg)
  * particle's position (+0x20) and velocity (+0x2c) for dt, recording the
  * result into the collision-location record at +0x18. The step's return
  * value is discarded by the original (ADD ESP,0x2c then RET, EAX unused). */
-void FUN_0009fa60(void *particle_arg, float dt)
+void particle_system_update_default(void *particle_arg, float dt)
 {
   char *particle = (char *)particle_arg;
   char *tag;
@@ -300,7 +300,7 @@ void FUN_0009fa60(void *particle_arg, float dt)
  * kept in the signature so caller push order and stack shape are preserved.
  * Frame is `push ebp; mov ebp,esp; push esi` with no `sub esp` — do not add
  * locals here. */
-void FUN_0009fad0(void *param_1, void *param_2, void *out, void *src)
+void particle_system_new_particle_default(void *param_1, void *param_2, void *out, void *src)
 {
   *(vector3_t *)((char *)out + 0x1c) = *(vector3_t *)((char *)src + 0x60);
   *(vector3_t *)((char *)out + 0x28) = *(vector3_t *)((char *)param_1 + 0x2c);
@@ -334,7 +334,7 @@ void FUN_0009fad0(void *param_1, void *param_2, void *out, void *src)
  * MSVC recycles the dead incoming slots [EBP+0x8] and [EBP+0xc] to hold the
  * scale and `t` locals; that packing is the compiler's, not a source feature.
  */
-void FUN_0009fb10(void *particle_system, int16_t type_index, float delta_time,
+void particle_system_update_particle_default(void *particle_system, int16_t type_index, float delta_time,
                   void *particle)
 {
   char physics_buffer[0x40];
@@ -399,10 +399,10 @@ void FUN_0009fb10(void *particle_system, int16_t type_index, float delta_time,
  * Frame is `push ebp; mov ebp,esp; push esi` with no `sub esp`; ESI holds the
  * particle pointer across both calls, and a single `ADD ESP,0x10` cleans up
  * both cdecl call sites. Do not introduce locals here. */
-void FUN_0009fca0(void *particle_arg, float dt)
+void particle_system_update_explosion(void *particle_arg, float dt)
 {
   tag_get(0x7063746c, *(int *)((char *)particle_arg + 8));
-  FUN_0009fa60(particle_arg, dt);
+  particle_system_update_default(particle_arg, dt);
 }
 
 void particle_systems_dispose_from_old_map(void)
@@ -433,7 +433,7 @@ void particle_systems_dispose_from_old_map(void)
    `MOVSWL 0x8(%ebp),%ECX` at 0x9fd30+0x19 and feeds that one sign-extended
    value to both the `* 0x40` stride (`SHL $0x6`) and the tag-block index.
    Declaring it `int` dropped the sign-extension for values >= 0x8000. */
-void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
+void particle_system_new_particles(void *ps_arg, int16_t type_index, float dt)
 {
   char *ps = (char *)ps_arg;
   char *tag_def;
@@ -587,14 +587,14 @@ void FUN_0009fd30(void *ps_arg, int16_t type_index, float dt)
     }
 
     /* Call creation physics via function table.
-       0x9ffd8 calls 0x10b2d0 = random_range (int16_t result in AX), NOT
+       0x9ffd8 calls 0x10b2d0 = seed_random_range (int16_t result in AX), NOT
        random_real_range (0x10b270, used above for the rotation).  Its result
        selects which marker to use: 0x9ffdd-0x9ffe3
        `movsx eax,ax; imul eax,eax,0x6c; lea ecx,[ebp+eax-0x380]`, i.e.
        marker_buf + index*0x6c.  We previously discarded the result and always
        passed element 0. */
     {
-      int marker_index = (int)random_range(random_math_get_local_seed_address(),
+      int marker_index = (int)seed_random_range(random_math_get_local_seed_address(),
                                            0, location_valid);
       ((creation_physics_fn *)(0x26ab10))[creation_func_idx](
         ps, (short)type_index, particle, marker_buf + marker_index * 0x6c);
@@ -627,14 +627,14 @@ check_emission_multiplier:
 /* Populate particle output from state definition (0xa0080).
  * Reads particle state definition properties and fills in 7 floats in the
  * output array. First generates a random interpolation factor t, then:
- * - output[0] = random_range(state_def+0x48, state_def+0x4c)
- * - output[1] = random_range(state_def+0x50, state_def+0x54)
- * - output[2] = random_range(state_def+0x58, state_def+0x5c)
- * - output[3] = random_range(state_def+0x60, state_def+0x70)
+ * - output[0] = seed_random_range(state_def+0x48, state_def+0x4c)
+ * - output[1] = seed_random_range(state_def+0x50, state_def+0x54)
+ * - output[2] = seed_random_range(state_def+0x58, state_def+0x5c)
+ * - output[3] = seed_random_range(state_def+0x60, state_def+0x70)
  * - output[4] = lerp(state_def+0x64, state_def+0x74, t)
  * - output[5] = lerp(state_def+0x68, state_def+0x78, t)
  * - output[6] = lerp(state_def+0x6c, state_def+0x7c, t) */
-void FUN_000a0080(void *sys_def_arg, short state_index, void *output_arg)
+void randomize_particle_variables(void *sys_def_arg, short state_index, void *output_arg)
 {
   char *sys_def = (char *)sys_def_arg;
   float *output = (float *)output_arg;
@@ -685,7 +685,7 @@ void FUN_000a0080(void *sys_def_arg, short state_index, void *output_arg)
  * Dead particles are unlinked and deleted. If no active types remain and
  * the system has no object attachment, deletes the system via
  * particle_system_delete. */
-void FUN_000a0180(float dt, int particle_system_handle)
+void particle_system_update(float dt, int particle_system_handle)
 {
   char *ps_datum;
   char *tag_def;
@@ -787,8 +787,8 @@ void FUN_000a0180(float dt, int particle_system_handle)
 
     /* Timer expired: state transition */
     if (next_state == -1) {
-      /* No next state: advance via FUN_0009f920 */
-      FUN_0009f920(type_state, type_def, ps_datum);
+      /* No next state: advance via particle_system_next_type_state_index */
+      particle_system_next_type_state_index(type_state, type_def, ps_datum);
       rr_lo_a = *(float *)(state_elem + 0x28);
       rr_hi_a = *(float *)(state_elem + 0x2c);
       duration = random_real_range((int *)random_math_get_local_seed_address(),
@@ -875,7 +875,7 @@ void FUN_000a0180(float dt, int particle_system_handle)
     /* Emit particles if attached (flag bit 0) */
     prev_particle = (char *)0;
     if ((*(unsigned char *)(ps_datum + 4) & 1) != 0) {
-      FUN_0009fd30(ps_datum, (int)(short)i, dt);
+      particle_system_new_particles(ps_datum, (int)(short)i, dt);
     }
 
     /* Inner particle loop: walk linked list at type_state + 0x3c */
@@ -902,7 +902,7 @@ void FUN_000a0180(float dt, int particle_system_handle)
             (int *)random_math_get_local_seed_address(), rr_lo_e, rr_hi_e);
           *(float *)(particle + 0xc) = duration;
           *(float *)(particle + 0x10) = duration;
-          FUN_000a0080(type_def, *(short *)(particle + 8), particle + 0x48);
+          randomize_particle_variables(type_def, *(short *)(particle + 8), particle + 0x48);
         }
 
         /* If particle direction byte is 0, kill state */
@@ -925,7 +925,7 @@ void FUN_000a0180(float dt, int particle_system_handle)
             particle_next_state = *(short *)(particle + 0xa);
             if (particle_next_state == -1) {
               /* End of states: advance particle state */
-              FUN_0009f9d0(particle, type_def);
+              particle_system_next_particle_state_index(particle, type_def);
               rr_lo = *(float *)(pstate_elem + 0x28);
               rr_hi = *(float *)(pstate_elem + 0x2c);
             } else {
@@ -943,8 +943,8 @@ void FUN_000a0180(float dt, int particle_system_handle)
             *(float *)(particle + 0xc) = duration + *(float *)(particle + 0xc);
 
             if (*(short *)(particle + 0xa) != -1) {
-              /* Regenerate particle output via FUN_000a0080 using next_state */
-              FUN_000a0080(type_def, *(short *)(particle + 0xa),
+              /* Regenerate particle output via randomize_particle_variables using next_state */
+              randomize_particle_variables(type_def, *(short *)(particle + 0xa),
                            particle + 0x64);
             } else {
               memcpy(particle + 0x48, particle + 0x64, 7 * 4);
@@ -1047,7 +1047,7 @@ done:
 }
 
 /* Submit every visible particle of one particle system to the sprite renderer
- * (0xa0800).  Called once per visible system from particle_system_update
+ * (0xa0800).  Called once per visible system from particle_systems_render
  * (0xa11eb MOV EAX,ESI / CALL 0xa0800 -- the datum index arrives in EAX and
  * there is no stack cleanup, hence the @<eax> declaration in kb.json).
  *
@@ -1092,7 +1092,7 @@ done:
  * Uncertain: the second pass copies state_a's dword at +0x80 into state_b's
  * shader record (0xa0cf7 MOV ECX,[EBX+0x80] with EBX still the *first* state);
  * this asymmetry is reproduced verbatim. */
-void FUN_000a0800(int particle_system_handle)
+void particle_system_render(int particle_system_handle)
 {
   float intensity_a;      /* EBP-0x04 */
   float intensity_b;      /* EBP-0x08 */
@@ -1216,7 +1216,7 @@ void FUN_000a0800(int particle_system_handle)
 
             if (*(int *)(particle + 0x44) == (int)0xbf800000) {
               sprite_index =
-                random_range(random_math_get_local_seed_address(), 0,
+                seed_random_range(random_math_get_local_seed_address(), 0,
                              *(short *)(bitmap_sequence + 0x34));
               *(float *)(particle + 0x44) = (float)sprite_index;
               sprite_index = (int)*(float *)(particle + 0x44);
@@ -1338,7 +1338,7 @@ void FUN_000a0800(int particle_system_handle)
  * at 0xa0ddc (the value is popped on both paths); rotate_vector3d_by_sincos(
  * state+0x34, *(float **)0x31fc44, 1.0f, 0.0f) at 0xa0e47.
  * Uncertain: field meanings of state+0x1c/0x24/0x34/0x3c and origin+0x60. */
-void FUN_000a0d50(void *definition, short block_index, void *state,
+void particle_system_new_particle_explosion(void *definition, short block_index, void *state,
                   void *origin)
 {
   char *def = (char *)definition;
@@ -1390,7 +1390,7 @@ void FUN_000a0d50(void *definition, short block_index, void *state,
 }
 
 /* Seed a particle's launch velocity, origin and axis frame for the second
- * emitter shape (0xa0e60).  Sibling of FUN_000a0d50: both sit in the emitter
+ * emitter shape (0xa0e60).  Sibling of particle_system_new_particle_explosion: both sit in the emitter
  * dispatch table at 0x26ab14/0x26ab18 and share the same 4-argument shape.
  *
  * Reads three scalars from the particle type's nested tag block (type+0x5c):
@@ -1433,7 +1433,7 @@ void FUN_000a0d50(void *definition, short block_index, void *state,
  * Uncertain: field meanings of state+0x1c/0x24/0x34/0x3c, origin+0x3c and
  * origin+0x60; whether scale_c has a scalar meaning elsewhere or is only
  * ever tested as a flag. */
-void FUN_000a0e60(void *definition, short block_index, void *state,
+void particle_system_new_particle_jet(void *definition, short block_index, void *state,
                   void *origin)
 {
   char *def = (char *)definition;
@@ -1508,8 +1508,8 @@ void FUN_000a0e60(void *definition, short block_index, void *state,
  *     duration from the first particle state's bounds.
  * Resolves the BSP location from the system's position, sets the
  * "location resolved" flag, then runs an initial 0.001s update tick
- * via FUN_000a0180 if all types were valid. */
-char FUN_000a0fd0(int particle_handle)
+ * via particle_system_update if all types were valid. */
+char particle_system_initialize(int particle_handle)
 {
   char *entry;
   char *tag;
@@ -1559,7 +1559,7 @@ char FUN_000a0fd0(int particle_handle)
     } while (idx < *tag_block_ptr);
   }
   if (result != 0) {
-    FUN_000a0180(0.001f, particle_handle);
+    particle_system_update(0.001f, particle_handle);
   }
   return result;
 }
@@ -1575,7 +1575,7 @@ void particle_systems_update(float dt)
        particle_system_index != NONE;
        particle_system_index =
          data_next_index(particle_system_header_data, particle_system_index)) {
-    FUN_000a0180(dt, particle_system_index);
+    particle_system_update(dt, particle_system_index);
   }
 }
 
@@ -1596,12 +1596,12 @@ void particle_systems_update(float dt)
  * The global at 0x5aa8a8 is re-read on every iteration in the original
  * (000a11c5 and 000a11f2), so it is not hoisted here.
  *
- * ABI: FUN_000a0800 takes the particle-system datum index in EAX, not on the
+ * ABI: particle_system_render takes the particle-system datum index in EAX, not on the
  * stack (000a11eb MOV EAX,ESI / 000a11ed CALL 0x000a0800, no stack cleanup
  * after the call).  Confirmed at the callee: 0xa0800 immediately does
  * datum_get(g_particle_systems_data, in_EAX).  kb.json declares it
  * `int particle_system_handle@<eax>` so the forward thunk supplies EAX. */
-void particle_system_update(void)
+void particle_systems_render(void)
 {
   int particle_system_index;
   char *entry;
@@ -1619,7 +1619,7 @@ void particle_system_update(void)
         (char *)datum_get(particle_system_header_data, particle_system_index);
       if (*(short *)(entry + 0x1c) != NONE &&
           scenario_location_potentially_visible_local(entry + 0x18)) {
-        FUN_000a0800(particle_system_index);
+        particle_system_render(particle_system_index);
       }
     }
   }

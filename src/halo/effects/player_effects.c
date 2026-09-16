@@ -75,7 +75,7 @@ void scripted_player_effect_set_rumble(float left_motor, float right_motor)
  *     unused, then PUSH 0 / PUSH 0 / PUSH ESI / CALL 0xb9da0.  The single
  *     ADD ESP,0x10 at 0xa2960 cleans up BOTH calls (1 + 3 dwords) -- this is
  *     why the call-site audit reports cleanup=4 against a 3-parameter decl
- *     for rumble_set_direct_motors; it is not a fourth argument.
+ *     for rumble_player_continuous; it is not a fourth argument.
  *
  * The discarded player_effect_get result is preserved because the call is a
  * real side-effecting step in the original instruction stream (it carries the
@@ -92,7 +92,7 @@ void player_telefrag_effect_stop(int player_handle)
 
   if (local_player_index != -1) {
     player_effect_get((int16_t)local_player_index);
-    rumble_set_direct_motors((short)local_player_index, 0, 0);
+    rumble_player_continuous((short)local_player_index, 0, 0);
   }
 }
 
@@ -185,7 +185,7 @@ void player_effect_update(void)
     effect = player_effect_get(local_player_index);
     csmemset(effect + 0xe4, 0, 4);
     csmemset(player_effect_get(local_player_index), 0, 0xec);
-    rumble_clear_for_local_player(local_player_index);
+    rumble_player_clear(local_player_index);
     local_player_index = (int16_t)local_player_get_next(local_player_index);
   }
 }
@@ -274,7 +274,7 @@ static void player_effect_set_from_descriptor(int player_index, char *effect,
   }
 }
 
-void player_effect_apply(int player_handle, void *effect_descriptor,
+void player_effect_screen_flash(int player_handle, void *effect_descriptor,
                          float intensity)
 {
   int16_t unit_index;
@@ -301,7 +301,7 @@ void player_effect_apply(int player_handle, void *effect_descriptor,
  * The function builds a synthetic player-effect descriptor on the stack
  * instead of reading one out of a jpt! tag, then runs it through the same two
  * helpers the damage path uses (player_effect_set_from_descriptor at 0xa2ab0
- * and FUN_000a2ba0).
+ * and player_effect_update_camera_shake).
  *
  * Confirmed (0xa2ed0..0xa2fbc, 237 bytes):
  *   - The kb decl previously read `(void)`; the body reads [EBP+8] (a player
@@ -340,14 +340,14 @@ void player_effect_apply(int player_handle, void *effect_descriptor,
  *     unsuffixed and the product is narrowed on the store.
  *   - PUSH EDI / PUSH EDI with EDI = dword ptr [EBP+0xc]: both rumble motor
  *     values are the raw dword of the float parameter and there is no
- *     FISTP/_ftol anywhere in the function.  rumble_set_direct_motors is
+ *     FISTP/_ftol anywhere in the function.  rumble_player_continuous is
  *     declared with int motor params because 0xb9da0 stores both through
  *     `*(int *)`, so the dword must be forwarded by value; the punned
  *     `*(int *)&intensity` reproduces the plain MOV/PUSH pair instead of an
  *     int conversion.
  *   - The single ADD ESP,0x2c at 0xa2fb3 cleans up all four cdecl calls
  *     (1 + 3 + 4 + 3 dwords).  That is why the call-site audit reports
- *     cleanup=11 against FUN_000a2ba0's three stack params; it is not
+ *     cleanup=11 against player_effect_update_camera_shake's three stack params; it is not
  *     evidence of extra arguments.
  *   - 0xa2ab0 receives the descriptor in EBX (LEA EBX,[EBP-0x3c] immediately
  *     before the CALL) and 0xa2ba0 receives the effect-data block in EAX and
@@ -386,11 +386,11 @@ void player_telefrag_effect_start(int player_handle, float intensity)
     *(float *)((char *)descriptor + 0x20) = intensity;
     *(float *)((char *)descriptor + 0x24) = 0.0f;
 
-    rumble_set_direct_motors((short)local_player_index, *(int *)&intensity,
+    rumble_player_continuous((short)local_player_index, *(int *)&intensity,
                              *(int *)&intensity);
     player_effect_set_from_descriptor(local_player_index, effect, intensity,
                                       1.0f, descriptor);
-    FUN_000a2ba0(local_player_index, intensity, 1.0f, effect_data /* @<eax> */,
+    player_effect_update_camera_shake(local_player_index, intensity, 1.0f, effect_data /* @<eax> */,
                  (void *)effect /* @<ebx> */);
   }
 }
@@ -415,7 +415,7 @@ void player_telefrag_effect_start(int player_handle, float intensity)
  * +0x2c is up vector. Confirmed: effect flags at +0xe4 (right), +0xe5
  * (forward), +0xe6 (down), +0xe7 (side).
  */
-void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
+void player_effect_start(int player_handle, void *damage_params, void *direction,
                   float damage_amount, float scale)
 {
   char *player;
@@ -448,9 +448,9 @@ void FUN_000a3b80(int player_handle, void *damage_params, void *direction,
 
     player_effect_set_from_descriptor(unit_index, effect, damage_amount, 1.0f,
                                       (void *)(jpt_tag + 0x24));
-    FUN_000a3890(unit_index, (float *)(jpt_tag + 0x98), direction,
+    player_effect_update_camera_impulse(unit_index, (float *)(jpt_tag + 0x98), direction,
                  damage_amount, 1.0f, (float *)effect /* @<eax> */);
-    FUN_000a2ba0(unit_index, damage_amount, 1.0f,
+    player_effect_update_camera_shake(unit_index, damage_amount, 1.0f,
                  (float *)(jpt_tag + 0xcc) /* @<eax> */,
                  (void *)effect /* @<ebx> */);
     rumble_player_impulse((short)unit_index, (float *)(jpt_tag + 0x5c),

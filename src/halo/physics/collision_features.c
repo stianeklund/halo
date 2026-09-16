@@ -179,15 +179,15 @@ void collision_features_from_line(float *param_1, float *param_2, float param_3,
         ((float *)puVar2)[4] = perp[1];
         puVar2[6] = *(int *)&fVar3;
         puVar2[7] = param_4;
-        uVar8 = FUN_00099220(pfVar1);
+        uVar8 = projection_from_vector3d(pfVar1);
         *(short *)(puVar2 + 8) = (short)uVar8;
-        uVar7 = FUN_00099270(pfVar1, uVar8);
+        uVar7 = projection_sign_from_vector3d(pfVar1, uVar8);
         *(unsigned char *)((int)puVar2 + 0x22) = uVar7;
         sVar10 = 0;
         puVar2[9] = 4;
         iVar9 = 0;
         do {
-          FUN_00061df0(
+          project_point3d(
             &pts[iVar9 * 3], (uint32_t) * (unsigned short *)(puVar2 + 8),
             *(unsigned char *)((int)puVar2 + 0x22), puVar2 + iVar9 * 2 + 10);
           sVar10 = (short)(sVar10 + 1);
@@ -222,15 +222,15 @@ void collision_features_from_line(float *param_1, float *param_2, float param_3,
         ((float *)puVar2)[4] = -perp[1];
         puVar2[7] = param_4;
         ((float *)puVar2)[6] = -fVar3;
-        uVar8 = FUN_00099220(pfVar1);
+        uVar8 = projection_from_vector3d(pfVar1);
         *(short *)(puVar2 + 8) = (short)uVar8;
-        uVar7 = FUN_00099270(pfVar1, uVar8);
+        uVar7 = projection_sign_from_vector3d(pfVar1, uVar8);
         *(unsigned char *)((int)puVar2 + 0x22) = uVar7;
         sVar10 = 0;
         puVar2[9] = 4;
         iVar9 = 0;
         do {
-          FUN_00061df0(
+          project_point3d(
             &pts[iVar9 * 3], (uint32_t) * (unsigned short *)(puVar2 + 8),
             *(unsigned char *)((int)puVar2 + 0x22), puVar2 + iVar9 * 2 + 10);
           sVar10 = (short)(sVar10 + 1);
@@ -286,9 +286,9 @@ void FUN_0014b220(int point_count, void *points, float *plane, float param_4,
   *(int *)(prism + 0x1c) = param_5;
 
   /* compute projection basis from plane normal */
-  uVar3 = FUN_00099220(plane_dst);
+  uVar3 = projection_from_vector3d(plane_dst);
   *(short *)(prism + 0x20) = (short)uVar3;
-  *(unsigned char *)(prism + 0x22) = FUN_00099270(plane_dst, uVar3);
+  *(unsigned char *)(prism + 0x22) = projection_sign_from_vector3d(plane_dst, uVar3);
 
   /* store point count and project each 3D point to 2D */
   sVar6 = 0;
@@ -297,7 +297,7 @@ void FUN_0014b220(int point_count, void *points, float *plane, float param_4,
   if (0 < iVar4) {
     iVar4 = 0;
     do {
-      FUN_00061df0((char *)points + iVar4 * 0xc,
+      project_point3d((char *)points + iVar4 * 0xc,
                    (uint32_t) * (unsigned short *)(prism + 0x20),
                    *(unsigned char *)(prism + 0x22), prism + 0x28 + iVar4 * 8);
       sVar6 = (short)(sVar6 + 1);
@@ -708,7 +708,7 @@ char collision_prism_test_point(void *feature, void *los_data, float *t_hit,
   proj[2] = neg_dist * *(float *)(prism_bytes + 0x14) + point[2];
 
   /* project 3D point to 2D using the prism's dominant axis */
-  FUN_00061df0(proj, *(uint16_t *)(prism_bytes + 0x20),
+  project_point3d(proj, *(uint16_t *)(prism_bytes + 0x20),
                *(uint8_t *)(prism_bytes + 0x22), out_2d);
 
   /* polygon winding test: cross product of each edge with the 2D point
