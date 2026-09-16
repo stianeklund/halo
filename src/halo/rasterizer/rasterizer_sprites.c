@@ -459,7 +459,7 @@ void rasterizer_sprites_render(void *render_data, void *vertices)
  * the entry guard and group+0x48; the kb decl's semantic parameter names
  * (object_handle / datum / callback) are unproven by any string or PDB
  * evidence and are kept only for prototype agreement.
- * The bundle records one caller (0x13530e in FUN_00135210), not lifted, so no
+ * The bundle records one caller (0x13530e in light_volume_submit), not lifted, so no
  * caller-derived typing or naming is available.  The wrapper's own name is
  * likewise unproven, so the mechanical name is kept. */
 void FUN_0017cfb0(int object_handle, int datum, float *position, int callback)
@@ -916,7 +916,7 @@ void FUN_0017d1a0(bool param_1)
  *              [+4] is an int16 count, named `skinning->node_matrix_count` by
  *              the asserts at lines 0x36e/0x36f;
  *   [EBP+0x10] `part`, named by the assert string at line 0x33e.
- * The sole caller (units.c, inside FUN_00123560's opaque pass) already passed
+ * The sole caller (units.c, inside render_model_parts's opaque pass) already passed
  * three arguments through a raw function-pointer cast; correcting the kb decl
  * lets that cast go away.
  *
@@ -946,13 +946,13 @@ void FUN_0017d1a0(bool param_1)
  *
  * Per-vertex decode (vertex stride 0x20 from SHL ESI,0x5):
  *   +0x00 float position[3]  (passed straight to matrix_transform_point)
- *   +0x0c uint32 packed normal, handed to FUN_0017ffc0
+ *   +0x0c uint32 packed normal, handed to uncompress_int32_to_real_vector3d
  *   +0x1c int8  node index 0, +0x1d int8 node index 1 -- both MOVSX then
  *         divided by 3 via the 0x55555556 magic multiply with the
  *         SHR 0x1f / ADD sign fixup, i.e. a signed /3
  *   +0x1e int16 node weight, FILD'd and scaled by the constant at 0x290dd8 =
  *         0x38000100 = 1.0f/32767.0f
- * FUN_0017ffc0 writes exactly three dwords through its first argument and
+ * uncompress_int32_to_real_vector3d writes exactly three dwords through its first argument and
  * returns that same pointer (MOV EAX,[EBP+8] / MOV ECX,EAX, EAX untouched
  * afterwards), so the scratch buffer is a float[3] and the copy that follows
  * reads back through the returned pointer.
@@ -1070,7 +1070,7 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
       normal1[1] = 0.0f;
       normal1[2] = 0.0f;
 
-      unpacked = FUN_0017ffc0(decompressed, *(unsigned int *)(vertex + 0xc));
+      unpacked = uncompress_int32_to_real_vector3d(decompressed, *(unsigned int *)(vertex + 0xc));
       vertex_normal[0] = unpacked[0];
       vertex_normal[1] = unpacked[1];
       vertex_normal[2] = unpacked[2];
@@ -1173,13 +1173,13 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
         for (k = 0; k < points[j].index_count; k++) {
           crt_sprintf(index_text, "%d%c", points[j].index_list[k],
                       k != points[j].index_count - 1 ? ',' : ' ');
-          FUN_0008dc30((char *)0x5ab100, index_text);
+          csstrcat((char *)0x5ab100, index_text);
         }
-        FUN_0008dc30((char *)0x5ab100, "\nV=");
+        csstrcat((char *)0x5ab100, "\nV=");
         for (k = 0; k < points[j].vertex_count; k++) {
           crt_sprintf(vertex_text, "%d%c", points[j].vertex_list[k],
                       k != points[j].vertex_count - 1 ? ',' : ' ');
-          FUN_0008dc30((char *)0x5ab100, vertex_text);
+          csstrcat((char *)0x5ab100, vertex_text);
         }
         FUN_00189150(0, points[j].position, 0.03125f, *(void **)0x2ee6d0);
         FUN_00189cb0(0, points[j].position, (void *)0x5ab100, *(int *)0x2ee6e0);

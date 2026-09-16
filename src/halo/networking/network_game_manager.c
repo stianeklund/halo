@@ -608,7 +608,7 @@ wchar_t *network_game_get_random_player_name(void)
     psVar2 = (short *)tag_get(0x75737472, iVar1);
     if (psVar2 != NULL) {
       uVar3 =
-        random_range(random_math_get_local_seed_address(), 0, *psVar2 - 1);
+        seed_random_range(random_math_get_local_seed_address(), 0, *psVar2 - 1);
       puVar4 = (wchar_t *)FUN_0019d420(iVar1, uVar3);
       return puVar4;
     }

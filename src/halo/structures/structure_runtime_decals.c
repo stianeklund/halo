@@ -78,7 +78,7 @@ void structure_decals_update(uint32_t *old_cluster_visibility,
           (float)(int)(int8_t)runtime_decal[0xf] * *(const float *)0x2b1954;
         angles_to_vector(decal_vector, decal_angles);
 
-        FUN_0009c4b0(decal_tag_index, runtime_decal, decal_vector, 1.0f, 1, -1,
+        decal_new(decal_tag_index, runtime_decal, decal_vector, 1.0f, 1, -1,
                      0);
       }
     }

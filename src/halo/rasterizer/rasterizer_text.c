@@ -36,7 +36,7 @@ float FUN_0017ffa0(short param_1)
 }
 
 /* decode packed 32-bit normal to float[3] output, returns param_1 (0x17ffc0) */
-float *FUN_0017ffc0(float *param_1, unsigned int param_2)
+float *uncompress_int32_to_real_vector3d(float *param_1, unsigned int param_2)
 {
   float fVar1;
   *param_1 =
@@ -91,7 +91,7 @@ int rasterizer_geometry_get_vertex_size(short param_1)
 void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
                   int param_5, int param_6)
 {
-  /* Three 12-byte (3-float) scratch buffers for FUN_0017ffc0 output */
+  /* Three 12-byte (3-float) scratch buffers for uncompress_int32_to_real_vector3d output */
   float buf_c[3]; /* at EBP-0xc */
   float buf_18[3]; /* at EBP-0x18 */
   float buf_24[3]; /* at EBP-0x24 */
@@ -148,17 +148,17 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
         out32[-5] = in32[-3];
         out32[-4] = in32[-2];
         /* unpack normal from in[12] into buf_24 */
-        result = FUN_0017ffc0(buf_24, in32[-1]);
+        result = uncompress_int32_to_real_vector3d(buf_24, in32[-1]);
         out32[-3] = ((unsigned int *)result)[0];
         out32[-2] = ((unsigned int *)result)[1];
         out32[-1] = ((unsigned int *)result)[2];
         /* unpack binormal from in[16] into buf_18 */
-        result = FUN_0017ffc0(buf_18, in32[0]);
+        result = uncompress_int32_to_real_vector3d(buf_18, in32[0]);
         out32[0] = ((unsigned int *)result)[0];
         out32[1] = ((unsigned int *)result)[1];
         out32[2] = ((unsigned int *)result)[2];
         /* unpack tangent from in[20] into buf_c */
-        result = FUN_0017ffc0(buf_c, in32[1]);
+        result = uncompress_int32_to_real_vector3d(buf_c, in32[1]);
         out32[3] = ((unsigned int *)result)[0];
         out32[4] = ((unsigned int *)result)[1];
         out32[5] = ((unsigned int *)result)[2];
@@ -195,7 +195,7 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
       in16 = (signed short *)(param_5 + 6);
       for (i = 0; i < count; i++) {
         /* unpack normal from in[0] into buf_24 */
-        result = FUN_0017ffc0(buf_24, *(unsigned int *)(in16 - 3));
+        result = uncompress_int32_to_real_vector3d(buf_24, *(unsigned int *)(in16 - 3));
         out32[-4] = ((unsigned int *)result)[0];
         out32[-3] = ((unsigned int *)result)[1];
         out32[-2] = ((unsigned int *)result)[2];
@@ -239,17 +239,17 @@ void FUN_001800b0(short param_1, int param_2, int param_3, int param_4,
         out32[-5] = in32[-3];
         out32[-4] = in32[-2];
         /* unpack normal from in[12] into buf_c */
-        result = FUN_0017ffc0(buf_c, in32[-1]);
+        result = uncompress_int32_to_real_vector3d(buf_c, in32[-1]);
         out32[-3] = ((unsigned int *)result)[0];
         out32[-2] = ((unsigned int *)result)[1];
         out32[-1] = ((unsigned int *)result)[2];
         /* unpack binormal from in[16] into buf_18 */
-        result = FUN_0017ffc0(buf_18, in32[0]);
+        result = uncompress_int32_to_real_vector3d(buf_18, in32[0]);
         out32[0] = ((unsigned int *)result)[0];
         out32[1] = ((unsigned int *)result)[1];
         out32[2] = ((unsigned int *)result)[2];
         /* unpack tangent from in[20] into buf_24 */
-        result = FUN_0017ffc0(buf_24, in32[1]);
+        result = uncompress_int32_to_real_vector3d(buf_24, in32[1]);
         out32[3] = ((unsigned int *)result)[0];
         out32[4] = ((unsigned int *)result)[1];
         out32[5] = ((unsigned int *)result)[2];
@@ -333,7 +333,7 @@ void FUN_00180570(int param_1, float *param_2)
                    1);
     system_exit(-1);
   }
-  result = FUN_0017ffc0(local_out, *(unsigned int *)(param_1 + 0x0c));
+  result = uncompress_int32_to_real_vector3d(local_out, *(unsigned int *)(param_1 + 0x0c));
   param_2[0] = result[0];
   param_2[1] = result[1];
   {
@@ -381,7 +381,7 @@ void FUN_00180660(unsigned int *param_1, float *param_2)
                    1);
     system_exit(-1);
   }
-  result = FUN_0017ffc0(local_out, *param_1);
+  result = uncompress_int32_to_real_vector3d(local_out, *param_1);
   param_2[0] = result[0];
   {
     int i;
@@ -533,7 +533,7 @@ short FUN_00180890(float f)
 
 /* rasterizer_geometry_pack_normal_11_11_10_validated: pack float[3] normal
  * into 11-11-10 uint, asserting components in [-1.0, 1.0]. Encodes via
- * floor(component * scale) + FISTP. Verifies round-trip via FUN_0017ffc0.
+ * floor(component * scale) + FISTP. Verifies round-trip via uncompress_int32_to_real_vector3d.
  * Structural cap: FUCOMPP-based range asserts cannot be matched exactly.
  * layout: bits[10:0]=i, bits[21:11]=j, bits[31:22]=k (10-bit). (0x1808f0) */
 unsigned int FUN_001808f0(float *param_1)
@@ -568,7 +568,7 @@ unsigned int FUN_001808f0(float *param_1)
   tmp = (int)floor((double)(param_1[2] * *(float *)0x2b0114));
   packed = (((unsigned int)tmp & 0x3ff) << 11 | j_11) << 11 | i_11;
 
-  decoded = FUN_0017ffc0(local_buf, packed);
+  decoded = uncompress_int32_to_real_vector3d(local_buf, packed);
   decoded_i = decoded[0];
   decoded_j = decoded[1];
   decoded_k = decoded[2];
@@ -596,9 +596,9 @@ unsigned int FUN_001808f0(float *param_1)
 
 /* rasterizer_geometry_pack_normal_11_11_10_clamped: clamp float[3] normal to
  * [-1.0, 1.0] then pack to 11-11-10 uint. Same encoding as FUN_001808f0 but
- * silently clamps out-of-range values. Verifies round-trip via FUN_0017ffc0.
+ * silently clamps out-of-range values. Verifies round-trip via uncompress_int32_to_real_vector3d.
  * layout: bits[10:0]=i, bits[21:11]=j, bits[31:22]=k (10-bit). (0x180b10) */
-unsigned int FUN_00180b10(float *param_1)
+unsigned int compress_real_vector3d_to_int32_clamp(float *param_1)
 {
   float ci;
   float cj;
@@ -614,7 +614,7 @@ unsigned int FUN_00180b10(float *param_1)
   float local_buf[3];
 
   if (param_1 == 0) {
-    display_assert("parameters",
+    display_assert("v",
                    "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x68,
                    1);
     system_exit(-1);
@@ -649,7 +649,7 @@ unsigned int FUN_00180b10(float *param_1)
   tmp = (int)floor((double)(ck * *(float *)0x2b0114));
   packed = (((unsigned int)tmp & 0x3ff) << 11 | j_11) << 11 | i_11;
 
-  decoded = FUN_0017ffc0(local_buf, packed);
+  decoded = uncompress_int32_to_real_vector3d(local_buf, packed);
   decoded_i = decoded[0];
   decoded_j = decoded[1];
   decoded_k = decoded[2];
@@ -924,8 +924,8 @@ void FUN_00181900(short param_1)
    *   +0x04: entry->xyz[0] (float, from puVar2[0..2])
    *   +0x08: entry->xyz[1]
    *   +0x0c: entry->xyz[2]
-   *   +0x10: FUN_00180b10(&dir_vec) = compressed normal of direction
-   *   +0x14: FUN_00180b10(&perp_vec) = compressed normal of perpendicular
+   *   +0x10: compress_real_vector3d_to_int32_clamp(&dir_vec) = compressed normal of direction
+   *   +0x14: compress_real_vector3d_to_int32_clamp(&perp_vec) = compressed normal of perpendicular
    *   +0x18: 0xffffffff (color/alpha = -1)
    *   +0x1c: 0xffff word (light_index = -1 -> scenery path)
    *   +0x1e: entry_index >> 16 (hi word of scenery marker index)
@@ -988,8 +988,8 @@ void FUN_00181900(short param_1)
     *(int *)((char *)params + 0x04) = *(int *)(entry + 0x00);
     *(int *)((char *)params + 0x08) = *(int *)(entry + 0x04);
     *(int *)((char *)params + 0x0c) = *(int *)(entry + 0x08);
-    *(unsigned int *)((char *)params + 0x10) = (unsigned int)FUN_00180b10(dir);
-    *(unsigned int *)((char *)params + 0x14) = (unsigned int)FUN_00180b10(perp);
+    *(unsigned int *)((char *)params + 0x10) = (unsigned int)compress_real_vector3d_to_int32_clamp(dir);
+    *(unsigned int *)((char *)params + 0x14) = (unsigned int)compress_real_vector3d_to_int32_clamp(perp);
     *(int *)((char *)params + 0x18) = -1;
     *(short *)((char *)params + 0x1c) = -1;
     *(short *)((char *)params + 0x1e) = (short)(entry_idx >> 16);
@@ -1011,13 +1011,13 @@ void FUN_00181a90(void)
   int *entry; /* pointer to queued lens flare slot (from FUN_00181020) */
   volatile unsigned int loop_index_shadow; /* store-once/reload copy of i; matches VC71 frame shape */
   int definition; /* *entry = definition tag ptr */
-  float *dir_result; /* return of FUN_0017ffc0 (3-float direction vec) */
+  float *dir_result; /* return of uncompress_int32_to_real_vector3d (3-float direction vec) */
   int occlusion_dir; /* *(short *)(definition + 0x14) */
   int vis_param; /* *(int *)(definition + 0x10) as int (passes to thunk) */
   int lf_count; /* DAT_004d0480 */
   int i; /* loop index */
   float perp[3]; /* perpendicular output (12 bytes, EBP-0x2c) */
-  float dir[3]; /* direction vec copied from FUN_0017ffc0 result */
+  float dir[3]; /* direction vec copied from uncompress_int32_to_real_vector3d result */
   float pos[3]; /* output position vec for occlusion test (EBP-0x14) */
 
   FUN_0016f910(0x17);
@@ -1057,9 +1057,9 @@ void FUN_00181a90(void)
       entry = FUN_00181020((short)i);
       definition = *entry;
 
-      /* FUN_0017ffc0(&perp, entry[4]) fills perp[] and returns a
+      /* uncompress_int32_to_real_vector3d(&perp, entry[4]) fills perp[] and returns a
        * pointer to a 3-float direction vec; copy it into dir[]. */
-      dir_result = FUN_0017ffc0(perp, (unsigned int)entry[4]);
+      dir_result = uncompress_int32_to_real_vector3d(perp, (unsigned int)entry[4]);
       dir[0] = dir_result[0];
       dir[1] = dir_result[1];
       loop_index_shadow = i;
@@ -1131,7 +1131,7 @@ void FUN_00181c20(void)
   int outer_ctr; /* [EBP-0x78] inner loop index within outer */
   int *entry; /* lens flare queue entry: &DAT_004c6480 + i*0x28 (EBX) */
   unsigned char *light_data; /* return of FUN_00181060 (ESI after call) */
-  float *dir_ptr; /* FUN_0017ffc0 return (3-float decoded direction) */
+  float *dir_ptr; /* uncompress_int32_to_real_vector3d return (3-float decoded direction) */
   int definition; /* entry[0] = tag definition ptr (EDI) */
 
   /* Relative position of flare to camera */
@@ -1144,8 +1144,8 @@ void FUN_00181c20(void)
   float refl_off_y; /* [EBP-0x44] */
   float refl_off_z; /* [EBP-0x40] */
 
-  /* Decoded perpendicular direction of the flare (from FUN_0017ffc0) */
-  float dir_local[3]; /* [EBP-0xb4] buffer passed to FUN_0017ffc0 (12 bytes) */
+  /* Decoded perpendicular direction of the flare (from uncompress_int32_to_real_vector3d) */
+  float dir_local[3]; /* [EBP-0xb4] buffer passed to uncompress_int32_to_real_vector3d (12 bytes) */
   float dir_x; /* [EBP-0x68] copy of dir_ptr[0] = local_6c */
   float dir_y; /* [EBP-0x64] copy of dir_ptr[1] = local_68 */
   float dir_z; /* [EBP-0x60] copy of dir_ptr[2] = local_64 */
@@ -1234,8 +1234,8 @@ void FUN_00181c20(void)
        * Returns pointer to light color/alpha byte in the light table. */
       light_data = FUN_00181060((void *)entry);
 
-      /* FUN_0017ffc0 decodes packed normal entry[4] into dir_local[3] */
-      dir_ptr = FUN_0017ffc0(dir_local, (unsigned int)entry[4]);
+      /* uncompress_int32_to_real_vector3d decodes packed normal entry[4] into dir_local[3] */
+      dir_ptr = uncompress_int32_to_real_vector3d(dir_local, (unsigned int)entry[4]);
       dir_x = dir_ptr[0];
       dir_y = dir_ptr[1];
       dir_z = dir_ptr[2];

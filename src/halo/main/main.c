@@ -205,11 +205,11 @@ void FUN_000ffe50(char param_1)
   }
 }
 
-/* Guard wrapper: if param_1 is nonzero, call FUN_00053890. */
+/* Guard wrapper: if param_1 is nonzero, call ai_profile_change_render_spray. */
 void FUN_000ffe70(char param_1)
 {
   if (param_1 != '\0') {
-    FUN_00053890();
+    ai_profile_change_render_spray();
     return;
   }
 }
@@ -223,11 +223,11 @@ void FUN_000ffe90(char param_1)
   }
 }
 
-/* Guard wrapper: if param_1 is nonzero, call FUN_00054df0 (ai_erase_all). */
+/* Guard wrapper: if param_1 is nonzero, call ai_scripting_erase_all (ai_erase_all). */
 void FUN_000ffeb0(char param_1)
 {
   if (param_1 != '\0') {
-    FUN_00054df0();
+    ai_scripting_erase_all();
     return;
   }
 }
@@ -5373,7 +5373,7 @@ void FUN_00103d80(void)
  *   - close and clear any open error_geometry_file (FILE* @0x46e394),
  *   - copy 'source' into the path buffer (csstrncpy, 0x3b),
  *   - clear the byte flag @0x31fb03,
- *   - append the ".wrl" extension (FUN_0008dc30 = strcat-like),
+ *   - append the ".wrl" extension (csstrcat = strcat-like),
  *   - assert the file handle is now NULL, and
  *   - run the CRT-region helper FUN_001db4a9.
  * If 'source' matches the cached path, the call is a no-op.
@@ -5393,7 +5393,7 @@ void FUN_00103de0(char *source)
     }
     csstrncpy((char *)0x31fac8, source, 0x3b);
     *(char *)0x31fb03 = 0;
-    FUN_0008dc30((char *)0x31fac8, ".wrl");
+    csstrcat((char *)0x31fac8, ".wrl");
     if (*(void **)0x46e394 != NULL) {
       display_assert("error_geometry_file==NULL",
                      "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x44, true);

@@ -14,7 +14,7 @@ void FUN_000a54b0(void)
   if (local_player_index == -1)
     return;
 
-  player_data = (char *)FUN_000a3e60(local_player_index);
+  player_data = (char *)weather_particle_system_get(local_player_index);
   *(int16_t *)(player_data + 0x14) = *(int16_t *)0x506784;
   *(int *)(player_data + 0x10) = *(int *)0x506780;
 
@@ -33,10 +33,10 @@ void FUN_000a54b0(void)
 
   if (*(int *)player_data != particle_system_tag_index) {
     if (*(int *)player_data != -1) {
-      FUN_000a4200(local_player_index);
+      weather_particle_system_delete(local_player_index);
     }
     if (particle_system_tag_index != -1) {
-      FUN_000a40a0(local_player_index, particle_system_tag_index, 1.0f);
+      weather_particle_system_new(local_player_index, particle_system_tag_index, 1.0f);
     }
   }
 

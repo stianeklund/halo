@@ -198,10 +198,10 @@ short ai_scripting_command_list_status(int ai_index)
 }
 
 /* 0x00058cc0 — ai_go_to_vehicle_override script command entry point.
- * Uses the same trace path and 0x100-byte name buffer as FUN_00058c40, but
- * forwards allow_type9 = 1 to FUN_00058af0.  The three parameters are stack
+ * Uses the same trace path and 0x100-byte name buffer as ai_scripting_go_to_vehicle, but
+ * forwards allow_type9 = 1 to ai_scripting_go_to_vehicle_internal.  The three parameters are stack
  * arguments at [EBP+8], [EBP+0xc], and [EBP+0x10]. */
-void ai_scripting_follow_distance(unsigned int ai_index, int vehicle_handle,
+void ai_scripting_go_to_vehicle_override(unsigned int ai_index, int vehicle_handle,
                                   const char *seat_substring)
 {
   char local_104[0x100];
@@ -213,10 +213,10 @@ void ai_scripting_follow_distance(unsigned int ai_index, int vehicle_handle,
           hs_runtime_get_executing_thread_name(), local_104,
           vehicle_handle & 0xffff, seat_substring);
   }
-  FUN_00058af0(ai_index, vehicle_handle, (int)seat_substring, 1);
+  ai_scripting_go_to_vehicle_internal(ai_index, vehicle_handle, (int)seat_substring, 1);
 }
 
-/* 0x00058d40 — "ai_renew" HS script command.
+/* 0x00058d40 — "ai_scripting_renew" HS script command.
  *
  * Refreshes every actor named by a packed ai_index_reference:
  *   1. binarizes the unit's two desired-movement scalars (+0x88/+0x8c) into
@@ -225,7 +225,7 @@ void ai_scripting_follow_distance(unsigned int ai_index, int vehicle_handle,
  *      actor_variant tag's [min,max] range, if the variant carries a grenade
  *      type at all.
  *
- * Name is Confirmed from the format string at 0x25d1fc ("%s: ai_renew %s").
+ * Name is Confirmed from the format string at 0x25d1fc ("%s: ai_scripting_renew %s").
  *
  * Signature: the HS thunk at 0xc0970 does MOV EDX,dword ptr [EAX]; PUSH EDX
  * and cleans with cdecl, so this takes exactly ONE stack dword.  Ghidra models
@@ -264,7 +264,7 @@ void ai_scripting_follow_distance(unsigned int ai_index, int vehicle_handle,
  *
  * 0x58d40 / ai_script.obj
  */
-void ai_renew(int handle)
+void ai_scripting_renew(int handle)
 {
   char local_11c[256];
   char local_1c[24];
@@ -277,7 +277,7 @@ void ai_renew(int handle)
   if (*(char *)0x5aca59) {
     ai_index_to_string((unsigned int)handle, global_scenario_get(), local_11c,
                        0x100);
-    error(2, "%s: ai_renew %s", hs_runtime_get_executing_thread_name(),
+    error(2, "%s: ai_scripting_renew %s", hs_runtime_get_executing_thread_name(),
           local_11c);
   }
 
@@ -294,7 +294,7 @@ void ai_renew(int handle)
         (*(float *)((char *)unit + 0x8c) > 0.0f) ? 1.0f : 0.0f;
 
       if (*(short *)((char *)variant + 0x180) != -1) {
-        wanted = random_range((unsigned int *)get_global_random_seed_address(),
+        wanted = seed_random_range((unsigned int *)get_global_random_seed_address(),
                               *(short *)((char *)variant + 0x1d0),
                               *(short *)((char *)variant + 0x1d2) + 1);
         count = unit_get_grenade_count(

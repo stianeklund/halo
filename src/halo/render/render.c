@@ -137,7 +137,7 @@ void FUN_00184690(void)
  * 0x32574a, 0x32574b, 0x32574c, 0x32574d. All four are set to the same
  * incoming value (000184b63 MOV AL,[EBP+8]; four MOV [addr],AL stores, no
  * branch). 0x32574c is read elsewhere as the particle-system-update gate
- * (particle_system_update, 0xa1170) and 0x32574b as the scenario particles
+ * (particle_systems_render, 0xa1170) and 0x32574b as the scenario particles
  * gate; the other two bytes' readers are not evidenced in this bundle. */
 void render_effects(int a)
 {

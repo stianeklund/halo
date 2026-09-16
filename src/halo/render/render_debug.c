@@ -1634,8 +1634,8 @@ void FUN_0018ac50(void)
   short i;
   debug_primitive *rec;
 
-  FUN_000534d0();
-  FUN_00053da0();
+  ai_debug_render();
+  ai_profile_render();
   render_debug_object_damage();
   render_debug_scripting();
   render_debug_trigger_volumes();

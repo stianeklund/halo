@@ -91,7 +91,7 @@ int action_vehicle_find_best_seat(int actor_handle, int vehicle_handle, float *o
  * The caller-supplied state block is 0x4c bytes (csmemset 0x4c) and is filled
  * as: +0x00 vehicle handle (int), +0x04 chosen seat index (int16), +0x06 flag
  * byte, +0x20/+0x24 the two radii passed in, +0x30 destination vec3 and +0x48
- * an opaque handle (both written by action_vehicle_compute_entry_point).
+ * an opaque handle (both written by action_vehicle_find_destination).
  *
  * Early rejections, in binary order: actor+0x158 must be -1 (no pending
  * vehicle), actor+0x6 must be clear (actor not suppressed), and actor+0x6c
@@ -106,7 +106,7 @@ int action_vehicle_find_best_seat(int actor_handle, int vehicle_handle, float *o
  *
  * When qualified, action_vehicle_find_best_seat picks the best seat (truncated to int16). A
  * valid seat sets the +0x06 flag, then the actor's unit must have an entry
- * animation for that seat, action_vehicle_compute_entry_point must produce a destination, and
+ * animation for that seat, action_vehicle_find_destination must produce a destination, and
  * actor_move_to_point must accept it — only then is 1 returned.
  *
  * Confirmed: cdecl, five stack args; ESI holds the state block (advanced by
@@ -192,7 +192,7 @@ qualified_resolved:
       *(unsigned char *)(state + 0x6) = 1;
       if (unit_has_animation_to_enter_seat(((actor_t *)actor)->field_018,
                                            vehicle_handle, seat) != '\0') {
-        if (action_vehicle_compute_entry_point(actor_handle, vehicle_handle, &attach0[0], &attach1[0],
+        if (action_vehicle_find_destination(actor_handle, vehicle_handle, &attach0[0], &attach1[0],
                          delta, NULL, (float *)(state + 0x30),
                          (int *)(state + 0x48)) != '\0') {
           if (actor_move_to_point(actor_handle, (float *)(state + 0x30),
@@ -298,7 +298,7 @@ LAB_0001bf35:
         ((actor_t *)actor)->field_0a0 = 1;
       }
     } else {
-      FUN_0002f1a0(actor_handle);
+      actor_move_halt(actor_handle);
     }
   }
   return *(char *)(actor + 0x9c);
@@ -355,7 +355,7 @@ char action_wait_setup(int actor_handle, char param_2, int state_data)
     *(int16_t *)(state_data + 0xc) = 0x78;
     *(char *)(state_data + 3) = 1;
     *(int16_t *)(state_data + 0x10) =
-      random_range((unsigned int *)get_global_random_seed_address(), 300, 600);
+      seed_random_range((unsigned int *)get_global_random_seed_address(), 300, 600);
     result = 1;
   }
   return result;
@@ -377,7 +377,7 @@ void action_wait_update(int actor_handle)
       if (((actor_t *)actor)->field_018 != -1) {
         ai_communication_event(0x11, ((actor_t *)actor)->field_018, -1, -1, -1, -1, 0);
       }
-      ((actor_t *)actor)->field_0ac = random_range(
+      ((actor_t *)actor)->field_0ac = seed_random_range(
         (unsigned int *)get_global_random_seed_address(), 300, 600);
     }
   }
@@ -696,7 +696,7 @@ int actor_action_handle_panic_from_surprise(int actor_handle)
  *   (short); actor+0x30c = prop index; actor+0x1c0 = pain boost (float);
  *   actr_tag+0x2ac = pain threshold (float).
  * Confirmed: game_connection() != 0 or !DAT_005ac9c8 enables the check.
- * Confirmed: actor_get_best_damaging_prop(actor_handle, 1) = get best target
+ * Confirmed: actor_perception_find_recent_damaging_prop_index(actor_handle, 1) = get best target
  * prop. Confirmed: assert at line 0x228 checks panic state consistency.
  */
 char actor_action_handle_panic_from_damage(int actor_handle)
@@ -718,7 +718,7 @@ char actor_action_handle_panic_from_damage(int actor_handle)
     if ((panic_type == 0) ||
         (((actor_t *)actor)->stimuli_panic_prop_index == -1)) {
       ((actor_t *)actor)->stimuli_panic_prop_index =
-        actor_get_best_damaging_prop(actor_handle, 1);
+        actor_perception_find_recent_damaging_prop_index(actor_handle, 1);
     }
     if (((actor_t *)actor)->stimuli_panic_type < 2) {
       ((actor_t *)actor)->stimuli_panic_type = 1;
@@ -1050,8 +1050,8 @@ char actor_action_handle_vehicle_exit(int actor_handle)
   }
   berserk_nearby = 0;
   local_5 = 0;
-  FUN_00064540((int *)iter_buf, actor_handle);
-  prop = FUN_00064570((int *)iter_buf);
+  prop_iterator_new((int *)iter_buf, actor_handle);
+  prop = prop_iterator_next((int *)iter_buf);
   while (prop != 0) {
     if (((1 < *(short *)(prop + 0x24)) && (*(short *)(prop + 0x24) < 4)) &&
         (*(char *)(prop + 0x12e) != '\0') && (*(char *)(prop + 0x60) != '\0') &&
@@ -1060,7 +1060,7 @@ char actor_action_handle_vehicle_exit(int actor_handle)
       local_5 = 1;
       break;
     }
-    prop = FUN_00064570((int *)iter_buf);
+    prop = prop_iterator_next((int *)iter_buf);
   }
   if (((actor_t *)actor)->field_2ed != '\0') {
     berserk_nearby = 1;
@@ -1457,7 +1457,7 @@ char actor_action_try_to_panic(int actor_handle, short param_2, int param_3, cha
  * enter a vehicle. Iterates seat indices (from param_6 array, or discovered
  * via vehicle_scripting_find_available_seats if param_6 is NULL). For each
  * valid seat index, checks unit_has_animation_to_enter_seat then
- * action_vehicle_setup, and on success calls actor_action_change with action type 9.
+ * action_vehicle_setup_specific, and on success calls actor_action_change with action type 9.
  * Marks the consumed seat as -1 in the seat array.
  *
  * Confirmed: datum_get(actor_data, actor_handle) at 0x1d437.
@@ -1485,7 +1485,7 @@ char actor_action_try_to_enter_vehicle(int actor_handle, int param_2,
     if (seat_index != -1 &&
         unit_has_animation_to_enter_seat(((actor_t *)actor)->field_018, param_2,
                                          seat_index) != '\0' &&
-        action_vehicle_setup(actor_handle, param_2, seat_index, action_buf) != '\0') {
+        action_vehicle_setup_specific(actor_handle, param_2, seat_index, action_buf) != '\0') {
       actor_action_change(actor_handle, 9, (int)action_buf);
       param_6[i] = (int16_t)0xffff;
       return 1;
@@ -1541,7 +1541,7 @@ void *actor_get_pursuit_location(int actor_handle)
  * via datum_get(actor_data, ...) with the result discarded (validation only),
  * resolves the actor record from actor_index, then gates on a bounded type
  * field (field_6e in [2,4)) and a mode field (field_6c). On a qualifying mode
- * it maps the actor's type word (field_4) through FUN_0003a7f0 and returns 1
+ * it maps the actor's type word (field_4) through actor_type_get_pursuit_controller and returns 1
  * when the mapped category differs from param_1; otherwise returns 0.
  *
  * Confirmed: datum_get(actor_data, actor_handle@<eax>) at 0x1d53c; two pushes
@@ -1552,7 +1552,7 @@ void *actor_get_pursuit_location(int actor_handle)
  * Confirmed: field_6e bounded (1 < field_6e < 4), word.
  * Confirmed: field_6c mode set {7,5, 8 iff param_1==0, 6 iff field_a4==0 &&
  *   field_9c>0}, word (field_a4 byte, field_9c word).
- * Confirmed: FUN_0003a7f0(*(int16_t *)(actor + 4)) compared to param_1;
+ * Confirmed: actor_type_get_pursuit_controller(*(int16_t *)(actor + 4)) compared to param_1;
  *   MOV AL,1 / MOV BL,AL byte-only return -> char. */
 char actor_pursuit_consider_nearby_actor(int actor_handle, char param_1, int actor_index)
 {
@@ -1567,7 +1567,7 @@ char actor_pursuit_consider_nearby_actor(int actor_handle, char param_1, int act
     if (mode == 7 || mode == 5 || (param_1 == '\0' && mode == 8) ||
         (mode == 6 && *(char *)(actor + 0xa4) == '\0' &&
          0 < *(short *)(actor + 0x9c))) {
-      if ((char)FUN_0003a7f0(*(int16_t *)(actor + 4)) != param_1) {
+      if ((char)actor_type_get_pursuit_controller(*(int16_t *)(actor + 4)) != param_1) {
         return 1;
       }
     }
@@ -2032,7 +2032,7 @@ char actor_action_handle_surprise(int actor_handle, short type)
     actor_combat_disable_bursts(actor_handle, (int)(*(float *)(actv_tag + 0x8c) * 30.0f));
   }
 
-  FUN_00036da0(actor_handle);
+  actor_stimulus_was_surprised(actor_handle);
 
   prop_handle = ((actor_t *)actor)->field_2f4;
   if (prop_handle != -1) {
@@ -2159,7 +2159,7 @@ char actor_action_handle_combat_targeting(int actor_handle)
  *
  * Two candidate sources, tried in order:
  * 1. Allies — only when the 'actr' definition flag 0x1000 is set. Walks the
- *    clump-actor iterator (FUN_00064540/FUN_00064570) and accepts an ally
+ *    clump-actor iterator (prop_iterator_new/prop_iterator_next) and accepts an ally
  *    record of type 2..3 with +0x12e set, +0x60 clear, a valid handle at
  *    +0x110 that passes actor_action_vehicle_entry_allowed, resolves as an object of type mask 2,
  *    and whose object+0x2d4 equals ally+0x18. The candidate must be within
@@ -2237,8 +2237,8 @@ char actor_action_handle_vehicle_entry(int actor_handle)
 
   /* Source 1: allied actors already heading for / owning a vehicle. */
   if ((*actr_tag & 0x1000) != 0) {
-    FUN_00064540(iter, actor_handle);
-    ally = FUN_00064570(iter);
+    prop_iterator_new(iter, actor_handle);
+    ally = prop_iterator_next(iter);
     if (ally != 0) {
       do {
         if (*(short *)(ally + 0x24) >= 2 && *(short *)(ally + 0x24) <= 3 &&
@@ -2259,7 +2259,7 @@ char actor_action_handle_vehicle_entry(int actor_handle)
             }
           }
         }
-        ally = FUN_00064570(iter);
+        ally = prop_iterator_next(iter);
       } while (ally != 0);
       if (best_handle != -1) {
         goto commit;
@@ -2836,10 +2836,10 @@ char actor_action_handle_lost_contact(int actor_handle)
     flag_b = 0;
     can_search = 0;
     if (prop == (char *)0 || *(char *)(prop + 0xbb) == '\0') {
-      val_30 = FUN_0003a790(*(short *)(actor + 4));
-      val_24 = FUN_0003a7b0(*(short *)(actor + 4));
-      val_34 = FUN_0003a7d0(*(short *)(actor + 4));
-      flag_38 = (char)FUN_0003a7f0(*(short *)(actor + 4));
+      val_30 = actor_type_get_when_to_search_at_target(*(short *)(actor + 4));
+      val_24 = actor_type_get_when_to_pursue(*(short *)(actor + 4));
+      val_34 = actor_type_get_when_to_search_pursuit(*(short *)(actor + 4));
+      flag_38 = (char)actor_type_get_pursuit_controller(*(short *)(actor + 4));
       val_28 = 0;
       have_pos = 0;
       flag_2c = 0;
@@ -3372,7 +3372,7 @@ char actor_action_consider_grenade(int actor_handle)
  *
  * Pre-screen guards (all fall through to a false return):
  *   1. actor+0x158 (swarm element handle) must be NONE (-1).
- *   2. FUN_0002a360(actor_handle) must be false (some blocking condition).
+ *   2. actor_move_animation_busy(actor_handle) must be false (some blocking condition).
  *   3. actor+0x504 (a boolean flag) must be clear.
  *   4. actor+0x270 (target prop/attractor datum handle) must be valid (!= -1).
  *   5. unit_tag+0x234 (evade-enable / max-evade scalar) must be > 0.0f.
@@ -3414,7 +3414,7 @@ char actor_action_try_to_evade(int actor_handle)
   char path_result[0x1c];
 
   if (actor->field_158 != -1) return 0;
-  if (FUN_0002a360(actor_handle) != 0) return 0;
+  if (actor_move_animation_busy(actor_handle) != 0) return 0;
   if (actor->field_504 != '\0') return 0;
   if (actor->target_target_prop_index == -1) return 0;
 
@@ -3683,7 +3683,7 @@ bool actors_searching_same_position(int actor_handle, int param_2)
  * counts the qualifiers, records the nearest one's index at actor+0x1d0, and
  * returns the qualifier count.
  *
- * Pass 1 walks the clump-actor iterator (FUN_00064540/FUN_00064570): each
+ * Pass 1 walks the clump-actor iterator (prop_iterator_new/prop_iterator_next): each
  * record must have flag bytes at +0x60 and +0x127 clear, a valid unit index at
  * +0x1c, and (when flag != 0) a type word at +0x24 in [2,4). actor_pursuit_consider_nearby_actor
  * (actor_handle in EAX) is the category-differs predicate. Each qualifier
@@ -3694,7 +3694,7 @@ bool actors_searching_same_position(int actor_handle, int param_2)
  * and the actor's encounter handle (+0x34) is valid, Pass 2 walks the encounter
  * iterator (encounter_actor_iterator_new/next). For each element with a valid
  * unit index at +0x18 passing actor_pursuit_consider_nearby_actor, it resolves an active-prop index
- * via prop_get_active_by_unit_index, falling back to FUN_00064b40(...,1,0); on
+ * via prop_get_active_by_unit_index, falling back to prop_get_base_by_unit_index(...,1,0); on
  * a valid index it counts the element and, when the 3D distance (record
  * +0x12c..) to the actor's own position is closer, records that index. Stops
  * once the count reaches threshold.
@@ -3704,7 +3704,7 @@ bool actors_searching_same_position(int actor_handle, int param_2)
  * (char)flag then the actor index, one ADD ESP,0x8 each. Confirmed: FLT_MAX
  * seed 0x7f7fffff at 0x202b9; both distance compares are '<' (TEST AH,5;JP).
  * Pass-2 magnitude is FSQRT over +0x12c/+0x130/+0x134 deltas. Confirmed: iter1
- * = 8-byte clump iterator (FUN_00064540 writes +4, FUN_00064570 walks +0/+4);
+ * = 8-byte clump iterator (prop_iterator_new writes +4, prop_iterator_next walks +0/+4);
  * iter2 = 12-byte encounter iterator, current handle at iter2[1] (EBP-0x20).
  * Final store ((actor_t *)actor)->field_1d0 = best_index at 0x2045d. */
 int actor_pursuit_find_nearby_actors(int actor_handle, char flag)
@@ -3728,9 +3728,9 @@ int actor_pursuit_find_nearby_actors(int actor_handle, char flag)
   count = 0;
   best_index = -1;
   best_dist = 3.4028235e+38f;
-  FUN_00064540(iter1, actor_handle);
+  prop_iterator_new(iter1, actor_handle);
   threshold_raw = (flag != '\0') + 1;
-  rec = FUN_00064570(iter1);
+  rec = prop_iterator_next(iter1);
   while (rec != 0) {
     if (*(char *)(rec + 0x60) == '\0' && *(char *)(rec + 0x127) == '\0' &&
         *(int *)(rec + 0x1c) != -1 &&
@@ -3743,7 +3743,7 @@ int actor_pursuit_find_nearby_actors(int actor_handle, char flag)
         best_index = iter1[0];
       }
     }
-    rec = FUN_00064570(iter1);
+    rec = prop_iterator_next(iter1);
   }
   threshold = (short)threshold_raw;
   if (count < threshold && *(int *)(actor + 0x34) != -1) {
@@ -3755,7 +3755,7 @@ int actor_pursuit_find_nearby_actors(int actor_handle, char flag)
         mapped =
           prop_get_active_by_unit_index(actor_handle, *(int *)(rec + 0x18));
         if (mapped == -1) {
-          mapped = FUN_00064b40(actor_handle, *(int *)(rec + 0x18), 1, 0);
+          mapped = prop_get_base_by_unit_index(actor_handle, *(int *)(rec + 0x18), 1, 0);
         }
         if (mapped != -1) {
           count++;
@@ -4071,7 +4071,7 @@ bool actor_combat_currently_firing_burst(int actor_handle)
 
 char *actor_get_weapon_definition(int actor_handle)
 {
-  int weapon_handle = actor_attacking_target(actor_handle);
+  int weapon_handle = actor_get_weapon(actor_handle);
   if (weapon_handle != -1) {
     int *obj = (int *)object_get_and_verify_type(weapon_handle, 4);
     return (char *)tag_get(0x77656170, *obj);

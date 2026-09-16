@@ -822,7 +822,7 @@ void collision_log_render(void)
                 snprintf(user_buf + csstrlen(user_buf),
                          0x200 - csstrlen(user_buf), " %s", stat_buf);
               }
-              FUN_0008dc30(line, user_buf);
+              csstrcat(line, user_buf);
             }
             p_user_elem += 0x48;
             rank_left--;
@@ -864,7 +864,7 @@ void collision_log_render(void)
             snprintf(summary_buf + csstrlen(summary_buf),
                      0x200 - csstrlen(summary_buf), " %s", stat_buf);
           }
-          FUN_0008dc30(line, summary_buf);
+          csstrcat(line, summary_buf);
         }
 
         bounds[0] = (int16_t)y_pos;

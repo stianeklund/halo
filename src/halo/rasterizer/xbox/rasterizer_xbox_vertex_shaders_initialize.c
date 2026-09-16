@@ -194,7 +194,7 @@ bool rasterizer_vertex_shaders_initialize(void)
       success = true;
     } else {
       success = false;
-      FUN_00167ff0(hr,
+      rasterizer_error(hr,
                    "IDirect3DDevice8_CreateVertexShader(global_d3d_device, "
                    "(DWORD*)vertex_shader_table[vertex_shader_index]."
                    "declaration, "
@@ -273,7 +273,7 @@ void rasterizer_vertex_shaders_dispose(void)
       success = true;
     } else {
       success = false;
-      FUN_00167ff0(0,
+      rasterizer_error(0,
                    "IDirect3DDevice8_DeleteVertexShader(global_d3d_device, "
                    "(DWORD)vertex_shader_table[vertex_shader_index].handle)");
     }
