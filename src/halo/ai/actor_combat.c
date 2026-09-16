@@ -88,7 +88,7 @@ void actor_combat_get_weapon_vector(int actor_handle /* @<eax> */,
   }
 
   object_get_and_verify_type(handle, 3);
-  unit_scripting_unit_driver(handle, weapon_vector);
+  unit_get_aiming_vector(handle, weapon_vector);
   unit_clip_to_aiming_bounds(handle, weapon_vector, 1);
 }
 
@@ -96,7 +96,7 @@ char *actor_combat_get_firing_variant_definition(int actor_handle)
 {
   char *actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
   char *actv = (char *)tag_get(0x61637476, ((actor_t *)actor)->field_05c);
-  int weapon_handle = actor_attacking_target(actor_handle);
+  int weapon_handle = actor_get_weapon(actor_handle);
   if (weapon_handle != -1) {
     int *obj = (int *)object_get_and_verify_type(weapon_handle, 4);
     char *weap = (char *)tag_get(0x77656170, *obj);
@@ -664,10 +664,10 @@ void actor_start_burst(int actor_handle)
         (double)rof_modifier);
     }
   } else if (*(float *)(actv + 0xc8) > *(float *)0x2533c0) {
-    weapon_handle = actor_attacking_target(actor_handle);
+    weapon_handle = actor_get_weapon(actor_handle);
     if (weapon_handle != -1) {
       weapon_obj = (int *)object_get_and_verify_type(weapon_handle, 4);
-      projectile_damage = FUN_000fac20(*weapon_obj, &max_range);
+      projectile_damage = weapon_definition_get_damage_potential(*weapon_obj, &max_range);
       if (*(float *)(actv + 0x78) > *(float *)0x2533c0 &&
           max_range > *(float *)(actv + 0x78)) {
         max_range = *(float *)(actv + 0x78);

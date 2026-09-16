@@ -114,7 +114,7 @@ static void dump_u32_case(const char *group, const char *name, uint32_t *values,
 
 /* --- HaloScript parser post-state cases ------------------------------------
  * Drives the hs_compile.obj parse callbacks — hs_parse_begin (0xc7f70),
- * hs_parse_cond (0xc82e0) and FUN_000c85b0 (and/or, 0xc85b0) — through the
+ * hs_parse_cond (0xc82e0) and hs_parse_logical (and/or, 0xc85b0) — through the
  * real compiler entry point and dumps the resulting syntax-node post-state,
  * so run_golden_tests.py can diff the original (ported=false) against the
  * lifted implementation (ported=true).
@@ -251,7 +251,7 @@ static void run_hs_parser_cases(char *buf)
    * arguments are typed void), plus the begin_random variant.
    *
    * A top-level expression is type-checked in a void slot, so a bare literal
-   * argument dies in FUN_000c73a0 before the interesting paths run. The
+   * argument dies in hs_parse_primitive before the interesting paths run. The
    * *_call cases wrap each statement in an (and ...) call, whose node is a
    * function call rather than a constant, so the loop runs to completion and
    * the type-propagation block at 0xc8044 is reached. */
@@ -265,7 +265,7 @@ static void run_hs_parser_cases(char *buf)
   run_hs_parse_case("begin_random_call",
                     "(begin_random (and true false) (or true false))", buf);
 
-  /* FUN_000c85b0: below-arity error path, and the two-argument walk for both
+  /* hs_parse_logical: below-arity error path, and the two-argument walk for both
    * function indices (and = 5, or = 6). */
   run_hs_parse_case("and_none", "(and)", buf);
   run_hs_parse_case("and_one", "(and true)", buf);
@@ -293,7 +293,7 @@ typedef float *(*dual_vector3d_scale_add_fn)(float *base, float *direction,
 typedef void (*dual_scalars_interpolate_fn)(float a, float b, float blend,
                                             float *out);
 
-#ifdef DUAL_ORACLE_TARGET_FUN_000c8d30
+#ifdef DUAL_ORACLE_TARGET_hs_parse_wake
 typedef bool (*dual_hs_wake_parse_fn)(int function_index, int script_node);
 
 /* Synthetic scenario tag and one scripts-block element. File scope, not
@@ -339,7 +339,7 @@ static bool dual_hs_wake_call(bool original, int function_index,
   int scratch_index;
 
   fn = original ? (dual_hs_wake_parse_fn)0xc8d30
-                : (dual_hs_wake_parse_fn)FUN_000c8d30;
+                : (dual_hs_wake_parse_fn)hs_parse_wake;
 
   __asm__ volatile(
       "pushl %%esi\n\t"
@@ -504,7 +504,7 @@ static void dual_hs_wake_check_case(const char *name, int argument_count,
   crt_sprintf(buf, "CASE|END|hs_wake|%s\n", name);
   debug_string_to_display(buf, 0);
 }
-#endif /* DUAL_ORACLE_TARGET_FUN_000c8d30 */
+#endif /* DUAL_ORACLE_TARGET_hs_parse_wake */
 
 static void run_dual_oracle_tests(void)
 {
@@ -514,7 +514,7 @@ static void run_dual_oracle_tests(void)
 
   debug_string_to_display("RUN|BEGIN|suite=xbox_dual_oracle\n", 0);
 
-#ifdef DUAL_ORACLE_TARGET_FUN_000c8d30
+#ifdef DUAL_ORACLE_TARGET_hs_parse_wake
   {
     /* The harness runs right after shell_initialize(), before a map is
      * loaded, so the syntax pool at 0x5aa6c8 is still NULL and the global

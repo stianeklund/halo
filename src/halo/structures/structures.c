@@ -980,7 +980,7 @@ void FUN_00099070(void)
       cluster_id = *(short *)cluster;
       layer = 0;
       do {
-        node = FUN_00098fe0(cluster_id, layer);
+        node = decal_get_first_decal_index(cluster_id, layer);
         while (node != -1) {
           rec = (char *)datum_get(*(void **)0x5aa8b8, node);
           crt_sprintf(local_50, "%d", (int)*(short *)(rec + 0x2a) << 2);

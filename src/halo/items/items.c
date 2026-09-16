@@ -463,7 +463,7 @@ bool virtual_keyboard_initialize(void)
  *   +0x66 u16  0
  */
 
-/* virtual_keyboard_set_validation — begin a validated virtual-keyboard entry
+/* virtual_keyboard_launch — begin a validated virtual-keyboard entry
  * session over the caller's wchar_t buffer. Asserts the inputs (non-null
  * buffer, non-zero even byte size, no session already active) and that
  * caption_index is a valid virtual-keyboard caption string index. If the
@@ -473,7 +473,7 @@ bool virtual_keyboard_initialize(void)
  * true.
  *
  * cdecl, bool return in AL (MOV AL,1 success / XOR AL,AL failure). */
-bool virtual_keyboard_set_validation(wchar_t *text_buffer,
+bool virtual_keyboard_launch(wchar_t *text_buffer,
                                      unsigned short buffer_size,
                                      short caption_index)
 {
@@ -523,8 +523,8 @@ bool virtual_keyboard_set_validation(wchar_t *text_buffer,
  *
  * 0x46cef0 is the byte-wide "active" flag at offset 0 of the
  * virtual_keyboard_globals block already used elsewhere in this file
- * (virtual_keyboard_initialize clears it, virtual_keyboard_set_validation
- * refuses when it is already set, virtual_keyboard_process_input gates on
+ * (virtual_keyboard_initialize clears it, virtual_keyboard_launch
+ * refuses when it is already set, virtual_keyboard_process_internal gates on
  * it).  The flag byte is returned raw in AL -- there is no TEST/SETNE
  * normalization, so the C form must be a direct byte load into the
  * unsigned-char `bool`, not a `!= 0` comparison.
@@ -534,7 +534,7 @@ bool virtual_keyboard_set_validation(wchar_t *text_buffer,
  * @0xe77f3 -- shell/UI paths that suppress their own input handling while
  * the virtual keyboard owns the controller.  Name kept mechanical: the
  * behaviour is clear but there is no string/PDB evidence for a symbol. */
-bool FUN_000f5640(void)
+bool virtual_keyboard_active(void)
 {
   return *(uint8_t *)0x46cef0;
 }
@@ -547,8 +547,8 @@ bool FUN_000f5640(void)
  *
  * 0x46cf06 is the byte-wide "done" flag documented alongside the other
  * virtual_keyboard_globals fields in this file (cleared by
- * FUN_000f57a0/edit-buffer commit and the ACCEPT key path's error arms,
- * latched by FUN_000f5fb0's ACCEPT key path). Same shape as FUN_000f5640
+ * virtual_keyboard_cancel/edit-buffer commit and the ACCEPT key path's error arms,
+ * latched by virtual_keyboard_select's ACCEPT key path). Same shape as virtual_keyboard_active
  * (active predicate): the flag byte is returned raw in AL with no
  * TEST/SETNE normalization, so the C form is a direct byte load into the
  * unsigned-char `bool`, not a `!= 0` comparison.
@@ -556,7 +556,7 @@ bool FUN_000f5640(void)
  * No callees. Single caller (UNCONDITIONAL_CALL, from xrefs): FUN_000f04c0
  * @0xf04db. Name kept mechanical: behaviour is clear but there is no
  * string/PDB evidence for a symbol. */
-bool FUN_000f5650(void)
+bool virtual_keyboard_last_exit_saved_text(void)
 {
   return *(uint8_t *)0x46cf06;
 }
@@ -570,7 +570,7 @@ bool FUN_000f5650(void)
  * so duplicate/merged keys are stepped over in one press. Stores the new
  * column, plays the UI cursor-move sound (selector 1), and returns 1 (move
  * accepted -> caller latches last_move_dir/last_move_time). Column analogue
- * of the row handlers FUN_000f5700/5750; sibling of FUN_000f5660/57a0/5fb0.
+ * of the row handlers virtual_keyboard_tab_up/5750; sibling of virtual_keyboard_tab_left/57a0/5fb0.
  *
  * Disasm notes: row (0x46cef8) is MOVSX-loaded and scaled ONCE before the
  * loop (MOVSX ECX,[0x46cef8]; IMUL ECX,ECX,0xb), so row*0xb is loop-
@@ -585,9 +585,9 @@ bool FUN_000f5650(void)
  * incl/xorl %eax, plus one extra zeroing of EAX before the 16-bit load and the
  * original's loop-entry JMP. Neither `col++` nor `(short)(col + 1)` changes
  * this -- VC71 promotes to 32-bit either way. Same ceiling as the sibling row
- * handlers (FUN_000f5700 75.6%, FUN_000f5750 82.6%, FUN_000f57a0 83.0%).
+ * handlers (virtual_keyboard_tab_up 75.6%, virtual_keyboard_tab_down 82.6%, virtual_keyboard_cancel 83.0%).
  * Behaviour is carried by equivalence: 100/100 seeds, 92% coverage. */
-char FUN_000f56b0(void)
+char virtual_keyboard_tab_right(void)
 {
   int row_offset;
   short col;
@@ -616,14 +616,14 @@ char FUN_000f56b0(void)
  * so duplicate/merged keys are stepped over in one press. Stores the new
  * row, plays the UI cursor-move sound (selector 1), and returns 1 (move
  * accepted -> caller latches last_move_dir/last_move_time). Sibling of
- * FUN_000f5660/56b0/5750/5fb0.
+ * virtual_keyboard_tab_left/56b0/5750/5fb0.
  *
  * Disasm notes: row is held in AX for the whole loop (16-bit dec, signed
  * jns wrap to 4) and stored to the global once after the loop; the
  * pre-move key byte is cached in DL before the loop; col (0x46cefa) is
  * MOVSX-loaded once into ECX. MOV AL,1 before RET -> char return; PUSH 1
  * is the audio-selector argument. */
-char FUN_000f5700(void)
+char virtual_keyboard_tab_up(void)
 {
   short row;
   short col;
@@ -651,12 +651,12 @@ char FUN_000f5700(void)
  * the character under the pre-move cursor, so duplicate/merged keys are
  * stepped over in one press. Stores the new row, plays the UI cursor-move
  * sound (selector 1), and returns 1 (move accepted -> caller latches
- * last_move_dir/last_move_time). Sibling of FUN_000f5660/56b0/5700.
+ * last_move_dir/last_move_time). Sibling of virtual_keyboard_tab_left/56b0/5700.
  *
  * Disasm notes: row is held in AX for the whole loop (16-bit inc/cmp/xor)
  * and stored to the global once after the loop; the pre-move key byte is
  * cached in DL before the loop; col (0x46cefa) is MOVSX-loaded once. */
-char FUN_000f5750(void)
+char virtual_keyboard_tab_down(void)
 {
   short row;
   short col;
@@ -687,9 +687,9 @@ char FUN_000f5750(void)
  * Globals: 0x46cf08 = target/dest ptr, 0x46cf18 = working buffer base,
  * 0x46cefc = capacity in bytes (unsigned 16-bit; loaded via MOVZX), used
  * both as cap>>1 for the copy count and (cap>>1)-1 for the terminator.
- * Sibling move handler of FUN_000f5660/56b0/5700/5750/5fb0.
+ * Sibling move handler of virtual_keyboard_tab_left/56b0/5700/5750/5fb0.
  * Disasm: MOV AL,1 before RET -> returns char 1; PUSH 3 to the audio call. */
-char FUN_000f57a0(void)
+char virtual_keyboard_cancel(void)
 {
   wchar_t *dest;
 
@@ -712,9 +712,9 @@ char FUN_000f57a0(void)
  * Returns the number of free bytes remaining in the edit buffer: buffer
  * capacity (0x46cefc, unsigned 16-bit, loaded via MOVZX) minus the byte
  * length of the current string including its NUL terminator
- * (ustrlen(base) * 2 + 2). Called from FUN_000f5fb0's SPACE handler
+ * (ustrlen(base) * 2 + 2). Called from virtual_keyboard_select's SPACE handler
  * (0x2b) to gate insertion: result < 2 rejects with selector 4. */
-int FUN_000f5f10(void)
+int virtual_keyboard_free_space_in_text_buffer(void)
 {
   return (int)*(unsigned short *)0x46cefc -
          (ustrlen(*(const unsigned short **)0x46cf08) * 2 + 2);
@@ -731,7 +731,7 @@ int FUN_000f5f10(void)
  * 0x46cefc = buffer capacity in bytes (unsigned 16-bit; loaded via MOVZX).
  * The terminator index uses (capacity >> 1) - 1 to match the original's
  * SHR + scaled-index store [base + (cap>>1)*2 - 2]. */
-void FUN_000f5f30(void)
+void virtual_keyboard_backspace(void)
 {
   char *cursor;
   int remaining;
@@ -756,10 +756,10 @@ void FUN_000f5f30(void)
  * assert text @0x28aa58, L".fortune" @0x28aa44). kb.json files 0xf5fb0 under
  * items.obj, but the three inline asserts name virtual_keyboard.c, so this is
  * virtual-keyboard code living in the items.c TU alongside its already-lifted
- * siblings FUN_000f5660/56b0/5700/5750/57a0/5f30.
+ * siblings virtual_keyboard_tab_left/56b0/5700/5750/57a0/5f30.
  *
  * Sixth move handler of the on-screen keyboard (dispatched as action 4 from
- * virtual_keyboard_process_input, 0xf63f0): resolves the character currently
+ * virtual_keyboard_process_internal, 0xf63f0): resolves the character currently
  * under the cursor from the keymap at 0x28a790 ([row*0xb + col], signed byte)
  * and performs that key's edit action.
  *
@@ -767,20 +767,20 @@ void FUN_000f5f30(void)
  *                    target text, or the typed name is unique, latch "done"
  *                    (0x46cf06 = 1); an empty buffer raises UI error 0x1d and
  *                    a duplicate name raises 0x1b, both of which also commit
- *                    via FUN_000f57a0. Always plays selector 3, clears the
+ *                    via virtual_keyboard_cancel. Always plays selector 3, clears the
  *                    active flag (0x46cef0) and flushes the event queue.
  *   0x25/26/27      - toggle shift / caps / symbol modifier bytes
  *                    (0x46cef1/2/3); selector 1.
  *   0x28  CLEAR/BS  - if the buffer is still pristine (0x46cf07 == 1) wipe it
  *                    whole and rewind the caret, otherwise delete one wide
- *                    char via FUN_000f5f30.
+ *                    char via virtual_keyboard_backspace.
  *   0x29/0x2a       - caret left / right by one UTF-16 cell; clears the
  *                    pristine flag and plays selector 1.
  *   0x2b  SPACE     - like the default key path but inserts L' '; the room
- *                    check is delegated to FUN_000f5f10 (returns the free
+ *                    check is delegated to virtual_keyboard_free_space_in_text_buffer (returns the free
  *                    cell count in EAX; < 2 rejects with selector 4).
  *   default         - insert the keymap character: shift the tail right one
- *                    cell, resolve the character through FUN_000f5800
+ *                    cell, resolve the character through virtual_keyboard_get_character
  *                    (key code passed in SI, wide char returned in AX), then
  *                    advance the caret. Typing ".fortune" is an easter egg:
  *                    it picks a fortune index 0xb + (system_milliseconds()
@@ -797,7 +797,7 @@ void FUN_000f5f30(void)
  * Disasm: MOV AL,1 at 0xf63b6 executes on every exit path -> always returns 1
  * (the following JZ only skips the 0x46cef1 clear). The tail re-reads the
  * keymap and leaves the shift toggle set only for key 0x25. */
-char FUN_000f5fb0(void)
+char virtual_keyboard_select(void)
 {
   int key;
   int size;
@@ -813,12 +813,12 @@ char FUN_000f5fb0(void)
       *(char *)0x46cf06 = 1;
     } else if (**(short **)0x46cf08 == 0) {
       ui_widget_display_error(0x1d, -1, 1, 0);
-      FUN_000f57a0();
+      virtual_keyboard_cancel();
     } else if (saved_game_file_name_unique(*(const wchar_t **)0x46cf08) != 0) {
       *(char *)0x46cf06 = 1;
     } else {
       ui_widget_display_error(0x1b, -1, 1, 0);
-      FUN_000f57a0();
+      virtual_keyboard_cancel();
     }
     ui_play_audio_feedback_sound(3);
     *(char *)0x46cef0 = 0;
@@ -853,7 +853,7 @@ char FUN_000f5fb0(void)
       *(char **)0x46cf0c = *(char **)0x46cf08;
       *(unsigned char *)0x46cf07 = 0;
     } else {
-      FUN_000f5f30();
+      virtual_keyboard_backspace();
     }
     break;
 
@@ -883,7 +883,7 @@ char FUN_000f5fb0(void)
       *(char **)0x46cf0c = *(char **)0x46cf08;
       *(unsigned char *)0x46cf07 = 0;
     }
-    if (FUN_000f5f10() < 2) {
+    if (virtual_keyboard_free_space_in_text_buffer() < 2) {
       ui_play_audio_feedback_sound(4);
     } else {
       cursor = *(char **)0x46cf0c;
@@ -918,7 +918,7 @@ char FUN_000f5fb0(void)
       base = *(char **)0x46cf08;
       csmemmove(cursor + 2, cursor,
                 (unsigned int)((size - (int)cursor) + (int)base - 2));
-      **(unsigned short **)0x46cf0c = FUN_000f5800((short)((
+      **(unsigned short **)0x46cf0c = virtual_keyboard_get_character((short)((
         char *)0x28a790)[(int)*(short *)0x46cefa + *(short *)0x46cef8 * 0xb]);
       *(char **)0x46cf0c += 2;
       if (ustrcmp(*(const wchar_t **)0x46cf08, L".fortune") == 0) {
@@ -971,13 +971,13 @@ char FUN_000f5fb0(void)
  * materialises the stride once (MOV EDX,2 at 0xf642b) and reuses it for both
  * SUB EAX,EDX (left, 0xf65f6) and ADD EAX,EDX (right, 0xf6625), and tests the
  * terminator with CMP WORD PTR [ECX],0 at 0xf661d. Matches the 2-byte stepping
- * in FUN_000f5f30 (backspace) and virtual_keyboard_set_text.
+ * in virtual_keyboard_backspace (backspace) and virtual_keyboard_set_text.
  *   0x46cf10  int    last_move_time   (ms timestamp of last accepted move)
  *   0x46cf58  int    repeat_timer     (ms timestamp gating auto-repeat)
  * Keymap dispatch table at 0x28a790 is a signed byte array indexed
  * [row * 0xb + col] (11 columns) yielding the character stored at 0x46cf00.
  *
- * Move handlers FUN_000f5660/56b0/5700/5750/5fb0/57a0 return a char in AL
+ * Move handlers virtual_keyboard_tab_left/56b0/5700/5750/5fb0/57a0 return a char in AL
  * (0/1); the return latches last_move_dir + last_move_time when it is 1.
  */
 
@@ -992,7 +992,7 @@ struct virtual_keyboard_event {
                     button id (low byte) + pressed flag (byte +1) */
 };
 
-void virtual_keyboard_process_input(void)
+void virtual_keyboard_process_internal(void)
 {
   struct virtual_keyboard_event event;
   int now_ms;
@@ -1048,7 +1048,7 @@ void virtual_keyboard_process_input(void)
             ui_play_audio_feedback_sound(1);
             moved = 1;
           } else {
-            FUN_000f5f30();
+            virtual_keyboard_backspace();
             moved = 1;
           }
         }
@@ -1116,22 +1116,22 @@ void virtual_keyboard_process_input(void)
       char *)0x28a790)[(int)*(short *)0x46cefa + *(short *)0x46cef8 * 0xb];
     switch (action) {
     case 0:
-      moved = FUN_000f5660();
+      moved = virtual_keyboard_tab_left();
       break;
     case 1:
-      moved = FUN_000f56b0();
+      moved = virtual_keyboard_tab_right();
       break;
     case 2:
-      moved = FUN_000f5700();
+      moved = virtual_keyboard_tab_up();
       break;
     case 3:
-      moved = FUN_000f5750();
+      moved = virtual_keyboard_tab_down();
       break;
     case 4:
-      moved = FUN_000f5fb0();
+      moved = virtual_keyboard_select();
       break;
     case 5:
-      moved = FUN_000f57a0();
+      moved = virtual_keyboard_cancel();
       break;
     }
     if (moved == 1) {
@@ -1141,21 +1141,21 @@ void virtual_keyboard_process_input(void)
   }
 }
 
-/* items_dispose_from_old_map (0xf6740)
+/* virtual_keyboard_process (0xf6740)
  * Guarded per-frame virtual-keyboard input pump. If the
  * virtual_keyboard_globals block at 0x46cef0 is active (byte flag at offset 0
- * != 0), drain its input queue via virtual_keyboard_process_input; otherwise
+ * != 0), drain its input queue via virtual_keyboard_process_internal; otherwise
  * no-op. The kb name is a placeholder and does not describe the observed binary
  * behavior. */
-void items_dispose_from_old_map(void)
+void virtual_keyboard_process(void)
 {
   if (*(uint8_t *)0x46cef0 != 0) {
-    virtual_keyboard_process_input();
+    virtual_keyboard_process_internal();
   }
 }
 
 /*
- * FUN_000f6750 (0xf6750, __cdecl): apply an item definition's flag bits to a
+ * equipment_place (0xf6750, __cdecl): apply an item definition's flag bits to a
  * live object instance.
  *
  * Resolves the object instance from its datum handle via
@@ -1176,7 +1176,7 @@ void items_dispose_from_old_map(void)
  * ABI: two cdecl stack args (no register args). Sole callee
  * object_get_and_verify_type is cdecl. void return.
  */
-void FUN_000f6750(int object_datum, void *definition)
+void equipment_place(int object_datum, void *definition)
 {
   void *obj;
   unsigned int flags;
@@ -1205,7 +1205,7 @@ void FUN_000f6750(int object_datum, void *definition)
 /* Activate the pickup sound effect for an equipment item.
  * Looks up the equipment tag definition ('eqip') and plays the
  * pickup sound (tag field at +0x31c) at full volume (scale=1.0). */
-void item_activate_equipment_effect(int equipment_handle)
+void equipment_handle_pickup(int equipment_handle)
 {
   int *equip_obj;
   char *tag_def;
@@ -1221,7 +1221,7 @@ void item_activate_equipment_effect(int equipment_handle)
 
 /* Play the pickup sound for an equipment tag (0xf67f0).
  * Reads the pickup sound tag index at equipment_tag+0x31c and plays it. */
-void FUN_000f67f0(int equipment_tag_index)
+void equipment_definition_handle_pickup(int equipment_tag_index)
 {
   int tag_data = (int)tag_get(0x65716970, equipment_tag_index);
   if (*(int *)(tag_data + 0x31c) != -1) {
@@ -1232,12 +1232,12 @@ void FUN_000f67f0(int equipment_tag_index)
 /* Item garbage-collection countdown tick (0xf6820).
  * Fetches the item object (type mask 0x10), decrements the signed 16-bit
  * despawn timer at item_obj+0x1dc (seeded to a random [300,600] value by
- * item_begin_garbage_collection), and deletes the object once the timer
+ * garbage_new), and deletes the object once the timer
  * reaches 0. Returns whether the item survived this tick (timer still > 0);
  * the original latches this into BL via SETG and returns it in AL.
- * Despite the kb name "item_new", the binary behavior is a per-tick
+ * Despite the kb name "garbage_update", the binary behavior is a per-tick
  * release/countdown, not allocation. */
-char item_new(int object_handle)
+char garbage_update(int object_handle)
 {
   char *item_obj;
   char survived;
@@ -1255,7 +1255,7 @@ char item_new(int object_handle)
  * Sets the garbage flag, ORs object flags bits 18 and 19 (0xc0000), and
  * picks a random despawn timer in [300, 600] ticks stored at item_obj+0x1dc.
  * Returns true on success. */
-bool item_begin_garbage_collection(int item_handle)
+bool garbage_new(int item_handle)
 {
   char *item_obj;
   unsigned int *seed;
@@ -1272,7 +1272,7 @@ bool item_begin_garbage_collection(int item_handle)
 
 /* Read the type byte (offset +3) from an item datum entry (0xf68b0).
  * Returns as short (zero-extended from byte). */
-short FUN_000f68b0(int item_handle)
+short object_get_type(int item_handle)
 {
   char *datum;
   datum = (char *)datum_get(*(data_t **)0x5a8d50, item_handle);
@@ -1281,7 +1281,7 @@ short FUN_000f68b0(int item_handle)
 
 /* Activate an item: set flags 0x6000, record game time, reset timer (0xf6910).
  */
-char item_activate(int item_handle)
+char item_new(int item_handle)
 {
   char *item_obj;
   item_obj = (char *)object_get_and_verify_type(item_handle, 0x1c);
@@ -1314,7 +1314,7 @@ bool dangerous_items_near_player(void)
  * clears bits 3 and 5 of item flags, and resets the item's scenario location
  * at +0x48.
  * When unit_handle is NONE: clears bits 0 and 1, detaching the item. */
-void item_attach_to_unit(int item_handle, int unit_handle)
+void item_in_unit_inventory(int item_handle, int unit_handle)
 {
   char *item_obj;
   char *unit_obj;
@@ -1398,7 +1398,7 @@ void item_get_position_even_if_in_inventory(int object_handle,
  * the tag reference at +0x2f4 of the 'item' tag definition (detonation
  * or fuse warning), then sets the countdown to a random value in the
  * range [tag+0x2e0, tag+0x2e4] scaled by 30.0 (ticks per second).
- * Called from item_set_position when the item is flagged for detonation
+ * Called from item_accelerate when the item is flagged for detonation
  * and the game engine is not running (campaign/solo mode). */
 void item_detonate(int item_handle)
 {
@@ -1411,7 +1411,7 @@ void item_detonate(int item_handle)
   item_tag = (char *)tag_get(0x6974656d, *(int *)item_obj);
 
   if (*(int16_t *)(item_obj + 0x1a8) == 0) {
-    FUN_0009ec30(
+    effect_new_from_object(
       *(int *)(item_tag + 0x2f4), item_handle,
       item_handle, /* dup-args-ok: same handle as source and target */
       NONE, 0, 0, 0, 0);
@@ -1429,7 +1429,7 @@ void item_detonate(int item_handle)
  * object flag bit 5 at +0x4 is set, indicating externally driven rotation),
  * then stores sin(magnitude) at +0x1d4 and cos(magnitude) at +0x1d8.
  * If zero: clears flag bit 2 and sets sin=0, cos=1 (identity rotation). */
-void FUN_000f6b80(int item_handle)
+void item_adjust_for_angular_velocity_change(int item_handle)
 {
   char *item_obj;
   float mag;
@@ -1518,7 +1518,7 @@ char valid_real_matrix4x3(float *mat)
   return '\0';
 }
 
-/* item_set_position (0xf6d60)
+/* item_accelerate (0xf6d60)
  *
  * Apply a velocity/position delta to an item and update its angular velocity.
  * Manages collision user depth, ground clamping, angular tumble, and garbage
@@ -1551,7 +1551,7 @@ char valid_real_matrix4x3(float *mat)
  * (random_seed_get_direction3d) for degenerate case. Confirmed: CALL 0x121e0
  * (FUN_000121e0) for random angle
  * [-pi/4, pi/4]. Confirmed: CALL 0x213c0 (vector3d_add) for angular velocity
- * accumulation. Confirmed: CALL 0xf6b80 (FUN_000f6b80) with item_handle in EAX.
+ * accumulation. Confirmed: CALL 0xf6b80 (item_adjust_for_angular_velocity_change) with item_handle in EAX.
  * Confirmed: CALL 0x13d920 (object_set_garbage_flag) with (handle, 0).
  * Confirmed: global collision depth at 0x4761d8 (int16_t).
  * Confirmed: collision user stack at 0x5a8c80.
@@ -1561,7 +1561,7 @@ char valid_real_matrix4x3(float *mat)
  * Confirmed: zero constant at 0x2533c0 = 0.0f.
  * Confirmed: pi/2 constant at 0x2568bc = ~1.5708f.
  */
-void item_set_position(int item_handle, float *position, int flag)
+void item_accelerate(int item_handle, float *position, int flag)
 {
   char *item_obj;
   char *item_tag;
@@ -1715,7 +1715,7 @@ void item_set_position(int item_handle, float *position, int flag)
     }
 
     /* Update item velocity/angular state and clear garbage flag */
-    FUN_000f6b80(item_handle);
+    item_adjust_for_angular_velocity_change(item_handle);
     object_set_garbage_flag(item_handle, 0);
   }
 
@@ -1768,7 +1768,7 @@ typedef struct {
  *         or to the hit object (flag 0x10, handle at +0x1b8, node-local
  *         position at +0x1bc).
  *      c. If the item IS at rest, re-validate the attachment each tick and
- *         drop the item (item_set_position with the gravity vector) when
+ *         drop the item (item_accelerate with the gravity vector) when
  *         the surface has been broken or the carrier object is gone; then
  *         damp the angular velocity by the constant at 0x2555d0.
  *      d. If the "spinning" flag (bit 2 at +0x1a4) is set, rotate the item
@@ -1783,10 +1783,10 @@ typedef struct {
  * Confirmed: returns 1 in AL (MOV AL,0x1 immediately before the epilogue).
  * Confirmed: asserts at items.c lines 0xae and 0x1d4 (collision depth) and
  *   0x11b (unreachable surface type), all tailing into system_exit(-1).
- * Confirmed: FUN_000f7110 is called with three register arguments
+ * Confirmed: item_align_to_normal_and_point is called with three register arguments
  *   (EAX = optional out point, ESI = normal, EBX = item handle) plus one
  *   stack argument; see its kb.json declaration.
- * Confirmed: FUN_000f6b80 takes the item handle in EAX.
+ * Confirmed: item_adjust_for_angular_velocity_change takes the item handle in EAX.
  * Uncertain: the exact semantics of the marker/collision record fields;
  *   they are addressed by raw offset into the single 0x6c-byte buffer that
  *   VC7.1 shares between the marker record and the collision result. */
@@ -1877,8 +1877,8 @@ bool item_update(int item_handle)
           scale = 1.0f;
 
         if (*(int *)(item_tag + 0x254) != NONE &&
-            FUN_0009f3b0(marker_buf + 0x34)) {
-          FUN_0009f430(*(int *)(item_tag + 0x254), 8,
+            material_effect_visible(marker_buf + 0x34)) {
+          material_effect_new(*(int *)(item_tag + 0x254), 8,
                        *(int16_t *)(marker_buf + 0x50), marker_buf + 0x34,
                        marker_buf + 0x40, marker_buf + 0x28, scale);
         }
@@ -1902,7 +1902,7 @@ bool item_update(int item_handle)
 
         if ((*(int16_t *)(marker_buf + 0x1c) == 2 ||
              (*(int16_t *)(marker_buf + 0x1c) == 3 &&
-              ((1 << (FUN_000f68b0(*(int *)(marker_buf + 0x54)) & 0x1f)) &
+              ((1 << (object_get_type(*(int *)(marker_buf + 0x54)) & 0x1f)) &
                0x3c0) != 0)) &&
             *(float *)(marker_buf + 0x48) > *(float *)0x28aaf4 &&
             -(*(float *)(marker_buf + 0x44) * velocity[1] +
@@ -1913,7 +1913,7 @@ bool item_update(int item_handle)
           new_point[0] = *(float *)(marker_buf + 0x34);
           new_point[1] = *(float *)(marker_buf + 0x38);
           new_point[2] = *(float *)(marker_buf + 0x3c);
-          FUN_000f7110(new_point, (float *)(marker_buf + 0x40), item_handle,
+          item_align_to_normal_and_point(new_point, (float *)(marker_buf + 0x40), item_handle,
                        (float *)(marker_buf + 0x34));
 
           velocity[2] = 0.0f;
@@ -1956,7 +1956,7 @@ bool item_update(int item_handle)
 
           *(item_position3d *)(item_obj + 0x1c8) =
             *(item_position3d *)(marker_buf + 0x40);
-          FUN_000f6b80(item_handle);
+          item_adjust_for_angular_velocity_change(item_handle);
           *(int *)(item_obj + 0x1b0) = NONE;
         } else {
           /* ---- bounces ---------------------------------------------- */
@@ -2012,14 +2012,14 @@ bool item_update(int item_handle)
           node_matrix = object_get_node_matrix(*(int *)(item_obj + 0x1b8), 0);
           matrix_transform_point(node_matrix, (float *)(item_obj + 0x1bc),
                                  new_point);
-          FUN_000f7110((float *)0, (float *)(item_obj + 0x1c8), item_handle,
+          item_align_to_normal_and_point((float *)0, (float *)(item_obj + 0x1c8), item_handle,
                        new_point);
         } else {
           FUN_00012fb0(*(float **)0x31fc50, *(float *)0x32512c, new_point);
           *(uint32_t *)(item_obj + 0x1a4) =
             *(uint32_t *)(item_obj + 0x1a4) & 0xffffffef;
         drop_item:
-          item_set_position(item_handle, new_point, 0);
+          item_accelerate(item_handle, new_point, 0);
         }
       }
 
@@ -2029,7 +2029,7 @@ bool item_update(int item_handle)
         *(float *)(item_obj + 0x40) * *(float *)0x2555d0;
       *(float *)(item_obj + 0x44) =
         *(float *)(item_obj + 0x44) * *(float *)0x2555d0;
-      FUN_000f6b80(item_handle);
+      item_adjust_for_angular_velocity_change(item_handle);
     }
 
     if (*(uint8_t *)(item_obj + 0x1a4) & 0x4) {
@@ -2075,7 +2075,7 @@ bool item_update(int item_handle)
     countdown = countdown - 1;
     *(int16_t *)(item_obj + 0x1a8) = countdown;
     if (countdown == 0) {
-      FUN_0009ec30(
+      effect_new_from_object(
         *(int *)(item_tag + 0x304), item_handle,
         item_handle, /* dup-args-ok: same handle as source and target */
         NONE, 0, 0, 0, 0);

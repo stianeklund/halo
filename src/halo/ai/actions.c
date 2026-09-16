@@ -1541,7 +1541,7 @@ void *actor_get_pursuit_location(int actor_handle)
  * via datum_get(actor_data, ...) with the result discarded (validation only),
  * resolves the actor record from actor_index, then gates on a bounded type
  * field (field_6e in [2,4)) and a mode field (field_6c). On a qualifying mode
- * it maps the actor's type word (field_4) through FUN_0003a7f0 and returns 1
+ * it maps the actor's type word (field_4) through actor_type_get_pursuit_controller and returns 1
  * when the mapped category differs from param_1; otherwise returns 0.
  *
  * Confirmed: datum_get(actor_data, actor_handle@<eax>) at 0x1d53c; two pushes
@@ -1552,7 +1552,7 @@ void *actor_get_pursuit_location(int actor_handle)
  * Confirmed: field_6e bounded (1 < field_6e < 4), word.
  * Confirmed: field_6c mode set {7,5, 8 iff param_1==0, 6 iff field_a4==0 &&
  *   field_9c>0}, word (field_a4 byte, field_9c word).
- * Confirmed: FUN_0003a7f0(*(int16_t *)(actor + 4)) compared to param_1;
+ * Confirmed: actor_type_get_pursuit_controller(*(int16_t *)(actor + 4)) compared to param_1;
  *   MOV AL,1 / MOV BL,AL byte-only return -> char. */
 char actor_pursuit_consider_nearby_actor(int actor_handle, char param_1, int actor_index)
 {
@@ -1567,7 +1567,7 @@ char actor_pursuit_consider_nearby_actor(int actor_handle, char param_1, int act
     if (mode == 7 || mode == 5 || (param_1 == '\0' && mode == 8) ||
         (mode == 6 && *(char *)(actor + 0xa4) == '\0' &&
          0 < *(short *)(actor + 0x9c))) {
-      if ((char)FUN_0003a7f0(*(int16_t *)(actor + 4)) != param_1) {
+      if ((char)actor_type_get_pursuit_controller(*(int16_t *)(actor + 4)) != param_1) {
         return 1;
       }
     }
@@ -2032,7 +2032,7 @@ char actor_action_handle_surprise(int actor_handle, short type)
     actor_combat_disable_bursts(actor_handle, (int)(*(float *)(actv_tag + 0x8c) * 30.0f));
   }
 
-  FUN_00036da0(actor_handle);
+  actor_stimulus_was_surprised(actor_handle);
 
   prop_handle = ((actor_t *)actor)->field_2f4;
   if (prop_handle != -1) {
@@ -2836,10 +2836,10 @@ char actor_action_handle_lost_contact(int actor_handle)
     flag_b = 0;
     can_search = 0;
     if (prop == (char *)0 || *(char *)(prop + 0xbb) == '\0') {
-      val_30 = FUN_0003a790(*(short *)(actor + 4));
-      val_24 = FUN_0003a7b0(*(short *)(actor + 4));
-      val_34 = FUN_0003a7d0(*(short *)(actor + 4));
-      flag_38 = (char)FUN_0003a7f0(*(short *)(actor + 4));
+      val_30 = actor_type_get_when_to_search_at_target(*(short *)(actor + 4));
+      val_24 = actor_type_get_when_to_pursue(*(short *)(actor + 4));
+      val_34 = actor_type_get_when_to_search_pursuit(*(short *)(actor + 4));
+      flag_38 = (char)actor_type_get_pursuit_controller(*(short *)(actor + 4));
       val_28 = 0;
       have_pos = 0;
       flag_2c = 0;
@@ -3372,7 +3372,7 @@ char actor_action_consider_grenade(int actor_handle)
  *
  * Pre-screen guards (all fall through to a false return):
  *   1. actor+0x158 (swarm element handle) must be NONE (-1).
- *   2. FUN_0002a360(actor_handle) must be false (some blocking condition).
+ *   2. actor_move_animation_busy(actor_handle) must be false (some blocking condition).
  *   3. actor+0x504 (a boolean flag) must be clear.
  *   4. actor+0x270 (target prop/attractor datum handle) must be valid (!= -1).
  *   5. unit_tag+0x234 (evade-enable / max-evade scalar) must be > 0.0f.
@@ -3414,7 +3414,7 @@ char actor_action_try_to_evade(int actor_handle)
   char path_result[0x1c];
 
   if (actor->field_158 != -1) return 0;
-  if (FUN_0002a360(actor_handle) != 0) return 0;
+  if (actor_move_animation_busy(actor_handle) != 0) return 0;
   if (actor->field_504 != '\0') return 0;
   if (actor->target_target_prop_index == -1) return 0;
 
@@ -4071,7 +4071,7 @@ bool actor_combat_currently_firing_burst(int actor_handle)
 
 char *actor_get_weapon_definition(int actor_handle)
 {
-  int weapon_handle = actor_attacking_target(actor_handle);
+  int weapon_handle = actor_get_weapon(actor_handle);
   if (weapon_handle != -1) {
     int *obj = (int *)object_get_and_verify_type(weapon_handle, 4);
     return (char *)tag_get(0x77656170, *obj);

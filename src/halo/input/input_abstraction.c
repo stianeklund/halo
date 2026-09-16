@@ -495,8 +495,8 @@ void input_abstraction_update(void)
             goto skip_disconnect_ui;
         }
 
-        if (FUN_000f5640())
-          items_initialize();
+        if (virtual_keyboard_active())
+          virtual_keyboard_close();
         display_error_deferred(error_code, error_controller, display_error_flag, display_error_flag); /* dup-args-ok: display_error_flag pushed twice in pristine at 0x000cf3a8 */
       }
     skip_disconnect_ui:

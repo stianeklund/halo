@@ -89,10 +89,10 @@ void FUN_00096d70(int object_handle)
  * 2. If device_group_index (the int16 at [EBP+8]) is NONE (-1), return false
  *    (BL stays 0 from the XOR BL,BL at entry) without touching anything.
  * 3. Otherwise datum_get the device-group record (pool at 0x5aa8c8, same
- *    pool as device_group_set_actual_value/device_effect_new/
+ *    pool as device_group_set_actual_value/device_group_new/
  *    device_group_get_value in devices.c). That record's +0x02 is a flags
  *    word and +0x04 is the cached float value -- confirmed by
- *    device_effect_new's seeding of the same two fields.
+ *    device_group_new's seeding of the same two fields.
  * 4. If the new value equals the cached one, this is a no-op (return false).
  * 5. If both flag bits 0x1 and 0x2 are already set, this is also a no-op
  *    (matches the `(flags & 1) != 0 && (flags & 2) != 0` gate devices.c
@@ -108,8 +108,8 @@ void FUN_00096d70(int object_handle)
  *    equals device_group_index, resolve its 'devi' tag (tag_get(0x64657669,
  *    *(int*)object) -- object+0 is the tag index, same field device_new
  *    reads) and forward one of two definition-relative effect-tag fields to
- *    FUN_000967a0(object_handle, tag_index): +0x1fc when the (already
- *    clamped) value is > 0.0f, +0x1ec otherwise. FUN_000967a0 itself gates
+ *    device_effect_new(object_handle, tag_index): +0x1fc when the (already
+ *    clamped) value is > 0.0f, +0x1ec otherwise. device_effect_new itself gates
  *    on tag_index != -1 and spawns the 'effe'/'snd!' effect, so no NONE
  *    check is needed here.
  *
@@ -157,7 +157,7 @@ char FUN_00096f20(int device_group_index, float value)
             } else {
               tag_value = *(int *)(definition + 0x1ec);
             }
-            FUN_000967a0(object_handle, tag_value);
+            device_effect_new(object_handle, tag_value);
           }
           object = (char *)object_iterator_next(iterator);
         }
@@ -224,14 +224,14 @@ void FUN_00097080(int object_handle, void *a2)
   index = *(int16_t *)record;
   if (index == -1) {
     index =
-      device_effect_new((*(uint8_t *)(record + 4) & 2) != 0 ? 0.0f : 1.0f, 4);
+      device_group_new((*(uint8_t *)(record + 4) & 2) != 0 ? 0.0f : 1.0f, 4);
   }
   *(int16_t *)(object + 0x1a8) = index;
 
   index = *(int16_t *)(record + 2);
   if (index == -1) {
     record_flags = *(uint32_t *)(record + 4);
-    index = device_effect_new((record_flags & 1) != 0 ? 1.0f : 0.0f,
+    index = device_group_new((record_flags & 1) != 0 ? 1.0f : 0.0f,
                               (short)(((record_flags & 4) | 0x10) >> 2));
   }
   *(int16_t *)(object + 0x1b4) = index;

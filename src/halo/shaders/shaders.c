@@ -40,7 +40,7 @@ typedef struct shader_definition {
  * Otherwise the sky's 'wind' tag is fetched through the scenario wind palette
  * block (scenario + 0x1b4, element stride 0xf0, tag index at element+0x8c)
  * and its three floats are used as: +0x10 amount, +0x14 scale, +0x18
- * attenuation. FUN_0018ff00 samples direction+turbulence into a local
+ * attenuation. wind_variance_get samples direction+turbulence into a local
  * float[3] with scale = tag+0x14 and magnitude = tag+0x10 * record velocity
  * (the magnitude argument is the PUSH ECX / FSTP [ESP] slot at 0x1902c6, not
  * the pushed ECX value). The result is blended with the record's own
@@ -91,7 +91,7 @@ void FUN_00190240(float *position, float *out, uint32_t flags,
       } else {
         amount = *(float *)(wind_tag + 0x10);
       }
-      FUN_0018ff00(turbulence, position, *(float *)(wind_tag + 0x14),
+      wind_variance_get(turbulence, position, *(float *)(wind_tag + 0x14),
                    *(float *)(wind_tag + 0x10) * record->velocity);
       t = *(float *)0x2533c8 - amount;
       out[0] = t * record->direction[0] + turbulence[0];

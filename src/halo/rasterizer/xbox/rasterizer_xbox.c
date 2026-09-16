@@ -148,7 +148,7 @@ char rasterizer_preinitialize(void)
       success = 1;
     } else {
       success = 0;
-      FUN_00167ff0(hr, "IDirect3D8_CreateDevice(d3d, D3DADAPTER_DEFAULT, "
+      rasterizer_error(hr, "IDirect3D8_CreateDevice(d3d, D3DADAPTER_DEFAULT, "
                        "D3DDEVTYPE_HAL, NULL, "
                        "RASTERIZER_DEVICE_CREATION_FLAGS, "
                        "&d3d_present_parameters, &global_d3d_device)");
@@ -625,7 +625,7 @@ void _rasterizer_frame_end(void)
     D3DDevice_SetTexture((uint32_t)index, (void *)0);
     success = success && hr >= 0;
     if (!success) {
-      FUN_00167ff0(
+      rasterizer_error(
         hr, "IDirect3DDevice8_SetTexture(global_d3d_device, index, NULL)");
     }
     index++;
@@ -638,7 +638,7 @@ void _rasterizer_frame_end(void)
     D3DDevice_SetStreamSource((uint32_t)index, (void *)0, 0);
     success = success && hr >= 0;
     if (!success) {
-      FUN_00167ff0(hr, "IDirect3DDevice8_SetStreamSource(global_d3d_device, "
+      rasterizer_error(hr, "IDirect3DDevice8_SetStreamSource(global_d3d_device, "
                        "index, NULL, 0)");
     }
     index++;
@@ -648,7 +648,7 @@ void _rasterizer_frame_end(void)
   D3DDevice_SetIndices((void *)0, 0);
   success = success && hr >= 0;
   if (!success) {
-    FUN_00167ff0(hr, "IDirect3DDevice8_SetIndices(global_d3d_device, NULL, 0)");
+    rasterizer_error(hr, "IDirect3DDevice8_SetIndices(global_d3d_device, NULL, 0)");
     error(2, "### ERROR rasterizer_frame_end failed");
   }
 }
@@ -2092,7 +2092,7 @@ void rasterizer_filthy_bitmap_default_initialize(void)
     success = 1;
   } else {
     success = 0;
-    FUN_00167ff0(hr,
+    rasterizer_error(hr,
                  "IDirect3DDevice8_CreateTexture(global_d3d_device, 4, 4,"
                  " 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
                  "&(IDirect3DTexture8*)default_2d_hardware_format)");
@@ -2103,7 +2103,7 @@ void rasterizer_filthy_bitmap_default_initialize(void)
     success = 1;
   } else {
     success = 0;
-    FUN_00167ff0(hr,
+    rasterizer_error(hr,
                  "IDirect3DDevice8_CreateVolumeTexture(global_d3d_device,"
                  " 4, 4, 4, 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
                  "&(IDirect3DVolumeTexture8*)default_3d_hardware_format)");
@@ -2114,7 +2114,7 @@ void rasterizer_filthy_bitmap_default_initialize(void)
    * (JGE over / PUSH msg / PUSH hr / CALL / JMP LAB_00156fc5); the success
    * body is the jumped-to block. */
   if (success == 0 || hr < 0) {
-    FUN_00167ff0(hr,
+    rasterizer_error(hr,
                  "IDirect3DDevice8_CreateCubeTexture(global_d3d_device, 4, 1, "
                  "0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, "
                  "&(IDirect3DCubeTexture8*)default_cm_hardware_format)");
@@ -2155,7 +2155,7 @@ void rasterizer_filthy_bitmap_default_initialize(void)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(
+          rasterizer_error(
             0, "IDirect3DCubeTexture8_LockRect((IDirect3DCubeTexture8*)"
                "default_cm_hardware_format, face_index, 0, "
                "&d3d_locked_rect, NULL, 0)");
@@ -2173,7 +2173,7 @@ void rasterizer_filthy_bitmap_default_initialize(void)
           success = 1;
         } else {
           success = 0;
-          FUN_00167ff0(
+          rasterizer_error(
             0, "IDirect3DCubeTexture8_UnlockRect((IDirect3DCubeTexture8*)"
                "default_cm_hardware_format, face_index, 0)");
         }
@@ -2328,7 +2328,7 @@ char FUN_00157010(void)
     success =
       (hr >= 0) ?
         1 :
-        (FUN_00167ff0(hr, "IDirect3D8_CreateDevice(d3d, D3DADAPTER_DEFAULT, "
+        (rasterizer_error(hr, "IDirect3D8_CreateDevice(d3d, D3DADAPTER_DEFAULT, "
                           "D3DDEVTYPE_HAL, NULL, "
                           "RASTERIZER_DEVICE_CREATION_FLAGS, "
                           "&d3d_present_parameters, &global_d3d_device)"),
@@ -2348,7 +2348,7 @@ char FUN_00157010(void)
       hr = D3DDevice_CreatePalette(0, (void **)0x476ab4);
       success = (hr >= 0) ?
                   1 :
-                  (FUN_00167ff0(hr, "IDirect3DDevice8_CreatePalette("
+                  (rasterizer_error(hr, "IDirect3DDevice8_CreatePalette("
                                     "global_d3d_device, D3DPALETTE_256, "
                                     "&d3d_palette)"),
                    0);
@@ -2356,7 +2356,7 @@ char FUN_00157010(void)
       D3DPalette_Lock(*(void **)0x476ab4, &palette_data, 0);
       success = (success != 0) ?
                   1 :
-                  (FUN_00167ff0(0, "IDirect3DPalette8_Lock(d3d_palette, "
+                  (rasterizer_error(0, "IDirect3DPalette8_Lock(d3d_palette, "
                                    "&palette_data, 0)"),
                    0);
 
@@ -2365,32 +2365,32 @@ char FUN_00157010(void)
        * success test survives. */
       success = (success != 0) ?
                   1 :
-                  (FUN_00167ff0(0, "IDirect3DPalette8_Unlock(d3d_palette)"), 0);
+                  (rasterizer_error(0, "IDirect3DPalette8_Unlock(d3d_palette)"), 0);
 
       D3DDevice_SetPalette(0, *(void **)0x476ab4);
       success = (success != 0) ?
                   1 :
-                  (FUN_00167ff0(0, "IDirect3DDevice8_SetPalette("
+                  (rasterizer_error(0, "IDirect3DDevice8_SetPalette("
                                    "global_d3d_device, 0, d3d_palette)"),
                    0);
 
       D3DDevice_SetPalette(1, *(void **)0x476ab4);
       success = (success != 0) ?
                   1 :
-                  (FUN_00167ff0(0, "IDirect3DDevice8_SetPalette("
+                  (rasterizer_error(0, "IDirect3DDevice8_SetPalette("
                                    "global_d3d_device, 1, d3d_palette)"),
                    0);
 
       D3DDevice_SetPalette(2, *(void **)0x476ab4);
       success = (success != 0) ?
                   1 :
-                  (FUN_00167ff0(0, "IDirect3DDevice8_SetPalette("
+                  (rasterizer_error(0, "IDirect3DDevice8_SetPalette("
                                    "global_d3d_device, 2, d3d_palette)"),
                    0);
 
       D3DDevice_SetPalette(3, *(void **)0x476ab4);
       if (success == 0) {
-        FUN_00167ff0(0, "IDirect3DDevice8_SetPalette(global_d3d_device, 3, "
+        rasterizer_error(0, "IDirect3DDevice8_SetPalette(global_d3d_device, 3, "
                         "d3d_palette)");
       } else {
         D3DDevice_GetBackBuffer(0, 0, (void **)0x476a5c);
@@ -2398,7 +2398,7 @@ char FUN_00157010(void)
         hr = D3DDevice_GetDepthStencilSurface((void **)0x476a60);
         success = (hr >= 0) ?
                     1 :
-                    (FUN_00167ff0(hr, "IDirect3DDevice8_GetDepthStencilSurface("
+                    (rasterizer_error(hr, "IDirect3DDevice8_GetDepthStencilSurface("
                                       "global_d3d_device, "
                                       "&global_d3d_surface_render_primary_z)"),
                      0);
@@ -2455,7 +2455,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr,
                "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                "RASTERIZER_TARGET_RENDER_SECONDARY_WIDTH, "
@@ -2468,7 +2468,7 @@ char FUN_00157010(void)
           D3DTexture_GetSurfaceLevel(*(void **)0x476a64, 0, (void **)0x476a6c);
         success = (success != 0 && hr >= 0) ?
                     1 :
-                    (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+                    (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                                       "global_d3d_texture_render_secondary, 0, "
                                       "&global_d3d_surface_render_secondary)"),
                      0);
@@ -2482,7 +2482,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr, "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                    "RASTERIZER_TARGET_WATER_SIZE, "
                    "RASTERIZER_TARGET_WATER_SIZE, "
@@ -2500,7 +2500,7 @@ char FUN_00157010(void)
           success =
             (success != 0 && hr >= 0) ?
               1 :
-              (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+              (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                                 "global_d3d_texture_water, mipmap_index, "
                                 "&global_d3d_surface_water[mipmap_index])"),
                0);
@@ -2513,7 +2513,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr, "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                    "RASTERIZER_TARGET_SHADOW_PRIMARY_SIZE, "
                    "RASTERIZER_TARGET_SHADOW_PRIMARY_SIZE, 1, "
@@ -2525,7 +2525,7 @@ char FUN_00157010(void)
           D3DTexture_GetSurfaceLevel(*(void **)0x476a74, 0, (void **)0x476a78);
         success = (success != 0 && hr >= 0) ?
                     1 :
-                    (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+                    (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                                       "global_d3d_texture_shadow_primary, 0, "
                                       "&global_d3d_surface_shadow_primary)"),
                      0);
@@ -2537,7 +2537,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr, "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                    "RASTERIZER_TARGET_SHADOW_SECONDARY_SIZE, "
                    "RASTERIZER_TARGET_SHADOW_SECONDARY_SIZE, 1, "
@@ -2549,7 +2549,7 @@ char FUN_00157010(void)
           D3DTexture_GetSurfaceLevel(*(void **)0x476a7c, 0, (void **)0x476a80);
         success = (success != 0 && hr >= 0) ?
                     1 :
-                    (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+                    (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                                       "global_d3d_texture_shadow_secondary, 0, "
                                       "&global_d3d_surface_shadow_secondary)"),
                      0);
@@ -2561,7 +2561,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr, "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                    "RASTERIZER_TARGET_SUN_GLOW_SIZE, "
                    "RASTERIZER_TARGET_SUN_GLOW_SIZE, 1, "
@@ -2573,7 +2573,7 @@ char FUN_00157010(void)
           D3DTexture_GetSurfaceLevel(*(void **)0x476a84, 0, (void **)0x476a88);
         success = (success != 0 && hr >= 0) ?
                     1 :
-                    (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+                    (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                                       "global_d3d_texture_sun_glow_primary, 0, "
                                       "&global_d3d_surface_sun_glow_primary)"),
                      0);
@@ -2585,7 +2585,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(
+            (rasterizer_error(
                hr, "IDirect3DDevice8_CreateTexture(global_d3d_device, "
                    "RASTERIZER_TARGET_SUN_GLOW_SIZE, "
                    "RASTERIZER_TARGET_SUN_GLOW_SIZE, 1, "
@@ -2598,7 +2598,7 @@ char FUN_00157010(void)
         success =
           (success != 0 && hr >= 0) ?
             1 :
-            (FUN_00167ff0(hr, "IDirect3DTexture8_GetSurfaceLevel("
+            (rasterizer_error(hr, "IDirect3DTexture8_GetSurfaceLevel("
                               "global_d3d_texture_sun_glow_secondary, 0, "
                               "&global_d3d_surface_sun_glow_secondary)"),
              0);

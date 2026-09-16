@@ -114,7 +114,7 @@ void actor_perception_acknowledge(int actor_handle, int prop_handle,
   *(char *)(prop + 0xbb) = 0;
   *(char *)(prop + 0x64) = 1;
 
-  FUN_00036f20(actor_handle, prop_handle, param_3, param_4);
+  actor_stimulus_prop_acknowledged(actor_handle, prop_handle, param_3, param_4);
 }
 
 /* FUN_0002f380 (0x2f380)
@@ -1001,14 +1001,14 @@ void actor_perception_abandoned_search(int actor_handle, int prop_handle)
  * and — when the prop still has a parent prop (prop+0xc != NONE) — folds the
  * parent's target weight block (+0x50..+0x5c) and its acknowledgement
  * bookkeeping (+0x9c, +0xa0, +0xa4, +0xa6, +0xa8) into this prop, retires the
- * parent link through FUN_0003b410/prop_iterator_next, and clears prop+0xc.
+ * parent link through actor_switch_props/prop_iterator_next, and clears prop+0xc.
  *
  * Returns 1 when the promotion ran, 0 when the prop was already in state 2/3.
  * out_acknowledged (optional) receives the actor_expected_acknowledgement
  * result, or 0 on the skipped path.
  *
  * ADD ESP,0x1c at 0x33409 coalesces three cdecl cleanups: datum_get (8) +
- * FUN_0003b410 (12) + prop_iterator_next (8) = 28.  A cleanup=7 ARG_COUNT
+ * actor_switch_props (12) + prop_iterator_next (8) = 28.  A cleanup=7 ARG_COUNT
  * hazard on prop_iterator_next is that coalescing, not a real arg mismatch.
  *
  * No __FILE__ string. */
@@ -1039,7 +1039,7 @@ char actor_perception_become_acknowledged(int actor_handle, int prop_handle,
       *(prop + 0xa4) = *(parent_prop + 0xa4);
       *(short *)(prop + 0xa6) = *(short *)(parent_prop + 0xa6);
       *(short *)(prop + 0xa8) = *(short *)(parent_prop + 0xa8);
-      FUN_0003b410(actor_handle, *(int *)(prop + 0xc), prop_handle);
+      actor_switch_props(actor_handle, *(int *)(prop + 0xc), prop_handle);
       prop_iterator_next(actor_handle, *(int *)(prop + 0xc));
       *(int *)(prop + 0xc) = -1;
     }
@@ -1206,7 +1206,7 @@ void actor_perception_update(int actor_handle)
         } else {
           ((actor_t *)actor)->field_288 = 0;
         }
-        FUN_000378e0(actor_handle, *(uint16_t *)(actor + 0x280),
+        actor_stimulus_noticed_danger_zone(actor_handle, *(uint16_t *)(actor + 0x280),
                      *(uint16_t *)(actor + 0x282),
                      ((actor_t *)actor)->danger_zone_object_index,
                      (float *)(actor + 0x2b0));
@@ -1521,7 +1521,7 @@ iterate_props:
                                                           iter[0]);
           new_prop_handle = prop_orphan_transition(actor_handle, iter[0]);
         }
-        FUN_0003b410(actor_handle, iter[0], new_prop_handle);
+        actor_switch_props(actor_handle, iter[0], new_prop_handle);
         new_state = 0;
       } else {
         new_state = 3;
@@ -1583,7 +1583,7 @@ iterate_props:
         system_exit(-1);
       }
       *(int *)(parent_prop + 0xc) = -1;
-      FUN_0003b410(actor_handle, iter[0], -1);
+      actor_switch_props(actor_handle, iter[0], -1);
       prop_iterator_next(actor_handle, iter[0]);
       goto tally_prop;
 
@@ -1605,7 +1605,7 @@ iterate_props:
              ((other_actor != NULL && (*(char *)(other_actor + 8) == 0 ||
                                        *(char *)(other_actor + 0x13) != 0)) ||
               *(float *)0x255fe0 < distance_squared))) {
-          FUN_0003b410(actor_handle, iter[0], -1);
+          actor_switch_props(actor_handle, iter[0], -1);
           new_state = 0;
         } else {
           new_state = 2;
@@ -1684,7 +1684,7 @@ iterate_props:
       }
     } else {
       if (*(char *)(prop + 0x129) != 0) {
-        FUN_00037630(actor_handle, iter[0]);
+        actor_stimulus_prop_just_killed(actor_handle, iter[0]);
         *(char *)(prop + 0x129) = 0;
       }
       if (*(char *)(prop + 0x12a) != 0 ||
@@ -1697,7 +1697,7 @@ iterate_props:
           if (acknowledge_out != 0)
             goto clear_acknowledge_flag;
         }
-        FUN_00036a20(actor_handle, iter[0], acknowledge_flag);
+        actor_stimulus_prop_sighted(actor_handle, iter[0], acknowledge_flag);
         *(char *)(prop + 0x12a) = 0;
       }
 
@@ -1708,7 +1708,7 @@ iterate_props:
         ((actor_t *)actor)->field_377 = 1;
         ai_communication_event(0x19, ((actor_t *)actor)->field_018,
                                *(int *)(prop + 0x18), 2, -1, -1, 0);
-        FUN_00036a20(actor_handle, iter[0], 0);
+        actor_stimulus_prop_sighted(actor_handle, iter[0], 0);
       }
 
       if (((actor_t *)actor)->field_018 != -1 && *(char *)(prop + 0x127) == 0 &&
@@ -1738,12 +1738,12 @@ iterate_props:
         if (*(char *)(prop + 0x127) != 0) {
           if (*(char *)(prop + 0x60) != 0)
             goto notify_departed;
-          FUN_00036a90(actor_handle, iter[0]);
+          actor_stimulus_enter_combat_found_body(actor_handle, iter[0]);
           goto after_notify;
         }
         if (*(char *)(prop + 0x60) != 0) {
         notify_departed:
-          FUN_00036b10(actor_handle, iter[0]);
+          actor_stimulus_enter_combat_perceived_enemy(actor_handle, iter[0]);
           goto after_notify;
         }
       } else {
@@ -1774,7 +1774,7 @@ iterate_props:
                                          ((actor_t *)actor)->field_018, 2, -1,
                                          2, 0);
                 }
-              } else if (FUN_0003b120(actor_handle) != 0 &&
+              } else if (actor_in_combat(actor_handle) != 0 &&
                          actor_is_fighting(actor_handle) == 0 &&
                          *(char *)(prop + 0x12b) != 0 &&
                          *(int16_t *)(prop + 0x32) > 1) {

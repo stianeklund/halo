@@ -133,7 +133,7 @@ int FUN_000dedf0(int32_t *out_value)
         perspective != 3 && perspective != 2 && *(int *)(player + 0x34) != -1) {
       unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
       weapon_handle =
-        unit_get_weapon(*(int *)(player + 0x34), *(int16_t *)(unit + 0x2a2));
+        unit_get_weapon(*(int16_t *)(unit + 0x2a2), unit);
       if (weapon_handle != -1) {
         object = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
         value = *(int32_t *)(object + 0x2f8);
@@ -149,7 +149,7 @@ int FUN_000dedf0(int32_t *out_value)
           goto done;
         object = (char *)object_get_and_verify_type(*(int *)(unit + 0xcc), 3);
         weapon_handle =
-          unit_get_weapon(*(int *)(unit + 0xcc), *(int16_t *)(object + 0x2a2));
+          unit_get_weapon(*(int16_t *)(object + 0x2a2), object);
       }
       if (weapon_handle != -1) {
         object = (char *)object_get_and_verify_type(weapon_handle, 4);
@@ -255,7 +255,7 @@ void interface_initialize_for_new_map(void)
 
   hud_initialize_for_new_map();
   FUN_0019B330();
-  FUN_000dc7a0();
+  first_person_weapons_initialize_for_new_map();
 
   globals = (char *)game_globals_get();
   if (*(int *)(globals + 0x140) != 0) {

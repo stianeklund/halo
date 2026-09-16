@@ -228,7 +228,7 @@ int weapon_prevents_grenade_throwing(int weapon_handle)
   return result;
 }
 
-/* 0xfb140 — weapon_get_animation_frame
+/* 0xfb140 — weapon_get_first_person_animation_time
  *
  * Looks up a weapon's animation graph and returns a frame count for
  * the requested animation slot. param_2 selects the field (0 -> offset
@@ -247,7 +247,7 @@ int weapon_prevents_grenade_throwing(int weapon_handle)
  * Confirmed: dual-wield branch reads indices 0x17(+0x2e), 0x18(+0x30),
  *   0x19(+0x32) from first element's index array.
  */
-int16_t weapon_get_animation_frame(int weapon_handle, int16_t param_2,
+int16_t weapon_get_first_person_animation_time(int weapon_handle, int16_t param_2,
                                    int16_t param_3, int16_t param_4)
 {
   uint32_t *weapon_data;
@@ -355,24 +355,6 @@ int weapon_overcharged(int weapon_handle)
   return 1;
 }
 
-/* 0xfb320 — weapon trigger-block accessor (weapons.c:1639 assert)
- *
- * Confirmed: register args — weapon_obj in EDI, trigger_index in SI
- *   (MOV EAX,[EDI] / TEST SI,SI / MOVSX ECX,SI).
- * Confirmed: PUSH EAX (= *(int *)weapon_obj) / PUSH 0x77656170 /
- *   CALL tag_get / ADD ESP,8 — cdecl, tag_index is the first dword of the
- *   weapon object.
- * Confirmed: bounds check TEST SI,SI / JL and MOVSX ECX,SI /
- *   CMP ECX,[EAX+0x4fc] / JL — signed compare against the tag-data
- *   triggers count at +0x4fc.
- * Confirmed: assert path PUSH 1 / PUSH 0x667 (line 1639) /
- *   PUSH filepath / PUSH reason / CALL display_assert, then
- *   PUSH -1 / CALL system_exit.
- * Confirmed: return LEA EDX,[EAX+EAX*8] ; LEA EAX,[EDI+EDX*4+0x210]
- *   => weapon_obj + 0x210 + trigger_index * 36 (stride 36 = 9*4).
- * Unknown: the weapon-object struct layout at +0x210 and the tag-data
- *   layout at +0x4fc are not modelled; raw offsets retained.
- */
 void *FUN_000fb320(void *weapon_obj, int16_t trigger_index)
 {
   int *tag_data = (int *)tag_get(0x77656170, *(int *)weapon_obj);
@@ -385,7 +367,7 @@ void *FUN_000fb320(void *weapon_obj, int16_t trigger_index)
   return (void *)((char *)weapon_obj + 0x210 + trigger_index * 36);
 }
 
-void *FUN_000fb370(void *weapon_obj, int16_t magazine_index)
+void *weapon_magazine_get(void *weapon_obj, int16_t magazine_index)
 {
   int *tag_data = (int *)tag_get(0x77656170, *(int *)weapon_obj);
 
@@ -395,7 +377,7 @@ void *FUN_000fb370(void *weapon_obj, int16_t magazine_index)
   return (void *)((char *)weapon_obj + (magazine_index + 50) * 12);
 }
 
-/* 0xfb3c0 — weapon_has_activity
+/* 0xfb3c0 — weapon_busy
  *
  * Returns true if the weapon has any active triggers, magazines, or
  * pending activity. Checks five fields in the weapon data.
@@ -405,7 +387,7 @@ void *FUN_000fb370(void *weapon_obj, int16_t magazine_index)
  * Confirmed: checks offsets 0x211, 0x235, 0x258, 0x264, 0x1e8.
  * Confirmed: returns 0 (false) only if ALL five are zero/null.
  */
-bool weapon_has_activity(int weapon_handle)
+bool weapon_busy(int weapon_handle)
 {
   char *weapon_data = (char *)object_get_and_verify_type(weapon_handle, 4);
 
@@ -468,7 +450,7 @@ float FUN_000fb510(int weapon_handle, int16_t trigger_index)
   return *(float *)0x2533c0;
 }
 
-/* 0xfb6e0 — weapon_start_effect
+/* 0xfb6e0 — weapon_effect_new
  *
  * Starts an effect or sound associated with a weapon trigger. Resolves
  * the parent object, determines the tag group of the trigger effect
@@ -483,9 +465,9 @@ float FUN_000fb510(int weapon_handle, int16_t trigger_index)
  * Confirmed: tag_get_group_tag returns tag group; dispatches on effe/snd!.
  * Confirmed: assert at weapons.c line 0x9d2 for unknown tag group.
  * Confirmed: snd! branch reads globals [0x31fc1c] and [0x31fc3c].
- * Confirmed: effe branch calls FUN_0009ec30 with 8 args.
+ * Confirmed: effe branch calls effect_new_from_object with 8 args.
  */
-int weapon_start_effect(int trigger_effect, float scale, float param_3,
+int weapon_effect_new(int trigger_effect, float scale, float param_3,
                         int weapon_handle)
 {
   char *weapon_data;
@@ -514,7 +496,7 @@ int weapon_start_effect(int trigger_effect, float scale, float param_3,
     tag_group = tag_get_group_tag(trigger_effect);
     switch (tag_group) {
     case 0x65666665:
-      return (int)FUN_0009ec30(trigger_effect, object_handle, parent_handle, -1,
+      return (int)effect_new_from_object(trigger_effect, object_handle, parent_handle, -1,
                                scale, param_3, 0, 0);
     case 0x736e6421: {
       float *position = *(float **)0x31fc1c;
@@ -576,7 +558,7 @@ int FUN_000fb7d0(int param_1, int weapon_handle)
     }
 
     if (parent_handle != -1) {
-      return FUN_0009eb40(param_1, parent_handle, -1, -1, -1);
+      return effect_new_looping(param_1, parent_handle, -1, -1, -1);
     }
   }
 
@@ -606,7 +588,7 @@ int FUN_000fb7d0(int param_1, int weapon_handle)
  *   the trigger's charge/tick field; raw offsets retained to match the
  *   sibling accessors.
  */
-void weapon_trigger_release_charge(int16_t charge_ticks, int weapon_handle,
+void weapon_trigger_change_state(int16_t charge_ticks, int weapon_handle,
                                    int16_t trigger_index, int16_t new_state)
 {
   char *weapon_data;
@@ -677,7 +659,7 @@ void FUN_000fb910(char param_1, int weapon_handle, int16_t trigger_index)
   }
 }
 
-/* 0xfba20 — weapon_set_animation_state
+/* 0xfba20 — weapon_set_state
  *
  * Sets the weapon's animation state by looking up the animation graph
  * and choosing a random animation for the given state. The state
@@ -696,7 +678,7 @@ void FUN_000fb910(char param_1, int weapon_handle, int16_t trigger_index)
  * unit_handle_weapon_state_change. Confirmed: returns AL=1 on success, AL=0 on
  * early exit.
  */
-int weapon_set_animation_state(int weapon_handle, char param_2, int16_t state)
+int weapon_set_state(int weapon_handle, char param_2, int16_t state)
 {
   uint32_t *weapon_data =
     (uint32_t *)object_get_and_verify_type(weapon_handle, 4);
@@ -973,7 +955,7 @@ bool weapon_handle_potential_inventory_item(int weapon_handle,
               }
               if (transfer > 0) {
                 if ((int16_t)local_player_index != -1) {
-                  FUN_000f67f0(*(int *)(entry + 0xc));
+                  equipment_definition_handle_pickup(*(int *)(entry + 0xc));
                 }
                 object_delete(source_handle);
                 found = true;
@@ -1261,19 +1243,19 @@ char weapon_prevents_melee_attack(int weapon_handle)
  *
  * Confirmed: magazine_index in AX (register arg), 2 stack args (weapon_handle,
  * param_2). Confirmed: calls object_get_and_verify_type(weapon_handle, 4)
- * twice. Confirmed: calls FUN_000fb370(weapon_obj@<edi>, magazine_index@<si>).
- * Confirmed: calls weapon_set_animation_state(weapon_handle, 0,
- * magazine_index+5 @<bx>). Confirmed: calls weapon_start_effect(mag_def[0x44],
+ * twice. Confirmed: calls weapon_magazine_get(weapon_obj@<edi>, magazine_index@<si>).
+ * Confirmed: calls weapon_set_state(weapon_handle, 0,
+ * magazine_index+5 @<bx>). Confirmed: calls weapon_effect_new(mag_def[0x44],
  * 0, 0, weapon_handle@<eax>). Confirmed: calls
  * first_person_weapon_message_from_weapon(weapon_handle, 9 or 10). Confirmed:
- * calls weapon_get_animation_frame(weapon_handle, 0, 7, iVar6). Confirmed:
+ * calls weapon_get_first_person_animation_time(weapon_handle, 0, 7, iVar6). Confirmed:
  * clears bit 3 of weapon_obj[0x1dc] on non-early-exit path.
  */
-void FUN_000fc990(int16_t magazine_index, int weapon_handle, int param_2)
+void weapon_magazine_start_reload(int16_t magazine_index, int weapon_handle, int param_2)
 {
   char *weapon_obj = (char *)object_get_and_verify_type(weapon_handle, 4);
   int16_t *magazine_state =
-    (int16_t *)FUN_000fb370((void *)weapon_obj, magazine_index);
+    (int16_t *)weapon_magazine_get((void *)weapon_obj, magazine_index);
   int tag_data = (int)tag_get(0x77656170, *(int *)weapon_obj);
   char *mag_def = (char *)tag_block_get_element((char *)tag_data + 0x4f0,
                                                 (int)magazine_index, 0x70);
@@ -1286,9 +1268,9 @@ void FUN_000fc990(int16_t magazine_index, int weapon_handle, int param_2)
           magazine_state[4] < *(int16_t *)(mag_def + 0xa)) {
         int16_t anim_variant = -1;
         int16_t frame;
-        weapon_set_animation_state(weapon_handle, 0,
+        weapon_set_state(weapon_handle, 0,
                                    (int16_t)(magazine_index + 5));
-        weapon_start_effect(*(int *)(mag_def + 0x44), 0, 0, weapon_handle);
+        weapon_effect_new(*(int *)(mag_def + 0x44), 0, 0, weapon_handle);
         first_person_weapon_message_from_weapon(weapon_handle,
                                                 (magazine_state[4] != 0) + 9);
 
@@ -1303,7 +1285,7 @@ void FUN_000fc990(int16_t magazine_index, int weapon_handle, int param_2)
         }
 
         *magazine_state = 1;
-        frame = weapon_get_animation_frame(weapon_handle, 0, 7, anim_variant);
+        frame = weapon_get_first_person_animation_time(weapon_handle, 0, 7, anim_variant);
         magazine_state[1] = frame;
         magazine_state[2] = frame;
       }
@@ -1316,7 +1298,7 @@ void FUN_000fc990(int16_t magazine_index, int weapon_handle, int param_2)
  * Transfers rounds from unloaded reserve to the loaded count, capped by
  * the tag's rounds-per-reload and maximum-rounds fields. Adjusts reserve
  * for dual-wield. Optionally starts the next reload cycle if rounds remain. */
-void FUN_000fcaf0(int weapon_handle, int magazine_index)
+void weapon_magazine_finish_reload(int weapon_handle, int magazine_index)
 {
   char *weapon_obj;
   int16_t *magazine;
@@ -1329,7 +1311,7 @@ void FUN_000fcaf0(int weapon_handle, int magazine_index)
 
   weapon_obj = (char *)object_get_and_verify_type(weapon_handle, 4);
   magazine =
-    (int16_t *)FUN_000fb370((void *)weapon_obj, (int16_t)magazine_index);
+    (int16_t *)weapon_magazine_get((void *)weapon_obj, (int16_t)magazine_index);
   tag_data = tag_get(0x77656170, *(int *)weapon_obj);
   mag_def = (char *)tag_block_get_element((char *)tag_data + 0x4f0,
                                           (int)(int16_t)magazine_index, 0x70);
@@ -1360,7 +1342,7 @@ void FUN_000fcaf0(int weapon_handle, int magazine_index)
 
   if (magazine[3] > 0 && total < *(int16_t *)(mag_def + 0xa) &&
       (*mag_def & 1) == 0 && (*(uint8_t *)(weapon_obj + 0x1e0) & 0x26) == 0) {
-    FUN_000fc990((int16_t)magazine_index, weapon_handle, 0);
+    weapon_magazine_start_reload((int16_t)magazine_index, weapon_handle, 0);
   }
 }
 
@@ -1395,7 +1377,7 @@ void FUN_000fcbd0(int16_t magazine_index, int weapon_handle)
   int state;
 
   weapon_obj = (char *)object_get_and_verify_type(weapon_handle, 4);
-  magazine_state = (int16_t *)FUN_000fb370((void *)weapon_obj, magazine_index);
+  magazine_state = (int16_t *)weapon_magazine_get((void *)weapon_obj, magazine_index);
 
   state = *magazine_state;
   switch (state) {
@@ -1408,9 +1390,9 @@ void FUN_000fcbd0(int16_t magazine_index, int weapon_handle)
       tag_data = (char *)tag_get(0x77656170, *(int *)weapon_obj);
       mag_def = (char *)tag_block_get_element(tag_data + 0x4f0,
                                               (int)magazine_index, 0x70);
-      weapon_set_animation_state(weapon_handle, 0,
+      weapon_set_state(weapon_handle, 0,
                                  (int16_t)(magazine_index + 3));
-      weapon_start_effect(*(int *)(mag_def + 0x54), 0, 0, weapon_handle);
+      weapon_effect_new(*(int *)(mag_def + 0x54), 0, 0, weapon_handle);
       *magazine_state = 3;
       magazine_state[1] =
         (int16_t)(int)(*(float *)(mag_def + 0x1c) * TICKS_PER_SECOND);
@@ -1483,7 +1465,7 @@ void FUN_000fcd10(int16_t trigger_index, int weapon_handle)
   *(char *)(trigger_entry + 1) = 3;
   *(int16_t *)(trigger_entry + 2) = (int16_t)counter;
 
-  weapon_set_animation_state(weapon_handle, 1, animation_state);
+  weapon_set_state(weapon_handle, 1, animation_state);
   first_person_weapon_message_from_weapon(weapon_handle, 0xe);
 }
 
@@ -1574,7 +1556,7 @@ void FUN_000fce60(int weapon_handle, int16_t trigger_index)
   *(int16_t *)(trigger_entry + 2) = -1;
 }
 
-/* 0xfcf20 — weapon_reset_state
+/* 0xfcf20 — weapon_reset
  *
  * Resets all trigger and magazine states on a weapon. Iterates over
  * trigger entries and sets each trigger state byte to 8 and counter
@@ -1594,11 +1576,11 @@ void FUN_000fce60(int weapon_handle, int16_t trigger_index)
  * Confirmed: assert at weapons.c:0x672 for magazine_index bounds.
  * Confirmed: tag_block_get_element(tag+0x4f0, index, 0x70).
  * Confirmed: auto-reload check: magazine[0]==1 and frame*2 < count.
- * Confirmed: calls weapon_get_animation_frame(handle, 0, 7, -1).
- * Confirmed: calls FUN_000fcaf0(handle, magazine_index).
+ * Confirmed: calls weapon_get_first_person_animation_time(handle, 0, 7, -1).
+ * Confirmed: calls weapon_magazine_finish_reload(handle, magazine_index).
  * Confirmed: resets magazine[0] and magazine[1] to 0.
  */
-void weapon_reset_state(int weapon_handle)
+void weapon_reset(int weapon_handle)
 {
   uint32_t *weapon_data =
     (uint32_t *)object_get_and_verify_type(weapon_handle, 4);
@@ -1660,9 +1642,9 @@ void weapon_reset_state(int weapon_handle)
       tag_block_get_element((void *)mag_tag_ptr, mag_count_index, 0x70);
 
       if (mag_entry[0] == 1) {
-        int16_t frame = weapon_get_animation_frame(weapon_handle, 0, 7, -1);
+        int16_t frame = weapon_get_first_person_animation_time(weapon_handle, 0, 7, -1);
         if (mag_entry[1] * 2 < (int)frame) {
-          FUN_000fcaf0(weapon_handle, magazine_int);
+          weapon_magazine_finish_reload(weapon_handle, magazine_int);
         }
       }
 
@@ -1695,7 +1677,7 @@ void FUN_000fd150(int weapon_handle)
 
   if ((animation_state < 7) ||
       ((animation_state > 8) && (animation_state != 10))) {
-    weapon_set_animation_state(weapon_handle, 1, 0);
+    weapon_set_state(weapon_handle, 1, 0);
   }
 }
 
@@ -1762,34 +1744,34 @@ void weapon_set_current_amount(int weapon_handle, float ammo_fraction)
   }
 }
 
-/* weapon_activate — no binary address assigned.
+/* weapon_ready — no binary address assigned.
  * Initializes a weapon after it becomes the active weapon for a unit.
  * Resets trigger/magazine state, sets the ready animation (state 9),
  * fires the initial effect from the weapon triggers tag block, and
  * stores the ready animation frame count into the weapon data. */
-void weapon_activate(int weapon_handle)
+void weapon_ready(int weapon_handle)
 {
   uint32_t *weapon_data =
     (uint32_t *)object_get_and_verify_type(weapon_handle, 4);
   int tag_data = (int)tag_get(0x77656170, weapon_data[0]);
   int16_t frame;
 
-  weapon_reset_state(weapon_handle);
-  weapon_set_animation_state(weapon_handle, 1, 9);
+  weapon_reset(weapon_handle);
+  weapon_set_state(weapon_handle, 1, 9);
   first_person_weapon_message_from_weapon(weapon_handle, 0xc);
-  weapon_start_effect(*(int *)(tag_data + 0x348), 0, 0, weapon_handle);
+  weapon_effect_new(*(int *)(tag_data + 0x348), 0, 0, weapon_handle);
 
-  frame = weapon_get_animation_frame(weapon_handle, 0, 10, -1);
+  frame = weapon_get_first_person_animation_time(weapon_handle, 0, 10, -1);
   *(int16_t *)((int)weapon_data + 0x1ea) = frame;
 }
 
-/* weapon_try_place — no binary address assigned.
+/* weapon_put_away — no binary address assigned.
  * Attempts to place (holster/put-away) the current weapon. If flag is
  * zero and the weapon has active triggers or animations, the placement
  * is rejected. On success, sets the put-away animation (state 10),
  * resets trigger/magazine state, disposes any attached effect, and
  * starts the put-away effect sequence. */
-bool weapon_try_place(int weapon_handle, int flag)
+bool weapon_put_away(int weapon_handle, int flag)
 {
   volatile char result;
   uint32_t *weapon_data;
@@ -1798,10 +1780,10 @@ bool weapon_try_place(int weapon_handle, int flag)
   tag_get(0x77656170, weapon_data[0]);
 
   result = 0;
-  if ((char)flag != 0 || !(char)weapon_has_activity(weapon_handle)) {
-    if ((char)weapon_set_animation_state(weapon_handle, flag, 10)) {
+  if ((char)flag != 0 || !(char)weapon_busy(weapon_handle)) {
+    if ((char)weapon_set_state(weapon_handle, flag, 10)) {
       *(int16_t *)((int)weapon_data + 0x1e0) = 0;
-      weapon_reset_state(weapon_handle);
+      weapon_reset(weapon_handle);
 
       if (*(int *)((int)weapon_data + 0x274) != -1) {
         effect_delete(*(int *)((int)weapon_data + 0x274));
@@ -1876,7 +1858,7 @@ bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3,
   if (trig_idx >= trigger_count)
     return false;
 
-  /* FUN_000fb320 assertion (trigger bounds) elided: reads caller ESI/EDI,
+  /* weapon_trigger_get assertion (trigger bounds) elided: reads caller ESI/EDI,
    * not representable as a plain C call. Bounds already checked above. */
 
   trigger_elem =
@@ -1924,7 +1906,7 @@ bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3,
  */
 void weapon_stop_reload(int weapon_handle)
 {
-  weapon_reset_state(weapon_handle);
+  weapon_reset(weapon_handle);
 }
 
 /* 0xfe6c0 — weapon trigger charge start (raw offsets retained)
@@ -1984,7 +1966,7 @@ void FUN_000fe6c0(int trigger_index, int weapon_handle)
                                                trigger_index, 0x114);
 
   if (trigger_index + 1 < *(int *)(weapon_defn + 0x4fc)) {
-    FUN_000fdc90(weapon_handle, trigger_index + 1);
+    weapon_trigger_fire(weapon_handle, trigger_index + 1);
   }
 
   charge_ticks =
@@ -2085,8 +2067,8 @@ void FUN_000fe790(int trigger_index, int weapon_handle)
   }
 
   if (*(int *)(weapon_defn + 0x4fc) > 1) {
-    FUN_000fdc90(weapon_handle, 1);
+    weapon_trigger_fire(weapon_handle, 1);
   }
-  FUN_000fcec0(trigger_index, weapon_handle);
+  weapon_trigger_recover(trigger_index, weapon_handle);
   *(int *)(trigger + 0x10) = 0;
 }

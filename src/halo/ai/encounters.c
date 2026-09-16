@@ -557,8 +557,8 @@ void FUN_00056320(int encounter_handle_1, int encounter_handle_2)
  * from [+0x1a4] (fallback [+0x1a8]), then looks up the actor's squad and
  * variant tags. Calls FUN_000559a0 to find the best matching squad index
  * given the encounter_handle. If a valid squad is found and conditions allow,
- * updates the actor's squad assignment via FUN_0003baa0, and if do_migrate is
- * set, migrates the actor via FUN_00036dc0.
+ * updates the actor's squad assignment via actor_change_encounter, and if do_migrate is
+ * set, migrates the actor via actor_stimulus_maneuvering.
  *
  * actor_datum@<eax>: actor object datum handle.
  *
@@ -598,9 +598,9 @@ void FUN_000563c0(int actor_datum, unsigned int encounter_handle,
     return;
 
   if (cVar5 == 0 || squad_result != *(int16_t *)(aptr + 0x3a)) {
-    FUN_0003baa0(iVar4, (int16_t)(encounter_handle & 0xffff), squad_result);
+    actor_change_encounter(iVar4, (int16_t)(encounter_handle & 0xffff), squad_result);
     if (do_migrate != 0)
-      FUN_00036dc0(iVar4, param_3, 0);
+      actor_stimulus_maneuvering(iVar4, param_3, 0);
   }
 }
 
@@ -1729,7 +1729,7 @@ void FUN_00057c70(int encounter_handle, char param_2)
  * resolved encounter index to unit+0x2e4 and the squad index to unit+0x2e6
  * (both int16, -1 = NONE).  Before overwriting, if the unit already carries an
  * encounter index, every actor of that encounter whose field_0x158 points at
- * this unit is re-bound via FUN_0003baa0(actor_handle, encounter_index,
+ * this unit is re-bound via actor_change_encounter(actor_handle, encounter_index,
  * squad_index).
  *
  * param_2 is a combined ai index: low 16 bits = signed encounter index into
@@ -1846,7 +1846,7 @@ void FUN_00057d00(int param_1, int param_2)
       actor = encounter_actor_iterator_next(actor_iter);
       while (actor != 0) {
         if (*(int *)(actor + 0x158) == param_1) {
-          FUN_0003baa0(actor_iter[1], saved_encounter_index,
+          actor_change_encounter(actor_iter[1], saved_encounter_index,
                        (short)squad_index);
         }
         actor = encounter_actor_iterator_next(actor_iter);
@@ -4523,7 +4523,7 @@ LAB_encounters:
  *            b. Follow the parent prop via datum_get(prop_data, prop+0xc).
  *            c. Assert parent_prop->orphan_prop_index == current prop_handle.
  *            d. Clear parent_prop->orphan_prop_index to NONE.
- *            e. Call FUN_0003b410(actor_handle, prop_handle, NONE).
+ *            e. Call actor_switch_props(actor_handle, prop_handle, NONE).
  *            f. Call prop_iterator_next(actor_handle, prop_handle).
  *
  * Confirmed:
@@ -4582,7 +4582,7 @@ void encounter_stand_down(int encounter_handle)
       break;
 
     /* Snapshot current actor_handle into cur_actor_handle (= EDI in
-     * binary). This is what gets passed to FUN_0003b410 and
+     * binary). This is what gets passed to actor_switch_props and
      * prop_iterator_next. */
     cur_actor_handle = actor_handle;
     actor = (char *)datum_get(*(data_t **)0x6325a4, cur_actor_handle);
@@ -4618,7 +4618,7 @@ void encounter_stand_down(int encounter_handle)
           system_exit(-1);
         }
         *(int *)(parent_prop + 0xc) = -1;
-        FUN_0003b410(cur_actor_handle, prop_iter[0], -1);
+        actor_switch_props(cur_actor_handle, prop_iter[0], -1);
         prop_iterator_next(cur_actor_handle, prop_iter[0]);
       }
       prop = (char *)FUN_00064570(prop_iter);
@@ -6968,7 +6968,7 @@ LAB_0005d365:
  *        - if actor+0x18 == -1 (no live unit): weight = actor+0x1e / actor+0x20
  *        - else: weight = 1, vitality = *(float*)(unit+0x90)
  *      Then accumulate per-squad, per-platoon (if actor+0x3c != -1), and
- *      encounter-level counters.  Also calls FUN_0003b120/actor_is_fighting
+ *      encounter-level counters.  Also calls actor_in_combat/actor_is_fighting
  * with the actor handle for dead/fleeing status. Sets encounter
  * enemy-visible/alive flags from unit state when actor+0x270 != -1.
  *   4. If no longer active (enemy gone), calls encounter_stand_down or
@@ -7103,7 +7103,7 @@ void encounter_update_status(int encounter_handle)
       (short)((unsigned short)*(unsigned char *)(actor + 6) *
               (unsigned short)weight);
 
-    bVar6 = (unsigned char)FUN_0003b120(actor_handle);
+    bVar6 = (unsigned char)actor_in_combat(actor_handle);
     *(short *)(encounter + 0x2e) =
       *(short *)(encounter + 0x2e) +
       (short)((unsigned short)bVar6 * (unsigned short)weight);
@@ -7124,7 +7124,7 @@ void encounter_update_status(int encounter_handle)
         not_same_team = 1;
       }
 
-      FUN_0003b120(actor_handle);
+      actor_in_combat(actor_handle);
 
       if (*(char *)(actor + 0x8c) != '\0') {
         saw_enemy_primary = 1;
@@ -7466,8 +7466,8 @@ void encounter_create(int encounter_handle, short param_2, short param_3)
  *   - If the platoon lookup result indicates a valid squad assignment
  *     (result[1] != 0 and result[2] == 0), reads the target squad index from
  *     squad_def+0x4e, bounds-checks it against the encounter's squad count,
- *     and calls FUN_0003baa0 to move the actor to that squad, then calls
- *     FUN_00036dc0 to update the actor's firing state from platoon flags.
+ *     and calls actor_change_encounter to move the actor to that squad, then calls
+ *     actor_stimulus_maneuvering to update the actor's firing state from platoon flags.
  * After the actor loop, calls encounters_update_dirty_status for encounter
  * cleanup.
  *
@@ -7475,11 +7475,11 @@ void encounter_create(int encounter_handle, short param_2, short param_3)
  *   - cdecl, 1 stack arg (encounter_handle), RET (no stack fixup).
  *   - actor linked list: encounter+0x14 = head; actor+0x2c = next handle.
  *   - Loop guard: *(char*)(ai_globals+1) != 0 && handle != -1.
- *   - Batch ADD ESP,0x18 cleanup for FUN_0003baa0 + FUN_00036dc0 (3+3 args).
+ *   - Batch ADD ESP,0x18 cleanup for actor_change_encounter + actor_stimulus_maneuvering (3+3 args).
  *   - EDI = encounter record ptr, restored from [EBP-0x8] on loop-back
  * (0x5dc72).
  *   - [EBP-0x10] saves actor_handle for use as arg1 in
- * FUN_0003baa0/FUN_00036dc0.
+ * actor_change_encounter/actor_stimulus_maneuvering.
  *
  * Call-site: FUN_0005de80 @ 0x5df5e: PUSH EDX ([EBP-0x8] = encounter_handle).
  */
@@ -7557,9 +7557,9 @@ void FUN_0005dc00(int encounter_handle)
       squad_target_idx = *(int16_t *)(squad_def + 0x4e);
       squad_count = ((encounter_definition *)encounter_def)->squads.count;
       if ((int)squad_target_idx >= 0 && (int)squad_target_idx < squad_count) {
-        FUN_0003baa0(saved_actor_handle, encounter_handle, squad_target_idx);
+        actor_change_encounter(saved_actor_handle, encounter_handle, squad_target_idx);
         flags_dword = *(unsigned int *)(platoon_def + 0x20);
-        FUN_00036dc0(saved_actor_handle,
+        actor_stimulus_maneuvering(saved_actor_handle,
                      (char)((int)(flags_dword >> 1) & (int)0xffffff01u),
                      (char)(*(unsigned char *)(platoon_def + 0x20) & 1u));
       }

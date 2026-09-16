@@ -306,7 +306,7 @@ void FUN_000d04d0(int local_player_index)
     return;
 
   default:
-    if (FUN_000ae110(local_player_index, (int)wchar_buf, 0x400)) {
+    if (game_engine_get_state_message(local_player_index, (int)wchar_buf, 0x400)) {
       hud_enable_custom_state_message(*(short *)0x506548, 1);
       hud_set_state_text(*(short *)0x506548, wchar_buf);
       return;
@@ -318,7 +318,7 @@ void FUN_000d04d0(int local_player_index)
 
     unit_obj = object_get_and_verify_type(unit_handle, 3);
     initial_slot = (int)*(short *)((char *)unit_obj + 0x2a2);
-    initial_weapon_handle = unit_get_weapon(unit_handle, (short)initial_slot);
+    initial_weapon_handle = unit_inventory_get_weapon(unit_handle, (short)initial_slot);
 
     unit_obj = object_get_and_verify_type(unit_handle, 3);
     vehicle_unit_handle = *(int *)((char *)unit_obj + 0xcc);
@@ -350,7 +350,7 @@ void FUN_000d04d0(int local_player_index)
     next_slot = initial_slot;
     do {
       next_slot = unit_inventory_next_weapon(unit_handle, next_slot, 1);
-      current_weapon_handle = unit_get_weapon(unit_handle, (short)next_slot);
+      current_weapon_handle = unit_inventory_get_weapon(unit_handle, (short)next_slot);
       weapon_build_weapon_interface_state(current_weapon_handle, (int)wif_buf);
       if (!(*(short *)(wif_buf + 0x10) != 0 && *(short *)(wif_buf + 0xe) == 0 &&
             *(short *)(wif_buf + 0x12) == 0)) {
@@ -689,7 +689,7 @@ void FUN_000d1090(void)
   {
     void *tmp_unit;
     tmp_unit = object_get_and_verify_type(*(int *)(player + 0x34), 3);
-    weapon_obj_handle = unit_get_weapon(*(int *)(player + 0x34),
+    weapon_obj_handle = unit_inventory_get_weapon(*(int *)(player + 0x34),
                                         *(int16_t *)((char *)tmp_unit + 0x2a2));
   }
 
@@ -1220,7 +1220,7 @@ char FUN_000d1a70(int render, int param_1)
 
   obj = object_get_and_verify_type(*(int *)(render + 0x34), 3);
   weapon =
-    unit_get_weapon(*(int *)(render + 0x34), *(short *)((char *)obj + 0x2a2));
+    unit_inventory_get_weapon(*(int *)(render + 0x34), *(short *)((char *)obj + 0x2a2));
   if (weapon == -1) {
     obj = object_get_and_verify_type(*(int *)(render + 0x34), 3);
     if (*(int *)((char *)obj + 0xcc) != -1 &&
@@ -1232,7 +1232,7 @@ char FUN_000d1a70(int render, int param_1)
       if ((*flags_elem & 8) != 0) {
         parent_unit =
           object_get_and_verify_type(*(int *)((char *)obj + 0xcc), 3);
-        weapon = unit_get_weapon(*(int *)((char *)obj + 0xcc),
+        weapon = unit_inventory_get_weapon(*(int *)((char *)obj + 0xcc),
                                  *(short *)((char *)parent_unit + 0x2a2));
       }
     }
@@ -1991,7 +1991,7 @@ void FUN_000d27a0(int element, float *scale, int local_player_index,
           player_index =
             local_player_get_player_index((short)local_player_index);
           hud_globals = datum_get(*(data_t **)0x5aa6d4, player_index);
-          unit_scripting_unit_driver(*(int *)((char *)hud_globals + 0x34),
+          unit_get_aiming_vector(*(int *)((char *)hud_globals + 0x34),
                                      driver_out);
           vector_to_angles(aim_angles, driver_out);
           dest_value = aim_angles[1];

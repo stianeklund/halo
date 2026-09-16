@@ -242,7 +242,7 @@ int32_t player_control_get_target_object_index(int16_t local_player_index)
  * ZERO-extended) for its zoomed field of view; the weapon call is a tail
  * return of ST0. With no weapon the unit tag's own base field of view
  * (unit_tag+0x1a0) is used instead.
- * tag_get's result is live in EBX across unit_get_weapon -- Ghidra discards
+ * tag_get's result is live in EBX across unit_inventory_get_weapon -- Ghidra discards
  * it (lift-learnings SS11 discarded-result); it is the source of both
  * +0x1a0 reads. Ghidra also reports `void (void)`: the parameter is the
  * MOVSX word at [EBP+8] and the return is a float in ST0. */
@@ -264,7 +264,7 @@ real player_control_get_field_of_view(int16_t local_player_index)
     unit_obj = (char *)object_get_and_verify_type(pc->unit_index, 3);
     unit_tag = (char *)tag_get(0x756e6974 /* 'unit' */, *(int *)unit_obj);
     weapon_handle =
-      unit_get_weapon(pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
+      unit_inventory_get_weapon(pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
     if (weapon_handle != NONE)
       return weapon_get_field_of_view(weapon_handle,
                                       *(real *)(unit_tag + 0x1a0),
@@ -371,15 +371,15 @@ int32_t player_control_get_unit_index(int16_t local_player_index)
  *   LEA EAX,[EAX+ECX+0x10]           -> the local player's control slot
  *   CMP [EAX],ESI                    -> slot->unit_index == unit_handle?
  *   XOR EDX,EDX / MOV DX,[EAX+0x20]  -> slot->desired_weapon_index
- *   PUSH EDX / PUSH ESI / CALL unit_get_weapon / CMP EAX,-1 / JNZ ->return
+ *   PUSH EDX / PUSH ESI / CALL unit_inventory_get_weapon / CMP EAX,-1 / JNZ ->return
  * and otherwise falls through to
  *   PUSH 3 / PUSH ESI / CALL object_get_and_verify_type
- *   MOVSX EAX,word [EAX+0x2a2] / PUSH EAX / PUSH ESI / CALL unit_get_weapon
+ *   MOVSX EAX,word [EAX+0x2a2] / PUSH EAX / PUSH ESI / CALL unit_inventory_get_weapon
  *   ADD ESP,0x10 (MSVC merged both slow-path cleanups; each call still
  *                 pushes exactly two args) / POP ESI / POP EBP / RET.
  * Ghidra's `void (void)` is wrong on BOTH the parameters and the return:
  * the RET does no callee cleanup (cdecl, two stack args) and both exits
- * leave unit_get_weapon's EAX untouched (lift-learnings SS16 void-EAX).
+ * leave unit_inventory_get_weapon's EAX untouched (lift-learnings SS16 void-EAX).
  * The two 16-bit loads deliberately differ in extension and are preserved:
  * slot+0x20 is ZERO-extended (XOR EDX,EDX / MOV DX), unit+0x2a2 is
  * SIGN-extended (MOVSX) -- see the identical unit+0x2a2 reads above. */
@@ -397,12 +397,12 @@ int player_control_get_desired_weapon(int16_t local_player_index,
                             local_player_index * 0x40 + 0x10);
   if (pc->unit_index == unit_handle) {
     weapon_handle =
-      unit_get_weapon(unit_handle, (uint16_t)pc->desired_weapon_index);
+      unit_inventory_get_weapon(unit_handle, (uint16_t)pc->desired_weapon_index);
     if (weapon_handle != NONE)
       return weapon_handle;
   }
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
-  return unit_get_weapon(unit_handle, *(int16_t *)(unit_obj + 0x2a2));
+  return unit_inventory_get_weapon(unit_handle, *(int16_t *)(unit_obj + 0x2a2));
 }
 
 /* Return the aim-assist ("autoaim") level for a local player.
@@ -1769,7 +1769,7 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
       if (flags & 0x10)
         new_weapon = units_debug_get_next_unit(pc->unit_index);
       else
-        new_weapon = FUN_001AA170(pc->unit_index);
+        new_weapon = units_debug_get_closest_unit(pc->unit_index);
       if (new_weapon != NONE)
         players_set_local_player_unit(local_player_index, new_weapon);
     }
@@ -1792,17 +1792,17 @@ void player_control_get_facing(int16_t local_player_index, float delta_time)
     /* look up unit definition tag and current weapon */
     tag_get(0x756e6974, *(int *)unit_obj);
     weapon_datum =
-      unit_get_weapon(pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
+      unit_inventory_get_weapon(pc->unit_index, *(uint16_t *)(unit_obj + 0x2a2));
 
     /* validate player weapon index */
     if (pc->desired_weapon_index == NONE ||
-        unit_get_weapon(pc->unit_index, pc->desired_weapon_index) == NONE) {
+        unit_inventory_get_weapon(pc->unit_index, pc->desired_weapon_index) == NONE) {
       pc->desired_weapon_index = *(int16_t *)(unit_obj + 0x2a4);
     }
 
     /* weapon interaction (action bit 0) */
     if ((*(uint8_t *)&input.action_flags & 1) ||
-        unit_get_weapon(pc->unit_index, pc->desired_weapon_index) == NONE ||
+        unit_inventory_get_weapon(pc->unit_index, pc->desired_weapon_index) == NONE ||
         pc->desired_weapon_index == NONE) {
       int16_t new_wp =
         unit_inventory_next_weapon(pc->unit_index, pc->desired_weapon_index,

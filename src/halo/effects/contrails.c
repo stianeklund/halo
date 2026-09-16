@@ -179,7 +179,7 @@ void contrails_reconnect_to_structure_bsp(void)
 }
 
 /*
- * FUN_00097a50 (0x97a50): contrail tick counter — given a contrail handle and
+ * contrail_compute_new_point_count (0x97a50): contrail tick counter — given a contrail handle and
  * delta_time, computes how many full emission periods fit in delta_time and
  * updates the per-datum time accumulator (datum+0x20).
  *
@@ -193,9 +193,9 @@ void contrails_reconnect_to_structure_bsp(void)
  * by datum[0x10] before the period is calculated.
  *
  * Returns the number of complete emission periods that elapsed.
- * Called by contrail_set_state_for_object and contrails_update.
+ * Called by contrail_owner_collision and contrails_update.
  */
-int16_t FUN_00097a50(int contrail_handle, float delta_time)
+int16_t contrail_compute_new_point_count(int contrail_handle, float delta_time)
 {
   char *datum;
   char *tag;
@@ -233,7 +233,7 @@ int16_t FUN_00097a50(int contrail_handle, float delta_time)
 /* 0x97ae0 — contrail_verify: validate a contrail datum's integrity.
  * Checks attachment-index range, object back-reference, and per-lobe point
  * counts match the stored counts. Asserts + exits on any violation. */
-void FUN_00097ae0(int contrail_handle /* @<eax> */)
+void contrail_verify(int contrail_handle /* @<eax> */)
 {
   char *datum;
   void *obj;
@@ -364,7 +364,7 @@ void contrails_initialize(void)
  * complete or invalid, picks a new random sequence index from the bitmap tag
  * and resets the frame counter. Also zeroes the render time accumulator
  * (datum+0x24). ESI = contrail datum pointer. */
-void FUN_00097db0(char *datum /* @<esi> */)
+void contrail_next_frame(char *datum /* @<esi> */)
 {
   char *tag;
   char *bitmap;
@@ -414,7 +414,7 @@ pick_random:
  *
  * When count > 1, intermediate points are linearly interpolated between
  * the new marker position and the old chain head position. */
-void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
+void contrail_add_points(int contrail_handle /* @<eax> */, int count, int flag)
 {
   char *datum;
   char *ctag;
@@ -580,7 +580,7 @@ void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
 }
 
 /*
- * FUN_00098200 (0x98200): contrail point keyframe tick — for each active chain
+ * contrail_update_points (0x98200): contrail point keyframe tick — for each active chain
  * attached to the contrail datum, walks every point datum in the chain,
  * advances its normalised time, transitions it to the next keyframe when the
  * current one expires, applies physics if the keyframe defines a physics
@@ -611,7 +611,7 @@ void FUN_00097e40(int contrail_handle /* @<eax> */, int count, int flag)
  *   +0x2c : int16_t[4] per-chain point counts
  *   +0x34 : int[4] per-chain head handles
  */
-void FUN_00098200(int contrail_handle, float delta_time)
+void contrail_update_points(int contrail_handle, float delta_time)
 {
   char *datum;
   char *tag;
@@ -896,7 +896,7 @@ int contrail_new(int definition_index, int object_index, short attachment_index)
   *(short *)(datum + 0xe) = *(short *)(obj_tag_elem + 0x30) - 1;
   *(short *)(datum + 0x14) = (short)0xffff;
 
-  FUN_00097db0(datum);
+  contrail_next_frame(datum);
 
   *(int *)(datum + 0x18) = 0;
   *(int *)(datum + 0x1c) = 0;
@@ -916,20 +916,20 @@ int contrail_new(int definition_index, int object_index, short attachment_index)
                                 (unsigned short)*(short *)(datum + 0xe),
                                 datum + 0x10)) {
     *(unsigned char *)(datum + 0x2) |= 1;
-    FUN_00097e40(new_handle, 1, 1);
+    contrail_add_points(new_handle, 1, 1);
   }
 
   return new_handle;
 }
 
 /*
- * contrail_set_state_for_object (0x986d0): given a contrail datum handle and a
+ * contrail_owner_collision (0x986d0): given a contrail datum handle and a
  * delta-time, conditionally spawns new contrail points (if the contrail is
  * attached, flag bit 0x1 set) and optionally resets the point chain head to
  * -1 (if reset_points != 0).  Accumulates delta_time into datum+0x28.
  * Called from vehicle/projectile update paths to drive contrail simulation.
  */
-void contrail_set_state_for_object(int contrail_handle, bool reset_points,
+void contrail_owner_collision(int contrail_handle, bool reset_points,
                                    float delta_time)
 {
   void *datum;
@@ -940,9 +940,9 @@ void contrail_set_state_for_object(int contrail_handle, bool reset_points,
   (void)tag_get(0x636f6e74, *(int *)((char *)datum + 4));
 
   if (*(uint8_t *)((char *)datum + 2) & 1) {
-    new_points = FUN_00097a50(contrail_handle, delta_time);
+    new_points = contrail_compute_new_point_count(contrail_handle, delta_time);
     count = (new_points < 1) ? 1 : (int)new_points;
-    FUN_00097e40(contrail_handle, count, 0);
+    contrail_add_points(contrail_handle, count, 0);
   }
 
   if (reset_points) {
@@ -1026,7 +1026,7 @@ void contrails_update(float delta_time)
         *(uint8_t *)(datum + 2) &= 0xfe;
       } else {
         *(uint8_t *)(datum + 2) |= 1;
-        result = FUN_00097a50(datum_handle, delta_time);
+        result = contrail_compute_new_point_count(datum_handle, delta_time);
         /* contrail_set_state: EAX = datum_handle, stack = (result, 1) */
         {
           int _eax = datum_handle;
@@ -1064,7 +1064,7 @@ void contrails_update(float delta_time)
           *(float *)(datum + 0x24) += remaining;
           break;
         }
-        FUN_00097db0(datum);
+        contrail_next_frame(datum);
         remaining -= step;
       } while (remaining > *(float *)0x2533c0);
     }
@@ -1119,7 +1119,7 @@ void contrails_update(float delta_time)
 /* Detach a particle system header from its parent object (clear attached
    flag and invalidate the object handle).  Despite living in contrails.c,
    this operates on particle_system_header_data (DAT_005aa8a8). */
-void FUN_0009f6e0(int contrail_handle)
+void particle_system_orphan(int contrail_handle)
 {
   char *datum;
 

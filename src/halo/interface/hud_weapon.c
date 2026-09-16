@@ -174,7 +174,7 @@ void FUN_000d8cf0(int param_1, int param_2)
   csmemset(guard, 0x62, 0x200);
 
   obj = (int)object_get_and_verify_type(param_2, 3);
-  weapon = unit_get_weapon(param_2, *(short *)(obj + 0x2a2));
+  weapon = unit_inventory_get_weapon(param_2, *(short *)(obj + 0x2a2));
   unit = (int *)object_get_and_verify_type(param_2, 3);
   tag_get(0x756e6974 /* 'unit' */, *unit);
 

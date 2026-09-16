@@ -505,7 +505,7 @@ float device_group_get_value(int device_group_index)
  * The accessor result is dereferenced without a NULL check, matching the
  * original -- no defensive guard is added.
  */
-void device_group_set_real(int device_group_handle, int unit_handle)
+void device_touched(int device_group_handle, int unit_handle)
 {
   int type;
 
@@ -617,7 +617,7 @@ bool device_can_change_position(int object_handle)
  * 0x9681e), so 'effe' is tested first and the 'snd!' check is nested inside the
  * negated arm rather than written as an else-if chain.
  */
-void FUN_000967a0(int object_handle, int tag_index)
+void device_effect_new(int object_handle, int tag_index)
 {
   char *device;
   int group_tag;
@@ -642,14 +642,14 @@ void FUN_000967a0(int object_handle, int tag_index)
      * MOV EAX,[EDI+0x1b8]; PUSH EDX; PUSH EAX), never the x87 stack, so the
      * push order -- not the load order -- fixes the arguments: +0x1b8 is
      * param_5 and +0x1ac is param_6. */
-    FUN_0009ec30(tag_index, object_handle, object_handle, -1,
+    effect_new_from_object(tag_index, object_handle, object_handle, -1,
                  *(float *)(device + 0x1b8), *(float *)(device + 0x1ac), 0, 0);
   }
 }
 
 /* Allocate a new device group and seed its value and flags.
  *
- * Original 0x96850. The kb name is device_effect_new, but every piece of
+ * Original 0x96850. The kb name is device_group_new, but every piece of
  * binary evidence says this allocates a DEVICE GROUP: the pool it draws from
  * is the device-group data_t at 0x5aa8c8 (the same pool used by
  * device_group_get_value and device_group_change_only_once_more_set), the two
@@ -679,7 +679,7 @@ void FUN_000967a0(int object_handle, int tag_index)
  * does not return; its epilogue at 0x968b1 is dead code the compiler emitted
  * anyway.
  */
-short device_effect_new(float initial_value, short flags)
+short device_group_new(float initial_value, short flags)
 {
   short device_group_index;
   char *device_group;
@@ -709,7 +709,7 @@ short device_effect_new(float initial_value, short flags)
  * block order.
  *
  * The body is device_group_new (the out-of-line copy lives at 0x96850, which
- * kb calls device_effect_new) inlined: data_new_at_index against the
+ * kb calls device_group_new) inlined: data_new_at_index against the
  * device-group pool at 0x5aa8c8, the shared "no more free device groups"
  * assert at devices.c line 785 (0x311), then datum_get and the two seeding
  * stores. It is written out here rather than as a call because the original
@@ -803,7 +803,7 @@ void create_initial_device_groups(void)
  *     compared CMP AX,0xffff and widened with MOVSX ESI,AX, so the indices are
  *     signed shorts sign-extended into the int handle the pool calls take,
  *   - the flag test is an 8-bit load (MOV CL,byte ptr [EAX+2]; TEST CL,4) of
- *     the same word device_effect_new writes at +0x02,
+ *     the same word device_group_new writes at +0x02,
  *   - the pool pointer is re-read from 0x5aa8c8 before each of the four calls
  *     (0x5aa8c8 is never hoisted into a register across them), matching the
  *     repeated dereference here,
@@ -956,13 +956,13 @@ bool device_update(int object_index)
                                  maximum_speed, 0.0f, 1.0f,
                                  (char)(*(char *)(definition + 0x17c) & 1))) {
         if (rate_is_positive) {
-          FUN_000967a0(object_index, *(int *)(definition + 0x1cc));
+          device_effect_new(object_index, *(int *)(definition + 0x1cc));
         } else {
-          FUN_000967a0(object_index, *(int *)(definition + 0x1dc));
+          device_effect_new(object_index, *(int *)(definition + 0x1dc));
         }
       } else {
         if (*position_rate != 0.0f && previous_rate * *position_rate <= 0.0f) {
-          FUN_000967a0(object_index, *position_rate > previous_rate ?
+          device_effect_new(object_index, *position_rate > previous_rate ?
                                        *(int *)(definition + 0x1ac) :
                                        *(int *)(definition + 0x1bc));
         }
@@ -976,7 +976,7 @@ bool device_update(int object_index)
       stall_ticks = (short)(stall_ticks + 1);
       *(short *)(device + 0x1c0) = stall_ticks;
       if (stall_ticks == 1) {
-        FUN_000967a0(object_index, *(int *)(definition + 0x218));
+        device_effect_new(object_index, *(int *)(definition + 0x218));
       }
       return still_moving;
     }
