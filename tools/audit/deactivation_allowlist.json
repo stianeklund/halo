@@ -1594,5 +1594,12 @@
     "object": "ai_communication.obj",
     "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
     "since": "2026-08-27"
+  },
+  {
+    "addr": "0xb5210",
+    "name": "slayer_engine_display_score",
+    "object": "game.obj",
+    "reason": "VC71 byte accuracy unmeasured/not 90%",
+    "since": "2026-09-17"
   }
 ]

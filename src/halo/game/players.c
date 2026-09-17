@@ -3513,13 +3513,13 @@ void players_update_after_game(void)
     profile_exit_private((void *)0x2f0e88);
 }
 
-/* FUN_000bdef0 @ 0x000bdef0
+/* hs_not_evaluate @ 0x000bdef0
  *
  * HaloScript builtin dispatcher, same shape as the breakable-surfaces /
  * recorded-animation builtins below. Evaluates the script function via
  * hs_macro_function_evaluate(function_index, thread_datum, init); on a
  * non-NULL evaluation record it reads the record's first byte (a single-byte
- * load, XOR EDX,EDX; MOV DL,[EAX]) and passes it to FUN_000c95c0, which
+ * load, XOR EDX,EDX; MOV DL,[EAX]) and passes it to hs_not, which
  * returns (byte == 0) in AL. That byte result is stored into a pre-zeroed
  * dword result slot (MOV dword[EBP-4],0 before the call; MOV byte[EBP-4],AL
  * inside the branch) and forwarded zero-extended to hs_return(thread_datum,
@@ -3530,14 +3530,14 @@ void players_update_after_game(void)
  *   thread_datum    int      [EBP+0x0c]  -> reused for hs_return arg1 (ESI)
  *   init            char     [EBP+0x10]
  *
- * FUN_000c95c0 was modeled void(void) by Ghidra (so the decompile showed a
+ * hs_not was modeled void(void) by Ghidra (so the decompile showed a
  * no-arg call and read extraout_AL); the disassembly (000bdf14: XOR EDX,EDX;
  * MOV DL,[EAX]; PUSH EDX; CALL 0xc95c0) shows it takes the record's first
  * byte and returns AL = (byte == 0). Its kb decl is corrected to
- * `unsigned char FUN_000c95c0(unsigned char)`. The single ADD ESP,0xc after
- * the hs_return CALL folds FUN_000c95c0's 1 arg and hs_return's 2 args
+ * `unsigned char hs_not(unsigned char)`. The single ADD ESP,0xc after
+ * the hs_return CALL folds hs_not's 1 arg and hs_return's 2 args
  * (adjacent-call cleanup). */
-void FUN_000bdef0(int16_t function_index, int thread_datum, char init)
+void hs_not_evaluate(int16_t function_index, int thread_datum, char init)
 {
   volatile unsigned int result_slot;
   unsigned char *record;
@@ -3547,14 +3547,14 @@ void FUN_000bdef0(int16_t function_index, int thread_datum, char init)
   record = (unsigned char *)hs_macro_function_evaluate(function_index,
                                                        thread_datum, init);
   if (record != NULL) {
-    result_slot = (unsigned char)FUN_000c95c0(record[0]);
+    result_slot = (unsigned char)hs_not(record[0]);
     result = (unsigned int)result_slot;
     hs_return(thread_datum, result);
   }
 }
 
 /* 0xbdf40 — HS script function handler: evaluate a macro function and, on a
- * non-null result record, forward the record's first dword to FUN_000c95d0,
+ * non-null result record, forward the record's first dword to hs_print,
  * then commit a 0 result to the calling HS thread. Unlike the 0xc135x float
  * trampolines, no value is read back from the callee — hs_return always
  * commits 0. Same evaluator ABI (function_index, thread_datum, init) as the
@@ -3576,23 +3576,23 @@ void FUN_000bdef0(int16_t function_index, int thread_datum, char init)
  * Callees (all cdecl, in kb.json):
  *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
  *             char init) -> int* (result record, NULL on failure)
- *   0xc95d0 = FUN_000c95d0(int) -> void (record first-dword consumer)
+ *   0xc95d0 = hs_print(int) -> void (record first-dword consumer)
  *   0xcbf80 = hs_return(int thread_handle, int value) */
-void FUN_000bdf40(int16_t function_index, int thread_datum, char init)
+void hs_print_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_000c95d0(result[0]);
+    hs_print(result[0]);
     hs_return(thread_datum, 0);
   }
 }
 
-/* FUN_000bdf80 @ 0x000bdf80
+/* hs_players_evaluate @ 0x000bdf80
  *
- * HaloScript builtin implementation. Calls FUN_000c95f0() (a no-arg helper
+ * HaloScript builtin implementation. Calls hs_players() (a no-arg helper
  * that returns a value in EAX) and completes the calling script thread with
  * hs_return(thread_handle, <result>).
  *
@@ -3600,20 +3600,20 @@ void FUN_000bdf40(int16_t function_index, int thread_datum, char init)
  *   function_index  int16_t  [EBP+0x08]  (unused -- never loaded)
  *   thread_handle   int      [EBP+0x0c]  -> hs_return arg1
  *
- * FUN_000c95f0() takes no args; its EAX return is pushed directly as
+ * hs_players() takes no args; its EAX return is pushed directly as
  * hs_return's value (CALL c95f0; PUSH EAX). The second stack param is then
  * loaded (MOV EAX,[EBP+0xc]) and pushed as hs_return's thread_handle
  * (PUSH EAX; CALL hs_return; ADD ESP,8 cleans the two cdecl args). Ghidra
- * modeled both this function and FUN_000c95f0 as void(void); the EAX return
+ * modeled both this function and hs_players as void(void); the EAX return
  * consumed here and the [EBP+0xc] read of the second cdecl param are
  * unmodeled there. */
-void FUN_000bdf80(int16_t function_index, int thread_handle)
+void hs_players_evaluate(int16_t function_index, int thread_handle)
 {
-  hs_return(thread_handle, FUN_000c95f0());
+  hs_return(thread_handle, hs_players());
 }
 
 /* 0xbdfa0 — HS script function handler: evaluate a macro function and, on a
- * non-null result record, forward two 16-bit fields to FUN_000ca430, then
+ * non-null result record, forward two 16-bit fields to hs_teleport_players_not_in_trigger_volume, then
  * commit a 0 result to the calling HS thread. Same evaluator ABI
  * (function_index, thread_datum, init) as the other hs_evaluate_* handlers.
  *
@@ -3629,16 +3629,16 @@ void FUN_000bdf80(int16_t function_index, int thread_handle)
  * Callees (all cdecl, in kb.json):
  *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
  *             char init) -> int* (result record, NULL on failure)
- *   0xca430 = FUN_000ca430(int, int) -> void (two-field consumer)
+ *   0xca430 = hs_teleport_players_not_in_trigger_volume(int, int) -> void (two-field consumer)
  *   0xcbf80 = hs_return(int thread_handle, int value) */
-void FUN_000bdfa0(int16_t function_index, int thread_datum, char init)
+void hs_teleport_players_not_in_trigger_volume_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_000ca430(*(short *)result, *(unsigned short *)((char *)result + 4));
+    hs_teleport_players_not_in_trigger_volume(*(short *)result, *(unsigned short *)((char *)result + 4));
     hs_return(thread_datum, 0);
   }
 }
@@ -3659,7 +3659,7 @@ void FUN_000bdfa0(int16_t function_index, int thread_datum, char init)
  * (18ef00's 2 + hs_return's 2) confirms the arg counts. Note result[+0] is a
  * SIGNED int16 (MOVSX), so (int)*result on a short* must stay signed;
  * result[+4] is a full int (dword), unlike the narrow int16 +4 read in
- * FUN_000bdfa0.
+ * hs_teleport_players_not_in_trigger_volume_evaluate.
  *
  * Callees (all cdecl, in kb.json):
  *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
@@ -3684,7 +3684,7 @@ void FUN_000bdfe0(int16_t function_index, int thread_datum, char init)
  * byte predicate result to the calling HS thread. Evaluates the macro
  * arguments via hs_macro_function_evaluate; on a non-null result record, reads
  * a signed int16 at +0x0 (MOVSX word ptr) and an int at +0x4, passes both to
- * FUN_000ca0f0 (returns a byte in AL), zero-extends that byte and returns it to
+ * hs_trigger_volume_test_objects_any (returns a byte in AL), zero-extends that byte and returns it to
  * the thread via hs_return. The dword result slot is pre-zeroed and only the
  * low byte is written (zero-init-then-narrow-store idiom) — modeled with a
  * union so the widened value is the zero-extended byte.
@@ -3694,9 +3694,9 @@ void FUN_000bdfe0(int16_t function_index, int thread_datum, char init)
  * hs_return call (arg 1). Result record: int16 @ +0x0 (signed load), int @
  * +0x4. Callees: 0xcc560 = hs_macro_function_evaluate(int16 fn_index, int
  * thread_datum, char init) -> short* (result record, NULL on failure) 0xca0f0 =
- * FUN_000ca0f0(int16_t word0, int dword4) -> unsigned char 0xcbf80 =
+ * hs_trigger_volume_test_objects_any(int16_t word0, int dword4) -> unsigned char 0xcbf80 =
  * hs_return(int thread_handle, int value) */
-void FUN_000be030(int16_t function_index, int thread_datum, char init)
+void hs_trigger_volume_test_objects_any_evaluate(int16_t function_index, int thread_datum, char init)
 {
   short *result;
   union {
@@ -3708,14 +3708,14 @@ void FUN_000be030(int16_t function_index, int thread_datum, char init)
     (short *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
     value.i = 0;
-    value.b = FUN_000ca0f0(*result, *(int *)(result + 2));
+    value.b = hs_trigger_volume_test_objects_any(*result, *(int *)(result + 2));
     hs_return(thread_datum, value.i);
   }
 }
 
 /* 0xbe080 — HaloScript macro-function call wrapper. Evaluates a macro
  * function expression on a thread; if the evaluation yields a result node,
- * runs it through FUN_000ca050 (a value/cast evaluator returning a byte in
+ * runs it through hs_trigger_volume_test_objects_all (a value/cast evaluator returning a byte in
  * AL) and returns that byte on the calling thread via hs_return.
  *
  * players.obj groups this function, but it calls hs_runtime.obj's static
@@ -3733,16 +3733,16 @@ void FUN_000be030(int16_t function_index, int thread_datum, char init)
  *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
  *             -> result node ptr (Ghidra's `int` is really a struct*; NULL
  *                when there is nothing to return)
- *   0xca050 = FUN_000ca050(int16 result[+0], int result[+0x4]) -> byte in AL
+ *   0xca050 = hs_trigger_volume_test_objects_all(int16 result[+0], int result[+0x4]) -> byte in AL
  *   0xcbf80 = hs_return(thread_datum, value)
  *
  * Result node layout (EAX from call 1, only read when nonzero):
- *   +0x0 (int16_t) : MOVSX'd and passed as FUN_000ca050 arg1
- *   +0x4 (int32_t) : passed as FUN_000ca050 arg2
+ *   +0x0 (int16_t) : MOVSX'd and passed as hs_trigger_volume_test_objects_all arg1
+ *   +0x4 (int32_t) : passed as hs_trigger_volume_test_objects_all arg2
  * The returned byte is written into a pre-zeroed dword local (only AL stored),
  * so it is zero-extended (uint8 -> int) before being handed to hs_return.
  */
-void FUN_000be080(int16_t function_index, int thread_datum, char init)
+void hs_trigger_volume_test_objects_all_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
   int value;
@@ -3751,16 +3751,16 @@ void FUN_000be080(int16_t function_index, int thread_datum, char init)
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != 0) {
-    *(unsigned char *)&value = FUN_000ca050(*(int16_t *)result, result[1]);
+    *(unsigned char *)&value = hs_trigger_volume_test_objects_all(*(int16_t *)result, result[1]);
     hs_return(thread_datum, value);
   }
 }
 
 /* 0xbe0d0 — HaloScript macro-function evaluate-then-finalize wrapper, direct
- * sibling of FUN_000be080 above and of the 0xbf1a0 "word field" twin below.
+ * sibling of hs_trigger_volume_test_objects_all_evaluate above and of the 0xbf1a0 "word field" twin below.
  * Evaluates a macro-function expression on a thread; when the evaluation
  * yields a result record (non-NULL ptr in EAX), it forwards the record's
- * leading 16-bit field to FUN_000c9990 and then commits a literal 0 back to
+ * leading 16-bit field to hs_object_create and then commits a literal 0 back to
  * the calling thread via hs_return(thread_datum, 0).
  *
  * players.obj groups this, but like its siblings it calls hs_runtime.obj's
@@ -3798,7 +3798,7 @@ void FUN_000be080(int16_t function_index, int thread_datum, char init)
  *
  * CALL 0xc9990 @0xbe0f2 — PUSH EDX is the single argument. Ghidra printed a
  * 0-argument call and left the push dangling (dropped-arg trap); kb.json's
- * decl was `void FUN_000c9990(void)` and has been corrected to one cdecl arg.
+ * decl was `void hs_object_create(void)` and has been corrected to one cdecl arg.
  * check_arg_counts.py --callee 0xc9990 confirms it: sites=2, both push=1, and
  * the 0xca135 site has a conclusive ADD ESP,4. The parameter is int16_t: the
  * callee narrows to 16 bits immediately and exclusively (CMP SI,-1 / MOVSX
@@ -3810,34 +3810,34 @@ void FUN_000be080(int16_t function_index, int thread_datum, char init)
  *
  * CALL 0xcbf80 @0xbe0fa — PUSH 0x0 / PUSH ESI => hs_return(thread_datum, 0).
  * hs_return's first argument is the PARAMETER thread_datum held in ESI, not
- * any record field. ONE combined ADD ESP,0xc at 0xbe0ff folds FUN_000c9990's
+ * any record field. ONE combined ADD ESP,0xc at 0xbe0ff folds hs_object_create's
  * single dword with hs_return's two; the ARG_COUNT warning on 0xcbf80
  * ("cleanup=3 stack args vs decl=2") is that merge — hs_return really takes 2
  * args, do NOT "fix" its decl.
  *
  * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
  *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
- *   0xc9990 = FUN_000c9990(int index) — UNPORTED, semantics Uncertain; return
+ *   0xc9990 = hs_object_create(int index) — UNPORTED, semantics Uncertain; return
  *             value (if any) discarded
  *   0xcbf80 = hs_return(int thread_handle, int value)
  */
-void FUN_000be0d0(int16_t function_index, int thread_datum, char init)
+void hs_object_create_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *record;
 
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    FUN_000c9990(*(short *)record);
+    hs_object_create(*(short *)record);
     hs_return(thread_datum, 0);
   }
 }
 
 /* 0xbe110 — HaloScript macro-function evaluate-then-finalize wrapper, direct
- * sibling of FUN_000be0d0 above and FUN_000be1d0 below. Evaluates a
+ * sibling of hs_object_create_evaluate above and hs_object_create_anew_containing_evaluate below. Evaluates a
  * macro-function expression on a thread; when the evaluation yields a result
  * record (non-NULL ptr in EAX), it forwards the record's leading dword to
- * FUN_000c99e0 and then commits a literal 0 back to the calling thread via
+ * hs_object_destroy and then commits a literal 0 back to the calling thread via
  * hs_return(thread_datum, 0).
  *
  * players.obj groups this, but like its siblings it calls hs_runtime.obj's
@@ -3870,44 +3870,44 @@ void FUN_000be0d0(int16_t function_index, int thread_datum, char init)
  *
  * CALL 0xc99e0 @0xbe12f — PUSH EDX at 0xbe12e is the single argument. Ghidra
  * printed a 0-argument call and left the push dangling (dropped-arg trap);
- * kb.json's decl was `void FUN_000c99e0(void)` and has been corrected to one
+ * kb.json's decl was `void hs_object_destroy(void)` and has been corrected to one
  * cdecl arg. Width is `int`, not int16_t: the callee's own prologue is
  * MOV ESI,[EBP+8] / CMP ESI,-1 — a full 32-bit compare against the NONE
- * sentinel (contrast FUN_000c9990 at 0xc9990, whose CMP SI,-1 proves int16_t).
+ * sentinel (contrast hs_object_create at 0xc9990, whose CMP SI,-1 proves int16_t).
  * It then forwards the same dword to 0xc98e0 and 0x140cc0.
  *
  * CALL 0xcbf80 @0xbe137 — PUSH 0x0 / PUSH ESI => hs_return(thread_datum, 0).
  * hs_return's first argument is the PARAMETER thread_datum held in ESI, not
- * any record field. ONE combined ADD ESP,0xc at 0xbe13c folds FUN_000c99e0's
+ * any record field. ONE combined ADD ESP,0xc at 0xbe13c folds hs_object_destroy's
  * single dword with hs_return's two; an ARG_COUNT warning on 0xcbf80
  * ("cleanup=3 stack args vs decl=2") is that merge — hs_return really takes 2
  * args, do NOT "fix" its decl.
  *
  * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
  *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
- *   0xc99e0 = FUN_000c99e0(int datum) — UNPORTED, semantics Uncertain; return
+ *   0xc99e0 = hs_object_destroy(int datum) — UNPORTED, semantics Uncertain; return
  *             value (if any) discarded
  *   0xcbf80 = hs_return(int thread_handle, int value)
  */
-void FUN_000be110(int16_t function_index, int thread_datum, char init)
+void hs_object_destroy_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *record;
 
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    FUN_000c99e0(*record);
+    hs_object_destroy(*record);
     hs_return(thread_datum, 0);
   }
 }
 
 /* 0xbe150 — HaloScript macro-function evaluate-then-finalize wrapper. Shape is
- * byte-for-byte the twin of FUN_000be0d0 above: same prologue, same push order,
+ * byte-for-byte the twin of hs_object_create_evaluate above: same prologue, same push order,
  * same NULL guard, same 16-bit record deref, same coalesced cleanup — only the
  * inner callee differs (0xca110 here vs 0xc9990 there). Evaluates a
  * macro-function expression on a thread; when the evaluation yields a result
  * record (non-NULL ptr in EAX), it forwards the record's leading WORD to
- * FUN_000ca110 and commits a literal 0 back to the calling thread via
+ * hs_object_create_anew and commits a literal 0 back to the calling thread via
  * hs_return(thread_datum, 0).
  *
  * players.obj groups this, but like its siblings it calls hs_runtime.obj's
@@ -3940,42 +3940,42 @@ void FUN_000be110(int16_t function_index, int thread_datum, char init)
  *
  * CALL 0xca110 @0xbe172 — PUSH EDX at 0xbe171 is the single argument. Ghidra
  * printed a 0-argument call and left the push dangling (dropped-arg trap);
- * kb.json's decl was `void FUN_000ca110(void)` and has been corrected to one
+ * kb.json's decl was `void hs_object_create_anew(void)` and has been corrected to one
  * cdecl arg. Width is int16_t, not int: the callee's own prologue is
  * MOV ESI,[EBP+8] / CMP SI,-1 at 0xca114-0xca117 — a 16-BIT compare against the
- * NONE sentinel (contrast FUN_000c99e0, whose CMP ESI,-1 proves int). It then
+ * NONE sentinel (contrast hs_object_destroy, whose CMP ESI,-1 proves int). It then
  * forwards through 0x140720 and calls 0xc99e0 / 0xc9990, the latter itself
  * already declared int16_t, corroborating the width.
  *
  * CALL 0xcbf80 @0xbe17a — PUSH 0x0 / PUSH ESI => hs_return(thread_datum, 0).
  * hs_return's first argument is the PARAMETER thread_datum held in ESI, not
- * any record field. ONE combined ADD ESP,0xc at 0xbe17f folds FUN_000ca110's
+ * any record field. ONE combined ADD ESP,0xc at 0xbe17f folds hs_object_create_anew's
  * single dword with hs_return's two; the ARG_COUNT warning on 0xcbf80
  * ("cleanup=3 stack args vs decl=2") is that merge — hs_return really takes 2
  * args, do NOT "fix" its decl.
  *
  * Callees (all cdecl, all in kb.json, no @<reg> args anywhere):
  *   0xcc560 = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
- *   0xca110 = FUN_000ca110(int16_t index) — UNPORTED, semantics Uncertain;
+ *   0xca110 = hs_object_create_anew(int16_t index) — UNPORTED, semantics Uncertain;
  *             return value (if any) discarded
  *   0xcbf80 = hs_return(int thread_handle, int value)
  */
-void FUN_000be150(int16_t function_index, int thread_datum, char init)
+void hs_object_create_anew_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *record;
 
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    FUN_000ca110(*(short *)record);
+    hs_object_create_anew(*(short *)record);
     hs_return(thread_datum, 0);
   }
 }
 
 /* 0xbe190 — HS script function handler: evaluate a macro function and, on a
- * non-null result record, forward the record's first dword to FUN_000c9b90,
+ * non-null result record, forward the record's first dword to hs_object_create_containing,
  * then commit a 0 result to the calling HS thread. No value is read back from
- * FUN_000c9b90 (EAX is never consumed after the CALL) — hs_return always
+ * hs_object_create_containing (EAX is never consumed after the CALL) — hs_return always
  * commits the literal 0. Same evaluator ABI (function_index, thread_datum,
  * init) as the other hs_evaluate_* handlers.
  *
@@ -3987,7 +3987,7 @@ void FUN_000be150(int16_t function_index, int thread_datum, char init)
  * 0xbdef0, which does XOR EDX,EDX; MOV DL,[EAX] for a byte field).
  *
  * The single `ADD ESP,0xc` at 0xbe1bc is MSVC adjacent-call cleanup
- * coalescing: it folds FUN_000c9b90's 1 pushed arg and hs_return's 2. It is
+ * coalescing: it folds hs_object_create_containing's 1 pushed arg and hs_return's 2. It is
  * NOT evidence that hs_return takes 3 args (call_site_audit ARG_COUNT warning
  * on 0xcbf80 here is a false positive).
  *
@@ -4004,17 +4004,17 @@ void FUN_000be150(int16_t function_index, int thread_datum, char init)
  *             char init) -> int* (result record, NULL on failure); declared
  *             `int` in kb.json because that decl is shared with other ported
  *             call sites, so the pointer cast lives here.
- *   0xc9b90 = FUN_000c9b90(int) -> void (record first-dword consumer; Ghidra's
+ *   0xc9b90 = hs_object_create_containing(int) -> void (record first-dword consumer; Ghidra's
  *             void(void) decl dropped the single stack arg — corrected in kb)
  *   0xcbf80 = hs_return(int thread_handle, int value) */
-void FUN_000be190(int16_t function_index, int thread_datum, char init)
+void hs_object_create_containing_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_000c9b90(result[0]);
+    hs_object_create_containing(result[0]);
     hs_return(thread_datum, 0);
   }
 }
@@ -4039,7 +4039,7 @@ void FUN_000be190(int16_t function_index, int thread_datum, char init)
  *   0xca140 = FUN_000ca140(record[0])
  *   0xcbf80 = hs_return(thread_datum, 0)
  */
-void FUN_000be1d0(int16_t function_index, int thread_datum, char init)
+void hs_object_create_anew_containing_evaluate(int16_t function_index, int thread_datum, char init)
 {
   const char **record;
 
@@ -4051,34 +4051,34 @@ void FUN_000be1d0(int16_t function_index, int thread_datum, char init)
   }
 }
 
-/* 0xbe210 — HS built-in evaluator, sibling of FUN_000be1d0. Evaluates a
+/* 0xbe210 — HS built-in evaluator, sibling of hs_object_create_anew_containing_evaluate. Evaluates a
  * single macro-function via hs_macro_function_evaluate; while that returns
  * NULL the evaluation is still pending and nothing is committed this call.
- * Once it yields a non-NULL result datum, FUN_000c9bb0() runs (side-effect
+ * Once it yields a non-NULL result datum, hs_object_destroy_containing() runs (side-effect
  * cleanup, void/void) and the thread is committed with hs_return(thread, 0).
  * Standard evaluator ABI (function_index, thread_datum, init), plain cdecl.
  *
  * Callees (all in kb.json):
  *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
  *             -> result node ptr in EAX (NULL while evaluation pending)
- *   0xc9bb0 = FUN_000c9bb0(record->field_0) — MOV EDX,[EAX]; PUSH EDX at
+ *   0xc9bb0 = hs_object_destroy_containing(record->field_0) — MOV EDX,[EAX]; PUSH EDX at
  *             0xbe22c before the CALL; the callee reads it at [EBP+8].
  *   0xcbf80 = hs_return(thread_datum, 0)
  */
-void FUN_000be210(int16_t function_index, int thread_datum, char init)
+void hs_object_destroy_containing_evaluate(int16_t function_index, int thread_datum, char init)
 {
   void *record;
 
   record =
     (void *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != 0) {
-    FUN_000c9bb0(*(int *)record);
+    hs_object_destroy_containing(*(int *)record);
     hs_return(thread_datum, 0);
   }
 }
 
 /* 0xbe250 — HS built-in evaluator, zero-argument variant. Unlike its
- * FUN_000be210 / FUN_000be270 siblings it never calls
+ * hs_object_destroy_containing_evaluate / hs_object_teleport_evaluate siblings it never calls
  * hs_macro_function_evaluate: there is no argument to evaluate, so the
  * side-effect runs unconditionally and the thread is committed immediately.
  *
@@ -4097,30 +4097,30 @@ void FUN_000be210(int16_t function_index, int thread_datum, char init)
  * from `void(void)` to the 3-arg cdecl form as part of this lift.
  *
  * Callees (both cdecl, in kb.json, no @<reg> args):
- *   0xc9a50 = FUN_000c9a50(void)
+ *   0xc9a50 = hs_object_destroy_all(void)
  *   0xcbf80 = hs_return(int thread_handle, int value)
  */
-void FUN_000be250(int16_t function_index, int thread_datum, char init)
+void hs_object_destroy_all_evaluate(int16_t function_index, int thread_datum, char init)
 {
   (void)function_index;
   (void)init;
 
-  FUN_000c9a50();
+  hs_object_destroy_all();
   hs_return(thread_datum, 0);
 }
 
-/* 0xbe270 — HS built-in evaluator, sibling of FUN_000be1d0 / FUN_000be210.
+/* 0xbe270 — HS built-in evaluator, sibling of hs_object_create_anew_containing_evaluate / hs_object_destroy_containing_evaluate.
  * Evaluates a single macro-function via hs_macro_function_evaluate; while
  * that returns NULL the evaluation is still pending and nothing is committed
  * this call. Once it yields a non-NULL result datum, its first dword and its
- * zero-extended 16-bit field at +0x4 are handed to FUN_000ca3f0, then the
+ * zero-extended 16-bit field at +0x4 are handed to hs_object_teleport, then the
  * thread is committed with hs_return(thread_datum, 0). Standard evaluator ABI
  * (function_index, thread_datum, init), plain cdecl (caller cleans).
  *
  * Disasm evidence (0xbe28c..0xbe29e): after TEST EAX,EAX / JZ, the non-NULL
  * path does `XOR EDX,EDX; MOV DX,[EAX+0x4]` (u16 zero-extend) and
  * `MOV EAX,[EAX]` (dword), then PUSH EDX; PUSH EAX; CALL 0xca3f0 — i.e.
- * FUN_000ca3f0(record[0], (u16)record->field_0x4). The single trailing
+ * hs_object_teleport(record[0], (u16)record->field_0x4). The single trailing
  * ADD ESP,0x10 folds the cleanup of BOTH this 2-arg call and the following
  * 2-arg hs_return(thread_datum, 0). (The prefetch decomp modeled ca3f0 as
  * void/void and dropped both args — corrected here from the binary.)
@@ -4128,22 +4128,22 @@ void FUN_000be250(int16_t function_index, int thread_datum, char init)
  * Callees:
  *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
  *             -> result node ptr in EAX (NULL while evaluation pending)
- *   0xca3f0 = FUN_000ca3f0(int, int) — 2-arg cdecl (reads [EBP+8],[EBP+c])
+ *   0xca3f0 = hs_object_teleport(int, int) — 2-arg cdecl (reads [EBP+8],[EBP+c])
  *   0xcbf80 = hs_return(thread_datum, 0)
  */
-void FUN_000be270(int16_t function_index, int thread_datum, char init)
+void hs_object_teleport_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *record;
 
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != 0) {
-    FUN_000ca3f0(record[0], *(unsigned short *)((char *)record + 4));
+    hs_object_teleport(record[0], *(unsigned short *)((char *)record + 4));
     hs_return(thread_datum, 0);
   }
 }
 
-/* 0xbe2b0 — HS built-in evaluator, sibling of FUN_000be270 above. Evaluates a
+/* 0xbe2b0 — HS built-in evaluator, sibling of hs_object_teleport_evaluate above. Evaluates a
  * single macro-function via hs_macro_function_evaluate; while that returns
  * NULL the evaluation is still pending and nothing is committed this call.
  * Once it yields a non-NULL result datum, its first dword and its zero-extended
@@ -4165,7 +4165,7 @@ void FUN_000be270(int16_t function_index, int thread_datum, char init)
  *   0xca410 = FUN_000ca410(int, int) — 2-arg cdecl (reads [EBP+8],[EBP+c])
  *   0xcbf80 = hs_return(thread_datum, 0)
  */
-void FUN_000be2b0(int16_t function_index, int thread_datum, char init)
+void hs_object_set_facing_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *record;
 
@@ -4177,11 +4177,11 @@ void FUN_000be2b0(int16_t function_index, int thread_datum, char init)
   }
 }
 
-/* 0xbe2f0 — HS built-in evaluator, sibling of FUN_000be270 / FUN_000be2b0
+/* 0xbe2f0 — HS built-in evaluator, sibling of hs_object_teleport_evaluate / hs_object_set_facing_evaluate
  * above. Evaluates a single macro-function via hs_macro_function_evaluate;
  * while that returns NULL the evaluation is still pending and nothing is
  * committed this call. Once it yields a non-NULL result datum, its first dword
- * and the float at +0x4 are handed to FUN_000c9c10, then the thread is
+ * and the float at +0x4 are handed to hs_object_set_shield, then the thread is
  * committed with hs_return(thread_datum, 0). Standard evaluator ABI
  * (function_index, thread_datum, init), plain cdecl (caller cleans).
  *
@@ -4190,7 +4190,7 @@ void FUN_000be2b0(int16_t function_index, int thread_datum, char init)
  * `MOV  EDX,[EAX]` (dword at result+0), then the float is pushed via the MSVC
  * PUSH-then-FSTP idiom (`PUSH ECX; FSTP float ptr [ESP]` = second/higher slot)
  * and `PUSH EDX` supplies the first arg — i.e.
- * FUN_000c9c10(record[0], *(float*)(record+4)). The single trailing
+ * hs_object_set_shield(record[0], *(float*)(record+4)). The single trailing
  * ADD ESP,0x10 folds the cleanup of BOTH this 2-arg call and the following
  * 2-arg hs_return(thread_datum, 0). (The prefetch decomp modeled c9c10 as
  * void/void and dropped both args — corrected here from the binary; the float
@@ -4199,24 +4199,24 @@ void FUN_000be2b0(int16_t function_index, int thread_datum, char init)
  * Callees:
  *   0xcc560 = hs_macro_function_evaluate(function_index, thread_datum, init)
  *             -> result node ptr in EAX (NULL while evaluation pending)
- *   0xc9c10 = FUN_000c9c10(int, float) — 2-arg cdecl (dword@+0, float@+4)
+ *   0xc9c10 = hs_object_set_shield(int, float) — 2-arg cdecl (dword@+0, float@+4)
  *   0xcbf80 = hs_return(thread_datum, 0)
  */
-void FUN_000be2f0(int16_t function_index, int thread_datum, char init)
+void hs_object_set_shield_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *record;
 
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != 0) {
-    FUN_000c9c10(record[0], *(float *)((char *)record + 4));
+    hs_object_set_shield(record[0], *(float *)((char *)record + 4));
     hs_return(thread_datum, 0);
   }
 }
 
 /* 0xbe330 — HS script function handler: evaluate a macro function and, on a
  * non-null result record, forward the record's first three dwords (at +0x0,
- * +0x4, +0x8) to FUN_000c9c80, then commit a 0 result to the calling HS
+ * +0x4, +0x8) to hs_object_set_permutation, then commit a 0 result to the calling HS
  * thread. No value is read back from the callee — hs_return always commits 0.
  * Same evaluator ABI (function_index, thread_datum, init) as the other
  * hs_evaluate_* handlers.
@@ -4234,25 +4234,25 @@ void FUN_000be2f0(int16_t function_index, int thread_datum, char init)
  * Callees (all cdecl, in kb.json):
  *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
  *             char init) -> int* (result record, NULL on failure)
- *   0xc9c80 = FUN_000c9c80(int, int, int) -> void (record 3-dword consumer)
+ *   0xc9c80 = hs_object_set_permutation(int, int, int) -> void (record 3-dword consumer)
  *   0xcbf80 = hs_return(int thread_handle, int value) */
-void FUN_000be330(int16_t function_index, int thread_datum, char init)
+void hs_object_set_permutation_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_000c9c80(result[0], result[1], result[2]);
+    hs_object_set_permutation(result[0], result[1], result[2]);
     hs_return(thread_datum, 0);
   }
 }
 
 /* 0xbe370 — HS script function handler: evaluate a macro function and, on a
  * non-null result record, forward the record's first dword (+0x0) and a
- * narrow unsigned int16 (+0x4) to FUN_000c9bd0, then commit that callee's
+ * narrow unsigned int16 (+0x4) to hs_object_list_get_element, then commit that callee's
  * return value to the calling HS thread. Unlike the handlers that always
- * commit 0, this one reads FUN_000c9bd0's EAX result and passes it to
+ * commit 0, this one reads hs_object_list_get_element's EAX result and passes it to
  * hs_return. Same evaluator ABI (function_index, thread_datum, init) as the
  * other hs_evaluate_* handlers.
  *
@@ -4270,9 +4270,9 @@ void FUN_000be330(int16_t function_index, int thread_datum, char init)
  * Callees (all cdecl, in kb.json):
  *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
  *             char init) -> int* (result record, NULL on failure)
- *   0xc9bd0 = FUN_000c9bd0(int value, int type) -> int (coerced value)
+ *   0xc9bd0 = hs_object_list_get_element(int value, int type) -> int (coerced value)
  *   0xcbf80 = hs_return(int thread_handle, int value) */
-void FUN_000be370(int16_t function_index, int thread_datum, char init)
+void hs_object_list_get_element_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
   int value;
@@ -4280,7 +4280,7 @@ void FUN_000be370(int16_t function_index, int thread_datum, char init)
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    value = FUN_000c9bd0(result[0], *(unsigned short *)((char *)result + 4));
+    value = hs_object_list_get_element(result[0], *(unsigned short *)((char *)result + 4));
     hs_return(thread_datum, value);
   }
 }
@@ -4310,7 +4310,7 @@ void FUN_000be3b0(int16_t function_index, int thread_datum, char init)
  *
  * HaloScript function-evaluator wrapper. Evaluates the script function via
  * hs_macro_function_evaluate(function_index, thread_handle, init); on a
- * non-NULL evaluation record it forwards the two record fields to FUN_000c9de0
+ * non-NULL evaluation record it forwards the two record fields to hs_effect_new
  * and completes the thread with hs_return(thread_handle, 0).
  *
  * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ESI):
@@ -4321,7 +4321,7 @@ void FUN_000be3b0(int16_t function_index, int thread_datum, char init)
  * hs_macro_function_evaluate returns an evaluation-record pointer in EAX.
  * When non-NULL the original loads EAX+0x00 as a full dword and EAX+0x04 as a
  * MOVZX (zero-extended) 16-bit field, then pushes them right-to-left
- * (PUSH EDX=+0x04; PUSH EAX_val=+0x00). FUN_000c9de0's 2-arg cdecl signature is
+ * (PUSH EDX=+0x04; PUSH EAX_val=+0x00). hs_effect_new's 2-arg cdecl signature is
  * recovered from this call site (its kb decl was previously void(void)). */
 void player_rumble_initialize(int16_t function_index, int thread_handle,
                               char init)
@@ -4330,19 +4330,19 @@ void player_rumble_initialize(int16_t function_index, int thread_handle,
 
   record = hs_macro_function_evaluate(function_index, thread_handle, init);
   if (record != 0) {
-    FUN_000c9de0(*(int *)record, *(uint16_t *)(record + 4));
+    hs_effect_new(*(int *)record, *(uint16_t *)(record + 4));
     hs_return(thread_handle, 0);
   }
 }
 
-/* FUN_000be440 @ 0x000be440
+/* hs_effect_new_from_object_marker_evaluate @ 0x000be440
  *
  * HaloScript function-evaluator wrapper, sibling of player_rumble_initialize
  * above. Evaluates the script function via
  * hs_macro_function_evaluate(function_index, thread_datum, init); while that
  * returns NULL the evaluation is still pending and nothing is committed. Once
  * it yields a non-NULL evaluation record, the record's first three dwords
- * (offsets +0x00, +0x04, +0x08) are forwarded to FUN_000c9e50, then the thread
+ * (offsets +0x00, +0x04, +0x08) are forwarded to hs_effect_new_from_object_marker, then the thread
  * is committed with hs_return(thread_datum, 0). Standard evaluator ABI
  * (function_index, thread_datum, init), plain cdecl (caller cleans).
  *
@@ -4355,32 +4355,32 @@ void player_rumble_initialize(int16_t function_index, int thread_handle,
  * hs_macro_function_evaluate returns the record pointer in EAX. On the non-NULL
  * branch (TEST EAX,EAX / JZ) the original loads three dwords and pushes them
  * right-to-left (MOV EDX,[EAX+8]; MOV ECX,[EAX+4]; MOV EDX,[EAX];
- * PUSH [EAX+8]; PUSH [EAX+4]; PUSH [EAX]) -> FUN_000c9e50(result[0],
+ * PUSH [EAX+8]; PUSH [EAX+4]; PUSH [EAX]) -> hs_effect_new_from_object_marker(result[0],
  * result[1], result[2]). The single trailing ADD ESP,0x14 folds the cleanup of
  * BOTH this 3-arg call (0xc) and the following 2-arg hs_return(thread_datum, 0)
  * (0x8). Ghidra modeled hs_macro_function_evaluate's return as a plain int and
- * FUN_000c9e50 as void(void), dropping all three args; both are corrected here
- * from the binary (return is a >=12-byte record pointer; FUN_000c9e50 is
+ * hs_effect_new_from_object_marker as void(void), dropping all three args; both are corrected here
+ * from the binary (return is a >=12-byte record pointer; hs_effect_new_from_object_marker is
  * 3-arg cdecl). */
-void FUN_000be440(int16_t function_index, int thread_datum, char init)
+void hs_effect_new_from_object_marker_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_000c9e50(result[0], result[1], result[2]);
+    hs_effect_new_from_object_marker(result[0], result[1], result[2]);
     hs_return(thread_datum, 0);
   }
 }
 
-/* FUN_000be480 @ 0x000be480
+/* hs_damage_new_evaluate @ 0x000be480
  *
- * HaloScript function-evaluator wrapper, sibling of FUN_000be440 above.
+ * HaloScript function-evaluator wrapper, sibling of hs_effect_new_from_object_marker_evaluate above.
  * Evaluates the script function via hs_macro_function_evaluate(function_index,
  * thread_datum, init); while that returns NULL the evaluation is still pending
  * and nothing is committed. Once it yields a non-NULL evaluation record, two
- * fields of the record are forwarded to FUN_000c9ec0 and the thread is then
+ * fields of the record are forwarded to hs_damage_new and the thread is then
  * committed with hs_return(thread_datum, 0). Standard evaluator ABI
  * (function_index, thread_datum, init), plain cdecl (caller cleans).
  *
@@ -4394,35 +4394,35 @@ void FUN_000be440(int16_t function_index, int thread_datum, char init)
  * branch (TEST EAX,EAX / JZ) the original reads a zero-extended 16-bit field
  * and the leading dword and pushes them right-to-left:
  *   XOR EDX,EDX; MOV DX,[EAX+4]; MOV EAX,[EAX]; PUSH EDX; PUSH EAX
- *   -> FUN_000c9ec0(record[0], (uint16_t)record[+0x4]).
+ *   -> hs_damage_new(record[0], (uint16_t)record[+0x4]).
  * The single trailing ADD ESP,0x10 folds the cleanup of BOTH this 2-arg call
  * (0x8) and the following 2-arg hs_return(thread_datum, 0) (0x8). Ghidra
- * modeled hs_macro_function_evaluate's return as a plain int and FUN_000c9ec0
+ * modeled hs_macro_function_evaluate's return as a plain int and hs_damage_new
  * as void(void), dropping both args; both are corrected here from the binary
- * (return is a record pointer; FUN_000c9ec0 is 2-arg cdecl with a dword first
+ * (return is a record pointer; hs_damage_new is 2-arg cdecl with a dword first
  * arg and a zero-extended 16-bit second arg). The +0x4 field is a 16-bit word
  * (MOVW / zero-extend), so it is read as uint16_t, not a full dword. */
-void FUN_000be480(int16_t function_index, int thread_datum, char init)
+void hs_damage_new_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_000c9ec0(result[0], *(uint16_t *)((char *)result + 4));
+    hs_damage_new(result[0], *(uint16_t *)((char *)result + 4));
     hs_return(thread_datum, 0);
   }
 }
 
-/* FUN_000be4c0 @ 0x000be4c0
+/* hs_damage_object_evaluate @ 0x000be4c0
  *
  * HaloScript macro-function evaluator wrapper (side-effect-only variant),
- * sibling of the FUN_000be440/FUN_000be480 evaluators above. Evaluates the
+ * sibling of the hs_effect_new_from_object_marker_evaluate/hs_damage_new_evaluate evaluators above. Evaluates the
  * script function via hs_macro_function_evaluate(function_index, thread_datum,
  * init); while that returns NULL the evaluation is still pending and nothing is
  * committed. Unlike its siblings the returned record is NOT dereferenced -- on
  * a non-NULL result the wrapper only invokes the parameterless side-effect
- * routine FUN_000c9f30() and then commits the calling thread with
+ * routine hs_damage_object() and then commits the calling thread with
  * hs_return(thread_datum, 0).
  *
  * cdecl frame (PUSH EBP; MOV EBP,ESP):
@@ -4435,33 +4435,33 @@ void FUN_000be480(int16_t function_index, int thread_datum, char init)
  * right-to-left (PUSH 0 = value; PUSH thread_datum = thread_handle). Ghidra
  * modeled this function as void(void) and dropped all three stack args; the
  * 3-arg cdecl signature is recovered from the hs_macro_function_evaluate call
- * site (its kb decl was previously the stub void FUN_000be4c0(void)). */
-void FUN_000be4c0(int16_t function_index, int thread_datum, char init)
+ * site (its kb decl was previously the stub void hs_damage_object_evaluate(void)). */
+void hs_damage_object_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int record;
 
   record = hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != 0) {
-    FUN_000c9f30(*(int *)record, *(int *)(record + 4));
+    hs_damage_object(*(int *)record, *(int *)(record + 4));
     hs_return(thread_datum, 0);
   }
 }
 
 /* 0xbe500 — HS script function handler: evaluate a macro function and, on a
  * non-null result record, forward the record's first two dwords (+0x0, +0x4)
- * and a FLOAT field (+0x8) to FUN_000c9770, then commit that callee's byte
+ * and a FLOAT field (+0x8) to hs_objects_can_see_object, then commit that callee's byte
  * return to the calling HS thread. Same evaluator ABI (function_index,
  * thread_datum, init) as the other hs_evaluate_* handlers.
  *
  * ABI (verified against delinked disassembly 0xbe500): cdecl, plain RET.
  * thread_datum (arg 2, cached in ESI) flows to both the evaluate call (arg 2)
  * and the hs_return call (arg 1). On a non-null result the call site loads the
- * three fields and passes them to FUN_000c9770:
+ * three fields and passes them to hs_objects_can_see_object:
  *   FLDS [result+0x8]; PUSH <dummy>; FSTP [ESP]   (float arg3, push-then-fstp)
  *   PUSH [result+0x4] (int arg2); PUSH [result+0x0] (int arg1); CALL 0xc9770
  * then MOV [EBP-4],AL; PUSH ECX(=zero-extended AL); PUSH ESI(=thread_datum);
  * CALL hs_return. The combined ADD ESP,0x14 after the two trailing calls =
- * FUN_000c9770's 3 args (0xc) + hs_return's 2 args (0x8). Ghidra's void(void)
+ * hs_objects_can_see_object's 3 args (0xc) + hs_return's 2 args (0x8). Ghidra's void(void)
  * decl for 0xc9770 dropped all three args and its AL return, misled by that
  * combined cleanup; kb.json decl for 0xc9770 corrected to
  * unsigned char(int,int,float). The +0x8 field is a FLOAT read via FLDS and
@@ -4470,9 +4470,9 @@ void FUN_000be4c0(int16_t function_index, int thread_datum, char init)
  * Callees (all cdecl, in kb.json):
  *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
  *             char init) -> int* (result record, NULL on failure)
- *   0xc9770 = FUN_000c9770(int, int, float) -> unsigned char (record consumer)
+ *   0xc9770 = hs_objects_can_see_object(int, int, float) -> unsigned char (record consumer)
  *   0xcbf80 = hs_return(int thread_handle, int value) */
-void FUN_000be500(int16_t function_index, int thread_datum, char init)
+void hs_objects_can_see_object_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
   int value;
@@ -4482,14 +4482,14 @@ void FUN_000be500(int16_t function_index, int thread_datum, char init)
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
     *(char *)&value =
-      FUN_000c9770(result[0], result[1], *(float *)((char *)result + 8));
+      hs_objects_can_see_object(result[0], result[1], *(float *)((char *)result + 8));
     hs_return(thread_datum, value);
   }
 }
 
 /* 0xbe550 — HS script function handler: evaluate a macro function and, on a
  * non-null result record, forward the record's first dword (+0x0, int), a
- * ZERO-EXTENDED 16-bit field (+0x4) and a FLOAT field (+0x8) to FUN_000c9840,
+ * ZERO-EXTENDED 16-bit field (+0x4) and a FLOAT field (+0x8) to hs_objects_can_see_flag,
  * then commit that callee's boolean byte return to the calling HS thread. Same
  * evaluator ABI (function_index, thread_datum, init) as the other
  * hs_evaluate_* handlers. Near-twin of 0xbe500, differing only in the +0x4
@@ -4512,7 +4512,7 @@ void FUN_000be500(int16_t function_index, int thread_datum, char init)
  *   PUSH EDX; PUSH EAX; CALL 0xc9840
  * then MOV [EBP-4],AL; PUSH ECX(=the widened dword); PUSH ESI(=thread_datum);
  * CALL hs_return. The combined ADD ESP,0x14 at 0xbe597 after the two trailing
- * calls = FUN_000c9840's 3 args (0xc) + hs_return's 2 args (0x8); it is a
+ * calls = hs_objects_can_see_flag's 3 args (0xc) + hs_return's 2 args (0x8); it is a
  * cdecl merge, NOT a 5-argument hs_return (the call-site audit's ARG_COUNT
  * note). The +0x8 field is a FLOAT read via FLD and passed as a float
  * argument (push-then-fstp hazard), NOT the pushed ECX dummy that Ghidra's
@@ -4521,9 +4521,9 @@ void FUN_000be500(int16_t function_index, int thread_datum, char init)
  * Callees (all cdecl, in kb.json, none with @<reg> args):
  *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
  *             char init) -> int* (result record, NULL on failure)
- *   0xc9840 = FUN_000c9840(int, short, float) -> unsigned char (boolean)
+ *   0xc9840 = hs_objects_can_see_flag(int, short, float) -> unsigned char (boolean)
  *   0xcbf80 = hs_return(int thread_handle, int value) */
-void FUN_000be550(int16_t function_index, int thread_datum, char init)
+void hs_objects_can_see_flag_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
   union {
@@ -4535,7 +4535,7 @@ void FUN_000be550(int16_t function_index, int thread_datum, char init)
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    value.b = FUN_000c9840(result[0], *(unsigned short *)(result + 1),
+    value.b = hs_objects_can_see_flag(result[0], *(unsigned short *)(result + 1),
                            *(float *)((char *)result + 8));
     hs_return(thread_datum, value.i);
   }
@@ -4543,7 +4543,7 @@ void FUN_000be550(int16_t function_index, int thread_datum, char init)
 
 /* 0xbe5a0 — HS script function handler: evaluate a macro function and, on a
  * non-null result record, forward the record's first dword (+0x0, int) to
- * FUN_000c9d80, then return void to the calling HS thread via
+ * hs_objects_delete_by_definition, then return void to the calling HS thread via
  * hs_return(thread_datum, 0). Same evaluator ABI (function_index, thread_datum,
  * init) as the other hs_evaluate_* handlers.
  *
@@ -4553,7 +4553,7 @@ void FUN_000be550(int16_t function_index, int thread_datum, char init)
  * dereferences the record and passes its first dword to the single-arg callee:
  *   MOV EDX,[EAX] (result[0]); PUSH EDX; CALL 0xc9d80
  * then PUSH 0; PUSH ESI(=thread_datum); CALL hs_return. The combined
- * ADD ESP,0xc after the two trailing calls = FUN_000c9d80's 1 arg (0x4) +
+ * ADD ESP,0xc after the two trailing calls = hs_objects_delete_by_definition's 1 arg (0x4) +
  * hs_return's 2 args (0x8). Ghidra's void(void) decl for 0xc9d80 dropped its
  * single stack arg, misled by that combined cleanup; kb.json decl for 0xc9d80
  * corrected to void(int).
@@ -4561,21 +4561,21 @@ void FUN_000be550(int16_t function_index, int thread_datum, char init)
  * Callees (all cdecl, in kb.json):
  *   0xcc560 = hs_macro_function_evaluate(int16 fn_index, int thread_datum,
  *             char init) -> int* (result record, NULL on failure)
- *   0xc9d80 = FUN_000c9d80(int) -> void (record consumer)
+ *   0xc9d80 = hs_objects_delete_by_definition(int) -> void (record consumer)
  *   0xcbf80 = hs_return(int thread_handle, int value) */
-void FUN_000be5a0(int16_t function_index, int thread_datum, char init)
+void hs_objects_delete_by_definition_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
 
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_000c9d80(result[0]);
+    hs_objects_delete_by_definition(result[0]);
     hs_return(thread_datum, 0);
   }
 }
 
-/* FUN_000be5e0 @ 0x000be5e0
+/* hs_sound_set_gain_evaluate @ 0x000be5e0
  *
  * HaloScript function-evaluator wrapper (void-returning, int+real consumer).
  * Evaluates the script function via hs_macro_function_evaluate(function_index,
@@ -4607,7 +4607,7 @@ void FUN_000be5a0(int16_t function_index, int thread_datum, char init)
  *             char init) -> int* (result record, NULL on failure)
  *   0xca030 = FUN_000ca030(int, float) -> void (record consumer)
  *   0xcbf80 = hs_return(int thread_handle, int value) */
-void FUN_000be5e0(int16_t function_index, int thread_handle, char init)
+void hs_sound_set_gain_evaluate(int16_t function_index, int thread_handle, char init)
 {
   int *record;
 
@@ -4619,7 +4619,7 @@ void FUN_000be5e0(int16_t function_index, int thread_handle, char init)
   }
 }
 
-/* FUN_000be620 @ 0x000be620
+/* hs_sound_get_gain_evaluate @ 0x000be620
  *
  * HaloScript function-evaluator wrapper (real-valued variant). Evaluates the
  * script function via hs_macro_function_evaluate(function_index, thread_handle,
@@ -4638,7 +4638,7 @@ void FUN_000be5e0(int16_t function_index, int thread_handle, char init)
  * which would truncate. FUN_000ca010's 1-arg cdecl float-returning signature is
  * recovered from this call site (MOV EDX,[EAX]; PUSH EDX; CALL; FSTP [EBP-4]);
  * its kb decl was previously void(void). */
-void FUN_000be620(int16_t function_index, int thread_handle, char init)
+void hs_sound_get_gain_evaluate(int16_t function_index, int thread_handle, char init)
 {
   int record;
   union {
@@ -5432,13 +5432,13 @@ void FUN_000beb30(int16_t function_index, int thread_datum, char init)
   }
 }
 
-/* FUN_000beb70 @ 0x000beb70
+/* hs_objects_predict_evaluate @ 0x000beb70
  *
  * HaloScript macro-function trampoline (object-list side-effect variant). A
  * direct sibling of the FUN_000bebb0 family above. Evaluates the script
  * function via hs_macro_function_evaluate(function_index, thread_datum, init),
  * which returns a pointer to an evaluation record. On a non-NULL record it
- * forwards the first dword (*record, MOV EDX,[EAX]) to FUN_000c9d40, then
+ * forwards the first dword (*record, MOV EDX,[EAX]) to hs_objects_predict, then
  * completes the calling script thread with hs_return(thread_datum, 0).
  *
  * cdecl frame (PUSH EBP; MOV EBP,ESP):
@@ -5447,22 +5447,22 @@ void FUN_000beb30(int16_t function_index, int thread_datum, char init)
  *   init            char     [EBP+0x10]  -> arg3
  *
  * BUGFIX (was a players.obj lift regression, e14f0280): the original does
- *   MOV EDX,[EAX]; PUSH EDX; CALL FUN_000c9d40   (0xbeb8c-0xbeb8f)
- * i.e. it passes *record (the object-list handle) to FUN_000c9d40, which
+ *   MOV EDX,[EAX]; PUSH EDX; CALL hs_objects_predict   (0xbeb8c-0xbeb8f)
+ * i.e. it passes *record (the object-list handle) to hs_objects_predict, which
  * iterates that object list (object_list_iterator_first/next at
- * 0xce450/0xce320). Ghidra models FUN_000c9d40 as void(void), so the original
- * lift called it with no argument; FUN_000c9d40 then read a stale stack value
+ * 0xce450/0xce320). Ghidra models hs_objects_predict as void(void), so the original
+ * lift called it with no argument; hs_objects_predict then read a stale stack value
  * as the handle and asserted "object list header index #N is unused or changed"
- * (data.c). The decl for FUN_000c9d40 is corrected to take the object-list
+ * (data.c). The decl for hs_objects_predict is corrected to take the object-list
  * handle. */
-void FUN_000beb70(int16_t function_index, int thread_datum, char init)
+void hs_objects_predict_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *record;
 
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    FUN_000c9d40(*record);
+    hs_objects_predict(*record);
     hs_return(thread_datum, 0);
   }
 }
@@ -5868,7 +5868,7 @@ void FUN_000bee40(int16_t function_index, int thread_datum, char init)
 /* FUN_000bee80 @ 0x000bee80
  *
  * HaloScript macro-function evaluator wrapper (unit "open" variant), a direct
- * sibling of FUN_000bee40 above and structurally identical to FUN_000beb70.
+ * sibling of FUN_000bee40 above and structurally identical to hs_objects_predict_evaluate.
  * Evaluates the script function via hs_macro_function_evaluate(function_index,
  * thread_datum, init); while that returns NULL the evaluation is still pending
  * and nothing is committed. On a non-NULL evaluation record the record's first
@@ -6042,7 +6042,7 @@ void FUN_000bef40(int16_t function_index, int thread_datum, char init)
 
 /* FUN_000bef80 @ 0x000bef80
  *
- * HaloScript builtin dispatcher, same family as FUN_000bdef0 / FUN_000bef40
+ * HaloScript builtin dispatcher, same family as hs_not_evaluate / FUN_000bef40
  * above. Evaluates the script function via
  * hs_macro_function_evaluate(function_index, thread_datum, init); on a
  * non-NULL evaluation record it loads the record's FIRST DWORD (a full 32-bit
@@ -6101,7 +6101,7 @@ void FUN_000bef80(int16_t function_index, int thread_datum, char init)
 
 /* 0xbefd0 — HS script function handler: stop a unit's custom animation.
  *
- * Byte-shape twin of FUN_000bdf40 (differs only in the middle callee). cdecl
+ * Byte-shape twin of hs_print_evaluate (differs only in the middle callee). cdecl
  * frame: PUSH EBP; MOV EBP,ESP; PUSH ESI; ... POP ESI; POP EBP; RET (no RET
  * immediate — caller cleans).
  *
@@ -6744,7 +6744,7 @@ void FUN_000bf220(int16_t function_index, int thread_datum, char init)
  *   Result handling: MOV byte ptr [EBP-4],AL (BYTE store only, into the dword
  *   zeroed at 0xbf271), then MOV EAX,dword ptr [EBP-4] (full DWORD read) -- an
  *   explicit zero-extension through a stack slot, the same
- *   zero-init-then-narrow-store idiom as FUN_000be030 above; modeled with a
+ *   zero-init-then-narrow-store idiom as hs_trigger_volume_test_objects_any_evaluate above; modeled with a
  *   union so the widened value is the zero-extended byte. A plain (int) cast
  *   of the signed `char` return would SIGN-extend and diverge.
  *   CALL 0xbf29c -> 0xcbf80 pushes EAX (the widened result) then ESI ->
@@ -6966,7 +6966,7 @@ void FUN_000bf300(int16_t function_index, int thread_datum, char init)
  *   the single ADD ESP,0xc @0xbf36c that also covers hs_return's 2 dwords.
  *   kb.json declared 0x1b5500 as `void(void)`; that is the void-decl trap
  *   (lift-learnings 31) -- calling it argument-less from C would silently drop
- *   the record field (same class as the a10 FUN_000beb70 dropped-arg crash),
+ *   the record field (same class as the a10 hs_objects_predict_evaluate dropped-arg crash),
  *   so the decl was corrected to `void FUN_001b5500(int)`. Nothing reads EAX
  *   after the call, so its return value is discarded (it is void).
  *
@@ -7290,7 +7290,7 @@ void FUN_000bf470(int16_t function_index, int thread_datum, char init)
  *   Result handling: MOV word ptr [EBP-4],AX (WORD store only, into the dword
  *   zeroed before the evaluate call), then MOV EAX,dword ptr [EBP-4] (full
  *   DWORD read) -- an explicit zero-extension through a stack slot, the
- *   zero-init-then-narrow-store idiom of FUN_000be030/0xbf260 at word width;
+ *   zero-init-then-narrow-store idiom of hs_trigger_volume_test_objects_any_evaluate/0xbf260 at word width;
  *   modeled with a union so the widened value is provably the zero-extended
  *   16 bits (the upper 16 bits of the slot are 0).
  *   CALL 0xcbf80 pushes EAX (the widened result) then ESI ->
@@ -7937,7 +7937,7 @@ void FUN_000bf700(int16_t function_index, int thread_datum, char init)
  *   `AND EAX,0xffff` and scores 88.5% (24/28 insns), whereas the union below
  *   reproduces the zero / word-store / dword-reload triple exactly and scores
  *   100.0% (28/28).  Both forms are bit-identical at runtime; only the union
- *   matches codegen.  Same union idiom as FUN_000be620 above.
+ *   matches codegen.  Same union idiom as hs_sound_get_gain_evaluate above.
  *
  *   This is an INTEGER path -- kb declares 0x1a7d40 as returning `int`, the
  *   value arrives in AX/EAX, and there is no FSTP anywhere, so it is NOT the
@@ -8102,7 +8102,7 @@ void FUN_000bf790(int16_t function_index, int thread_datum, char init)
  *   the source form below.  BOTH fields are full dwords -- no MOVZX/MOVSX
  *   appears anywhere in the function, so unlike FUN_000bf1a0 (word field) and
  *   FUN_000bf1e0 (byte field) neither argument is narrowed; in particular
- *   record[0] must NOT be read as *(int16_t *)record the way FUN_000be080
+ *   record[0] must NOT be read as *(int16_t *)record the way hs_trigger_volume_test_objects_all_evaluate
  *   does (lift-learnings 24 LOADW).  Only offsets +0x0 and +0x4 of the record
  *   are touched, one deref each -- no buffer-alias risk.
  *
@@ -9167,7 +9167,7 @@ void FUN_000bfb40(int16_t function_index, int thread_datum, char init)
  *   returning int (same as every twin; the cast is local, kb decl untouched).
  *   Exactly ONE record field is read: XOR EDX,EDX; MOV DX, word ptr [EAX].
  *   That is the MOVZX idiom -- an UNSIGNED 16-bit load at record+0x0, unlike
- *   the signed-short siblings FUN_000bdfe0 / FUN_000be030. Lifted as
+ *   the signed-short siblings FUN_000bdfe0 / hs_trigger_volume_test_objects_any_evaluate. Lifted as
  *   `unsigned short *` so the widening is zero-extension, not sign-extension.
  *   CALL 0x966b0 takes the zero-extended index as its ONE dword stack arg
  *   (PUSH EDX) and returns a float in ST0 -- FSTP dword ptr [EBP-4] lands
@@ -11019,7 +11019,7 @@ void FUN_000c0070(int16_t function_index, int thread_datum, char init)
  *   CALL 0xcc560 (0xc00c0); ADD ESP,0xc. cdecl reverse push order -> C order
  *   (function_index, thread_datum, init) = a straight pass-through.
  *   0xc00cc MOV EDX,dword ptr [EAX] is a FULL 32-bit load from record+0 --
- *   NOT the MOVSX word seen at +0 in the FUN_000bdfa0-family handlers -- so
+ *   NOT the MOVSX word seen at +0 in the hs_teleport_players_not_in_trigger_volume_evaluate-family handlers -- so
  *   the handle is kept 32-bit wide and passed unnarrowed to 0x54bb0, whose
  *   kb decl is `void FUN_00054bb0(unsigned int ai_ref)`.
  *   0xc00ce PUSH EDX; CALL 0x54bb0. 0xc00d4 PUSH 0 / PUSH ESI;
@@ -11288,7 +11288,7 @@ void FUN_000c0170(int16_t function_index, int thread_datum, char init)
 /* FUN_000c01b0 @ 0x000c01b0
  *
  * HaloScript builtin implementation, same 2-parameter shape as the ported
- * FUN_000bdf80 / FUN_000be6f0 family in this TU: invoke a no-argument worker,
+ * hs_players_evaluate / FUN_000be6f0 family in this TU: invoke a no-argument worker,
  * then complete the calling script thread with hs_return(thread_handle, 0).
  * Unlike the 3-parameter dispatcher twins (0xc0130 / 0xc0230) it never reads
  * [EBP+0x10], so no `init` parameter is declared -- narrowest form the body
@@ -12135,7 +12135,7 @@ void FUN_000c03f0(int16_t function_index, int thread_datum, char init)
  *   CALL 0xc0457 -> 0xcbf80: PUSH 0x0; PUSH ESI => hs_return(thread_datum, 0).
  *     The 0 is an immediate, NOT the FUN_00055220 result -- that worker
  *     returns void. This is the "record as evaluation-complete predicate"
- *     shape of FUN_000be1d0.
+ *     shape of hs_object_create_anew_containing_evaluate.
  *
  * NULL guard: TEST EAX,EAX; JZ skips BOTH tail calls, so the 0xcc560 return
  * value is dereferenced as a POINTER even though kb.json types it as `int`.

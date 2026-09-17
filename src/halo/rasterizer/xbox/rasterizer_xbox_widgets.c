@@ -78,7 +78,7 @@ unsigned int rasterizer_widget_get_occlusion_test_result(unsigned int index)
 
     if (hr < 0) {
       ok = 0;
-      FUN_00167ff0(hr, "hr");
+      rasterizer_error(hr, "hr");
     } else {
       ok = 1;
     }

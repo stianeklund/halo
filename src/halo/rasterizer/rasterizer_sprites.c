@@ -946,13 +946,13 @@ void FUN_0017d1a0(bool param_1)
  *
  * Per-vertex decode (vertex stride 0x20 from SHL ESI,0x5):
  *   +0x00 float position[3]  (passed straight to matrix_transform_point)
- *   +0x0c uint32 packed normal, handed to FUN_0017ffc0
+ *   +0x0c uint32 packed normal, handed to uncompress_int32_to_real_vector3d
  *   +0x1c int8  node index 0, +0x1d int8 node index 1 -- both MOVSX then
  *         divided by 3 via the 0x55555556 magic multiply with the
  *         SHR 0x1f / ADD sign fixup, i.e. a signed /3
  *   +0x1e int16 node weight, FILD'd and scaled by the constant at 0x290dd8 =
  *         0x38000100 = 1.0f/32767.0f
- * FUN_0017ffc0 writes exactly three dwords through its first argument and
+ * uncompress_int32_to_real_vector3d writes exactly three dwords through its first argument and
  * returns that same pointer (MOV EAX,[EBP+8] / MOV ECX,EAX, EAX untouched
  * afterwards), so the scratch buffer is a float[3] and the copy that follows
  * reads back through the returned pointer.
@@ -1070,7 +1070,7 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
       normal1[1] = 0.0f;
       normal1[2] = 0.0f;
 
-      unpacked = FUN_0017ffc0(decompressed, *(unsigned int *)(vertex + 0xc));
+      unpacked = uncompress_int32_to_real_vector3d(decompressed, *(unsigned int *)(vertex + 0xc));
       vertex_normal[0] = unpacked[0];
       vertex_normal[1] = unpacked[1];
       vertex_normal[2] = unpacked[2];
