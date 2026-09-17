@@ -7302,6 +7302,37 @@ float ctf_get_starting_location_rating(int param_1, float *param_2)
   return rating;
 }
 
+/* 0xb1160 — Project an array of 3D points to 2D by copying X and Y and dropping Z.
+ * ECX: source 3D points (float[3] per point, 12 bytes stride)
+ * EDX: destination 2D points (float[2] per point, 8 bytes stride)
+ * ESI: point count
+ *
+ * Binary evidence (0xb1160..0xb117d, 29 B, regparm):
+ *   XOR  EAX,EAX
+ *   TEST ESI,ESI
+ *   JLE  0xb117c
+ *   PUSH EDI
+ * loop:
+ *   MOV  EDI,dword ptr [ECX]
+ *   MOV  dword ptr [EDX+EAX*8],EDI
+ *   MOV  EDI,dword ptr [ECX+0x4]
+ *   MOV  dword ptr [EDX+EAX*8+0x4],EDI
+ *   INC  EAX
+ *   ADD  ECX,0xc
+ *   CMP  EAX,ESI
+ *   JL   loop
+ *   POP  EDI
+ *   RET
+ */
+void point3d_to_point2d(const float *points3d, float *points2d, int count)
+{
+  int i;
+  for (i = 0; i < count; i++) {
+    points2d[i * 2 + 0] = points3d[i * 3 + 0];
+    points2d[i * 2 + 1] = points3d[i * 3 + 1];
+  }
+}
+
 /* King of the Hill: compute hill geometry from scenario flag positions (b1180).
  */
 void FUN_000b1180(void)

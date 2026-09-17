@@ -76,6 +76,7 @@ int __stdcall FUN_0016de80(void *device, uint32_t reg, float a, float b,
 }
 
 #include "x87_math.h"
+#include <stdarg.h>
 
 /* MSVC CRT pow(): compiles to the _CIpow intrinsic (0x1d9e70 dispatcher,
  * body at 0x1d9e94 uses fyl2x). Not in decl.h; declared locally as in
@@ -6719,4 +6720,98 @@ void rasterizer_hud_motion_sensor_blip_end(void)
 void FUN_0017ca40(void)
 {
   FUN_0015aa40();
+}
+
+/* 0x167ff0 -- rasterizer_error: format D3D error and message, then call error() */
+void FUN_00167ff0(int hr, const char *format, ...)
+{
+  va_list args;
+  char message[1024];
+  char desc[1024];
+  const char *error_name;
+
+  error_name = "<unknown error>";
+  va_start(args, format);
+  vsprintf(message, format, args);
+  va_end(args);
+
+  if (FUN_00201c48(hr, (int)desc, 1023) < 0) {
+    csstrcpy(desc, "<can't get description>");
+  }
+
+  switch (hr) {
+    case (int)0x8007000e: /* E_OUTOFMEMORY */
+      error_name = "E_OUTOFMEMORY";
+      break;
+    case (int)0x80004005: /* E_FAIL */
+      error_name = "E_FAIL";
+      break;
+    case (int)0x80070057: /* E_INVALIDARG */
+      error_name = "E_INVALIDARG";
+      break;
+    case (int)0x8876017c: /* D3DERR_OUTOFVIDEOMEMORY */
+      error_name = "D3DERR_OUTOFVIDEOMEMORY";
+      break;
+    case (int)0x88760818: /* D3DERR_WRONGTEXTUREFORMAT */
+      error_name = "D3DERR_WRONGTEXTUREFORMAT";
+      break;
+    case (int)0x88760819: /* D3DERR_UNSUPPORTEDCOLOROPERATION */
+      error_name = "D3DERR_UNSUPPORTEDCOLOROPERATION";
+      break;
+    case (int)0x8876081a: /* D3DERR_UNSUPPORTEDCOLORARG */
+      error_name = "D3DERR_UNSUPPORTEDCOLORARG";
+      break;
+    case (int)0x8876081b: /* D3DERR_UNSUPPORTEDALPHAOPERATION */
+      error_name = "D3DERR_UNSUPPORTEDALPHAOPERATION";
+      break;
+    case (int)0x8876081c: /* D3DERR_UNSUPPORTEDALPHAARG */
+      error_name = "D3DERR_UNSUPPORTEDALPHAARG";
+      break;
+    case (int)0x8876081d: /* D3DERR_TOOMANYOPERATIONS */
+      error_name = "D3DERR_TOOMANYOPERATIONS";
+      break;
+    case (int)0x8876081e: /* D3DERR_CONFLICTINGTEXTUREFILTER */
+      error_name = "D3DERR_CONFLICTINGTEXTUREFILTER";
+      break;
+    case (int)0x8876081f: /* D3DERR_UNSUPPORTEDFACTORVALUE */
+      error_name = "D3DERR_UNSUPPORTEDFACTORVALUE";
+      break;
+    case (int)0x88760821: /* D3DERR_CONFLICTINGRENDERSTATE */
+      error_name = "D3DERR_CONFLICTINGRENDERSTATE";
+      break;
+    case (int)0x88760822: /* D3DERR_UNSUPPORTEDTEXTUREFILTER */
+      error_name = "D3DERR_UNSUPPORTEDTEXTUREFILTER";
+      break;
+    case (int)0x88760826: /* D3DERR_CONFLICTINGTEXTUREPALETTE */
+      error_name = "D3DERR_CONFLICTINGTEXTUREPALETTE";
+      break;
+    case (int)0x88760827: /* D3DERR_DRIVERINTERNALERROR */
+      error_name = "D3DERR_DRIVERINTERNALERROR";
+      break;
+    case (int)0x88760866: /* D3DERR_NOTFOUND */
+      error_name = "D3DERR_NOTFOUND";
+      break;
+    case (int)0x88760867: /* D3DERR_MOREDATA */
+      error_name = "D3DERR_MOREDATA";
+      break;
+    case (int)0x88760868: /* D3DERR_DEVICELOST */
+      error_name = "D3DERR_DEVICELOST";
+      break;
+    case (int)0x88760869: /* D3DERR_DEVICENOTRESET */
+      error_name = "D3DERR_DEVICENOTRESET";
+      break;
+    case (int)0x8876086a: /* D3DERR_NOTAVAILABLE */
+      error_name = "D3DERR_NOTAVAILABLE";
+      break;
+    case (int)0x8876086b: /* D3DERR_INVALIDDEVICE */
+      error_name = "D3DERR_INVALIDDEVICE";
+      break;
+    case (int)0x8876086c: /* D3DERR_INVALIDCALL */
+      error_name = "D3DERR_INVALIDCALL";
+      break;
+    default:
+      break;
+  }
+
+  error(2, "%s in %s (code=%d, error=%s)", error_name, message, hr, desc);
 }

@@ -2486,38 +2486,898 @@
       "expected": 0,
       "observed": 8
     },
-    "0x24c143": {
-      "name": "XInputOpen",
-      "expected": 0,
-      "observed": 16
-    },
-    "0x24c1b8": {
-      "name": "XInputClose",
-      "expected": 0,
-      "observed": 4
-    },
-    "0x24c1c4": {
-      "name": "XInputGetCapabilities",
-      "expected": 0,
-      "observed": 8
-    },
-    "0x24c3b6": {
-      "name": "XInputGetState",
-      "expected": 0,
-      "observed": 8
-    },
-    "0x24c45f": {
-      "name": "XInputPoll",
-      "expected": 0,
-      "observed": 4
-    },
     "0x24c932": {
       "name": "XGetDevices",
       "expected": 0,
       "observed": 4
     },
-    "0x24c954": {
-      "name": "XGetDeviceChanges",
+    "0x0e0490": {
+      "name": "IDirect3DDevice8_PersistDisplay",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e19b0": {
+      "name": "IDirect3DDevice8_GetBackBuffer_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e19f0": {
+      "name": "IDirect3DDevice8_SetRenderTarget_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e1a00": {
+      "name": "IDirect3DDevice8_GetDepthStencilSurface_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e1a30": {
+      "name": "IDirect3DDevice8_SetTransform",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e1a40": {
+      "name": "IDirect3DDevice8_GetTransform",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e1a50": {
+      "name": "IDirect3DDevice8_SetRenderState_17",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e1cf0": {
+      "name": "IDirect3DDevice8_SetTexture_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e1d50": {
+      "name": "IDirect3DDevice8_SetTextureStageState_16",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e1ec0": {
+      "name": "IDirect3DDevice8_SetVertexShader_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e1ed0": {
+      "name": "IDirect3DDevice8_SetPixelShaderProgram_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e1ef0": {
+      "name": "IDirect3DDevice8_BlockUntilVerticalBlank",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e1f50": {
+      "name": "IDirect3DDevice8_Begin_11",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e1f60": {
+      "name": "IDirect3DDevice8_End_11",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x0e2180": {
+      "name": "D3DTexture_UnlockRect_2",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x0e21d0": {
+      "name": "IDirect3DTexture8_UnlockRect_2",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1550b0": {
+      "name": "IDirect3D8_Release",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155330": {
+      "name": "IDirect3DDevice8_Release",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155340": {
+      "name": "IDirect3DDevice8_GetDeviceCaps",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155370": {
+      "name": "IDirect3DDevice8_GetBackBuffer",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155510": {
+      "name": "IDirect3DDevice8_CreatePalette",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155520": {
+      "name": "IDirect3DDevice8_SetRenderTarget",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155530": {
+      "name": "IDirect3DDevice8_GetDepthStencilSurface",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155540": {
+      "name": "IDirect3DDevice8_BeginScene",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155550": {
+      "name": "IDirect3DDevice8_EndScene",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1558a0": {
+      "name": "IDirect3DDevice8_SetTextureStageState_15",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155900": {
+      "name": "IDirect3DDevice8_SetVertexShader_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155910": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_15",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155920": {
+      "name": "IDirect3DDevice8_SetShaderConstantMode",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155930": {
+      "name": "IDirect3DDevice8_SetStreamSource_3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155940": {
+      "name": "IDirect3DDevice8_SetIndices_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155950": {
+      "name": "IDirect3DDevice8_SetPixelShaderProgram",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155960": {
+      "name": "IDirect3DDevice8_SetVerticalBlankCallback",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155970": {
+      "name": "IDirect3DDevice8_SetVertexData2s_8",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155980": {
+      "name": "IDirect3DDevice8_Begin_10",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155990": {
+      "name": "IDirect3DDevice8_End_10",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x155b40": {
+      "name": "D3DTexture_UnlockRect_1",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x155b80": {
+      "name": "IDirect3DTexture8_UnlockRect_1",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x155c00": {
+      "name": "D3DVolumeTexture_UnlockBox_0",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x155ce0": {
+      "name": "IDirect3DVolumeTexture8_UnlockBox_0",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x155e70": {
+      "name": "D3DCubeTexture_UnlockRect_0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x156090": {
+      "name": "IDirect3DCubeTexture8_UnlockRect_0",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x156410": {
+      "name": "D3DPalette_Unlock",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x156430": {
+      "name": "IDirect3DPalette8_Unlock",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1569d0": {
+      "name": "D3DSurface_UnlockRect",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x156c20": {
+      "name": "IDirect3DSurface8_UnlockRect",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x159300": {
+      "name": "IDirect3DDevice8_SetRenderState_15",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x159520": {
+      "name": "IDirect3DDevice8_SetTextureStageState_14",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x159580": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_14",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x159590": {
+      "name": "IDirect3DDevice8_SetVertexData2s_7",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1595a0": {
+      "name": "IDirect3DDevice8_Begin_9",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1595b0": {
+      "name": "IDirect3DDevice8_End_9",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15a2a0": {
+      "name": "IDirect3DDevice8_SetRenderState_14",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15a4d0": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_13",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15a520": {
+      "name": "IDirect3DDevice8_SetVertexData2s_6",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15a530": {
+      "name": "IDirect3DDevice8_SetVertexDataColor_2",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15a540": {
+      "name": "IDirect3DDevice8_Begin_8",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15a550": {
+      "name": "IDirect3DDevice8_End_8",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15b230": {
+      "name": "IDirect3DDevice8_SetRenderState_13",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15b4d0": {
+      "name": "IDirect3DDevice8_SetTextureStageState_13",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15b5d0": {
+      "name": "IDirect3DDevice8_SetStreamSource_2",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15b670": {
+      "name": "D3DVertexBuffer_Unlock_3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15b6c0": {
+      "name": "IDirect3DVertexBuffer8_Unlock_3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15c340": {
+      "name": "IDirect3DDevice8_SetRenderState_12",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15c560": {
+      "name": "IDirect3DDevice8_SetTextureStageState_12",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15c5c0": {
+      "name": "IDirect3DDevice8_DrawVertices",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15c5d0": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_12",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15c5e0": {
+      "name": "IDirect3DDevice8_SetStreamSource_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15c630": {
+      "name": "D3DVertexBuffer_Unlock_2",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15c670": {
+      "name": "IDirect3DVertexBuffer8_Unlock_2",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15d530": {
+      "name": "IDirect3DDevice8_SetStreamSource_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15d540": {
+      "name": "IDirect3DDevice8_SetIndices",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15e750": {
+      "name": "D3DVertexBuffer_Unlock_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15e790": {
+      "name": "IDirect3DVertexBuffer8_Unlock_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15e7b0": {
+      "name": "D3DIndexBuffer_Unlock_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15e7f0": {
+      "name": "IDirect3DIndexBuffer8_Unlock_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15f320": {
+      "name": "IDirect3DDevice8_SetRenderState_11",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15f570": {
+      "name": "IDirect3DDevice8_SetTextureStageState_11",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15f5d0": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_11",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15f600": {
+      "name": "IDirect3DDevice8_SetVertexDataColor_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15f610": {
+      "name": "IDirect3DDevice8_Begin_7",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x15f620": {
+      "name": "IDirect3DDevice8_End_7",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x160670": {
+      "name": "IDirect3DDevice8_SetRenderState_10",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x160890": {
+      "name": "IDirect3DDevice8_SetTexture",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1608a0": {
+      "name": "IDirect3DDevice8_SetTextureStageState_10",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x160900": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_10",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x165a30": {
+      "name": "IDirect3DDevice8_SetRenderState_9",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x165c50": {
+      "name": "IDirect3DDevice8_SetTextureStageState_9",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x165dc0": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_9",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x165e70": {
+      "name": "IDirect3DDevice8_SetVertexData2s_5",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x165e80": {
+      "name": "IDirect3DDevice8_Begin_6",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x165e90": {
+      "name": "IDirect3DDevice8_End_6",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1682b0": {
+      "name": "D3DTexture_UnlockRect_0",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1682e0": {
+      "name": "IDirect3DTexture8_UnlockRect_0",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1682f0": {
+      "name": "D3DVolumeTexture_UnlockBox",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x168320": {
+      "name": "IDirect3DVolumeTexture8_UnlockBox",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x168330": {
+      "name": "D3DCubeTexture_UnlockRect",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x168360": {
+      "name": "IDirect3DCubeTexture8_UnlockRect",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x168c00": {
+      "name": "D3DResource_MoveResourceMemory",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x168c10": {
+      "name": "D3DVertexBuffer_MoveResourceMemory",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x168c20": {
+      "name": "D3DVertexBuffer_Unlock_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x168c60": {
+      "name": "IDirect3DVertexBuffer8_Unlock_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x168c80": {
+      "name": "D3DIndexBuffer_Unlock",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x168cc0": {
+      "name": "IDirect3DIndexBuffer8_Unlock",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1693c0": {
+      "name": "IDirect3DDevice8_SetRenderState_8",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1695e0": {
+      "name": "IDirect3DDevice8_SetTextureStageState_8",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x169640": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_8",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1696a0": {
+      "name": "IDirect3DDevice8_SetVertexData2s_4",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1696b0": {
+      "name": "IDirect3DDevice8_Begin_5",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1696c0": {
+      "name": "IDirect3DDevice8_End_5",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16aef0": {
+      "name": "IDirect3DDevice8_SetRenderState_7",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16b110": {
+      "name": "IDirect3DDevice8_SetTextureStageState_7",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16b170": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_7",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16dbd0": {
+      "name": "IDirect3DDevice8_SetRenderState_6",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16ddf0": {
+      "name": "IDirect3DDevice8_SetTextureStageState_6",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16de50": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_6",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16deb0": {
+      "name": "IDirect3DDevice8_SetVertexData2s_3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16dec0": {
+      "name": "IDirect3DDevice8_Begin_4",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16ded0": {
+      "name": "IDirect3DDevice8_End_4",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16ec60": {
+      "name": "IDirect3DDevice8_SetRenderState_5",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16ee80": {
+      "name": "IDirect3DDevice8_SetTextureStageState_5",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x16eee0": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_5",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x170160": {
+      "name": "IDirect3DDevice8_SetRenderState_4",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x170380": {
+      "name": "IDirect3DDevice8_SetTextureStageState_4",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1703e0": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_4",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x170410": {
+      "name": "IDirect3DDevice8_SetVertexData2s_2",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x170420": {
+      "name": "IDirect3DDevice8_Begin_3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x170430": {
+      "name": "IDirect3DDevice8_End_3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x172300": {
+      "name": "IDirect3DDevice8_SetRenderState_3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x172530": {
+      "name": "IDirect3DDevice8_SetTextureStageState_3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x172630": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_3",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x172670": {
+      "name": "IDirect3DDevice8_SetVertexData2s_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x172680": {
+      "name": "IDirect3DDevice8_Begin_2",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x172690": {
+      "name": "IDirect3DDevice8_End_2",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x173850": {
+      "name": "IDirect3DDevice8_SetRenderState_2",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x173a70": {
+      "name": "IDirect3DDevice8_SetTextureStageState_2",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x173ad0": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_2",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x173b10": {
+      "name": "IDirect3DDevice8_SetVertexDataColor_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x173b20": {
+      "name": "IDirect3DDevice8_Begin_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x173b30": {
+      "name": "IDirect3DDevice8_End_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x174690": {
+      "name": "IDirect3DDevice8_SetRenderState_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1748b0": {
+      "name": "IDirect3DDevice8_SetTextureStageState_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x174910": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_1",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x174920": {
+      "name": "IDirect3DDevice8_SetStreamSource",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x174930": {
+      "name": "IDirect3DDevice8_BeginVisibilityTest_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x174940": {
+      "name": "IDirect3DDevice8_EndVisibilityTest_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x174950": {
+      "name": "IDirect3DDevice8_GetVisibilityTestResult_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x174960": {
+      "name": "D3DVertexBuffer_Unlock",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1749a0": {
+      "name": "IDirect3DVertexBuffer8_Unlock",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x178840": {
+      "name": "IDirect3DDevice8_DeleteVertexShader",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x178b00": {
+      "name": "IDirect3DDevice8_SetVertexShader",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x178b10": {
+      "name": "IDirect3DDevice8_LoadVertexShader",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x178b20": {
+      "name": "IDirect3DDevice8_SelectVertexShader",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x178b30": {
+      "name": "IDirect3DDevice8_GetVertexShaderSize",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1792e0": {
+      "name": "IDirect3DDevice8_SetRenderState_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x179500": {
+      "name": "IDirect3DDevice8_SetTextureStageState_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x179560": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x179590": {
+      "name": "IDirect3DDevice8_SetVertexData2s_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1795a0": {
+      "name": "IDirect3DDevice8_Begin_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1795b0": {
+      "name": "IDirect3DDevice8_End_0",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x17aa60": {
+      "name": "IDirect3DDevice8_SetRenderState",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x17ac80": {
+      "name": "IDirect3DDevice8_SetTextureStageState",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x17ace0": {
+      "name": "IDirect3DDevice8_SetVertexShaderConstant",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x17acf0": {
+      "name": "IDirect3DDevice8_BeginVisibilityTest",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x17ad00": {
+      "name": "IDirect3DDevice8_EndVisibilityTest",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x17ad10": {
+      "name": "IDirect3DDevice8_GetVisibilityTestResult",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x17ad70": {
+      "name": "IDirect3DDevice8_SetVertexData2s",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x17ad80": {
+      "name": "IDirect3DDevice8_SetVertexDataColor",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x17ada0": {
+      "name": "IDirect3DDevice8_Begin",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x17adb0": {
+      "name": "IDirect3DDevice8_End",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1becf0": {
+      "name": "IDirect3DDevice8_IsBusy",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1bed00": {
+      "name": "IDirect3DDevice8_KickPushBuffer",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1c6160": {
+      "name": "D3DTexture_UnlockRect",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1c6190": {
+      "name": "IDirect3DTexture8_UnlockRect",
+      "expected": 0,
+      "observed": 8
+    },
+    "0x1cf91e": {
+      "name": "DuplicateHandle",
+      "expected": 0,
+      "observed": 28
+    },
+    "0x1cfb68": {
+      "name": "XapiDispatchAPC",
+      "expected": 0,
+      "observed": 12
+    },
+    "0x1cfc09": {
+      "name": "SetUnhandledExceptionFilter",
+      "expected": 0,
+      "observed": 4
+    },
+    "0x1cffbf": {
+      "name": "ReleaseSemaphore",
       "expected": 0,
       "observed": 12
     }

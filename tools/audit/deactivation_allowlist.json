@@ -959,13 +959,6 @@
     "since": "2026-06-10"
   },
   {
-    "addr": "0x17ffc0",
-    "name": "FUN_0017ffc0",
-    "object": "rasterizer_text.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
     "addr": "0x1800b0",
     "name": "FUN_001800b0",
     "object": "rasterizer_text.obj",
@@ -982,13 +975,6 @@
   {
     "addr": "0x1808f0",
     "name": "FUN_001808f0",
-    "object": "rasterizer_text.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
-    "addr": "0x180b10",
-    "name": "FUN_00180b10",
     "object": "rasterizer_text.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"
@@ -1594,5 +1580,75 @@
     "object": "ai_communication.obj",
     "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
     "since": "2026-08-27"
+  },
+  {
+    "addr": "0xb1160",
+    "name": "point3d_to_point2d",
+    "object": "game_engine.obj",
+    "reason": "VC71 byte accuracy 33.3% < 90.0%",
+    "since": "2026-09-17"
+  },
+  {
+    "addr": "0x17ffc0",
+    "name": "FUN_0017ffc0",
+    "object": "rasterizer_text.obj",
+    "reason": "VC71 byte accuracy 62.9% < 90.0%",
+    "since": "2026-09-17"
+  },
+  {
+    "addr": "0x180b10",
+    "name": "FUN_00180b10",
+    "object": "rasterizer_text.obj",
+    "reason": "VC71 byte accuracy 69.1% < 90.0%",
+    "since": "2026-09-17"
+  },
+  {
+    "addr": "0x167ff0",
+    "name": "FUN_00167ff0",
+    "object": "rasterizer_xbox_environment_fog.obj",
+    "reason": "VC71 byte accuracy unmeasured/low < 90.0%",
+    "since": "2026-09-17"
+  },
+  {
+    "addr": "0x1089d0",
+    "name": "set_point2d",
+    "object": "rectangles.obj",
+    "reason": "VC71 byte accuracy 0.0% unmeasured < 90.0%",
+    "since": "2026-09-17"
+  },
+  {
+    "addr": "0x1089f0",
+    "name": "offset_point2d",
+    "object": "rectangles.obj",
+    "reason": "VC71 byte accuracy 0.0% unmeasured < 90.0%",
+    "since": "2026-09-17"
+  },
+  {
+    "addr": "0x108a10",
+    "name": "rectangle2d_width",
+    "object": "rectangles.obj",
+    "reason": "VC71 byte accuracy 0.0% unmeasured < 90.0%",
+    "since": "2026-09-17"
+  },
+  {
+    "addr": "0x108a30",
+    "name": "rectangle2d_height",
+    "object": "rectangles.obj",
+    "reason": "VC71 byte accuracy 0.0% unmeasured < 90.0%",
+    "since": "2026-09-17"
+  },
+  {
+    "addr": "0x108a50",
+    "name": "inset_rectangle2d",
+    "object": "rectangles.obj",
+    "reason": "VC71 byte accuracy 0.0% unmeasured < 90.0%",
+    "since": "2026-09-17"
+  },
+  {
+    "addr": "0x130c0",
+    "name": "real_random",
+    "object": "vector_math.obj",
+    "reason": "VC71 byte accuracy 0.0% unmeasured < 90.0%",
+    "since": "2026-09-17"
   }
 ]

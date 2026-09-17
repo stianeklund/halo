@@ -3057,6 +3057,42 @@ int FUN_000caea0(int param_1)
   return param_1;
 }
 
+/* 0xcaef0 — Convert a 16-bit integer to a 32-bit float bit-pattern in EAX.
+ * Part of hs_cast_table (slot desired=6, actual=7).
+ *
+ * Binary evidence (0xcaef0..0xcaf05, cdecl, EBP frame, no sub esp):
+ *   MOVSX EAX,word ptr [EBP+0x8]
+ *   MOV   dword ptr [EBP+0x8],EAX
+ *   FILD  dword ptr [EBP+0x8]
+ *   FSTP  dword ptr [EBP+0x8]
+ *   MOV   EAX,dword ptr [EBP+0x8]
+ *   POP   EBP
+ *   RET
+ */
+int hs_short_to_real(int16_t value)
+{
+  float result;
+  result = (float)value;
+  return *(int *)&result;
+}
+
+/* 0xcaf10 — Convert a 32-bit integer to a 32-bit float bit-pattern in EAX.
+ * Part of hs_cast_table (slot desired=6, actual=8).
+ *
+ * Binary evidence (0xcaf10..0xcaf1e, cdecl, EBP frame, no sub esp):
+ *   FILD  dword ptr [EBP+0x8]
+ *   FSTP  dword ptr [EBP+0x8]
+ *   MOV   EAX,dword ptr [EBP+0x8]
+ *   POP   EBP
+ *   RET
+ */
+int hs_long_to_real(int32_t value)
+{
+  float result;
+  result = (float)value;
+  return *(int *)&result;
+}
+
 /* 0xcaf20 — Increment a 16-bit value and return it re-boxed as a 32-bit float
  * bit-pattern in EAX (not ST0).
  *
@@ -3088,6 +3124,41 @@ int FUN_000caf20(int16_t param_1)
   local_1 = (int)param_1 + 1;
   local_2 = (float)local_1;
   return *(int *)&local_2;
+}
+
+/* 0xcaf40 — Convert a 32-bit float bit-pattern to a 16-bit integer in the low
+ * 16 bits of the argument slot, preserving high 16 bits.
+ * Part of hs_cast_table (slot desired=7, actual=6).
+ *
+ * Binary evidence (0xcaf40..0xcaf54, cdecl, EBP frame, no sub esp):
+ *   FLD   dword ptr [EBP+0x8]
+ *   CALL  0x1d9068                  ; _ftol2
+ *   MOV   word ptr [EBP+0x8],AX
+ *   MOV   EAX,dword ptr [EBP+0x8]
+ *   POP   EBP
+ *   RET
+ */
+int hs_real_to_short(int value)
+{
+  float f;
+  f = *(float *)&value;
+  *(int16_t *)&value = (int16_t)f;
+  return value;
+}
+
+/* 0xcaf60 — Convert a 32-bit float bit-pattern to a 32-bit integer.
+ * Part of hs_cast_table (slot desired=8, actual=6).
+ *
+ * Binary evidence (0xcaf60..0xcaf6c, cdecl, EBP frame, no sub esp):
+ *   FLD   dword ptr [EBP+0x8]
+ *   POP   EBP
+ *   JMP   0x1d9068                  ; _ftol2 tail-call
+ */
+int hs_real_to_long(int value)
+{
+  float f;
+  f = *(float *)&value;
+  return (int)f;
 }
 
 /* 0xcaf80 — Resolve an object-name index to a handle and register it with the
@@ -4728,7 +4799,7 @@ void hs_runtime_initialize(void)
  * 0x5aa698 = hs_object_list_header_data (data_t*)
  * 0x5aa694 = hs_object_list_reference_data (data_t*)
  */
-void hs_runtime_dispose(void)
+void object_lists_dispose_from_old_map(void)
 {
   data_make_invalid(*(data_t **)0x5aa698);
   data_make_invalid(*(data_t **)0x5aa694);
