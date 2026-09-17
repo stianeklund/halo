@@ -686,3 +686,93 @@ bool FUN_00106f50(int16_t point_count, float *points, int16_t vertices_capacity,
   }
   return 0;
 }
+
+/* 0x108060 — Clip two convex 2D polygons against each other (convex_hull2d_intersect).
+ * Intersects polygon p (p_count vertices) with polygon q (q_count vertices).
+ * Uses two 512-point ping-pong stack buffers, clipping q against each oriented
+ * edge plane of p in turn. Returns the resulting vertex count, or -1 on error.
+ * Source: c:\halo\SOURCE\math\geometry.c */
+short FUN_00108060(int16_t p_count, const float *p, int16_t q_count,
+                   const float *q, int16_t maximum_count, float *result,
+                   float epsilon)
+{
+  float ping_pong[2][512 * 2];
+  float plane[3];
+  int16_t i;
+  int16_t prev;
+  int16_t current_count;
+  const float *current_input;
+  float *current_output;
+
+  if (maximum_count > 512) {
+    display_assert("maximum_count<=CLIP_BUFFER_SIZE",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x3f8, 1);
+    system_exit(-1);
+  }
+  if (p == NULL) {
+    display_assert("p", "c:\\halo\\SOURCE\\math\\geometry.c", 0x3f9, 1);
+    system_exit(-1);
+  }
+  if (p_count == 0) {
+    display_assert("p_count", "c:\\halo\\SOURCE\\math\\geometry.c", 0x3fa, 1);
+    system_exit(-1);
+  }
+  if (q == NULL) {
+    display_assert("q", "c:\\halo\\SOURCE\\math\\geometry.c", 0x3fb, 1);
+    system_exit(-1);
+  }
+  if (q_count == 0) {
+    display_assert("q_count", "c:\\halo\\SOURCE\\math\\geometry.c", 0x3fc, 1);
+    system_exit(-1);
+  }
+  if (result == NULL) {
+    display_assert("result", "c:\\halo\\SOURCE\\math\\geometry.c", 0x3fd, 1);
+    system_exit(-1);
+  }
+  if (p == result || q == result) {
+    display_assert("p!=result && q!=result",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x3fe, 1);
+    system_exit(-1);
+  }
+
+  current_count = q_count;
+  current_input = q;
+
+  for (i = 0; i < p_count; i++) {
+    if (current_count <= 0) {
+      break;
+    }
+
+    if (i == 0) {
+      prev = (int16_t)(p_count - 1);
+    } else {
+      prev = (int16_t)(i - 1);
+    }
+
+    if (i == p_count - 1) {
+      current_output = result;
+    } else {
+      current_output = ping_pong[i & 1];
+    }
+
+    if (plane2d_from_points(plane, (float *)&p[i * 2], (float *)&p[prev * 2]) != NULL) {
+      current_count = convex_polygon2d_clip_to_plane(
+        current_count, (float *)current_input, plane, maximum_count,
+        current_output, NULL, NULL, epsilon);
+      if (current_count == -1) {
+        return -1;
+      }
+    } else {
+      if (current_count > maximum_count) {
+        display_assert("result_count>=0 && result_count<=maximum_count",
+                       "c:\\halo\\SOURCE\\math\\geometry.c", 0x40d, 1);
+        system_exit(-1);
+      }
+      csmemcpy(current_output, (void *)current_input, (size_t)current_count * 8);
+    }
+
+    current_input = current_output;
+  }
+
+  return current_count;
+}
