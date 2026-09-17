@@ -4614,7 +4614,7 @@ void FUN_000be5e0(int16_t function_index, int thread_handle, char init)
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_handle, init);
   if (record != NULL) {
-    FUN_000ca030(record[0], *(float *)(record + 1));
+    FUN_000ca030((const char *)record[0], *(float *)(record + 1));
     hs_return(thread_handle, 0);
   }
 }
@@ -4648,7 +4648,7 @@ void FUN_000be620(int16_t function_index, int thread_handle, char init)
 
   record = hs_macro_function_evaluate(function_index, thread_handle, init);
   if (record != 0) {
-    cell.f = FUN_000ca010(*(int *)record);
+    cell.f = FUN_000ca010((const char *)*(int *)record);
     hs_return(thread_handle, cell.i);
   }
 }

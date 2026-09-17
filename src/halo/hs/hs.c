@@ -8523,6 +8523,17 @@ void hs_dispose(void)
   FUN_000ce1b0(); /* 0xce1b0 (empty) */
 }
 
+/* 0xc3c40 — Request runtime recompilation of scenario scripts.
+ *
+ * Binary evidence (0xc3c40..0xc3c47):
+ *   MOV byte ptr [0x46b6d8], 1
+ *   RET
+ */
+void hs_recompile(void)
+{
+  *(uint8_t *)0x46b6d8 = 1;
+}
+
 /* Per-tick script update with optional profiling. */
 void hs_update(void)
 {
@@ -8933,6 +8944,147 @@ void hs_tokens_enumerate_functions(void)
     hs_tokens_add(*(const char **)((char *)((void **)0x2f1588)[i] + 4));
   }
   return;
+}
+
+/* 0xc4240 — Enumerate registered scenario script names. */
+void hs_enumerate_script_names(void)
+{
+  if (*(int *)0x326a08 != NONE) {
+    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x49c, 0, 0x5c);
+  }
+}
+
+/* 0xc4270 — Enumerate global script variables (engine globals + scenario globals). */
+void hs_enumerate_variable_names(void)
+{
+  int16_t i;
+  int16_t external_count;
+  void *block;
+  const char *name;
+
+  external_count = *(int16_t *)0x27d504;
+  for (i = 0; i < external_count; i++) {
+    if (i < 0 || i >= external_count) {
+      display_assert("global_index>=0 && global_index<hs_external_global_count",
+                     "c:\\halo\\SOURCE\\hs\\hs.c", 0x240, 1);
+      system_exit(-1);
+    }
+    hs_tokens_add(*(const char **)((void **)0x2f3708)[i]);
+  }
+
+  if (*(int *)0x326a08 != NONE) {
+    block = (char *)global_scenario_get() + 0x4a8;
+    for (i = 0; (int)i < *(int *)block; i++) {
+      name = (const char *)tag_block_get_element(block, (int)i, 0x5c);
+      hs_tokens_add(name);
+    }
+  }
+}
+
+/* 0xc4320 — Enumerate encounter and squad AI names for script binding. */
+void hs_enumerate_ai_names(void)
+{
+  if (*(int *)0x326a08 != NONE) {
+    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x42c, 0, 0xb0);
+  }
+}
+
+/* 0xc4350 — Enumerate AI command lists. */
+void hs_enumerate_ai_command_list_names(void)
+{
+  if (*(int *)0x326a08 != NONE) {
+    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x438, 0, 0x60);
+  }
+}
+
+/* 0xc4380 — Enumerate player starting equipment profiles. */
+void hs_enumerate_starting_profile_names(void)
+{
+  if (*(int *)0x326a08 != NONE) {
+    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x348, 0, 0x68);
+  }
+}
+
+/* 0xc43b0 — Enumerate cinematic conversations. */
+void hs_enumerate_conversation_names(void)
+{
+  if (*(int *)0x326a08 != NONE) {
+    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x468, 0, 0x74);
+  }
+}
+
+/* 0xc43e0 — Enumerate named scenario object references. */
+void hs_enumerate_object_names(void)
+{
+  if (*(int *)0x326a08 != NONE) {
+    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x204, 0, 0x24);
+  }
+}
+
+/* 0xc4410 — Enumerate trigger volumes. */
+void hs_enumerate_trigger_volume_names(void)
+{
+  if (*(int *)0x326a08 != NONE) {
+    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x360, 4, 0x60);
+  }
+}
+
+/* 0xc4440 — Enumerate cutscene markers. */
+void hs_enumerate_cutscene_flag_names(void)
+{
+  if (*(int *)0x326a08 != NONE) {
+    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x4e4, 4, 0x5c);
+  }
+}
+
+/* 0xc4470 — Enumerate camera tracks. */
+void hs_enumerate_cutscene_camera_point_names(void)
+{
+  if (*(int *)0x326a08 != NONE) {
+    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x4f0, 4, 0x68);
+  }
+}
+
+/* 0xc44a0 — Enumerate chapter and mission title cards. */
+void hs_enumerate_cutscene_title_names(void)
+{
+  if (*(int *)0x326a08 != NONE) {
+    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x4fc, 4, 0x60);
+  }
+}
+
+/* 0xc44d0 — Enumerate recorded animations. */
+void hs_enumerate_cutscene_recording_names(void)
+{
+  if (*(int *)0x326a08 != NONE) {
+    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x36c, 0, 0x40);
+  }
+}
+
+/* 0xc4500 — Enumerate HUD navpoint tags. */
+void hs_enumerate_navpoints(void)
+{
+  int tag_index;
+
+  tag_index = interface_get_tag_index(6);
+  if (tag_index != NONE) {
+    void *hud_globals;
+    hud_globals = tag_get(0x68756467 /* 'hudg' */, tag_index);
+    hs_tokens_enumerate_tag_block((char *)hud_globals + 0x160, 0, 0x68);
+  }
+}
+
+/* 0xc4540 — Enumerate script HUD message strings. */
+void hs_enumerate_hud_messages(void)
+{
+  scenario_t *scenario;
+
+  scenario = global_scenario_get();
+  if (*(int *)((char *)scenario + 0x5a0) != NONE) {
+    void *messages;
+    messages = tag_get(0x686d7420 /* 'hmt ' */, *(int *)((char *)scenario + 0x5a0));
+    hs_tokens_enumerate_tag_block((char *)messages + 0x20, 0, 0x40);
+  }
 }
 
 /* 0xc4580 — Collect every hs token name matching a prefix into `tokens`.
@@ -9622,6 +9774,59 @@ void hs_doc(void)
   }
 
   crt_fclose(file);
+}
+
+/* 0xc4f90 — Developer test hook for script execution.
+ *
+ * Binary evidence (0xc4f90..0xc4fe0):
+ *   CALL hs_needs_recompile
+ *   TEST AL,AL
+ *   JE   0xc4fe0
+ *   CALL hs_mark_recompile
+ *   CALL hs_dispose_from_old_map
+ *   CMP  [0x326a08],-1
+ *   JE   0xc4fb6
+ *   CALL global_scenario_get
+ *   MOV  ESI,EAX
+ *   JMP  0xc4fb8
+ * 0xc4fb6:
+ *   XOR  ESI,ESI
+ * 0xc4fb8:
+ *   CALL hs_scripts_initialize
+ *   TEST ESI,ESI
+ *   JE   0xc4fd5
+ *   MOV  EAX,[ESI+0x474] ; scenario->source_files.count
+ *   TEST EAX,EAX
+ *   JE   0xc4fd5
+ *   PUSH 0
+ *   CALL hs_load_scenario_scripts(0)
+ *   ADD  ESP,4
+ * 0xc4fd5:
+ *   CALL hs_runtime_initialize
+ *   POP  ESI
+ *   JMP  hs_runtime_initialize_for_new_map
+ * 0xc4fe0:
+ *   RET
+ */
+void hs_hack(void)
+{
+  scenario_t *scenario;
+
+  if (hs_needs_recompile()) {
+    hs_mark_recompile();
+    hs_dispose_from_old_map();
+    if (*(int *)0x326a08 != NONE) {
+      scenario = global_scenario_get();
+    } else {
+      scenario = NULL;
+    }
+    hs_scripts_initialize();
+    if (scenario != NULL && *(int *)((char *)scenario + 0x474) != 0) {
+      hs_load_scenario_scripts(0);
+    }
+    hs_runtime_initialize();
+    hs_runtime_initialize_for_new_map();
+  }
 }
 
 /* 0xc4ff0 — HS console command handler: print documentation.
