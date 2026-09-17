@@ -3871,3 +3871,27 @@ void FUN_00053af0(void)
   column_positions[2] = 0x1c2; /* 450 */
   FUN_00053800((char *)0x5ab280, 3, column_positions, *(void **)0x2ee6c4);
 }
+
+/* 0x53800 -- ai_profile_string: draw AI profiling / status text line at current bottom Y */
+void FUN_00053800(char *text, int column_count, short *column_positions, void *context)
+{
+  int16_t bounds[4];
+  int16_t cursor[4];
+
+  bounds[0] = *(int16_t *)0x5aba80;
+  bounds[1] = 0;
+  bounds[2] = 0x7fff;
+  bounds[3] = 0x7fff;
+
+  if (context == NULL) {
+    context = *(void **)0x2ee6c4;
+  }
+
+  interface_draw_text(1, -1, 0, 0, 5, 0);
+  draw_string_set_color(context);
+  draw_string_set_tab_stops(column_positions, (short)column_count);
+  rasterizer_text_draw(bounds, NULL, cursor, 0, text);
+  draw_string_set_tab_stops(NULL, 0);
+
+  *(int16_t *)0x5aba80 += (int16_t)(bounds[0] - cursor[1]);
+}

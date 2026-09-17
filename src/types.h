@@ -588,7 +588,7 @@ typedef struct {
                                  ///< player_control_get_autoaim_level (FLD
                                  ///< [globals + index*0x40 + 0x3c])
   real    field_0x30;            ///< offset=0x30
-  uint8_t pad_0x34[0x4];         ///< offset=0x34
+  real    field_0x34;            ///< offset=0x34
   real    pitch_minimum;         ///< offset=0x38 lower clamp for desired_angles.pitch
   real    pitch_maximum;         ///< offset=0x3c upper clamp for desired_angles.pitch
 } player_control_t;
@@ -604,6 +604,7 @@ co(player_control_t, target_object_index,    0x28);
 co(player_control_t, desired_grenade_index,  0x22);
 co(player_control_t, desired_zoom_level,     0x24);
 co(player_control_t, autoaim_level,          0x2c);
+co(player_control_t, field_0x34,             0x34);
 co(player_control_t, pitch_minimum,          0x38);
 co(player_control_t, pitch_maximum,          0x3c);
 

@@ -1687,3 +1687,13 @@ void FUN_00093e20(short *angles, unsigned char *control, unsigned char *header,
 
   *stream = *stream + 4;
 }
+
+/* 0x93be0 — FUN_00093be0 */
+void FUN_00093be0(short *angles, float *out_vector)
+{
+  float float_angles[2];
+
+  float_angles[0] = (float)angles[0] * RECORDED_ANIMATION_ANGLE_SCALE;
+  float_angles[1] = (float)angles[1] * RECORDED_ANIMATION_ANGLE_SCALE;
+  angles_to_vector(out_vector, float_angles);
+}

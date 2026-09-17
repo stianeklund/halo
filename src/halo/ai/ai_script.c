@@ -310,3 +310,24 @@ void ai_renew(int handle)
     actor = ai_index_actor_iterator_next(local_1c);
   }
 }
+
+/* 0x57330 — ai_scripting_command_list_status_internal */
+short ai_scripting_command_list_status_internal(int16_t scenario_index, void *record, int field_1a8_val, int child_handle, int reserved)
+{
+  char *list;
+  unsigned char flags;
+  const unsigned char *point = (const unsigned char *)record;
+
+  (void)field_1a8_val;
+  (void)child_handle;
+  (void)reserved;
+
+  list = (char *)tag_block_get_element((char *)global_scenario_get() + 0x438,
+                                       scenario_index, 0x60);
+  if ((int)point[0] < *(int *)(list + 0x30) &&
+      tag_block_get_element(list + 0x30, point[0], 0x20) != (void *)0) {
+    flags = (unsigned char)~point[4];
+    return (short)(((flags & 0x10) | 0x20) >> 4);
+  }
+  return 1;
+}

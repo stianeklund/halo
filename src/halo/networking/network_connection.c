@@ -1132,3 +1132,8 @@ bool network_connection_idle(int connection, int *output)
   }
   return ok;
 }
+
+/* 0x1282e0 — network_connection_initialize */
+void network_connection_initialize(void)
+{
+}

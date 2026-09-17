@@ -165,6 +165,13 @@ unsigned char xbox_demos_available(void)
   return *(volatile unsigned char *)0x46beac;
 }
 
+/* 0xe0490 — IDirect3DDevice8_PersistDisplay */
+void __stdcall IDirect3DDevice8_PersistDisplay(void *device)
+{
+  (void)device;
+  D3DDevice_PersistDisplay();
+}
+
 /* clean_up_for_image_launch — prepare the engine for XLaunchNewImage().
  *
  * 1. Log a diagnostic via error(2, ...).

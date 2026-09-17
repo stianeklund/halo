@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* Allocate the first-person weapons game state block (0xdc750).
  * Reserves 0x7a80 bytes (4 slots of 0x1ea0 each) via game_state_malloc.
  * Asserts on allocation failure. */
@@ -12,8 +14,8 @@ void FUN_000dc750(void)
   }
 }
 
-/* Dispose first-person weapons (0xdc790, stub). */
-void FUN_000dc790(void)
+/* 0xdc790 — first_person_weapons_dispose */
+void first_person_weapons_dispose(void)
 {
 }
 
@@ -413,6 +415,74 @@ void FUN_000dce00(int16_t local_player_index)
   *(int16_t *)(fp + 0x12) = 0x1e;
 }
 
+/* 0xdce80 — first_person_weapon_draw */
+void first_person_weapon_draw(void)
+{
+  int16_t current_player;
+  char *fp;
+  int player_index;
+  char *player;
+  int unit_handle;
+  char *unit;
+  char *weapon;
+  char *tag;
+  int antr_tag_index;
+  int light_index;
+  uint16_t light_flags[2];
+  char node_matrices[3328];
+  char *antr_data;
+
+  current_player = *(int16_t *)0x506548;
+  if (current_player == -1) {
+    return;
+  }
+  if (current_player < 0 || current_player >= 4) {
+    display_assert(0, "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x599, 1);
+    system_exit(-1);
+  }
+
+  fp = (char *)*(int *)0x46bea8 + (int)current_player * 0x1ea0;
+  player_index = player_index_from_unit_index((int)current_player);
+  if (player_index == -1) {
+    return;
+  }
+
+  player = (char *)datum_get(player_data, player_index);
+  unit_handle = *(int *)(player + 0x34);
+  if (unit_handle == -1 || !*fp || *(int *)(fp + 4) == -1 || *(int *)(fp + 8) == -1) {
+    return;
+  }
+
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  weapon = (char *)object_get_and_verify_type(*(int *)(fp + 8), 4);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  antr_tag_index = *(int *)(tag + 0x478);
+  if (antr_tag_index == -1) {
+    return;
+  }
+
+  tag_get(0x616e7472, antr_tag_index);
+  light_index = (int)scenario_leaf_index_from_point(unit_handle, 3.4028235e+38f);
+  if ((*(uint8_t *)(unit + 0x1b4) & 0x10) || *(float *)(unit + 0x32c) > 0.0f) {
+    light_flags[0] = 1;
+  } else {
+    light_flags[0] = 0;
+  }
+
+  if (*(uint8_t *)(fp + 0x1d8c) && *(int *)(tag + 0x468) != -1) {
+    fp_anim_apply_node_remap(*(int *)(tag + 0x468), (int)node_matrices, antr_tag_index, (int)(fp + 0x108c), (int16_t *)(fp + 0x1d8e));
+    render_model(*(int *)(tag + 0x468), 0.0f, (void *)node_matrices, 0, (void *)(weapon + 0x168), (void *)(weapon + 0xe4), light_index, (void *)0x506550, 0, (void *)light_flags, *(int *)(fp + 8), 0, 8);
+  }
+
+  if (*(uint8_t *)(fp + 0x1e0e)) {
+    antr_data = (char *)tag_block_get_element((char *)game_globals_get() + 0x17c, 0, 0xc0);
+    if (*(int *)(antr_data + 0xc) != -1) {
+      fp_anim_apply_node_remap(*(int *)(antr_data + 0xc), (int)node_matrices, antr_tag_index, (int)(fp + 0x108c), (int16_t *)(fp + 0x1e10));
+      render_model(*(int *)(antr_data + 0xc), 0.0f, (void *)node_matrices, 0, (void *)(unit + 0x168), (void *)(unit + 0xe4), light_index, (void *)0x506550, 0, (void *)light_flags, *(int *)(fp + 8), 0, 8);
+    }
+  }
+}
+
 /* Search the 4 first-person weapon slots for the one owning object_handle.
  * Returns the local player index (0-3), or -1 if not found (0xdd110). */
 int first_person_weapon_get_local_index(int object_handle)
@@ -490,6 +560,168 @@ void FUN_000dd4d0(int16_t local_player_index, int16_t blend_ticks)
     *(int16_t *)(fp + 0x88) = 0;
     *(int16_t *)(fp + 0x8a) = blend_ticks;
   }
+}
+
+/* 0xdd190 — first_person_weapon_get_marker_by_name */
+int16_t first_person_weapon_get_marker_by_name(int object_handle, void *marker_name, void *out_markers, int max_count)
+{
+  char *weapon;
+  int16_t local_player_index;
+  char *fp;
+  char *tag;
+  char *antr_tag;
+  int antr_tag_index;
+  int mode_tag_index;
+
+  weapon = (char *)object_get_and_verify_type(object_handle, 4);
+  if (!weapon) {
+    return 0;
+  }
+
+  local_player_index = FUN_000dcd60(object_handle);
+  if (local_player_index == -1 || director_get_perspective(local_player_index) != 0) {
+    return 0;
+  }
+
+  fp = (char *)FUN_000dcaf0(local_player_index);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+
+  if (!*(uint8_t *)(fp + 0x1d8c)) {
+    return 0;
+  }
+
+  mode_tag_index = *(int *)(tag + 0x468);
+  if (mode_tag_index == -1) {
+    return 0;
+  }
+
+  antr_tag_index = *(int *)(tag + 0x478);
+  if (antr_tag_index == -1) {
+    return 0;
+  }
+
+  antr_tag = (char *)tag_get(0x616e7472, antr_tag_index);
+
+  return FUN_00124730(
+    mode_tag_index,
+    (const char *)marker_name,
+    0,
+    (int)(fp + 0x1d8e),
+    *(int16_t *)(antr_tag + 0x68),
+    fp + 0x108c,
+    0,
+    out_markers,
+    (int16_t)max_count
+  );
+}
+
+/* 0xdd260 — first_person_weapon_center_flashlight */
+void first_person_weapon_center_flashlight(int object_handle, float *out_position, float *out_forward, void *out_up)
+{
+  int16_t local_player_index;
+  char *fp;
+  char marker_buf[0x6c];
+  float *marker_forward;
+  float *marker_position;
+  float *marker_up;
+
+  local_player_index = FUN_000dcdc0(object_handle);
+  if (local_player_index == -1) {
+    return;
+  }
+
+  if (local_player_index < 0 || local_player_index >= 4) {
+    display_assert(0, "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x599, 1);
+    system_exit(-1);
+  }
+
+  fp = (char *)*(int *)0x46bea8 + (int)local_player_index * 0x1ea0;
+  if (!*(uint8_t *)fp) {
+    return;
+  }
+
+  if (first_person_weapon_get_marker_by_name(*(int *)(fp + 8), (void *)"flashlight", marker_buf, 1) <= 0) {
+    return;
+  }
+
+  marker_forward = (float *)(marker_buf + 0x3c);
+  marker_up = (float *)(marker_buf + 0x54);
+  marker_position = (float *)(marker_buf + 0x60);
+
+  out_position[0] = marker_position[0] - marker_forward[0] * 0.5f;
+  out_position[1] = marker_position[1] - marker_forward[1] * 0.5f;
+  out_position[2] = marker_position[2] - marker_forward[2] * 0.5f;
+
+  out_forward[0] = marker_forward[0];
+  out_forward[1] = marker_forward[1];
+  out_forward[2] = marker_forward[2];
+
+  if (out_up) {
+    ((float *)out_up)[0] = marker_up[0];
+    ((float *)out_up)[1] = marker_up[1];
+    ((float *)out_up)[2] = marker_up[2];
+  }
+}
+
+/* 0xdd340 — first_person_weapon_adjust_light */
+char first_person_weapon_adjust_light(int object_handle, int marker_result, void *out_position, void *out_forward, void *out_up)
+{
+  char *weapon;
+  char *unit;
+  int player_datum_index;
+  char *player_datum;
+  int16_t local_player_index;
+  char *fp;
+  char marker_buf[0x6c];
+  float *marker_forward;
+  float *marker_up;
+  float *marker_position;
+
+  weapon = (char *)object_get_and_verify_type(object_handle, 4);
+  unit = (char *)object_get_and_verify_type(*(int *)(weapon + 0xcc), 3);
+  player_datum_index = *(int *)(unit + 0x1c8);
+  if (player_datum_index == -1) {
+    return 0;
+  }
+
+  player_datum = (char *)datum_get(*(void **)0x5aa6d4, player_datum_index);
+  local_player_index = *(int16_t *)(player_datum + 2);
+  if (local_player_index == -1 || local_player_index != *(int16_t *)0x506548) {
+    return 0;
+  }
+
+  fp = (char *)FUN_000dcaf0(local_player_index);
+  if (!*(uint8_t *)fp) {
+    return 0;
+  }
+
+  if (first_person_weapon_get_marker_by_name(object_handle, (void *)marker_result, marker_buf, 1) <= 0) {
+    return 0;
+  }
+
+  marker_forward = (float *)(marker_buf + 0x3c);
+  marker_up = (float *)(marker_buf + 0x54);
+  marker_position = (float *)(marker_buf + 0x60);
+
+  if (out_position) {
+    ((float *)out_position)[0] = marker_position[0];
+    ((float *)out_position)[1] = marker_position[1];
+    ((float *)out_position)[2] = marker_position[2];
+  }
+
+  if (out_forward) {
+    ((float *)out_forward)[0] = marker_forward[0];
+    ((float *)out_forward)[1] = marker_forward[1];
+    ((float *)out_forward)[2] = marker_forward[2];
+  }
+
+  if (out_up) {
+    ((float *)out_up)[0] = marker_up[0];
+    ((float *)out_up)[1] = marker_up[1];
+    ((float *)out_up)[2] = marker_up[2];
+  }
+
+  return 1;
 }
 
 /* Get first-person weapon markers by name, but only for the local player
@@ -953,6 +1185,443 @@ void first_person_weapon_message_from_weapon(int object_handle, int param_2)
   }
 }
 
+/* 0xdd580 — first_person_weapon_update */
+void first_person_weapon_update(int16_t local_player_index)
+{
+  char *fp;
+  char *weapon;
+  char *tag;
+  char *model_tag;
+  char *antr_tag;
+  char *unit_anim;
+  int16_t node_index;
+  char *node_elem;
+  char *matrices;
+
+  if (local_player_index < 0 || local_player_index >= 4) {
+    display_assert(0, "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x599, 1);
+    system_exit(-1);
+  }
+
+  fp = (char *)*(int *)0x46bea8 + (int)local_player_index * 0x1ea0;
+  if (!*(uint8_t *)(fp + 0x50)) {
+    vector_to_angles((float *)(fp + 0x60), (float *)0x50655c);
+    *(uint32_t *)(fp + 0x70) = *(uint32_t *)0x506550;
+    *(uint32_t *)(fp + 0x74) = *(uint32_t *)0x506554;
+    *(uint32_t *)(fp + 0x78) = *(uint32_t *)0x506558;
+  }
+
+  *(uint32_t *)(fp + 0x6c) = *(uint32_t *)(fp + 0x64);
+  *(uint32_t *)(fp + 0x68) = *(uint32_t *)(fp + 0x60);
+  *(uint32_t *)(fp + 0x7c) = *(uint32_t *)(fp + 0x70);
+  *(uint32_t *)(fp + 0x80) = *(uint32_t *)(fp + 0x74);
+  *(uint32_t *)(fp + 0x84) = *(uint32_t *)(fp + 0x78);
+
+  vector_to_angles((float *)(fp + 0x60), (float *)0x50655c);
+  *(uint32_t *)(fp + 0x70) = *(uint32_t *)0x506550;
+  *(uint32_t *)(fp + 0x74) = *(uint32_t *)0x506554;
+  *(uint32_t *)(fp + 0x78) = *(uint32_t *)0x506558;
+
+  *(uint32_t *)(fp + 0x54) = *(uint32_t *)0x50655c;
+  *(uint32_t *)(fp + 0x58) = *(uint32_t *)0x506560;
+  *(uint32_t *)(fp + 0x5c) = *(uint32_t *)0x506564;
+
+  *(uint8_t *)(fp + 0x50) = 1;
+
+  if (*(int *)(fp + 8) != -1 && !object_get_and_verify_type(*(int *)(fp + 8), 4)) {
+    error(3, "local player %d, weapon (0x%x), deleted unexpectedly", (int)local_player_index, *(int *)(fp + 8));
+    *(int *)(fp + 8) = -1;
+  }
+
+  if (*(int *)(fp + 8) == -1) {
+    return;
+  }
+
+  weapon = (char *)object_get_and_verify_type(*(int *)(fp + 8), 4);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  model_tag = (char *)tag_get(0x6d6f6465, *(uint32_t *)(tag + 0x468));
+  antr_tag = (char *)tag_get(0x616e7472, *(uint32_t *)(tag + 0x478));
+
+  if (*(int *)(antr_tag + 0x48) == 0 || !(unit_anim = (char *)tag_block_get_element(antr_tag + 0x48, 0, 0x1c))) {
+    animation_graph_node_matrices_from_orientations(*(int *)(tag + 0x478), (float *)(fp + 0x108c), (float *)(fp + 0x8c), (float *)0x506550, (float *)0x50655c, (float *)0x506568);
+    return;
+  }
+
+  if (*(int16_t *)(fp + 0x16) != -1) {
+    char *anim_node = (char *)tag_block_get_element(antr_tag + 0x74, (int)*(int16_t *)(fp + 0x16), 0xb4);
+    FUN_00121d60(0, anim_node, *(int16_t *)(fp + 0x18), fp + 0x8c);
+  } else {
+    display_assert(0, "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x50e, 1);
+    system_exit(-1);
+    FUN_00123aa0(model_tag, fp + 0x8c);
+  }
+
+  matrices = fp + 0x8c;
+
+  if (*(int *)(unit_anim + 0x10) >= 0x12) {
+    node_index = *(int16_t *)(*(int *)(unit_anim + 0x14) + 0x22);
+    if (node_index != -1) {
+      node_elem = (char *)tag_block_get_element(antr_tag + 0x74, (int)node_index, 0xb4);
+      if (*(int16_t *)(tag + 0x4e2) != 2 || (*(int16_t *)(*(char **)0x46bea8 + 0xc) != 0xd && *(int16_t *)(*(char **)0x46bea8 + 0xc) != 0xe)) {
+        if (*(int16_t *)(weapon + 0x260) < *(int16_t *)(node_elem + 0x22)) {
+          overlay_animation_apply(node_elem, (int)*(int16_t *)(weapon + 0x260), matrices);
+        }
+      } else {
+        int frame = (int)*(int16_t *)(weapon + 0x260);
+        int16_t diff = *(int16_t *)(weapon + 0x25c) - *(int16_t *)(weapon + 0x25a);
+        if (diff >= 0x2c) {
+          char *mag_def = (char *)tag_block_get_element(tag + 0x4f0, 0, 0x70);
+          float frac = (float)(diff - 0x2c) * 0.2f;
+          int16_t max_rounds = *(int16_t *)(mag_def + 0xa);
+          int16_t rounds = *(int16_t *)(weapon + 0x25e);
+          if (frac > 1.0f) frac = 1.0f;
+          if (rounds > max_rounds) rounds = max_rounds;
+          frame += (int)((float)(rounds - frame) * frac);
+        }
+        overlay_animation_apply(node_elem, frame, matrices);
+      }
+    }
+  }
+
+  if (*(int16_t *)(fp + 0x1a) != -1) {
+    char *node = (char *)tag_block_get_element(antr_tag + 0x74, (int)*(int16_t *)(fp + 0x1a), 0xb4);
+    overlay_animation_apply(node, (int)*(int16_t *)(fp + 0x1c), matrices);
+  }
+
+  if (*(int16_t *)(fp + 0x20) != -1) {
+    char *node = (char *)tag_block_get_element(antr_tag + 0x74, (int)*(int16_t *)(fp + 0x20), 0xb4);
+    FUN_00122a50(*(int *)(node + 0x20), *(float *)(fp + 0x24), *(float *)(weapon + 0x1f4) + *(float *)0x253398, (int)matrices);
+  }
+
+  if (*(int *)(unit_anim + 0x10) >= 5) {
+    node_index = *(int16_t *)(*(int *)(unit_anim + 0x14) + 8);
+    if (node_index != -1) {
+      char *node = (char *)tag_block_get_element(antr_tag + 0x74, (int)node_index, 0xb4);
+      if (*(int16_t *)(node + 0x22) >= 9) {
+        if (*(float *)(fp + 0x30) <= 0.0f) {
+          if (*(float *)(fp + 0x30) < 0.0f) {
+            ((void (*)(void *, int, float, void *))overlay_animation_apply_scaled)(node, 1, -*(float *)(fp + 0x30), matrices);
+          }
+        } else {
+          ((void (*)(void *, int, float, void *))overlay_animation_apply_scaled)(node, 0, *(float *)(fp + 0x30), matrices);
+        }
+
+        if (*(float *)(fp + 0x34) <= 0.0f) {
+          if (*(float *)(fp + 0x34) < 0.0f) {
+            ((void (*)(void *, int, float, void *))overlay_animation_apply_scaled)(node, 2, -*(float *)(fp + 0x34), matrices);
+          }
+        } else {
+          ((void (*)(void *, int, float, void *))overlay_animation_apply_scaled)(node, 3, *(float *)(fp + 0x34), matrices);
+        }
+
+        if (*(float *)(fp + 0x40) <= 0.0f) {
+          if (*(float *)(fp + 0x40) < 0.0f) {
+            ((void (*)(void *, int, float, void *))overlay_animation_apply_scaled)(node, 5, -*(float *)(fp + 0x40), matrices);
+          }
+        } else {
+          ((void (*)(void *, int, float, void *))overlay_animation_apply_scaled)(node, 4, *(float *)(fp + 0x40), matrices);
+        }
+
+        if (*(float *)(fp + 0x44) <= 0.0f) {
+          if (*(float *)(fp + 0x44) < 0.0f) {
+            ((void (*)(void *, int, float, void *))overlay_animation_apply_scaled)(node, 6, -*(float *)(fp + 0x44), matrices);
+          }
+        } else {
+          ((void (*)(void *, int, float, void *))overlay_animation_apply_scaled)(node, 7, *(float *)(fp + 0x44), matrices);
+        }
+
+        if (*(float *)(fp + 0x28) > 0.0f) {
+          ((void (*)(void *, int, float, void *))overlay_animation_apply_scaled)(node, 8, *(float *)(fp + 0x28), matrices);
+        }
+      }
+    }
+  }
+
+  if (*(int16_t *)(fp + 0x8a) >= 1) {
+    interpolate_node_orientations(*(int16_t *)(antr_tag + 0x68), fp + 0x88c, matrices, *(int16_t *)(fp + 0x88), *(int16_t *)(fp + 0x8a));
+  }
+
+  animation_graph_node_matrices_from_orientations(*(int *)(tag + 0x478), (float *)(fp + 0x108c), (float *)(fp + 0x8c), (float *)0x506550, (float *)0x50655c, (float *)0x506568);
+}
+
+/* 0xddae0 — first_person_weapon_render_update */
+void first_person_weapon_render_update(void)
+{
+  int16_t current_player;
+  char *fp;
+  uint8_t activate;
+
+  current_player = *(int16_t *)0x506548;
+  if (current_player == -1) {
+    return;
+  }
+  if (current_player < 0 || current_player >= 4) {
+    display_assert(0, "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x599, 1);
+    system_exit(-1);
+  }
+
+  fp = (char *)*(int *)0x46bea8 + (int)current_player * 0x1ea0;
+  if (*(int *)(fp + 4) == -1 || *(int *)(fp + 8) == -1) {
+    return;
+  }
+
+  if (director_get_perspective(current_player) != 0 || player_control_get_zoom_level(current_player) != -1) {
+    activate = 0;
+  } else {
+    activate = 1;
+  }
+
+  FUN_000dcb30(current_player, activate);
+  if (*fp != 0) {
+    first_person_weapon_update(current_player);
+  }
+}
+
+/* 0xde3f0 — first_person_weapon_next_state */
+void first_person_weapon_next_state(int16_t local_player_index)
+{
+  char *fp;
+  int16_t current_state;
+
+  if (local_player_index < 0 || local_player_index >= 4) {
+    display_assert(0, "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x599, 1);
+    system_exit(-1);
+  }
+
+  fp = (char *)*(int *)0x46bea8 + (int)local_player_index * 0x1ea0;
+  current_state = *(int16_t *)(fp + 0xc);
+  if ((uint16_t)current_state > 23) {
+    return;
+  }
+
+  switch (current_state) {
+  case 0:
+  case 1:
+  case 2:
+  case 5:
+  case 6:
+  case 7:
+  case 8:
+  case 9:
+  case 10:
+  case 11:
+  case 12:
+  case 15:
+  case 16:
+  case 19:
+  case 20:
+  case 21:
+  case 22:
+  case 23:
+    FUN_000ddbd0((int)local_player_index, 0, 0);
+    break;
+  case 3:
+    FUN_000ddbd0((int)local_player_index, 3, 0);
+    break;
+  case 4:
+    (*(int16_t *)(fp + 0x18))--;
+    break;
+  case 13:
+  case 14:
+    {
+      char *weapon = (char *)object_get_and_verify_type(*(int *)(fp + 8), 4);
+      char *tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+      if (*(int16_t *)(tag + 0x4e2) == 1 && *(int16_t *)(fp + 0x1e94) == 2) {
+        int next_state = (*(uint8_t *)(fp + 0x1e90) != 0) ? 0x10 : 0x11;
+        FUN_000ddbd0((int)local_player_index, next_state, 0);
+      } else {
+        FUN_000ddbd0((int)local_player_index, 0, 0);
+      }
+    }
+    break;
+  case 17:
+  case 18:
+    {
+      char *weapon = (char *)object_get_and_verify_type(*(int *)(fp + 8), 4);
+      char *tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+      if (*(int16_t *)(tag + 0x4e2) == 1) {
+        int16_t anim = *(int16_t *)(fp + 0x1e94);
+        if (anim == 1 || anim == 2) {
+          int next_state = (*(uint8_t *)(fp + 0x1e90) != 0) ? 0x10 : 0x11;
+          FUN_000ddbd0((int)local_player_index, next_state, 0);
+        } else if (anim != 0 && anim != -1) {
+          display_assert(0, "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x31f, 1);
+          system_exit(-1);
+        } else {
+          FUN_000ddbd0((int)local_player_index, 0, 0);
+        }
+      } else {
+        FUN_000ddbd0((int)local_player_index, 0, 0);
+      }
+    }
+    break;
+  }
+}
+
+/* 0xde560 — FUN_000de560 */
+void FUN_000de560(int16_t local_player_index)
+{
+  char *fp;
+  char *unit;
+  char *weapon;
+  char *tag;
+  char *antr_tag;
+  int anim_result;
+  int anim_sound;
+  float speed;
+  boolean in_air;
+  int sound_handle;
+  float vel_x, vel_y, vel_z;
+  float yaw_delta, pitch_delta;
+  int new_state;
+
+  if (local_player_index < 0 || local_player_index >= 4) {
+    display_assert(0, "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x599, 1);
+    system_exit(-1);
+  }
+
+  fp = (char *)*(int *)0x46bea8 + (int)local_player_index * 0x1ea0;
+
+  if (*(int *)(fp + 8) != -1 && !object_get_and_verify_type(*(int *)(fp + 8), 4)) {
+    error(3, "local player %d, weapon (0x%x), deleted unexpectedly", (int)local_player_index, *(int *)(fp + 8));
+    *(int *)(fp + 8) = -1;
+  }
+
+  if (*(int *)(fp + 4) == -1 || *(int *)(fp + 8) == -1) {
+    goto update_delay;
+  }
+
+  unit = (char *)object_get_and_verify_type(*(int *)(fp + 4), 3);
+  weapon = (char *)object_get_and_verify_type(*(int *)(fp + 8), 4);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  (void)tag_get(0x6d6f6465, *(uint32_t *)(tag + 0x468));
+  antr_tag = (char *)tag_get(0x616e7472, *(uint32_t *)(tag + 0x478));
+
+  if (*(int16_t *)(fp + 0xc) == 3 || *(int16_t *)(fp + 0xc) == 1) {
+    if (*(uint8_t *)(weapon + 0x1dc) & 2) {
+      FUN_000ddbd0((int)local_player_index, 0x16, 1);
+    }
+    if (!(*(uint8_t *)(weapon + 0x1dc) & 1)) {
+      FUN_000ddbd0((int)local_player_index, 0, 1);
+    }
+  }
+
+  anim_sound = -1;
+  anim_result = animation_update_internal(0, *(int *)(tag + 0x478), (short *)(fp + 0x16), &anim_sound);
+  if (anim_result != 1 && anim_result == 2) {
+    first_person_weapon_next_state(local_player_index);
+  }
+
+  if (anim_sound != -1 && player_control_get_zoom_level(local_player_index) == -1) {
+    sound_handle = object_impulse_sound_new(*(uint32_t *)(fp + 8), anim_sound, -1, (float *)0x31fc1c, (float *)0x31fc3c, 1.0f);
+    *(uint32_t *)(fp + 0x1e98) = sound_handle;
+    *(int16_t *)(fp + 0x1e9c) = *(int16_t *)(fp + 0xc);
+  }
+
+  vel_x = *(float *)(unit + 0x228);
+  vel_y = *(float *)(unit + 0x22c);
+  vel_z = *(float *)(unit + 0x230);
+  speed = sqrtf(vel_x * vel_x + vel_y * vel_y + vel_z * vel_z);
+  in_air = (boolean)biped_flying_through_air(*(int *)(fp + 4));
+
+  if (*(int16_t *)(fp + 0x1a) != -1) {
+    animation_update_internal(0, *(int *)(tag + 0x478), (short *)(fp + 0x1a), NULL);
+    if (in_air || speed <= *(float *)0x25496c) {
+      if (*(int16_t *)(fp + 0xc) == 0) {
+        FUN_000dd4d0(local_player_index, 6);
+      }
+      *(int16_t *)(fp + 0x1a) = -1;
+    }
+  } else if (!in_air && speed > *(float *)0x25496c) {
+    char *elem = (*(int *)(antr_tag + 0x48)) ? (char *)tag_block_get_element(antr_tag + 0x48, 0, 0x1c) : NULL;
+    *(int16_t *)(fp + 0x1c) = 0;
+    *(int16_t *)(fp + 0x1a) = (elem && *(int *)(elem + 0x10) >= 4) ? *(int16_t *)(*(int *)(elem + 0x14) + 6) : -1;
+  }
+
+  if (*(int16_t *)(fp + 0x20) != -1) {
+    if (*(int16_t *)(fp + 0xc) != 4) {
+      *(int16_t *)(fp + 0x20) = -1;
+    } else {
+      char *node = (char *)tag_block_get_element(antr_tag + 0x74, (int)*(int16_t *)(fp + 0x20), 0xb4);
+      *(float *)(fp + 0x24) = x87_fmod(*(float *)(fp + 0x24) + (*(float *)(weapon + 0x1f4) + 1.0f) * 2.0f, (double)*(int16_t *)(node + 0x22));
+    }
+  } else if (*(int16_t *)(fp + 0xc) == 4) {
+    char *elem = (*(int *)(antr_tag + 0x48)) ? (char *)tag_block_get_element(antr_tag + 0x48, 0, 0x1c) : NULL;
+    *(float *)(fp + 0x24) = 0.0f;
+    *(int16_t *)(fp + 0x20) = (elem && *(int *)(elem + 0x10) >= 0x10) ? *(int16_t *)(*(int *)(elem + 0x14) + 0x1e) : -1;
+  }
+
+  if (*(uint8_t *)(fp + 0x50)) {
+    accelerate_to_position((float *)(fp + 0x30), (float *)(fp + 0x38), *(float *)(unit + 0x228), 0.02f, 0.5f, -1.0f, 1.0f, 0);
+    accelerate_to_position((float *)(fp + 0x34), (float *)(fp + 0x3c), *(float *)(unit + 0x22c), 0.02f, 0.5f, -1.0f, 1.0f, 0);
+
+    yaw_delta = signed_angular_difference(*(float *)(fp + 0x68), *(float *)(fp + 0x60)) * *(float *)0x253394;
+    pitch_delta = signed_angular_difference(*(float *)(fp + 0x6c), *(float *)(fp + 0x64)) * *(float *)0x282490;
+
+    if (yaw_delta < *(float *)0x255e94) {
+      yaw_delta = -1.0f;
+    } else if (yaw_delta > 1.0f) {
+      yaw_delta = 1.0f;
+    }
+
+    if (pitch_delta < *(float *)0x255e94) {
+      pitch_delta = -1.0f;
+    } else if (pitch_delta > 1.0f) {
+      pitch_delta = 1.0f;
+    }
+
+    accelerate_to_position((float *)(fp + 0x40), (float *)(fp + 0x48), yaw_delta, 0.03f, 0.2f, -1.0f, 1.0f, 0);
+    accelerate_to_position((float *)(fp + 0x44), (float *)(fp + 0x4c), pitch_delta, 0.03f, 0.2f, -1.0f, 1.0f, 0);
+  }
+
+  accelerate_to_position((float *)(fp + 0x28), (float *)(fp + 0x2c), 0.0f, 0.01f, 0.2f, 0.0f, 1.0f, 0);
+  if (*(float *)(fp + 0x28) == 1.0f) {
+    *(float *)(fp + 0x2c) = 0.0f;
+  }
+
+  if (*(int16_t *)(fp + 0x8a) >= 1) {
+    (*(int16_t *)(fp + 0x88))++;
+    if (*(int16_t *)(fp + 0x88) >= *(int16_t *)(fp + 0x8a)) {
+      *(int16_t *)(fp + 0x8a) = 0;
+    }
+  }
+
+  if (player_control_get_autoaim_level(local_player_index) != 0.0f ||
+      player_control_get_zoom_level(local_player_index) != -1 ||
+      *(float *)(fp + 0x28) != 0.0f ||
+      *(float *)(fp + 0x30) != 0.0f || *(float *)(fp + 0x34) != 0.0f ||
+      *(float *)(fp + 0x40) != 0.0f || *(float *)(fp + 0x44) != 0.0f) {
+    *(int16_t *)(fp + 0x10) = 0;
+    if (*(int16_t *)(fp + 0xc) == 5) {
+      new_state = 0;
+      FUN_000ddbd0((int)local_player_index, new_state, 1);
+    }
+  } else {
+    if (*(int16_t *)(fp + 0xc) != 0) {
+      *(int16_t *)(fp + 0x10) = 0;
+    } else {
+      char *hud_def = (char *)tag_block_get_element((char *)game_globals_get() + 0x170, 0, 0xb8);
+      if (*(int16_t *)(fp + 0xe) == 0) {
+        *(int16_t *)(fp + 0xe) = (int16_t)(int)(FUN_000849f0(*(float *)(hud_def + 0x9c), *(float *)(hud_def + 0xa0)) * *(float *)0x253394);
+      }
+      (*(int16_t *)(fp + 0x10))++;
+      if (*(int16_t *)(fp + 0x10) > *(int16_t *)(fp + 0xe)) {
+        *(int16_t *)(fp + 0xe) = 0;
+        if (real_local_random() >= *(float *)(hud_def + 0xa4)) {
+          new_state = 5;
+          FUN_000ddbd0((int)local_player_index, new_state, 1);
+        }
+      }
+    }
+  }
+
+update_delay:
+  (*(int16_t *)(fp + 0x12))--;
+  if (*(int16_t *)(fp + 0x12) < 1) {
+    FUN_000dce00(local_player_index);
+  }
+}
+
 /* Update first-person weapon state for all local players. Detects when
  * a player's controlled unit changes and reinitializes their weapon
  * rendering state. Calls per-player weapon update each frame. */
@@ -988,6 +1657,6 @@ void first_person_weapons_update(void)
     }
     if (*(int *)(fp + 8) == NONE)
       FUN_000dde80(i);
-    ((void (*)(int))0xde560)(i);
+    FUN_000de560((int16_t)i);
   }
 }
