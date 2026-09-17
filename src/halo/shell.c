@@ -249,3 +249,9 @@ char *shell_get_command_line(void)
 {
   return (char *)0x4d8a88;
 }
+
+/* 0x1911a0 — shell_running_import_tool */
+boolean shell_running_import_tool(void)
+{
+  return 0;
+}

@@ -633,3 +633,9 @@ void terminal_output(void *color, const char *format, const char *text)
   *(uint8_t *)(line + 0xc) = (crt_strstr(text_buf, "|t") != NULL);
   terminal_string_process_tabs(text_buf);
 }
+
+/* 0xe34d0 — terminal_gets_active */
+boolean terminal_gets_active(void)
+{
+  return *(void **)0x46c414 != NULL;
+}

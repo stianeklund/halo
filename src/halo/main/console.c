@@ -83,6 +83,16 @@ void console_initialize_for_new_map(void)
 {
 }
 
+/* 0xff470 — console_open */
+void console_open(void)
+{
+  if (!*console_is_open()) {
+    *console_input_buffer() = 0;
+    *console_is_open() = terminal_open((void *)console_terminal_state());
+    *(uint8_t *)0x449ef1 = 0;
+  }
+}
+
 /* Flush and close the console terminal if it's currently active. */
 void console_flush(void)
 {

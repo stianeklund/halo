@@ -1644,6 +1644,19 @@ void real_math_dispose(void)
   FUN_0010a570();
 }
 
+/* 0x130c0 — Return a pseudo-random real in [0.0, 1.0] using the global random seed.
+ * Binary evidence (0x130c0..0x130cd, 13 B):
+ *   CALL  0x10b0d0                  ; get_global_random_seed_address
+ *   PUSH  EAX
+ *   CALL  0x10b240                  ; random_math_real
+ *   POP   ECX
+ *   RET
+ */
+float real_random(void)
+{
+  return random_math_real((unsigned int *)get_global_random_seed_address());
+}
+
 void real_math_reset_precision(void)
 {
   __control87(0x9001f, 0xfffff);

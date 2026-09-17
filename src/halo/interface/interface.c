@@ -1,4 +1,3 @@
-void FUN_000dc790(void);
 void FUN_000dc7f0(void);
 /* UI/HUD interface subsystem init/dispose. */
 
@@ -22,7 +21,7 @@ void interface_dispose(void)
   FUN_0019b3b0();
   FUN_000e33e0();
   hud_dispose();
-  FUN_000dc790();
+  first_person_weapons_dispose();
 }
 
 #define NUMBER_OF_INTERFACE_TAGS 16
