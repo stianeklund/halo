@@ -1989,3 +1989,396 @@ void FUN_000b8cf0(int16_t local_player_index, float *delta)
   assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0x467, delta);
   player_control_update_desired_angles(local_player_index, delta[0], delta[1]);
 }
+
+/* 0xb6400 — player_control_dispose_from_old_map */
+void player_control_dispose_from_old_map(void)
+{
+}
+
+/* 0xb6410 — player_control_camera_control_is_active */
+bool player_control_camera_control_is_active(void)
+{
+  if (!(*(uint8_t *)((char *)player_control_globals + 0xc) & 1)) {
+    if (!game_time_get_paused()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/* 0xb65b0 — clear_input_blob */
+void clear_input_blob(void *blob)
+{
+  csmemset(blob, 0, 0x20);
+}
+
+/* 0xb70b0 — get_local_player_input_blob
+ * Fills action buffer (0x20 bytes, arrives in EBX) with local player input.
+ * c:\halo\SOURCE\game\player_control.c */
+void get_local_player_input_blob(void *action, short local_player_index, real delta_time)
+{
+  int player_index;
+  player_control_t *control;
+  char *player;
+  int16_t controller_index;
+  bool is_current_controller;
+  player_input_t *input;
+  uint8_t debounced_buttons[12];
+  int i;
+
+  input = (player_input_t *)action;
+  player_index = local_player_get_player_index(local_player_index);
+  csmemset(action, 0, 0x20);
+  if (player_index == NONE) {
+    goto tail;
+  }
+
+  control = (player_control_t *)player_control_get_data(local_player_index);
+  player = (char *)datum_get(*(data_t **)0x5aa6d4, player_index);
+  controller_index = *(int16_t *)(player + 2);
+  is_current_controller = (controller_index == *(int16_t *)0x457094);
+
+  if (controller_index != -1 && input_has_gamepad(controller_index)) {
+    char *constants;
+    void *gamepad_state;
+    uint8_t *input_state;
+    int unit_index;
+    real yaw_rate;
+    real pitch_rate;
+    real abs_look_pitch;
+    real abs_look_yaw;
+    real scale;
+    real norm_look_yaw;
+    real norm_look_pitch;
+    real yaw_delta;
+    real pitch_delta;
+    real temp;
+    real mag;
+    real inv_mag;
+    real flinch;
+    real accel;
+    real game_speed;
+    real scale_yaw;
+    real lead_scale_yaw;
+    real scale_pitch;
+    int yaw_sens;
+    int pitch_sens;
+    char *unit;
+    char *diff;
+    char *unit_obj;
+    vector3_t local_34;
+    vector3_t local_44;
+
+    constants = (char *)tag_block_get_element((char *)game_globals_get() + 0x110, 0, 0x80);
+    gamepad_state = input_get_gamepad_state(controller_index);
+    input_state = (uint8_t *)input_abstraction_get_input_state(controller_index);
+    unit_index = *(int *)(player + 0x34);
+    yaw_rate = 0.0f;
+    pitch_rate = 0.0f;
+
+    if (unit_index != -1) {
+      unit = (char *)object_get_and_verify_type(unit_index, 3);
+      yaw_rate = *(real *)(0x457098 + (int)local_player_index * 4) * 0.017453292f * 0.033333335f;
+      pitch_rate = *(real *)(0x4570a8 + (int)local_player_index * 4) * 0.017453292f * 0.033333335f;
+
+      if (*(int *)(unit + 0xcc) != -1 && *(int16_t *)(unit + 0x2a0) != -1) {
+        char *vehicle = (char *)object_get_and_verify_type(*(int *)(unit + 0xcc), 3);
+        char *unit_tag = (char *)tag_get(0x756e6974, *(int *)vehicle);
+        char *seat = (char *)tag_block_get_element(unit_tag + 0x2e4, *(int16_t *)(unit + 0x2a0), 0x11c);
+        if (*(real *)(seat + 0x7c) != 0.0f) {
+          yaw_rate = *(real *)(seat + 0x7c) * 0.017453292f * 0.033333335f;
+        }
+        if (*(real *)(seat + 0x80) != 0.0f) {
+          pitch_rate = *(real *)(seat + 0x80) * 0.017453292f * 0.033333335f;
+        }
+      }
+    }
+
+    input->field_0x00 = *(real *)(input_state + 0xc);
+    input->field_0x04 = *(real *)(input_state + 0x10);
+
+    abs_look_pitch = (real)fabs(*(real *)(input_state + 0x18));
+    abs_look_yaw = (real)fabs(*(real *)(input_state + 0x14));
+    scale = 1.0f;
+
+    if (abs_look_pitch >= 0.10000000149011612f || abs_look_yaw >= 0.10000000149011612f) {
+      if (abs_look_pitch > abs_look_yaw) {
+        temp = abs_look_yaw / abs_look_pitch;
+        scale = sqrtf(temp * temp + 1.0f);
+      } else {
+        temp = abs_look_pitch / abs_look_yaw;
+        scale = sqrtf(temp * temp + 1.0f);
+      }
+    }
+
+    norm_look_yaw = *(real *)(input_state + 0x14) * scale;
+    if (norm_look_yaw < -1.0f) {
+      norm_look_yaw = -1.0f;
+    } else if (norm_look_yaw > 1.0f) {
+      norm_look_yaw = 1.0f;
+    }
+
+    norm_look_pitch = *(real *)(input_state + 0x18) * scale;
+    if (norm_look_pitch < -1.0f) {
+      norm_look_pitch = -1.0f;
+    } else if (norm_look_pitch > 1.0f) {
+      norm_look_pitch = 1.0f;
+    }
+
+    if ((*(uint8_t *)((char *)player_control_globals + 0xc) & 1) || game_time_get_paused()) {
+      input->look_yaw_delta = 0.0f;
+      input->look_pitch_delta = 0.0f;
+    } else {
+      if (input_state[0xb] && *(uint8_t *)0x4570b9) {
+        pitch_sens = (*(uint8_t *)0x4570ba == 0) + 1;
+      } else {
+        pitch_sens = (int)*(uint8_t *)0x4570ba + 1; /* hazard-ok: value-add */
+      }
+      if (input_state[0xb] && *(uint8_t *)0x4570b9) {
+        yaw_sens = (*(uint8_t *)0x4570ba == 0) + 1;
+      } else {
+        yaw_sens = (int)*(uint8_t *)0x4570ba + 1; /* hazard-ok: value-add */
+      }
+
+      assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0x1c8, *(int16_t *)(constants + 0x74) > 1);
+      yaw_delta = evaluate_piecewise_linear_function(*(int16_t *)(constants + 0x74), (float *)*(uint32_t *)(constants + 0x78), norm_look_yaw) * (real)yaw_sens * yaw_rate;
+      pitch_delta = evaluate_piecewise_linear_function(*(int16_t *)(constants + 0x74), (float *)*(uint32_t *)(constants + 0x78), norm_look_pitch) * (real)pitch_sens * pitch_rate;
+
+      if (unit_index != -1 && control->desired_zoom_level != -1) {
+        mag = unit_get_zoom_magnification(unit_index, control->desired_zoom_level);
+        inv_mag = 1.0f / mag;
+        yaw_delta *= inv_mag;
+        pitch_delta *= inv_mag;
+      }
+
+      if (unit_index != -1) {
+        diff = (char *)tag_block_get_element((char *)game_globals_get() + 0x170, 0, 0xf4);
+        unit_obj = (char *)object_get_and_verify_type(unit_index, 3);
+        flinch = 1.0f - *(real *)(unit_obj + 0x3d4) * *(real *)(diff + 0x84);
+        yaw_delta *= flinch;
+        pitch_delta *= flinch;
+      }
+
+      assert_halt_at("c:\\halo\\SOURCE\\game\\player_control.c", 0x1e3, *(real *)(constants + 0x40) > 0.0f);
+      if ((real)fabs(norm_look_yaw) > *(real *)(constants + 0x48)) {
+        accel = control->field_0x34 / *(real *)(constants + 0x40);
+        if (accel < 0.0f) {
+          accel = 0.0f;
+        } else if (accel > 1.0f) {
+          accel = 1.0f;
+        }
+        yaw_delta *= (1.0f + accel * (*(real *)(constants + 0x44) - 1.0f));
+        control->field_0x34 += delta_time;
+      } else {
+        control->field_0x34 = 0.0f;
+      }
+
+      control->target_object_index = local_player_aim_assist(local_player_index, &control->autoaim_level, &control->field_0x30, &local_44, &local_34);
+      if (*(uint8_t *)0x2f0291 && control->field_0x30 > 0.0f) {
+        if (fabs(norm_look_yaw) > 0.0001 || fabs(norm_look_pitch) > 0.0001 ||
+            fabs(input->field_0x00) > 0.0001 || fabs(input->field_0x04) > 0.0001) {
+          game_speed = game_time_get_speed();
+          scale_yaw = *(real *)constants;
+          scale_pitch = *(real *)(constants + 4);
+
+          if (scale_yaw < 0.0f) {
+            scale_yaw = 0.0f;
+          } else if (scale_yaw > 1.0f) {
+            scale_yaw = 1.0f;
+          }
+          scale_yaw *= control->field_0x30;
+          lead_scale_yaw = 1.0f - scale_yaw;
+
+          if (scale_pitch < 0.0f) {
+            scale_pitch = 0.0f;
+          } else if (scale_pitch > 1.0f) {
+            scale_pitch = 1.0f;
+          }
+          scale_pitch *= control->field_0x30;
+
+          if (game_players_are_double_speed()) {
+            game_speed *= 2.0f;
+          }
+          local_34.x *= game_speed;
+          local_34.y *= game_speed;
+
+          if (local_34.x < -0.10471976f) {
+            local_34.x = -0.10471976f;
+          } else if (local_34.x > 0.10471976f) {
+            local_34.x = 0.10471976f;
+          }
+
+          if (local_34.y < -0.05235988f) {
+            local_34.y = -0.05235988f;
+          } else if (local_34.y > 0.05235988f) {
+            local_34.y = 0.05235988f;
+          }
+
+          yaw_delta = yaw_delta * lead_scale_yaw + local_34.x * scale_pitch;
+          pitch_delta = pitch_delta * lead_scale_yaw + local_34.y * scale_pitch;
+        }
+      }
+
+      input->look_yaw_delta = yaw_delta * (delta_time * 30.0f);
+      input->look_pitch_delta = pitch_delta * (delta_time * 30.0f);
+    }
+
+    csmemset(debounced_buttons, 0, sizeof(debounced_buttons));
+    for (i = 0; i < 12; i++) {
+      if ((control->persistent_action_flags & (1 << i)) && (control->action_flags & (1 << i))) {
+        if (!input_state[i]) {
+          control->action_flags &= ~(1 << i);
+          control->persistent_action_flags &= ~(1 << i);
+        }
+      }
+    }
+    for (i = 0; i < 12; i++) {
+      if (!(control->action_flags & (1 << i))) {
+        debounced_buttons[i] = input_state[i];
+      }
+    }
+
+    if (unit_index != -1) {
+      unit = (char *)object_try_and_get_and_verify_type(unit_index, 1);
+      if (unit) {
+        if (*(uint8_t *)0x4570b8 || (*(uint8_t *)(unit + 0x424) & 1) ||
+            (input->field_0x04 * input->field_0x04 + input->field_0x00 * input->field_0x00 > 0.01f)) {
+          if (debounced_buttons[10]) {
+            input->field_0x18 |= 1;
+          } else {
+            input->field_0x18 &= ~1;
+          }
+        }
+      }
+    }
+
+    input->primary_trigger = (real)input_state[7] * 0.003921569f;
+    if (debounced_buttons[7]) {
+      input->field_0x18 |= 0x800;
+    } else {
+      input->field_0x18 &= ~0x800;
+    }
+
+    if (debounced_buttons[6]) {
+      input->field_0x18 |= 0x3000;
+    } else {
+      input->field_0x18 &= ~0x3000;
+    }
+
+    if (debounced_buttons[11] == 1) {
+      input->action_flags |= 4;
+    } else {
+      input->action_flags &= ~4;
+    }
+
+    if (debounced_buttons[2]) {
+      input->field_0x18 |= 0x40;
+    } else {
+      input->field_0x18 &= ~0x40;
+    }
+
+    if (debounced_buttons[2] >= *(int16_t *)(constants + 0x6c)) {
+      input->field_0x18 |= 0x4000;
+    } else {
+      input->field_0x18 &= ~0x4000;
+    }
+
+    if (debounced_buttons[5]) {
+      input->field_0x18 |= 0x10;
+    } else {
+      input->field_0x18 &= ~0x10;
+    }
+
+    if (debounced_buttons[0]) {
+      input->field_0x18 |= 2;
+    } else {
+      input->field_0x18 &= ~2;
+    }
+
+    if (debounced_buttons[4]) {
+      input->field_0x18 |= 0x80;
+    } else {
+      input->field_0x18 &= ~0x80;
+    }
+
+    if (debounced_buttons[3] == 1) {
+      input->action_flags |= 1;
+    } else {
+      input->action_flags &= ~1;
+    }
+
+    if (debounced_buttons[1] == 1) {
+      input->action_flags |= 2;
+    } else {
+      input->action_flags &= ~2;
+    }
+
+    if (!(*(uint8_t *)((char *)control + 9) & 2)) {
+      input->field_0x15 = *(uint8_t *)((char *)gamepad_state + 0x11);
+    }
+    if (!(*(uint8_t *)((char *)control + 8) & 4)) {
+      input->field_0x14 = *(uint8_t *)((char *)gamepad_state + 0x10);
+    }
+  } else if (FUN_000cf690() && is_current_controller) {
+    char *mouse = (char *)FUN_000cf690();
+
+    input->field_0x00 = (real)((int)input_key_is_down(0x2f) - (int)input_key_is_down(0x2e));
+    input->field_0x04 = (real)((int)input_key_is_down(0x2d) - (int)input_key_is_down(0x20));
+
+    if (!(*(uint8_t *)((char *)player_control_globals + 0xc) & 1) && !game_time_get_paused()) {
+      input->look_yaw_delta = -(real)*(int *)mouse * 0.0031415927f;
+      input->look_pitch_delta = -(real)*(int *)(mouse + 4) * 0.0031415927f;
+    }
+
+    if (input_key_is_down(0x69)) input->field_0x18 |= 0x100; else input->field_0x18 &= ~0x100;
+    if (input_key_is_down(0x6c)) input->field_0x18 |= 0x200; else input->field_0x18 &= ~0x200;
+    if (input_key_is_down(0x6a)) input->field_0x18 |= 1; else input->field_0x18 &= ~1;
+    if (input_key_is_down(0x48)) input->field_0x18 |= 2; else input->field_0x18 &= ~2;
+    if (input_key_is_down(0x1f)) input->field_0x18 |= 0x40; else input->field_0x18 &= ~0x40;
+    if (input_key_is_down(0x3b)) input->field_0x18 |= 0x10; else input->field_0x18 &= ~0x10;
+    if (input_key_is_down(0x22)) input->field_0x18 |= 0x400; else input->field_0x18 &= ~0x400;
+
+    if (*(uint8_t *)(mouse + 0xc)) {
+      input->field_0x18 |= 0x800;
+    } else {
+      input->field_0x18 &= ~0x800;
+    }
+
+    if (*(uint8_t *)(mouse + 0xe)) {
+      input->field_0x18 |= 0x2000;
+    } else {
+      input->field_0x18 &= ~0x2000;
+    }
+
+    if (input_key_is_down(0x3a) == 1) input->action_flags |= 4; else input->action_flags &= ~4;
+    if (input_key_is_down(0x21) == 1) input->action_flags |= 1; else input->action_flags &= ~1;
+
+    if (input->field_0x18 & 0x800) {
+      input->primary_trigger = 1.0f;
+    } else {
+      input->primary_trigger = 0.0f;
+    }
+  }
+
+  if (input_key_is_down(0x2b) == 1) input->action_flags |= 8; else input->action_flags &= ~8;
+  if (input_key_is_down(0x2a) == 1) input->action_flags |= 0x10; else input->action_flags &= ~0x10;
+  if (input_key_is_down(0x29) == 1) input->action_flags |= 0x20; else input->action_flags &= ~0x20;
+  if (input_key_is_down(0x11) == 1) input->field_0x18 |= 4; else input->field_0x18 &= ~4;
+  if (input_key_is_down(0x12) == 1) input->field_0x18 |= 8; else input->field_0x18 &= ~8;
+
+  {
+    real move_mag_sq = input->field_0x00 * input->field_0x00 + input->field_0x04 * input->field_0x04;
+    if (move_mag_sq > 1.0f) {
+      real inv_mag = 1.0f / sqrtf(move_mag_sq);
+      input->field_0x00 *= inv_mag;
+      input->field_0x04 *= inv_mag;
+    }
+  }
+
+tail:
+  FUN_000b6bd0((char *)action);
+  if ((*(uint32_t *)&input->primary_trigger & 0x7f800000) == 0x7f800000) {
+    display_assert(csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)", "input->primary_trigger", *(uint32_t *)&input->primary_trigger, (double)input->primary_trigger), "c:\\halo\\SOURCE\\game\\player_control.c", 0x2b6, 1);
+    system_exit(-1);
+  }
+}

@@ -759,3 +759,81 @@ void update_client_apply_actions(int16_t ticks)
     } while (tick_count != 0);
   }
 }
+
+/* 0xb8e00 — update_client_delete */
+void update_client_delete(void)
+{
+  if (*(data_t **)0x45b260 == NULL) {
+    *(int *)0x45b1d8 = -1;
+    *(int *)0x45b1d4 = 0;
+    *(uint8_t *)0x45b1d0 = 0;
+    return;
+  }
+  data_dispose(*(data_t **)0x45b260);
+  *(uint8_t *)0x45b1d0 = 0;
+  *(int *)0x45b1d4 = 0;
+  *(int *)0x45b1d8 = -1;
+  *(data_t **)0x45b260 = NULL;
+}
+
+/* 0xb90a0 — update_client_get_update */
+void *update_client_get_update(int sequence_index)
+{
+  if (sequence_index >= *(int *)0x45b1d4 && sequence_index < *(int *)0x45b1d4 + 0x80) {
+    return (void *)(0x45b264 + (sequence_index & 0x7f) * 0x208);
+  }
+  return NULL;
+}
+
+/* 0xb9880 — update_queues_reset_and_fill_with_lies */
+void update_queues_reset_and_fill_with_lies(void)
+{
+  int current_time;
+  int start_time;
+  int t;
+  char *slot;
+  char *datum;
+
+  if (*(uint8_t *)0x4570c0 != 0) {
+    *(int *)0x4570c4 = 0;
+    csmemset((void *)0x4570cc, 0, 0x4100);
+  }
+
+  if (*(uint8_t *)0x45b1d0 != 0) {
+    csmemset((void *)0x45b264, 0xff, 0x10400);
+    csmemset((void *)0x45b1dc, 0, 0x80);
+    *(int *)0x45b1d8 = -1;
+    *(int *)0x45b1d4 = 0;
+
+    current_time = game_time_get();
+    start_time = current_time - 0x80;
+    if (start_time < 0) {
+      start_time = 0;
+    }
+
+    if (start_time < current_time) {
+      slot = (char *)0x45b268;
+      for (t = start_time; t < current_time; t++) {
+        *(int *)(slot - 4) = t;
+        *(int16_t *)slot = 1;
+        csmemset(slot + 4, 0, 0x200);
+        slot += 0x208;
+      }
+    }
+
+    *(int *)0x45b1d4 = current_time;
+    *(int *)0x4570c4 = current_time;
+    *(int *)0x45b1d8 = current_time - 1;
+  }
+
+  if (*(uint8_t *)0x4570c0 != 0) {
+    update_server_start();
+    datum = (char *)datum_get(*(data_t **)0x4570c8, 0);
+    *(int *)(datum + 4) = *(int *)0x4570c4;
+    return;
+  }
+
+  if (*(uint8_t *)0x45b1d0 != 0) {
+    update_client_start();
+  }
+}

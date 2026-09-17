@@ -1624,3 +1624,8 @@ void particle_system_update(void)
     }
   }
 }
+
+/* 0x9f7d0 — particle_systems_disconnect_from_structure_bsp */
+void particle_systems_disconnect_from_structure_bsp(void)
+{
+}

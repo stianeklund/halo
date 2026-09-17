@@ -368,3 +368,15 @@ void FUN_00139480(void *position, void *tint_color, void *out_color,
                  v, (float *)out_color);
   }
 }
+
+/* 0x1391c0 — should_render_lights */
+boolean should_render_lights(void)
+{
+  char *lights_globals = *(char **)0x46f074;
+  if (lights_globals && *lights_globals != 0) {
+    if (game_engine_allow_dynamic_lighting()) {
+      return 1;
+    }
+  }
+  return 0;
+}

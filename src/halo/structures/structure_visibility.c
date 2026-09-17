@@ -376,8 +376,8 @@ void FUN_00197b00(int16_t cluster_index, uint16_t *sound_list)
          * arg4 the hull points at base+4 — both from the ONE buffer 1974f0
          * filled. */
         built_list[0] = (uint16_t)FUN_00108060(
-          *sound_list, sound_list + 2, *(int *)portal_hull, portal_hull + 2,
-          0x100, &built_list[2], 0x38d1b717);
+          *sound_list, (const float *)(sound_list + 2), *(int16_t *)portal_hull, (const float *)(portal_hull + 2),
+          0x100, (float *)&built_list[2], 0.0001f);
         if ((int16_t)built_list[0] > 0) {
           FUN_00197b00(neighbor, built_list);
         } else if (built_list[0] == 0xffff) {

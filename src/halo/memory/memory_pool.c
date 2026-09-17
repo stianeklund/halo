@@ -53,6 +53,16 @@ int memory_pool_get_contiguous_free_size(void *pool)
   return *(int *)(p + 0x28) - used;
 }
 
+/* 0x11e3f0 — memory_pool_block_compute_actual_size */
+int memory_pool_block_compute_actual_size(int size)
+{
+  size += 0x18;
+  if (size & 3) {
+    size = (size | 3) + 1;
+  }
+  return size;
+}
+
 /* Returns the next allocation point if size bytes can fit after the last block,
  * 0 otherwise (0x11e400). pool passed in EAX, size on stack. */
 unsigned int FUN_0011e400(void *pool, int size)

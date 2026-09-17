@@ -1,3 +1,15 @@
+#include "x87_math.h"
+
+/* 0xfad40 — weapons_dispose_from_old_map */
+void weapons_dispose_from_old_map(void)
+{
+}
+
+/* 0xfad50 — weapons_dispose */
+void weapons_dispose(void)
+{
+}
+
 /* 0xfad60 — weapon_place
  *
  * Applies a scenario weapon placement record to a freshly created weapon
@@ -170,6 +182,75 @@ float weapon_estimate_time_to_target(int weapon_handle, int16_t trigger_index,
   }
 
   return result;
+}
+
+/* 0xfaf50 — weapon_can_be_fired */
+char weapon_can_be_fired(int weapon_handle)
+{
+  char *weapon;
+  char *tag;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+
+  if (*(float *)(weapon + 0x1f0) < 1.0f) {
+    return false;
+  }
+
+  if (game_engine_running()) {
+    char *magazines_block;
+    magazines_block = tag + 0x4f0;
+    if (*(int *)magazines_block > 0) {
+      char *magazine;
+      magazine = (char *)tag_block_get_element(magazines_block, 0, 0x70);
+      if (*(int16_t *)(magazine + 0xa) > 0 &&
+          *(int16_t *)(weapon + 0x260) == 0 &&
+          *(int16_t *)(weapon + 0x25e) == 0) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+/* 0xfafe0 — weapon_useful */
+boolean weapon_useful(int weapon_handle)
+{
+  char *weapon;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  return *(float *)(weapon + 0x1f0) < 1.0f;
+}
+
+/* 0xfb010 — weapon_compute_movement_penalty */
+real weapon_compute_movement_penalty(int weapon_handle, boolean param_2, boolean param_3)
+{
+  char *weapon;
+  char *tag;
+  float penalty;
+  int16_t penalty_type;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+
+  if (param_2) {
+    penalty = *(float *)(tag + 0x400);
+  } else {
+    penalty = *(float *)(tag + 0x404);
+  }
+
+  penalty_type = *(int16_t *)(tag + 0x3fc);
+  if ((penalty_type == 1 || (penalty_type == 2 && (*(int16_t *)(weapon + 0x258) == 1 || *(int16_t *)(weapon + 0x264) == 1))) && !param_3) {
+    penalty = 0.0f;
+  }
+
+  return penalty;
+}
+
+/* 0xfb080 — weapon_melee_attack */
+void weapon_melee_attack(void)
+{
 }
 
 /* 0xfb090 — weapon_must_be_readied
@@ -420,6 +501,65 @@ bool weapon_has_activity(int weapon_handle)
   return false;
 }
 
+/* 0xfb410 — weapon_magazine_state_change_ok */
+boolean weapon_magazine_state_change_ok(int weapon_handle)
+{
+  char *weapon;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  if (*(char *)(weapon + 0x211) == 0 && *(char *)(weapon + 0x235) == 0 && *(char *)(weapon + 0x1e8) == 0) {
+    return true;
+  }
+  return false;
+}
+
+/* 0xfb450 — weapon_get_effect_object_index */
+int weapon_get_effect_object_index(int weapon_handle)
+{
+  char *weapon;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  if ((*(uint8_t *)(weapon + 4) & 1) && *(int *)(weapon + 0xcc) != -1) {
+    return *(int *)(weapon + 0xcc);
+  }
+  return weapon_handle;
+}
+
+/* 0xfb480 — weapon_get_owner_object_index */
+int weapon_get_owner_object_index(int weapon_handle)
+{
+  char *weapon;
+  int parent_index;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  parent_index = *(int *)(weapon + 0xcc);
+  if (parent_index != -1 && object_try_and_get_and_verify_type(parent_index, 3) != NULL) {
+    return parent_index;
+  }
+  return -1;
+}
+
+/* 0xfb4c0 — weapon_get_projectile_owner_object_index */
+int weapon_get_projectile_owner_object_index(int weapon_handle)
+{
+  char *weapon;
+  char *unit;
+  int parent_index;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  parent_index = *(int *)(weapon + 0xcc);
+  if (parent_index != -1) {
+    unit = (char *)object_try_and_get_and_verify_type(parent_index, 3);
+    if (unit != NULL) {
+      if (*(int *)(unit + 0x2d8) != -1) {
+        return *(int *)(unit + 0x2d8);
+      }
+      return parent_index;
+    }
+  }
+  return -1;
+}
+
 /* 0xfb510 — weapon trigger charge fraction
  *
  * Returns a float in ST(0) describing the trigger's charge state.
@@ -466,6 +606,69 @@ float FUN_000fb510(int weapon_handle, int16_t trigger_index)
     return *(float *)0x2533c8;
   }
   return *(float *)0x2533c0;
+}
+
+/* 0xfb5a0 — weapon_trigger_can_fire_again */
+boolean weapon_trigger_can_fire_again(int weapon_handle, int16_t trigger_index)
+{
+  char *weapon;
+  char *trigger_data;
+  char *tag;
+  char *trigger_def;
+  float rate_of_fire;
+  float rounds_per_second;
+  float fire_delay;
+  float timer;
+  boolean can_fire;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  trigger_data = (char *)FUN_000fb320(weapon, trigger_index);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  trigger_def = (char *)tag_block_get_element(tag + 0x4fc, (int)trigger_index, 0x114);
+
+  can_fire = false;
+  if (*(uint16_t *)trigger_def & 0x200) {
+    rate_of_fire = *(float *)(weapon + 0x1e4);
+  } else {
+    rate_of_fire = *(float *)(trigger_data + 0x10);
+  }
+
+  rounds_per_second = (*(float *)(trigger_def + 8) - *(float *)(trigger_def + 4)) * rate_of_fire + *(float *)(trigger_def + 4);
+  if (rounds_per_second <= *(float *)0x253f44) {
+    fire_delay = 0.0f;
+  } else {
+    fire_delay = *(float *)0x253394 / rounds_per_second;
+  }
+
+  if (*(float *)(tag + 0x444) > 0.0f) {
+    fire_delay *= (*(float *)(weapon + 0x1f0) * *(float *)(tag + 0x444) + 1.0f);
+  }
+
+  timer = (float)*(int8_t *)trigger_data + 1.0f;
+  if (timer >= fire_delay) {
+    can_fire = true;
+  }
+
+  if ((*(uint8_t *)trigger_def & 8) && (*(uint8_t *)(weapon + 0x1a4) & 2) && !(*(uint8_t *)(trigger_data + 4) & 1)) {
+    return false;
+  }
+
+  return can_fire;
+}
+
+/* 0xfb690 — weapon_magazine_idle */
+void weapon_magazine_idle(int weapon_handle, int16_t magazine_index)
+{
+  char *weapon;
+  int16_t *mag_state;
+  char *tag;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  mag_state = (int16_t *)FUN_000fb370(weapon, magazine_index);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  tag_block_get_element(tag + 0x4f0, (int)magazine_index, 0x70);
+  mag_state[0] = 0;
+  mag_state[1] = 0;
 }
 
 /* 0xfb6e0 — weapon_start_effect
@@ -583,6 +786,18 @@ int FUN_000fb7d0(int param_1, int weapon_handle)
   return -1;
 }
 
+/* 0xfb840 — weapon_detonate */
+void weapon_detonate(int weapon_handle)
+{
+  char *weapon;
+  char *tag;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  weapon_start_effect(*(int *)(tag + 0x390), 0.0f, 0.0f, weapon_handle);
+  object_delete(weapon_handle);
+}
+
 /* 0xfb880 — weapon_trigger_release_charge
  *
  * Sets a weapon trigger's state byte and its accompanying 16-bit charge
@@ -675,6 +890,43 @@ void FUN_000fb910(char param_1, int weapon_handle, int16_t trigger_index)
       *(float *)(trigger + 0x14) = 1.0f;
     }
   }
+}
+
+/* 0xfb990 — weapon_state_key_frame */
+void weapon_state_key_frame(int weapon_handle)
+{
+  char *weapon;
+  int8_t state;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  tag_get(0x77656170, *(uint32_t *)weapon);
+  state = *(int8_t *)(weapon + 0x1e8);
+  if (state == 3) {
+    FUN_000fb910(1, weapon_handle, 0);
+  } else if (state == 4) {
+    FUN_000fb910(1, weapon_handle, 1);
+  }
+}
+
+/* 0xfb9e0 — weapon_magazine_state_interruptable */
+boolean weapon_magazine_state_interruptable(int16_t state)
+{
+  if (state == 0 || state == 2) {
+    return true;
+  }
+  return false;
+}
+
+/* 0xfba00 — weapon_state_interruptable */
+boolean weapon_state_interruptable(int16_t state_a, int16_t state_b)
+{
+  if (state_b == 0) {
+    return true;
+  }
+  if (state_b > 0 && state_b <= 2) {
+    return state_a >= state_b;
+  }
+  return false;
 }
 
 /* 0xfba20 — weapon_set_animation_state
@@ -861,6 +1113,62 @@ void weapon_set_total_rounds(int weapon_handle, int16_t *rounds_array)
   }
 }
 
+/* 0xfbcf0 — power */
+float power(float a, float b)
+{
+  return (float)pow((double)a, (double)b);
+}
+
+/* 0xfbd00 — random */
+uint16_t random(void)
+{
+  return random_seed_step((unsigned int *)get_global_random_seed_address());
+}
+
+/* 0xfbd10 — weapon_new */
+boolean weapon_new(int weapon_handle)
+{
+  char *weapon;
+  char *tag;
+  int mag_count;
+  int mag_idx;
+  int trig_count;
+  int trig_idx;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+
+  *(int8_t *)(weapon + 0x1e8) = 0;
+  *(int *)(weapon + 0x274) = -1;
+
+  mag_count = *(int *)(tag + 0x4f0);
+  for (mag_idx = 0; mag_idx < mag_count; mag_idx++) {
+    char *mag_def;
+    int16_t initial_rounds;
+    int16_t loaded;
+
+    mag_def = (char *)tag_block_get_element(tag + 0x4f0, mag_idx, 0x70);
+    initial_rounds = *(int16_t *)(mag_def + 6);
+    loaded = initial_rounds;
+    if (loaded > *(int16_t *)(mag_def + 10)) {
+      loaded = *(int16_t *)(mag_def + 10);
+    }
+    *(int16_t *)(weapon + 0x260 + mag_idx * 12) = loaded;
+    *(int16_t *)(weapon + 0x25e + mag_idx * 12) = initial_rounds - loaded;
+  }
+
+  trig_count = *(int *)(tag + 0x4fc);
+  for (trig_idx = 0; trig_idx < trig_count; trig_idx++) {
+    char *trig_state;
+    tag_block_get_element(tag + 0x4fc, trig_idx, 0x114);
+    trig_state = weapon + 0x210 + trig_idx * 36;
+    *(int *)(trig_state + 0x20) = -1;
+    *trig_state = 0x7f;
+  }
+
+  return true;
+}
+
 /* 0xfbea0 — weapon_delete
  *
  * Debug-build guard: when the game engine is running, a weapon that is a
@@ -889,6 +1197,152 @@ void weapon_delete(int weapon_index)
                        "c:\\halo\\SOURCE\\items\\weapons.c", 0xea,
                        ((weap_tag[0x308 / 4] >> 3) & 1) == 0);
   }
+}
+
+/* 0xfbf00 — weapon_export_function_values */
+void weapon_export_function_values(int weapon_handle)
+{
+  char *weapon;
+  char *tag;
+  char *target_obj;
+  float *out_ptr;
+  int16_t *sel_ptr;
+  int counter;
+  float value;
+  int16_t sel;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+
+  target_obj = weapon;
+  if (*(uint8_t *)(weapon + 4) & 1) {
+    int parent_handle;
+    while ((parent_handle = *(int *)(target_obj + 0xcc)) != -1) {
+      target_obj = (char *)object_get_and_verify_type(parent_handle, -1);
+      if (!(*(uint8_t *)(target_obj + 4) & 1)) {
+        break;
+      }
+    }
+  }
+
+  out_ptr = (float *)(target_obj + 0xd4);
+  sel_ptr = (int16_t *)(tag + 0x330);
+  counter = 4;
+
+  do {
+    sel = *sel_ptr;
+    if (sel != 0) {
+      value = 0.0f;
+      if (sel >= 1 && sel <= 16) {
+        switch (sel) {
+        case 1:
+          value = *(float *)(weapon + 0x1ec);
+          break;
+        case 2:
+        case 3:
+          {
+            int mag_idx = (int)sel - 2;
+            if (mag_idx < *(int *)(tag + 0x4f0)) {
+              char *mag_def = (char *)tag_block_get_element(tag + 0x4f0, mag_idx, 0x70);
+              int16_t max_rounds = *(int16_t *)(mag_def + 0xa);
+              if (max_rounds != 0) {
+                value = (float)*(int16_t *)(weapon + 0x260 + mag_idx * 12) / (float)max_rounds;
+              }
+            }
+          }
+          break;
+        case 4:
+        case 5:
+          {
+            int trig_idx = (int)sel - 4;
+            if (trig_idx < *(int *)(tag + 0x4fc)) {
+              value = *(float *)(weapon + 0x220 + trig_idx * 36);
+            }
+          }
+          break;
+        case 6:
+          value = 1.0f;
+          break;
+        case 7:
+        case 8:
+          {
+            int trig_idx = (int)sel - 7;
+            if (trig_idx < *(int *)(tag + 0x4fc)) {
+              value = *(float *)(weapon + 0x224 + trig_idx * 36);
+            }
+          }
+          break;
+        case 9:
+          if ((*(uint8_t *)(weapon + 0x1dc) & 1) && *(float *)(tag + 0x34c) != 1.0f) {
+            value = (*(float *)(weapon + 0x1ec) - *(float *)(tag + 0x34c)) / (1.0f - *(float *)(tag + 0x34c));
+          }
+          break;
+        case 10:
+        case 11:
+          {
+            int trig_idx = (int)sel - 10;
+            if (trig_idx < *(int *)(tag + 0x4fc)) {
+              tag_block_get_element(tag + 0x4fc, trig_idx, 0x114);
+              FUN_000fb320(weapon, (int16_t)trig_idx);
+              value = FUN_000fb510(weapon_handle, (int16_t)trig_idx);
+            }
+          }
+          break;
+        case 12:
+          {
+            int trig_count = *(int *)(tag + 0x4fc);
+            int i;
+            for (i = 0; i < trig_count; i++) {
+              char *trig_def = (char *)tag_block_get_element(tag + 0x4fc, i, 0x114);
+              char *trig_data = (char *)FUN_000fb320(weapon, (int16_t)i);
+              if (*(float *)(trig_def + 0x48) <= 0.0f) {
+                float f = FUN_000fb510(weapon_handle, (int16_t)i) * *(float *)(trig_def + 0x54);
+                if (value < f) {
+                  value = f;
+                }
+              }
+              if (*(uint8_t *)(trig_data + 1) == 3) {
+                float f = (1.0f - *(float *)(trig_def + 0x54)) * *(float *)(weapon + 0x1f4) + *(float *)(trig_def + 0x54);
+                if (value < f) {
+                  value = f;
+                }
+              }
+              if (value < *(float *)(trig_data + 0x18)) {
+                value = *(float *)(trig_data + 0x18);
+              }
+              *(float *)(trig_data + 0x18) = value;
+            }
+            if (value < *(float *)(tag + 0x360) * *(float *)(weapon + 0x1ec)) {
+              value = *(float *)(tag + 0x360) * *(float *)(weapon + 0x1ec);
+            }
+          }
+          break;
+        case 13:
+          value = *(float *)(weapon + 0x1f0);
+          break;
+        case 14:
+          value = *(float *)(weapon + 0x1f8);
+          break;
+        case 15:
+        case 16:
+          {
+            int trig_idx = (int)sel - 15;
+            if (trig_idx < *(int *)(tag + 0x4fc)) {
+              value = *(float *)(weapon + 0x220 + trig_idx * 36);
+              if (game_time_get() - *(int *)(weapon + 0x278) > 1) {
+                value = 0.0f;
+              }
+            }
+          }
+          break;
+        }
+      }
+      *out_ptr = value;
+    }
+    sel_ptr++;
+    out_ptr++;
+    counter--;
+  } while (counter != 0);
 }
 
 /* Transfer ammunition from a source object into a weapon's magazines (0xfc290).
@@ -1202,6 +1656,74 @@ int16_t weapon_rotate_zoom_level(int weapon_datum, int16_t current_index)
   return current_index;
 }
 
+/* 0xfc780 — weapon_get_zoom_magnification */
+float weapon_get_zoom_magnification(int weapon_handle, int zoom_level)
+{
+  char *weapon;
+  char *tag;
+  float magnification;
+
+  magnification = 1.0f;
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+
+  if (zoom_level >= 0 && (int16_t)zoom_level < *(int16_t *)(tag + 0x3da)) {
+    int16_t zoom_levels;
+    float fraction;
+    float min_zoom;
+    float max_zoom;
+
+    zoom_levels = *(int16_t *)(tag + 0x3da);
+    if (zoom_levels > 1) {
+      fraction = (float)(int16_t)zoom_level / (float)(zoom_levels - 1);
+    } else {
+      fraction = 0.0f;
+    }
+
+    min_zoom = *(float *)(tag + 0x3dc);
+    if (min_zoom <= 0.0f) {
+      min_zoom = 1.0f;
+    }
+
+    max_zoom = *(float *)(tag + 0x3e0);
+    if (max_zoom <= 0.0f) {
+      max_zoom = 1.0f;
+    }
+
+    magnification = (float)pow((double)(max_zoom / min_zoom), (double)fraction) * min_zoom;
+
+    if ((*(uint32_t *)&magnification & 0x7f800000) == 0x7f800000) {
+      display_assert("%s: assert_valid_real(0x%08X %f)",
+                     "c:\\halo\\SOURCE\\items\\weapons.c", 0x5a2, true);
+      system_exit(-1);
+    }
+    if (magnification <= 0.0f) {
+      display_assert("magnification>0.0f",
+                     "c:\\halo\\SOURCE\\items\\weapons.c", 0x5a3, true);
+      system_exit(-1);
+    }
+  }
+
+  return magnification;
+}
+
+/* 0xfc8e0 — weapon_get_field_of_view */
+real weapon_get_field_of_view(int weapon_handle, real base_field_of_view, uint16_t zoom_level)
+{
+  float magnification;
+  float fov;
+
+  magnification = weapon_get_zoom_magnification(weapon_handle, (int)zoom_level);
+  if (magnification == 1.0f) {
+    return base_field_of_view;
+  }
+  fov = base_field_of_view / magnification;
+  if (fov <= 0.031415928f || fov >= 3.1101768f) {
+    return base_field_of_view;
+  }
+  return fov;
+}
+
 /* weapon_prevents_melee_attack (0xfc930)
  *
  * True when the weapon blocks a melee attack: either the weapon tag sets the
@@ -1422,6 +1944,27 @@ void FUN_000fcbd0(int16_t magazine_index, int weapon_handle)
   }
 }
 
+/* 0xfcc90 — weapon_magazine_finish_chamber */
+void weapon_magazine_finish_chamber(int16_t magazine_index, int weapon_handle)
+{
+  char *weapon;
+  int16_t *mag_state;
+  char *tag;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  mag_state = (int16_t *)FUN_000fb370(weapon, magazine_index);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  tag_block_get_element(tag + 0x4f0, (int)magazine_index, 0x70);
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  mag_state = (int16_t *)FUN_000fb370(weapon, magazine_index);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  tag_block_get_element(tag + 0x4f0, (int)magazine_index, 0x70);
+
+  mag_state[0] = 0;
+  mag_state[1] = 0;
+}
+
 /* Put one weapon trigger into state 3 with a tag-driven tick counter (0xfcd10).
  *
  * Confirmed: trigger_index arrives in AX (MOV ESI,EAX at 0xfcd1d, then
@@ -1574,6 +2117,22 @@ void FUN_000fce60(int weapon_handle, int16_t trigger_index)
   *(int16_t *)(trigger_entry + 2) = -1;
 }
 
+/* 0xfcec0 — FUN_000fcec0 */
+void FUN_000fcec0(int trigger_index, int weapon_handle)
+{
+  char *weapon;
+  char *trigger_data;
+  char *tag;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  trigger_data = (char *)FUN_000fb320(weapon, (int16_t)trigger_index);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  tag_block_get_element(tag + 0x4fc, (int16_t)trigger_index, 0x114);
+
+  *trigger_data = 0;
+  FUN_000fcdd0((int16_t)trigger_index, weapon_handle);
+}
+
 /* 0xfcf20 — weapon_reset_state
  *
  * Resets all trigger and magazine states on a weapon. Iterates over
@@ -1671,6 +2230,40 @@ void weapon_reset_state(int weapon_handle)
       mag_entry[0] = 0;
       mag_entry[1] = 0;
     } while (mag_count_index < *(int *)(mag_tag_ptr));
+  }
+}
+
+/* 0xfd0b0 — projectile_distribute */
+void projectile_distribute(int index, float *out_forward, float *out_up, int16_t count, float angle_spread, char distribution_type)
+{
+  float angle;
+  float sin_val;
+  float cos_val;
+
+  if (distribution_type & 1) {
+    if ((int16_t)index == 0) {
+      angle = 0.0f;
+    } else {
+      int16_t i = (int16_t)index - 1;
+      if (i & 1) {
+        angle = (float)(i >> 1);
+      } else {
+        angle = -(float)(i >> 1);
+      }
+    }
+  } else {
+    int16_t half = (int16_t)index >> 1;
+    angle = (float)half - 0.5f;
+    if (index & 1) {
+      angle = -angle;
+    }
+  }
+
+  angle *= angle_spread;
+  if ((int16_t)count - 1 == 0) {
+    sin_val = x87_fsin(angle);
+    cos_val = x87_fcos(angle);
+    rotate_vector3d_by_sincos(out_forward, out_up, sin_val, cos_val);
   }
 }
 
@@ -1968,6 +2561,507 @@ void weapon_stop_reload(int weapon_handle)
  *   the meaning of trigger state 1; raw offsets retained to match the
  *   sibling accessors. The role of FUN_000fdc90 is not established.
  */
+/* 0xfd520 — weapon_trigger_finish_tracking */
+void weapon_trigger_finish_tracking(int weapon_handle, int trigger_index)
+{
+  char *weapon;
+  char *tag;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  (void)FUN_000fb320(weapon, (int16_t)trigger_index);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  tag_block_get_element(tag + 0x4fc, (int16_t)trigger_index, 0x114);
+
+  *(int *)(weapon + 0x200) = -1;
+  FUN_000fcec0(trigger_index, weapon_handle);
+}
+
+/* 0xfd570 — trigger_create_projectiles */
+void trigger_create_projectiles(int weapon_handle, int16_t trigger_index)
+{
+  char *weapon;
+  char *trig_data;
+  char *tag;
+  char *trig_def;
+  int parent_unit_handle;
+  char *parent_unit;
+  int16_t player_index;
+  int actor_index;
+  char *marker_name;
+  char markers[64 * 0x6c];
+  int16_t marker_count;
+  int m_idx;
+  char *marker;
+  float origin[3];
+  float forward[3];
+  float up[3];
+  float target_dir[3];
+  int target_object;
+  int proj_count;
+  int i;
+  int projectile_tag_index;
+  char placement[0x80];
+  float proj_forward[3];
+  float proj_up[3];
+  int proj_handle;
+  int *seed;
+  float error_angle;
+  float spread;
+  float len;
+  boolean tracer;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  trig_data = (char *)FUN_000fb320(weapon, trigger_index);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  trig_def = (char *)tag_block_get_element(tag + 0x4fc, (int)trigger_index, 0x114);
+
+  parent_unit_handle = *(int *)(weapon + 0xcc);
+  if (parent_unit_handle != -1 && !object_get_and_verify_type(parent_unit_handle, 3)) {
+    parent_unit_handle = -1;
+  }
+
+  marker_name = (trigger_index == 0) ? (char *)0x267238 : (char *)0x28af04;
+  marker_count = object_get_markers_by_string_id(
+    ((*(uint8_t *)(weapon + 4) & 1) && *(int *)(weapon + 0xcc) != -1) ? *(int *)(weapon + 0xcc) : weapon_handle,
+    marker_name,
+    markers,
+    64
+  );
+
+  if (marker_count <= 0 || !(*(uint32_t *)trig_def & 0x20)) {
+    marker_count = 1;
+  }
+
+  for (m_idx = 0; m_idx < marker_count; m_idx++) {
+    marker = markers + m_idx * 0x6c;
+    origin[0] = *(float *)(marker + 0x38);
+    origin[1] = *(float *)(marker + 0x3c);
+    origin[2] = *(float *)(marker + 0x40);
+    forward[0] = *(float *)(marker + 0x14);
+    forward[1] = *(float *)(marker + 0x18);
+    forward[2] = *(float *)(marker + 0x1c);
+    up[0] = *(float *)(marker + 0x20);
+    up[1] = *(float *)(marker + 0x24);
+    up[2] = *(float *)(marker + 0x28);
+
+    target_object = -1;
+    parent_unit = (parent_unit_handle != -1) ? (char *)object_get_and_verify_type(parent_unit_handle, 3) : NULL;
+    if (parent_unit && !(*(uint32_t *)trig_def & 0x800) && !(*(uint8_t *)(parent_unit + 0xb6) & 4)) {
+      player_index = *(int16_t *)(parent_unit + 0x1c8);
+      actor_index = *(int *)(parent_unit + 0x1a4);
+      if (*(int *)(parent_unit + 0xb6) != -1) {
+        char *vehicle = (char *)object_get_and_verify_type(*(int *)(parent_unit + 0xb6), 3);
+        if (vehicle) {
+          player_index = *(int16_t *)(vehicle + 0x1c8);
+          actor_index = *(int *)(vehicle + 0x1a4);
+        }
+      }
+      unit_adjust_projectile_ray(
+        parent_unit_handle,
+        origin,
+        forward,
+        target_dir,
+        (*(uint8_t *)((char *)tag_get(0x756e6974, *(uint32_t *)parent_unit) + 0x17c) >> 3) & 1,
+        (actor_index != -1 && actor_firing_blindly(actor_index)) || *(int *)(parent_unit + 0xb6) != -1 ? 0 : 1
+      );
+
+      if (player_index != -1) {
+        normalize3d(forward);
+        target_object = player_aim_projectile(player_index, forward, target_dir);
+      } else if (actor_index != -1) {
+        target_object = actor_aim_projectile(actor_index, forward, target_dir, &target_object);
+      }
+    }
+
+    if (*(uint32_t *)trig_def & 0x20) {
+      origin[0] = *(float *)(marker + 0x38);
+      origin[1] = *(float *)(marker + 0x3c);
+      origin[2] = *(float *)(marker + 0x40);
+    }
+
+    if (trigger_index != 0 || *(int16_t *)(weapon + 0x20c) <= 0) {
+      proj_count = *(int16_t *)(trig_def + 0x6e);
+      projectile_tag_index = *(int *)(trig_def + 0xa0);
+    } else {
+      char *t1_def = (char *)tag_block_get_element(tag + 0x4fc, 1, 0x114);
+      projectile_tag_index = *(int *)(t1_def + 0xa0);
+      proj_count = *(int16_t *)(trig_def + 0x6e) * (*(int16_t *)(tag + 0x32c) == 4 ? *(int16_t *)(weapon + 0x20c) + 1 : *(int16_t *)(weapon + 0x20c));
+      *(int16_t *)(weapon + 0x20c) = 0;
+    }
+
+    if (projectile_tag_index != -1) {
+      int owner = *(int *)(weapon + 0xcc);
+      if (owner != -1) {
+        char *owner_obj = (char *)object_get_and_verify_type(owner, 3);
+        if (owner_obj && *(int *)(owner_obj + 0x2d8) != -1) {
+          owner = *(int *)(owner_obj + 0x2d8);
+        }
+      }
+
+      for (i = 0; i < proj_count; i++) {
+        object_placement_data_new(placement, projectile_tag_index, owner);
+
+        tracer = false;
+        if (*(float *)(trig_data + 0x10) == 0.0f || *(int16_t *)(trig_def + 0x26) <= *(int16_t *)(trig_data + 0xe)) {
+          tracer = true;
+          *(int16_t *)(trig_data + 0xe) = 0;
+        } else {
+          (*(int16_t *)(trig_data + 0xe))++;
+        }
+
+        spread = (*(uint32_t *)trig_def & 0x200) ? *(float *)(weapon + 0x1e4) : *(float *)(trig_data + 0x1c);
+        error_angle = spread * *(float *)(trig_def + 0x80) + (1.0f - spread) * *(float *)(trig_def + 0x7c);
+
+        proj_forward[0] = forward[0];
+        proj_forward[1] = forward[1];
+        proj_forward[2] = forward[2];
+        proj_up[0] = up[0];
+        proj_up[1] = up[1];
+        proj_up[2] = up[2];
+
+        if (!(*(uint32_t *)trig_def & 0x400) || !(*(uint8_t *)(weapon + 0x1e0) & 0x40)) {
+          seed = (int *)get_global_random_seed_address();
+          random_direction3d(seed, proj_forward, 0.0f, error_angle, proj_forward);
+        }
+
+        perpendicular3d(proj_forward, proj_up);
+        len = sqrtf(proj_up[0] * proj_up[0] + proj_up[1] * proj_up[1] + proj_up[2] * proj_up[2]);
+        if (len >= 0.0001f) {
+          proj_up[0] /= len;
+          proj_up[1] /= len;
+          proj_up[2] /= len;
+        }
+
+        projectile_distribute(i, proj_forward, proj_up, (int16_t)proj_count, *(float *)(trig_def + 0x70), *(char *)(trig_def + 0x6c));
+
+        *(float *)(placement + 0x10) = origin[0];
+        *(float *)(placement + 0x14) = origin[1];
+        *(float *)(placement + 0x18) = origin[2];
+        *(float *)(placement + 0x1c) = proj_forward[0];
+        *(float *)(placement + 0x20) = proj_forward[1];
+        *(float *)(placement + 0x24) = proj_forward[2];
+        *(float *)(placement + 0x28) = proj_up[0];
+        *(float *)(placement + 0x2c) = proj_up[1];
+        *(float *)(placement + 0x30) = proj_up[2];
+
+        proj_handle = object_new(placement);
+        if (proj_handle != -1) {
+          if (parent_unit && *(int *)(parent_unit + 0x1c8) != -1) {
+            float seat_pos[3];
+            unit_set_seat_state(parent_unit_handle, seat_pos);
+            object_try_place(proj_handle, seat_pos);
+          }
+          if (target_object != -1) {
+            projectile_set_target_object_index(proj_handle, target_object);
+          }
+          if (!tracer) {
+            projectile_kill_tracer(proj_handle);
+          }
+        }
+      }
+    }
+  }
+}
+
+/* 0xfdc90 — FUN_000fdc90 */
+void FUN_000fdc90(int weapon_handle, int trigger_index)
+{
+  char *weapon;
+  char *trig_data;
+  char *tag;
+  char *trig_def;
+  char *mag_def;
+  int16_t *mag_state;
+  int owner_unit;
+  int effect_handle;
+  int sound_handle;
+  float fov_scale;
+  boolean fired;
+  boolean flag_41;
+  boolean alt_fire;
+  int16_t rounds;
+  char *elem;
+  char *rates;
+  int curr;
+  float t;
+  int p_idx;
+  char damage_params[0x44];
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  trig_data = (char *)FUN_000fb320(weapon, (int16_t)trigger_index);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  trig_def = (char *)tag_block_get_element(tag + 0x4fc, (int)trigger_index, 0x114);
+
+  owner_unit = -1;
+  if (*(int *)(weapon + 0xcc) != -1) {
+    if (object_get_and_verify_type(*(int *)(weapon + 0xcc), 3)) {
+      owner_unit = *(int *)(weapon + 0xcc);
+    }
+  }
+
+  sound_handle = -1;
+  effect_handle = -1;
+  fov_scale = 0.0f;
+  fired = false;
+  flag_41 = false;
+  alt_fire = false;
+
+  if (trigger_index == 1 && (*(int16_t *)(tag + 0x32c) == 3 || *(int16_t *)(tag + 0x32c) == 4)) {
+    alt_fire = true;
+  }
+
+  if (*(int16_t *)(trig_def + 0x20) != -1) {
+    mag_def = (char *)tag_block_get_element(tag + 0x4f0, (int)*(int16_t *)(trig_def + 0x20), 0x70);
+    mag_state = (int16_t *)FUN_000fb370(weapon, *(int16_t *)(trig_def + 0x20));
+    if (alt_fire && *(int16_t *)(tag + 0x32e) <= *(int16_t *)(weapon + 0x20c)) {
+      /* cannot fire */
+    } else {
+      rounds = mag_state[4];
+      if ((rounds < *(int16_t *)(trig_def + 0x22) && !(*(uint8_t *)trig_def & 4)) ||
+          ((*(uint32_t *)(tag + 0x308) & 0x800) && *(float *)(weapon + 0x1f0) >= 1.0f)) {
+        /* cannot fire */
+      } else if (rounds >= *(int16_t *)(trig_def + 0x24) || !(*(uint8_t *)(trig_data + 4) & 1)) {
+        if (*(uint8_t *)0x5aa899 || (rounds -= *(int16_t *)(trig_def + 0x22), mag_state[4] = rounds, rounds >= 1)) {
+          if (*(uint8_t *)mag_def & 2) {
+            mag_state[0] = 2;
+            mag_state[1] = 0;
+          }
+          fired = true;
+        } else {
+          mag_state[4] = 0;
+          fired = true;
+        }
+      }
+    }
+  } else {
+    fired = true;
+  }
+
+  if (*(uint8_t *)0x5aa899) {
+    fired = true;
+  }
+
+  if (*(int *)(trig_def + 0x108) >= 1) {
+    rates = trig_def + 0x108;
+    if (*(int16_t *)(trig_data + 0xc) <= 0) {
+      curr = (int)*(int16_t *)(trig_data + 0xa);
+      if (*(uint8_t *)trig_def & 2) {
+        curr = (int)(random_seed_step((unsigned int *)get_global_random_seed_address()) % *(int *)rates);
+      }
+      while (true) {
+        if (*(uint16_t *)(trig_data + 8) == (uint16_t)((1 << (*(int *)rates & 0x1f)) - 1)) {
+          *(uint16_t *)(trig_data + 8) = 0;
+        }
+        do {
+          curr++;
+          if (curr >= *(int *)rates) curr = 0;
+        } while (*(uint16_t *)(trig_data + 8) & (1 << (curr & 0x1f)));
+
+        *(int16_t *)(trig_data + 0xa) = (int16_t)curr;
+        *(uint16_t *)(trig_data + 8) |= (uint16_t)(1 << (curr & 0x1f));
+
+        elem = (char *)tag_block_get_element(rates, curr, 0x84);
+        *(int16_t *)(trig_data + 0xc) = random_range((unsigned int *)get_global_random_seed_address(), *(int16_t *)elem, *(int16_t *)(elem + 2));
+        if (*(int16_t *)(trig_data + 0xc) > 0 || curr == (int)*(int16_t *)(trig_data + 0xa)) break;
+      }
+    }
+
+    (*(int16_t *)(trig_data + 0xc))--;
+    elem = (char *)tag_block_get_element(rates, (int)*(int16_t *)(trig_data + 0xa), 0x84);
+
+    if (*(float *)(tag + 0x448) > 0.0f && *(float *)(tag + 0x448) < 1.0f && *(float *)(weapon + 0x1f0) > *(float *)(tag + 0x448)) {
+      t = ((*(float *)(weapon + 0x1f0) - *(float *)(tag + 0x448)) * *(float *)(tag + 0x44c)) / (1.0f - *(float *)(tag + 0x448));
+      if (*(char *)(trig_data + 1) == 6) {
+        t += t;
+      }
+      if (random_math_real((unsigned int *)get_global_random_seed_address()) < t) {
+        flag_41 = true;
+      }
+    }
+
+    if (fired) {
+      if (flag_41) {
+        fov_scale = 0.0f;
+        effect_handle = *(int *)(elem + 0x40);
+        sound_handle = *(int *)(elem + 0x60);
+      } else {
+        fov_scale = (*(float *)(tag + 0x350) != 0.0f) ? *(float *)(weapon + 0x1ec) / *(float *)(tag + 0x350) : 0.0f;
+        effect_handle = *(int *)(elem + 0x30);
+        sound_handle = *(int *)(elem + 0x60);
+      }
+    } else {
+      effect_handle = *(int *)(elem + 0x50);
+      sound_handle = *(int *)(elem + 0x80);
+    }
+  }
+
+  if (fired) {
+    if ((*(uint8_t *)(weapon + 0x1a4) & 2) && game_engine_running()) {
+      p_idx = player_index_from_unit_index(owner_unit);
+      if (p_idx != -1) {
+        game_engine_weapon_fired(p_idx);
+      }
+    }
+    *(int *)(weapon + 0x278) = game_time_get();
+    first_person_weapon_message_from_weapon(weapon_handle, (trigger_index != 0) + (flag_41 ? 2 : 0));
+
+    if (*(float *)(trig_def + 0xa4) > 0.0f && *(char *)trig_def >= 0) {
+      *(float *)(trig_data + 0x14) = 1.0f;
+    }
+    if (*(float *)(trig_def + 0xa8) > 0.0f) {
+      *(float *)(trig_data + 0x18) = 1.0f;
+    }
+
+    if (!*(uint8_t *)0x5aa899) {
+      *(float *)(weapon + 0x1ec) += *(float *)(trig_def + 0xb8);
+    }
+    if ((*(uint8_t *)(weapon + 0x1a4) & 2) || *(float *)(weapon + 0x1ec) <= *(float *)(tag + 0x350)) {
+      if (*(float *)(weapon + 0x1ec) > 1.0f) *(float *)(weapon + 0x1ec) = 1.0f;
+    } else {
+      *(float *)(weapon + 0x1ec) = *(float *)(tag + 0x350);
+    }
+
+    if ((*(uint8_t *)(weapon + 0x1a4) & 2) && !*(uint8_t *)0x5aa892) {
+      *(float *)(weapon + 0x1f0) += *(float *)(trig_def + 0xbc);
+      if (*(float *)(weapon + 0x1f0) > 1.0f) *(float *)(weapon + 0x1f0) = 1.0f;
+    }
+
+    weapon_set_animation_state(weapon_handle, 0, 0);
+
+    if (!flag_41) {
+      if (alt_fire) {
+        (*(int16_t *)(weapon + 0x20c))++;
+      } else {
+        trigger_create_projectiles(weapon_handle, (int16_t)trigger_index);
+        ai_handle_unit_effect(owner_unit, 1, *(uint16_t *)(trig_def + 0x2e));
+      }
+    }
+
+    if (owner_unit != -1 && sound_handle != -1) {
+      damage_data_new(damage_params, sound_handle);
+      object_cause_damage(damage_params, owner_unit, -1, -1, -1, (float *)0);
+    }
+
+    if (*(int16_t *)(tag + 0x4e2) == 3 && trigger_index == 1) {
+      *(uint32_t *)(weapon + 0x1dc) |= 4;
+    }
+  }
+
+  if (*(float *)(weapon + 0x1ec) > *(float *)(tag + 0x354)) {
+    if (random_math_real((unsigned int *)get_global_random_seed_address()) < *(float *)(tag + 0x358)) {
+      weapon_start_effect(*(int *)(tag + 0x390), 0.0f, 0.0f, weapon_handle);
+      object_delete(weapon_handle);
+      return;
+    }
+  }
+
+  if (fired) {
+    if (*(char *)(trig_data + 1) != 6 || flag_41) {
+      if (*(uint8_t *)trig_def & 1) {
+        weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+        if (trigger_index < 0 || trigger_index >= 2) {
+          display_assert(0, "c:\\halo\\SOURCE\\items\\weapons.c", 0xa11, 1);
+          system_exit(-1);
+        }
+        *(uint8_t *)(weapon + 0x211 + trigger_index * 36) = 5;
+        *(int16_t *)(weapon + 0x212 + trigger_index * 36) = -1;
+      } else {
+        FUN_000fcec0(trigger_index, weapon_handle);
+      }
+    }
+  } else {
+    weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+    if (trigger_index < 0 || trigger_index >= 2) {
+      display_assert(0, "c:\\halo\\SOURCE\\items\\weapons.c", 0xa11, 1);
+      system_exit(-1);
+    }
+    *(uint8_t *)(weapon + 0x211 + trigger_index * 36) = 7;
+    *(int16_t *)(weapon + 0x212 + trigger_index * 36) = -1;
+  }
+
+  *(uint32_t *)(trig_data + 4) &= ~1;
+  weapon_start_effect(effect_handle, *(float *)(trig_data + 0x10), fov_scale, weapon_handle);
+}
+
+/* 0xfe450 — weapon_trigger_begin_firing */
+void weapon_trigger_begin_firing(int weapon_handle, int16_t trigger_index, char param_3)
+{
+  char *weapon;
+  char *tag;
+  char *trig_data;
+  char *trig_def;
+  boolean can_fire;
+  int16_t ticks;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  trig_data = (char *)FUN_000fb320(weapon, trigger_index);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  trig_def = (char *)tag_block_get_element(tag + 0x4fc, (int)trigger_index, 0x114);
+
+  can_fire = true;
+  if (*(int16_t *)(trig_def + 0x20) != -1) {
+    tag_block_get_element(tag + 0x4f0, (int)*(int16_t *)(trig_def + 0x20), 0x70);
+    if (*(int16_t *)FUN_000fb370(weapon, *(int16_t *)(trig_def + 0x20)) != 0) {
+      can_fire = false;
+    }
+  }
+
+  if (*(uint8_t *)(weapon + 0x1dc) & 1) {
+    can_fire = false;
+  }
+
+  if (FUN_0018f3e0(weapon + 0x48, weapon + 0xc, 0)) {
+    return;
+  }
+
+  if (!can_fire) {
+    return;
+  }
+
+  if (param_3 != 0) {
+    FUN_000fdc90(weapon_handle, (int)trigger_index);
+    return;
+  }
+
+  if (*(float *)(trig_def + 0x48) > 0.0f) {
+    if ((*(uint16_t *)(tag + 0x308) & 0x800) && *(float *)(weapon + 0x1f0) < 1.0f) {
+      FUN_000fdc90(weapon_handle, (int)trigger_index);
+      return;
+    }
+
+    if (*(int *)(tag + 0x4fc) > 1) {
+      *(int *)(trig_data + 0x20) = weapon_start_effect(*(int *)(trig_def + 0x68), 0.0f, 0.0f, weapon_handle);
+    } else {
+      if (*(float *)(trig_data + 0x10) <= 0.0f) {
+        *(uint32_t *)(trig_data + 4) |= 0x20;
+        FUN_000fdc90(weapon_handle, (int)trigger_index);
+      } else {
+        *(uint32_t *)(trig_data + 4) &= ~0x20;
+      }
+    }
+
+    ticks = (int16_t)(int)(*(float *)(trig_def + 0x48) * *(float *)0x253394);
+    weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+    if (trigger_index < 0 || trigger_index >= 2) {
+      display_assert(0, "c:\\halo\\SOURCE\\items\\weapons.c", 0xa11, 1);
+      system_exit(-1);
+    }
+    *(int16_t *)(weapon + 0x212 + (int)trigger_index * 36) = ticks;
+    *(uint8_t *)(weapon + 0x211 + (int)trigger_index * 36) = 2;
+  } else if (*(float *)(trig_def + 0xc4) > 0.0f) {
+    ticks = (int16_t)(int)(*(float *)(trig_def + 0xc4) * *(float *)0x253394);
+    weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+    if (trigger_index < 0 || trigger_index >= 2) {
+      display_assert(0, "c:\\halo\\SOURCE\\items\\weapons.c", 0xa11, 1);
+      system_exit(-1);
+    }
+    *(int16_t *)(weapon + 0x212 + (int)trigger_index * 36) = ticks;
+    *(uint8_t *)(weapon + 0x211 + (int)trigger_index * 36) = 1;
+  } else {
+    FUN_000fdc90(weapon_handle, (int)trigger_index);
+  }
+}
+
 void FUN_000fe6c0(int trigger_index, int weapon_handle)
 {
   int *weapon_obj;
@@ -2090,3 +3184,263 @@ void FUN_000fe790(int trigger_index, int weapon_handle)
   FUN_000fcec0(trigger_index, weapon_handle);
   *(int *)(trigger + 0x10) = 0;
 }
+
+/* 0xfe890 — FUN_000fe890 */
+void FUN_000fe890(int trigger_index, int weapon_handle)
+{
+  char *weapon;
+  char *tag;
+  char *trigger_def;
+  int16_t action;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  FUN_000fb320(weapon, (int16_t)trigger_index);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+  trigger_def = (char *)tag_block_get_element(tag + 0x4fc, (int16_t)trigger_index, 0x114);
+
+  action = *(int16_t *)(trigger_def + 0x50);
+  if (action == 1) {
+    weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+    tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+    weapon_start_effect(*(int *)(tag + 0x390), 0.0f, 0.0f, weapon_handle);
+    object_delete(weapon_handle);
+  } else if (action == 2) {
+    FUN_000fe790(trigger_index, weapon_handle);
+  }
+}
+
+/* 0xfe910 — weapon_update */
+boolean weapon_update(int weapon_handle)
+{
+  char *weapon;
+  char *tag;
+  int mag_count;
+  int trig_count;
+  int i;
+  char *mag;
+  char *mag_def;
+  char *trig;
+  char *trig_def;
+  int16_t rounds_per_second;
+  int16_t magazine_state;
+  boolean trigger_active;
+
+  weapon = (char *)object_get_and_verify_type(weapon_handle, 4);
+  tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+
+  mag_count = *(int *)(tag + 0x4f0);
+  for (i = 0; i < mag_count; i++) {
+    tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+    if (i < 0 || i >= *(int *)(tag + 0x4f0)) {
+      display_assert(0, "c:\\halo\\SOURCE\\items\\weapons.c", 0x672, 1);
+      system_exit(-1);
+    }
+    mag = weapon + 0x258 + i * 12;
+    mag_def = (char *)tag_block_get_element(tag + 0x4f0, i, 0x70);
+    rounds_per_second = *(int16_t *)(mag_def + 4);
+    if (rounds_per_second >= 1 && *(int16_t *)(mag + 8) < *(int16_t *)(mag_def + 10)) {
+      *(int16_t *)(mag + 10) += rounds_per_second % 30;
+      *(int16_t *)(mag + 8) += rounds_per_second / 30;
+      if (*(int16_t *)(mag + 10) >= 30) {
+        (*(int16_t *)(mag + 8))++;
+        *(int16_t *)(mag + 10) -= 30;
+      }
+      if (*(int16_t *)(mag + 8) > *(int16_t *)(mag_def + 10)) {
+        *(int16_t *)(mag + 8) = *(int16_t *)(mag_def + 10);
+      }
+    }
+    if (*(int16_t *)(mag + 2) > 0) {
+      (*(int16_t *)(mag + 2))--;
+    }
+    magazine_state = *(int16_t *)mag;
+    if (magazine_state == 1) {
+      if (*(int16_t *)(mag + 2) <= 1) {
+        FUN_000fcaf0(weapon_handle, (int16_t)i);
+      }
+    } else if (magazine_state == 2) {
+      FUN_000fcbd0((int16_t)i, weapon_handle);
+    } else if (magazine_state == 3) {
+      if (*(int16_t *)(mag + 2) == 0) {
+        weapon_magazine_finish_chamber((int16_t)i, weapon_handle);
+      }
+    }
+  }
+
+  trig_count = *(int *)(tag + 0x4fc);
+  for (i = 0; i < trig_count; i++) {
+    tag = (char *)tag_get(0x77656170, *(uint32_t *)weapon);
+    if (i < 0 || i >= *(int *)(tag + 0x4fc)) {
+      display_assert(0, "c:\\halo\\SOURCE\\items\\weapons.c", 0x667, 1);
+      system_exit(-1);
+    }
+    trig = weapon + 0x210 + i * 36;
+    trig_def = (char *)tag_block_get_element(tag + 0x4fc, i, 0x114);
+
+    trigger_active = false;
+    if ((*(uint32_t *)trig_def & 0x200) && (*(uint8_t *)(weapon + 0x1a4) & 2)) {
+      trigger_active = *(float *)(weapon + 0x1e4) > *(float *)0x2533e8;
+    }
+    if ((*(uint32_t *)trig_def & 0x40) && *(int *)(weapon + 0xcc) == -1) {
+      trigger_active = true;
+    }
+    if (*(int16_t *)(trig + 2) > 0) {
+      (*(int16_t *)(trig + 2))--;
+    }
+
+    if (*(uint32_t *)trig_def & 0x10) {
+      if (!(*(uint32_t *)(trig + 4) & 2) && trigger_active) {
+        *(uint32_t *)(trig + 4) ^= 4;
+      }
+      if (trigger_active) {
+        *(uint32_t *)(trig + 4) |= 2;
+      } else {
+        *(uint32_t *)(trig + 4) &= ~2;
+      }
+      trigger_active = (*(uint32_t *)(trig + 4) >> 2) & 1;
+    }
+
+    if (!trigger_active) {
+      *(uint32_t *)(trig + 4) |= 1;
+    }
+
+    if (*(float *)(trig + 0x14) > 0.0f) {
+      *(float *)(trig + 0x14) -= *(float *)(trig_def + 0xf4);
+      if (*(float *)(trig + 0x14) < 0.0f) *(float *)(trig + 0x14) = 0.0f;
+    }
+    if (*(float *)(trig + 0x18) > 0.0f) {
+      *(float *)(trig + 0x18) -= *(float *)(trig_def + 0xf0);
+      if (*(float *)(trig + 0x18) < 0.0f) *(float *)(trig + 0x18) = 0.0f;
+    }
+
+    switch (*(uint8_t *)(trig + 1)) {
+    case 0:
+      if (!(*(uint8_t *)(weapon + 0x1e0) & 0x10) && *(int *)(weapon + 0xcc) != -1 && *(int16_t *)(trig_def + 0x20) != -1) {
+        int16_t rounds = *(int16_t *)((char *)FUN_000fb370(weapon, *(int16_t *)(trig_def + 0x20)) + 8);
+        if ((rounds < *(int16_t *)(trig_def + 0x22) && !(*(uint32_t *)trig_def & 4)) || rounds < *(int16_t *)(trig_def + 0x24) || rounds == 0) {
+          FUN_000fc990(*(int16_t *)(trig_def + 0x20), weapon_handle, 1);
+        }
+      }
+      if (trigger_active && weapon_trigger_can_fire_again(weapon_handle, (int16_t)i)) {
+        weapon_trigger_begin_firing(weapon_handle, (int16_t)i, 0);
+      } else if (*(int8_t *)trig <= 126) {
+        (*(int8_t *)trig)++;
+      }
+      break;
+    case 1:
+      if (trigger_active) {
+        if (*(int16_t *)(trig + 2) == 0 && *(int16_t *)(weapon + 0x20c) < *(int16_t *)(tag + 0x32e)) {
+          FUN_000fe6c0(weapon_handle, (int16_t)i);
+        }
+      } else {
+        weapon_trigger_begin_firing(weapon_handle, (int16_t)i, 1);
+      }
+      break;
+    case 2:
+      if (*(int16_t *)(trig + 2) != 0) {
+        if (!trigger_active) {
+          if (i != 0 || *(int *)(tag + 0x4fc) <= 1 || (*(uint32_t *)(trig + 4) & 0x20)) {
+            FUN_000fcdd0(weapon_handle, (int16_t)i);
+          } else {
+            weapon_trigger_begin_firing(weapon_handle, 0, 1);
+          }
+          if (*(int *)(trig + 0x20) != -1) {
+            effect_stop(*(int *)(trig + 0x20), 1);
+            *(int *)(trig + 0x20) = -1;
+          }
+        }
+      } else {
+        FUN_000fcd10((int16_t)i, weapon_handle);
+      }
+      break;
+    case 3:
+      if (trigger_active) {
+        *(float *)(weapon + 0x1f4) = 1.0f - ((float)*(int16_t *)(trig + 2) * *(float *)0x2546a4) / *(float *)(trig_def + 0x4c);
+        if (*(int16_t *)(trig + 2) != 0) {
+          if (*(int16_t *)((char *)FUN_000fb370(weapon, *(int16_t *)(trig_def + 0x20)) + 8) < *(int16_t *)(trig_def + 0x22) && !(*(uint32_t *)trig_def & 4)) {
+            FUN_000fe790(i, weapon_handle);
+          }
+        } else {
+          FUN_000fe890(i, weapon_handle);
+        }
+      } else {
+        FUN_000fe790(i, weapon_handle);
+      }
+      break;
+    case 4:
+      if (*(int16_t *)(trig + 2) == 0) {
+        if ((*(uint32_t *)trig_def & 8) && (*(uint8_t *)(weapon + 0x1a4) & 2) && !(*(uint32_t *)(trig + 4) & 1)) {
+          /* continue */
+        } else {
+          FUN_000fcdd0(weapon_handle, (int16_t)i);
+          break;
+        }
+        FUN_000fce60(weapon_handle, (int16_t)i);
+      }
+      break;
+    case 5:
+      if (!trigger_active || *(int *)(weapon + 0x200) == -1) {
+        weapon_trigger_finish_tracking(weapon_handle, i);
+      }
+      break;
+    case 6:
+      if (*(int16_t *)(trig + 2) == 0) {
+        FUN_000fcec0(i, weapon_handle);
+      } else {
+        weapon_trigger_begin_firing(weapon_handle, (int16_t)i, 1);
+      }
+      break;
+    case 7:
+      if (!trigger_active) {
+        FUN_000fcdd0(weapon_handle, (int16_t)i);
+      }
+      break;
+    case 8:
+      if (*(int16_t *)(trig + 2) == 0) {
+        FUN_000fcdd0(weapon_handle, (int16_t)i);
+      }
+      break;
+    default:
+      display_assert(0, "c:\\halo\\SOURCE\\items\\weapons.c", 0x30a, 1);
+      system_exit(-1);
+    }
+
+    if (trigger_active) {
+      *(float *)(trig + 0x10) += *(float *)(trig_def + 0xf8);
+      if (*(float *)(trig + 0x10) > 1.0f) *(float *)(trig + 0x10) = 1.0f;
+      if (*(float *)(trig_def + 0x14) != 0.0f && !(*(uint32_t *)(trig + 4) & 0x10) && *(float *)(trig + 0x10) > *(float *)(trig_def + 0x14)) {
+        int obj_h = weapon_handle;
+        if ((*(uint8_t *)(weapon + 4) & 1) && *(int *)(weapon + 0xcc) != -1) {
+          obj_h = *(int *)(weapon + 0xcc);
+        }
+        object_permute_region(obj_h, *(const char **)((char *)0x31f3b8 + i * 4), -1, 1);
+        *(uint32_t *)(trig + 4) |= 0x10;
+      }
+    } else {
+      *(float *)(trig + 0x10) -= *(float *)(trig_def + 0xfc);
+      if (*(float *)(trig + 0x10) < 0.0f) *(float *)(trig + 0x10) = 0.0f;
+      if ((*(uint32_t *)(trig + 4) & 0x10) && *(float *)(trig + 0x10) < *(float *)(trig_def + 0x14)) {
+        int obj_h = weapon_handle;
+        if ((*(uint8_t *)(weapon + 4) & 1) && *(int *)(weapon + 0xcc) != -1) {
+          obj_h = *(int *)(weapon + 0xcc);
+        }
+        object_permute_region(obj_h, *(const char **)((char *)0x31f3b8 + i * 4), -1, 0);
+        *(uint32_t *)(trig + 4) &= ~0x10;
+      }
+    }
+
+    if (*(uint8_t *)(trig + 1) != 6 && *(uint8_t *)(trig + 1) != 4 && !trigger_active) {
+      *(float *)(trig + 0x1c) -= *(float *)(trig_def + 0x104);
+      if (*(float *)(trig + 0x1c) < 0.0f) *(float *)(trig + 0x1c) = 0.0f;
+    } else {
+      *(float *)(trig + 0x1c) += *(float *)(trig_def + 0x100);
+      if (*(float *)(trig + 0x1c) > 1.0f) *(float *)(trig + 0x1c) = 1.0f;
+    }
+  }
+
+  if (*(uint8_t *)0x449ef1 && *(uint8_t *)0x31f3c8) {
+    profile_exit_private((void *)0x31f3c0);
+  }
+
+  return 1;
+}
+
