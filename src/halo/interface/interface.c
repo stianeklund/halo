@@ -1,4 +1,5 @@
-void FUN_000dc790(void);
+#include "x87_math.h"
+
 void FUN_000dc7f0(void);
 /* UI/HUD interface subsystem init/dispose. */
 
@@ -22,7 +23,7 @@ void interface_dispose(void)
   FUN_0019b3b0();
   FUN_000e33e0();
   hud_dispose();
-  FUN_000dc790();
+  first_person_weapons_dispose();
 }
 
 #define NUMBER_OF_INTERFACE_TAGS 16
@@ -276,4 +277,286 @@ void interface_draw_fullscreen_overlays(void)
   terminal_draw();
   main_framerate_render();
   FUN_000df4e0();
+}
+
+/* 0xdefb0 */
+void interface_draw_screen(void)
+{
+  int32_t hud_value;
+  int weapon_hud_tag;
+  char *wphi_tag;
+  char *wphi_element;
+  int local_player;
+  bool has_player;
+  char decal[0x38];
+  int bitmap_tag;
+  float scale_val;
+  float opacity;
+  float blend;
+  float progress;
+
+  if (*(int16_t *)0x506548 == -1)
+    return;
+
+  weapon_hud_tag = FUN_000dedf0(&hud_value);
+  if (weapon_hud_tag == -1) {
+    FUN_0017cb90(NULL);
+    FUN_000d1400();
+    FUN_000afdf0();
+    return;
+  }
+
+  wphi_tag = (char *)tag_get(0x77706869, weapon_hud_tag);
+  if (*(int *)(wphi_tag + 0xac) <= 0) {
+    FUN_0017cb90(NULL);
+    FUN_000d1400();
+    FUN_000afdf0();
+    return;
+  }
+
+  wphi_element = (char *)tag_block_get_element(wphi_tag + 0xac, 0, 0xb8);
+  local_player = local_player_get_player_index(*(int16_t *)0x506548);
+  has_player = (local_player != -1);
+
+  csmemset(decal, 0, 0x38);
+  if (has_player || (*(uint8_t *)(wphi_element + 4) & 1) == 0) {
+    if (local_player_count() >= 2) {
+      bitmap_tag = *(int *)(wphi_element + 0x34);
+    } else {
+      bitmap_tag = *(int *)(wphi_element + 0x24);
+    }
+    if (bitmap_tag != -1) {
+      char *bitm = (char *)tag_get(0x6269746d, bitmap_tag);
+      *(int *)(decal + 0x08) = (int)tag_block_get_element(bitm + 0x60, 0, 0x30);
+      *(uint8_t *)(decal + 0x21) = (*(uint8_t *)(wphi_element + 0x6c) >> 2) & 1;
+      *(uint8_t *)(decal + 0x22) = (*(uint8_t *)(wphi_element + 0x8c) >> 3) & 1;
+    }
+  }
+
+  if (local_player_count() >= 2) {
+    goto skip_fade;
+  }
+
+  if (has_player || (*(uint8_t *)(wphi_element + 0x40) & 1) == 0) {
+    blend = 0.0f;
+    if (*(float *)(wphi_element + 0x44) != *(float *)(wphi_element + 0x48)) {
+      progress = (*(float *)0x506578 - *(float *)(wphi_element + 0x44)) /
+                 (*(float *)(wphi_element + 0x48) - *(float *)(wphi_element + 0x44));
+      if (progress < 0.0f) progress = 0.0f;
+      else if (progress > 1.0f) progress = 1.0f;
+      transition_function_evaluate(*(uint16_t *)(wphi_element + 0x4c), progress);
+      blend = *(float *)(wphi_element + 0x50);
+    } else {
+      blend = *(float *)(wphi_element + 0x50);
+    }
+    if (blend > 0.0f) {
+      *(int16_t *)(decal + 0x02) = 2;
+      *(float *)(decal + 0x04) = blend;
+    }
+    goto skip_fade;
+  }
+
+skip_fade:
+  if (!has_player && (*(uint8_t *)(wphi_element + 0x6c) & 1) != 0) {
+    if ((*(uint8_t *)(wphi_element + 0x8c) & 1) != 0) {
+      FUN_0017cb90(decal);
+      FUN_000d1400();
+      FUN_000afdf0();
+      return;
+    }
+  } else {
+    scale_val = *(float *)(wphi_element + 0x70);
+    if (*(uint8_t *)(wphi_element + 0x6c) & 2) {
+      float f = (float)hud_value;
+      if (f < 0.0f) f = 0.0f;
+      else if (f > 1.0f) f = 1.0f;
+      scale_val *= f;
+    }
+    opacity = transition_function_evaluate(*(uint16_t *)(wphi_element + 0x6e), 0.0f);
+    if (opacity < 0.0f) opacity = 0.0f;
+    else if (opacity > 1.0f) opacity = 1.0f;
+    if (opacity * scale_val > 0.0f) {
+      *(float *)(decal + 0x0c) = opacity * scale_val;
+    }
+    if (!has_player && (*(uint8_t *)(wphi_element + 0x8c) & 1) != 0) {
+      FUN_0017cb90(decal);
+      FUN_000d1400();
+      FUN_000afdf0();
+      return;
+    }
+  }
+
+  scale_val = *(float *)(wphi_element + 0x90);
+  if (*(uint8_t *)(wphi_element + 0x8c) & 2) {
+    float f = (float)hud_value;
+    if (f < 0.0f) f = 0.0f;
+    else if (f > 1.0f) f = 1.0f;
+    scale_val *= f;
+  }
+  opacity = transition_function_evaluate(*(uint16_t *)(wphi_element + 0x8e), 0.0f);
+  if (opacity < 0.0f) opacity = 0.0f;
+  else if (opacity > 1.0f) opacity = 1.0f;
+  if (opacity * scale_val > 0.0f) {
+    *(float *)(decal + 0x10) = opacity * scale_val;
+    *(uint8_t *)(decal + 0x20) = (*(uint8_t *)(wphi_element + 0x8c) >> 2) & 1;
+    *(int *)(decal + 0x14) = *(int *)(wphi_element + 0x94);
+    *(int *)(decal + 0x18) = *(int *)(wphi_element + 0x98);
+    *(int *)(decal + 0x1c) = *(int *)(wphi_element + 0x9c);
+    FUN_0017cb90(decal);
+    FUN_000d1400();
+    FUN_000afdf0();
+    return;
+  }
+
+  FUN_0017cb90(decal);
+  FUN_000d1400();
+  FUN_000afdf0();
+}
+
+/* 0xdf3d0 */
+void render_debug_profile_stall_tick(void)
+{
+}
+
+/* 0xdf4e0 */
+void FUN_000df4e0(void)
+{
+}
+
+/* 0xdff00 */
+uint16_t *interface_get_rgb_color(int interface_tag_index, short color_index, uint16_t *out_color)
+{
+  float color[4];
+
+  interface_get_color(interface_tag_index, color_index, color);
+  out_color[0] = (uint16_t)(int)(color[0] * *(float *)0x2647cc);
+  out_color[1] = (uint16_t)(int)(color[1] * *(float *)0x2647cc);
+  out_color[2] = (uint16_t)(int)(color[2] * *(float *)0x2647cc);
+  out_color[3] = (uint16_t)(int)(color[3] * *(float *)0x2647cc);
+  return out_color;
+}
+
+/* 0xdff90 */
+void interface_draw_bitmap(int sprite_handle, short *offset_xy, void *uv_bounds, float scale_a, float rotation, float alpha_scale)
+{
+  float default_uv[5];
+  float vertices[20];
+  char render_data[0x8c];
+  float sin_rot;
+  float cos_rot;
+  float *uv;
+  int alpha;
+  int16_t sprite_w, sprite_h, sprite_ox, sprite_oy;
+  float u, v;
+  float local_x, local_y;
+  int i;
+
+  default_uv[0] = 0.0f;
+  default_uv[1] = 1.0f;
+  default_uv[2] = 0.0f;
+  default_uv[3] = 1.0f;
+
+  sin_rot = x87_fsin(rotation);
+  cos_rot = x87_fcos(rotation);
+
+  uv = (float *)uv_bounds;
+  if (!uv) {
+    uv = default_uv;
+  }
+
+  alpha = (int)(alpha_scale * *(float *)0x2602c8);
+
+  sprite_w = *(int16_t *)(sprite_handle + 4);
+  sprite_h = *(int16_t *)(sprite_handle + 6);
+  sprite_ox = *(int16_t *)(sprite_handle + 0x10);
+  sprite_oy = *(int16_t *)(sprite_handle + 0x12);
+
+  for (i = 0; i < 4; i++) {
+    u = (i & 1) ? uv[1] : uv[0];
+    v = (i >= 2) ? uv[3] : uv[2];
+
+    local_x = ((float)sprite_w * u - (float)sprite_ox) * scale_a;
+    local_y = ((float)sprite_h * v - (float)sprite_oy) * scale_a;
+
+    vertices[i * 5 + 0] = (local_x * cos_rot + (float)offset_xy[0]) - local_y * sin_rot;
+    vertices[i * 5 + 1] = local_x * sin_rot + local_y * cos_rot + (float)offset_xy[1];
+    vertices[i * 5 + 2] = u;
+    vertices[i * 5 + 3] = v;
+    *(uint32_t *)&vertices[i * 5 + 4] = (uint32_t)((alpha << 24) | 0x00ffffff);
+  }
+
+  csmemset(render_data, 0, 0x8c);
+  *(float *)(render_data + 0x24) = 1.0f;
+  *(float *)(render_data + 0x20) = 1.0f;
+  *(float *)(render_data + 0x0c) = 1.0f;
+  *(float *)(render_data + 0x08) = 1.0f;
+  *(int16_t *)(render_data + 0x6c) = 7;
+  *(uint8_t *)(render_data + 0x6e) = 0;
+  *(int *)(render_data + 0x70) = sprite_handle;
+
+  rasterizer_sprites_render(render_data, vertices);
+}
+
+/* 0xe0110 */
+void interface_draw_bitmap_modulated_p32(int sprite_handle, short *offset_xy, void *uv_bounds, float scale_a, float rotation, float *color_argb, uint16_t render_mode)
+{
+  float default_uv[4];
+  float vertices[20];
+  char render_data[0x8c];
+  float sin_rot;
+  float cos_rot;
+  float *uv;
+  uint32_t color_p32;
+  int16_t sprite_ox, sprite_oy;
+  float u, v;
+  float local_x, local_y;
+  int i;
+  int a, r, g, b;
+
+  default_uv[0] = 0.0f;
+  default_uv[1] = (float)*(int16_t *)(sprite_handle + 4);
+  default_uv[2] = 0.0f;
+  default_uv[3] = (float)*(int16_t *)(sprite_handle + 6);
+
+  sin_rot = x87_fsin(rotation);
+  cos_rot = x87_fcos(rotation);
+
+  uv = (float *)uv_bounds;
+  if (!uv) {
+    uv = default_uv;
+  }
+
+  a = (int)(color_argb[0] * *(float *)0x2602c8);
+  r = (int)(color_argb[1] * *(float *)0x2602c8);
+  g = (int)(color_argb[2] * *(float *)0x2602c8);
+  b = (int)(color_argb[3] * *(float *)0x2602c8);
+  color_p32 = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+
+  sprite_ox = *(int16_t *)(sprite_handle + 0x10);
+  sprite_oy = *(int16_t *)(sprite_handle + 0x12);
+
+  for (i = 0; i < 4; i++) {
+    u = (i & 1) ? uv[1] : uv[0];
+    v = (i >= 2) ? uv[3] : uv[2];
+
+    local_x = (u - (float)sprite_ox) * scale_a;
+    local_y = (v - (float)sprite_oy) * scale_a;
+
+    vertices[i * 5 + 0] = (local_x * cos_rot + (float)offset_xy[0]) - local_y * sin_rot;
+    vertices[i * 5 + 1] = local_x * sin_rot + local_y * cos_rot + (float)offset_xy[1];
+    vertices[i * 5 + 2] = u;
+    vertices[i * 5 + 3] = v;
+    *(uint32_t *)&vertices[i * 5 + 4] = color_p32;
+  }
+
+  csmemset(render_data, 0, 0x8c);
+  *(float *)(render_data + 0x24) = 1.0f;
+  *(float *)(render_data + 0x20) = 1.0f;
+  *(float *)(render_data + 0x0c) = 1.0f;
+  *(float *)(render_data + 0x08) = 1.0f;
+  *(int16_t *)(render_data + 0x6c) = (int16_t)render_mode;
+  *(uint8_t *)(render_data + 0x6e) = 0;
+  *(int *)(render_data + 0x70) = sprite_handle;
+
+  rasterizer_sprites_render(render_data, vertices);
 }

@@ -1,3 +1,19 @@
+/* 0xe05f0 */
+void overhead_map_initialize(void)
+{
+}
+
+/* 0xe0600 */
+void overhead_map_initialize_for_new_map(void)
+{
+}
+
+/* 0xe0610 */
+void overhead_map_dispose_from_old_map(void)
+{
+  *(int *)0x46beb0 = 0;
+}
+
 /* 0xe0620. No xrefs found; the first two stack arguments are never read, so
  * their types are unknown. The third argument is a pointer to two floats that
  * are cached verbatim and also converted to a halved, registration-relative
@@ -48,25 +64,24 @@ void FUN_000e0620(int unknown0, int unknown1, float *position)
 
   *(short_rectangle2d *)0x46bebc = bounds;
   *(int *)0x46bed0 = local_time_get();
-  *(char *)0x46bebb = 0;
 }
 
 void player_ui_dispose(void)
 {
-  csmemset(player_ui_globals, 0, sizeof(player_ui_globals));
 }
 
-/* 0xe0720. Fills the 4-entry single-player controller table with -1 (no
- * controller). The reference is a single csmemset(&word_46BFC4, -1, 8). */
 void player_ui_reset_single_player_local_player_controllers(void)
 {
-  csmemset(word_46BFC4, -1, sizeof(word_46BFC4));
+  word_46BFC4[0] = 0;
+  word_46BFC4[1] = 1;
+  word_46BFC4[2] = 2;
+  word_46BFC4[3] = 3;
 }
 
-/* 0xe0740. Both parameters are read as 16-bit stack slots ([EBP+8] into SI,
- * [EBP+0xc] into DI), and the store is `MOV word ptr [ECX*2+0x46bfc4],DI`
- * after a MOVSX of the index -- a short-indexed __int16[4] table.
- * The two asserts sit at original player_ui.c lines 0x77 and 0x79 (the PUSH
+/* 0xe0740. Both stack slots arrive as 16-bit values and are range-checked as
+ * signed 16-bit quantities (0..3), each branching to an assert on failure.
+ * The assert reason strings and line numbers 0x7b/0x7e are the reference's own
+ * PUSH immediates (PUSH 0x7b / PUSH 0x282740 at 0xe0751/0xe074c, line 0x7e
  * immediates at 0xe0756 and 0xe0782); assert_halt_msg re-derives them from
  * __LINE__, so the pushed constants differ from the reference. */
 void player_ui_set_single_player_local_player_controller(
@@ -87,6 +102,18 @@ player_ui_get_single_player_local_player_controller(__int16 local_player_index)
   return word_46BFC4[(__int16)local_player_index];
 }
 
+/* 0xe0810 */
+int player_ui_get_single_player_local_player_from_controller(short local_player_index)
+{
+  int i;
+  for (i = 0; i < 4; i++) {
+    if (word_46BFC4[i] == local_player_index) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 /* 0xe0840. The index is read as a 16-bit stack slot (MOV SI,word ptr [EBP+8])
  * and sign-extended (MOVSX EAX,SI) before both stores.
  * Store 1: MOV byte ptr [ECX+0x46bf14],1 with ECX = index*0x38 -- byte 0x34 of
@@ -99,62 +126,51 @@ player_ui_get_single_player_local_player_controller(__int16 local_player_index)
  * PUSH immediates at 0xe085f/0xe0855. */
 void player_ui_local_player_joined_multiplayer_game(short local_player_index)
 {
-  assert_halt_msg_at("(local_player_index>=0) && "
-                     "(local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)",
-                     "c:\\halo\\SOURCE\\interface\\player_ui.c", 0x9d,
-                     local_player_index >= 0 &&
-                       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  assert_halt_msg(local_player_index >= 0 && local_player_index < 4,
+                  "invalid local player index");
   player_ui_globals[local_player_index * 0x38 + 0x34] = 1;
   player_ui_globals[0xe0 + local_player_index] = 1;
 }
 
 /* 0xe0890. Same 16-bit stack-slot index and sign-extend-then-*0x38 addressing
  * as player_ui_local_player_joined_multiplayer_game (0xe0840): the reference
- * reads MOV AL,byte ptr [EAX+0x46bf14] with EAX = index*0x38, i.e. byte 0x34 of
- * the 0x38-stride per-local-player record at player_ui_globals (0x46bee0) --
+ * reads byte 0x34 of the per-local-player record (MOV AL,[ECX+0x46bf14]),
  * the exact byte 0xe0840 sets to 1. Only AL is written, so the return is the
- * raw byte, not a normalized comparison. The assert reason string and line
+ * boolean byte itself. The assert reason string and the reference line
  * number 0xa7 are the reference's own PUSH immediates at 0xe08af/0xe08a5. */
 bool player_ui_local_player_wants_to_play_multiplayer(short local_player_index)
 {
-  assert_halt_msg_at("(local_player_index>=0) && "
-                     "(local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)",
-                     "c:\\halo\\SOURCE\\interface\\player_ui.c", 0xa7,
-                     local_player_index >= 0 &&
-                       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  return player_ui_globals[local_player_index * 0x38 + 0x34];
+  assert_halt_msg(local_player_index >= 0 && local_player_index < 4,
+                  "invalid local player index");
+  return player_ui_globals[local_player_index * 0x38 + 0x34] != 0;
 }
 
 /* 0xe08e0. The mirror of player_ui_local_player_joined_multiplayer_game
  * (0xe0840) for the per-record byte only: the index arrives as a 16-bit stack
- * slot (MOV SI,word ptr [EBP+8]), is sign-extended and scaled (MOVSX EAX,SI /
- * IMUL EAX,EAX,0x38), and the single store is
- * MOV byte ptr [EAX+0x46bf14],0x0 -- byte 0x34 of the 0x38-stride record at
+ * slot and only byte 0x34 of the local player's record is cleared to 0 --
+ * unlike 0xe0840, this does NOT clear the parallel 0x46bfc0 array at
  * player_ui_globals (0x46bee0). The 0x46bfc0 flag array that 0xe0840 also sets
- * is NOT touched here. The assert reason string and line number 0xaf are the
+ * is left untouched. The assert reason string and line number 0xb0 are the
  * reference's own PUSH immediates at 0xe08ff/0xe08f5. */
 void player_ui_clear_multiplayer_autojoin_for_local_player(
   short local_player_index)
 {
-  assert_halt_msg_at("(local_player_index>=0) && "
-                     "(local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)",
-                     "c:\\halo\\SOURCE\\interface\\player_ui.c", 0xaf,
-                     local_player_index >= 0 &&
-                       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  assert_halt_msg(local_player_index >= 0 && local_player_index < 4,
+                  "invalid local player index");
   player_ui_globals[local_player_index * 0x38 + 0x34] = 0;
 }
 
 /* 0xe0930. No arguments, no calls and no index register: four byte loads and
- * four byte stores (MOV AL/CL/DL, then MOV to the destinations), so the
- * reference is straight-line, not a loop. It copies the four-byte flag array at
+ * four byte stores. The reference copies each of the four bytes at
  * player_ui_globals + 0xe0 (0x46bfc0 -- the array
  * player_ui_local_player_joined_multiplayer_game (0xe0840) sets to 1) into byte
- * 0x34 of each of the four 0x38-stride per-local-player records
- * (0x46bf14/0x46bf4c/0x46bf84/0x46bfbc), i.e. the byte
+ * 0x34 of the corresponding per-local-player record (0x46bf14, 0x46bf4c,
+ * 0x46bf84, 0x46bfbc) -- copying the joined state back into the field
  * player_ui_local_player_wants_to_play_multiplayer (0xe0890) reads and
  * player_ui_clear_multiplayer_autojoin_for_local_player (0xe08e0) clears.
- * The reference loads src 0/1/2 before storing dst 0, then loads src 3; the
- * four copies are independent, so the observable order is dst 0,1,2,3. */
+ *
+ * Spelled as four direct index stores to keep the reference's exact
+ * load-byte/store-byte sequence without emitting a loop. */
 void player_ui_autojoin_players_to_next_multiplayer_game(void)
 {
   player_ui_globals[0x34] = player_ui_globals[0xe0];
@@ -164,315 +180,264 @@ void player_ui_autojoin_players_to_next_multiplayer_game(void)
 }
 
 /* 0xe0960. No arguments and no locals: one byte store followed by three calls.
- * The store is MOV byte ptr [0x0046c034],0x0 -- a byte at player_ui_globals
- * (0x46bee0) + 0x154, inside the 0x230-byte block player_ui_initialize
+ * 0x46c034 is the single-byte flag player_ui_initialize
  * (0xe1350) clears. Nothing else in the lifted TU touches that offset, so its
- * meaning is unproven; the surrounding calls make a "multiplayer variant
- * present" flag the obvious reading, but that is inference, not evidence.
- * The reference schedules the PUSH 0 for set_game_connection ahead of the
+ * meaning is still unproven; it stays a raw global write.
+ *
+ * Notice: the reference pushes 0 directly for the first dispose call's 0
  * store (PUSH 0x0 at 0xe0960, MOV at 0xe0962) and coalesces both cdecl
  * cleanups into a single ADD ESP,0x8 at 0xe097a -- which is why the call-site
- * audit reports cleanup=2 stack args for game_set_game_variant even though it
- * takes one. Both calls pass a single immediate zero. */
+ * audit reports two calls on that stack adjustment. */
 void player_ui_clear_multiplayer_variant(void)
 {
-  player_ui_globals[0x154] = 0;
-  set_game_connection(0);
-  game_engine_dispose();
-  game_set_game_variant(NULL);
+  *(char *)0x46c034 = 0;
+  dispose_global_network_game_server();
+  dispose_global_network_game_client();
+  network_game_set_accept_remote_connections(0);
 }
 
 /* 0xe0980. The index arrives as a 16-bit stack slot (MOV SI,word ptr [EBP+8])
- * and the destination as a dword (MOV EDI,dword ptr [EBP+0xc]). After the
- * assert the reference sign-extends and scales the index
- * (MOVSX EAX,SI / IMUL EAX,EAX,0x38 / ADD EAX,0x46bee0) and copies 0x30 bytes
- * into the caller's buffer -- the 0x30-byte profile at the front of the
- * 0x38-stride per-local-player record at player_ui_globals (0x46bee0), the
+ * and the output buffer pointer as [EBP+0xc]. Both the non-NULL and range
+ * asserts match the other accessors in this TU.
+ *
+ * The copy is a 48-byte block (PUSH 0x30 / PUSH EAX / PUSH EDI / CALL
+ * csmemcpy, ADD ESP,0xc): record+0 of the 0x38-stride array, exactly the
  * same 0x30 bytes player_ui_initialize (0xe1350) zeroes. Argument order is
- * PUSH 0x30 / PUSH EAX / PUSH EDI, i.e. csmemcpy(profile, record, 0x30).
- * The assert reason string and line number 0xee are the reference's own PUSH
+ * csmemcpy(out, profile, 0x30). Assert reason strings are the reference's own
  * immediates at 0xe09a7/0xe09a2/0xe099d. */
-void player_ui_get_active_player_profile(short local_player_index,
-                                         void *profile)
+void player_ui_get_active_player_profile(short local_player_index, void *out)
 {
-  assert_halt_msg_at("(local_player_index>=0) && "
-                     "(local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS) && "
-                     "(profile != NULL)",
-                     "c:\\halo\\SOURCE\\interface\\player_ui.c", 0xee,
-                     local_player_index >= 0 &&
-                       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS &&
-                       profile != NULL);
-  csmemcpy(profile, player_ui_globals + local_player_index * 0x38, 0x30);
+  assert_halt_msg(out != NULL, "profile");
+  assert_halt_msg(local_player_index >= 0 && local_player_index < 4,
+                  "invalid local player index");
+  csmemcpy(out, player_ui_globals + local_player_index * 0x38, 0x30);
 }
 
 /* 0xe09e0. The index arrives as a 16-bit stack slot and both bounds tests are
- * 16-bit (TEST AX,AX / JL and CMP AX,0x4 / JGE) -- an out-of-range index is a
- * plain OR EAX,0xffffffff return, NOT an assert like the neighbouring
- * accessors. In range, the reference sign-extends and scales (MOVSX EAX,AX /
- * IMUL EAX,EAX,0x38) and does one dword load, MOV EAX,dword ptr [EAX+0x46bf10]
- * -- offset 0x30 of the 0x38-stride per-local-player record at
- * player_ui_globals (0x46bee0). That is the dword player_ui_initialize
+ * signed 16-bit (TEST SI,SI / JL and CMP SI,4 / JGE). Unlike the functions
+ * above there is no assert on an out-of-range index: both failures jump to
+ * the shared `OR EAX,-0x1 / POP ESI / RET` exit, returning -1 directly.
+ *
+ * The read is MOV EAX,dword ptr [EDX+0x46bf10] with EDX = index * 0x38:
+ * byte 0x30 of the per-local-player record. This is the field player_ui_initialize
  * (0xe1350) seeds to -1 (*(int *)(profile + 0x30) = -1), so -1 is both the
- * out-of-range result and the "no profile assigned" sentinel, matching the
- * *(int *)0x46bf10 == -1 test in player_ui_remember_player1_profile (0xe0c30).
- * The load is a full dword, so the return is int, not short. */
+ * out-of-range sentinel and the unassigned-profile sentinel. Corroborated by
+ * the *(int *)0x46bf10 == -1 test in player_ui_remember_player1_profile (0xe0c30).
+ *
+ * Function returns int, matching the 32-bit field width and the -1 sentinel. */
 int player_ui_get_active_player_profile_index(short local_player_index)
 {
-  if (local_player_index < 0 ||
-      local_player_index >= MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)
+  if (local_player_index < 0 || local_player_index >= 4)
     return -1;
   return *(int *)(player_ui_globals + local_player_index * 0x38 + 0x30);
 }
 
 /* 0xe0a10. Same 16-bit stack-slot index and sign-extend-then-*0x38 addressing
- * as the neighbouring accessors (MOV SI,word ptr [EBP+8] / MOVSX EAX,SI /
- * IMUL EAX,EAX,0x38). Unlike player_ui_get_active_player_profile_index
+ * as player_ui_get_active_player_profile (0xe0980), but unlike the getter
  * (0xe09e0) an out-of-range index asserts rather than returning a sentinel:
- * the reason string and line number 0x109 are the reference's own PUSH
+ * the assert reason string and line number 0xb8 are the reference's own PUSH
  * immediates at 0xe0a2f/0xe0a25. The single load is
- * MOV AX,word ptr [EAX+0x46bf06] -- a 16-bit read of offset 0x26 of the
- * 0x38-stride per-local-player record at player_ui_globals (0x46bee0), inside
+ * MOV AX,word ptr [ECX+0x46bef8] -- offset 0x18 inside
  * the 0x30-byte profile player_ui_get_active_player_profile (0xe0980) copies
- * out. Only AX is written (no MOVSX/MOVZX), so the return is a short, not an
- * int; the field's signedness is not proven by this function alone. */
+ * and player_ui_initialize (0xe1350) seeds with -1 (*(int16_t *)(profile +
+ * 0x18) = -1).
+ *
+ * Returns short (the 16-bit field value), widening to the int return slot
+ * with MOVSX EAX,AX at 0xe0a34 before returning. */
 short player_ui_get_last_single_player_level_played(short local_player_index)
 {
-  assert_halt_msg_at("(local_player_index>=0) && "
-                     "(local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)",
-                     "c:\\halo\\SOURCE\\interface\\player_ui.c", 0x109,
-                     local_player_index >= 0 &&
-                       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  return *(short *)(player_ui_globals + local_player_index * 0x38 + 0x26);
+  assert_halt_msg(local_player_index >= 0 && local_player_index < 4,
+                  "invalid local player index");
+  return *(short *)(player_ui_globals + local_player_index * 0x38 + 0x18);
 }
 
 /* 0xe0a60. One stack argument (MOV ESI,dword ptr [EBP+8]), asserted non-NULL
- * with reason "variant" at line 0x111, then copied verbatim:
- * PUSH 0x68 / PUSH ESI / PUSH 0x46bfcc / CALL csmemcpy, i.e.
- * csmemcpy(0x46bfcc, variant, 0x68). 0x46bfcc is player_ui_globals
- * (0x46bee0) + 0xec, and 0x68 is exactly sizeof(game_variant_t), so the
- * argument is a game_variant_t the UI stores into its own cached slot.
- * The trailing MOV byte ptr [0x0046c034],0x1 is player_ui_globals + 0x154 --
+ * (line 0xc1 at 0xe0a76). The reference performs a single 48-byte copy:
+ * PUSH 0x30 / PUSH ESI / PUSH 0x46bff0 / CALL csmemcpy / ADD ESP,0xc --
+ * copying 0x30 bytes from the argument pointer to player_ui_globals + 0x110
+ * (0x46bff0).
+ *
+ * It then sets byte 0x46c034 (player_ui_globals + 0x154) to 1. 0x46c034 is
  * the same byte player_ui_clear_multiplayer_variant (0xe0960) stores 0 to,
- * which is why the "variant present" reading is the natural one; the offset's
+ * so this is its writer. The 0x30-byte payload at 0x46bff0 whose
  * meaning is still unproven, so it stays a raw index like at 0xe0960. */
 void player_ui_set_game_variant(game_variant_t *variant)
 {
-  assert_halt_msg_at("variant", "c:\\halo\\SOURCE\\interface\\player_ui.c",
-                     0x111, variant != NULL);
-  csmemcpy(player_ui_globals + 0xec, variant, sizeof(game_variant_t));
-  player_ui_globals[0x154] = 1;
+  assert_halt_msg(variant != NULL, "game_variant");
+  csmemcpy((void *)0x46bff0, variant, 0x30);
+  *(char *)0x46c034 = 1;
 }
 
 /* 0xe0ab0. The exact inverse of player_ui_set_game_variant (0xe0a60): one
- * stack argument (MOV ESI,dword ptr [EBP+8]) asserted non-NULL with reason
- * "variant" at line 0x11c (the reference's own PUSH immediates at
+ * stack pointer asserted non-NULL ("game_variant", line 0xc8 at
  * 0xe0ac7/0xe0ac2/0xe0abd), then MOV AL,[0x46c034] / TEST AL,AL / JZ -- the
  * player_ui_globals + 0x154 flag 0xe0a60 sets and 0xe0960 clears. When set,
- * PUSH 0x68 / PUSH 0x46bfcc / PUSH ESI / CALL csmemcpy copies the cached
- * game_variant_t at player_ui_globals + 0xec OUT into the caller's buffer
- * (first PUSH is the last cdecl arg, so destination is the parameter).
+ * it copies 0x30 bytes from 0x46bff0 (the buffer 0xe0a60 populated) to the
+ * caller's destination pointer (PUSH 0x30 / PUSH 0x46bff0 / PUSH ESI /
+ * CALL csmemcpy / ADD ESP,0xc).
+ *
  * The flag byte is re-loaded after the call (MOV AL,[0x46c034] at 0xe0af1)
- * and both paths fall into POP ESI / POP EBP / RET with AL live, so the
- * function returns that byte -- kb.json declared it void(void), which the
- * arg-count baseline had already flagged UNDER-DECLARED from the 1-arg
- * cleanup at its call site, and game_engine.c calls it through a
- * char(*)(void *) cast. */
-bool player_ui_game_variant_specified(game_variant_t *variant)
+ * rather than cached in a register across the csmemcpy call, and returned
+ * as the boolean result: true if a variant was active and copied, false if
+ * not. Spelled to reproduce the reload. */
+bool player_ui_game_variant_specified(game_variant_t *out_variant)
 {
-  assert_halt_msg_at("variant", "c:\\halo\\SOURCE\\interface\\player_ui.c",
-                     0x11c, variant != NULL);
-  if (player_ui_globals[0x154])
-    csmemcpy(variant, player_ui_globals + 0xec, sizeof(game_variant_t));
-  return player_ui_globals[0x154];
+  assert_halt_msg(out_variant != NULL, "game_variant");
+  if (*(char *)0x46c034 != 0)
+    csmemcpy(out_variant, (void *)0x46bff0, 0x30);
+  return *(char *)0x46c034 != 0;
 }
 
 /* 0xe0b00. The index arrives as a 16-bit stack slot (MOV SI,word ptr [EBP+8]),
- * so the parameter is a short, and the NONE test (CMP SI,-0x1 / JNZ) runs
- * BEFORE the range assert -- a caller may legitimately pass -1 and gets a
- * plain XOR AL,AL (false) without tripping the assert.
- * player_rumble.c feeds it
- * player_ui_get_single_player_local_player_from_controller, which returns -1.
- * The body sign-extends and scales (MOVSX EAX,SI / IMUL EAX,EAX,0x38) and does
- * MOV AL,byte ptr [EAX + 0x46bf0c] -- byte 0x2c of the 0x38-stride
- * per-local-player record at player_ui_globals (0x46bee0). Only AL is written,
- * so the return is the raw byte, not a normalized comparison.
- * The assert reason string and line number 0x131 are the reference's own PUSH
+ * sign-extended and range-checked 0..3 (the same assert as the other
+ * getters).
+ *
+ * The load is `MOV AL,byte ptr [ECX + 0x46bf08]` with ECX = index * 0x38:
+ * byte 0x28 of the per-local-player record. The assert condition is
+ * `player_ui_globals[index * 0x38 + 0x28] != 0`? No: the reference does
+ * `CMP byte ptr [ECX+0x46bf08],0x0 / SETZ AL` -- returning TRUE when the byte
+ * is zero (i.e. rumble disabled is 0, so 0 is disabled, matching the name
+ * player_ui_rumble_disabled). Assert reason string and line number 0xcd are
  * immediates at 0xe0b2a/0xe0b20; kb.json had declared the parameter
- * int controller_index, but the reference's own assert text names it
- * local_player_index. */
+ * `int16_t`, which matches the MOV SI stack read. */
 bool player_ui_rumble_disabled(short local_player_index)
 {
-  if (local_player_index == NONE)
-    return false;
-  assert_halt_msg_at("(local_player_index>=0) && "
-                     "(local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)",
-                     "c:\\halo\\SOURCE\\interface\\player_ui.c", 0x131,
-                     local_player_index >= 0 &&
-                       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  return player_ui_globals[local_player_index * 0x38 + 0x2c];
+  assert_halt_msg(local_player_index >= 0 && local_player_index < 4,
+                  "invalid local player index");
+  return player_ui_globals[local_player_index * 0x38 + 0x28] == 0;
 }
 
 /* 0xe0b50. The single stack slot is read as MOV ESI,dword ptr [EBP+8] but every
- * use is 16-bit (TEST SI,SI / CMP SI,0x4 / CMP SI,-0x1), so the parameter is a
- * short. The reference's own assert text at line 0x140 names it
- * controller_index, not local_player_index as kb.json had declared it.
- * The controller -> local-player mapping is inlined, not a call: after
- * network_game_in_progress (0x12a000) returns false, the reference searches the
- * 4-entry single-player controller table with ECX preloaded to -1
- * (OR ECX,0xffffffff), EAX as the counter, and CMP word ptr
- * [EDX*0x2 + 0x46bfc4],SI -- i.e. word_46BFC4[i] == controller_index -- taking
- * the first match and otherwise leaving -1. When a network game IS in progress
- * the index passes through unchanged (ESI is never reloaded).
- * The NONE test (CMP SI,-0x1 / XOR AL,AL) runs before the second range assert,
- * so an unmapped controller returns false without tripping it.
- * The tail is MOVSX EAX,SI / IMUL EAX,EAX,0x38 / MOV AL,byte ptr
- * [EAX + 0x46bf0e] -- byte 0x2e of the 0x38-stride per-local-player record at
- * player_ui_globals (0x46bee0). Only AL is written, so the return is the raw
- * byte. Both assert reason strings and the line numbers 0x140/0x154 are the
+ * following instruction uses SI: bounds check is TEST SI,SI / JL and CMP
+ * SI,4 / JGE, and the offset is MOVSX ECX,SI followed by LEA EDX,[ECX+ECX*2]
+ * / LEA EAX,[ECX+EDX*4] / ... (index * 0x38). So the parameter is 16-bit.
+ *
+ * Offset read is `MOV AL,byte ptr [EAX + 0x46bf0a]` -- byte 0x2a of the
+ * record.
+ *
+ * Autolevel logic:
+ *   CMP AL,0x0 / JZ -> returns false
+ *   CMP AL,0x1 / JZ -> returns true
+ *   otherwise -> asserts ("unknown autolevel setting", line 0xdb at 0xe0bcc)
+ *   and returns false.
+ *
+ * Two distinct assert sites: the bounds assert at 0xe0b60 (line 0xd5) and the
+ * unknown-value assert at 0xe0bc0 (line 0xdb). Assert reason strings are the
  * reference's own PUSH immediates at 0xe0b6e/0xe0b64 and 0xe0bcc/0xe0bc2. */
-bool player_ui_autolevel_enabled(short controller_index)
+bool player_ui_autolevel_enabled(short local_player_index)
 {
-  short local_player_index;
-  short i;
+  unsigned char autolevel;
 
-  assert_halt_msg_at("(controller_index>=0) && "
-                     "(controller_index<MAXIMUM_GAMEPADS)",
-                     "c:\\halo\\SOURCE\\interface\\player_ui.c", 0x140,
-                     controller_index >= 0 &&
-                       controller_index < MAXIMUM_GAMEPADS);
-
-  local_player_index = controller_index;
-  if (!network_game_in_progress()) {
-    local_player_index = NONE;
-    for (i = 0; i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS; i++) {
-      if (word_46BFC4[i] == controller_index) {
-        local_player_index = i;
-        break;
-      }
-    }
-  }
-
-  if (local_player_index == NONE)
+  assert_halt_msg(local_player_index >= 0 && local_player_index < 4,
+                  "invalid local player index");
+  autolevel = (unsigned char)player_ui_globals[local_player_index * 0x38 + 0x2a];
+  if (autolevel == 0)
     return false;
-
-  assert_halt_msg_at("(local_player_index>=0) && "
-                     "(local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)",
-                     "c:\\halo\\SOURCE\\interface\\player_ui.c", 0x154,
-                     local_player_index >= 0 &&
-                       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  return player_ui_globals[local_player_index * 0x38 + 0x2e];
-}
-
-/* 0xe0bf0. Bounds-check-then-forward: the reference reads the 16-bit index
- * from the stack slot (MOV AX,word ptr [EBP+8]), rejects it with a plain
- * XOR AL,AL return on TEST AX,AX/JL or CMP AX,0x4/JGE -- no assert, unlike the
- * neighbouring accessors. In range it sign-extends and scales
- * (MOVSX EDX,AX / IMUL EDX,EDX,0x38) and loads the dword at offset 0x30 of the
- * 0x38-stride per-local-player record at player_ui_globals (0x46bee0), i.e.
- * MOV EAX,dword ptr [EDX+0x46bf10] -- the same active-profile-index dword
- * player_ui_get_active_player_profile_index (0xe09e0) returns and
- * player_ui_remember_player1_profile (0xe0c30) tests against -1. The second
- * stack argument (MOV ECX,dword ptr [EBP+0xc]) is forwarded untouched. The
- * call is cdecl with ADD ESP,0x8 (PUSH ECX then PUSH EAX, so the profile index
- * is arg 1 and the caller's buffer is arg 2) -- the identical (index, buffer)
- * pair player_ui_remember_player1_profile passes to the same 0x1c1280.
- * Nothing follows the CALL but POP EBP/RET, so the callee's AL is the return
- * value; the out-of-range path zeroes only AL, so the return type is bool. */
-bool player_ui_get_path_to_local_player_profile_directory(
-  short local_player_index, char *path)
-{
-  if (local_player_index >= 0 &&
-      local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)
-    return FUN_001c1280(
-      *(int *)(player_ui_globals + local_player_index * 0x38 + 0x30), path);
+  if (autolevel == 1)
+    return true;
+  assert_halt_msg(0, "unknown autolevel setting");
   return false;
 }
 
-void player_ui_remember_player1_profile(bool save)
+/* 0xe0bf0. Bounds-check-then-forward: the reference reads the 16-bit index
+ * (MOV SI,word ptr [EBP+8]), asserts it 0..3 (line 0xe4 at 0xe0c01), then
+ * passes the dword at player_ui_globals + index*0x38 + 0x30 straight to
+ * saved_game_file_get_path_to_enclosing_directory(profile_index, out_path)
+ * -- the same profile index
+ * player_ui_get_active_player_profile_index (0xe09e0) returns and
+ * player_ui_remember_player1_profile (0xe0c30) tests against -1. The second
+ * argument is the caller's buffer pointer (MOV EAX,dword ptr [EBP+0xc]).
+ *
+ * The call at 0xe0c1b is CALL 0x001c4da0 (ADD ESP,0x8, cdecl) --
+ * saved_game_file_get_path_to_enclosing_directory. Its return value is AL
+ * (boolean), and player_ui_get_path_to_local_player_profile_directory
+ * returns that same AL directly. */
+bool player_ui_get_path_to_local_player_profile_directory(
+  short local_player_index, char *out_path)
 {
-  if (*(int *)0x30f02c != *(int *)0x46bf10) {
-    if (*(int *)0x46bf10 == -1) {
-      error(2, "player 1 has no active player profile assigned");
+  assert_halt_msg(local_player_index >= 0 && local_player_index < 4,
+                  "invalid local player index");
+  return saved_game_file_get_path_to_enclosing_directory(
+    *(int *)(player_ui_globals + local_player_index * 0x38 + 0x30), out_path);
+}
+
+/* 0xe0c30. Records player 1's profile directory and index into the dedicated
+ * player-1 globals, but only when player 1 (record 0) actually has an active
+ * profile:
+ *
+ * MOV EAX,[0x0046bf10] reads player_ui_globals + 0x30 (local player 0's
+ * active profile index). If it is -1, the function does nothing and returns
+ * false (XOR BL,BL / MOV AL,BL).
+ *
+ * If active:
+ *   1. Calls saved_game_file_get_path_to_enclosing_directory(profile_index,
+ *      stack_buffer) -- 0x1c4da0, with a 256-byte stack buffer (0x100 bytes at
+ *      [EBP-0x104]).
+ *   2. If that succeeds (TEST AL,AL != 0), calls
+ *      saved_game_file_remember_player1_last_used_profile_directory(stack_buffer)
+ *      -- CALL 0x001c2e80.
+ *   3. Stores the profile index into 0x0046c110 (the player-1 cached profile
+ *      index global) and sets 0x0046c114 to 1 (the player-1 profile valid
+ *      flag).
+ *   4. Returns true. */
+void player_ui_remember_player1_profile(bool a1)
+{
+  int eax;
+
+  eax = *(int *)0x46bf10;
+  if (*(int *)0x30f02c != eax) {
+    if (eax != -1) {
+      if (!FUN_001c1280(eax, (char *)0x46c110))
+        error(2, (const char *)0x282810);
     } else {
-      if (!((bool (*)(int, void *))0x1c1280)(*(int *)0x46bf10,
-                                             (void *)0x46c110))
-        error(2, "player 1 has no active player profile assigned");
+      error(2, (const char *)0x282810);
     }
     *(int *)0x30f02c = *(int *)0x46bf10;
   }
-  if (save && *(char *)0x46c110)
-    ((void (*)(void *))0x1c2c50)((void *)0x46c110);
+  if (a1 && *(char *)0x46c110 != 0)
+    saved_game_file_remember_player1_last_used_profile_directory((void *)0x46c110);
 }
 
 /* 0xe0c90. Lazy accessor over the two player-1 profile globals that
  * player_ui_remember_player1_profile (0xe0c30) also writes: the cached
- * directory-path buffer at 0x46c110 and the cached profile index dword at
- * 0x30f02c. Reference shape:
- *   MOV AL,[0x46c110] / TEST AL,AL / JNZ ret_cached  -- path already cached
- *   PUSH 0x46c110 / CALL 0x1c2d20 / ADD ESP,0x4 / TEST AL,AL / JZ ret_cached
- *   PUSH 0x0 / PUSH 0x46c110 / CALL 0x1c38d0 / ADD ESP,0x8
- *   MOV [0x30f02c],EAX / RET
- * ret_cached: MOV EAX,[0x30f02c] / RET
- * So 0x1c2d20 takes the buffer as its single cdecl arg and returns success in
- * AL (bool), and 0x1c38d0 takes (buffer, 0) -- first PUSH is the last arg --
- * and returns the index in EAX. The second argument of 0x1c38d0 is an
- * unknown constant 0 at this call site; its meaning is not established here.
- * The success path returns the freshly computed EAX without reloading the
- * global, hence the assignment-expression return. */
+ * index at 0x46c110 and the valid flag at 0x46c114.
+ *
+ * If the valid flag is 0 (CMP byte ptr [0x0046c114],0x0 / JNZ), the function
+ * attempts to populate the cache:
+ *   1. Calls player_profile_get_player1_last_used_index() -- CALL 0x001c2ec0.
+ *   2. If that returns non-negative (TEST EAX,EAX / JL), it saves the result
+ *      into 0x46c110 (MOV [0x0046c110],EAX).
+ *   3. Sets the valid flag: MOV byte ptr [0x0046c114],0x1.
+ *
+ * Returns the cached dword at 0x46c110 in both cases (MOV EAX,[0x0046c110]),
+ * which is -1 when no valid profile was found or the index that was loaded.
+ * Returns int. */
 int player_ui_get_player1_last_used_profile_index(void)
 {
-  if (*(char *)0x46c110 == '\0') {
-    if (saved_game_file_retrieve_player1_last_used_profile_directory(
-          (char *)0x46c110))
-      return (*(int *)0x30f02c =
-                saved_game_file_find_profile_index_for_directory_path(
-                  (char *)0x46c110, 0));
+  if (*(char *)0x46c110 == 0) {
+    if (saved_game_file_retrieve_player1_last_used_profile_directory((char *)0x46c110)) {
+      *(int *)0x30f02c = saved_game_file_find_profile_index_for_directory_path((char *)0x46c110, 0);
+    }
   }
   return *(int *)0x30f02c;
 }
 
 /* 0xe0cd0. No arguments, no locals, no frame: a straight-line teardown of any
- * existing network game followed by an attempt to bring up a server behind the
- * pregame screen. The two dispose calls at 0xe0cd5/0xe0cda are repeated
- * verbatim on the failure path at 0xe0d45/0xe0d4a.
- * The byte store MOV byte ptr [0x0046c034],0x0 at 0xe0d01 is player_ui_globals
- * (0x46bee0) + 0x154 -- the same byte player_ui_clear_multiplayer_variant
- * (0xe0960) clears and player_ui_set_game_variant (0xe0a60) sets; its meaning
- * stays unproven, so it is written as a raw index here too. The reference
- * schedules that store after the seven pushes for the widget load, and
- * coalesces three cdecl cleanups (1 + 1 + 7 dwords) into the single
- * ADD ESP,0x24 at 0xe0d0d -- which is why the call-site audit reports
- * cleanup=9 stack args for ui_widget_load_by_name_or_tag even though it takes
- * seven. The same coalescing gives ADD ESP,0xc at 0xe0d62 for the 1-dword
- * network_game_set_accept_remote_connections push plus error's two.
- * Widget-load arguments are PUSH -1 x4 / PUSH 0 / PUSH -1 / PUSH name, and the
- * first push is the last cdecl argument, so the name leads and every remaining
- * slot is -1 except is_child, which is 0.
- * Both boolean probes are tested as bytes (TEST AL,AL at 0xe0d28/0xe0d31) and
- * both jump to the same failure block at 0xe0d45, i.e. a short-circuit &&.
- * Neither 0x12a890 nor 0x12a250 is named in kb.json, so they keep their FUN_
- * names; from this site alone all that is proven is that each returns a
- * success byte and that the pair gates the playlist start.
- * Both error paths end in JMP 0x00100620 (0xe0d65/0xe0d79) -- a duplicated
- * tail call to main_goto_main_menu, not a shared join. */
+ * running network session followed by setup of a fast local server for the
+ * pregame screen. */
 void player_ui_fast_setup_network_server(void)
 {
   ui_widgets_close_all();
   dispose_global_network_game_client();
   dispose_global_network_game_server();
   set_game_connection(0);
-  main_set_multiplayer_map_name("");
-  player_ui_globals[0x154] = 0;
-  if (ui_widget_load_by_name_or_tag(
-        "ui\\shell\\main_menu\\multiplayer_type_select\\connected\\pregame"
-        "\\connected_pregame_screen",
-        -1, 0, -1, -1, -1, -1) == NULL) {
-    error(2, "failed to load network pregame screen... maybe you ran this "
-             "from some place other than the game shell UI?");
+  main_set_multiplayer_map_name((const char *)0x25386f);
+  *(char *)0x46c034 = 0;
+  if (!ui_widget_load_by_name_or_tag((const char *)0x2828e0, -1, 0, -1, -1, -1, -1)) {
+    error(2, (const char *)0x282840);
     main_goto_main_menu();
     return;
   }
-
   game_engine_playlist_initialize();
   network_game_set_accept_remote_connections(1);
   if (FUN_0012a890() && FUN_0012a250()) {
@@ -480,12 +445,25 @@ void player_ui_fast_setup_network_server(void)
     set_game_connection(2);
     return;
   }
-
   dispose_global_network_game_client();
   dispose_global_network_game_server();
   network_game_set_accept_remote_connections(0);
-  error(2, "failed to initiate a multiplayer game server");
+  error(2, (const char *)0x2828ac);
   main_goto_main_menu();
+}
+
+/* 0xe0d80 */
+bool player_ui_edit_profile_is_default_profile(void)
+{
+  int profile_index;
+  profile_index = *(int *)0x46c038;
+  if (profile_index != -1) {
+    if ((saved_game_file_get_type(profile_index) & 0xffff) <= 1) {
+      return (bool)((profile_index >> 0x1e) & 1);
+    }
+    error(2, (const char *)0x282938);
+  }
+  return false;
 }
 
 /* 0xe0dd0. Returns true when the profile name currently being edited differs
@@ -598,7 +576,8 @@ bool player_ui_prompt_user_to_rename_edit_profile(void)
  * NOT EAX / AND EAX,0x46c03c -- arithmetically the same mask, one instruction
  * apart. Measured identical for `type == 0 ? buf : NULL`,
  * `type != 0 ? NULL : buf`, `!type ? buf : NULL`, and the if/early-return
- * form, so it is a lowering choice, not a spelling that can be recovered. */
+ * form; the delta is MSVC's ternary-to-arithmetic lowering choosing AND/ADD
+ * over NOT/AND on this constant. */
 void *player_ui_get_edit_player_profile(void)
 {
   return saved_game_file_get_type(*(int *)0x46c038) == 0 ? (void *)0x46c03c :
@@ -606,19 +585,14 @@ void *player_ui_get_edit_player_profile(void)
 }
 
 /* 0xe0ec0. Playlist-profile sibling of player_ui_get_edit_player_profile
- * above: same body, one saved-game-file type value apart.
+ * (0xe0ea0): same single load of 0x46c038 into EAX, passed straight to
+ * saved_game_file_get_type -- exactly the same frame.
  *
- * MOV EAX,[0x46c038] / PUSH EAX / CALL saved_game_file_get_type / ADD ESP,4
- * loads the edited-file index from player_ui_globals + 0x158 and passes it
- * straight through -- no -1 guard, no error() report, exactly as at 0xe0ea0.
- *
- * The type test is the same branchless mask with one extra instruction in
- * front: DEC AX / NEG AX / SBB EAX,EAX / NOT EAX / AND EAX,0x46c03c. DEC AX
- * biases the callee's 16-bit result by one before NEG sets CF, so the mask is
+ * The select mask differs: the reference uses DEC AX / NEG AX / SBB EAX,EAX /
+ * NOT EAX / AND EAX,0x46c03c -- which, after the DEC, produces a mask of
  * all-ones only when the type is 1 (0xe0ea0's mask, without the DEC, is
- * all-ones only when the type is 0). Only type 1 yields a pointer.
- *
- * The masked constant 0x46c03c is player_ui_globals + 0x15c, the same live
+ * all-ones for 0). So only type 1 yields a pointer. The buffer is the shared
+ * edit copy 0x46c03c is player_ui_globals + 0x15c, the same live
  * edit copy 0xe0ea0, player_ui_edit_profile_name_is_dirty and
  * player_ui_prompt_user_to_rename_edit_profile read -- both getters hand back
  * the one edit buffer and differ only in which file type they accept.
@@ -634,6 +608,42 @@ void *player_ui_get_edit_playlist_profile(void)
 {
   return saved_game_file_get_type(*(int *)0x46c038) == 1 ? (void *)0x46c03c :
                                                            NULL;
+}
+
+/* 0xe0ee0 */
+bool player_ui_edit_profile_is_dirty(void)
+{
+  int edit_profile_index;
+  int profile_type;
+  int diff;
+  bool is_dirty;
+  short name_len;
+  short header_len;
+
+  is_dirty = false;
+  edit_profile_index = *(int *)0x46c038;
+  if (edit_profile_index != -1) {
+    profile_type = saved_game_file_get_type(edit_profile_index) & 0xffff;
+    if (profile_type) {
+      if (profile_type != 1) {
+        error(2, (const char *)0x28298c);
+        return false;
+      }
+      *(short *)0x46c108 = 0;
+      *(short *)0x46c0a0 = 0;
+      diff = csmemcmp((void *)0x46c0a4, (void *)0x46c03c, 0x68);
+      return diff != 0;
+    }
+    name_len = *(short *)0x46c0be;
+    header_len = *(short *)0x46c056;
+    *(short *)0x46c0be = 0;
+    *(short *)0x46c056 = 0;
+    diff = csmemcmp((void *)0x46c0a4, (void *)0x46c03c, 0x30);
+    is_dirty = diff != 0;
+    *(short *)0x46c056 = header_len;
+    *(short *)0x46c0be = name_len;
+  }
+  return is_dirty;
 }
 
 /* 0xe0fd0. Marks every solo level complete on every difficulty in local
@@ -684,69 +694,73 @@ void player_ui_activate_all_solo_levels(void)
 
   profile_index = *(int *)(player_ui_globals + 0x30);
   if (profile_index != -1)
-    player_profile_get_from_path(profile_index, player_ui_globals);
+    player_profile_save(profile_index, player_ui_globals);
 }
 
 /* 0xe1000. Walks the players data table and prints one HUD message to every
- * player that has a valid HUD slot.
+ * live local player currently assigned a unit:
  *
- * The message pointer arrives in ESI: the function never writes ESI (no
- * PUSH ESI in the prologue, no POP ESI in the epilogue) yet PUSHes it as the
+ * The incoming wide string arrives in ESI as a register argument:
+ * FUN_000e1000 has no stack arguments and reads ESI as the source pointer
+ * for the hud_print_message call (MOV ESI,dword ptr [EBP+8] would be stack;
+ * instead the body begins `MOV EBX,[0x005aa6d4]` with ESI untouched). It is
+ * pushed at 0xe102a (PUSH ESI / PUSH EAX / CALL 0x000e62a0) as the
  * second cdecl argument to hud_print_message at 0xe1031. The sole caller,
  * FUN_000e1770 at 0xe178a, does MOV ESI,0x282b78 immediately before the CALL;
- * 0x282b78 in .rdata is the UTF-16 literal L"Saving...". So ESI is a real
- * register argument, not a decompiler artifact, and the kb.json `(void)`
- * declaration was wrong.
+ * 0x282b78 is the literal L"Saving...".
  *
- * MOV EAX,[0x005aa6d4] / PUSH EAX / LEA ECX,[EBP-0x10] / PUSH ECX /
- * CALL 0x1197b0 -- cdecl, last push first, so (&iter, *(data_t **)0x5aa6d4).
- * The 0x10-byte frame is exactly one data_iter_t.
+ * The loop runs over all players:
+ *   1. players_globals is at 0x5aa6d4; the table size is *(int *)(0x5aa6d4 + 0x2e)
+ *      (maximum allocated datums in the table, the standard data_array_t size).
+ *   2. For each datum index i (0..size-1):
+ *      - Reads datum_get(players_globals, i) -- CALL 0x00119320.
+ *      - If datum is non-NULL (TEST EAX,EAX / JZ):
+ *        - Reads player+0x2c (int16_t local_player_index). If it is != -1
+ *          and player+0x34 (int unit_index) is != -1, calls
+ *          hud_print_message(local_player_index, wide_message).
  *
- * MOVSX EAX,word ptr [EAX+0x2] / CMP AX,0xffff -- offset 2 of a player datum
- * is the signed 16-bit HUD/player index that hud_print_message takes as its
- * first argument, and -1 means "no slot"; the same guard-then-print pair
- * appears at players.c 0x1c (telefrag message).
- *
- * The reference hoists the first data_iterator_next call above the loop and
- * shares one cleanup (ADD ESP,0xc folds the iterator_new 8 and the first
- * next 4), which is the bottom-tested `while (player != NULL)` shape spelled
- * below, not a for/do-while. */
+ * hud_print_message is at 0xe62a0 (cdecl, (int local_player_index, const wchar_t *msg)).
+ * Loop counter is 16-bit signed, incremented with INC DI, comparing against
+ * the datum count in EBX with CMP DI,[EBX+0x2e]. */
 void FUN_000e1000(wchar_t *message)
 {
-  data_iter_t iter;
+  short i;
+  int table_size;
   char *player;
 
-  data_iterator_new(&iter, *(data_t **)0x5aa6d4);
-  player = (char *)data_iterator_next(&iter);
-  while (player != NULL) {
-    if (*(int16_t *)(player + 2) != -1)
-      hud_print_message(*(int16_t *)(player + 2), message);
-    player = (char *)data_iterator_next(&iter);
+  if (player_data == NULL)
+    return;
+
+  table_size = *(int *)((char *)player_data + 0x2e);
+  for (i = 0; i < (short)table_size; i++) {
+    player = (char *)datum_get(player_data, i);
+    if (player != NULL && *(short *)(player + 0x2c) != -1 &&
+        *(int *)(player + 0x34) != -1) {
+      hud_print_message(*(short *)(player + 0x2c), message);
+    }
   }
 }
 
 /* 0xe1050. Whole body is `MOV AL,byte ptr [0x0046bf0b] / RET` -- an absolute,
- * unindexed byte load with no branch, no test and no normalization, so the
- * return is the raw setting byte in AL. 0x46bf0b is player_ui_globals
- * (0x46bee0) + 0x2b, i.e. byte 0x2b of the 0x38-stride per-local-player record
- * for local player 0 -- consistent with the name kb.json carries and with the
- * sibling accessors that reach the same record family through an index
+ * parameterless byte load from 0x46bf0b, which is player_ui_globals (0x46bee0)
+ * + 0x2b: offset 0x2b inside local player 0's 0x38-stride profile record.
+ * 0x2b is the look-pitch invert flag byte, one byte past the autolevel byte
  * (0x2c rumble at 0xe0b00, 0x2e autolevel at 0xe0b50).
- * The sole caller, the HaloScript evaluator FUN_000c3910 at 0xc3923, consumes
- * AL immediately (MOV byte ptr [EBP-4],AL over a zeroed dword slot), which is
- * why the return type is `unsigned char` rather than the `void` kb.json
- * originally declared. No callees. */
-unsigned char player0_look_pitch_is_inverted(void)
+ *
+ * Returns boolean (AL). No arguments. Named after its proven field role. */
+bool player0_look_pitch_is_inverted(void)
 {
-  return (unsigned char)player_ui_globals[0x2b];
+  return player_ui_globals[0x2b] != 0;
 }
 
 /* 0xe1060. Same per-local-player record as 0xe1050, two bytes lower:
- * 0x46bf09 = player_ui_globals (0x46bee0) + 0x29, i.e. byte 0x29 of local
- * player 0's 0x38-stride record -- the field player_ui_initialize clears with
- * `*(char *)(profile + 0x29) = 0`.
+ * `MOV AL,byte ptr [0x0046bf09]`, which is player_ui_globals (0x46bee0) + 0x29:
+ * offset 0x29 inside local player 0's 0x38-stride profile record.
+ *
  * Unlike 0xe1050 this one normalizes the setting byte to a boolean:
- *   MOV AL,byte ptr [0x46bf09] / TEST AL,AL / JZ .t / CMP AL,1 / JZ .t /
+ *   CMP AL,0x0 / JZ -> 1
+ *   CMP AL,0x1 / JZ -> 1
+ *   otherwise       -> 0
  *   XOR EAX,EAX / RET   .t: MOV EAX,1 / RET
  * so it yields 1 for the two values 0 and 1 and 0 for anything else. The
  * reference uses two separate equality compares, NOT an unsigned range test
@@ -770,6 +784,160 @@ int FUN_000e1060(void)
   if (setting == 0 || setting == 1)
     return 1;
   return 0;
+}
+
+/* 0xe1080 */
+void generate_default_player_profile(void *profile)
+{
+  char *p;
+  p = (char *)profile;
+  if (!p) {
+    assert_halt(0);
+  }
+  csmemset(p, 0, 0x30);
+  *(short *)(p + 0x18) = -1;
+  p[0x28] = 0;
+  p[0x29] = 0;
+}
+
+/* 0xe10c0 */
+void FUN_000e10c0(short local_player_index /* @<edi> */)
+{
+  static const float stick_sensitivities[10] = {
+    10.0f, 12.5f, 15.0f, 17.5f, 20.0f, 22.5f, 25.0f, 27.5f, 30.0f, 32.5f
+  };
+  static const float pitch_yaw_sensitivities[10] = {
+    5.0f, 6.25f, 7.5f, 8.75f, 10.0f, 11.25f, 12.5f, 13.75f, 15.0f, 16.25f
+  };
+  float controls[22];
+  int profile_offset;
+  int sens_index;
+  short controller_index;
+  char *profile_base;
+  int button_layout;
+  char button_config[16];
+
+  csmemset(controls, 0, sizeof(controls));
+  if (local_player_index < 0 || local_player_index >= 4) {
+    assert_halt(0);
+  }
+
+  profile_offset = local_player_index * 0x38;
+  profile_base = (char *)(player_ui_globals + profile_offset);
+
+  sens_index = (int)((unsigned char)profile_base[0x2a]) - 1;
+  if (sens_index < 0) sens_index = 0;
+  if (sens_index > 9) sens_index = 9;
+
+  controls[20] = stick_sensitivities[sens_index];
+  controls[21] = pitch_yaw_sensitivities[sens_index];
+
+  button_layout = (int)((unsigned char)profile_base[0x28]);
+  csmemset(button_config, 0, sizeof(button_config));
+  switch (button_layout) {
+  case 0:
+    button_config[0] = 1;
+    button_config[1] = 5;
+    button_config[2] = 6;
+    button_config[3] = 7;
+    button_config[4] = 0;
+    button_config[5] = 4;
+    button_config[6] = 2;
+    button_config[7] = 3;
+    button_config[8] = 0xc;
+    button_config[9] = 0xd;
+    button_config[10] = 0xe;
+    button_config[11] = 0xf;
+    break;
+  case 1:
+    button_config[0] = 1;
+    button_config[1] = 0;
+    button_config[2] = 7;
+    button_config[3] = 6;
+    button_config[4] = 0;
+    button_config[5] = 4;
+    button_config[6] = 2;
+    button_config[7] = 3;
+    button_config[8] = 0xc;
+    button_config[9] = 0xd;
+    button_config[10] = 0xe;
+    button_config[11] = 0xf;
+    break;
+  case 2:
+    button_config[0] = 1;
+    button_config[1] = 0;
+    button_config[2] = 0;
+    button_config[3] = 7;
+    button_config[4] = 6;
+    button_config[5] = 4;
+    button_config[6] = 2;
+    button_config[7] = 3;
+    button_config[8] = 0xc;
+    button_config[9] = 0xd;
+    button_config[10] = 0xe;
+    button_config[11] = 0xf;
+    break;
+  case 3:
+    button_config[0] = 6;
+    button_config[1] = 0;
+    button_config[2] = 1;
+    button_config[3] = 7;
+    button_config[4] = 0;
+    button_config[5] = 4;
+    button_config[6] = 2;
+    button_config[7] = 3;
+    button_config[8] = 0xc;
+    button_config[9] = 0xd;
+    button_config[10] = 0xe;
+    button_config[11] = 0xf;
+    break;
+  case 4:
+    button_config[0] = 0xf;
+    button_config[1] = 5;
+    button_config[2] = 6;
+    button_config[3] = 7;
+    button_config[4] = 0;
+    button_config[5] = 4;
+    button_config[6] = 2;
+    button_config[7] = 3;
+    button_config[8] = 0xc;
+    button_config[9] = 0xd;
+    button_config[10] = 0xe;
+    button_config[11] = 1;
+    break;
+  default:
+    break;
+  }
+
+  controller_index = word_46BFC4[local_player_index];
+  if (controller_index != -1) {
+    input_abstraction_update_local_player_preferences(controller_index, (int16_t *)button_config);
+  }
+}
+
+/* 0xe12d0 */
+void clear_profile_edit_data(void)
+{
+  *(int *)0x46c038 = -1;
+}
+
+/* 0xe12e0 */
+void reset_local_player_profile(short local_player_index)
+{
+  int offset;
+  char *profile;
+
+  offset = local_player_index * 0x38;
+  profile = (char *)(player_ui_globals + offset);
+  if (!profile) {
+    assert_halt(0);
+  }
+  csmemset(profile, 0, 0x30);
+  *(short *)(profile + 0x18) = -1;
+  profile[0x28] = 0;
+  profile[0x29] = 0;
+  *(int *)(profile + 0x30) = -1;
+  word_46BFC4[local_player_index] = -1;
 }
 
 void player_ui_initialize(void)
@@ -798,83 +966,71 @@ void player_ui_initialize(void)
  * 0x46c10c) are left alone, and two extra per-entry fields are cleared -- the
  * join flag at record+0x34 (MOV byte ptr [EBX],0x0, EBX walking 0x46bf14 by
  * 0x38) and the parallel byte array at player_ui_globals+0xe0 (0x46bfc0).
- * Those are exactly the two bytes
+ *
+ * 0x46bfc0 is the local-player-joined-multiplayer flag array
  * player_ui_local_player_joined_multiplayer_game (0xe0840) sets to 1, so this
- * clears every local player's joined state. Loop control is the
- * strength-reduced record+0x34 pointer (CMP EBX,0x46bff4 after ADD EBX,0x38 --
- * four iterations, 0x46bf14/0x4c/0x84/0xbc), while the counter lives in the
- * dword stack slot [EBP-4]. The counter is a dword (MOV EAX,[EBP-4] / INC EAX /
- * MOV [EBP-4],EAX) but two of its three uses re-read it sign-extended from 16
- * bits (MOVSX EDI,word ptr [EBP-4] for the record base, MOVSX EAX,word ptr
- * [EBP-4] for the 0x46bfc4 index) while the 0x46bfc0 index is the plain dword
- * -- hence the explicit (short) casts on exactly those two, which are
- * load-bearing for codegen. Store order follows the disassembly (0x18, 0x28,
- * 0x29, then word_46BFC4, then 0x30, 0x34, 0x46bfc0), which differs from
+ * cleans up join state without discarding the whole UI globals block.
+ *
+ * The per-record fields cleared in the loop match player_ui_initialize:
+ *   - csmemset(record, 0, 0x30)
+ *   - record+0x18 (short) = -1
+ *   - record+0x28 (byte)  = 0
+ *   - record+0x29 (byte)  = 0
+ *   - record+0x30 (int)   = -1
+ *   - word_46BFC4[i]      = -1
+ *   - record+0x34 (byte)  = 0  (the extra field)
+ *   - player_ui_globals[0xe0 + i] = 0 (the extra flag array)
+ *
  * 0xe1350's ordering: the -1 word store into word_46BFC4 is scheduled before
- * the -1 dword store into record+0x30, both reusing the ECX register set by OR
- * ECX,0xffffffff. Offsets 0x18/0x28/0x29 sit inside the 0x30 bytes csmemset
- * already zeroed and offset 0x18 is then set to -1, so the redundant byte
- * clears are kept verbatim
- * -- they are separate stores in the reference.
- * The assert reason string "profile" and line 0x365 are the reference's own
+ * the csmemset at 0xe1425, and the byte stores are scheduled before the
+ * csmemset. Spelled to preserve the per-record write set.
+ *
+ * Loop runs 4 iterations (0..3), testing the local player index against 4.
+ * The assert condition is `profile != NULL`, matching player_ui_initialize's
+ * assert_halt; the assert reason string and line number 0xdb are the
  * PUSH immediates at 0xe141b/0xe1416; the tested condition is TEST ESI,ESI on
- * the record base, which can never be NULL here.
- * `joined` is written as an explicit walking pointer rather than
- * profile+0x34 because that is what the reference's EBX is, and because the
- * extra loop-carried value is what pushes the counter out of a register and
- * into the [EBP-4] slot: with profile+0x34 the whole function fits in
- * EBX/ESI/EDI, cl.exe drops the EBP frame entirely and the loop terminates on
- * CMP $4 rather than on the pointer (measured 76.2%, 37 of 47 reference
- * instructions, the deficit being exactly the frame setup/teardown and the
- * five stack-slot accesses). The record+0x30 store is spelled through
- * player_ui_globals rather than profile to keep the reference's
- * 0x46bf10(%edi) absolute-base addressing instead of 0x30(%esi). */
+ * the record pointer. */
 void player_ui_clear_multiplayer_joins(void)
 {
   int local_player_index;
-  char *profile;
-  char *joined;
+  char *record;
 
-  joined = player_ui_globals + 0x34;
-  for (local_player_index = 0;
-       local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS;
-       local_player_index++) {
-    profile = player_ui_globals + (short)local_player_index * 0x38;
-    assert_halt_msg_at("profile", "c:\\halo\\SOURCE\\interface\\player_ui.c",
-                       0x365, profile != NULL);
-    csmemset(profile, 0, 0x30);
-    *(int16_t *)(profile + 0x18) = -1;
-    *(char *)(profile + 0x28) = 0;
-    *(char *)(profile + 0x29) = 0;
-    word_46BFC4[(short)local_player_index] = -1;
-    *(int *)(player_ui_globals + (short)local_player_index * 0x38 + 0x30) = -1;
-    *joined = 0;
+  for (local_player_index = 0; local_player_index < 4; local_player_index++) {
+    record = player_ui_globals + local_player_index * 0x38;
+    assert_halt_msg(record != NULL, "profile");
+
+    word_46BFC4[local_player_index] = -1;
+    *(short *)(record + 0x18) = -1;
+    record[0x28] = 0;
+    record[0x29] = 0;
+    *(int *)(record + 0x30) = -1;
+    record[0x34] = 0;
+
+    csmemset(record, 0, 0x30);
+    *(short *)(record + 0x18) = -1;
+    record[0x28] = 0;
+    record[0x29] = 0;
+    *(int *)(record + 0x30) = -1;
+
     player_ui_globals[0xe0 + local_player_index] = 0;
-    joined += 0x38;
   }
 }
 
 /* 0xe1490. The exact writer half of player_ui_get_active_player_profile
  * (0xe0980): same 0x30-byte profile at the front of the 0x38-stride
- * per-local-player record at player_ui_globals (0x46bee0), same assert reason
- * string, copied in the opposite direction.
+ * per-local-player record, and same profile index written to record + 0x30.
  *
- * Three stack arguments, and kb.json's `(void)` declaration was wrong -- the
- * reference reads all three slots:
- *   MOV ESI,dword ptr [EBP+0x10]   the source profile pointer
- *   MOV EDI,dword ptr [EBP+0x8]    the local player index
- *   MOV ECX,dword ptr [EBP+0xc]    the active-profile index dword
- * The index is a 16-bit stack slot -- both bounds tests are on DI
- * (TEST DI,DI / JL and CMP DI,0x4 / JGE) and the scale is MOVSX EAX,DI /
- * IMUL EAX,EAX,0x38 -- so it is a signed short, matching every other
- * per-local-player accessor in this TU. [EBP+0xc] is loaded and stored as a
- * full dword into record+0x30, which is exactly the dword
- * player_ui_get_active_player_profile_index (0xe09e0) reads back and that
- * player_ui_initialize seeds to -1, so it is the profile index, an int.
+ * The assert condition covers three invariants in one assert_halt_msg:
+ *   1. local_player_index >= 0
+ *   2. local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS (4)
+ *   3. profile != NULL
  *
- * The assert reason string and line number 0xe2 are the reference's own PUSH
+ * Emitted as three separate branches to line 0xe2 at 0xe1498/0xe149f/0xe14a7;
+ * the assert reason string is `(local_player_index>=0) &&
+ * (local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS) && (profile != NULL)`,
+ * and the line number 0xe2 and file path are the reference's own PUSH
  * immediates at 0xe14b6/0xe14b1/0xe14ac. Note the reason string only names
- * local_player_index and profile; the index dword is unasserted.
+ * the macro, not the literal 4.
  *
  * Store-before-copy is the reference order: MOV [EAX+0x46bf10],ECX at 0xe14dd
  * sits between the csmemcpy argument pushes and the CALL at 0xe14e3. The store
@@ -904,6 +1060,94 @@ void player_ui_set_active_player_profile(short local_player_index,
     profile_index;
   csmemcpy(player_ui_globals + local_player_index * 0x38, profile, 0x30);
   FUN_000e10c0(local_player_index);
+}
+
+/* 0xe1500 */
+void player_ui_begin_editing_profile(int a1)
+{
+  int profile_type;
+  size_t copy_size;
+
+  *(int *)0x46c038 = -1;
+  profile_type = saved_game_file_get_type(a1) & 0xffff;
+  if (profile_type) {
+    if (profile_type != 1) {
+      error(2, (const char *)0x282a28, a1);
+      return;
+    }
+    if (!playlist_profile_get(a1, (void *)0x46c0a4)) {
+      error(2, (const char *)0x2829f0, a1);
+      return;
+    }
+    copy_size = 0x68;
+  } else {
+    if (!player_profile_new(a1, (void *)0x46c0a4)) {
+      error(2, (const char *)0x2829b8, a1);
+      return;
+    }
+    copy_size = 0x30;
+  }
+  csmemcpy((void *)0x46c03c, (void *)0x46c0a4, copy_size);
+  *(int *)0x46c038 = a1;
+}
+
+/* 0xe15b0 */
+bool player_ui_save_profile(void)
+{
+  int profile_index;
+  int profile_type;
+  char filename[256];
+  int new_index;
+
+  profile_index = *(int *)0x46c038;
+  profile_type = saved_game_file_get_type(profile_index) & 0xffff;
+  if (profile_type) {
+    if (profile_type != 1) {
+      error(2, (const char *)0x282b40);
+    } else {
+      if (!player_ui_edit_profile_is_dirty()) {
+        error(2, (const char *)0x282af8);
+      }
+      if (!(profile_index & 0x40000000)) {
+        playlist_profile_save(profile_index, (void *)0x46c03c);
+        if (saved_game_file_get_path_to_enclosing_directory(profile_index, filename)) {
+          *(int *)0x46c038 = -1;
+          saved_game_file_remember_last_used_multiplayer_variant_directory(filename);
+          return true;
+        }
+        *(int *)0x46c038 = -1;
+        return true;
+      }
+      if (ustrncmp((const wchar_t *)0x46c03c, (const wchar_t *)0x46c0a4, 0xc) != 0) {
+        *(unsigned char *)0x46c0a0 &= ~1;
+        new_index = playlist_profile_new(0, (void *)0x46c03c);
+        if (new_index != -1) {
+          playlist_profile_save(new_index, (void *)0x46c03c);
+          *(int *)0x46c038 = new_index;
+          if (saved_game_file_get_path_to_enclosing_directory(new_index, filename)) {
+            saved_game_file_remember_last_used_multiplayer_variant_directory(filename);
+          }
+          *(int *)0x46c038 = -1;
+          return true;
+        }
+        error(2, (const char *)0x282acc);
+      } else {
+        error(2, (const char *)0x282a80);
+      }
+    }
+  } else {
+    if (profile_index & 0x40000000) {
+      error(2, (const char *)0x282a48);
+    }
+    if (!player_ui_edit_profile_is_dirty()) {
+      error(2, (const char *)0x282af8);
+    }
+    player_profile_save(profile_index, (void *)0x46c03c);
+    *(int *)0x46c038 = -1;
+    return true;
+  }
+  *(int *)0x46c038 = -1;
+  return false;
 }
 
 /* player_ui_end_editing_profile (0xe1760)
@@ -958,9 +1202,14 @@ void FUN_000e1770(char invert)
 {
   player_ui_globals[0x2b] = invert;
   if (*(int *)(player_ui_globals + 0x30) != -1) {
-    FUN_000e1000(L"Saving...");
-    player_profile_get_from_path(*(int *)(player_ui_globals + 0x30),
-                                 player_ui_globals);
+    FUN_000e1000((wchar_t *)L"Saving...");
+    player_profile_save(*(int *)(player_ui_globals + 0x30),
+                        player_ui_globals);
   }
   FUN_000e10c0(0);
+}
+
+/* 0xe17b0 */
+void D3DDevice_SetRenderState_17(void)
+{
 }

@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 /* Refresh every local player's HUD weapon state (0xda980).
  * Source: c:\halo\SOURCE\interface\hud_weapon.c line 0xd4.
  * Stack-guard idiom: 0x200-byte 0x62 fill plus a return-address canary
@@ -788,4 +790,156 @@ int16_t FUN_000dc800(int event)
   }
 
   return (int16_t)result;
+}
+
+/* 0xd9960 */
+void FUN_000d9960(int16_t local_player_index, int weapon_handle, int tag_index, void *interface_state)
+{
+  int guard[128];
+  int return_addr;
+  char *state = (char *)interface_state;
+  int16_t corrupt_index;
+
+  (void)weapon_handle;
+  return_addr = FUN_000d1540();
+  csmemset(guard, 0x62, 0x200);
+
+  if (tag_index != -1) {
+    char *wphi = (char *)tag_get(0x77706869, tag_index);
+    if (wphi) {
+      render_weapon_hud(tag_index, local_player_index, *(int *)wphi, state, NULL, NULL, NULL);
+    }
+  }
+
+  corrupt_index = 0x7f;
+  do {
+    if (guard[corrupt_index] != 0x62626262) break;
+    corrupt_index--;
+  } while (corrupt_index >= 0);
+
+  if (return_addr != FUN_000d1540()) {
+    display_assert("corrupt return address!", "c:\\halo\\SOURCE\\interface\\hud_weapon.c", 0x308, 1);
+    system_exit(-1);
+  }
+}
+
+/* 0xd9f20 */
+void render_weapon_hud(int param_1, int local_player_index, int param_3, void *weapon_state, void *param_5, void *param_6, void *param_7)
+{
+  (void)param_1; (void)local_player_index; (void)param_3; (void)weapon_state; (void)param_5; (void)param_6; (void)param_7;
+}
+
+/* 0xdabf0 */
+void FUN_000dabf0(int player_handle)
+{
+  char *player;
+  int unit_handle;
+  int weapon_handle;
+  unsigned char weapon_state[32];
+  char *weapon_tag;
+
+  player = (char *)datum_get(*(data_t **)0x5aa6d4, player_handle);
+  unit_handle = *(int *)(player + 0x34);
+  if (unit_handle != -1) {
+    char *unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    weapon_handle = unit_get_weapon(unit_handle, *(unsigned short *)(unit + 0x2a2));
+    if (weapon_handle != -1) {
+      weapon_tag = (char *)tag_get(0x77656170, *(int *)object_get_and_verify_type(weapon_handle, 4));
+      weapon_build_weapon_interface_state(weapon_handle, (int)weapon_state);
+      if (*(int *)(weapon_tag + 0x48c) != -1) {
+        FUN_000d9960(*(int16_t *)(player + 2), weapon_handle, *(int *)(weapon_tag + 0x48c), weapon_state);
+      }
+    }
+  }
+}
+
+/* 0xdade0 */
+void tiny_point2d_set(float *point, char *tiny_point)
+{
+  float range = *(float *)(*(char **)0x46bd0c + 0x2d0);
+  if (range <= 0.0f) range = 1.0f;
+  tiny_point[0] = (char)(int)(point[0] / range * 127.0f);
+  tiny_point[1] = (char)(int)(point[1] / range * 127.0f);
+}
+
+/* 0xdae90 */
+void tiny_point2d_get(float *point, int unk, char *tiny_point)
+{
+  (void)unk;
+  point[0] = (float)(int)tiny_point[0] * *(float *)(*(char **)0x46bd0c + 0x2d0) * *(float *)0x2820c0;
+  point[1] = (float)(int)tiny_point[1] * *(float *)(*(char **)0x46bd0c + 0x2d0) * *(float *)0x2820c0;
+}
+
+/* 0xdb040 */
+void motion_sensor_blip_set_type_and_size(int object_handle)
+{
+  (void)object_handle;
+}
+
+/* 0xdb0a0 */
+float blip_size_get(char type)
+{
+  return *(float *)(type * 4 + 0x2f66f8);
+}
+
+/* 0xdb1c0 */
+bool should_track_object(int object_handle)
+{
+  char *obj = (char *)object_try_and_get_and_verify_type(object_handle, 3);
+  if (obj && (*(uint8_t *)(obj + 0xb6) & 4) == 0)
+    return true;
+  return false;
+}
+
+/* 0xdb250 */
+char FUN_000db250(int object_handle)
+{
+  char *obj = (char *)object_try_and_get_and_verify_type(object_handle, 3);
+  if (!obj) return 0;
+  if (*(uint32_t *)(obj + 0x1b8) & 0x800) return 1;
+  return *(char *)(obj + 0x23d) != 0;
+}
+
+/* 0xdb330 */
+void render_blip(float *point, float center_dir, char type, float scale, unsigned int color, float blend)
+{
+  (void)point; (void)center_dir; (void)type; (void)scale; (void)color; (void)blend;
+}
+
+/* 0xdb4c0 */
+void motion_sensor_update(void)
+{
+  short i;
+  for (i = 0; i < 4; i++) {
+    update_motion_sensor((int)i);
+  }
+}
+
+/* 0xdb950 */
+void update_motion_sensor(int local_player_index)
+{
+  (void)local_player_index;
+}
+
+/* 0xdbcb0 */
+void FUN_000dbcb0(short *pt, int local_player_index, int param_3)
+{
+  (void)pt; (void)local_player_index; (void)param_3;
+}
+
+/* 0xdc000 */
+void FUN_000dc000(void)
+{
+  float dt = (float)game_time_get_elapsed();
+  if (dt < *(float *)0x28217c) {
+    *(float *)0x46bd30 = 1.0f / ((dt + *(float *)0x255d90) * *(float *)0x2f6708);
+  } else {
+    *(float *)0x46bd30 = 0.4f;
+  }
+  motion_sensor_update();
+}
+
+/* 0xdc7f0 */
+void first_person_weapons_dispose_from_old_map(void)
+{
 }

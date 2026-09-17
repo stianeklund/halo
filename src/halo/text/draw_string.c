@@ -928,6 +928,115 @@ void FUN_0019bd30(int16_t style, void *state, int *buffer, int font_index,
  *
  * 0x19c0a0 / draw_string.obj
  */
+/* 0x19be30 — parse_string
+ * Tokenizes rich text with formatting escape codes (|b, |c, |i, |k, |l, |n, |p, |r, |t, |u).
+ * c:\halo\SOURCE\text\draw_string.c */
+int16_t parse_string(void *state)
+{
+  char *s;
+  int16_t type;
+  uint16_t ch;
+  int tag;
+  int16_t next_cursor;
+  uint16_t next_ch;
+  const char *str4;
+  const char *str5;
+  const char *str6;
+
+  s = (char *)state;
+
+loop:
+  ch = unicode_cursor_forward(*(const char **)(s + 8), (int16_t *)(s + 0xc));
+  type = -1;
+
+  if ((ch & 0xff00) == 0x7c00) {
+    tag = crt_tolower((int)(ch & 0xff));
+    switch (tag) {
+    case 'p':
+      *(int16_t *)(s + 0xe) = -1;
+      type = 7;
+      break;
+    case 'i':
+      *(int16_t *)(s + 0xe) = 1;
+      type = 7;
+      break;
+    case 'b':
+      *(int16_t *)(s + 0xe) = 0;
+      type = 7;
+      break;
+    case 'k':
+      *(int16_t *)(s + 0xe) = 2;
+      type = 7;
+      break;
+    case 'u':
+      *(int16_t *)(s + 0xe) = 3;
+      type = 7;
+      break;
+    case 'l':
+      *(int16_t *)(s + 0x10) = 0;
+      type = 4;
+      break;
+    case 'r':
+      *(int16_t *)(s + 0x10) = 1;
+      type = 4;
+      break;
+    case 'c':
+      *(int16_t *)(s + 0x10) = 2;
+      type = 4;
+      break;
+    case 'n':
+      type = 1;
+      break;
+    case 't':
+      type = 3;
+      break;
+    default:
+      type = -1;
+      break;
+    }
+  }
+
+  if (type != -1) {
+    if (type == 7) {
+      *(void **)(s + 4) = FUN_0019bcc0(*(int16_t *)(s + 0xe), *(int *)s);
+    }
+    if (type == 7 || type == 5) {
+      goto loop;
+    }
+  } else {
+    if (ch == 0) {
+      type = 0;
+    } else if (ch == 9) {
+      type = 3;
+    } else if (ch == 0xd) {
+      type = 1;
+    } else {
+      next_cursor = *(int16_t *)(s + 0xc);
+      next_ch = unicode_cursor_forward(*(const char **)(s + 8), &next_cursor);
+      str4 = FUN_0019d3c0(4, *(int16_t *)0x4d9b08);
+      str5 = FUN_0019d3c0(5, *(int16_t *)0x4d9b08);
+      str6 = FUN_0019d3c0(6, *(int16_t *)0x4d9b08);
+
+      if (((ch & 0xff00) == 0 && !unicode_string_contains_char(ch, str5)) ||
+          ((ch & 0xff00) != 0 && unicode_string_contains_char(ch, str6)) ||
+          unicode_string_contains_char(next_ch, str4)) {
+        type = 6;
+      } else {
+        type = 2;
+      }
+    }
+  }
+
+  if (type == -1) {
+    display_assert("result!=NONE", "c:\\halo\\SOURCE\\text\\draw_string.c", 0x4aa, 1);
+    system_exit(-1);
+  }
+
+  *(int16_t *)(s + 0x14) = type;
+  *(int16_t *)(s + 0x12) = (int16_t)ch;
+  return type;
+}
+
 int16_t FUN_0019c0a0(void *state)
 {
   char *s = (char *)state;

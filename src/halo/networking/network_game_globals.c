@@ -859,3 +859,23 @@ void network_player_reset(uint8_t *player)
   player[0x1f] = 0xff;
   *(uint16_t *)player = 0;
 }
+
+/* 0x12a7d0 — network_game_get_number_of_games_played_12a7d0 */
+int network_game_get_number_of_games_played_12a7d0(void)
+{
+  void *server;
+  int game;
+
+  server = *(void **)0x0046e8bc;
+  if (server != NULL) {
+    game = network_game_server_get_game(server);
+    if (!game) {
+      display_assert("game",
+                     "c:\\halo\\SOURCE\\networking\\network_game_globals.c",
+                     0x55, 1);
+      system_exit(-1);
+    }
+    return *(int *)(game + 0x42c);
+  }
+  return 0;
+}

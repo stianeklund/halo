@@ -431,7 +431,7 @@ __attribute__((naked)) { decl.replace(name, 'THUNK('+name+')') }
 						# locally (see src/halo/cseries/xbox_crt.c header) and breaks the
 						# build. XDK stubs with a real recovered signature (D3DDevice_*,
 						# CreateThread, ...) are still emitted.
-						if _fname in _skip_names:
+						if _fname in _skip_names and not getattr(s, 'ported', False):
 							f.write(f'// skipped xdk_stub placeholder: {decl_str.strip()}\n')
 							continue
 						f.write(f'HFUNC {decl_str}\n')

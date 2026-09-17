@@ -3356,9 +3356,9 @@ void leaf_map_build_portal_from_leaves(void *structure /* @<edi> */,
   }
 
   vertex_count = FUN_00108060(
-    *(int16_t *)((char *)leaf0_link + 4), *(void **)((char *)leaf0_link + 8),
-    *(int16_t *)((char *)leaf1_link + 4), *(void **)((char *)leaf1_link + 8),
-    0x40, (uint16_t *)coord_buffer, 0x3a000000);
+    *(int16_t *)((char *)leaf0_link + 4), (const float *)*(void **)((char *)leaf0_link + 8),
+    *(int16_t *)((char *)leaf1_link + 4), (const float *)*(void **)((char *)leaf1_link + 8),
+    0x40, (float *)coord_buffer, 0.00048828125f);
 
   if (vertex_count < 1) {
     if ((uint16_t)vertex_count == 0xffff) {
@@ -6288,8 +6288,8 @@ char FUN_001975e0(void *ref, void *frustum, void *out)
                 *(unsigned short *)((char *)elem + 0x34), 1, (short *)&clip);
               if (r == 0) {
                 result.count = FUN_00108060(
-                  quad.count, quad.points, clip.count, (uint16_t *)clip.points,
-                  0x100, (uint16_t *)result.points, 0x38d1b717);
+                  quad.count, (const float *)quad.points, clip.count, (const float *)clip.points,
+                  0x100, (float *)result.points, 0.0001f);
                 if (result.count == 0) {
                   goto next_element;
                 }

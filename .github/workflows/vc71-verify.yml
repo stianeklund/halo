@@ -1,0 +1,65 @@
+name: VC71 Byte Accuracy Gate
+
+on:
+  pull_request:
+    paths:
+      - 'src/**/*.c'
+      - 'kb.json'
+      - 'tools/verify/check_vc71_gate.py'
+      - '.github/workflows/vc71-verify.yml'
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'Source file to verify (e.g. src/halo/game/players.c). Leave empty to check all changed files.'
+        required: false
+        default: ''
+      threshold:
+        description: 'Minimum VC71 match percentage required for ported: true (default: 90.0)'
+        required: false
+        default: '90.0'
+
+env:
+  XBE_DIR: /mnt/g/dev/halo/halo-patched
+  VENV_PYTHON: /mnt/g/dev/halo/.venv/bin/python3
+
+jobs:
+  vc71_gate:
+    name: VC71 Byte Accuracy (>= 90%)
+    runs-on: self-hosted
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Link local assets
+        run: |
+          rm -rf -- halo-patched
+          ln -sfn "${{ env.XBE_DIR }}" halo-patched
+
+      - name: Regenerate decl.h
+        run: |
+          PY="${{ env.VENV_PYTHON }}"
+          [ -x "$PY" ] || PY=python3
+          "$PY" tools/analysis/knowledge.py --gen-header build/generated/decl.h
+
+      - name: Run VC71 Byte Accuracy Gate
+        run: |
+          set -e
+          PY="${{ env.VENV_PYTHON }}"
+          [ -x "$PY" ] || PY=python3
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.source }}" ]; then
+            "$PY" tools/verify/check_vc71_gate.py \
+              --source "${{ inputs.source }}" \
+              --threshold "${{ inputs.threshold }}" \
+              --summary-file "$GITHUB_STEP_SUMMARY"
+          else
+            BASE_REF="${{ github.base_ref }}"
+            [ -z "$BASE_REF" ] && BASE_REF="main"
+            "$PY" tools/verify/check_vc71_gate.py \
+              --base-ref "origin/$BASE_REF" \
+              --threshold "${{ inputs.threshold || '90.0' }}" \
+              --summary-file "$GITHUB_STEP_SUMMARY"
+          fi

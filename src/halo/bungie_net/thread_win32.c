@@ -357,6 +357,18 @@ __declspec(noinline) void *FUN_000815f0(void)
   return NULL;
 }
 
+/* 0x815c0 — get_thread_from_pool */
+int get_thread_from_pool(void)
+{
+  int i;
+  for (i = 0; i < MAXIMUM_THREADS; i++) {
+    if (g_thread_slots[i].in_use == 0) {
+      return i;
+    }
+  }
+  return 0;
+}
+
 /*
  * thread_new — allocate a thread slot and create an Xbox thread.
  *

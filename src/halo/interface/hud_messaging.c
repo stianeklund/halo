@@ -3674,3 +3674,18 @@ canary_found: {
 }
 }
 }
+
+/* 0xd7210 */
+void unit_hud_outline_mapper_tick(void)
+{
+}
+
+/* 0xd7220 */
+void unit_hud_shield_meter_mapper_tick(void)
+{
+}
+
+/* 0xd7230 */
+void unit_hud_shield_meter_mapper_init(void)
+{
+}

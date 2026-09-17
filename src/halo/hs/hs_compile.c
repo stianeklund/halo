@@ -40,6 +40,41 @@ int FUN_000c57d0(char *str)
   return -1;
 }
 
+/* 0xc5820 — Check if a character is present in a character list.
+ *
+ * Binary evidence (0xc5820..0xc583d, regparm c@<dl>, list@<esi>, count@<cx>, EDI saved):
+ *   XOR  EAX,EAX
+ *   TEST CX,CX
+ *   PUSH EDI
+ *   JLE  .not_found
+ * .loop:
+ *   MOVSX EDI,AX
+ *   CMP   DL,byte ptr [EDI+ESI]
+ *   JE    .found
+ *   INC   EAX
+ *   CMP   AX,CX
+ *   JL    .loop
+ * .not_found:
+ *   POP   EDI
+ *   XOR   AL,AL
+ *   RET
+ * .found:
+ *   POP   EDI
+ *   MOV   AL,1
+ *   RET
+ */
+boolean character_in_list(char c, const char *list, int16_t count)
+{
+  int16_t i;
+
+  for (i = 0; i < count; i++) {
+    if (list[i] == c) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /* 0xc5840 — Resolve expression as a global variable reference. Looks up the
  * node's name via hs_find_global_by_name. If found, validates type
  * compatibility and sets the variable_ref flag (bit 2). If the node's type

@@ -1543,3 +1543,161 @@ void progress_bar_display(float progress)
     }
   }
 }
+
+/* 0xe1960 */
+void D3DDevice_SetTextureStageState_16(unsigned int stage, int state, unsigned int value)
+{
+  if (state <= 0x15) {
+    D3DDevice_SetTextureStageState(stage, state, value);
+    return;
+  }
+  if (state == 0x1c) {
+    D3DDevice_SetTextureState_TexCoordIndex(stage, value);
+    return;
+  }
+  if (state == 0x1d) {
+    return;
+  }
+  if (state != 0x1e) {
+    if (state >= 0x1c) return;
+    return;
+  }
+}
+
+/* 0xe19b0 */
+int IDirect3DDevice8_GetBackBuffer_0(unsigned int dev, unsigned int iBackBuffer, unsigned int Type)
+{
+  (void)dev; (void)iBackBuffer; (void)Type;
+  return 0;
+}
+
+/* 0xe19e0 */
+bool progress_bar_is_stuff_ready(void)
+{
+  return *progress_bar_screen_initialized() != 0;
+}
+
+/* 0xe19f0 */
+int IDirect3DDevice8_SetRenderTarget_0(unsigned int dev, unsigned int pRenderTarget, unsigned int pNewZStencil)
+{
+  (void)dev; (void)pRenderTarget; (void)pNewZStencil;
+  return 0;
+}
+
+/* 0xe1a00 */
+void IDirect3DDevice8_GetDepthStencilSurface_0(unsigned int dev)
+{
+  (void)dev;
+}
+
+/* 0xe1a30 */
+int IDirect3DDevice8_SetTransform(unsigned int dev, unsigned int state, unsigned int pMatrix)
+{
+  (void)dev; (void)state; (void)pMatrix;
+  return 0;
+}
+
+/* 0xe1a40 */
+int IDirect3DDevice8_GetTransform(unsigned int dev, unsigned int state, unsigned int pMatrix)
+{
+  (void)dev; (void)state; (void)pMatrix;
+  return 0;
+}
+
+/* 0xe1a50 */
+int IDirect3DDevice8_SetRenderState_17(void *dev, int state, unsigned int value)
+{
+  (void)dev;
+  SetRenderStateSmart(state, (int)value);
+  return 0;
+}
+
+/* 0xe1cf0 */
+int IDirect3DDevice8_SetTexture_1(unsigned int dev, unsigned int stage, unsigned int pTexture)
+{
+  (void)dev; (void)stage; (void)pTexture;
+  return 0;
+}
+
+/* 0xe1d50 */
+int IDirect3DDevice8_SetTextureStageState_16(unsigned int dev, unsigned int stage, int state, unsigned int value)
+{
+  (void)dev;
+  D3DDevice_SetTextureStageState_16(stage, state, value);
+  return 0;
+}
+
+/* 0xe1ec0 */
+int IDirect3DDevice8_SetVertexShader_1(unsigned int dev, unsigned int handle)
+{
+  (void)dev; (void)handle;
+  return 0;
+}
+
+/* 0xe1ed0 */
+int IDirect3DDevice8_SetPixelShaderProgram_0(unsigned int dev, unsigned int handle)
+{
+  (void)dev; (void)handle;
+  return 0;
+}
+
+/* 0xe1ee0 */
+void progress_bar_create_noise_texture(void)
+{
+}
+
+/* 0xe1ef0 */
+void IDirect3DDevice8_BlockUntilVerticalBlank(void)
+{
+  D3DDevice_BlockUntilVerticalBlank();
+}
+
+/* 0xe1f50 */
+int IDirect3DDevice8_Begin_11(unsigned int dev, unsigned int primitive_type)
+{
+  (void)dev;
+  D3DDevice_Begin(primitive_type);
+  return 0;
+}
+
+/* 0xe1f60 */
+int IDirect3DDevice8_End_11(void)
+{
+  D3DDevice_End();
+  return 0;
+}
+
+/* 0xe1f70 */
+void this_is_awful(unsigned int *out_desc, unsigned int dev, void *src)
+{
+  (void)dev;
+  out_desc[0] = 0x40005;
+  out_desc[1] = *(unsigned int *)((char *)src + 4);
+  out_desc[2] = 0;
+  out_desc[3] = 0x11229;
+  out_desc[4] = 0x271df27f;
+}
+
+/* 0xe2180 */
+void D3DTexture_UnlockRect_2(void)
+{
+}
+
+/* 0xe2190 */
+void IDirect3DTexture8_Release(unsigned int texture)
+{
+  (void)texture;
+}
+
+/* 0xe21a0 */
+int IDirect3DTexture8_GetLevelDesc(unsigned int texture, unsigned int level, unsigned int pDesc)
+{
+  (void)texture; (void)level; (void)pDesc;
+  return 0;
+}
+
+/* 0xe21d0 */
+int IDirect3DTexture8_UnlockRect_2(void)
+{
+  return 0;
+}

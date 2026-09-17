@@ -4614,7 +4614,7 @@ void FUN_000be5e0(int16_t function_index, int thread_handle, char init)
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_handle, init);
   if (record != NULL) {
-    FUN_000ca030(record[0], *(float *)(record + 1));
+    FUN_000ca030((const char *)record[0], *(float *)(record + 1));
     hs_return(thread_handle, 0);
   }
 }
@@ -4648,7 +4648,7 @@ void FUN_000be620(int16_t function_index, int thread_handle, char init)
 
   record = hs_macro_function_evaluate(function_index, thread_handle, init);
   if (record != 0) {
-    cell.f = FUN_000ca010(*(int *)record);
+    cell.f = FUN_000ca010((const char *)*(int *)record);
     hs_return(thread_handle, cell.i);
   }
 }
@@ -14121,4 +14121,190 @@ void FUN_000c0b70(int16_t function_index, int thread_datum, char init)
     FUN_00057850(*(unsigned int *)record, record[4]);
     hs_return(thread_datum, 0);
   }
+}
+
+/* 0xbae10 — player_examine_nearby_unit_bae10 */
+void player_examine_nearby_unit_bae10(void)
+{
+}
+
+/* 0xbb670 — FUN_000bb670 (player_teleport_internal) */
+char FUN_000bb670(int player_index, int object_handle, void *position)
+{
+  char *player;
+  int unit_index;
+  char *unit;
+  char *source_unit;
+  int root_parent;
+  char *root_unit;
+  real best_adjustment_vector[3];
+  real scale;
+  real biped_radius;
+  real matrix[12];
+  real candidate_pos[3];
+  real random_dir[3];
+  real adjusted_pos[3];
+  char moved;
+  int i;
+  int j;
+  scenario_t *scenario;
+  int16_t *cluster_elem;
+  int cluster_idx;
+  int cluster_count;
+  real facing[3];
+  void *globals;
+  int effect_index;
+  char *biped_tag;
+  real *up_vector;
+  real *zero_vector;
+
+  player = (char *)datum_get(player_data, player_index);
+  unit_index = *(int *)(player + 0x34);
+  unit = (char *)object_get_and_verify_type(unit_index, 1);
+  moved = 0;
+
+  if (object_handle != -1) {
+    if (*(int16_t *)((char *)players_globals + 0x24) <= 1) {
+      display_assert("source_unit_index==NONE || local_player_count()>1",
+                     "c:\\halo\\SOURCE\\game\\players.c", 0x4f7, 1);
+      system_exit(-1);
+    }
+    root_parent = object_get_root_parent(object_handle);
+    if (root_parent != object_handle) {
+      source_unit = (char *)object_get_and_verify_type(object_handle, 3);
+      root_unit = (char *)object_get_and_verify_type(root_parent, -1);
+
+      best_adjustment_vector[0] = *(real *)(root_unit + 0x18);
+      best_adjustment_vector[1] = *(real *)(root_unit + 0x1c);
+      best_adjustment_vector[2] = 0.0f;
+
+      if (best_adjustment_vector[0] * best_adjustment_vector[0] +
+          best_adjustment_vector[1] * best_adjustment_vector[1] <= *(real *)0x2533c0) {
+        if (*(real *)(root_unit + 0x2c) >= *(real *)0x254b50) {
+          best_adjustment_vector[0] = *(real *)(root_unit + 0x30);
+          best_adjustment_vector[1] = *(real *)(root_unit + 0x34);
+          best_adjustment_vector[2] = *(real *)(root_unit + 0x38);
+        } else {
+          best_adjustment_vector[0] = *(real *)(root_unit + 0x24);
+          best_adjustment_vector[1] = *(real *)(root_unit + 0x28);
+          best_adjustment_vector[2] = *(real *)(root_unit + 0x2c);
+        }
+      }
+
+      biped_tag = (char *)tag_get(0x62697064, *(int *)unit);
+      biped_radius = *(real *)(biped_tag + 0x42c);
+      scale = biped_radius * *(real *)0x254644 + *(real *)(root_unit + 0x5c);
+
+      if (best_adjustment_vector[0] * best_adjustment_vector[0] +
+          best_adjustment_vector[1] * best_adjustment_vector[1] +
+          best_adjustment_vector[2] * best_adjustment_vector[2] == 0.0f) {
+        display_assert("magnitude3d(&best_adjustment_vector)",
+                       "c:\\halo\\SOURCE\\game\\players.c", 0x521, 1);
+        system_exit(-1);
+      }
+      if (scale == 0.0f) {
+        display_assert("scale", "c:\\halo\\SOURCE\\game\\players.c", 0x522, 1);
+        system_exit(-1);
+      }
+
+      best_adjustment_vector[0] = -best_adjustment_vector[0];
+      best_adjustment_vector[1] = -best_adjustment_vector[1];
+      best_adjustment_vector[2] = -best_adjustment_vector[2];
+      normalize3d(best_adjustment_vector);
+
+      up_vector = *(real **)0x31fc44;
+      matrix4x3_from_forward_up_position(matrix, (real *)(root_unit + 0x50),
+                                         best_adjustment_vector, up_vector);
+      matrix[0] = scale;
+
+      for (i = 0; i < 9 && !moved; i++) {
+        matrix_transform_point(matrix, (real *)(0x26ea88 + i * 12), candidate_pos);
+        moved = biped_fix_position(unit_index, root_parent, candidate_pos, NULL, 2.0f, 0, 0, 1);
+        if (!moved) {
+          for (j = 0; j < 8 && !moved; j++) {
+            random_seed_get_direction3d((unsigned int *)get_global_random_seed_address(), random_dir);
+            adjusted_pos[0] = random_dir[0] * biped_radius + candidate_pos[0];
+            adjusted_pos[1] = random_dir[1] * biped_radius + candidate_pos[1];
+            adjusted_pos[2] = random_dir[2] * biped_radius + candidate_pos[2];
+            moved = biped_fix_position(unit_index, root_parent, adjusted_pos, NULL, 2.0f, 0, 0, 1);
+          }
+        }
+      }
+
+      goto finish_teleport;
+    }
+  }
+
+  moved = biped_fix_position(unit_index, object_handle, (real *)position, NULL, 2.0f, 0, 0, 1);
+
+finish_teleport:
+  *(uint16_t *)(player + 0x3c) = 0xffff;
+  if (moved) {
+    scenario = global_scenario_get();
+    if (*(int *)(player + 0x34) == -1) {
+      display_assert("player->unit_index!=NONE", "c:\\halo\\SOURCE\\game\\players.c", 0x566, 1);
+      system_exit(-1);
+    }
+    cluster_count = *(int *)((char *)scenario + 0x39c);
+    for (cluster_idx = 0; cluster_idx < cluster_count; cluster_idx++) {
+      cluster_elem = (int16_t *)tag_block_get_element((char *)scenario + 0x39c, cluster_idx, 8);
+      if (cluster_elem[1] == *(int16_t *)0x326a0c) {
+        if (FUN_0018ef00((int)cluster_elem[0], *(int *)(player + 0x34))) {
+          moved = 0;
+          goto teleport_failed;
+        }
+      }
+    }
+
+    zero_vector = *(real **)0x31fc38;
+    *(real *)(unit + 0x18) = zero_vector[0];
+    *(real *)(unit + 0x1c) = zero_vector[1];
+    *(real *)(unit + 0x20) = zero_vector[2];
+
+    if (object_handle != -1) {
+      source_unit = (char *)object_get_and_verify_type(object_handle, 3);
+      facing[0] = *(real *)(source_unit + 0x24);
+      facing[1] = *(real *)(source_unit + 0x28);
+      facing[2] = *(real *)(source_unit + 0x2c);
+
+      root_unit = (char *)object_get_and_verify_type(object_handle, 1);
+      if (root_unit != NULL && *(int *)(root_unit + 0x42c) != -1) {
+        *(int *)(unit + 0x42c) = *(int *)(root_unit + 0x42c);
+        unit[0x42b] = root_unit[0x42b];
+      }
+
+      *(real *)(unit + 0x1d4) = facing[0];
+      *(real *)(unit + 0x1d8) = facing[1];
+      *(real *)(unit + 0x1dc) = facing[2];
+
+      *(real *)(unit + 0x1e0) = facing[0];
+      *(real *)(unit + 0x1e4) = facing[1];
+      *(real *)(unit + 0x1e8) = facing[2];
+
+      *(real *)(unit + 0x204) = facing[0];
+      *(real *)(unit + 0x208) = facing[1];
+      *(real *)(unit + 0x20c) = facing[2];
+
+      if (*(int16_t *)(player + 2) != -1) {
+        player_control_set_facing(*(int16_t *)(player + 2), facing);
+      }
+
+      globals = game_globals_get();
+      effect_index = *(int *)((char *)tag_block_get_element((char *)globals + 0x170, 0, 0xf4) + 0xc4);
+      if (effect_index != -1) {
+        players_update_pvs((char *)players_globals + 0x30, 0);
+        FUN_0009ec30(effect_index, unit_index, unit_index, -1, 0.0f, 0.0f, 0, 0); /* dup-args-ok */
+      }
+    }
+  } else {
+teleport_failed:
+    error(2, "couldn't teleport player into a valid location");
+    if (*(int16_t *)(player + 2) == -1) {
+      display_assert("player->local_player_index!=NONE", "c:\\halo\\SOURCE\\game\\players.c", 0x5a7, 1);
+      system_exit(-1);
+    }
+    FUN_000ba890(player_index, object_handle);
+  }
+
+  return moved;
 }

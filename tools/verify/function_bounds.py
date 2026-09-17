@@ -161,7 +161,7 @@ def _decl_name(decl: str) -> str | None:
 def load_kb_functions() -> tuple[list[tuple[int, str]], int]:
     """[(addr, name)] sorted by address, deduped, plus the duplicate count."""
     out = subprocess.run(
-        ["jq", "-r", '.objects[].functions[] | "\\(.addr)\\t\\(.decl)"', str(KB)],
+        ["jq", "-r", '(.objects[].functions // [])[] | "\\(.addr)\\t\\(.decl)"', str(KB)],
         capture_output=True, text=True)
     if out.returncode != 0:
         raise SystemExit("error: jq failed on %s: %s" % (KB, out.stderr.strip()))
