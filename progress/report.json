@@ -48,9 +48,9 @@
     }
   },
   "meta": {
-    "timestamp": "2026-09-19T13:19:21.319715+02:00",
-    "commit": "470f4ab6e0c",
-    "commit_sha": "470f4ab6e0cc934df839a6385f5eb3f4dbf43b19",
+    "timestamp": "2026-09-20T00:19:53.220562+02:00",
+    "commit": "af07996bde9",
+    "commit_sha": "af07996bde9f2073a8fc96b7fa8dd0621e44f3aa",
     "branch": "main",
     "tool_version": "1.0.0"
   },
@@ -75,8 +75,8 @@
       "vc71_floor": {
         "path": "tools/verify/vc71_scores.json",
         "exists": true,
-        "size_bytes": 2761389,
-        "sha256": "03382779eac0f8b75cc07083837a186a96947b1a1822895417d9e6f0cd4a1b3e",
+        "size_bytes": 2761406,
+        "sha256": "7b7633d092971aefd5f994ab0a21eee07cf1c77599e2614f4d52b0a57ede00eb",
         "score_count": 6744,
         "provenance": null
       },
@@ -84,12 +84,12 @@
         "path": "tools/verify/vc71_current.json",
         "exists": true,
         "size_bytes": 2379812,
-        "sha256": "5f5befd5aa1c8596a9c870508ce273baed923da6af0b9dbf9c81e708eae3ea02",
+        "sha256": "9bf0de6ba2df0bf667cc16a38013a290be99f8c98d1bb70c1a132cb9aa5f09a7",
         "score_count": 5549,
         "provenance": {
-          "commit": "470f4ab6e0cc934df839a6385f5eb3f4dbf43b19",
+          "commit": "af07996bde9f2073a8fc96b7fa8dd0621e44f3aa",
           "dirty": false,
-          "generated_at": "2026-09-19T11:18:25.746132+00:00"
+          "generated_at": "2026-09-19T22:19:17.790596+00:00"
         }
       },
       "reference_validity": {
