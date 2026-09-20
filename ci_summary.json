@@ -1,38 +1,52 @@
 {
-  "generated": "2026-09-20T09:23:34.096084+00:00",
+  "generated": "2026-09-20T09:49:06.637726+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-09-20T09:06:48Z",
-    "last_commit": "e8299da6",
+    "last_run_time": "2026-09-20T09:45:34Z",
+    "last_commit": "80d9f037",
     "workflows": [
       {
-        "name": "Snapshot Verification",
+        "name": ".github/workflows/main.yml",
+        "conclusion": "success",
+        "created_at": "2026-09-20T09:45:34Z",
+        "head_sha": "80d9f037",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35503193588"
+      },
+      {
+        "name": "Audit Gates",
+        "conclusion": "success",
+        "created_at": "2026-09-20T09:45:34Z",
+        "head_sha": "80d9f037",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35503193581"
+      },
+      {
+        "name": "Progress Report",
         "conclusion": "",
+        "created_at": "2026-09-20T09:45:34Z",
+        "head_sha": "80d9f037",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35503193571"
+      },
+      {
+        "name": "pages-build-deployment",
+        "conclusion": "success",
+        "created_at": "2026-09-20T09:24:21Z",
+        "head_sha": "0dce597a",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35502215679"
+      },
+      {
+        "name": "Snapshot Verification",
+        "conclusion": "success",
         "created_at": "2026-09-20T09:06:48Z",
         "head_sha": "e8299da6",
         "url": "https://github.com/stianeklund/halo/actions/runs/35501408490"
       },
       {
         "name": "Equivalence Tests",
-        "conclusion": "",
-        "created_at": "2026-09-20T09:06:48Z",
-        "head_sha": "e8299da6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35501408480"
-      },
-      {
-        "name": ".github/workflows/main.yml",
         "conclusion": "success",
         "created_at": "2026-09-20T09:06:48Z",
         "head_sha": "e8299da6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35501408472"
-      },
-      {
-        "name": "Audit Gates",
-        "conclusion": "",
-        "created_at": "2026-09-20T09:06:48Z",
-        "head_sha": "e8299da6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35501408471"
+        "url": "https://github.com/stianeklund/halo/actions/runs/35501408480"
       },
       {
         "name": "VC71 Byte-Accuracy Regression",
@@ -40,20 +54,6 @@
         "created_at": "2026-09-20T09:06:48Z",
         "head_sha": "e8299da6",
         "url": "https://github.com/stianeklund/halo/actions/runs/35501408469"
-      },
-      {
-        "name": "Progress Report",
-        "conclusion": "",
-        "created_at": "2026-09-20T09:06:10Z",
-        "head_sha": "e4fd8167",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35501377471"
-      },
-      {
-        "name": "pages-build-deployment",
-        "conclusion": "success",
-        "created_at": "2026-09-20T09:02:08Z",
-        "head_sha": "790d45ef",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35501188992"
       },
       {
         "name": "Runtime Oracle Tests",
