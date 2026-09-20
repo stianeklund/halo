@@ -1,42 +1,49 @@
 {
-  "generated": "2026-09-20T19:58:07.457574+00:00",
+  "generated": "2026-09-20T20:10:23.251492+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-09-20T19:56:29Z",
-    "last_commit": "74269b4a",
+    "last_run_time": "2026-09-20T20:08:17Z",
+    "last_commit": "fffc7b14",
     "workflows": [
       {
-        "name": "Progress Report",
+        "name": "Snapshot Verification",
         "conclusion": "",
-        "created_at": "2026-09-20T19:56:29Z",
-        "head_sha": "74269b4a",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35533923623"
+        "created_at": "2026-09-20T20:08:17Z",
+        "head_sha": "fffc7b14",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35534564065"
       },
       {
         "name": "Equivalence Tests",
         "conclusion": "",
-        "created_at": "2026-09-20T19:56:29Z",
-        "head_sha": "74269b4a",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35533923619"
+        "created_at": "2026-09-20T20:08:17Z",
+        "head_sha": "fffc7b14",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35534564033"
       },
       {
-        "name": "Snapshot Verification",
+        "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-09-20T19:56:29Z",
-        "head_sha": "74269b4a",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35533923610"
+        "created_at": "2026-09-20T20:08:17Z",
+        "head_sha": "fffc7b14",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35534564018"
       },
       {
         "name": ".github/workflows/main.yml",
         "conclusion": "",
-        "created_at": "2026-09-20T19:56:29Z",
-        "head_sha": "74269b4a",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35533923606"
+        "created_at": "2026-09-20T20:08:17Z",
+        "head_sha": "fffc7b14",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35534563983"
+      },
+      {
+        "name": "pages-build-deployment",
+        "conclusion": "success",
+        "created_at": "2026-09-20T19:59:02Z",
+        "head_sha": "c76cef11",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35534044685"
       },
       {
         "name": "Audit Gates",
-        "conclusion": "",
+        "conclusion": "success",
         "created_at": "2026-09-20T19:56:29Z",
         "head_sha": "74269b4a",
         "url": "https://github.com/stianeklund/halo/actions/runs/35533923599"
@@ -47,13 +54,6 @@
         "created_at": "2026-09-20T18:52:06Z",
         "head_sha": "376ec43e",
         "url": "https://github.com/stianeklund/halo/actions/runs/35530435688"
-      },
-      {
-        "name": "pages-build-deployment",
-        "conclusion": "success",
-        "created_at": "2026-09-20T16:20:31Z",
-        "head_sha": "53e87fa3",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35522406004"
       },
       {
         "name": "Compiler Profile Calibration",
