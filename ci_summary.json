@@ -1,59 +1,66 @@
 {
-  "generated": "2026-09-20T09:49:06.637726+00:00",
+  "generated": "2026-09-20T15:05:40.860007+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-09-20T09:45:34Z",
-    "last_commit": "80d9f037",
+    "last_run_time": "2026-09-20T15:04:12Z",
+    "last_commit": "d0504394",
     "workflows": [
+      {
+        "name": "Progress Report",
+        "conclusion": "skipped",
+        "created_at": "2026-09-20T15:04:12Z",
+        "head_sha": "d0504394",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35518414464"
+      },
       {
         "name": ".github/workflows/main.yml",
         "conclusion": "success",
-        "created_at": "2026-09-20T09:45:34Z",
-        "head_sha": "80d9f037",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35503193588"
+        "created_at": "2026-09-20T15:01:50Z",
+        "head_sha": "d0504394",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35518288299"
       },
       {
         "name": "Audit Gates",
-        "conclusion": "success",
-        "created_at": "2026-09-20T09:45:34Z",
-        "head_sha": "80d9f037",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35503193581"
-      },
-      {
-        "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-09-20T09:45:34Z",
-        "head_sha": "80d9f037",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35503193571"
-      },
-      {
-        "name": "pages-build-deployment",
-        "conclusion": "success",
-        "created_at": "2026-09-20T09:24:21Z",
-        "head_sha": "0dce597a",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35502215679"
+        "created_at": "2026-09-20T15:01:50Z",
+        "head_sha": "d0504394",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35518288286"
       },
       {
         "name": "Snapshot Verification",
         "conclusion": "success",
-        "created_at": "2026-09-20T09:06:48Z",
-        "head_sha": "e8299da6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35501408490"
+        "created_at": "2026-09-20T15:01:50Z",
+        "head_sha": "d0504394",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35518288254"
       },
       {
         "name": "Equivalence Tests",
         "conclusion": "success",
-        "created_at": "2026-09-20T09:06:48Z",
-        "head_sha": "e8299da6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35501408480"
+        "created_at": "2026-09-20T15:01:50Z",
+        "head_sha": "d0504394",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35518288237"
       },
       {
         "name": "VC71 Byte-Accuracy Regression",
         "conclusion": "failure",
-        "created_at": "2026-09-20T09:06:48Z",
-        "head_sha": "e8299da6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35501408469"
+        "created_at": "2026-09-20T13:31:54Z",
+        "head_sha": "54f2394c",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35513776016"
+      },
+      {
+        "name": "Compiler Profile Calibration",
+        "conclusion": "failure",
+        "created_at": "2026-09-20T10:21:02Z",
+        "head_sha": "80d9f037",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35504819527"
+      },
+      {
+        "name": "pages-build-deployment",
+        "conclusion": "success",
+        "created_at": "2026-09-20T09:49:57Z",
+        "head_sha": "6b823490",
+        "url": "https://github.com/stianeklund/halo/actions/runs/35503388041"
       },
       {
         "name": "Runtime Oracle Tests",
@@ -61,13 +68,6 @@
         "created_at": "2026-09-20T08:58:51Z",
         "head_sha": "8b32995d",
         "url": "https://github.com/stianeklund/halo/actions/runs/35501032346"
-      },
-      {
-        "name": "VC71 Byte Accuracy Gate",
-        "conclusion": "failure",
-        "created_at": "2026-09-19T22:14:26Z",
-        "head_sha": "3ac1d88a",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35472748789"
       }
     ]
   },
