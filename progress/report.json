@@ -48,9 +48,9 @@
     }
   },
   "meta": {
-    "timestamp": "2026-09-20T04:10:27.589303+02:00",
-    "commit": "af07996bde9",
-    "commit_sha": "af07996bde9f2073a8fc96b7fa8dd0621e44f3aa",
+    "timestamp": "2026-09-20T10:29:03.322170+02:00",
+    "commit": "b76b6372485",
+    "commit_sha": "b76b6372485690658328805db96535a817df0c15",
     "branch": "main",
     "tool_version": "1.0.0"
   },
@@ -84,12 +84,12 @@
         "path": "tools/verify/vc71_current.json",
         "exists": true,
         "size_bytes": 2379812,
-        "sha256": "b5e6e0283cc9d2810ad4103841661b8b610f12077788a0e9556c149d5c98fd80",
+        "sha256": "d3001e3c2d0a8a3082d9ea0707dd6e0fce117d3c25a2f53244411274689c483e",
         "score_count": 5549,
         "provenance": {
-          "commit": "af07996bde9f2073a8fc96b7fa8dd0621e44f3aa",
+          "commit": "b76b6372485690658328805db96535a817df0c15",
           "dirty": false,
-          "generated_at": "2026-09-20T02:09:52.534818+00:00"
+          "generated_at": "2026-09-20T08:28:28.404323+00:00"
         }
       },
       "reference_validity": {
