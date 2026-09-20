@@ -22,7 +22,7 @@
       "percent": 71.94
     },
     "match": {
-      "average": 94.5,
+      "average": 94.6,
       "weighted": 90.3,
       "scored_count": 5924
     },
@@ -48,9 +48,9 @@
     }
   },
   "meta": {
-    "timestamp": "2026-09-20T22:11:25.752803+02:00",
-    "commit": "fffc7b14e77",
-    "commit_sha": "fffc7b14e779b2ecd694d32f9c6151868d92befe",
+    "timestamp": "2026-09-20T22:27:07.149232+02:00",
+    "commit": "aef809fad6d",
+    "commit_sha": "aef809fad6d3ce57eda01f8f02efa18375bf7a63",
     "branch": "main",
     "tool_version": "1.0.0"
   },
@@ -76,7 +76,7 @@
         "path": "tools/verify/vc71_scores.json",
         "exists": true,
         "size_bytes": 2829160,
-        "sha256": "5a57c379dae649ff75ae63151fd7b47887d8aec6c7101df4276188f9524c399c",
+        "sha256": "522aad9b7a95c61e672b29035138f88b97f908d375e3d66694efe724b5d46286",
         "score_count": 6904,
         "provenance": null
       },
@@ -84,12 +84,12 @@
         "path": "tools/verify/vc71_current.json",
         "exists": true,
         "size_bytes": 2570725,
-        "sha256": "e58bcba7a2cf1543719ffdc1261b6175111d9d2208e42da1ac2ae18256b40275",
+        "sha256": "d1a739bd0fc986ef1d3c8b0c5772b96f5ad29d2f3ee29d7e87c16b809966a384",
         "score_count": 5996,
         "provenance": {
-          "commit": "fffc7b14e779b2ecd694d32f9c6151868d92befe",
+          "commit": "aef809fad6d3ce57eda01f8f02efa18375bf7a63",
           "dirty": false,
-          "generated_at": "2026-09-20T20:10:19.844954+00:00"
+          "generated_at": "2026-09-20T20:26:29.212152+00:00"
         }
       },
       "reference_validity": {
@@ -173959,8 +173959,8 @@
           "size": 445,
           "status": "ported",
           "ported": true,
-          "match_percent": 90.7,
-          "opnd_percent": 77.2,
+          "match_percent": 93.5,
+          "opnd_percent": 86.4,
           "vc71_flagged": null,
           "equiv_class": "stubbable",
           "equiv_coverage": null,
@@ -174368,7 +174368,7 @@
         "bytes_ported": 15341,
         "bytes_percent": 43.74,
         "match_avg": 94.0,
-        "match_weighted": 87.5,
+        "match_weighted": 87.6,
         "match_scored_count": 79,
         "match_scored_bytes": 15341,
         "match_coverage_percent": 100.0,
