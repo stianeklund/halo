@@ -48,7 +48,7 @@
     }
   },
   "meta": {
-    "timestamp": "2026-09-21T23:37:15.080159+02:00",
+    "timestamp": "2026-09-22T04:17:08.259524+02:00",
     "commit": "9fa62c559db",
     "commit_sha": "9fa62c559dbc0c98c113fdd90e0a35580e831072",
     "branch": "main",
@@ -84,12 +84,12 @@
         "path": "tools/verify/vc71_current.json",
         "exists": true,
         "size_bytes": 2585410,
-        "sha256": "e6116dd6286dfeb7d865fe6b7f15793a4ef0f60ec922228a86026be0f5e87d83",
+        "sha256": "0107ff5b01f1a84b6c0f7614cec524ab8be8215db0863a86ca92650ba1d20460",
         "score_count": 5991,
         "provenance": {
           "commit": "9fa62c559dbc0c98c113fdd90e0a35580e831072",
           "dirty": false,
-          "generated_at": "2026-09-21T21:36:35.267460+00:00"
+          "generated_at": "2026-09-22T02:16:32.654211+00:00"
         }
       },
       "reference_validity": {
