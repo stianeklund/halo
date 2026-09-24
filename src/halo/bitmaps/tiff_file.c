@@ -242,8 +242,8 @@ const char *tiff_import(file_ref_t *info, void **bitmap_out,
              samples_per_pixel == 2 || samples_per_pixel == 1)) {
           if (format == -1 || format == 0xb) {
             if (planar_config == 1) {
-              rect_w = (short)rect2d_width(rect);
-              rect_h = (short)rect2d_height(rect);
+              rect_w = (short)rectangle2d_width(rect);
+              rect_h = (short)rectangle2d_height(rect);
               if (rect_w >= 0 && rect_w <= 30000 && rect_h >= 0 &&
                   rect_h <= 30000) {
                 bitmap = bitmap_2d_new((unsigned short)rect_w,

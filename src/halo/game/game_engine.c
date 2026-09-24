@@ -7301,6 +7301,23 @@ float ctf_get_starting_location_rating(int param_1, float *param_2)
   return rating;
 }
 
+/* 0xb1160 — point3d_to_point2d: project 3D points to 2D by dropping Z.
+ *
+ * Register ABI:
+ *   points3d @<ecx>
+ *   points2d @<edx>
+ *   count    @<esi>
+ */
+void point3d_to_point2d(const float *points3d, float *points2d, int count)
+{
+  int i;
+
+  for (i = 0; i < count; i++) {
+    points2d[i * 2 + 0] = points3d[i * 3 + 0];
+    points2d[i * 2 + 1] = points3d[i * 3 + 1];
+  }
+}
+
 /* King of the Hill: compute hill geometry from scenario flag positions (b1180).
  */
 void FUN_000b1180(void)

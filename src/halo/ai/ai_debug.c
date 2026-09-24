@@ -3494,6 +3494,38 @@ void ai_profile_display(char *buf)
               768);
 }
 
+/* 0x53800 — ai_profile_string: draw formatted AI profile debug string with tab stops.
+ *
+ * Register ABI:
+ *   context @<eax>
+ * Stack args:
+ *   text             [ebp+8]
+ *   column_count     [ebp+0xc]
+ *   column_positions [ebp+0x10]
+ */
+void ai_profile_string(char *text, int column_count, short *column_positions, void *context)
+{
+  int16_t bounds[4];
+  int16_t pen[4];
+
+  bounds[0] = *(int16_t *)0x5aba80;
+  bounds[1] = 0;
+  bounds[2] = 0x7fff;
+  bounds[3] = 0x7fff;
+
+  if (context == NULL) {
+    context = *(void **)0x2ee6c4;
+  }
+
+  interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
+  draw_string_set_color(context);
+  draw_string_set_tab_stops(column_positions, (short)column_count);
+  rasterizer_text_draw(bounds, NULL, pen, 0, text);
+  draw_string_set_tab_stops(NULL, 0);
+
+  *(int16_t *)0x5aba80 = (int16_t)(*(int16_t *)0x5aba80 + (bounds[0] - pen[1]));
+}
+
 /* ai line-spray mode cycler (0x53890): advance the AI debug line-spray mode
  * 0 -> 1 -> 2 -> 0 and echo the new mode's name to the console.
  *

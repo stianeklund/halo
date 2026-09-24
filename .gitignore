@@ -201,3 +201,7 @@ tools/analysis/cea_corpus.path
 
 # Host-only CI snapshot (converted live RAM capture; never committed).
 /ci/
+
+# Raw decompiler dumps and symbol listings
+/halo_decompiled/
+/halo_2276_functions.txt

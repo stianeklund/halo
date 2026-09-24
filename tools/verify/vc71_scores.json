@@ -115722,6 +115722,36 @@
       "ref_sha": "617228161245735b",
       "score": 94.1,
       "source": "src/halo/memory/circular_queue.c"
+    },
+    "rectangle2d_width": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 82.4,
+      "addr": "0x108a10",
+      "end": "0x108a24",
+      "kind": "auto",
+      "n_r": 9,
+      "opnd_percent": 82.4,
+      "raw_mnemonic_pct": 82.4,
+      "ref": "synth",
+      "ref_sha": "29650dd7ab7b35b3",
+      "score": 82.4,
+      "source": "src/halo/math/rectangles.c"
+    },
+    "rectangle2d_height": {
+      "abi_model": "raw",
+      "abi_model_items": 0,
+      "abi_modeled_mnemonic_pct": 82.4,
+      "addr": "0x108a30",
+      "end": "0x108a43",
+      "kind": "auto",
+      "n_r": 9,
+      "opnd_percent": 82.4,
+      "raw_mnemonic_pct": 82.4,
+      "ref": "synth",
+      "ref_sha": "65fddf674340a075",
+      "score": 82.4,
+      "source": "src/halo/math/rectangles.c"
     }
   },
   "version": 2

@@ -959,13 +959,6 @@
     "since": "2026-06-10"
   },
   {
-    "addr": "0x17ffc0",
-    "name": "FUN_0017ffc0",
-    "object": "rasterizer_text.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
     "addr": "0x1800b0",
     "name": "FUN_001800b0",
     "object": "rasterizer_text.obj",
@@ -982,13 +975,6 @@
   {
     "addr": "0x1808f0",
     "name": "FUN_001808f0",
-    "object": "rasterizer_text.obj",
-    "reason": "pre-gate baseline 2026-06-10",
-    "since": "2026-06-10"
-  },
-  {
-    "addr": "0x180b10",
-    "name": "FUN_00180b10",
     "object": "rasterizer_text.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"

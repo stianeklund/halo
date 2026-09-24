@@ -9433,6 +9433,7 @@
     "0xb0990": "void cheats_apply(int weapon_handle@<edi>);",
     "0xb09e0": "void FUN_000b09e0(int player_handle@<eax>, int weapon_handle@<edi>);",
     "0xb0a70": "char FUN_000b0a70(int team_index@<eax>, float *position@<ecx>, float radius);",
+    "0xb1160": "void point3d_to_point2d(const float *points3d@<ecx>, float *points2d@<edx>, int count@<esi>);",
     "0xb1570": "char FUN_000b1570(int player_handle@<eax>);",
     "0xb1e90": "int FUN_000b1e90(int param_1@<ecx>, int param_2);",
     "0xb24c0": "void game_engine_play_score_sound(int event_index@<esi>);",

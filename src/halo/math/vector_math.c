@@ -802,6 +802,19 @@ void FUN_00013090(float *a, float *b, float *out)
   out[2] = a[2] - b[2];
 }
 
+/* 0x130c0 — real_random: generate a pseudo-random real in [0.0, 1.0) using global seed.
+ * Binary evidence (0x130c0..0x130cc):
+ *   CALL 0x10b0d0 ; get_global_random_seed_address()
+ *   PUSH EAX
+ *   CALL 0x10b240 ; random_math_real(unsigned int *seed)
+ *   POP ECX
+ *   RET
+ */
+real real_random(void)
+{
+  return random_math_real((unsigned int *)get_global_random_seed_address());
+}
+
 /* 0x130d0 — Ray-cast between two points. Computes the direction vector
  * (point_b - point_a) and delegates to FUN_0014df70 for the actual
  * collision test along that direction from point_a. */

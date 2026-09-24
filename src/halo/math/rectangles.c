@@ -82,7 +82,7 @@ void offset_point2d(int16_t *point, int16_t dx, int16_t dy)
  * rect layout: {top, left, bottom, right} as int16_t[4].
  * Binary reads `right` zero-extended (xor eax,eax; mov ax,[ecx+6]) and
  * `left` sign-extended (movsx ecx,[ecx+2]); both extensions preserved. */
-int rect2d_width(const int16_t *rect)
+int rectangle2d_width(const int16_t *rect)
 {
   return (int)(uint16_t)rect[3] - (int)rect[1];
 }
@@ -91,7 +91,7 @@ int rect2d_width(const int16_t *rect)
  * rect layout: {top, left, bottom, right} as int16_t[4].
  * Binary reads `bottom` zero-extended (xor eax,eax; mov ax,[ecx+4]) and
  * `top` sign-extended (movsx ecx,[ecx]); both extensions preserved. */
-int rect2d_height(const int16_t *rect)
+int rectangle2d_height(const int16_t *rect)
 {
   return (int)(uint16_t)rect[2] - (int)rect[0];
 }

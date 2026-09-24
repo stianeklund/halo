@@ -3193,6 +3193,22 @@ int hs_short_to_real(int16_t param_1)
   return *(int *)&local_2;
 }
 
+/* 0xcaf10 — Convert a 32-bit integer and return it re-boxed as a 32-bit float
+ * bit-pattern in EAX (not ST0).
+ *
+ * Binary evidence (0xcaf10..0xcaf1d, cdecl, EBP frame, no `sub esp`):
+ *   FILD  dword ptr [EBP+0x8]      ; int32 -> x87 real
+ *   FSTP  dword ptr [EBP+0x8]      ; round/store float32 in the same slot
+ *   MOV   EAX, dword ptr [EBP+0x8] ; return the float bit pattern in EAX
+ */
+int hs_long_to_real(int32_t param_1)
+{
+  real local_1;
+
+  local_1 = (real)param_1;
+  return *(int *)&local_1;
+}
+
 /* 0xcaf20 — Increment a 16-bit value and return it re-boxed as a 32-bit float
  * bit-pattern in EAX (not ST0).
  *
@@ -3224,6 +3240,33 @@ int hs_enum_to_real(int16_t param_1)
   local_1 = (int)param_1 + 1;
   local_2 = (float)local_1;
   return *(int *)&local_2;
+}
+
+/* 0xcaf40 — Convert a 32-bit float to a 16-bit integer, updating the low word
+ * of the incoming argument and returning the result in EAX.
+ *
+ * Binary evidence (0xcaf40..0xcaf53, cdecl, EBP frame):
+ *   FLD   dword ptr [EBP+0x8]      ; load float32
+ *   CALL  0x1d9068                 ; _ftol2
+ *   MOV   word ptr [EBP+0x8], AX   ; store low 16 bits
+ *   MOV   EAX, dword ptr [EBP+0x8] ; return full dword in EAX
+ */
+int hs_real_to_short(int param_1)
+{
+  *(int16_t *)&param_1 = (int16_t)(int)*(real *)&param_1;
+  return param_1;
+}
+
+/* 0xcaf60 — Convert a 32-bit float to a 32-bit integer via _ftol2.
+ *
+ * Binary evidence (0xcaf60..0xcaf6c, cdecl, EBP frame):
+ *   FLD   dword ptr [EBP+0x8]
+ *   POP   EBP
+ *   JMP   0x1d9068                 ; tail-call _ftol2
+ */
+int hs_real_to_long(int param_1)
+{
+  return (int)*(real *)&param_1;
 }
 
 /* 0xcaf80 — Resolve an object-name index to a handle and register it with the
