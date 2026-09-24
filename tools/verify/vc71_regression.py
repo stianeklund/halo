@@ -300,6 +300,21 @@ def save_baseline(scores: dict[str, dict]) -> None:
     _atomic_write_json(BASELINE_PATH, data, indent=2, sort_keys=True)
 
 
+def validate_sources(sources) -> None:
+    """Validate that every source file referenced exists on disk.
+    Raises SystemExit with a clear error if any are missing."""
+    missing = sorted({
+        str(source)
+        for source in sources
+        if not (REPO_ROOT / source).is_file() and not Path(source).is_file()
+    })
+    if missing:
+        raise SystemExit(
+            "VC71 metadata references missing source files:\n"
+            + "\n".join(f"  - {source}" for source in missing)
+        )
+
+
 def make_current_provenance(commit: str | None, dirty: bool | None,
                             generated_at: str) -> dict:
     """Build serializable provenance for one honest-current score snapshot."""
@@ -1449,6 +1464,8 @@ def cmd_check(args) -> int:
     if not by_source:
         print("No baseline entries match the given --source filter.")
         return 1 if strict else 0
+
+    validate_sources(by_source.keys())
 
     # Hard failures (fatal in every mode) vs strict-only evidence gaps.  The
     # split is deliberate: a hard failure means this run cannot answer the

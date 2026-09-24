@@ -221,7 +221,7 @@ void FUN_000a84f0(int text, int color, int16_t row_index)
   *(int16_t *)rect = row_index * 0x12;
   *(int16_t *)((char *)rect + 4) = row_index * 0x12 + 0x1a;
   draw_string_set_style_justify_flags(-1, (short)color, 0);
-  rasterizer_draw_string((int16_t *)rect, 0, 0, 0, (wchar_t *)text);
+  rasterizer_draw_unicode_string((int16_t *)rect, 0, 0, 0, (wchar_t *)text);
 }
 
 /* Initialize three 4-float color vectors (stored as integer hex)
@@ -803,7 +803,7 @@ void game_engine_rasterize_message(int text, float alpha)
   *(int16_t *)rect = y_pos - 0xf;
   draw_string_set_font(font_tag, -1, 2, 8, (const void *)color);
   draw_string_set_color(color);
-  rasterizer_draw_string((int16_t *)rect, 0, 0, 0, (wchar_t *)text);
+  rasterizer_draw_unicode_string((int16_t *)rect, 0, 0, 0, (wchar_t *)text);
   draw_string_set_style_justify_flags(-1, 0, 0);
   draw_string_set_tab_stops(0, 0);
 }
@@ -2698,7 +2698,7 @@ void FUN_000ab090(int text, char highlight, int row, int state)
     *(int16_t *)rect = row_top;
     *(int16_t *)((char *)rect + 4) = row_top + char_height;
     draw_string_set_font(font_tag, -1, 0, 0, (const void *)state);
-    rasterizer_draw_string((int16_t *)rect, 0, 0, 0, (wchar_t *)text);
+    rasterizer_draw_unicode_string((int16_t *)rect, 0, 0, 0, (wchar_t *)text);
   }
   draw_string_set_tab_stops(0, 0);
 }
@@ -5671,9 +5671,9 @@ void game_engine_post_rasterize_post_game(void)
   rect[1] = 0;
   rect[2] = 0x1e0; /* 480 */
   rect[3] = 0x280; /* 640 */
-  tmp = (int)FUN_00076ff0(*(int *)(hud_globals + 0x3d4), 0);
+  tmp = (int)bitmap_group_try_and_get_bitmap(*(int *)(hud_globals + 0x3d4), 0);
   if (tmp != 0) {
-    draw_bitmap_in_rect((int)FUN_00076ff0(*(int *)(hud_globals + 0x3d4), 0),
+    draw_bitmap_in_rect((int)bitmap_group_try_and_get_bitmap(*(int *)(hud_globals + 0x3d4), 0),
                         rect, rect, (int16_t *)0, -1, 0, 1);
   }
   if (*(char *)0x456b14 != 0) {
@@ -5733,7 +5733,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
-        rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
+        rasterizer_draw_unicode_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
         draw_string_set_color(color);
 
         if (*(char *)0x456b14 != 0) {
@@ -5759,7 +5759,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
-        rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
+        rasterizer_draw_unicode_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
         draw_string_set_color(color);
 
         tmp = FUN_000abfd0(player_handle, 1, 0);
@@ -5774,7 +5774,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
-        rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
+        rasterizer_draw_unicode_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
         draw_string_set_color(color);
 
         tmp = FUN_000abfd0(player_handle, 2, 0);
@@ -5787,7 +5787,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
-        rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
+        rasterizer_draw_unicode_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
         draw_string_set_color(color);
 
         tmp = FUN_000abfd0(player_handle, 3, 0);
@@ -5801,7 +5801,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
-        rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
+        rasterizer_draw_unicode_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
         draw_string_set_color(color);
 
         tmp = FUN_000abfd0(player_handle, 4, 0);
@@ -5815,7 +5815,7 @@ void game_engine_post_rasterize_post_game(void)
         rect2[0] = sy;
         rect2[2] = ey;
         draw_string_set_style_justify_flags(-1, 0, 0);
-        rasterizer_draw_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
+        rasterizer_draw_unicode_string(rect2, 0, 0, 0, (wchar_t *)line_buf);
         draw_string_set_tab_stops(tab_stops, 6);
       }
       entry += 7;
@@ -7372,7 +7372,7 @@ void FUN_000b1180(void)
       src += 3;
     } while (i < num_flags);
   }
-  hull_count = convex_hull2d_reduce(num_flags, points_2d, hull_indices);
+  hull_count = convex_hull2d(num_flags, points_2d, hull_indices);
   *(int *)0x456c38 = (int)hull_count;
   /* Reorder points by hull and store to globals */
   i = 0;
@@ -7453,7 +7453,7 @@ char FUN_000b1570(int player_handle)
           float pos[2];
           pos[0] = *(float *)(biped + 0x50);
           pos[1] = *(float *)(biped + 0x54);
-          return ((char (*)(int, float *, float *, int))FUN_00106200)(
+          return ((char (*)(int, float *, float *, int))convex_hull2d_test_point)(
             *(int *)0x456c38, (float *)0x456ccc, pos, 0);
         }
       }
@@ -7757,7 +7757,7 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
   }
   local_c = rasterizer_dynamic_vertices_lock(local_8);
   ppoint_count = (int16_t *)rasterizer_dynamic_triangles_lock(widget_a);
-  FUN_00180d10(4, 4, local_c, 0x80, param_1, 0x110);
+  rasterizer_geometry_compress_vertices(4, 4, local_c, 0x80, param_1, 0x110);
   ppoint_count[0] = 0;
   ppoint_count[1] = 1;
   ppoint_count[2] = 2;
@@ -7817,8 +7817,8 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
   *(float *)(render_state + 0xbc) = centroid[2];
   *(float *)(render_state + 0xc4) = param_5;
   *(float *)(render_state + 0xc8) = param_6;
-  rasterizer_psuedo_dynamic_screen_quad_draw(0);
-  FUN_0017d1a0(0);
+  rasterizer_profile_enable(0);
+  rasterizer_models_begin(0);
   FUN_0017cbb0(render_state, 1);
   {
     char is_transparent =
@@ -7829,9 +7829,9 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
       FUN_0017cbd0((void *)shader, 0, 0, widget_a, 2, 0, local_8, centroid,
                    NULL);
   }
-  FUN_0016b1c0();
-  FUN_0016b240();
-  rasterizer_psuedo_dynamic_screen_quad_draw(1);
+  __rasterizer_model_end();
+  __rasterizer_models_end();
+  rasterizer_profile_enable(1);
   rasterizer_dynamic_triangles_delete(widget_a);
   rasterizer_dynamic_vertices_delete(local_8);
   *(int16_t *)0x325652 = 0;

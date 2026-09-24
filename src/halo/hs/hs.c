@@ -5923,12 +5923,12 @@ void hs_evaluate_error_overflow_suppression(int16_t function_index, int thread_d
  * thread handle from the script dispatch table.
  *
  * Callees (both cdecl, ported, no register args):
- *   0x1954d0 = FUN_001954d0(void)               (still unnamed in kb.json)
+ *   0x1954d0 = structure_lens_flares_place(void)               (still unnamed in kb.json)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
 void hs_evaluate_structure_lens_flares_place(int16_t function_index, int thread_datum, char init)
 {
-  FUN_001954d0();
+  structure_lens_flares_place();
   hs_return(thread_datum, 0);
   return;
 }
@@ -7224,7 +7224,7 @@ void hs_evaluate_time_code_reset(int16_t function_index, int thread_datum, char 
  * arguments, so it skips the 0xcc560 hs_macro_function_evaluate call entirely,
  * unconditionally invokes its dispatch target, then completes the script
  * thread.  The target here is 0x17cac0, a 0-argument tail-call thunk into the
- * rasterizer decals module (FUN_0015b1e0); the thunk is called by its own
+ * rasterizer decals module (__rasterizer_decals_flush); the thunk is called by its own
  * address because the CALL at 0xc3573 is literally 0x17cac0 — calling through
  * to 0x15b1e0 directly would collapse a real instruction.  What the underlying
  * decals routine does is not established here, so neither it nor this handler
@@ -7291,7 +7291,7 @@ void hs_evaluate_rasterizer_decals_flush(int16_t function_index, int thread_datu
  *
  * Full body, 24 bytes (0xc3590-0xc35a7):
  *   PUSH EBP / MOV EBP,ESP           ; bare frame, no locals, no _chkstk
- *   CALL 0x17ed30                    ; FUN_0017ed30(), 0 args
+ *   CALL 0x17ed30                    ; rasterizer_fps_accumulate(), 0 args
  *   MOV EAX, dword ptr [EBP+0xc]     ; thread_datum
  *   PUSH 0x0 / PUSH EAX              ; cdecl: last arg pushed first
  *   CALL 0xcbf80                     ; hs_return(thread_datum, 0)
@@ -7305,12 +7305,12 @@ void hs_evaluate_rasterizer_decals_flush(int16_t function_index, int thread_datu
  * PUSH EBP / MOV EBP,ESP prologue is reproduced exactly.
  *
  * Callees (both cdecl, in kb.json, no register arguments):
- *   0x17ed30 = FUN_0017ed30(void)
+ *   0x17ed30 = rasterizer_fps_accumulate(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
 void hs_evaluate_rasterizer_fps_accumulate(int16_t function_index, int thread_datum, char init)
 {
-  FUN_0017ed30();
+  rasterizer_fps_accumulate();
   hs_return(thread_datum, 0);
   return;
 }
@@ -7325,7 +7325,7 @@ void hs_evaluate_rasterizer_model_ambient_reflection_tint(int16_t function_index
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_0016b270(result[0], *(float *)((char *)result + 4),
+    rasterizer_model_ambient_reflection_tint(result[0], *(float *)((char *)result + 4),
                  *(float *)((char *)result + 8),
                  *(float *)((char *)result + 12));
     hs_return(thread_datum, 0);
@@ -7369,12 +7369,12 @@ void hs_evaluate_rasterizer_model_ambient_reflection_tint(int16_t function_index
  * no buffers, no branches.
  *
  * Callees (both cdecl, in kb.json, no register arguments):
- *   0x181150 = FUN_00181150(void)
+ *   0x181150 = rasterizer_lights_reset_for_new_map(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
 void hs_evaluate_rasterizer_lights_reset_for_new_map(int16_t function_index, int thread_datum, char init)
 {
-  FUN_00181150();
+  rasterizer_lights_reset_for_new_map();
   hs_return(thread_datum, 0);
   return;
 }
@@ -7413,11 +7413,11 @@ void hs_evaluate_rasterizer_lights_reset_for_new_map(int16_t function_index, int
  * would FILD-convert and silently change the value.
  *
  * Ghidra DROPPED both of those arguments, rendering the call as
- * `FUN_0017d9a0()`, because kb declared the callee `void FUN_0017d9a0(void)`.
+ * `rasterizer_script_screen_effect_set_value()`, because kb declared the callee `void rasterizer_script_screen_effect_set_value(void)`.
  * The disassembly (PUSH dummy + FSTP [ESP] for the float, then PUSH EDX for
  * the uint16, immediately before CALL 0x17d9a0) proves two cdecl stack
  * arguments, so the kb decl is widened to
- * `void FUN_0017d9a0(int16_t param_1, float param_2)`.  The callee is cdecl and
+ * `void rasterizer_script_screen_effect_set_value(int16_t param_1, float param_2)`.  The callee is cdecl and
  * this caller cleans, so widening cannot drift ESP.  Its param widths are read
  * off the callee's own prologue in the pristine XBE (0x17d9a0):
  *   mov ax, word ptr [ebp+8] / test ax,ax / jl / cmp ax,4 / jge  -> SIGNED
@@ -7428,7 +7428,7 @@ void hs_evaluate_rasterizer_lights_reset_for_new_map(int16_t function_index, int
  * so `int16_t`/`float` is the binary-backed spelling, not `int`.
  *
  * ADD ESP,0x10 after the second call is a single merged cleanup for BOTH
- * trailing calls (2 pushes for FUN_0017d9a0 + 2 for hs_return); the
+ * trailing calls (2 pushes for rasterizer_script_screen_effect_set_value + 2 for hs_return); the
  * "hs_return ARG_COUNT cleanup=4, decl=2" finding is that cdecl merge, not a
  * wider hs_return.
  *
@@ -7440,7 +7440,7 @@ void hs_evaluate_rasterizer_lights_reset_for_new_map(int16_t function_index, int
  *
  * Callees (all cdecl, in kb.json, no register arguments):
  *   0xcc560  = hs_macro_function_evaluate(fn_index, thread_datum, init)
- *   0x17d9a0 = FUN_0017d9a0(int, float)
+ *   0x17d9a0 = rasterizer_script_screen_effect_set_value(int, float)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
 void hs_evaluate_script_screen_effect_set_value(int16_t function_index, int thread_datum, char init)
@@ -7450,7 +7450,7 @@ void hs_evaluate_script_screen_effect_set_value(int16_t function_index, int thre
   result = (unsigned short *)hs_macro_function_evaluate(function_index,
                                                         thread_datum, init);
   if (result != 0) {
-    FUN_0017d9a0(result[0], ((float *)result)[1]);
+    rasterizer_script_screen_effect_set_value(result[0], ((float *)result)[1]);
     hs_return(thread_datum, 0);
   }
   return;
@@ -7488,15 +7488,15 @@ void hs_evaluate_script_screen_effect_set_value(int16_t function_index, int thre
  * flag, so the result pointer is typed `unsigned char *`.
  *
  * Ghidra DROPPED that byte argument entirely, rendering the call as
- * `FUN_0017da00()`, because kb declared the callee `void FUN_0017da00(void)`.
+ * `rasterizer_screen_effect_start()`, because kb declared the callee `void rasterizer_screen_effect_start(void)`.
  * The disassembly (PUSH EDX immediately before CALL 0x17da00) proves one stack
- * argument, so the kb decl is widened to `void FUN_0017da00(char param_1)` —
+ * argument, so the kb decl is widened to `void rasterizer_screen_effect_start(char param_1)` —
  * the same shape the sibling handlers use for scripted_hud_time_code_show /
  * _start.  The callee is cdecl and this caller cleans, so widening cannot
  * drift ESP.
  *
  * ADD ESP,0xc at 0xc368e is a single merged cleanup for BOTH trailing calls
- * (1 push for FUN_0017da00 + 2 for hs_return); the "hs_return ARG_COUNT
+ * (1 push for rasterizer_screen_effect_start + 2 for hs_return); the "hs_return ARG_COUNT
  * cleanup=3, decl=2" finding is that cdecl merge, not a wider hs_return.
  *
  * Frame is EBP-based with no locals and no _chkstk (PUSH EBP / MOV EBP,ESP /
@@ -7506,7 +7506,7 @@ void hs_evaluate_script_screen_effect_set_value(int16_t function_index, int thre
  *
  * Callees (all cdecl, in kb.json, no register arguments):
  *   0xcc560 = hs_macro_function_evaluate(fn_index, thread_datum, init)
- *   0x17da00 = FUN_0017da00(char)
+ *   0x17da00 = rasterizer_screen_effect_start(char)
  *   0xcbf80 = hs_return(thread_handle, value)
  */
 void hs_evaluate_cinematic_screen_effect_start(int16_t function_index, int thread_datum, char init)
@@ -7516,7 +7516,7 @@ void hs_evaluate_cinematic_screen_effect_start(int16_t function_index, int threa
   result = (unsigned char *)hs_macro_function_evaluate(function_index,
                                                        thread_datum, init);
   if (result != 0) {
-    FUN_0017da00(result[0]);
+    rasterizer_screen_effect_start(result[0]);
     hs_return(thread_datum, 0);
   }
   return;
@@ -7537,7 +7537,7 @@ void hs_evaluate_cinematic_screen_effect_start(int16_t function_index, int threa
  * no direct CALL), doc pointer -> "sets the convolution effect", parameter
  * count 5 and formal type list [7, 7, 6, 6, 6] = short, short, real, real,
  * real.  That formal list is what proves the argument widths below; the
- * dispatch target itself is left as FUN_0017da40 because nothing in the binary
+ * dispatch target itself is left as rasterizer_screen_effect_set_convolution because nothing in the binary
  * names it.
  *
  * Frame is EBP-based with no locals and no _chkstk (PUSH EBP / MOV EBP,ESP /
@@ -7561,7 +7561,7 @@ void hs_evaluate_cinematic_screen_effect_start(int16_t function_index, int threa
  * value, and reading +0x00 unsigned or +0x04 signed would be silent
  * LOADW-class bugs.
  *
- * Ghidra mis-prototypes the dispatch target as `void FUN_0017da40(void)` and
+ * Ghidra mis-prototypes the dispatch target as `void rasterizer_screen_effect_set_convolution(void)` and
  * therefore DROPS all five arguments at the call site.  The callee's own
  * prologue in the pristine XBE (0x17da40) proves the five cdecl stack slots
  * and their widths:
@@ -7571,7 +7571,7 @@ void hs_evaluate_cinematic_screen_effect_start(int16_t function_index, int threa
  *   MOV EDX,dword ptr [EBP+0x14] -> dword -> stored to global[0x40]
  *   FADD dword ptr [EBP+0x18]    -> float -> combined into global[0x48]
  * so the kb decl is widened to
- * `void FUN_0017da40(int16_t, uint16_t, float, float, float)`.  Signedness of
+ * `void rasterizer_screen_effect_set_convolution(int16_t, uint16_t, float, float, float)`.  Signedness of
  * the first two comes from this caller (MOVSX vs XOR/MOV), the float-ness of
  * the last three from both this caller's FLD/FSTP and the callee's FADD, and
  * all five agree with the descriptor's [7,7,6,6,6] formal list.  The callee is
@@ -7585,12 +7585,12 @@ void hs_evaluate_cinematic_screen_effect_start(int16_t function_index, int threa
  * warranted or added.
  *
  * ADD ESP,0x1c at 0xc36eb is a single merged cleanup for the three reserved
- * float slots (0xc) plus BOTH trailing calls (2 pushes for FUN_0017da40 + 2
+ * float slots (0xc) plus BOTH trailing calls (2 pushes for rasterizer_screen_effect_set_convolution + 2
  * for hs_return); it is a cdecl merge, not a wider hs_return.
  *
  * Callees (all cdecl, in kb.json, no register arguments):
  *   0xcc560  = hs_macro_function_evaluate(fn_index, thread_datum, init)
- *   0x17da40 = FUN_0017da40(int16_t, uint16_t, float, float, float)
+ *   0x17da40 = rasterizer_screen_effect_set_convolution(int16_t, uint16_t, float, float, float)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
 struct hs_convolution_result {
@@ -7603,7 +7603,7 @@ struct hs_convolution_result {
   float field_10; /* +0x10 HS real */
 };
 
-void FUN_0017da40(int16_t field_00, uint16_t field_04, float field_08,
+void rasterizer_screen_effect_set_convolution(int16_t field_00, uint16_t field_04, float field_08,
                   float field_0c, float field_10);
 
 void hs_evaluate_cinematic_screen_effect_set_convolution(int16_t function_index, int thread_datum, char init)
@@ -7613,7 +7613,7 @@ void hs_evaluate_cinematic_screen_effect_set_convolution(int16_t function_index,
   result = (struct hs_convolution_result *)hs_macro_function_evaluate(
     function_index, thread_datum, init);
   if (result != 0) {
-    FUN_0017da40(result->field_00, result->field_04, result->field_08,
+    rasterizer_screen_effect_set_convolution(result->field_00, result->field_04, result->field_08,
                  result->field_0c, result->field_10);
     hs_return(thread_datum, 0);
   }
@@ -7638,7 +7638,7 @@ void hs_evaluate_cinematic_screen_effect_set_convolution(int16_t function_index,
  *
  * Same evaluate-then-forward shape as the siblings in this TU: drive
  * hs_macro_function_evaluate over the script argument expressions and, on a
- * non-NULL evaluated-argument block, forward six values to FUN_0017dab0
+ * non-NULL evaluated-argument block, forward six values to rasterizer_screen_effect_set_filter
  * before completing the thread with a 0 result.
  *
  * Ghidra mis-prototypes this as `void(void)` and surfaces the
@@ -7650,7 +7650,7 @@ void hs_evaluate_cinematic_screen_effect_set_convolution(int16_t function_index,
  *   [EBP+0x10] -> EAX -> arg3 char    init
  *
  * Ghidra also DROPPED all six arguments of the 0x17dab0 call (rendering it
- * `FUN_0017dab0()`), because kb declared the callee `void (void)` and four of
+ * `rasterizer_screen_effect_set_filter()`), because kb declared the callee `void (void)` and four of
  * the six arguments are hidden behind MSVC's push-then-FSTP float idiom.  The
  * argument slots are therefore derived from the raw disassembly, not the
  * decompiler.  Reconstructing the frame from 0xc3724 (ESP0 = ESP before the
@@ -7687,10 +7687,10 @@ void hs_evaluate_cinematic_screen_effect_set_convolution(int16_t function_index,
  * in the fade_in/fade_out handlers at 0xc22a0/0xc22f0 (first real MOV'd, the
  * later reals FLD'd), whose callees are likewise declared with an int first
  * parameter, so this lift follows that precedent: the value is a bit-exact
- * dword passthrough either way (FUN_0017dab0 re-stores it with a plain
+ * dword passthrough either way (rasterizer_screen_effect_set_filter re-stores it with a plain
  * `MOV [EAX+0x4c],ECX`), and `int` is what reproduces the original's MOV.
  *
- * Callee prototype recovered independently from FUN_0017dab0's own body in the
+ * Callee prototype recovered independently from rasterizer_screen_effect_set_filter's own body in the
  * pristine XBE (0x17dab0-0x17db1c), not from this call site:
  *   [EBP+0x08] MOV ECX -> MOV [EAX+0x4c],ECX      dword store
  *   [EBP+0x0c] MOV EDX -> MOV [EAX+0x50],EDX      dword store
@@ -7701,21 +7701,21 @@ void hs_evaluate_cinematic_screen_effect_set_convolution(int16_t function_index,
  * The fifth parameter is therefore a single byte (not an int): the callee
  * never touches the upper three bytes of that stack slot, and the script
  * table types it `boolean` (5).  kb.json has no `bool`/`uint8_t` spelling, so
- * it is declared `char`, matching the sibling FUN_0017da00(char).  The sixth
+ * it is declared `char`, matching the sibling rasterizer_screen_effect_start(char).  The sixth
  * is unambiguously float (FADD).  The callee leaves no meaningful value in
  * EAX at its RET and this caller ignores EAX, so it stays `void`.
- * FUN_0017dab0 reads no register arguments (EAX/EBX/ECX/EDX are all written
+ * rasterizer_screen_effect_set_filter reads no register arguments (EAX/EBX/ECX/EDX are all written
  * before being read), so no @<reg> annotation is involved.
  *
- * This call site at 0xc3743 is the ONLY xref to FUN_0017dab0 in the image, so
+ * This call site at 0xc3743 is the ONLY xref to rasterizer_screen_effect_set_filter in the image, so
  * widening its kb decl from `void (void)` cannot disturb another caller; the
  * callee is cdecl and this caller cleans, so widening cannot drift ESP.
- * FUN_0017dab0 stays unported and keeps its FUN_ name — the script-table
+ * rasterizer_screen_effect_set_filter stays unported and keeps its FUN_ name — the script-table
  * string names the HaloScript builtin, not proven to be the callee's own
  * symbol name.
  *
  * ADD ESP,0x20 at 0xc3750 is a single merged cleanup for BOTH trailing calls
- * (0x18 bytes for the six-argument FUN_0017dab0 + 8 for hs_return); any
+ * (0x18 bytes for the six-argument rasterizer_screen_effect_set_filter + 8 for hs_return); any
  * "hs_return ARG_COUNT cleanup=8, decl=2" finding is that cdecl merge, not a
  * wider hs_return.
  *
@@ -7726,7 +7726,7 @@ void hs_evaluate_cinematic_screen_effect_set_convolution(int16_t function_index,
  *
  * Callees (all cdecl, in kb.json, no register arguments):
  *   0xcc560  = hs_macro_function_evaluate(function_index, thread_datum, init)
- *   0x17dab0 = FUN_0017dab0(int, float, float, float, char, float)
+ *   0x17dab0 = rasterizer_screen_effect_set_filter(int, float, float, float, char, float)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
 void hs_evaluate_cinematic_screen_effect_set_filter(int16_t function_index, int thread_datum, char init)
@@ -7736,7 +7736,7 @@ void hs_evaluate_cinematic_screen_effect_set_filter(int16_t function_index, int 
   result = (volatile float *)hs_macro_function_evaluate(function_index,
                                                         thread_datum, init);
   if (result != NULL) {
-    FUN_0017dab0(*(int *)result, result[1], result[2], result[3],
+    rasterizer_screen_effect_set_filter(*(int *)result, result[1], result[2], result[3],
                  *(unsigned char *)(result + 4), result[5]);
     hs_return(thread_datum, 0);
   }
@@ -7752,7 +7752,7 @@ void hs_evaluate_cinematic_screen_effect_set_filter_desaturation_tint(int16_t fu
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_0017db20(result[0], *(float *)((char *)result + 4),
+    rasterizer_screen_effect_set_filter_desaturation_tint(result[0], *(float *)((char *)result + 4),
                  *(float *)((char *)result + 8));
     hs_return(thread_datum, 0);
   }
@@ -7849,18 +7849,18 @@ void hs_evaluate_cinematic_screen_effect_set_video(int16_t function_index, int t
  * no buffers, no branches.
  *
  * Callees (both cdecl, in kb.json, no register arguments):
- *   0x17dc60 = FUN_0017dc60(void)
+ *   0x17dc60 = rasterizer_screen_effect_stop(void)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
 void hs_evaluate_cinematic_screen_effect_stop(int16_t function_index, int thread_datum, char init)
 {
-  FUN_0017dc60();
+  rasterizer_screen_effect_stop();
   hs_return(thread_datum, 0);
   return;
 }
 
 /* hs_evaluate_cinematic_set_near_clip_distance (0xc3810) — HaloScript function handler: evaluate this call's script
- * arguments, then forward the first evaluated argument to FUN_0017dec0 and
+ * arguments, then forward the first evaluated argument to rasterizer_set_near_clip_distance and
  * commit a void result to the calling thread.
  *
  * Ghidra mis-prototypes this as `void(void)` and surfaces the
@@ -7883,7 +7883,7 @@ void hs_evaluate_cinematic_screen_effect_stop(int16_t function_index, int thread
  *    which does a byte load and therefore holds the result as `unsigned
  * char*`). Cast at the call site, as the siblings in this TU do.
  *
- * 2. Ghidra prints the next call as `FUN_0017dec0()` with no argument.  The
+ * 2. Ghidra prints the next call as `rasterizer_set_near_clip_distance()` with no argument.  The
  *    argument is real: `PUSH EDX` at 0xc382e passes *result.  Dropping it would
  *    leave a stale dword on the stack and mis-clean ESP.
  *
@@ -7895,7 +7895,7 @@ void hs_evaluate_cinematic_screen_effect_stop(int16_t function_index, int thread
  * init), and `ADD ESP,0xc` at 0xc3825 confirms its three cdecl arguments.
  *
  * The `ADD ESP,0xc` at 0xc383c is a MERGED cleanup covering the single argument
- * to FUN_0017dec0 plus the two to hs_return — it is NOT evidence that hs_return
+ * to rasterizer_set_near_clip_distance plus the two to hs_return — it is NOT evidence that hs_return
  * takes three.  hs_return's own pushes (`PUSH 0` then `PUSH ESI`) give
  * hs_return(thread_datum, 0); ESI still holds [EBP+0xc] from entry, so the
  * first argument is thread_datum, not function_index.
@@ -7904,7 +7904,7 @@ void hs_evaluate_cinematic_screen_effect_stop(int16_t function_index, int thread
  *
  * Callees (all cdecl, in kb.json, no register arguments):
  *   0xcc560  = hs_macro_function_evaluate(short, int, char) -> pointer
- *   0x17dec0 = FUN_0017dec0(int)
+ *   0x17dec0 = rasterizer_set_near_clip_distance(int)
  *   0xcbf80  = hs_return(thread_handle, value)
  */
 void hs_evaluate_cinematic_set_near_clip_distance(int16_t function_index, int thread_datum, char init)
@@ -7914,7 +7914,7 @@ void hs_evaluate_cinematic_set_near_clip_distance(int16_t function_index, int th
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != 0) {
-    FUN_0017dec0(*result);
+    rasterizer_set_near_clip_distance(*result);
     hs_return(thread_datum, 0);
   }
   return;

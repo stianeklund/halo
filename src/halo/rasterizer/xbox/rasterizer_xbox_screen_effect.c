@@ -33,12 +33,12 @@
 
 /* 0x1700d0
  *
- * FUN_001700d0
+ * ___reciprocal_vector2d
  *
  * Componentwise reciprocal of a 2D vector: returns {1/v->i, 1/v->j}.
  *
  * Returns the pair BY VALUE in EAX:EDX. This is the part Ghidra drops
- * entirely -- it renders the function `void FUN_001700d0(void)` -- but the
+ * entirely -- it renders the function `void ___reciprocal_vector2d(void)` -- but the
  * tail is unambiguous: the two quotients are spilled with
  * FSTP [EBP-0x8] @0017013b and FSTP [EBP-0x4] @0017014a, then reloaded as
  * integers into MOV EAX,[EBP-0x8] @00170147 and MOV EDX,[EBP-0x4] @0017014d.
@@ -47,7 +47,7 @@
  * {float,float}, so the struct return is faithful on both compilers.
  *
  * `v` arrives in ESI (@<esi>): TEST ESI,ESI @001700d6 tests it before any
- * write to ESI, and all four call sites in FUN_00170440 do LEA ESI,[EBP-N]
+ * write to ESI, and all four call sites in rasterizer_screen_effect_set_texture_transforms do LEA ESI,[EBP-N]
  * immediately before the CALL.
  *
  * Both asserts are the system_exit(-1) flavour (PUSH -0x1; CALL 0x0008e2f0
@@ -57,7 +57,7 @@
  * The divides are 1.0f (constant at 0x2533c8) divided by each component;
  * the zero comparisons are against 0.0f at 0x2533c0.
  */
-real_vector2d FUN_001700d0(real_vector2d *v)
+real_vector2d ___reciprocal_vector2d(real_vector2d *v)
 {
   real_vector2d out;
 
@@ -83,7 +83,7 @@ real_vector2d FUN_001700d0(real_vector2d *v)
 
 /* 0x171bc0
  *
- * FUN_00171bc0
+ * __rasterizer_screen_flash
  *
  * Draws the full-screen screen effect for this frame.
  *
@@ -104,7 +104,7 @@ real_vector2d FUN_001700d0(real_vector2d *v)
  *
  * The whole body is bracketed by profile section 0x1c.
  */
-void FUN_00171bc0(void)
+void __rasterizer_screen_flash(void)
 {
   /* One contiguous 80-byte buffer at [EBP-0x74]: SetVertexShaderConstant
    * uploads all five vec4 registers starting at &vs_const[0]. */
@@ -130,7 +130,7 @@ void FUN_00171bc0(void)
       0x312, 1);
     system_exit(-1);
   }
-  FUN_0016f910(0x1c);
+  rasterizer_profile_begin(0x1c);
   if (*(char *)0x3256ff != 0 && *(short *)0x5a5df8 != 0) {
     /* Colour set A: each component scaled by the intensity.  Component 0 is
      * duplicated into set B from the same FPU value (FST, no pop). */
@@ -229,7 +229,7 @@ void FUN_00171bc0(void)
     SetRenderStateSmart(0x3c, 0);
     SetRenderStateSmart(0x7b, 0);
     D3DDevice_SetRenderState_ZBias(0);
-    FUN_00178b40(4, 8, 0);
+    rasterizer_set_vertex_shader_permutation(4, 8, 0);
 
     /* Viewport width from the 32-bit rect fields, low 16 bits sign-extended;
      * height from the 16-bit .hi (y) fields. */
@@ -284,5 +284,5 @@ void FUN_00171bc0(void)
     D3DDevice_SetVertexData2s(0, 0, quad_y);
     D3DDevice_End();
   }
-  FUN_0016fa40(0x1c);
+  rasterizer_profile_end(0x1c);
 }

@@ -642,7 +642,7 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
  * Confirmed: _snprintf at CALL 0x1d9179 with 0x800 buffer.
  * Confirmed: draw_string_set_style_justify_flags(-1, 0, 0) at CALL 0x19b800.
  * Confirmed: draw_string_set_color(*(void**)0x2ee6c4) at CALL 0x19b640.
- * Confirmed: rasterizer_text_draw(&rect, NULL, NULL, 0, buf) at CALL 0x183e60.
+ * Confirmed: rasterizer_draw_string(&rect, NULL, NULL, 0, buf) at CALL 0x183e60.
  * Confirmed: input_key_is_down(0x48) = spacebar at CALL 0xcf560.
  * Confirmed: local_player_get_player_index at CALL 0xba3c0.
  * Confirmed: datum_get(*(data_t**)0x5aa6d4, handle) for player data at
@@ -712,7 +712,7 @@ void render_debug_object_damage(void)
   draw_string_set_color(*(void **)0x2ee6c4);
 
   /* Draw the debug text on screen */
-  rasterizer_text_draw(&rect[0], (short *)0, (void *)0, 0, string_buffer);
+  rasterizer_draw_string(&rect[0], (short *)0, (void *)0, 0, string_buffer);
 
   /* Check if spacebar is held (key 0x48) to pick a new damage debug target */
   if (input_key_is_down(0x48) == 0)
@@ -1967,9 +1967,9 @@ void FUN_001390d0(int material, int bitmap_ref, uint16_t *indices, float bary_u,
     system_exit(-1);
   }
 
-  FUN_001805f0((int)indices[0] * 0x20 + *(int *)(material + 0xf8), v0);
-  FUN_001805f0((int)indices[1] * 0x20 + *(int *)(material + 0xf8), v1);
-  FUN_001805f0((int)indices[2] * 0x20 + *(int *)(material + 0xf8), v2);
+  environment_vertex_compressed_get_texcoord((int)indices[0] * 0x20 + *(int *)(material + 0xf8), v0);
+  environment_vertex_compressed_get_texcoord((int)indices[1] * 0x20 + *(int *)(material + 0xf8), v1);
+  environment_vertex_compressed_get_texcoord((int)indices[2] * 0x20 + *(int *)(material + 0xf8), v2);
 
   uv[0] = v0[0] + (v1[0] - v0[0]) * bary_u + (v2[0] - v0[0]) * bary_v;
   uv[1] = v0[1] + (v1[1] - v0[1]) * bary_u + (v2[1] - v0[1]) * bary_v;

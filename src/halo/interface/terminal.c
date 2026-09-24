@@ -353,7 +353,7 @@ void terminal_update_output(void)
  * Confirmed: rect2d_offset called at 0xe377c and 0xe38cd with &rect, -dx, -dy.
  * Confirmed: FPU clamp at 0xe3860 (lower) and 0xe387a (upper).
  * Confirmed: CALL 0x19b8b0 (draw_string_set_font) at 0xe3795 and 0xe38f9.
- * Confirmed: CALL 0x183e60 (rasterizer_text_draw) at 0xe37e6 and 0xe390c.
+ * Confirmed: CALL 0x183e60 (rasterizer_draw_string) at 0xe37e6 and 0xe390c.
  * Confirmed: cursor '_' inserted at text_buf[cursor_pos] (0xe37d2).
  * Confirmed: CALL 0x19b560 (draw_string_set_tab_stops) at 0xe38e3/0xe3918.
  */
@@ -419,7 +419,7 @@ void terminal_draw(void)
       text_buf[cursor_pos] = '_';
     }
 
-    rasterizer_text_draw(rect, NULL, NULL, 0, text_buf);
+    rasterizer_draw_string(rect, NULL, NULL, 0, text_buf);
   }
 
   /* -- Draw scrollback lines -- */
@@ -469,7 +469,7 @@ void terminal_draw(void)
     }
 
     draw_string_set_font(font_tag_index, -1, 0, 0, local_color);
-    rasterizer_text_draw(rect, NULL, NULL, 0, line + 0xd);
+    rasterizer_draw_string(rect, NULL, NULL, 0, line + 0xd);
     draw_string_set_tab_stops((void *)0x282dac, 0);
 
     line_handle = *(int *)(line + 8);

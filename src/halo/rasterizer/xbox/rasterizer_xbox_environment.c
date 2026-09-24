@@ -1,46 +1,46 @@
 /* 0x160920 — end rasterizer profile section 3.
- * Binary: PUSH 0x3 / CALL FUN_0016fa40 / POP ECX / RET.
- * FUN_0016fa40 takes an int16_t profile index; the semantic role of the
+ * Binary: PUSH 0x3 / CALL rasterizer_profile_end / POP ECX / RET.
+ * rasterizer_profile_end takes an int16_t profile index; the semantic role of the
  * index is unproven. */
 void _rasterizer_environment_lightmaps_end(void)
 {
-  FUN_0016fa40(3);
+  rasterizer_profile_end(3);
 }
 
 /* 0x160940 — begin the HUD rasterizer profile section.
  * Binary: PUSH 0x5 / CALL 0x16fa40 / POP ECX / RET.
- * FUN_0016fa40 takes an int16_t profile index; the semantic role of the
+ * rasterizer_profile_end takes an int16_t profile index; the semantic role of the
  * callee and of index 5 is unproven (no assert or string evidence). */
-void _rasterizer_hud_begin(void)
+void __rasterizer_environment_diffuse_lights_end(void)
 {
-  FUN_0016fa40(5);
+  rasterizer_profile_end(5);
 }
 
 /* 0x160950 — end diffuse-texture scope.
- * Binary: PUSH 2 / CALL FUN_00158ae0 / PUSH 8 / CALL FUN_0016fa40 /
+ * Binary: PUSH 2 / CALL rasterizer_set_stencil_mode / PUSH 8 / CALL rasterizer_profile_end /
  * ADD ESP,8 / RET. Call order and profile index are binary-fixed; their
  * semantic roles are unproven. */
 void _rasterizer_environment_diffuse_textures_end(void)
 {
-  FUN_00158ae0(2);
-  FUN_0016fa40(8);
+  rasterizer_set_stencil_mode(2);
+  rasterizer_profile_end(8);
 }
 
 /* 0x160980 — end rasterizer profile section 0xb.
- * Binary: PUSH 0xb / CALL FUN_0016fa40 / POP ECX / RET.
+ * Binary: PUSH 0xb / CALL rasterizer_profile_end / POP ECX / RET.
  * The profile index semantic role is unproven. */
 void _rasterizer_environment_specular_lights_end(void)
 {
-  FUN_0016fa40(0xb);
+  rasterizer_profile_end(0xb);
 }
 
 /* 0x1609a0 — end rasterizer profile section 0xc.
- * Binary: PUSH 0xc / CALL FUN_0016fa40 / POP ECX / RET.
- * FUN_0016fa40 takes an int16_t profile index; the semantic role of the
+ * Binary: PUSH 0xc / CALL rasterizer_profile_end / POP ECX / RET.
+ * rasterizer_profile_end takes an int16_t profile index; the semantic role of the
  * index is unproven. */
-void _rasterizer_dynamic_lit_geometry_draw(void)
+void __rasterizer_environment_specular_lightmaps_end(void)
 {
-  FUN_0016fa40(0xc);
+  rasterizer_profile_end(0xc);
 }
 
 /* 0x1609b0 — draw one environment geometry batch through the shared
@@ -52,10 +52,10 @@ void _rasterizer_dynamic_lit_geometry_draw(void)
  * occupies a parameter position, so it is declared and left unused.
  * The last three forwarded slots land in rasterizer_draw_dynamic_triangles_static_vertices2's kb decl positions
  * vertices_per_primitive / a2 / triangle_count, and in
- * rasterizer_frame_statistics_count_static_vertices' identically named slots;
+ * rasterizer_frame_statistics_count_dynamic_vertices' identically named slots;
  * the names here are taken from those decls, not from independent evidence.
  * [EBP+0x1c] is read as a uint16 at offset 0 (the vertex type passed to
- * FUN_00178b40) and forwarded both as-is and as +0x14.
+ * rasterizer_set_vertex_shader_permutation) and forwarded both as-is and as +0x14.
  *
  * Globals (roles unproven beyond the assert string):
  *   0x476ab0  void *  global_d3d_device (assert at __FILE__ line 0x873)
@@ -63,7 +63,7 @@ void _rasterizer_dynamic_lit_geometry_draw(void)
  *   0x3256d0  uint8   enable flag (must be non-zero)
  *   0x3256d2  uint8   second enable flag (must be non-zero)
  *   0x3256b0  uint16  must be 0
- *   0x47dca4  uint8   must be 0 (set by FUN_00163fe0/FUN_00164590 when a
+ *   0x47dca4  uint8   must be 0 (set by __rasterizer_environment_specular_lightmap_begin/__rasterizer_environment_reflection_lightmap_mask_begin when a
  *                     stage bitmap was missing)
  *   0x3256ba  uint16  statistics mode; the counters below run only when it
  *                     is 2. NOTE: this is 0x3256ba, not the 0x3256bc used by
@@ -77,12 +77,12 @@ void _rasterizer_dynamic_lit_geometry_draw(void)
  *   0x5a548c / 0x5a5488 / 0x5a5484
  *                     frame statistic counters: batch count, triangle_count
  *                     accumulator, and the accumulator fed by
- *                     rasterizer_frame_statistics_count_static_vertices.
+ *                     rasterizer_frame_statistics_count_dynamic_vertices.
  *
- * Shader-data offsets (from FUN_001906b0(shader, 3)); all four are read
+ * Shader-data offsets (from shader_get_and_verify_type(shader, 3)); all four are read
  * directly in the disassembly:
  *   +0x138 / +0x13c  the two animated values written into constant row 0
- *   +0x2d4           float compared against 1.0f and passed to FUN_00159070
+ *   +0x2d4           float compared against 1.0f and passed to real_alpha_to_pixel32
  *   +0x2f4 / +0x2f8  floats compared against 0.0f
  *
  * Branch senses are decoded from the FNSTSW forms, not from the decompiler:
@@ -98,14 +98,14 @@ void _rasterizer_dynamic_lit_geometry_draw(void)
  * addresses are handed to the texture-animation evaluator as out-parameters.
  *
  * Call-site arity note: the binary emits a single ADD ESP,0x1c (7 dwords)
- * after CALL 0x190a90. FUN_00178b40's 3 cdecl arguments are left uncleaned
+ * after CALL 0x190a90. rasterizer_set_vertex_shader_permutation's 3 cdecl arguments are left uncleaned
  * before it, so 3 + 4 = 7: shader_environment_texture_animation_evaluate
  * takes 4 arguments, not the 0 its previous kb decl claimed.
  *
  * Call order, the guard compare order, and the counter update order (both
  * accumulator stores precede the count_static_vertices call) are binary-fixed.
  */
-void FUN_001609b0(void *shader, int a2, int vertices_per_primitive, int a4,
+void __rasterizer_environment_reflection_lightmap_mask_draw(void *shader, int a2, int vertices_per_primitive, int a4,
                   int triangle_count, void *geometry)
 {
   void *shader_data;
@@ -137,12 +137,12 @@ void FUN_001609b0(void *shader, int a2, int vertices_per_primitive, int a4,
       system_exit(-1);
     }
 
-    shader_data = FUN_001906b0(shader, 3);
+    shader_data = shader_get_and_verify_type(shader, 3);
 
     if ((*(float *)((char *)shader_data + 0x2f4) > *(float *)0x2533c0 ||
          *(float *)((char *)shader_data + 0x2f8) > *(float *)0x2533c0) &&
         *(float *)((char *)shader_data + 0x2d4) < *(float *)0x2533c8) {
-      FUN_00178b40(0x3a, *(uint16_t *)geometry, 0);
+      rasterizer_set_vertex_shader_permutation(0x3a, *(uint16_t *)geometry, 0);
 
       /* [0]/[1] are copied as raw dwords: the reference moves them through
        * GPRs (MOV ECX,[ESI+0x138] / MOV [EBP-0x30],ECX), not the x87 stack.
@@ -170,7 +170,7 @@ void FUN_001609b0(void *shader, int a2, int vertices_per_primitive, int a4,
 
       D3DDevice_SetVertexShaderConstant(-0x54, &constants[0], 3);
 
-      render_state = FUN_00159070(*(float *)((char *)shader_data + 0x2d4));
+      render_state = real_alpha_to_pixel32(*(float *)((char *)shader_data + 0x2d4));
       D3DDevice_SetRenderState_Simple(0x40a80, render_state);
       *(uint32_t *)0x1fb6e0 = render_state;
 
@@ -184,7 +184,7 @@ void FUN_001609b0(void *shader, int a2, int vertices_per_primitive, int a4,
         *(int *)0x5a5488 = triangle_total + triangle_count;
         /* The reference loads 0x5a5484 only after the call returns, so the
          * call must not be sequenced against a pending read of it. */
-        static_vertices = rasterizer_frame_statistics_count_static_vertices(
+        static_vertices = rasterizer_frame_statistics_count_dynamic_vertices(
           vertices_per_primitive, a4, triangle_count);
         *(int *)0x5a5484 = *(int *)0x5a5484 + static_vertices;
       }
@@ -197,15 +197,15 @@ void FUN_001609b0(void *shader, int a2, int vertices_per_primitive, int a4,
  * Profile index 0xd is unnamed (no assert or string evidence). */
 void FUN_00160bc0(void)
 {
-  FUN_0016fa40(0xd);
+  rasterizer_profile_end(0xd);
 }
 
 /* 0x160bd0 — begin rasterizer profile section 0xe.
  * Binary: PUSH 0xe / CALL 0x16f910 / POP ECX / RET.
  * Profile index 0xe is unnamed (no assert or string evidence). */
-void FUN_00160bd0(void)
+void __rasterizer_environment_reflection_mirrors_begin(void)
 {
-  FUN_0016f910(0xe);
+  rasterizer_profile_begin(0xe);
 }
 
 /* 0x160be0 — begin rasterizer profile section 0xe.
@@ -213,46 +213,46 @@ void FUN_00160bd0(void)
  * Profile index 0xe is unnamed (no assert or string evidence). */
 void FUN_00160be0(void)
 {
-  FUN_0016fa40(0xe);
+  rasterizer_profile_end(0xe);
 }
 
 /* 0x160bf0 — one-arg wrapper.
  * Binary: PUSH 0xf / CALL 0x16f910 / POP ECX / RET.
- * Callee FUN_0016f910 takes an int16_t profile index; the role of the callee
+ * Callee rasterizer_profile_begin takes an int16_t profile index; the role of the callee
  * and the meaning of index 0xf are unproven (no assert or string evidence). */
-void FUN_00160bf0(void)
+void __rasterizer_environment_reflections_begin(void)
 {
-  FUN_0016f910(0xf);
+  rasterizer_profile_begin(0xf);
 }
 
 /* 0x160c00 — one-arg wrapper.
  * Binary: PUSH 0xf / CALL 0x16fa40 / POP ECX / RET.
- * Callee FUN_0016fa40 takes an int16_t profile index; the role of the callee
+ * Callee rasterizer_profile_end takes an int16_t profile index; the role of the callee
  * and the meaning of index 0xf are unproven (no assert or string evidence). */
-void FUN_00160c00(void)
+void __rasterizer_environment_reflections_end(void)
 {
-  FUN_0016fa40(0xf);
+  rasterizer_profile_end(0xf);
 }
 
 /* 0x160c10 — one-arg wrapper followed by a tail call.
  * Binary: PUSH 0x10 / CALL 0x16f910 / ADD ESP,0x4 / JMP 0x174ce0.
- * FUN_0016f910 takes an int16_t profile index; the role of both callees and
+ * rasterizer_profile_begin takes an int16_t profile index; the role of both callees and
  * the meaning of index 0x10 are unproven (no assert or string evidence). */
-void FUN_00160c10(void)
+void __rasterizer_environment_transparent_geometry_begin(void)
 {
-  FUN_0016f910(0x10);
-  FUN_00174ce0();
+  rasterizer_profile_begin(0x10);
+  rasterizer_transparent_geometry_groups_begin();
 }
 
 /* 0x160c20 — a no-arg call followed by a one-arg wrapper.
  * Binary: CALL 0x1749b0 / PUSH 0x10 / CALL 0x16fa40 / POP ECX / RET.
- * FUN_0016fa40 takes an int16_t profile index; the role of both callees and
+ * rasterizer_profile_end takes an int16_t profile index; the role of both callees and
  * the meaning of index 0x10 are unproven (no assert or string evidence).
- * Call order is binary-fixed: FUN_001749b0 runs before FUN_0016fa40. */
-void FUN_00160c20(void)
+ * Call order is binary-fixed: rasterizer_transparent_geometry_groups_end runs before rasterizer_profile_end. */
+void __rasterizer_environment_transparent_geometry_end(void)
 {
-  FUN_001749b0();
-  FUN_0016fa40(0x10);
+  rasterizer_transparent_geometry_groups_end();
+  rasterizer_profile_end(0x10);
 }
 
 /* 0x160c30 — begin rasterizer profile section 3 and, for a set of accepted
@@ -268,7 +268,7 @@ void FUN_00160c20(void)
  *                       render-state shadow copies, each stored next to
  * the matching D3DDevice_SetRenderState_Simple call. Call order and the
  * interleaving of the shadow stores are binary-fixed. */
-void FUN_00160c30(void)
+void __rasterizer_environment_lightmaps_begin(void)
 {
   uint16_t mode;
 
@@ -280,7 +280,7 @@ void FUN_00160c30(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(3);
+  rasterizer_profile_begin(3);
 
   mode = *(uint16_t *)0x3256bc;
   if ((mode == 0 || mode == 2 || mode == 6 || mode == 3 || mode == 4 ||
@@ -352,7 +352,7 @@ void FUN_00160c30(void)
  * so MOV [EBP-4],ESI at 0x160f0d seeds the generator with the argument value.
  * Ghidra leaves local_8 uninitialized here; that is a decompiler bug.
  * Call order is binary-fixed. */
-void FUN_00160dc0(int bitmap_data)
+void __rasterizer_environment_lightmap_begin(int bitmap_data)
 {
   uint16_t mode;
   int16_t select_3256b0;
@@ -451,7 +451,7 @@ void FUN_00160dc0(int bitmap_data)
  * 0x3256ea load are MOVSX and stay signed.
  * Call order, guard compare order, the 0x5a5ac0 store order, and the
  * statistics-block shape are binary-fixed. */
-void FUN_00160f50(void *shader, int frame_index, int vertices_per_primitive,
+void __rasterizer_environment_lightmap_draw(void *shader, int frame_index, int vertices_per_primitive,
                   int a4, int triangle_count, void *vertex_buffer)
 {
   struct {
@@ -665,7 +665,7 @@ void FUN_00160f50(void *shader, int frame_index, int vertices_per_primitive,
     *(uint32_t *)0x1fb798 = 1;
     D3DDevice_SetRenderState_ZBias(0);
 
-    FUN_00178b40(0x25, *(uint16_t *)vertex_buffer, table[table_index].kind);
+    rasterizer_set_vertex_shader_permutation(0x25, *(uint16_t *)vertex_buffer, table[table_index].kind);
     csmemset((void *)0x5a5ac0, 0, 0xf0);
     *(uint32_t *)0x5a5b98 = (2 * (uint32_t)(is_last == 0) + 1) | 0x18c60;
     if (is_last != 0) {
@@ -727,8 +727,8 @@ void FUN_00160f50(void *shader, int frame_index, int vertices_per_primitive,
     system_exit(-1);
   }
 
-  shader_data = FUN_001906b0(shader, 3);
-  FUN_00178b40(0x10, *(uint16_t *)vertex_buffer,
+  shader_data = shader_get_and_verify_type(shader, 3);
+  rasterizer_set_vertex_shader_permutation(0x10, *(uint16_t *)vertex_buffer,
                shader_get_vertex_shader_permutation(shader));
 
   if ((*(uint8_t *)((char *)shader_data + 0x28) & 1) == 0 ||
@@ -875,7 +875,7 @@ void FUN_00160f50(void *shader, int frame_index, int vertices_per_primitive,
     *(uint32_t *)0x5a5b5c = 0xc190d20;
     *(uint32_t *)0x5a5ae0 = 0xa0f000c;
     *(uint32_t *)0x5a5ae4 = 0x1c011800;
-    *(uint32_t *)0x5a5ae8 = FUN_00159070(scale_plasma);
+    *(uint32_t *)0x5a5ae8 = real_alpha_to_pixel32(scale_plasma);
     *(uint32_t *)0x5a5af4 = real_rgb_color_to_pixel32(vector_primary);
     *(uint32_t *)0x5a5b14 = real_rgb_color_to_pixel32(vector_secondary);
     *(uint32_t *)0x5a5af8 = real_rgb_color_to_pixel32(plasma_a);
@@ -957,7 +957,7 @@ void FUN_00160f50(void *shader, int frame_index, int vertices_per_primitive,
     triangle_total = *(int *)0x5a5428;
     *(int *)0x5a542c = batch_count + 1;
     *(int *)0x5a5428 = triangle_total + triangle_count;
-    static_vertices = rasterizer_frame_statistics_count_static_vertices(
+    static_vertices = rasterizer_frame_statistics_count_dynamic_vertices(
       vertices_per_primitive, a4, triangle_count);
     *(int *)0x5a5424 = *(int *)0x5a5424 + static_vertices;
   }
@@ -994,7 +994,7 @@ void FUN_00160f50(void *shader, int frame_index, int vertices_per_primitive,
  * binary-fixed. The single ADD ESP,0x10 after the last call is MSVC coalescing
  * csmemset's three stack args with rasterizer_set_pixel_shader's one; the
  * pixel-shader call takes one argument. */
-void FUN_00161f00(void)
+void __rasterizer_environment_diffuse_lights_begin(void)
 {
   if (*(void **)0x476ab0 == 0) {
     display_assert(
@@ -1004,7 +1004,7 @@ void FUN_00161f00(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(5);
+  rasterizer_profile_begin(5);
 
   if (*(uint16_t *)0x3256bc == 0 && *(uint8_t *)0x3256cb != 0) {
     rasterizer_set_texture_direct(2, *(int *)(*(char **)0x476204 + 0xc), 0);
@@ -1073,12 +1073,12 @@ void FUN_00161f00(void)
  * rasterizer_set_texture's frame_index slot), [EBP+0x10], [EBP+0x14],
  * [EBP+0x18] and [EBP+0x1c]. The last three forwarded slots land in
  * rasterizer_draw_dynamic_triangles_static_vertices's kb decl positions vertices_per_primitive / a2 /
- * triangle_count and in rasterizer_frame_statistics_count_static_vertices'
+ * triangle_count and in rasterizer_frame_statistics_count_dynamic_vertices'
  * identically named slots; the names here are taken from those decls, not
  * from independent evidence. [EBP+0x1c] is asserted non-NULL under the string
  * "vertex_buffer", is read as a uint16 at offset 0 (the vertex type passed to
- * FUN_00178b40) and is forwarded as-is (no +0x14 form here, unlike
- * FUN_001609b0/FUN_001640d0). [EBP+0xc] is loaded with MOV ECX,dword ptr
+ * rasterizer_set_vertex_shader_permutation) and is forwarded as-is (no +0x14 form here, unlike
+ * __rasterizer_environment_reflection_lightmap_mask_draw/__rasterizer_environment_specular_lightmap_draw). [EBP+0xc] is loaded with MOV ECX,dword ptr
  * [EBP+0xc], so the slot is a 32-bit type; it is declared int and passed
  * straight through.
  *
@@ -1099,9 +1099,9 @@ void FUN_00161f00(void)
  *   0x5a5448 / 0x5a5444 / 0x5a5440
  *                     frame statistic counters: batch count, triangle_count
  *                     accumulator, and the accumulator fed by
- *                     rasterizer_frame_statistics_count_static_vertices.
+ *                     rasterizer_frame_statistics_count_dynamic_vertices.
  *
- * Shader-data offsets (from FUN_001906b0(shader, 3)); all read directly in
+ * Shader-data offsets (from shader_get_and_verify_type(shader, 3)); all read directly in
  * the disassembly:
  *   +0x28            flag byte; bit 1 set means "no bitmap" (tag index -1)
  *   +0x134           bitmap tag index bound to stage 0 when bit 1 is clear
@@ -1119,12 +1119,12 @@ void FUN_00161f00(void)
  *
  * Call-site arity note: the reference emits one ADD ESP,0x10 after
  * CALL 0x178b40 that also cleans the PUSH EDI belonging to the preceding
- * CALL 0x190710 — FUN_00178b40 still takes 3 cdecl arguments.
+ * CALL 0x190710 — rasterizer_set_vertex_shader_permutation still takes 3 cdecl arguments.
  *
  * Call order, the guard compare order, and the counter update order (both
  * accumulator stores precede the count_static_vertices call) are binary-fixed.
  */
-void FUN_00162560(void *shader, int frame_index, int vertices_per_primitive,
+void __rasterizer_environment_diffuse_light_draw(void *shader, int frame_index, int vertices_per_primitive,
                   int a4, int triangle_count, void *vertex_buffer)
 {
   void *shader_data;
@@ -1154,9 +1154,9 @@ void FUN_00162560(void *shader, int frame_index, int vertices_per_primitive,
       system_exit(-1);
     }
 
-    shader_data = FUN_001906b0(shader, 3);
+    shader_data = shader_get_and_verify_type(shader, 3);
 
-    /* The vertex_buffer assert follows the FUN_001906b0 call in the
+    /* The vertex_buffer assert follows the shader_get_and_verify_type call in the
      * reference (MOV EBX,[EBP+0x1c] is issued after CALL 0x1906b0). */
     if (vertex_buffer == 0) {
       display_assert(
@@ -1167,7 +1167,7 @@ void FUN_00162560(void *shader, int frame_index, int vertices_per_primitive,
     }
 
     permutation = shader_get_vertex_shader_permutation(shader);
-    FUN_00178b40(0x31, *(uint16_t *)vertex_buffer, permutation);
+    rasterizer_set_vertex_shader_permutation(0x31, *(uint16_t *)vertex_buffer, permutation);
 
     /* MOV EAX,-1 then a conditional MOV EAX,[ESI+0x134]; written as an
      * init-then-overwrite, not a ternary, to keep the reference's shape. */
@@ -1221,7 +1221,7 @@ void FUN_00162560(void *shader, int frame_index, int vertices_per_primitive,
       *(int *)0x5a5444 = triangle_total + triangle_count;
       /* The reference loads 0x5a5440 only after the call returns, so the
        * call must not be sequenced against a pending read of it. */
-      static_vertices = rasterizer_frame_statistics_count_static_vertices(
+      static_vertices = rasterizer_frame_statistics_count_dynamic_vertices(
         vertices_per_primitive, a4, triangle_count);
       *(int *)0x5a5440 = *(int *)0x5a5440 + static_vertices;
     }
@@ -1246,7 +1246,7 @@ void FUN_00162560(void *shader, int frame_index, int vertices_per_primitive,
  *                       ahead of the following call; each store below is paired
  *                       with the call it mirrors, per the disassembly.
  * Call order is binary-fixed. */
-void FUN_00162790(void)
+void __rasterizer_environment_diffuse_textures_begin(void)
 {
   unsigned long value;
 
@@ -1258,7 +1258,7 @@ void FUN_00162790(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(8);
+  rasterizer_profile_begin(8);
 
   if ((*(uint16_t *)0x3256bc == 0 || *(uint16_t *)0x3256bc == 1 ||
        *(uint16_t *)0x3256bc == 3 || *(uint16_t *)0x3256bc == 4 ||
@@ -1299,7 +1299,7 @@ void FUN_00162790(void)
 
     D3DDevice_SetRenderState_ZBias(0);
 
-    FUN_00158ae0(5);
+    rasterizer_set_stencil_mode(5);
   }
 }
 
@@ -1322,7 +1322,7 @@ void FUN_00162790(void)
  *                     render-state shadow copies, each stored next to the
  *                     matching D3DDevice_SetRenderState_Simple call.
  * Call order and the interleaving of the shadow stores are binary-fixed. */
-void FUN_00162f90(void)
+void __rasterizer_environment_specular_lights_begin(void)
 {
   if (*(void **)0x476ab0 == 0) {
     display_assert(
@@ -1332,7 +1332,7 @@ void FUN_00162f90(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(0xb);
+  rasterizer_profile_begin(0xb);
 
   if (*(uint16_t *)0x3256bc == 0 && *(uint8_t *)0x3256ce != 0) {
     rasterizer_set_texture_direct(2, *(int *)(*(int *)0x476204 + 0x1c), 0);
@@ -1382,7 +1382,7 @@ void FUN_00162f90(void)
  * rasterizer light: upload five vertex-shader constants, bind the default
  * bitmap to texture stage 1, program that stage, and install the pixel shader
  * built in the shared 0x5a5ac0 block.  When the light's owner definition says
- * a richer path applies, this defers to FUN_001631d0 instead.
+ * a richer path applies, this defers to rasterizer_environment_specular_spot_light_begin instead.
  *
  * Signature: the reference reads its argument at [EBP+8] (MOV EDI,[EBP+8] at
  * 0x1635dc) and returns with a bare RET, so cdecl with one int parameter.  The
@@ -1417,7 +1417,7 @@ void FUN_00162f90(void)
  *   0x5a5ac0  -       0xf0-byte pixel-shader state block (shared with the
  *                     other rasterizer_xbox_* pixel-shader builders)
  * The 0x5a5ac0 store order and the call order are binary-fixed. */
-void FUN_00163590(int light_index)
+void __rasterizer_environment_specular_light_begin(int light_index)
 {
   struct vs_vec3 {
     float x, y, z;
@@ -1465,7 +1465,7 @@ void FUN_00163590(int light_index)
          *(int *)(light->owner + 0x88) != -1)) {
       *(uint16_t *)0x325170 = 1;
       *(float *)0x47dca8 = real_rgb_color_brightness((float *)light->field_28);
-      FUN_001631d0(light_index);
+      rasterizer_environment_specular_spot_light_begin(light_index);
       return;
     }
 
@@ -1551,17 +1551,17 @@ void FUN_00163590(int light_index)
  * dword parameters. Names for slots 1 and 6 come from the assert strings
  * ("shader" at line 0x667, "vertex_buffer" at line 0x66d); slots 3/4/5 are
  * named after the rasterizer_draw_dynamic_triangles_static_vertices decl they are forwarded to. Only one caller
- * (0x17cd74 in FUN_0017cd70), which is not ported.
+ * (0x17cd74 in rasterizer_environment_specular_light_draw), which is not ported.
  *
  * Globals (roles unproven beyond the assert string):
  *   0x476ab0  void *    global_d3d_device (assert at __FILE__ line 0x660)
  *   0x3256bc  uint16    mode selector; this path requires exactly 0
  *   0x3256ce  uint8     enable flag (must be non-zero). NOTE: 0x3256ce, one
- *                       byte below the 0x3256cf used by FUN_001640d0.
+ *                       byte below the 0x3256cf used by __rasterizer_environment_specular_lightmap_draw.
  *   0x47dca8  float     global fade/intensity scalar; must be > 0.0f and is
  *                       multiplied into the shader's +0x290 fade at both
- *                       FUN_00159070 sites.
- *   0x325170  uint16    permutation index forwarded to FUN_00178b40
+ *                       real_alpha_to_pixel32 sites.
+ *   0x325170  uint16    permutation index forwarded to rasterizer_set_vertex_shader_permutation
  *   0x5a5e18  void *    texture-animation globals handed to the evaluator
  *   0x2533c0  float     0.0f pool constant
  *   0x5a5ac0  -         0xf0-byte pixel-shader state block (shared with
@@ -1569,7 +1569,7 @@ void FUN_00163590(int light_index)
  *   0x5a5474 / 0x5a5470 / 0x5a546c
  *                       profile-mode counters (batch count, triangle total,
  *                       static-vertex total). Uniformly 0xc below the
- *                       counters FUN_001640d0 uses.
+ *                       counters __rasterizer_environment_specular_lightmap_draw uses.
  *
  * The 12-dword block is one contiguous local (SUB ESP,0x30; every slot from
  * EBP-0x30 to EBP-0x4 is written) uploaded as 3 vertex-shader constants at
@@ -1577,13 +1577,13 @@ void FUN_00163590(int light_index)
  * evaluator as out-parameters (LEA ECX,[EBP-0x14] / LEA EAX,[EBP-0x4]).
  *
  * The reference reloads 0x47dca8 and re-multiplies by +0x290 for each of the
- * two FUN_00159070 calls (0x163ad8 and 0x163aed), so the product is written
+ * two real_alpha_to_pixel32 calls (0x163ad8 and 0x163aed), so the product is written
  * out at both sites rather than hoisted into a temporary.
  *
  * Call order, the guard compare order, and the counter update order (both
  * accumulator stores precede the count_static_vertices call) are binary-fixed.
  */
-void FUN_00163910(void *shader, int frame_index, int vertices_per_primitive,
+void __rasterizer_environment_specular_light_draw(void *shader, int frame_index, int vertices_per_primitive,
                   int a4, int triangle_count, void *vertex_buffer)
 {
   void *shader_data;
@@ -1611,7 +1611,7 @@ void FUN_00163910(void *shader, int frame_index, int vertices_per_primitive,
       system_exit(-1);
     }
 
-    shader_data = FUN_001906b0(shader, 3);
+    shader_data = shader_get_and_verify_type(shader, 3);
 
     if (*(float *)((char *)shader_data + 0x290) > *(float *)0x2533c0 &&
         *(float *)0x47dca8 > *(float *)0x2533c0) {
@@ -1623,7 +1623,7 @@ void FUN_00163910(void *shader, int frame_index, int vertices_per_primitive,
         system_exit(-1);
       }
 
-      FUN_00178b40(0x15, *(uint16_t *)vertex_buffer, *(uint16_t *)0x325170);
+      rasterizer_set_vertex_shader_permutation(0x15, *(uint16_t *)vertex_buffer, *(uint16_t *)0x325170);
 
       rasterizer_set_texture(0, 0, 3, *(int *)((char *)shader_data + 0x134),
                              frame_index);
@@ -1658,9 +1658,9 @@ void FUN_00163910(void *shader, int frame_index, int vertices_per_primitive,
 
       D3DDevice_SetVertexShaderConstant(-0x54, &constants[0], 3);
 
-      *(unsigned long *)0x5a5af0 = FUN_00159070(
+      *(unsigned long *)0x5a5af0 = real_alpha_to_pixel32(
         *(float *)0x47dca8 * *(float *)((char *)shader_data + 0x290));
-      *(unsigned long *)0x5a5b10 = FUN_00159070(
+      *(unsigned long *)0x5a5b10 = real_alpha_to_pixel32(
         *(float *)0x47dca8 * *(float *)((char *)shader_data + 0x290));
       *(unsigned long *)0x5a5af4 =
         real_rgb_color_to_pixel32((float *)((char *)shader_data + 0x2a8));
@@ -1708,7 +1708,7 @@ void FUN_00163910(void *shader, int frame_index, int vertices_per_primitive,
         *(int *)0x5a5470 = triangle_total + triangle_count;
         /* The reference loads 0x5a546c only after the call returns, so the
          * call must not be sequenced against a pending read of it. */
-        static_vertices = rasterizer_frame_statistics_count_static_vertices(
+        static_vertices = rasterizer_frame_statistics_count_dynamic_vertices(
           vertices_per_primitive, a4, triangle_count);
         *(int *)0x5a546c = *(int *)0x5a546c + static_vertices;
       }
@@ -1729,7 +1729,7 @@ void FUN_00163910(void *shader, int frame_index, int vertices_per_primitive,
  *   0x3256bc  uint16    mode selector; this path requires exactly 0
  *   0x3256cf  uint8     enable flag (must be non-zero). NOTE: this is
  *                       0x3256cf, not the 0x3256d0/0x3256d2 pair used by the
- *                       four-condition guard in FUN_001643e0/FUN_00164590 —
+ *                       four-condition guard in __rasterizer_environment_reflection_lightmap_masks_begin/__rasterizer_environment_reflection_lightmap_mask_begin —
  *                       this guard has only three conditions.
  *   0x3256b0  uint16    must be 0
  *   0x476204  char *    pointer to a record whose +0x1c dword is the bitmap
@@ -1742,7 +1742,7 @@ void FUN_00163910(void *shader, int frame_index, int vertices_per_primitive,
  *                       binary emits the store after the ECX/EDX loads of the
  *                       NEXT call, but it belongs to the preceding one.
  *                       ZEnable and ZBias have no shadow store. Unlike
- *                       FUN_001643e0 this path also programs 0x40340 (shadow
+ *                       __rasterizer_environment_reflection_lightmap_masks_begin this path also programs 0x40340 (shadow
  *                       0x1fb78c) and passes 1 (not 0) to 0x40348 and 0x40300.
  *   0x5a5ac0  -         0xf0-byte pixel-shader state block (shared with
  *                       rasterizer_xbox_widgets/shadows/models/screen_effect).
@@ -1759,7 +1759,7 @@ void FUN_00163910(void *shader, int frame_index, int vertices_per_primitive,
  *
  * Call order, the guard compare order, and the 0x5a5ac0 store order are
  * binary-fixed. */
-void FUN_00163c40(void)
+void __rasterizer_environment_specular_lightmaps_begin(void)
 {
   if (*(void **)0x476ab0 == 0) {
     display_assert(
@@ -1769,7 +1769,7 @@ void FUN_00163c40(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(0xc);
+  rasterizer_profile_begin(0xc);
 
   if (*(uint16_t *)0x3256bc == 0 && *(uint8_t *)0x3256cf != 0 &&
       *(uint16_t *)0x3256b0 == 0) {
@@ -1868,7 +1868,7 @@ void FUN_00163c40(void)
  *                       supplied pointer is null. It is written only inside
  *                       the accepted-mode guard; both early exits skip it.
  * Call order is binary-fixed. */
-void FUN_00163fe0(void *bitmap_data)
+void __rasterizer_environment_specular_lightmap_begin(void *bitmap_data)
 {
   if (*(void **)0x476ab0 == 0) {
     display_assert(
@@ -1904,10 +1904,10 @@ void FUN_00163fe0(void *bitmap_data)
  * rasterizer_set_texture's frame_index slot), [EBP+0x10], [EBP+0x14],
  * [EBP+0x18] and [EBP+0x1c]. The last three forwarded slots land in
  * rasterizer_draw_dynamic_triangles_static_vertices2's kb decl positions vertices_per_primitive / a2 /
- * triangle_count and in rasterizer_frame_statistics_count_static_vertices'
+ * triangle_count and in rasterizer_frame_statistics_count_dynamic_vertices'
  * identically named slots; the names here are taken from those decls, not
  * from independent evidence. [EBP+0x1c] is read as a uint16 at offset 0 (the
- * vertex type passed to FUN_00178b40) and forwarded both as-is and as +0x14.
+ * vertex type passed to rasterizer_set_vertex_shader_permutation) and forwarded both as-is and as +0x14.
  * [EBP+0xc] is loaded with MOV ECX,dword ptr [EBP+0xc], so the slot is a
  * 32-bit type; it is declared int and passed straight through.
  *
@@ -1915,10 +1915,10 @@ void FUN_00163fe0(void *bitmap_data)
  *   0x476ab0  void *  global_d3d_device (assert at __FILE__ line 0x77b)
  *   0x3256bc  uint16  mode selector; this path requires exactly 0
  *   0x3256cf  uint8   single enable flag (must be non-zero) — this function
- *                     tests only this one byte, unlike FUN_001609b0 which
+ *                     tests only this one byte, unlike __rasterizer_environment_reflection_lightmap_mask_draw which
  *                     tests 0x3256d0 and 0x3256d2
  *   0x3256b0  uint16  must be 0
- *   0x47dca4  uint8   must be 0 (set by FUN_00163fe0/FUN_00164590 when a
+ *   0x47dca4  uint8   must be 0 (set by __rasterizer_environment_specular_lightmap_begin/__rasterizer_environment_reflection_lightmap_mask_begin when a
  *                     stage bitmap was missing)
  *   0x3256ba  uint16  statistics mode; the counters below run only when it
  *                     is 2. NOTE: 0x3256ba, not the 0x3256bc of the guard.
@@ -1926,7 +1926,7 @@ void FUN_00163fe0(void *bitmap_data)
  *                     shader_environment_texture_animation_evaluate; the
  *                     reference copies it with MOV ECX / PUSH ECX, so its
  *                     type is unproven.
- *   0x5a5ac0  the 0xf0-byte pixel-shader state block (see FUN_00163590,
+ *   0x5a5ac0  the 0xf0-byte pixel-shader state block (see __rasterizer_environment_specular_light_begin,
  *                     which memsets and fully populates it); the fields
  *                     written here are 0x5a5ad8/0x5a5adc, 0x5a5af0/0x5a5af4,
  *                     0x5a5b10/0x5a5b14, 0x5a5b40/0x5a5b44, 0x5a5b48/0x5a5b4c,
@@ -1934,9 +1934,9 @@ void FUN_00163fe0(void *bitmap_data)
  *   0x5a5480 / 0x5a547c / 0x5a5478
  *                     frame statistic counters: batch count, triangle_count
  *                     accumulator, and the accumulator fed by
- *                     rasterizer_frame_statistics_count_static_vertices.
+ *                     rasterizer_frame_statistics_count_dynamic_vertices.
  *
- * Shader-data offsets (from FUN_001906b0(shader, 3)); all read directly in
+ * Shader-data offsets (from shader_get_and_verify_type(shader, 3)); all read directly in
  * the disassembly:
  *   +0x28            flag byte, bit 1 selects the 0x5a5b48/0x5a5b4c/0x5a5b7c
  *                    triple
@@ -1946,7 +1946,7 @@ void FUN_00163fe0(void *bitmap_data)
  *                    0x10000 to the 0x5a5b84 word, bit 1 selects the
  *                    0x5a5b94/0x5a5ad8/0x5a5adc/0x5a5b40 set
  *   +0x290           float compared against 0.0f and passed twice to
- *                    FUN_00159070
+ *                    real_alpha_to_pixel32
  *   +0x2a8 / +0x2b4  color vectors passed to real_rgb_color_to_pixel32
  *
  * Branch senses are decoded from the FNSTSW form, not from the decompiler:
@@ -1961,7 +1961,7 @@ void FUN_00163fe0(void *bitmap_data)
  * Call order, the guard compare order, and the counter update order (both
  * accumulator stores precede the count_static_vertices call) are binary-fixed.
  */
-void FUN_001640d0(void *shader, int frame_index, int vertices_per_primitive,
+void __rasterizer_environment_specular_lightmap_draw(void *shader, int frame_index, int vertices_per_primitive,
                   int a4, int triangle_count, void *geometry)
 {
   void *shader_data;
@@ -1990,11 +1990,11 @@ void FUN_001640d0(void *shader, int frame_index, int vertices_per_primitive,
       system_exit(-1);
     }
 
-    shader_data = FUN_001906b0(shader, 3);
+    shader_data = shader_get_and_verify_type(shader, 3);
 
     if (*(float *)((char *)shader_data + 0x290) > *(float *)0x2533c0 &&
         (*(uint8_t *)((char *)shader_data + 0x27c) & 4) != 0) {
-      FUN_00178b40(0x15, *(uint16_t *)geometry, 2);
+      rasterizer_set_vertex_shader_permutation(0x15, *(uint16_t *)geometry, 2);
 
       rasterizer_set_texture(0, 0, 3, *(int *)((char *)shader_data + 0x134),
                              frame_index);
@@ -2030,9 +2030,9 @@ void FUN_001640d0(void *shader, int frame_index, int vertices_per_primitive,
       D3DDevice_SetVertexShaderConstant(-0x54, &constants[0], 3);
 
       *(unsigned long *)0x5a5af0 =
-        FUN_00159070(*(float *)((char *)shader_data + 0x290));
+        real_alpha_to_pixel32(*(float *)((char *)shader_data + 0x290));
       *(unsigned long *)0x5a5b10 =
-        FUN_00159070(*(float *)((char *)shader_data + 0x290));
+        real_alpha_to_pixel32(*(float *)((char *)shader_data + 0x290));
       *(unsigned long *)0x5a5af4 =
         real_rgb_color_to_pixel32((float *)((char *)shader_data + 0x2a8));
       *(unsigned long *)0x5a5b14 =
@@ -2080,7 +2080,7 @@ void FUN_001640d0(void *shader, int frame_index, int vertices_per_primitive,
         *(int *)0x5a547c = triangle_total + triangle_count;
         /* The reference loads 0x5a5478 only after the call returns, so the
          * call must not be sequenced against a pending read of it. */
-        static_vertices = rasterizer_frame_statistics_count_static_vertices(
+        static_vertices = rasterizer_frame_statistics_count_dynamic_vertices(
           vertices_per_primitive, a4, triangle_count);
         *(int *)0x5a5478 = *(int *)0x5a5478 + static_vertices;
       }
@@ -2112,7 +2112,7 @@ void FUN_001640d0(void *shader, int frame_index, int vertices_per_primitive,
  * canonical NV097_COLOR_MASK_* values, so it stays a literal.
  * Call order, the guard compare order, and the 0x5a5ac0 store order are
  * binary-fixed. */
-void FUN_001643e0(void)
+void __rasterizer_environment_reflection_lightmap_masks_begin(void)
 {
   if (*(void **)0x476ab0 == 0) {
     display_assert(
@@ -2122,7 +2122,7 @@ void FUN_001643e0(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(0xd);
+  rasterizer_profile_begin(0xd);
 
   if (*(uint16_t *)0x3256bc == 0 && *(uint8_t *)0x3256d0 != 0 &&
       *(uint8_t *)0x3256d2 != 0 && *(uint16_t *)0x3256b0 == 0) {
@@ -2161,8 +2161,8 @@ void FUN_001643e0(void)
 }
 
 /* 0x164590 — bind a bitmap to texture stage 0 and program its stage states,
- * on one narrow mode. Structurally the stage-0 twin of FUN_00163fe0 (0x163fe0),
- * with the four-condition guard used by FUN_001643e0 (0x1643e0).
+ * on one narrow mode. Structurally the stage-0 twin of __rasterizer_environment_specular_lightmap_begin (0x163fe0),
+ * with the four-condition guard used by __rasterizer_environment_reflection_lightmap_masks_begin (0x1643e0).
  *
  * Signature: the reference reads its argument at [EBP+8] and returns with a
  * bare RET (no stack cleanup), so this is cdecl with one pointer parameter.
@@ -2186,7 +2186,7 @@ void FUN_001643e0(void)
  * Stage index 0 is binary-proven: every stage-state call reaches 0x1e9410 with
  * XOR ECX,ECX, and the bitmap bind pushes 0 as its first (stage) argument.
  * Call order is binary-fixed. */
-void FUN_00164590(void *bitmap_data)
+void __rasterizer_environment_reflection_lightmap_mask_begin(void *bitmap_data)
 {
   if (*(void **)0x476ab0 == 0) {
     display_assert(
@@ -2225,11 +2225,11 @@ void FUN_00164590(void *bitmap_data)
  * rasterizer_set_texture's frame_index slot), [EBP+0x10], [EBP+0x14],
  * [EBP+0x18] and [EBP+0x1c]. The middle three land in rasterizer_draw_dynamic_triangles_static_vertices's kb decl
  * positions vertices_per_primitive / a2 / triangle_count and in
- * rasterizer_frame_statistics_count_static_vertices' identically named slots;
+ * rasterizer_frame_statistics_count_dynamic_vertices' identically named slots;
  * the names here are taken from those decls, not from independent evidence.
  * [EBP+0x1c] is the vertex buffer: read as a uint16 at offset 0 (the vertex
- * type passed to FUN_00178b40) and forwarded whole to rasterizer_draw_dynamic_triangles_static_vertices. Unlike
- * the FUN_001609b0 / FUN_001640d0 siblings there is no "+0x14" second
+ * type passed to rasterizer_set_vertex_shader_permutation) and forwarded whole to rasterizer_draw_dynamic_triangles_static_vertices. Unlike
+ * the __rasterizer_environment_reflection_lightmap_mask_draw / __rasterizer_environment_specular_lightmap_draw siblings there is no "+0x14" second
  * forward — the callee here is the 4-argument rasterizer_draw_dynamic_triangles_static_vertices, not rasterizer_draw_dynamic_triangles_static_vertices2.
  *
  * Globals (roles unproven beyond the assert string):
@@ -2237,7 +2237,7 @@ void FUN_00164590(void *bitmap_data)
  *   0x3256bc  uint16  mode selector; this path requires exactly 0
  *   0x3256d1  uint8   enable flag (must be non-zero); read as a byte
  *                     (MOV AL / TEST AL,AL). Not the 0x3256d0/0x3256d2 pair
- *                     that FUN_001609b0 tests.
+ *                     that __rasterizer_environment_reflection_lightmap_mask_draw tests.
  *   0x5a5bc4  uint8   second enable flag (must be non-zero)
  *   0x5a5bc0  uint16  must be 0 (CMP word ptr)
  *   0x476204  ptr     rasterizer globals; +0x1c is the bitmap tag index bound
@@ -2251,7 +2251,7 @@ void FUN_00164590(void *bitmap_data)
  *                     shadow copies of the render states, each stored right
  *                     after its D3DDevice_SetRenderState_Simple call.
  *   0x5a5ac0  -       the 0xf0-byte pixel-shader state block (see
- *                     FUN_00163590, which also memsets and populates it).
+ *                     __rasterizer_environment_specular_light_begin, which also memsets and populates it).
  *   0x5a5bd4 / 0x5a5bd8 / 0x5a5bdc
  *                     three scalars folded into the clamped color fed to
  *                     real_rgb_color_to_pixel32 on the "no stage-0 bitmap" path.
@@ -2260,14 +2260,14 @@ void FUN_00164590(void *bitmap_data)
  *   0x5a5498 / 0x5a5494 / 0x5a5490
  *                     frame statistic counters: batch count, triangle_count
  *                     accumulator, and the accumulator fed by
- *                     rasterizer_frame_statistics_count_static_vertices.
+ *                     rasterizer_frame_statistics_count_dynamic_vertices.
  *                     These are a different triple from either sibling's.
  *   0x253398 / 0x2533c0 / 0x2533c8
  *                     float constants (1.0f-class scale, low clamp, high
  *                     clamp); addressed as memory operands, matching the
  *                     reference's FMUL/FSUBR/FCOM memory forms.
  *
- * Shader-data offsets (from FUN_001906b0(shader, 3)); all read directly in
+ * Shader-data offsets (from shader_get_and_verify_type(shader, 3)); all read directly in
  * the disassembly:
  *   +0x28            flag byte, bit 1 selects the 0x5a5ae4 word
  *   +0x134           bitmap tag index bound to stage 0; the value -1 (no
@@ -2297,7 +2297,7 @@ void FUN_00164590(void *bitmap_data)
  * to real_rgb_color_to_pixel32, whose kb decl is float *.
  *
  * Call-site arity note: the binary emits merged cdecl cleanups. ADD ESP,0x1c
- * after CALL 0x190a90 is 4 arguments plus FUN_00178b40's 3 uncleaned;
+ * after CALL 0x190a90 is 4 arguments plus rasterizer_set_vertex_shader_permutation's 3 uncleaned;
  * ADD ESP,0x24 after CALL 0x15dc10 is 4 arguments plus the uncleaned
  * rasterizer_set_pixel_shader 1 and two real_a_rgb_color_to_pixel32 2+2.
  *
@@ -2305,7 +2305,7 @@ void FUN_00164590(void *bitmap_data)
  * interleave, and the counter update order (both accumulator stores precede
  * the count_static_vertices call) are binary-fixed.
  */
-void FUN_00164690(void *shader, int frame_index, int vertices_per_primitive,
+void __rasterizer_environment_reflection_mirror_draw(void *shader, int frame_index, int vertices_per_primitive,
                   int a4, int triangle_count, void *vertex_buffer)
 {
   void *shader_data;
@@ -2334,7 +2334,7 @@ void FUN_00164690(void *shader, int frame_index, int vertices_per_primitive,
       system_exit(-1);
     }
 
-    shader_data = FUN_001906b0(shader, 3);
+    shader_data = shader_get_and_verify_type(shader, 3);
 
     if ((*(uint8_t *)((char *)shader_data + 0x2d0) & 1) != 0 &&
         (*(float *)((char *)shader_data + 0x2f4) > *(float *)0x2533c0 ||
@@ -2374,7 +2374,7 @@ void FUN_00164690(void *shader, int frame_index, int vertices_per_primitive,
       D3DDevice_SetTextureStageState(2, 0xe, 1);
       D3DDevice_SetTextureStageState(2, 0xf, 1);
 
-      FUN_001584f0(3, 1, 0);
+      rasterizer_set_target_as_texture(3, 1, 0);
 
       /* Stage 3 has no 0xc entry; stages 1 and 2 do. Binary-fixed. */
       D3DDevice_SetTextureStageState(3, 10, 3);
@@ -2404,7 +2404,7 @@ void FUN_00164690(void *shader, int frame_index, int vertices_per_primitive,
       *(uint32_t *)0x1fb798 = 0;
       D3DDevice_SetRenderState_ZBias(0);
 
-      FUN_00178b40(0x33, *(uint16_t *)vertex_buffer, 0);
+      rasterizer_set_vertex_shader_permutation(0x33, *(uint16_t *)vertex_buffer, 0);
 
       /* [0]/[1] are copied as raw dwords: the reference moves them through
        * GPRs (MOV ECX,[ESI+0x138] / MOV [EBP-0x3c],ECX), not the x87 stack,
@@ -2502,7 +2502,7 @@ void FUN_00164690(void *shader, int frame_index, int vertices_per_primitive,
         *(int *)0x5a5494 = triangle_total + triangle_count;
         /* The reference loads 0x5a5490 only after the call returns, so the
          * call must not be sequenced against a pending read of it. */
-        static_vertices = rasterizer_frame_statistics_count_static_vertices(
+        static_vertices = rasterizer_frame_statistics_count_dynamic_vertices(
           vertices_per_primitive, a4, triangle_count);
         *(int *)0x5a5490 = *(int *)0x5a5490 + static_vertices;
       }
@@ -2510,7 +2510,7 @@ void FUN_00164690(void *shader, int frame_index, int vertices_per_primitive,
   }
 }
 
-void FUN_00164cf0(void *shader, int frame_index, int vertices_per_primitive,
+void __rasterizer_environment_reflection_draw(void *shader, int frame_index, int vertices_per_primitive,
                   int a4, int triangle_count, void *vertex_buffer)
 {
   void *shader_data;
@@ -2546,7 +2546,7 @@ void FUN_00164cf0(void *shader, int frame_index, int vertices_per_primitive,
     system_exit(-1);
   }
 
-  shader_data = FUN_001906b0(shader, 3);
+  shader_data = shader_get_and_verify_type(shader, 3);
 
   reflection_type = *(int16_t *)((char *)shader_data + 0x2d2);
   if (reflection_type == 0 || reflection_type == 2) {
@@ -2612,7 +2612,7 @@ void FUN_00164cf0(void *shader, int frame_index, int vertices_per_primitive,
   rasterizer_set_texture(3, 2, 0, *(int *)((char *)shader_data + 0x330),
                          frame_index);
 
-  /* Stage 3 here DOES carry the 0xc entry (0x164fb4) — unlike FUN_00164690. */
+  /* Stage 3 here DOES carry the 0xc entry (0x164fb4) — unlike __rasterizer_environment_reflection_mirror_draw. */
   D3DDevice_SetTextureStageState(3, 10, 3);
   D3DDevice_SetTextureStageState(3, 0xb, 3);
   D3DDevice_SetTextureStageState(3, 0xc, 3);
@@ -2641,7 +2641,7 @@ void FUN_00164cf0(void *shader, int frame_index, int vertices_per_primitive,
   *(uint32_t *)0x1fb798 = 0;
   D3DDevice_SetRenderState_ZBias(0);
 
-  FUN_00178b40(0x2a, *(uint16_t *)vertex_buffer, reflection_type);
+  rasterizer_set_vertex_shader_permutation(0x2a, *(uint16_t *)vertex_buffer, reflection_type);
 
   /* [0]/[1] move through GPRs (MOV ECX,[ESI+0x138] / MOV [EBP-0x3c],ECX),
    * not the x87 stack, and are stored ahead of the literal ones. */
@@ -2764,7 +2764,7 @@ void FUN_00164cf0(void *shader, int frame_index, int vertices_per_primitive,
     triangle_total = *(int *)0x5a5494;
     *(int *)0x5a5498 = batch_count + 1;
     *(int *)0x5a5494 = triangle_total + triangle_count;
-    static_vertices = rasterizer_frame_statistics_count_static_vertices(
+    static_vertices = rasterizer_frame_statistics_count_dynamic_vertices(
       vertices_per_primitive, a4, triangle_count);
     *(int *)0x5a5490 = *(int *)0x5a5490 + static_vertices;
   }
@@ -2790,14 +2790,14 @@ typedef struct {
  * Signature: cdecl, bare RET (caller cleans). kb.json previously declared this
  * `(void)`; the reference reads twelve dword parameter slots from [EBP+8] to
  * [EBP+0x34], so the decl is widened to twelve positional parameters. The only
- * caller is FUN_0017ceb0 (0x17ceb4), which is not ported, so no C call site
+ * caller is rasterizer_environment_transparent_geometry_submit (0x17ceb4), which is not ported, so no C call site
  * changes. Slot [EBP+0x2c] is never read but occupies a parameter position, so
- * it is declared and left unused (same treatment as FUN_001609b0's a2).
+ * it is declared and left unused (same treatment as __rasterizer_environment_reflection_lightmap_mask_draw's a2).
  *
  * Parameter names: `shader`, `centroid` and `geometry_flags` come from the
  * assert strings at TU lines 0xa92/0xa95/0xade. `vertices_per_primitive`, `a5`
  * and `triangle_count` are taken from the slot names of
- * rasterizer_frame_statistics_count_static_vertices' kb decl, which receives
+ * rasterizer_frame_statistics_count_dynamic_vertices' kb decl, which receives
  * them in that order — not from independent evidence. The rest stay positional.
  *
  * geometry_flags is a by-value slot mutated in the frame
@@ -2827,7 +2827,7 @@ typedef struct {
  *     its assert, before the group+0x70 store and before the group+0x74 copy.
  *   - The dot product association is (0x5a5bdc*dz + 0x5a5bd8*dy) + 0x5a5bd4*dx
  *     (FLD 0x5a5bdc first, FADDP, then FLD 0x5a5bd4, FADDP, FCHS).
- *   - shader->base.type is re-read after FUN_001792C0(1): the reference emits
+ *   - shader->base.type is re-read after rasterizer_water_set_visibility_for_window(1): the reference emits
  *     CMP word ptr [EDI+0x24],0x7 twice around that call.
  *   - The statistics counters are pre-read into locals before their stores,
  *     and 0x5a549c is loaded only after count_static_vertices returns.
@@ -2837,7 +2837,7 @@ typedef struct {
  * Assert at line 0xa93 fires when shader->base.type == 3; the string reads
  * "shader->base.type!=_shader_type_environment", so type 3 is rejected here.
  */
-void FUN_00165420(void *shader, int16_t a2, int a3, int vertices_per_primitive,
+void __rasterizer_environment_transparent_geometry_submit(void *shader, int16_t a2, int a3, int vertices_per_primitive,
                   int a5, int triangle_count, int a7, float *centroid,
                   uint32_t *colors, int a10, int geometry_data,
                   int geometry_flags)
@@ -2919,7 +2919,7 @@ void FUN_00165420(void *shader, int16_t a2, int a3, int vertices_per_primitive,
     group = (char *)0x47dbf8;
     *(uint32_t *)0x47dc88 = 0xffffffff;
   } else {
-    group = (char *)rasterizer_transparent_geometry_group_new();
+    group = (char *)rasterizer_transparent_geometry_new_group();
     if (group == NULL) {
       if (*(uint8_t *)0x47dcac != 0) {
         return;
@@ -2973,13 +2973,13 @@ void FUN_00165420(void *shader, int16_t a2, int a3, int vertices_per_primitive,
   *(uint32_t *)(group + 0x60) = 0;
   *(int16_t *)(group + 0x64) = 0;
 
-  *(int *)(group + 0x68) = rasterizer_memory_pool_copy(geometry_data, 0x74);
+  *(int *)(group + 0x68) = rasterizer_memory_alloc_const(geometry_data, 0x74);
   *(uint32_t *)(group + 0x6c) = 0;
 
   if (*(int16_t *)((char *)shader + 0x24) == 7) {
-    FUN_001792C0(1);
+    rasterizer_water_set_visibility_for_window(1);
     if (*(int16_t *)((char *)shader + 0x24) == 7) {
-      shader_data = FUN_001906b0(shader, 7);
+      shader_data = shader_get_and_verify_type(shader, 7);
       if ((*(uint8_t *)((char *)shader_data + 0x28) & 8) != 0) {
         if (no_queue != 0) {
           display_assert(
@@ -2990,7 +2990,7 @@ void FUN_00165420(void *shader, int16_t a2, int a3, int vertices_per_primitive,
         }
         *(uint32_t *)group = *(uint32_t *)group | 2;
         rasterizer_transparent_geometry_group_draw(group, 0);
-        FUN_001845b0(group, 1);
+        rasterizer_transparent_geometry_set_group_pending_status(group, 1);
         *(uint32_t *)group = *(uint32_t *)group & 0xfffffffd;
         goto drawn;
       }
@@ -3012,7 +3012,7 @@ drawn:
     if (max_triangles < triangle_count) {
       *(int *)0x5a54a4 = triangle_count;
     }
-    static_vertices = rasterizer_frame_statistics_count_static_vertices(
+    static_vertices = rasterizer_frame_statistics_count_dynamic_vertices(
       vertices_per_primitive, a5, triangle_count);
     *(int *)0x5a549c = *(int *)0x5a549c + static_vertices;
   }

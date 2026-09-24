@@ -1554,8 +1554,8 @@ epilogue:
  * Debug-visualization for a biped's camera/aim geometry, gated by two debug
  * globals. When 0x5054fe is set, draws the camera height/offset: if the height
  * offset is at/below the small threshold (0x2533c0), renders a point
- * (FUN_00189540); otherwise scales the world-up vector by the height offset and
- * renders a vector arrow (FUN_00189860). When 0x5054fd is set, fetches the
+ * (render_debug_sphere); otherwise scales the world-up vector by the height offset and
+ * renders a vector arrow (render_debug_pill). When 0x5054fd is set, fetches the
  * autoaim pill (biped_get_autoaim_pill) and renders the axis as an arrow if its
  * squared length exceeds the threshold, else a point. Render context pointers
  * come from [0x2ee6c4] (camera) and [0x2ee6d0] (autoaim).
@@ -1580,9 +1580,9 @@ void biped_render_debug(int unit_handle)
       scaled[0] = height_offset * global_up_vector_ptr[0];
       scaled[1] = height_offset * global_up_vector_ptr[1];
       scaled[2] = height_offset * global_up_vector_ptr[2];
-      FUN_00189860(1, &out_pos, scaled, camera_height, *(void **)0x2ee6c4);
+      render_debug_pill(1, &out_pos, scaled, camera_height, *(void **)0x2ee6c4);
     } else {
-      FUN_00189540(1, &out_pos, camera_height, *(void **)0x2ee6c4);
+      render_debug_sphere(1, &out_pos, camera_height, *(void **)0x2ee6c4);
     }
   }
   if (*(char *)0x5054fd != '\0') {
@@ -1590,10 +1590,10 @@ void biped_render_debug(int unit_handle)
                            (int *)&camera_height);
     if (scaled[2] * scaled[2] + scaled[1] * scaled[1] + scaled[0] * scaled[0] >
         *(float *)0x2533c0) {
-      FUN_00189860(1, &out_pos, scaled, camera_height, *(void **)0x2ee6d0);
+      render_debug_pill(1, &out_pos, scaled, camera_height, *(void **)0x2ee6d0);
       return;
     }
-    FUN_00189540(1, &out_pos, camera_height, *(void **)0x2ee6d0);
+    render_debug_sphere(1, &out_pos, camera_height, *(void **)0x2ee6d0);
   }
 }
 

@@ -1,6 +1,6 @@
 /* Local forward declarations for functions not yet in decl.h */
 /* global_collision_bsp_get = global_collision_bsp_get, declared in decl.h */
-/* FUN_00106200: declared in generated decl.h via kb.json */
+/* convex_hull2d_test_point: declared in generated decl.h via kb.json */
 
 /* floor/ceil: the original calls MSVC CRT floor/ceil (0x1dbc26/0x1d9c2b).
  * We provide simple implementations since we don't link the CRT math lib. */
@@ -353,8 +353,8 @@ char breakable_surface_extant(short breakable_surface_index)
  * display_assert at 0x145b05. Confirmed: DAT_00324c32 early-out flag check at
  * 0x145b14. Confirmed: BFS queue in local_1244[1024], traversal count local_b4.
  * Confirmed: tag_block_get_element calls for planes, edges, vertices, effects.
- * Confirmed: FUN_00061df0 projects 3D to 2D, project_point2d unprojects 2D to
- * 3D. Confirmed: FUN_00106200 point-in-polygon test with 0 radius. Confirmed:
+ * Confirmed: project_point3d projects 3D to 2D, project_point2d unprojects 2D to
+ * 3D. Confirmed: convex_hull2d_test_point point-in-polygon test with 0 radius. Confirmed:
  * particle_new spawns a particle. Confirmed: unattached_impulse_sound_new
  * triggers sound at end if material has sound tag. */
 void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
@@ -541,7 +541,7 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
         if (current_surface == param_3) {
           /* For the initial surface, project the damage origin to find
            * our local reference point */
-          FUN_00061df0(param_2 + 10, (uint32_t)projection, sign,
+          project_point3d(param_2 + 10, (uint32_t)projection, sign,
                        projected_point);
           project_point2d((float *)projected_point, plane, (short)projection,
                           sign, origin);
@@ -629,7 +629,7 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
         vertices[vi * 3 + 2] = vert_ptr[2];
 
         /* Project vertex to 2D */
-        FUN_00061df0(vert_ptr, (uint32_t)projection, sign,
+        project_point3d(vert_ptr, (uint32_t)projection, sign,
                      projected_verts + vi * 8);
       }
 
@@ -813,10 +813,10 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
 
                   /* Project adjusted position to 2D and test if inside polygon
                    */
-                  FUN_00061df0(adjusted_pos, (uint32_t)projection, sign,
+                  project_point3d(adjusted_pos, (uint32_t)projection, sign,
                                projected_point);
 
-                  if (!FUN_00106200(edge_count, projected_verts,
+                  if (!convex_hull2d_test_point(edge_count, projected_verts,
                                     (float *)projected_point, 0.0f))
                     goto next_cell;
 
@@ -1008,7 +1008,7 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
                     }
 
                     /* Color RGB from effect color bounds */
-                    FUN_0007c270((float *)(spawn_params + 0x50),
+                    rgb_colors_interpolate((float *)(spawn_params + 0x50),
                                  *(uint32_t *)(effect_entry + 0x10) & 3,
                                  (float *)(effect_entry + 0x48),
                                  (float *)(effect_entry + 0x58),

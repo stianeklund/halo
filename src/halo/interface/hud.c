@@ -490,7 +490,7 @@ void temporary_hud_draw_reticle(float param_1, const void *param_2)
   vertex = vertices[0];
   remaining = 16;
   do {
-    FUN_0017eb10(vertex, vertices[index % 16], (int)(long)param_2);
+    rasterizer_debug_line(vertex, vertices[index % 16], (int)(long)param_2);
     index++;
     vertex += 3;
     remaining--;
@@ -565,7 +565,7 @@ void hud_draw_friendly_indicator(int player_handle)
   }
 
   sprite_handle = interface_get_tag_index(9);
-  sprite_handle = (int)FUN_00077040(sprite_handle, 0, 0);
+  sprite_handle = (int)bitmap_group_get_bitmap_from_sequence(sprite_handle, 0, 0);
   if (xbox_texture_cache_get_hardware_format((void *)sprite_handle, 0, 1) ==
       NULL) {
     return;
@@ -830,7 +830,7 @@ void temporary_hud_draw(void)
 
   draw_string_set_style_justify_flags(-1, 0, 0);
   draw_string_set_color(*(const void **)0x2ee6c4);
-  rasterizer_text_draw(screen_pos, 0, 0, 0, (char *)0x5ab100);
+  rasterizer_draw_string(screen_pos, 0, 0, 0, (char *)0x5ab100);
 }
 
 /* Top-level per-frame HUD update for the local player: skips while the engine
@@ -846,7 +846,7 @@ void hud_draw_screen(void)
 
   player_index = local_player_get_player_index((int16_t) * (short *)0x506548);
   perspective = director_get_perspective((int16_t) * (short *)0x506548);
-  FUN_0015f1f0();
+  __rasterizer_hud_begin();
   if (player_index == -1) {
     goto done;
   }
@@ -889,7 +889,7 @@ after_cinematic:
   }
   hud_messaging_update((int)(int16_t) * (short *)0x506548);
 done:
-  FUN_0015f200();
+  __rasterizer_hud_end();
   if (*(char *)0x5aa690 != '\0') {
     temporary_hud_draw();
   }
@@ -1059,7 +1059,7 @@ void hud_retrieve_bitmap_and_bounding_rect(int bitmap_tag, short sequence_index,
       sprite_count = *(int *)((char *)seq_elem + 0x34);
       if (sprite_count == 0) {
         *out_bitmap =
-          (int)FUN_00077040(bitmap_tag, sequence_index, (short)frame_index);
+          (int)bitmap_group_get_bitmap_from_sequence(bitmap_tag, sequence_index, (short)frame_index);
       } else {
         sprite_elem =
           tag_block_get_element((char *)seq_elem + 0x34,
@@ -1645,7 +1645,7 @@ check_guard:
  * supplies the two per-corner texture fields and `color` the packed color.  A
  * 0x8c-byte render descriptor is initialised (bitmap_handle, param_4, four 1.0
  * fields, mode 7, single-player present flag) and passed with the vertices to
- * rasterizer_sprites_render.  Stack-guard instrumented (hud_draw.c). */
+ * rasterizer_psuedo_dynamic_screen_quad_draw.  Stack-guard instrumented (hud_draw.c). */
 void hud_draw_bitmap_internal(float *scale, short *screen_pos, int bitmap_handle,
                   int param_4, int *uv_coords, float *corner_offsets,
                   float angle, int color)
@@ -1712,7 +1712,7 @@ void hud_draw_bitmap_internal(float *scale, short *screen_pos, int bitmap_handle
   render_desc[0x8a] = bitmap_present;
   *(short *)(render_desc + 0x88) = 7;
   *(int *)(render_desc + 0xc) = param_4;
-  rasterizer_sprites_render(render_desc, vertex_buf);
+  rasterizer_psuedo_dynamic_screen_quad_draw(render_desc, vertex_buf);
 
   corrupt_index = 0x7f;
   do {
@@ -1800,7 +1800,7 @@ void hud_draw_multitexture_overlay(int element, float *scale, int local_player_i
   float dest_value; /* EBP-0x4 */
   float clamp_value; /* EBP-0x10 */
   float out_scalar; /* EBP+0x18 (reused angle slot) */
-  float rgb_out[3]; /* FUN_0007c270 output, color_block+0x1c */
+  float rgb_out[3]; /* rgb_colors_interpolate output, color_block+0x1c */
   int rgb0;
   int rgb1;
   int rgb2;
@@ -1889,15 +1889,15 @@ void hud_draw_multitexture_overlay(int element, float *scale, int local_player_i
   /* Resolve the three icon bitmap handles directly into the render
    * descriptor's map[] slots (render_desc+0x0C/0x10/0x14).  The original
    * aliases the icon-handle array with the descriptor (local_108 ==
-   * render_desc+0x0C); the rasterizer (FUN_0015f8e0) asserts parameters->map[0]
+   * render_desc+0x0C); the rasterizer (__rasterizer_psuedo_dynamic_screen_quad_draw) asserts parameters->map[0]
    * != 0 unconditionally, so these MUST be written into render_desc, not a
    * separate local array. */
   *(int *)(render_desc + 0xc) =
-    (int)FUN_00077040(*(int *)(element + 0x70), 0, 0); /* map[0] */
+    (int)bitmap_group_get_bitmap_from_sequence(*(int *)(element + 0x70), 0, 0); /* map[0] */
   *(int *)(render_desc + 0x10) =
-    (int)FUN_00077040(*(int *)(element + 0x80), 0, 0); /* map[1] */
+    (int)bitmap_group_get_bitmap_from_sequence(*(int *)(element + 0x80), 0, 0); /* map[1] */
   *(int *)(render_desc + 0x14) =
-    (int)FUN_00077040(*(int *)(element + 0x90), 0, 0); /* map[2] */
+    (int)bitmap_group_get_bitmap_from_sequence(*(int *)(element + 0x90), 0, 0); /* map[2] */
 
   /* Per-icon scale and texture-normalization reciprocals.
    * element+0x34+8k = scale.x, element+0x38+8k = scale.y -> normalize slots
@@ -1945,7 +1945,7 @@ void hud_draw_multitexture_overlay(int element, float *scale, int local_player_i
      * render_desc+0x84 (k=0, fill direction) / +0x86 (k=1, bar type) with a
      * 1<->2 remap and no write for values >4; the third icon (k=2) instead
      * stores element+0x4 at +0x88 (vertex format, read by the rasterizer's
-     * FUN_001580b0).  Missing these left the rasterizer in mode 0 -> solid
+     * rasterizer_set_framebuffer_blend_function).  Missing these left the rasterizer in mode 0 -> solid
      * white bars. */
     if (ki < 2) {
       switch ((int)*(short *)(element + 0x2e + 2 * ki)) {
@@ -2041,7 +2041,7 @@ void hud_draw_multitexture_overlay(int element, float *scale, int local_player_i
         scalars_interpolate(*(float *)(widget + 0x50),
                             *(float *)(widget + 0x54), clamp_value,
                             &out_scalar);
-        FUN_0007c270(rgb_out, 0, (float *)(widget + 0x98),
+        rgb_colors_interpolate(rgb_out, 0, (float *)(widget + 0x98),
                      (float *)(widget + 0xa4), clamp_value);
         rgb0 = *(int *)&rgb_out[0];
         rgb1 = *(int *)&rgb_out[1];
@@ -2148,7 +2148,7 @@ void hud_draw_multitexture_overlay(int element, float *scale, int local_player_i
     } while (widget_index < *(int *)(element + 0x154));
   }
 
-  rasterizer_sprites_render(render_desc, vertex_buf);
+  rasterizer_psuedo_dynamic_screen_quad_draw(render_desc, vertex_buf);
 
   corrupt_index = 0x7f;
   do {

@@ -157,7 +157,7 @@ void ai_profile_show_paths(void)
  * multi-unit loop the next-link is read from the pointer returned by
  * object_get_and_verify_type (EDI), NOT from the actor record — Ghidra reuses
  * one variable for both, which is register-aliasing noise. Confirmed: `ADD
- * ESP,0x20` after FUN_00189270 in that loop cleans 4 + 2 + 2 stack args
+ * ESP,0x20` after render_debug_line in that loop cleans 4 + 2 + 2 stack args
  * (0x189270 + unit_get_head_position + object_get_and_verify_type).
  */
 void ai_profile_render_spray(void)
@@ -207,11 +207,11 @@ void ai_profile_render_spray(void)
             object_record =
               (char *)object_get_and_verify_type(object_handle, 3);
             unit_get_head_position(object_handle, head_position);
-            FUN_00189270(1, point, head_position, color);
+            render_debug_line(1, point, head_position, color);
             object_handle = *(int *)(object_record + 0x1ac);
           }
         } else {
-          FUN_00189270(1, point, (float *)(actor_record + 0x120), color);
+          render_debug_line(1, point, (float *)(actor_record + 0x120), color);
         }
       }
     }

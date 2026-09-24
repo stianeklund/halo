@@ -1,13 +1,13 @@
 /*
- * FUN_00168230 @ 0x168230 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_CreateTexture @ 0x168230 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::CreateTexture: format/pool/ppTexture arrive in
  * EDX/ECX/EAX, the device argument (s1) is ignored, width/height/levels/
  * usage (s2-s5) are on the stack. EAX passes through from the callee (no
  * explicit return). No direct call sites; RET 0x14. Duplicate template
- * instantiation of FUN_00155380 (rasterizer_xbox.c) in this object.
+ * instantiation of IDirect3DDevice8_CreateTexture_0 (rasterizer_xbox.c) in this object.
  */
 /* 0x168230 */
-void FUN_00168230(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
+void IDirect3DDevice8_CreateTexture(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
                   int s5)
 {
   (void)s1;
@@ -15,15 +15,15 @@ void FUN_00168230(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
 }
 
 /*
- * FUN_00168250 @ 0x168250 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_CreateVolumeTexture @ 0x168250 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::CreateVolumeTexture: format/pool/ppVolumeTexture in
  * EDX/ECX/EAX, device (s1) ignored, width/height/depth/levels/usage
  * (s2-s6) on the stack. EAX passes through from the callee (no explicit
  * return). No direct call sites; RET 0x18. Duplicate template instantiation
- * of FUN_001553a0 (rasterizer_xbox.c) in this object.
+ * of IDirect3DDevice8_CreateVolumeTexture_0 (rasterizer_xbox.c) in this object.
  */
 /* 0x168250 */
-void FUN_00168250(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
+void IDirect3DDevice8_CreateVolumeTexture(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
                   int s5, int s6)
 {
   (void)s1;
@@ -31,65 +31,65 @@ void FUN_00168250(int r1, int r2, int r3, int s1, int s2, int s3, int s4,
 }
 
 /*
- * FUN_00168280 @ 0x168280 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_CreateCubeTexture @ 0x168280 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::CreateCubeTexture: format/pool/ppCubeTexture arrive in
  * EDX/ECX/EAX, device (s1) ignored, edge_length/levels/usage (s2-s4) on
  * the stack. EAX passes through from the callee. No direct call sites;
- * RET 0x10. Duplicate template instantiation of FUN_001553d0
+ * RET 0x10. Duplicate template instantiation of IDirect3DDevice8_CreateCubeTexture_0
  * (rasterizer_xbox.c) in this object.
  */
 /* 0x168280 */
-void FUN_00168280(int r1, int r2, int r3, int s1, int s2, int s3, int s4)
+void IDirect3DDevice8_CreateCubeTexture(int r1, int r2, int r3, int s1, int s2, int s3, int s4)
 {
   (void)s1;
   D3DDevice_CreateCubeTexture(s2, s3, s4, r3, r2, (void *)r1);
 }
 
 /*
- * FUN_001682c0 @ 0x1682c0 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DTexture8_LockRect_0 @ 0x1682c0 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DTexture8::LockRect: flags/pRect/pLockedRect arrive in
  * EAX/ECX/EDX, texture (s1) and level (s2) on the stack (the texture IS
  * forwarded — no ignored device argument here). Returns S_OK. No direct
- * call sites; RET 0x8. Duplicate template instantiation of FUN_00155b60
+ * call sites; RET 0x8. Duplicate template instantiation of IDirect3DTexture8_LockRect_1
  * (rasterizer_xbox.c) in this object.
  */
 /* 0x1682c0 */
-int FUN_001682c0(int r1, int r2, int r3, int s1, int s2)
+int IDirect3DTexture8_LockRect_0(int r1, int r2, int r3, int s1, int s2)
 {
   D3DTexture_LockRect((void *)s1, s2, (void *)r3, (void *)r2, r1);
   return 0;
 }
 
 /*
- * FUN_00168300 @ 0x168300 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DVolumeTexture8_LockBox @ 0x168300 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DVolumeTexture8::LockBox: flags/pBox/pLockedBox arrive in
  * EAX/ECX/EDX, volume texture (s1) and level (s2) on the stack. Returns
  * S_OK. No direct call sites; RET 0x8. Duplicate template instantiation of
- * FUN_00155cc0 (rasterizer_xbox.c) in this object.
+ * IDirect3DVolumeTexture8_LockBox_0 (rasterizer_xbox.c) in this object.
  */
 /* 0x168300 */
-int FUN_00168300(int r1, int r2, int r3, int s1, int s2)
+int IDirect3DVolumeTexture8_LockBox(int r1, int r2, int r3, int s1, int s2)
 {
   D3DVolumeTexture_LockBox((void *)s1, s2, (void *)r3, (void *)r2, r1);
   return 0;
 }
 
 /*
- * FUN_00168340 @ 0x168340 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DCubeTexture8_LockRect @ 0x168340 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DCubeTexture8::LockRect: cube texture, face, and level are stack
  * arguments; pLockedRect, pRect, and flags arrive in EDX, ECX, and EAX.
  * Returns S_OK. No direct call sites; RET 0xc. Duplicate template
- * instantiation of FUN_00156070 (rasterizer_xbox.c) in this object.
+ * instantiation of IDirect3DCubeTexture8_LockRect_0 (rasterizer_xbox.c) in this object.
  */
 /* 0x168340 */
-int FUN_00168340(int r1, int r2, int r3, int s1, int s2, int s3)
+int IDirect3DCubeTexture8_LockRect(int r1, int r2, int r3, int s1, int s2, int s3)
 {
   D3DCubeTexture_LockRect((void *)s1, s2, s3, (void *)r3, (void *)r2, r1);
   return 0;
 }
 
 /* 0x168370 */
-char FUN_00168370(void *bitmap)
+char rasterizer_bitmap_new(void *bitmap)
 {
   char *bm;
   char success;
@@ -113,7 +113,7 @@ char FUN_00168370(void *bitmap)
       0x34, true);
     system_exit(-1);
   }
-  mipmap_count = FUN_00183120(bitmap);
+  mipmap_count = rasterizer_xbox_bitmap_get_max_mipmap_count(bitmap);
   *(int16_t *)(bm + 0x14) = (int16_t)mipmap_count;
   if (*(void **)0x476ab0 != NULL) {
     format = *(int16_t *)(bm + 0xc);
@@ -186,7 +186,7 @@ char FUN_00168370(void *bitmap)
  * bitmap arrives in ESI (TEST ESI,ESI at entry, no prior write). Mip levels
  * 0..[+0x14] are locked with D3DLOCK_NOOVERWRITE (0x20); bitmaps with
  * flag bit 1 at +0xe set are copied raw with csmemcpy, the others are
- * swizzled by bytes-per-pixel (bitmap_format_bits_per_pixel(+0xc) / 8).
+ * swizzled by bytes-per-pixel (bitmap_format_get_bits_per_pixel(+0xc) / 8).
  *
  * `success` mirrors the D3D result-check macro: BL starts at 1 (MOV BL,0x1)
  * and the post-LockRect TEST BL,BL branch to rasterizer_error is
@@ -229,13 +229,13 @@ void rasterizer_bitmap_2d_changed(void *bitmap /* @<esi> */)
       if (success && (void *)locked_rect[1] != NULL) {
         src = bitmap_mipmap_address(bitmap, mipmap_index);
         dst = (void *)locked_rect[1];
-        width = bitmap_mipmap_width(bitmap, mipmap_index);
+        width = bitmap_mipmap_get_width(bitmap, mipmap_index);
         height = bitmap_mipmap_get_height(bitmap, mipmap_index);
         if ((*(unsigned char *)(bm + 0xe) & 2) != 0) {
           csmemcpy(dst, src,
                    bitmap_mipmap_get_pixel_data_size(bitmap, mipmap_index));
         } else {
-          switch (bitmap_format_bits_per_pixel(*(unsigned short *)(bm + 0xc)) /
+          switch (bitmap_format_get_bits_per_pixel(*(unsigned short *)(bm + 0xc)) /
                   8) {
           case 1:
             rasterizer_xbox_bitmap_swizzle2d_byte(dst, src, width, height);
@@ -272,7 +272,7 @@ void rasterizer_bitmap_2d_changed(void *bitmap /* @<esi> */)
  * rasterizer_bitmap_cm_changed @ 0x1688d0 — re-upload every mip level of
  * all six faces of a cube-map bitmap into its D3D cube texture
  * (bitmap->hardware_format at +0x28). The bitmap arrives in ESI (TEST
- * ESI,ESI at 0x1688d6, no prior write); the caller FUN_00168b10 holds it
+ * ESI,ESI at 0x1688d6, no prior write); the caller rasterizer_bitmap_changed holds it
  * in ESI. Faces 0..5 map through the int16 table at 0x2a2470 before
  * D3DCubeTexture_LockRect(..., D3DLOCK_NOOVERWRITE=0x20). Flag bit 1 at
  * +0xe copies raw with csmemcpy(pixel_data_size / 6); otherwise swizzled
@@ -321,7 +321,7 @@ void rasterizer_bitmap_cm_changed(void *bitmap /* @<esi> */)
         if (success && (void *)locked_rect[1] != NULL) {
           src = bitmap_cube_map_address(bitmap, 0, 0, face_index, mipmap_index);
           dst = (void *)locked_rect[1];
-          width = bitmap_mipmap_width(bitmap, mipmap_index);
+          width = bitmap_mipmap_get_width(bitmap, mipmap_index);
           height = bitmap_mipmap_get_height(bitmap, mipmap_index);
           if ((*(unsigned char *)(bm + 0xe) & 2) != 0) {
             csmemcpy(dst, src,
@@ -329,7 +329,7 @@ void rasterizer_bitmap_cm_changed(void *bitmap /* @<esi> */)
                        6);
           } else {
             switch (
-              bitmap_format_bits_per_pixel(*(unsigned short *)(bm + 0xc)) / 8) {
+              bitmap_format_get_bits_per_pixel(*(unsigned short *)(bm + 0xc)) / 8) {
             case 1:
               rasterizer_xbox_bitmap_swizzle2d_byte(dst, src, width, height);
               break;
@@ -363,7 +363,7 @@ void rasterizer_bitmap_cm_changed(void *bitmap /* @<esi> */)
 }
 
 /*
- * FUN_00168ae0 @ 0x168ae0 — release a bitmap_data's D3D hardware texture
+ * rasterizer_bitmap_delete @ 0x168ae0 — release a bitmap_data's D3D hardware texture
  * resource: called from bitmap_delete (bitmaps.c) via a raw function-pointer
  * cast at 0x168ae0, and cross-referenced
  * unconditionally from editor_editing_sandbox @ 0x7c8fc.
@@ -385,7 +385,7 @@ void rasterizer_bitmap_cm_changed(void *bitmap /* @<esi> */)
  * untouched there.
  */
 /* 0x168ae0 */
-void FUN_00168ae0(void *bitmap)
+void rasterizer_bitmap_delete(void *bitmap)
 {
   texture_cache_bitmap_delete(bitmap);
 
@@ -396,7 +396,7 @@ void FUN_00168ae0(void *bitmap)
 }
 
 /*
- * FUN_00168b10 @ 0x168b10 — bitmap_hardware_format_changed dispatcher: NULL
+ * rasterizer_bitmap_changed @ 0x168b10 — bitmap_hardware_format_changed dispatcher: NULL
  * asserts the bitmap, sets the 0x325652 render-phase marker to 1, switches
  * on the bitmap type word at +0xa (0=2D, 1=3D, 2=cubemap, else assert), and
  * clears the marker back to 0 on the way out. Every case forwards the
@@ -410,7 +410,7 @@ void FUN_00168ae0(void *bitmap)
  * (CALL 0x7d000 at 0x1685af), which halts on "unsupported bitmap type".
  */
 /* 0x168b10 */
-void FUN_00168b10(void *bitmap)
+void rasterizer_bitmap_changed(void *bitmap)
 {
   uint16_t *new_var;
   char *bm;
@@ -449,36 +449,36 @@ void FUN_00168b10(void *bitmap)
 }
 
 /*
- * FUN_00168bc0 @ 0x168bc0 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_CreateVertexBuffer_0 @ 0x168bc0 — dead D3D8 inline-wrapper instantiation of
  * D3DDevice_CreateVertexBuffer: fvf/pool/ppVertexBuffer arrive in
  * EDX/ECX/EAX, the device argument (s1) is ignored, and length/usage
  * (s2/s3) are on the stack. The callee HRESULT passes through in EAX;
  * no direct call sites; RET 0xC. Duplicate template instantiation of
- * FUN_0015c2b0 (rasterizer_xbox_decals.c).
+ * IDirect3DDevice8_CreateVertexBuffer_2 (rasterizer_xbox_decals.c).
  */
 /* 0x168bc0 */
-int FUN_00168bc0(int r1, int r2, int r3, int s1, int s2, int s3)
+int IDirect3DDevice8_CreateVertexBuffer_0(int r1, int r2, int r3, int s1, int s2, int s3)
 {
   (void)s1;
   return D3DDevice_CreateVertexBuffer(s2, s3, r3, r2, (void **)r1);
 }
 
 /* 0x168be0 */
-int FUN_00168be0(int r1, int r2, int r3, int s1, int s2, int s3)
+int IDirect3DDevice8_CreateIndexBuffer(int r1, int r2, int r3, int s1, int s2, int s3)
 {
   (void)s1;
   return D3DDevice_CreateIndexBuffer(s2, s3, r3, r2, (void **)r1);
 }
 
 /* 0x168c40 */
-void FUN_00168c40(int r1, int r2, int r3, int s1, int s2)
+void IDirect3DVertexBuffer8_Lock_0(int r1, int r2, int r3, int s1, int s2)
 {
   D3DVertexBuffer_Lock((void *)s1, (uint32_t)s2, (uint32_t)r3, (void **)r2,
                        (uint32_t)r1);
 }
 
 /* 0x168c70 */
-void FUN_00168c70(int base, int *result, int offset, int unused_1, int unused_2)
+void D3DIndexBuffer_Lock(int base, int *result, int offset, int unused_1, int unused_2)
 {
   (void)unused_1;
   (void)unused_2;
@@ -486,8 +486,8 @@ void FUN_00168c70(int base, int *result, int offset, int unused_1, int unused_2)
 }
 
 /*
- * FUN_00168ca0 @ 0x168ca0 — dead D3D8 inline-wrapper instantiation, same
- * body as FUN_00168c70 above plus an explicit success return:
+ * IDirect3DIndexBuffer8_Lock @ 0x168ca0 — dead D3D8 inline-wrapper instantiation, same
+ * body as D3DIndexBuffer_Lock above plus an explicit success return:
  *   push ebp; mov ebp,esp; mov ecx,[eax+4]; add ecx,[ebp+8];
  *   mov [edx],ecx; xor eax,eax; pop ebp; ret 0xc
  * EAX is the resource base (its +4 dword is read), EDX is the out-pointer.
@@ -499,7 +499,7 @@ void FUN_00168c70(int base, int *result, int offset, int unused_1, int unused_2)
  * xrefs_to empty: no call sites in the binary.
  */
 /* 0x168ca0 */
-int FUN_00168ca0(int base, int *result, int offset, int unused_1, int unused_2)
+int IDirect3DIndexBuffer8_Lock(int base, int *result, int offset, int unused_1, int unused_2)
 {
   (void)unused_1;
   (void)unused_2;

@@ -338,7 +338,7 @@ void bink_playback_render_frame(void)
     i++;
   } while (sVar9 < 4);
 
-  rasterizer_sprites_render((void *)0x4ead98, vertices);
+  rasterizer_psuedo_dynamic_screen_quad_draw((void *)0x4ead98, vertices);
 
   if (*(uint8_t *)0x4ead54 != 0) {
     /* Debug overlay: gather Bink timing stats and draw on screen. */
@@ -394,7 +394,7 @@ void bink_playback_render_frame(void)
     interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
     draw_string_set_color(*(const void **)0x2ee6d4);
     draw_string_set_tab_stops(&frame_info[0], 1);
-    rasterizer_text_draw(screen_pos, NULL, (void *)&frame_info[8], -4,
+    rasterizer_draw_string(screen_pos, NULL, (void *)&frame_info[8], -4,
                          text_buf);
 
     /* Check if enough frames have passed to update stats. */
@@ -422,7 +422,7 @@ void bink_playback_render_frame(void)
       crt_sprintf(text_buf, "SkippedFrames=|t%d (%d)|nSkippedBlits=|t%d|n",
                   skipped_frames, frame_count, skipped_blits);
       draw_string_set_color(*(const void **)0x2ee6d0);
-      rasterizer_text_draw(screen_pos, NULL, (void *)&frame_info[8], -4,
+      rasterizer_draw_string(screen_pos, NULL, (void *)&frame_info[8], -4,
                            text_buf);
     }
   }
@@ -844,7 +844,7 @@ sound_ok:
     *(int16_t *)0x4ead1e = 0x10;
 
     /* Calculate bitmap data size from bits-per-pixel. */
-    bpp = bitmap_format_bits_per_pixel(10);
+    bpp = bitmap_format_get_bits_per_pixel(10);
     bits_total =
       (int)bpp * (int)*(int16_t *)0x4ead16 * (int)*(int16_t *)0x4ead14;
     *(int *)0x4ead2c = (int)(bits_total + (bits_total >> 31 & 7)) >> 3;

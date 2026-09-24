@@ -58,7 +58,7 @@ const char *tiff_export(file_ref_t *info, __int16 *bitmap)
 
   tiff = FUN_0006d8e0(file_reference_get_name(info, 0xd, path), "w");
   if (tiff != 0) {
-    tiff_format = bitmap_format_bits_per_pixel(tiff_format);
+    tiff_format = bitmap_format_get_bits_per_pixel(tiff_format);
     row_size = (unsigned int)(short)((int)tiff_format * (int)bitmap[2] / 8);
     row_buffer = (uint8_t *)debug_malloc(
       row_size, 0, "c:\\halo\\SOURCE\\bitmaps\\tiff_file.c", 0x6b);

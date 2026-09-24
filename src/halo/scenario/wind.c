@@ -58,7 +58,7 @@ typedef char wind_record_size_check[(sizeof(wind_record) == 0x20) ? 1 : -1];
  * Register ABI: out in EAX, position in EDX; scale and magnitude on the
  * stack (caller-cleaned). Constants: 1/3=0x259ec0, 8.0f=0x253f78,
  * 2^23=0x2b229c. Wind tick 0x5064c8 is re-read every iteration. Sole caller
- * FUN_00190240 (also wind.c). */
+ * scenario_get_current_from_weather_palette (also wind.c). */
 void wind_variance_get(float *out, float *position, float scale, float magnitude)
 {
   float timescale[3];
@@ -207,7 +207,7 @@ void wind_update(void)
  *
  * Sole caller: wind_initialize_for_new_map (0x190500).
  */
-void FUN_00190380(void)
+void wind_variance_initialize(void)
 {
   float *base;
   float *row_ptr;
@@ -290,7 +290,7 @@ void FUN_00190380(void)
  * (!wind_globals.initialized @ 0x5057c0, wind.c:65), then zeroes the whole
  * wind_globals block (0x5057c0, 0xd0c bytes) and sets the initialized byte
  * afterwards -- the store order is load-bearing, since the byte lives inside
- * the memset range. Tail-calls FUN_00190380 to build the derived state.
+ * the memset range. Tail-calls wind_variance_initialize to build the derived state.
  */
 void wind_initialize_for_new_map(void)
 {
@@ -302,5 +302,5 @@ void wind_initialize_for_new_map(void)
   }
   csmemset((void *)0x5057c0, 0, 0xd0c);
   *(char *)0x5057c0 = 1;
-  FUN_00190380();
+  wind_variance_initialize();
 }

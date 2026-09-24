@@ -548,7 +548,7 @@ __declspec(noinline) void sound_pitch_push_sample(int object_handle,
  * to whole dwords).  Then, for each of the four local players that has a
  * player index (local_player_get_player_index != NONE) and whose observer
  * camera has a valid cluster (camera +0x10 != NONE), every cluster of the
- * structure BSP is tested: structure_bsp_cluster_sound_encoding returns a
+ * structure BSP is tested: structure_bsp_get_cluster_encoded_sound_distance returns a
  * packed byte whose low 7 bits scale by 0x256148 into a distance which is
  * compared against the cutoff at 0x2642a0.  Clusters under the cutoff get
  * their bit set, so the bit is the union over all local cameras.
@@ -581,7 +581,7 @@ void FUN_001c7b40(void)
         cluster_index = 0;
         cluster = 0;
         while (cluster < *(int *)((char *)bsp + 0x134)) {
-          encoding = structure_bsp_cluster_sound_encoding(
+          encoding = structure_bsp_get_cluster_encoded_sound_distance(
             bsp, cluster_index, *(int16_t *)((char *)camera + 0x10));
           if ((float)(int)(encoding & 0x7f) * *(float *)0x256148 <
               *(float *)0x2642a0) {
@@ -1805,16 +1805,16 @@ void FUN_001cc4f0(int sound_handle)
     sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
     tag_get(0x736e6421, *(int *)(sound_entry + 8));
     position = (void *)(sound_entry + 0x20);
-    FUN_00189540('\0', position,
+    render_debug_sphere('\0', position,
                  sound_get_default_priority(*(int *)(sound_entry + 8)),
                  *(void **)0x2ee6e0);
-    FUN_00189540('\0', position,
+    render_debug_sphere('\0', position,
                  sound_class_get_min_distance(*(int *)(sound_entry + 8)),
                  *(void **)0x2ee6d0);
     crt_sprintf(text, "%s|n%f %f", tag_get_name(*(int *)(sound_entry + 8)),
                 (double)*(float *)(sound_entry + 0x4c),
                 (double)*(float *)(sound_entry + 0x50));
-    FUN_00189cb0('\0', position, text, (int)*(void **)0x2ee6c4);
+    render_debug_string_at_point('\0', position, text, (int)*(void **)0x2ee6c4);
   }
 }
 
@@ -1898,10 +1898,10 @@ void render_debug_looping_sound(int definition_index, void *entry)
     }
   draw:
     position = (void *)((char *)entry + 0xc);
-    FUN_00189cb0('\0', position, (void *)tag_get_name(definition_index),
+    render_debug_string_at_point('\0', position, (void *)tag_get_name(definition_index),
                  (int)*(void **)0x2ee6c4);
-    FUN_00189540('\0', position, priority, *(void **)0x2ee6dc);
-    FUN_00189540('\0', position, min_distance, *(void **)0x2ee6d8);
+    render_debug_sphere('\0', position, priority, *(void **)0x2ee6dc);
+    render_debug_sphere('\0', position, min_distance, *(void **)0x2ee6d8);
   }
 }
 

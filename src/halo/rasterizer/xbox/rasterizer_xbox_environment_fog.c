@@ -16,11 +16,11 @@
 
 #define _error_silent 2
 
-/* rasterizer_profile_begin/_end sections (FUN_0016f910 / FUN_0016fa40). */
+/* rasterizer_profile_begin/_end sections (rasterizer_profile_begin / rasterizer_profile_end). */
 #define _rasterizer_profile_environment_fog 0x11
 #define _rasterizer_profile_environment_fog_screen 0x12
 
-/* FUN_00178b40 vertex-shader indices. */
+/* rasterizer_set_vertex_shader_permutation vertex-shader indices. */
 #define _rasterizer_vertex_shader_environment_fog 6
 #define _rasterizer_vertex_shader_environment_fog_screen 8
 #define _rasterizer_vertex_shader_screen_effect 0x26
@@ -383,7 +383,7 @@ static const char kFogFile[] =
  * the first being the never-read device pointer; Color arrives in EDX and
  * Stencil in EAX (both pushed without a prior write). Push order into
  * D3DDevice_Clear: EAX, [ebp+0x18], EDX, [ebp+0x14], [ebp+0x10], [ebp+0xc]. */
-int FUN_00165980(void *device, uint32_t count, void *rects, uint32_t flags,
+int IDirect3DDevice8_Clear(void *device, uint32_t count, void *rects, uint32_t flags,
                  uint32_t color, float z, uint32_t stencil)
 {
   (void)device;
@@ -392,7 +392,7 @@ int FUN_00165980(void *device, uint32_t count, void *rects, uint32_t flags,
 }
 
 /* 0x1659a0 rasterizer_environment_fog_screen_initialize */
-bool FUN_001659a0(void)
+bool rasterizer_environment_fog_screen_initialize(void)
 {
   boolean result = 1;
 
@@ -409,18 +409,18 @@ bool FUN_001659a0(void)
 }
 
 /* 0x1659f0 rasterizer_environment_fog_screen_window_begin */
-void FUN_001659f0(void)
+void rasterizer_environment_fog_screen_window_begin(void)
 {
   fog_globals.opaque_model_count = 0;
 }
 
 /* 0x165a00 rasterizer_environment_fog_screen_window_end */
-void FUN_00165a00(void)
+void rasterizer_environment_fog_screen_window_end(void)
 {
 }
 
 /* 0x165a10 rasterizer_environment_fog_screen_dispose */
-void FUN_00165a10(void)
+void rasterizer_environment_fog_screen_dispose(void)
 {
   if (fog_globals.opaque_model_submit_parameters) {
     debug_free(fog_globals.opaque_model_submit_parameters, kFogFile, 0x117);
@@ -429,7 +429,7 @@ void FUN_00165a10(void)
 
 /* 0x165cb0 _rasterizer_environment_fog_draw. The shader permutation index
  * (arg2) is not read. */
-void FUN_00165cb0(void *shader, int arg2, int arg3, int arg4, int arg5,
+void __rasterizer_environment_fog_draw(void *shader, int arg2, int arg3, int arg4, int arg5,
                   void *vertex_buffer)
 {
   (void)arg2;
@@ -442,12 +442,12 @@ void FUN_00165cb0(void *shader, int arg2, int arg3, int arg4, int arg5,
       display_assert("shader", kFogFile, 0x1ae, 1);
       system_exit(-1);
     }
-    FUN_001906b0(shader, _shader_type_environment);
+    shader_get_and_verify_type(shader, _shader_type_environment);
     if (!vertex_buffer) {
       display_assert("vertex_buffer", kFogFile, 0x1b3, 1);
       system_exit(-1);
     }
-    FUN_00178b40(_rasterizer_vertex_shader_environment_fog,
+    rasterizer_set_vertex_shader_permutation(_rasterizer_vertex_shader_environment_fog,
                  (word)((struct vertex_buffer *)vertex_buffer)->type,
                  shader_get_vertex_shader_permutation(shader));
     rasterizer_draw_dynamic_triangles_static_vertices(
@@ -456,19 +456,19 @@ void FUN_00165cb0(void *shader, int arg2, int arg3, int arg4, int arg5,
       stats_environment_fog_dynamic_draw_count++;
       stats_environment_fog_dynamic_triangle_count += arg5;
       stats_environment_fog_dynamic_vertex_count +=
-        rasterizer_frame_statistics_count_static_vertices(arg3, arg4, arg5);
+        rasterizer_frame_statistics_count_dynamic_vertices(arg3, arg4, arg5);
     }
   }
 }
 
 /* 0x165dd0 _rasterizer_environment_fog_end */
-void FUN_00165dd0(void)
+void __rasterizer_environment_fog_end(void)
 {
-  FUN_0016fa40(_rasterizer_profile_environment_fog);
+  rasterizer_profile_end(_rasterizer_profile_environment_fog);
 }
 
 /* 0x165de0 _rasterizer_environment_fog_screen_wind_get_vector */
-void FUN_00165de0(int16_t index, float scale, float *out)
+void __rasterizer_environment_fog_screen_wind_get_vector(int16_t index, float scale, float *out)
 {
   fog_screen_wind *wind = &fog_globals.windows[index].wind;
 
@@ -515,7 +515,7 @@ void rasterizer_environment_fog_screen_model_submit(
       group->model_base_map_scale = model->base_map_scale;
       if (!fog_globals.model_parameters_cached) {
         fog_globals.cached_node_matrices =
-          (const real *)rasterizer_memory_pool_copy(
+          (const real *)rasterizer_memory_alloc_const(
             (int)model->node_matrices, model->node_matrix_count * 0x34);
         fog_globals.cached_node_matrix_count =
           fog_globals.model->node_matrix_count;
@@ -536,7 +536,7 @@ void rasterizer_environment_fog_screen_model_submit(
 }
 
 /* 0x165fc0 rasterizer_environment_fog_screen_model_end */
-void FUN_00165fc0(void)
+void rasterizer_environment_fog_screen_model_end(void)
 {
   fog_globals.model = 0;
 }
@@ -684,7 +684,7 @@ void rasterizer_environment_fog_screen_wind_update(void *screen_data,
 }
 
 /* 0x166400 _rasterizer_environment_fog_begin */
-void FUN_00166400(void)
+void __rasterizer_environment_fog_begin(void)
 {
   real atmospheric_eye_density;
   real planar_eye_density;
@@ -711,7 +711,7 @@ void FUN_00166400(void)
     display_assert("global_d3d_device", kFogFile, 0x125, 1);
     system_exit(-1);
   }
-  FUN_0016f910(_rasterizer_profile_environment_fog);
+  rasterizer_profile_begin(_rasterizer_profile_environment_fog);
   if (debug_drawing_mode == 0 && debug_draw_environment_fog) {
     distance = global_window_parameters.fog_plane.normal[2] *
                  global_window_parameters.camera_position[2] +
@@ -810,10 +810,10 @@ void FUN_00166400(void)
 
 /* 0x166890 _rasterizer_environment_fog_screen_begin.
  * 2276 differs from PAL: the scroll offset is a short, the per-window
- * wind vector goes through the rasterizer.obj wrapper FUN_0017cf00, the
+ * wind vector goes through the rasterizer.obj wrapper rasterizer_environment_fog_screen_wind_get_vector, the
  * error dump reinterprets floats directly (no csmemcpy), and the ALPHAKILL
  * reset plus the failure report sit inside the opaque-model branch. */
-void FUN_00166890(int16_t pass)
+void __rasterizer_environment_fog_screen_begin(int16_t pass)
 {
   fog_screen_window *window;
   fog_screen *screen;
@@ -831,7 +831,7 @@ void FUN_00166890(int16_t pass)
   }
   fog_globals.local_fog_pass = pass;
   if (pass == 0) {
-    FUN_0016f910(_rasterizer_profile_environment_fog_screen);
+    rasterizer_profile_begin(_rasterizer_profile_environment_fog_screen);
   }
   if (!rasterizer_environment_fog_screen_is_active()) {
     return;
@@ -885,7 +885,7 @@ void FUN_00166890(int16_t pass)
     }
 
     rasterizer_environment_fog_screen_wind_update(screen, &window->wind);
-    FUN_0017cf00((word)global_window_parameters.window_index, global_frame_dt,
+    rasterizer_environment_fog_screen_wind_get_vector((word)global_window_parameters.window_index, global_frame_dt,
                  vector);
     wind_matrix.position[0] = vector[0];
     wind_matrix.position[1] = vector[1];
@@ -1113,7 +1113,7 @@ void FUN_00166890(int16_t pass)
         clear_z_buffer =
           ((screen->flags & _fog_screen_no_model_multipass_flag) &&
            fog_globals.opaque_model_count > 0) ||
-          (FUN_001792d0() && debug_draw_water);
+          (rasterizer_water_get_visibility_for_window() && debug_draw_water);
       }
     } else {
       clear_z_buffer = 0;
@@ -1222,7 +1222,7 @@ void FUN_00166890(int16_t pass)
         fog_model_skinning_parameters skinning;
 
         if (shader->type == _shader_type_transparent_chicago &&
-            !((chicago = (fog_shader_transparent_chicago *)FUN_001906b0(
+            !((chicago = (fog_shader_transparent_chicago *)shader_get_and_verify_type(
                  shader, _shader_type_transparent_chicago))
                 ->flags &
               _shader_transparent_chicago_no_fog_flag)) {
@@ -1266,7 +1266,7 @@ void FUN_00166890(int16_t pass)
           D3DDevice_SetTextureStageState(1, D3DTSS_ALPHAKILL,
                                          D3DTALPHAKILL_DISABLE);
         }
-        FUN_00178b40(5, FUN_00184610(group), 0);
+        rasterizer_set_vertex_shader_permutation(5, rasterizer_transparent_geometry_get_primary_vertex_type(group), 0);
         if (group->node_matrices && group->node_matrix_count) {
           skinning.node_matrices = group->node_matrices;
           skinning.node_matrix_count = group->node_matrix_count;
@@ -1276,13 +1276,13 @@ void FUN_00166890(int16_t pass)
         }
         rasterizer_set_model_skinning(&skinning);
         if (success) {
-          FUN_00174510(group, 0);
+          rasterizer_transparent_geometry_group_draw__internal(group, 0);
           if (debug_statistics_mode == _rasterizer_statistics_mode_enabled) {
             stats_environment_fog_screen_static_draw_count++;
             stats_environment_fog_screen_static_triangle_count +=
               group->triangle_count;
             stats_environment_fog_screen_static_vertex_count +=
-              FUN_0017ed90(group->triangle_buffer, group->vertex_buffer);
+              rasterizer_frame_statistics_count_static_vertices(group->triangle_buffer, group->vertex_buffer);
           }
         }
       }
@@ -1298,7 +1298,7 @@ void FUN_00166890(int16_t pass)
 
 /* 0x1677d0 _rasterizer_environment_fog_screen_draw. The shader permutation
  * index (arg2) is not read. */
-void FUN_001677d0(void *shader, int arg2, int arg3, int arg4, int arg5,
+void __rasterizer_environment_fog_screen_draw(void *shader, int arg2, int arg3, int arg4, int arg5,
                   void *arg6)
 {
   (void)arg2;
@@ -1325,7 +1325,7 @@ void FUN_001677d0(void *shader, int arg2, int arg3, int arg4, int arg5,
                        kFogFile, 0x3e5, 1);
         system_exit(-1);
       }
-      FUN_00178b40(_rasterizer_vertex_shader_environment_fog_screen,
+      rasterizer_set_vertex_shader_permutation(_rasterizer_vertex_shader_environment_fog_screen,
                    (word)((struct vertex_buffer *)arg6)->type,
                    shader_get_vertex_shader_permutation(shader));
       rasterizer_draw_dynamic_triangles_static_vertices(
@@ -1334,14 +1334,14 @@ void FUN_001677d0(void *shader, int arg2, int arg3, int arg4, int arg5,
         stats_environment_fog_screen_dynamic_draw_count++;
         stats_environment_fog_screen_dynamic_triangle_count += arg5;
         stats_environment_fog_screen_dynamic_vertex_count +=
-          rasterizer_frame_statistics_count_static_vertices(arg3, arg4, arg5);
+          rasterizer_frame_statistics_count_dynamic_vertices(arg3, arg4, arg5);
       }
     }
   }
 }
 
 /* 0x167920 _rasterizer_environment_fog_screen_end */
-void FUN_00167920(void)
+void __rasterizer_environment_fog_screen_end(void)
 {
   fog_screen *screen;
   fog_screen_window *window;
@@ -1419,7 +1419,7 @@ void FUN_00167920(void)
     D3DDevice_SetRenderState_ZEnable(0);
     D3DDevice_SetRenderState_ZBias(0);
 
-    FUN_00178b40(_rasterizer_vertex_shader_screen_effect,
+    rasterizer_set_vertex_shader_permutation(_rasterizer_vertex_shader_screen_effect,
                  _rasterizer_vertex_type_dynamic_screen, 0);
 
     csmemset(&global_pixel_shader, 0, sizeof(global_pixel_shader));
@@ -1515,12 +1515,12 @@ void FUN_00167920(void)
     }
   }
   if (fog_globals.local_fog_pass != 0) {
-    FUN_0016fa40(_rasterizer_profile_environment_fog_screen);
+    rasterizer_profile_end(_rasterizer_profile_environment_fog_screen);
   }
 }
 
 /* 0x167ee0 rasterizer_environment_fog_screen_model_begin */
-bool FUN_00167ee0(void *param_1)
+bool rasterizer_environment_fog_screen_model_begin(void *param_1)
 {
   fog_model_begin_parameters *parameters =
     (fog_model_begin_parameters *)param_1;

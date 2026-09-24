@@ -1,6 +1,6 @@
 /* rasterizer_xbox_dynavobgeom.c */
 
-/* Multitexture parameter overlay copied by FUN_0015f220.  PAL source names
+/* Multitexture parameter overlay copied by __rasterizer_dynamic_screen_geometry_add_multitexture_params_to_base.  PAL source names
  * each copied slot; the 2276 routine confirms the copy direction and offsets. */
 typedef struct rasterizer_dynavobgeom_multitex_params {
   byte pad_00[4];
@@ -92,25 +92,25 @@ typedef struct rasterizer_dynavobgeom_vertex {
 } rasterizer_dynavobgeom_vertex_t;
 
 /* 0x15f1f0 */
-void FUN_0015f1f0(void)
+void __rasterizer_hud_begin(void)
 {
-  FUN_0016f910(0x1b);
+  rasterizer_profile_begin(0x1b);
 }
 
 /* 0x15f200 */
-void FUN_0015f200(void)
+void __rasterizer_hud_end(void)
 {
-  FUN_0016fa40(0x1b);
+  rasterizer_profile_end(0x1b);
 }
 
 /* 0x15f210 */
-void FUN_0015f210(int param_1)
+void __rasterizer_dynamic_lit_geometry_draw(int param_1)
 {
   (void)param_1;
 }
 
 /* 0x15f220 */
-void FUN_0015f220(void *base, void *multitex_params)
+void __rasterizer_dynamic_screen_geometry_add_multitexture_params_to_base(void *base, void *multitex_params)
 {
   rasterizer_dynavobgeom_multitex_params_t *base_params;
   rasterizer_dynavobgeom_multitex_params_t *source_params;
@@ -166,14 +166,14 @@ void FUN_0015f540(int param_1, int param_2, uint32_t param_3, int param_4)
 }
 
 /* 0x15f5e0 */
-int FUN_0015f5e0(void *device, uint32_t reg, float a, float b)
+int IDirect3DDevice8_SetVertexData2f_6(void *device, uint32_t reg, float a, float b)
 {
   (void)device;
   D3DDevice_SetVertexData2f(reg, a, b);
   return 0;
 }
 
-/* Group and shader views used by FUN_0015f630.  Debug assertions confirm the
+/* Group and shader views used by __rasterizer_dynamic_unlit_geometry_draw.  Debug assertions confirm the
  * shader type and geometry flags; PAL source and matching 2276 accesses map
  * the remaining transparent-geometry fields. */
 typedef struct rasterizer_dynavobgeom_shader {
@@ -235,7 +235,7 @@ typedef struct rasterizer_dynavobgeom_group {
 } rasterizer_dynavobgeom_group_t;
 
 /* 0x15f630 */
-void FUN_0015f630(void *shader, uint32_t param_2, int param_3, int param_4,
+void __rasterizer_dynamic_unlit_geometry_draw(void *shader, uint32_t param_2, int param_3, int param_4,
                   uint32_t param_5, int param_6, float *centroid,
                   uint32_t geometry_flags)
 {
@@ -287,7 +287,7 @@ void FUN_0015f630(void *shader, uint32_t param_2, int param_3, int param_4,
   delta_y = centroid[1] - *(const real *)0x5a5bcc;
   delta_z = centroid[2] - *(const real *)0x5a5bd0;
   group = (rasterizer_dynavobgeom_group_t *)
-    rasterizer_transparent_geometry_group_new();
+    rasterizer_transparent_geometry_new_group();
   if (group != NULL) {
     goto group_allocated;
   }
@@ -331,7 +331,7 @@ group_allocated:
 
   if (shader_base->shader_type == 1) {
     effect_shader = (rasterizer_dynavobgeom_effect_shader_t *)
-      FUN_001906b0(shader, 1);
+      shader_get_and_verify_type(shader, 1);
     if ((effect_shader->flags & 1) != 0) {
       group->z_sort += *(const real *)0x25337c;
     }
@@ -349,12 +349,12 @@ group_allocated:
       *(int *)0x5a550c = param_6;
     }
     *(int *)0x5a5510 +=
-      rasterizer_frame_statistics_count_static_vertices(param_4, 0, param_6);
+      rasterizer_frame_statistics_count_dynamic_vertices(param_4, 0, param_6);
   }
 }
 
 /* 0x15f8e0 */
-void FUN_0015f8e0(void *parameters, void *vertices)
+void __rasterizer_psuedo_dynamic_screen_quad_draw(void *parameters, void *vertices)
 {
   rasterizer_dynavobgeom_parameters_t *params;
   rasterizer_dynavobgeom_meter_t *meter;
@@ -426,7 +426,7 @@ void FUN_0015f8e0(void *parameters, void *vertices)
   *(uint32_t *)0x1fb788 = 0;
   D3DDevice_SetRenderState_ZEnable(0);
   D3DDevice_SetRenderState_ZBias(0);
-  FUN_001580b0((int)params->framebuffer_blend_function);
+  rasterizer_set_framebuffer_blend_function((int)params->framebuffer_blend_function);
 
   dx = (short)(*(short *)0x5a5bfa - *(short *)0x5a5bf6);
   dy = (short)(*(int *)0x5a5bf8 - *(int *)0x5a5bf4);
@@ -501,7 +501,7 @@ void FUN_0015f8e0(void *parameters, void *vertices)
     D3DDevice_SetTextureStageState(i, 0xe, (params->point_sampled == 0) + 1);
     D3DDevice_SetTextureStageState(i, 0xf, (params->point_sampled == 0) + 1);
   }
-  FUN_00178b40(4, 8, 1);
+  rasterizer_set_vertex_shader_permutation(4, 8, 1);
 
   meter = (rasterizer_dynavobgeom_meter_t *)params->meter_parameters;
   if (meter != 0) {
@@ -539,7 +539,7 @@ void FUN_0015f8e0(void *parameters, void *vertices)
       alpha = 1.0f;
     }
     *(uint32_t *)0x5a5b08 =
-      FUN_00159070(1.0f / alpha) | (meter->gradient_max_color & 0xffffff);
+      real_alpha_to_pixel32(1.0f / alpha) | (meter->gradient_max_color & 0xffffff);
     *(uint32_t *)0x5a5ac0 = 0x12081208;
     *(uint32_t *)0x5a5b48 = 0x1120e820;
     *(uint32_t *)0x5a5b28 = 0x20c00;
@@ -699,7 +699,7 @@ void FUN_0015f8e0(void *parameters, void *vertices)
   *(uint32_t *)0x5a5ae4 = 0x1c00;
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
   D3DDevice_SetRenderState_CullMode(0x901);
-  FUN_00178b40(4, 8, 1);
+  rasterizer_set_vertex_shader_permutation(4, 8, 1);
   D3DDevice_Begin(7);
   vertex = (rasterizer_dynavobgeom_vertex_t *)vertices;
   for (i = 0; i < 4; i++) {

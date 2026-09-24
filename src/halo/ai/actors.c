@@ -5609,7 +5609,7 @@ void actor_customize_unit(int actv_tag_index, int unit_index)
       out_color = (float *)(unit_data + (i * 3 + 0x4e) * 4);
       seed = get_global_random_seed_address();
       blend = random_math_real((unsigned int *)seed);
-      FUN_0007c270(out_color, 1, (float *)element, (float *)(element + 0xc),
+      rgb_colors_interpolate(out_color, 1, (float *)element, (float *)(element + 0xc),
                    blend);
       copy_dest = (float *)(unit_data + (i * 3 + 0x5a) * 4);
       copy_dest[0] = out_color[0];
@@ -7555,7 +7555,7 @@ void actors_handle_unit_effect(int unit_handle, short unit_effect, int param_3)
     i = 0;
     do {
       cur = (int)(short)i;
-      result = structure_bsp_cluster_sound_encoding(scenario,
+      result = structure_bsp_get_cluster_encoded_sound_distance(scenario,
                                                    *(short *)(node + 4), cur);
       if ((char)result >= 0) {
         vc = (int)(result & 0x7f);

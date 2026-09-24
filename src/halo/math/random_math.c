@@ -611,7 +611,7 @@ void random_math_initialize(void)
       (*(vector3_t **)((char *)tag + 4))[i];
   }
 
-  FUN_001056e0(tag);
+  geosphere_dispose(tag);
 }
 
 /* Free the precomputed random direction geosphere table allocated by

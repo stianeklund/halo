@@ -33,6 +33,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x12350": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x12660": {
       "kind": "function",
       "status": "ported"
@@ -3537,7 +3541,43 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x61ca0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x61d80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x61da0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x61dc0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x61df0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x61e80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x61ec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x61f10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x61fa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x62020": {
       "kind": "function",
       "status": "ported"
     },
@@ -3552,6 +3592,26 @@
         "The pooled float thresholds are read byte-exact from the XBE as 0.5f (0x253398), -0.2f (0x255ba4), 0.2f (0x2549d4), 4.0f (0x2533d8), 0.0f (0x2533c0) and 0.06666667f (0x253d48), but their semantic names (z-slab pad, up-vector gate, z distance weight, dot threshold) remain unproven.",
         "The loop induction variable is stored full width at EBP-0x20 yet compared and passed to tag_block_get_element after a MOVSWL sign-truncation, which is transcribed literally as a separate int16-truncated index without a proven source-level explanation."
       ]
+    },
+    "0x62410": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x624b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x625a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x62680": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x628b0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x62960": {
       "kind": "function",
@@ -4375,9 +4435,25 @@
         "The final 1.3% VC71 gap is unlocalised; the candidate emits exactly 773 instructions against the reference's 773 and the score context reports no classification rule, so the residue is operand-level (operand-normalized score is 93.7%)."
       ]
     },
+    "0x75380": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x75630": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x75800": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x75a20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x76300": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The 8-byte stack local built at 0x7634e..0x76366 and passed in EAX to FUN_00075e70 is a 4x int16 rect: offsets 0x0/0x2 are zeroed and offsets 0x6/0x4 receive word[0x334150+4] and word[0x334150+6] respectively (store order rotated by MSVC scheduling).",
         "The 8-short local at EBP-8 is a bounds rectangle spanning the whole colour plate: elements 0 and 1 are zeroed and elements 2/3 take the plate fields at +0x06 and +0x04 respectively (crossed store order)."
@@ -4399,11 +4475,35 @@
         "The bottom trim starts at bounds[2]-2 rather than the symmetric bounds[2]-1; this is only consistent because rect[2] is initialised to the exclusive bottom and then incremented again, so the extra -1 may indicate an off-by-one in the original rather than intent."
       ]
     },
+    "0x766e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x76790": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x76a70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x76bb0": {
       "kind": "function",
       "status": "ported"
     },
+    "0x76bd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x76ff0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x77040": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x77120": {
       "kind": "function",
       "status": "ported"
     },
@@ -4415,7 +4515,31 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x77590": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x77720": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x779b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x77cd0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x77e60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x77ff0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x78460": {
       "kind": "function",
       "status": "ported"
     },
@@ -4443,9 +4567,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x79180": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x79250": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x79480": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Bitmap header field roles are inferred from their use as bitmap_2d_new arguments: +0x04 width, +0x06 height, +0x08 depth/slice count, +0x0a type (1 == _bitmap_type_3d per the assert string), +0x0c format.",
         "The NULL check on temp+0x2c is inferred to be the temporary bitmap's pixel-data pointer because failing it routes to the '### ERROR failed to allocate temporary bitmap' error call."
@@ -4462,9 +4594,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x796e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x798e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x79bb0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "param_4 ([EBP+0x14]) is a pure passthrough: it is read exactly once (MOV EDX,[EBP+0x14]; PUSH EDX at 0x79e10) and forwarded as FUN_000796e0's sole stack argument, so no assert or use in this function names it.",
         "The six-face loop bound is the literal 6 from CMP BX,6, not a depth or face-count field; the 3D sibling FUN_000798e0 reads source_bitmap->depth (+0x08) at the same spot."
@@ -4472,7 +4612,7 @@
     },
     "0x79e70": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The three block decompressors FUN_00071400/FUN_000717b0/FUN_00071890 were re-declared as void f(void *block, unsigned int *out_pixels); the two-argument cdecl shape is confirmed by LEA [EBP-0x64]/PUSH/PUSH/ADD ESP,8 at 0x7a0d8-0x7a112, but the argument types (source block pointer, 16-dword output tile) are inferred from usage direction rather than from the callee bodies, which remain unported."
       ],
@@ -4482,7 +4622,7 @@
     },
     "0x7a1e0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Callee 0x7e560 (kb name bitmap_3d_slice_insert) is used here as a slice EXTRACT (source -> temp) and 0x7e7e0 (kb name bitmap_cube_map_face_extract) as the slice WRITE-BACK (temp -> destination); the kb names appear swapped relative to the data flow, but they were left unchanged because no string evidence names either function.",
         "The widened decl for 0x7e560 uses short mipmap_index and short slice_index by analogy with the already-ported sibling call to 0x7ea60 at 0x7a6eb, which emits the same plain dword reload of the parameter slot rather than a MOVSX."
@@ -4573,13 +4713,17 @@
     },
     "0x7b940": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The temp bitmap NULL-check reads +0x2c as the pixel-data pointer; the offset is confirmed by the disassembly but the field name is inferred from the identical check in the 3D alpha_bleed sibling FUN_00079480."
       ],
       "uncertain": [
         "The reference emits two dispose+epilogue blocks (0x7ba27 loop-exit and 0x7ba43 shared tail) but the lift emits one, leaving a measured 7-instruction gap; writing the split explicitly in C regressed the match to 88.9% at an unchanged 91 instruction count, so the original source shape that produces the duplicate is still unknown."
       ]
+    },
+    "0x7ba50": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x7bcb0": {
       "kind": "function",
@@ -4598,6 +4742,18 @@
       "status": "ported"
     },
     "0x7c270": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7c490": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7c5f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7c6c0": {
       "kind": "function",
       "status": "ported"
     },
@@ -4720,7 +4876,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x7ea60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x7ece0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7ef80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x7f150": {
       "kind": "function",
       "status": "ported"
     },
@@ -6209,6 +6377,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x99070": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x99220": {
       "kind": "function",
       "status": "ported"
@@ -6756,6 +6928,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa2a90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa2ab0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa2c70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa2ca0": {
       "kind": "function",
       "status": "ported"
@@ -6764,11 +6948,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xa2df0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa2e40": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xa2e80": {
       "kind": "function",
       "status": "ported"
     },
     "0xa2ed0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xa32e0": {
       "kind": "function",
       "status": "ported"
     },
@@ -7851,6 +8047,10 @@
       "status": "ported"
     },
     "0xb4a70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb4bf0": {
       "kind": "function",
       "status": "ported"
     },
@@ -12756,6 +12956,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0xdce80": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0xdd110": {
       "kind": "function",
       "status": "ported"
@@ -15142,7 +15346,55 @@
         "The plane buffer at EBP-0x18 is sized 4 floats from frame arithmetic (SUB ESP,0x18 minus the two dword scalars at EBP-0x8/EBP-0x4); FUN_001037b0 is unported so its actual write size is unverified."
       ]
     },
+    "0x1049d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x104bd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x104d40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x104fa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x105160": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x105550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x105610": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1056e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1057a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1057c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1057f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x105830": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x105980": {
       "kind": "function",
       "status": "ported"
     },
@@ -15154,7 +15406,23 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x106030": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x106130": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x106200": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x106290": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x106330": {
       "kind": "function",
       "status": "ported"
     },
@@ -19207,6 +19475,30 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1550c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x155110": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x155350": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x155380": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1553a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1553d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1553f0": {
       "kind": "function",
       "status": "ported",
@@ -19217,12 +19509,40 @@
         "Residual 8-instruction VC71 gap at 77.0 percent is a register-class artifact: VC71 constant-folds our success flag into AL and cross-jumps the two error() arms, so it never allocates the reference's second callee-saved register (ESI holds the zero constant, EBX the flag). Moving the global_d3d_device=0 store after the error() call in the device-failure arm breaks the cross-jump and reaches 79.5 percent, but the disassembly at 0x1554cd puts the store before the CALL, so that lever was rejected as unfaithful."
       ]
     },
+    "0x155560": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x155580": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "Bitmap-type dispatch at 0x1555ab is a switch (MOVSWL then SUB 0 / DEC / DEC sequential-compare lowering), not an if/else chain; cases 0 and 1 must be written as separate case labels with duplicated bodies or VC71 emits a range compare instead."
       ]
+    },
+    "0x155620": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x155630": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x155850": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x155860": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x155870": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x155880": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1559a0": {
       "kind": "function",
@@ -19255,12 +19575,20 @@
         "The per-unbind HRESULT check folds to a constant: the inline D3D8 wrappers always return S_OK so the report call at 0x167ff0 is unreachable at runtime; the MOV BL,1 / XOR BL,BL pair is the && normalisation of the success flag, not a live failure path."
       ]
     },
+    "0x155b60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x155b90": {
       "kind": "function",
       "status": "ported",
       "inferred": [
         "The trailing if (d3d) d3d = NULL at 0x155be4 is an IDirect3D8 Release() whose Xbox inline wrapper compiles away entirely, leaving only the pointer clear."
       ]
+    },
+    "0x155c10": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x155c20": {
       "kind": "function",
@@ -19269,6 +19597,10 @@
         "Return type corrected from void to char: both exits execute MOV AL,0x1 at 0x155c7f and 0x155cae, so the function returns true unconditionally.",
         "stage narrowed from int to short: the prologue loads it with MOV SI, word ptr [EBP+8] and both range compares are 16-bit."
       ]
+    },
+    "0x155cc0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x155cf0": {
       "kind": "function",
@@ -19295,6 +19627,10 @@
         "Globals 0x476a4c and 0x476a4e are the width and height of the last bound texture and 0x476a4c is the returned pointer, but the containing struct type and its name are unproven; the non-blocking twin at 0x1560a0 writes a separate pair at 0x476a48/0x476a4a and discards it.",
         "The char flag at [EBP-1] is modelled as one local with a shared done: label because MSVC tail-duplicated the epilogue, folding the reload to MOV AL,1 at 0x155f73 while keeping the store-then-reload at 0x155ffb; the single-local reading is inferred from that asymmetry, not directly proven."
       ]
+    },
+    "0x156070": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1560a0": {
       "kind": "function",
@@ -19352,6 +19688,10 @@
         "The per-light record base inside lighting_constants is unproven; the 0x20 stride and the 0x60/0x70 sub-offsets are kept in the original algebraic form ((index+3)*0x20 and index*0x20+0x70) rather than folded."
       ]
     },
+    "0x156a90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x156ab0": {
       "kind": "function",
       "status": "ported",
@@ -19397,7 +19737,111 @@
         "IDirect3DPalette8_Unlock has no CALL in the reference; only its success test survives, so the Unlock is assumed to be a no-op inline on Xbox and is represented by the FUN_00167ff0 guard alone."
       ]
     },
+    "0x157940": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x157e40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1580b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x158140": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1584f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x158800": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x158ae0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x158df0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x158f90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x159070": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1592e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1595c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x159900": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15a290": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15a4c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15a4e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15a4f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15a560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15a700": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15a7f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15a8f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15aa40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15abe0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15acc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15afa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15b0c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15b150": {
       "kind": "function",
       "status": "ported"
     },
@@ -19412,6 +19856,14 @@
         "decals_update_for_new_map (0x98e70) name is inferred from its behavior: it iterates all decal data, clears locked/permanent flags, and resets the global lock/permanent counts."
       ]
     },
+    "0x15b1e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15b220": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x15b460": {
       "kind": "function",
       "status": "ported"
@@ -19422,6 +19874,22 @@
       "comments": {
         "summary": "Validates decal cache index and local_vertex_cache handle, then removes the corresponding LRUV block via FUN_0011d8f0."
       }
+    },
+    "0x15b5a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15b5e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15b650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15b6a0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x15b6d0": {
       "kind": "function",
@@ -19442,6 +19910,94 @@
       ]
     },
     "0x15b890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15b960": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15b970": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15bc40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15c190": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15c2b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15c2d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15c5f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15c600": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15c650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15c680": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15c6f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15c980": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15cbb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15d020": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15d040": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15d060": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15d160": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15d170": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15d2a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15d2d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15d310": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15d480": {
       "kind": "function",
       "status": "ported"
     },
@@ -19473,6 +20029,18 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x15e770": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15e7a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15e7d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x15e800": {
       "kind": "function",
       "status": "ported"
@@ -19497,6 +20065,34 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x15f1f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15f200": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15f210": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15f220": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15f5e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15f630": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x15f8e0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x160920": {
       "kind": "function",
       "status": "ported"
@@ -19517,7 +20113,135 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1609b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x160bd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x160bf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x160c00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x160c10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x160c20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x160c30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x160dc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x160f50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x161f00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x162560": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x162790": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x162f90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x163590": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x163910": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x163c40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x163fe0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1640d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1643e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x164590": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x164690": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x164cf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x165420": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x165980": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1659a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1659f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x165a00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x165a10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x165cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x165dd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x165de0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x165ea0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x165fc0": {
       "kind": "function",
       "status": "ported"
     },
@@ -19530,6 +20254,94 @@
       "status": "ported"
     },
     "0x166210": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x166400": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x166890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1677d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x167920": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x167ee0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x167ff0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168230": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168250": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168280": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1682c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168300": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168340": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168500": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1688d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168ae0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168b10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168bc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168be0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168c40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168c70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x168ca0": {
       "kind": "function",
       "status": "ported"
     },
@@ -19551,14 +20363,30 @@
     },
     "0x169200": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "FUN_00169200 is the shape twin of the already-ported FUN_0017a8a0 (rasterizer.c): it takes point, radius and out_extent on the stack and out_screen in EBX (LEA EBX,[EBP-0x10] at 0x16a1c2, first written by FSTP [EBX] at 0x16933d) and returns bool in AL."
       ]
     },
+    "0x169650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x169670": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1696d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x169a50": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x169fd0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The original Bungie name is rasterizer_sun_glow_draw, from the tail failure string at 0x2a30d4 and the per-call debug strings that name locals bounds.x0/x1/y0/y1, r, pass and brightness; the symbol is deliberately left as FUN_00169fd0 to match sibling FUN_00169a50.",
         "The sun entry (0x28-stride array at 0x4c6480) is read here only at +0x00 (definition pointer), +0x04/+0x08/+0x0c (float position) and +0x10 (packed direction passed to FUN_0017ffc0); the definition is read only at +0x10 (float glow radius, used both as the FMUL scale at 0x16a1b0 and as the raw radius dword pushed at 0x16a1e1)."
@@ -19568,16 +20396,64 @@
         "cone is declared double because the original never spills the FCOS result to memory (it lives in ST1 across FXCH/FSUB/FSUB at 0x16a05e-0x16a06a); a float declaration would introduce a narrowing the binary does not perform, but a double still narrows 80-bit to 64-bit."
       ]
     },
+    "0x16ab00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16b180": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16b1c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16b240": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16b270": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x16bed0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Cull-plane dot product in the C source is written as (0x5a5dc8-term + 0x5a5dcc-term + 0x5a5dd0-term) left-to-right, but the disassembly computes it as (0x5a5dd0-term + 0x5a5dcc-term) first, then + 0x5a5dc8-term (FLD 0x5a5dd0 first). Verified the FCOMP/FNSTSW/TEST AH,0x5/JP branch sense is still correct (matches binary exactly) despite the differing floating-point summation order; this is an FP-association deviation only, not a logic bug, and does not affect the visual-regression investigation (this dot product feeds a boolean cull flag DAT_0047e003, not a color)."
       ]
     },
+    "0x16c090": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16de60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16de80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16dee0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16e2e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16eef0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16f480": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x16f500": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The 0x47e460 error mask is modelled as volatile unsigned short to reproduce the dead 16-bit reload that follows the OR-store on all three error paths; the load width (zero-extended word) is confirmed but the volatile qualifier is an inference about why the reload survived.",
         "0x47e460 is a 16-bit error bitmask: bit0 = profile index out of range, bit1 = begin over an already-open section, bit2 = end with no open section; inferred from the three OR-immediate paths."
@@ -19588,9 +20464,17 @@
         "VC71 match is 83.6% with 6 unmatched instructions, all register-allocation and scheduling artifacts: the original holds the begin flag in EBX with AND BL,1 across the QueryPerformanceCounter call and the END-path hi-dword check load uses SHL+base addressing where VC71 re-derives a scaled index; no semantic difference."
       ]
     },
+    "0x16f610": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16f6c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x16f730": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "0x47e460 is written as a 16-bit word (MOV word ptr [0x47e460],BX at 0x16f816) but all three status bits are read as a byte (MOV AL/CL/DL, byte ptr), so the lift uses unsigned char for the reads and short for the clear; Ghidra's single _DAT_0047e460 = 0 hides this width split (lift-learnings 24 LOADW).",
         "AND EAX,0x8000000f followed by JNS/DEC/OR 0xfffffff0/INC is the MSVC signed modulo-16 idiom, so the frame index is written as (frame + 1) % 16 on a signed int rather than & 15; writing the mask directly loses the four fixup instructions."
@@ -19599,6 +20483,22 @@
         "The residual 16.3 percent VC71 gap is concentrated in the three identical warning blocks: the original stores the NOT/AND result to [EBP-4] and branches on the AND flags without reloading, and increments the warning counter as a register load/inc/store rather than INC word ptr. A non-volatile local is folded away by VC71 (two different formulations produced byte-identical output at 80.2 percent) and a volatile local forces an extra reload plus test per block, so neither spelling reproduces the original store-then-branch-on-flags shape; 83.7 percent may therefore be an expression-level cap rather than a lift defect, but this is not proven.",
         "The error call pushes four stack args (ADD ESP,0x10) against the three-parameter varargs decl error(unsigned short, const char *, ...); the -1 vararg is not consumed by the single %s in the format string, so its purpose is unidentified. Sibling call sites in this TU use the same shape."
       ]
+    },
+    "0x16f880": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16f8a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16f910": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16fa40": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x16fb80": {
       "kind": "function",
@@ -19610,9 +20510,57 @@
         "The kb.json name rasterizer_initialize is wrong for 0x16fb80: the body is a profile-name accessor (rasterizer_profile_get_name shape) returning rasterizer_profile_names[profile] from the 29-entry const char* table at 0x325188, and its __FILE__ places it in rasterizer_xbox_profile.c rather than rasterizer.c; the name and the rasterizer.obj mapping were left unchanged to avoid churning the ABI baseline."
       ]
     },
+    "0x16fbd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16fcf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16fdd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16feb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x16fec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1700d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1703f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x171bc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x172520": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x172590": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x172640": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x172650": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1726a0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "uncertain": [
         "The guard tests the 16-bit word at 0x5a5bc0 for zero, yet that same zero-extended word is what is passed as FUN_00158140's first argument, so the argument is always 0 on the taken path; this is faithful to the original and not a lift error."
       ]
@@ -19623,7 +20571,7 @@
     },
     "0x172730": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The two enable bytes at 0x3256ca and 0x3256f6 are short-circuited independent gates; 0x3256f6 was previously undocumented and its meaning is inferred only from its use as a second guard on the shadow blur pass.",
         "The eight vertex-shader constant rows at register -0x51 are read as four screen-space blur taps of plus or minus 1/256 in x and y; the tap interpretation is inferred from the values and the surrounding quad draw, not from any symbol."
@@ -19633,9 +20581,29 @@
         "Equivalence evidence covers only the early-exit path at 5.8 percent coverage because nine of the twenty-seven callees are unstubbable and a gate-opening synthetic snapshot makes every seed fetch from address zero, so the enabled blur-pass body has no runtime oracle yet."
       ]
     },
+    "0x172a30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x172de0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x173090": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x173ae0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x173af0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x173b40": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Two stack constant blocks are uploaded via D3DDevice_SetVertexShaderConstant: a 5-vec4 block at EBP-0x54 (reg -0x44, screen transform rows plus three overlapped real_argb_color slots) and a 6-vec4 block at EBP-0xb4 (reg -0x3f); Ghidra split them into ~20 independent locals.",
         "The four consecutive FUN_000d1c90 conversions of params+0x64 into 0x5a5af8/afc/b00/b04 are faithful: the original computes ESI+0x64 once and pushes the same pointer four times with one coalesced ADD ESP,0x1c cleanup."
@@ -19645,9 +20613,17 @@
         "VC71 residual gap (84.5 percent, ledger cap): our 437 instructions align as an in-order subsequence of the 448-instruction reference; remaining misses are xor+mov16 partial-register idiom for the 0x88 blend load, x87 stack duplication, void(void)-cast reg-arg calls to D3DDevice_SetRenderState_Simple losing the mov ecx/edx pair in the verify lane, and coalesced ADD ESP placement. Keep every D3DDevice_SetTextureStageState call on one source line: the VC71 fastcall rewriter is line-based and a wrapped call silently compiles as cdecl (cost ~3.3pp)."
       ]
     },
+    "0x1741d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1744f0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x174510": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "group+0x4c is the second argument of all six dispatch callees; its meaning is unknown, only its width (dword) is proven by the PUSH.",
         "The four callee decls FUN_0015e0f0/FUN_0015de60/FUN_0015dc10/FUN_0015d8b0 were corrected from void(void) to 4/5/4/4 stack args, reconstructed from PUSH sequences and ADD ESP cleanup at the original call sites; parameter NAMES are inferred by analogy with FUN_0015e430 and rasterizer_draw_dynamic_vertices, only the counts and widths are proven.",
@@ -19659,14 +20635,22 @@
     },
     "0x174980": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The three implicit register inputs are mapped to D3DVertexBuffer_Lock's SizeToLock (EDX), ppbData (ECX) and Flags (EAX) by matching the 5-argument push order against the published IDirect3DVertexBuffer8::Lock signature; the binary only proves that EAX/ECX/EDX are read before being written and forwarded as call arguments 5, 4 and 3 respectively."
       ]
     },
+    "0x1749b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x174b60": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x174b90": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Argument roles are addend-first: stack arg 1 [EBP+0x8] is FADD'd un-scaled (EDX in the original) and stack arg 2 [EBP+0xc] is the FMUL multiplicand (ECX), so the semantics are out = a + t*b; swapping the two pointer params is silent and near-invisible to a byte-match."
       ],
@@ -19677,7 +20661,7 @@
     },
     "0x174bd0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Return is a bool in AL (MOV AL,0x1 on the success path, MOV AL,BL on the failure tail); kb.json decl changed from int to char accordingly, and the caller in rasterizer_text.c tests it as a flag."
       ],
@@ -19688,12 +20672,20 @@
     },
     "0x174cc0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "FUN_00174cc0 is the dispose counterpart to FUN_00174bd0: it releases the D3D vertex buffer at global 0x47e4bc, which FUN_00174bd0 creates via D3DDevice_CreateVertexBuffer and which is bound as the stream-1 texcoord stream by D3DDevice_SetStreamSource(1, *(void**)0x47e4bc, 2)."
       ]
     },
+    "0x174ce0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x174d10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x178820": {
       "kind": "function",
       "status": "ported"
     },
@@ -19707,7 +20699,7 @@
     },
     "0x178b40": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The three parameters are declared int because slot [EBP+8] is loaded and stored as a dword while every comparison is 16-bit; the 16-bit accesses are modelled as explicit (short) casts, which keeps the (int,int,int) prototype the 22 existing call sites already use."
       ],
@@ -19715,9 +20707,13 @@
         "The 'sizes already measured' guard reads the dword at 0x325640, which is packed_shaders[1].offset (0x325634 + 1*8 + 4) rather than a separate flag global; the lift reproduces the address but the original source spelling of that test is unknown."
       ]
     },
+    "0x1792a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1792c0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Param is byte-wide: the body's only read of the stack slot is MOV AL, byte ptr [EBP+0x8] with no MOVSX/MOVZX and no dword load, so the kb.json decl was narrowed from int param_1 to char mode (narrowing is free on a cdecl stack slot, and it matches the sibling FUN_001792a0 at 0x1792a0)."
       ],
@@ -19725,9 +20721,29 @@
         "The global byte at 0x47e4c9 has no string or PDB evidence for a semantic name; all that is known is that FUN_001792a0 writes it together with a zero-test flag at 0x47e4c8, that FUN_001792C0 writes it alone, and that the sole observed caller (rasterizer frame setup in rasterizer_xbox_decals.c) passes 0."
       ]
     },
+    "0x1792d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x179570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1795c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x179de0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17a8a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17ad20": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The unread first stack slot at [EBP+0x8] is inferred to be the discarded this/device pointer of an IDirect3DDevice8::SetVertexData2f inline member instantiation, by analogy with the byte-identical twin FUN_00179570 and the six-slot SetVertexData4f instantiation FUN_0017ad40; it is declared and left unused so the RET 0xc stack accounting stays correct."
       ],
@@ -19735,7 +20751,39 @@
         "No direct E8 call site for 0x17ad20 exists anywhere in cachebeta.xbe, so the @<edx> register input and the EAX=0 return are proven only by this function's own prologue and epilogue, not witnessed by any caller."
       ]
     },
+    "0x17ad40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ad90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17adc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ae90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17b000": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17b480": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17b540": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17b580": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17b5c0": {
       "kind": "function",
       "status": "ported"
     },
@@ -19749,9 +20797,21 @@
         "Equivalence covers only 4-9 percent of the function: with zero-fill the enable flag at 0x3256fc is 0 so it returns 1 immediately, and even with the flag forced to 1 the projection callee FUN_0017a8a0 rejects every synthetic position, so the clamp, area and D3D quad-emission paths have no runtime evidence."
       ]
     },
+    "0x17bca0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17be50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17bf20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17c000": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The second table pair at 0x2aea88 (int[25]) and 0x2aeb0c (int[8]) sits immediately after the pair FUN_0017be50 uses (0x2aea20 + 25*4 == 0x2aea84; 0x2aeaec + 8*4 == 0x2aeb0c) and is indexed by the same two bounds, so it is inferred to be the sibling channel variant of the same lookup, but no string names it and the macros are therefore address-suffixed and mechanical rather than semantic."
       ],
@@ -19763,7 +20823,7 @@
     },
     "0x17c140": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Decl corrected from void FUN_0017c140(void) to bool FUN_0017c140(void *map@<esi>, int16_t map_index@<di>): TEST ESI,ESI is the first instruction at 0x17c140, MOVSX EAX,DI at 0x17c16d and MOVSX ECX,DI at 0x17c192 prove DI is a real input, and the two tails MOV AL,BL / XOR AL,AL return a bool in AL.",
         "kb decl corrected from void FUN_0017c140(void) to bool FUN_0017c140(void *map@<esi>): the call site at 0x17c3f3 sets only MOV ESI,EAX (the 0x64-byte map element returned by tag_block_get_element) and stores AL back into the running ok flag at 0x17c3fa.",
@@ -19773,9 +20833,13 @@
         "The map parameter is typed void* because no struct has been recovered for a shader_transparent_generic map element; only offsets +0x18 and +0x28 are proven by this function."
       ]
     },
+    "0x17c1b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17c2f0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "FUN_0017c140 was declared void FUN_0017c140(void) in kb.json but the disassembly at 0x17c140 reads ESI before writing it (TEST ESI,ESI at the entry) and reads DI at 0x17c16d/0x17c192 (MOVSX EAX,DI / MOVSX ECX,DI feeding error()), so its real signature is char FUN_0017c140(void *map@<esi>, int16_t map_index@<di>) returning AL from the tails at 0x17c1a5/0x17c1a9.",
         "FUN_0017c000 was declared void FUN_0017c000(void) in kb.json but is the alpha twin of FUN_0017be50: TEST SI,SI at 0x17c000 and TEST DI,DI at 0x17c02b read both registers before writing, so its real signature is int FUN_0017c000(int16_t register_index@<si>, int16_t mapping_index@<di>).",
@@ -19799,6 +20863,10 @@
       "inferred": [
         "Declared void, but the original tail-JMPs to FUN_00157010 and caller shell_initialize (0x191115) does TEST AL,AL on the result, so a bool return propagates through in EAX; VC71 is 100% (17/17) with the void decl because clang reproduces the tail jump, so do not change the decl to char without re-measuring."
       ]
+    },
+    "0x17c7d0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x17c7e0": {
       "kind": "function",
@@ -19880,6 +20948,14 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x17c9f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ca00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17ca10": {
       "kind": "function",
       "status": "ported"
@@ -19889,6 +20965,10 @@
       "status": "ported"
     },
     "0x17ca30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ca40": {
       "kind": "function",
       "status": "ported"
     },
@@ -19951,13 +21031,193 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x17cd60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cd70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cd80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cd90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cda0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cdb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cdc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cde0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cdf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ce00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ce10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ce40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ce50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ce70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ce80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ce90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cea0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ceb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ced0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cee0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cef0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cf00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cf10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cf20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cf30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cf40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cf50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cf60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cf70": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cf80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cf90": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17cfa0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cfb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cfc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cfd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cfe0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cff0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d000": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d010": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d020": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d030": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d040": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d050": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d060": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d070": {
       "kind": "function",
       "status": "ported"
     },
     "0x17d080": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Signature void FUN_0017d080(float *point, float radius, float *color) recovered from disassembly: three [ESI+0/4/8] float reads, a 0.5 multiply on the radius written back into the [EBP+0xc] parameter slot, and EDI landing in both the color0 and color1 slots of the callee FUN_0015a7f0 (kb decl void FUN_0015a7f0(float *p0, float *p1, float *color0, float *color1)).",
         "Body draws three axis-aligned segments: for each of X, Y and Z it builds a point-minus and a point-plus endpoint offset by radius*0.5, then calls FUN_0015a7f0; the three calls share one combined ADD ESP,0x30."
@@ -19967,7 +21227,19 @@
         "With no call sites there is no evidence for what the three segments represent, so the name stays FUN_0017d080 (behaviour-only, tier T3/T4)."
       ]
     },
+    "0x17d150": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d1a0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17d2b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d8f0": {
       "kind": "function",
       "status": "ported"
     },
@@ -19986,9 +21258,33 @@
         "The residual ~10 percent VC71 gap is clang emitting fucompi/fucomp for every float compare where the reference uses FCOMP plus FNSTSW/TEST AH; this is a fixed codegen difference, not a recoverable structural one."
       ]
     },
+    "0x17d950": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d980": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d990": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d9a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17d9d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17da00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17da40": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The five 32-bit caller slots at 0x000c36de are modeled as int16_t, uint16_t, float, float, float from MOVSX/XOR-MOV and FLD/FSTP provenance; the middle two floats are raw dword copies in the callee."
       ],
@@ -19996,7 +21292,19 @@
         "The semantic meanings of FUN_0017da40's five parameters and the 0x47e4d4 target structure remain unidentified."
       ]
     },
+    "0x17dab0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17db20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17db40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17dc60": {
       "kind": "function",
       "status": "ported"
     },
@@ -20004,7 +21312,71 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x17dec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17dee0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17df10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17df80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17e010": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17e030": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17e040": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17e130": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17e190": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17e5b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17e800": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17eb10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17eb30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17eb50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17eb90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ebb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ed30": {
       "kind": "function",
       "status": "ported"
     },
@@ -20018,6 +21390,10 @@
       "uncertain": [
         "The name deliberately omits the comparison polarity: the proven semantics are a > b unsigned, but whether that reads as ascending or descending depends on FUN_00091da0's internal convention, which was inferred rather than proven."
       ]
+    },
+    "0x17ed90": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x17edd0": {
       "kind": "function",
@@ -20035,6 +21411,22 @@
         "kb.json places 0x17ed70, 0x17edd0 and 0x17ef00 in rasterizer_sprites.obj with source rasterizer/rasterizer_sprites.c, but the single __FILE__ string \"c:\\halo\\SOURCE\\rasterizer\\rasterizer_frame_statistics.c\" at 0x2af728 is xref'd from 0x17eb53, 0x17ee17, 0x17ee40 and 0x17ff6e, bracketing all three; the true translation unit is rasterizer_frame_statistics.c, which may cap a future lift's VC71 score."
       ]
     },
+    "0x17ff50": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ff60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ff80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ffa0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x17ffc0": {
       "kind": "function",
       "status": "ported"
@@ -20043,7 +21435,47 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1800b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x180500": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x180570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1805f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x180660": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1806e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x180770": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1807d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x180820": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x180890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1808f0": {
       "kind": "function",
       "status": "ported"
     },
@@ -20053,7 +21485,7 @@
     },
     "0x181020": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Return type is int* only because that is what the kb decl pins; the real element type is lens_flare_parameters (0x28 bytes, defined in rasterizer_lights.c) since the address math is LEA EAX,[EAX+EAX*4] then LEA EAX,[EAX*8+0x4c6480], a 40-byte stride over the queue base."
       ],
@@ -20061,9 +21493,13 @@
         "VC71 measures 43.8 percent but the per-function delinked reference carries a mid-instruction Ghidra symbol LAB_00181025+3 at .text+0x8 that makes the disassembler skip the reference's first six instructions and emit two bogus IMM-WARNs, so the true match against a clean reference is unmeasured; the structural cap from the @<si> register-defining prologue is separate and independently confirmed."
       ]
     },
+    "0x181150": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x181180": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Element at 0x4c6480 + index*0x28 has an int sample/occlusion-sample count at +0x24 used as the divisor of the alpha ratio; the assert string names the index variable lens_flare_index."
       ],
@@ -20071,19 +21507,39 @@
         "FUN_0017d040 decl was corrected from void(void) to int(int index) purely from the call site (PUSH ESI; CALL; IMUL EAX,EAX,0xff; ADD ESP,4); the callee body was not decompiled, so the parameter's exact width and the return value's units are unverified."
       ]
     },
+    "0x1812b0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1812c0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x181410": {
       "kind": "function",
       "status": "ported"
     },
     "0x181670": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Field +0x1e serves double duty: it is the light index (asserted 0..0x37f) on the light path and the hi word of the packed structure lens flare marker index on the scenery path."
       ],
       "uncertain": [
         "The residual VC71 gap is MSVC hoisting the three position-minus-camera x87 subtractions above the short-circuit equality test and popping them with FSTP on both exits; no source shape reproduced that scheduling, so our lift pairs each FSUB with its FMUL instead."
       ]
+    },
+    "0x181900": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x181a90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x181c20": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1824e0": {
       "kind": "function",
@@ -20101,13 +21557,17 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1825d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1825e0": {
       "kind": "function",
       "status": "ported"
     },
     "0x182610": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Semantics inferred as swizzle/mip bit-allocation: builds three disjoint bitmasks in globals 0x4d0498/0x4d0494/0x4d0490 from three sign-extended short dimensions compared unsigned against a shifting probe; no string or PDB evidence for a real name, so FUN_ naming retained."
       ]
@@ -20146,13 +21606,21 @@
     },
     "0x182e00": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Both dispatches (bitmap type at +0xa, bytes-per-pixel) are switch statements in the original, not if/else chains: the reference emits the MSVC sequential-subtraction lowering (sub $0/dec/dec for type 0/1/2, dec/dec/sub $2 for bpp 1/2/4); rewriting the if/else chains as switch plus an inverted malloc-failure test took VC71 from 59.6% to 93.6%."
       ],
       "uncertain": [
         "Ghidra dropped every swizzler argument and the width/height/depth results; the argument lists here are reconstructed from the original push order (2D: dst=temp, src=mip_addr, width in ESI, height in EBX; 3D adds depth from [EBP-0xc]; cubemap walks one source pointer by mip_size/6 and derives dst as src plus a once-computed temp-minus-mip_addr delta). Verified against the disassembly but not against runtime behavior."
       ]
+    },
+    "0x183120": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x183290": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x183390": {
       "kind": "function",
@@ -20236,7 +21704,7 @@
     },
     "0x184570": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Global 0x4d0cbc is a 0x30-byte (384-bit) per-group flag bitmap for transparent geometry groups: rasterizer_transparent_geometry_begin (0x184300) csmemsets it to 0 with size 0x30, and rasterizer_transparent_geometry_group_new (0x184330) caps the group count at 0x180, matching one bit per group."
       ],
@@ -20246,7 +21714,7 @@
     },
     "0x1845b0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "The global at 0x4d0cbc is a per-group flag bit vector: 0x30 bytes = 12 dwords = 384 bits, exactly matching the 0x180 transparent-geometry-group cap enforced at rasterizer_text.c:2387, and it is zeroed by the csmemset((void*)0x4d0cbc, 0, 0x30) in the same reset path.",
         "The second parameter is effectively a bool/char: only its low byte is examined (MOV CL,[EBP+0xc]; TEST CL,CL), so the kb decl keeps int for stack-ABI stability while the C lift casts to char at the test site."
@@ -20257,7 +21725,7 @@
     },
     "0x184610": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Group record fields: +0x54 is an int dynamic-vertex-buffer index with sentinel -1, +0x58 is a nullable pointer to an int16 vertex index; inferred from the MOV AX,word[EAX] load at +0x58 and the CMP ESI,-1 sentinel test at +0x54."
       ],
@@ -20265,6 +21733,10 @@
         "Callee 0x17c9c0 is PAL 2342's rasterizer_dynamic_vertices_get_type (rasterizer_transparent_geometry.c stores its result as the group's vertex_type); its single stack arg is the group's dynamic-vertex-buffer index and its short result is the vertex type, not a vertex index.",
         "kb.json assigns 0x184610 to render.obj but the assert __FILE__ string is c:\\\\halo\\\\SOURCE\\\\rasterizer\\\\rasterizer_transparent_geometry.c, so render.c is a mixed-TU aggregate for this address cluster."
       ]
+    },
+    "0x184690": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x184710": {
       "kind": "function",
@@ -20275,6 +21747,10 @@
       "status": "ported"
     },
     "0x1848d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x184980": {
       "kind": "function",
       "status": "ported"
     },
@@ -20430,6 +21906,150 @@
       "status": "ported"
     },
     "0x188880": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x188890": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x188970": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x188a90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x188b20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x188bf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x188c60": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x188d00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x188ec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x189150": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x189270": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x189320": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1893e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x189450": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1894d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x189540": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1896d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x189860": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x189a20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x189ba0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x189c40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x189cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x189de0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18a000": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18a110": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18a190": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18a370": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18a3e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18a580": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18a650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18a770": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18a860": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18a990": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18a9d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18aa00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18ab30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x18ac50": {
       "kind": "function",
       "status": "ported"
     },
@@ -20597,6 +22217,22 @@
       ]
     },
     "0x190500": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x190550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x190670": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x190690": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1906b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -20774,7 +22410,19 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x191690": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1916d0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x191700": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191750": {
       "kind": "function",
       "status": "ported"
     },
@@ -20802,7 +22450,35 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x191ba0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191bd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191c70": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x191cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191d80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191de0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191e90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x191ff0": {
       "kind": "function",
       "status": "ported"
     },
@@ -20821,7 +22497,7 @@
     },
     "0x192390": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "inferred": [
         "Parameter names bsp/leaf_index/out_center/out_radius are inferred from use, not from string or PDB evidence; the binary only proves the ABI shape (4 cdecl stack params, void return) and that param 1 is a tag base dereferenced at +0, +4, +0xc and +0x10."
       ],
@@ -20829,6 +22505,14 @@
         "The 6-float seed behind PTR 0x31fc6c is transcribed as a raw qmemcpy of 0x18 bytes because the pointed-to initial-bounds array has no kb symbol; its contents are unverified, only its 24-byte size (REP MOVSD ECX=6 at ref+0x2e) is proven.",
         "Residual VC71 gap at 90.2 percent is three dominant-axis guards where the reference encodes the same less-than predicate as TEST AH,0x1 plus JNE while our lift emits TEST AH,0x5 plus JNP; the predicate is equivalent for ordered operands and the instruction counts are equal, so this is an encoding-form lever and not a bound-sense bug."
       ]
+    },
+    "0x1926a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x192710": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x192a50": {
       "kind": "function",
@@ -20839,6 +22523,14 @@
       "status": "ported"
     },
     "0x192f80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1931e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x193340": {
       "kind": "function",
       "status": "ported"
     },
@@ -20895,6 +22587,14 @@
         "summary": "Stores param_1 to 0x4d8eac, sets flag byte 0x4d8ea4, and accumulates delta into 0x4d8ea8 as (param_1 - old_value)."
       }
     },
+    "0x193a80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x193b00": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x193b80": {
       "kind": "function",
       "status": "ported",
@@ -20911,6 +22611,22 @@
       "inferred": [
         "Per-map reset: csmemset zeroes the full 0xa430-byte detail_object_global_runtime_data block (base at global 0x4d8ea0), then clears a single byte flag at base+0x520e; NULL-block guard tail-calls system_exit(-1) via the display_assert hard-exit (line 109)."
       ]
+    },
+    "0x193c00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x194070": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x194360": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x194380": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1943e0": {
       "kind": "function",
@@ -20930,6 +22646,82 @@
         "The float search offset in the final cluster-resolution loop (1.5258789e-05 doubling to 1.0) is allocated by MSVC into the dead parameter home slot [EBP+8]; VC71 does not reproduce that slot reuse from C source, which contributes part of the residual frame divergence."
       ]
     },
+    "0x1954d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1954e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195530": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195550": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195650": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1956d0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195790": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1959f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195b10": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195bc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195c40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195d00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195d40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195dc0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195e40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195ec0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x195f30": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x196060": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x196190": {
       "kind": "function",
       "status": "ported"
@@ -20947,6 +22739,10 @@
       "comments": {
         "summary": "Asserts 0x4d8ec8 is non-null, then zeroes the first byte of the decals globals block."
       }
+    },
+    "0x196330": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x1963a0": {
       "kind": "function",
@@ -20977,6 +22773,58 @@
       }
     },
     "0x1965f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1966b0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x196850": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x196c90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x196fd0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x197130": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x197310": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1974f0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x197570": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1975e0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1978a0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x197b00": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x197e90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x198070": {
       "kind": "function",
       "status": "ported"
     },
@@ -21052,6 +22900,10 @@
       "status": "ported"
     },
     "0x198cb0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x198f10": {
       "kind": "function",
       "status": "ported"
     },
@@ -23908,6 +25760,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c7650": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c76c0": {
       "kind": "function",
       "status": "ported"
@@ -23965,6 +25821,10 @@
       "status": "ported"
     },
     "0x1c8510": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c85a0": {
       "kind": "function",
       "status": "ported"
     },
@@ -24732,66 +26592,6 @@
     },
     "0x5065a4": {
       "kind": "data",
-      "status": "ported"
-    },
-    "0x12350": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2a90": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2ab0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2c70": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2df0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa2e40": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xa32e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xb4bf0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0xdce80": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x167ff0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x168500": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1688d0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1931e0": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c7650": {
-      "kind": "function",
-      "status": "ported"
-    },
-    "0x1c85a0": {
-      "kind": "function",
       "status": "ported"
     }
   }

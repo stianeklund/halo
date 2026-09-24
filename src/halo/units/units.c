@@ -834,7 +834,7 @@ void render_model_parts(int model_tag, int permutation_data, int *node_matrices,
                     /* Non-transparent shader */
                     if (*(short *)(shader_tag + 0x24) == 4) {
                       typed_shader =
-                        ((int (*)(int, int))FUN_001906b0)(shader_tag, 4);
+                        ((int (*)(int, int))shader_get_and_verify_type)(shader_tag, 4);
                       if ((*(unsigned char *)(typed_shader + 0x28) & 8) != 0) {
                         /* Environment-mapped shader — pass 1 */
                         if ((short)pass == 1) {
@@ -7634,13 +7634,13 @@ void unit_render_debug(int unit_handle)
     object_get_world_position(unit_handle, (vector3_t *)head_pos);
     head_pos[2] = head_pos[2] + 0.1f;
     /* Draw aim direction line (scale 1.0, yellow) */
-    FUN_00189320(1, eye_pos, (void *)(unit + 0x1ec), 1.0f, *(void **)0x2ee6c4);
+    render_debug_vector(1, eye_pos, (void *)(unit + 0x1ec), 1.0f, *(void **)0x2ee6c4);
     /* Draw aim direction line (scale 0.5, green) */
-    FUN_00189320(1, eye_pos, (void *)(unit + 0x1e0), 0.5f, *(void **)0x2ee6d0);
+    render_debug_vector(1, eye_pos, (void *)(unit + 0x1e0), 0.5f, *(void **)0x2ee6d0);
     /* Draw head position (scale 1.0, yellow) */
-    FUN_00189320(1, head_pos, (void *)(unit + 0x24), 1.0f, *(void **)0x2ee6c4);
+    render_debug_vector(1, head_pos, (void *)(unit + 0x24), 1.0f, *(void **)0x2ee6c4);
     /* Draw body direction (scale 0.5, green) */
-    FUN_00189320(1, head_pos, (void *)(unit + 0x1d4), 0.5f, *(void **)0x2ee6d0);
+    render_debug_vector(1, head_pos, (void *)(unit + 0x1d4), 0.5f, *(void **)0x2ee6d0);
   }
 
   /* Debug seat positions */
@@ -7658,9 +7658,9 @@ void unit_render_debug(int unit_handle)
           result = (char)unit_get_seat_enter_position(
             seat_count, unit_handle, (int16_t)seat_idx, seat_a, seat_b, seat_c);
           if (result != '\0') {
-            FUN_00189150(1, seat_a, 0.25f, *(void **)0x2ee6d0);
-            FUN_00189150(1, seat_b, 0.25f, *(void **)0x2ee6d8);
-            FUN_00189150(1, seat_c, 0.25f, *(void **)0x2ee6e0);
+            render_debug_point(1, seat_a, 0.25f, *(void **)0x2ee6d0);
+            render_debug_point(1, seat_b, 0.25f, *(void **)0x2ee6d8);
+            render_debug_point(1, seat_c, 0.25f, *(void **)0x2ee6e0);
           }
           seat_idx += 1;
         } while ((int)(short)seat_idx < *(int *)(unit_tag + 0x2e4));
@@ -7678,7 +7678,7 @@ void unit_render_debug(int unit_handle)
     head_pos[1] = *(float *)((char *)marker_data + 0x64);
     head_pos[2] = *(float *)((char *)marker_data + 0x68);
     text = csprintf((char *)0x5ab100, "%.2f", (double)*(float *)(unit + 0x298));
-    FUN_00189cb0(0, head_pos, text, *(int *)0x2ee6f0);
+    render_debug_string_at_point(0, head_pos, text, *(int *)0x2ee6f0);
   }
 }
 

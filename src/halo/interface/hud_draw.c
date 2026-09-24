@@ -141,7 +141,7 @@ LAB_000d32c9:
 
 /* Contiguous meter-parameters block that hud_draw_meter builds on its stack and
  * passes (as &meter_params) down through hud_draw_bitmap_with_meter -> hud_draw_bitmap_internal, which
- * stores it into render_desc[0].  The unported rasterizer FUN_0015f8e0
+ * stores it into render_desc[0].  The unported rasterizer __rasterizer_psuedo_dynamic_screen_quad_draw
  * (rasterizer_xbox_dynavobgeom.c) dereferences render_desc[0] as this struct
  * and reads fields at +0x10/+0x11 (tint modes) and +0x18 (gradient), which lie
  * past the four-dword color array.  These MUST be laid out contiguously with
@@ -201,7 +201,7 @@ void hud_draw_meter(int param_1, int param_2, int meter_def, int param_4,
   csmemset(guard, 0x62, 0x200);
   resolved_tag = verify_tag_reference((int *)(meter_def + 0x24));
   bitmap = (short *)tag_get(0x6269746d, resolved_tag);
-  bitmap_data = (int)FUN_00077040(*(int *)(meter_def + 0x30),
+  bitmap_data = (int)bitmap_group_get_bitmap_from_sequence(*(int *)(meter_def + 0x30),
                                   *(short *)(meter_def + 0x46), 0);
   hardware_format =
     (int)xbox_texture_cache_get_hardware_format((void *)bitmap_data, 0, 1);
@@ -335,7 +335,7 @@ void hud_draw_meter(int param_1, int param_2, int meter_def, int param_4,
         } else {
           alpha = *(float *)0x2533c8 - param_8;
         }
-        FUN_0007c270(color, 0, rgb_lower, rgb_upper, alpha);
+        rgb_colors_interpolate(color, 0, rgb_lower, rgb_upper, alpha);
         meter_params.color[0] = real_rgb_color_to_pixel32(color);
         meter_params.color[0] = meter_params.color[0] | (int)(short)meter_alpha
                                                           << 0x18;
@@ -401,7 +401,7 @@ void hud_draw_numbers(short local_player, void *element, void *position, int val
   int canary;
   int guard[128];
   int div_scratch; /* local_38 (loop quotient temp) */
-  int bitmap_data; /* local_28 (FUN_00077040 result) */
+  int bitmap_data; /* local_28 (bitmap_group_get_bitmap_from_sequence result) */
   short *source_bitmap; /* local_2c (bitm tag) */
   int color; /* local_1c (forwarded to d3200 color; raw int) */
   float base_x; /* local_18 (running float x before _ftol2) */
@@ -428,7 +428,7 @@ void hud_draw_numbers(short local_player, void *element, void *position, int val
   if (hud != -1) {
     hud = (int)tag_get(0x68756423, hud);
     source_bitmap = (short *)tag_get(0x6269746d, *(int *)(hud + 0xc));
-    bitmap_data = (int)FUN_00077040(*(int *)(hud + 0xc), 0, 0);
+    bitmap_data = (int)bitmap_group_get_bitmap_from_sequence(*(int *)(hud + 0xc), 0, 0);
     sVar8 = (short)value;
     special_big = (char)(999 < sVar8);
     gate =

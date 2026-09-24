@@ -44,7 +44,7 @@ bool shell_initialize(void)
     tag_files_close();
     real_math_initialize();
     game_state_lruv_cache_new();
-    result = rasterizer_window_set_fog();
+    result = rasterizer_initialize();
     if (result) {
       input_initialize();
       sound_initialize();
@@ -76,7 +76,7 @@ void shell_dispose(void)
 {
   FUN_001cb820();
   FUN_000cf490();
-  rasterizer_dynamic_screen_geometry_draw();
+  rasterizer_dispose();
   real_math_dispose();
   tag_groups_checksum();
   errors_dispose();

@@ -35,7 +35,7 @@
  *
  * Note on the hazard scan: the ARG_COUNT findings are expected. crt_sprintf
  * is variadic, so its 0x18/0x14 cleanups are 4+4+8+8 and 4+4+4+8; and the
- * 0x18 after FUN_00189cb0 (0x96f11) is its own 16 bytes plus the 8 bytes of
+ * 0x18 after render_debug_string_at_point (0x96f11) is its own 16 bytes plus the 8 bytes of
  * object_get_world_position's args that MSVC never popped separately. */
 void FUN_00096d70(int object_handle)
 {
@@ -73,7 +73,7 @@ void FUN_00096d70(int object_handle)
     position.x = up[0] * 0.4f + position.x;
     position.y = up[1] * 0.4f + position.y;
     position.z = up[2] * 0.4f + position.z;
-    FUN_00189cb0('\0', &position, buffer, *(int *)0x2ee6c4);
+    render_debug_string_at_point('\0', &position, buffer, *(int *)0x2ee6c4);
   }
 }
 

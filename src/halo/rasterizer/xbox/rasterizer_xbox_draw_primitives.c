@@ -67,7 +67,7 @@ static const char kDrawPrimitivesFile[] =
 #define dynamic_triangle_buffers ((struct dynamic_triangle_buffer *)0x47abe0)
 #define dynamic_triangles_buffer_count (*(int *)0x47dbe0)
 #define dynamic_triangles_d3d_index_buffer (*(void **)0x47dbe8)
-/* Byte cleared by _rasterizer_dynamic_triangles_lock; role unproven. */
+/* Byte cleared by __rasterizer_dynamic_triangles_lock; role unproven. */
 #define unk_47dbec (*(byte *)0x47dbec)
 #define aux_dynamic_unlit_vb (*(void **)0x47dbf0)
 /* Bit 0 selects aux_dynamic_unlit_vb over the unlit group's buffer; role
@@ -753,7 +753,7 @@ void rasterizer_draw(const triangle_buffer *triangle_buffer,
  * MSVC kept size_to_lock/ppb_data/flags in EDX/ECX/EAX and passed only the
  * first two operands on the stack (RET 8); the forwarded call at 0x15e77e
  * pushes them back in D3DVertexBuffer_Lock's declared order. */
-int FUN_0015e770(void *vertex_buffer, uint32_t offset_to_lock,
+int IDirect3DVertexBuffer8_Lock_1(void *vertex_buffer, uint32_t offset_to_lock,
                  uint32_t size_to_lock, void **ppb_data, uint32_t flags)
 {
   D3DVertexBuffer_Lock(vertex_buffer, offset_to_lock, size_to_lock, ppb_data,
@@ -765,7 +765,7 @@ int FUN_0015e770(void *vertex_buffer, uint32_t offset_to_lock,
  * The resource pointer arrives in EAX and the out-pointer in EDX; the three
  * stack operands (RET 0xc) are offset/size/flags, of which only the offset is
  * read.  The data pointer lives at +4 in the D3D resource header. */
-void FUN_0015e7a0(void *index_buffer, uint32_t offset_to_lock,
+void D3DIndexBuffer_Lock_0(void *index_buffer, uint32_t offset_to_lock,
                   uint32_t size_to_lock, void **ppb_data, uint32_t flags)
 {
   (void)size_to_lock;
@@ -774,7 +774,7 @@ void FUN_0015e7a0(void *index_buffer, uint32_t offset_to_lock,
 }
 
 /* 0x15e7d0 -- same shape as 0x15e7a0 but returns D3D_OK in EAX. */
-int FUN_0015e7d0(void *index_buffer, uint32_t offset_to_lock,
+int IDirect3DIndexBuffer8_Lock_0(void *index_buffer, uint32_t offset_to_lock,
                  uint32_t size_to_lock, void **ppb_data, uint32_t flags)
 {
   (void)size_to_lock;
@@ -934,7 +934,7 @@ void rasterizer_dynamic_geometry_dispose(void)
 }
 
 /* 0x15ea70 */
-void *_rasterizer_dynamic_triangles_lock(int dynamic_triangle_buffer_index)
+void *__rasterizer_dynamic_triangles_lock(int dynamic_triangle_buffer_index)
 {
   dynamic_triangle_buffer *dynamic_triangle_buffer;
   void *triangles;
@@ -984,7 +984,7 @@ void *_rasterizer_dynamic_triangles_lock(int dynamic_triangle_buffer_index)
 }
 
 /* 0x15eb90 */
-void _rasterizer_dynamic_triangles_unlock(int dynamic_triangle_buffer_index)
+void __rasterizer_dynamic_triangles_unlock(int dynamic_triangle_buffer_index)
 {
   if (global_d3d_device == 0) {
     display_assert("global_d3d_device", kDrawPrimitivesFile, 0x175, 1);
@@ -1013,7 +1013,7 @@ void _rasterizer_dynamic_triangles_unlock(int dynamic_triangle_buffer_index)
 }
 
 /* 0x15ec50 */
-void *_rasterizer_dynamic_vertices_lock(int dynamic_vertex_buffer_index)
+void *__rasterizer_dynamic_vertices_lock(int dynamic_vertex_buffer_index)
 {
   dynamic_vertex_buffer *dynamic_vertex_buffer;
   dynamic_vertex_group *group;
@@ -1089,7 +1089,7 @@ void *_rasterizer_dynamic_vertices_lock(int dynamic_vertex_buffer_index)
 }
 
 /* 0x15ee80 */
-void _rasterizer_dynamic_vertices_unlock(int dynamic_vertex_buffer_index)
+void __rasterizer_dynamic_vertices_unlock(int dynamic_vertex_buffer_index)
 {
   dynamic_vertex_buffer *dynamic_vertex_buffer;
   dynamic_vertex_group *group;

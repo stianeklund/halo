@@ -118,7 +118,7 @@ typedef struct packed_vertex_shader {
  * other shader is set with IDirect3DDevice8_SetVertexShader, which evicts the
  * packed set.
  */
-void FUN_00178b40(int vertex_shader_index, int vertex_type,
+void rasterizer_set_vertex_shader_permutation(int vertex_shader_index, int vertex_type,
                   int permutation_index)
 {
   const short *translation_table;

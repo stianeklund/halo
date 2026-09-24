@@ -964,7 +964,7 @@ char FUN_0005ff70(unsigned int *param_1)
 /* 0x00060070 — obstacle-disc bounds-checked accessor (path.h inline function,
  * instantiated standalone in path.obj; TU = c:\halo\source\ai\path.h).
  *
- * This is the SAME inline bounds check that FUN_00062410/FUN_00062020
+ * This is the SAME inline bounds check that obstacles_test_circle/obstacles_add_disc
  * (src/halo/structures/structures.c) each duplicate at their own call sites
  * — identical display_assert text, file string, and line number confirm it:
  *   "disc_index>=0 && disc_index<obstacles->disc_count &&
@@ -981,7 +981,7 @@ char FUN_0005ff70(unsigned int *param_1)
  * lifted call site of this same inline check.
  *
  * Returns &obstacles->disc[disc_index] (record pointer; record field types
- * are not established at this call site — see FUN_00062410/FUN_00062020 for
+ * are not established at this call site — see obstacles_test_circle/obstacles_add_disc for
  * confirmed individual field offsets within the 24-byte record).
  */
 void *FUN_00060070(void *obstacles, int16_t disc_index)

@@ -307,8 +307,8 @@ bool FUN_001becc0(void *bitmap_a, void *bitmap_b)
   int size_a;
   int size_b;
 
-  size_a = FUN_00183290(bitmap_a);
-  size_b = FUN_00183290(bitmap_b);
+  size_a = rasterizer_xbox_bitmap_get_pixel_data_size(bitmap_a);
+  size_b = rasterizer_xbox_bitmap_get_pixel_data_size(bitmap_b);
 
   return size_a - size_b > 0;
 }
@@ -520,7 +520,7 @@ void xbox_texture_cache_setup_d3d_texture(void *bitmap /* @<esi> */,
     desc <<= 4;
     desc |= (3 - (t10 != 1));
     desc <<= 4;
-    desc |= ((FUN_00183120(bitmap) + 1) << 16);
+    desc |= ((rasterizer_xbox_bitmap_get_max_mipmap_count(bitmap) + 1) << 16);
 
     ((int *)texture)[4] = 0;
     ((int *)texture)[3] =
@@ -621,7 +621,7 @@ void texture_cache_close(void)
 bool xbox_texture_cache_request(void *hardware_format, bool block)
 {
   int32_t min_block = *(int32_t *)((char *)hardware_format + 0x1c);
-  int cache_block_index = FUN_00183290(hardware_format);
+  int cache_block_index = rasterizer_xbox_bitmap_get_pixel_data_size(hardware_format);
 
   if (cache_block_index <= min_block) {
     cache_block_index = min_block;
@@ -728,7 +728,7 @@ void *xbox_texture_cache_get_hardware_format(void *hardware_format, bool block,
                    *(void **)0x4ea980, (void *)0x18ef30, (void *)0x1beb70);
       *(unsigned int *)0x4ea98c = system_milliseconds();
     }
-    result = rasterizer_get_default_hardware_format(hardware_format);
+    result = rasterizer_get_bitmap_default_hardware_format(hardware_format);
     if (!result) {
       display_assert("hardware_format",
                      "c:\\halo\\SOURCE\\cache\\xbox_texture_cache.c", 0x127,

@@ -21,10 +21,10 @@
 
 
 /* Forward declarations for callbacks passed to lruv_cache_new.
- * FUN_0015afa0 is the eviction callback; FUN_0015b0c0 is the lock-query
+ * rasterizer_decal_vertices_purge_proc is the eviction callback; rasterizer_decal_vertices_locked_proc is the lock-query
  * callback (both ported at their original addresses). */
-void FUN_0015afa0(int decal_index);
-bool FUN_0015b0c0(int decal_index);
+void rasterizer_decal_vertices_purge_proc(int decal_index);
+bool rasterizer_decal_vertices_locked_proc(int decal_index);
 
 /* D3DSURFACE_DESC mirror (Xbox D3D8, 0x1c bytes; desc buffer at EBP-0x30). */
 typedef struct {
@@ -44,7 +44,7 @@ typedef struct {
 } d3d_locked_rect_t;
 
 /* D3DVIEWPORT8 mirror (0x18 bytes; viewport buffer at EBP-0x18 in
- * FUN_00158140). */
+ * rasterizer_set_target). */
 typedef struct {
   unsigned int X; /* +0x00 */
   unsigned int Y; /* +0x04 */
@@ -56,7 +56,7 @@ typedef struct {
 
 /* 0x157e40
  *
- * rasterizer_present
+ * __rasterizer_present
  *
  * Presents the current back buffer to the display.  When a non-NULL
  * screenshot_bitmap with pixel data (bitmap+0x2c != 0) is supplied, the
@@ -84,7 +84,7 @@ typedef struct s_rectangle2d {
   int16_t right;
 } s_rectangle2d;
 
-void rasterizer_present(void *screenshot_bitmap, short *point)
+void __rasterizer_present(void *screenshot_bitmap, short *point)
 {
   bool ok;
   s_rectangle2d rect;
@@ -141,7 +141,7 @@ void rasterizer_present(void *screenshot_bitmap, short *point)
 
           h = (short)(*(short *)0x32565a - *(short *)0x325656);
           w = (short)(*(short *)0x325658 - *(short *)0x325654);
-          bpp = bitmap_format_bits_per_pixel(
+          bpp = bitmap_format_get_bits_per_pixel(
             *(short *)((char *)screenshot_bitmap + 0xc));
           nb = (int)bpp * (int)h;
 
@@ -165,15 +165,15 @@ void rasterizer_present(void *screenshot_bitmap, short *point)
           ok = true;
           goto present;
         } else {
-          error(2, "### ERROR rasterizer_present: failed to lock backbuffer surface");
+          error(2, "### ERROR __rasterizer_present: failed to lock backbuffer surface");
           ok = false;
         }
       } else {
-        error(2, "### ERROR rasterizer_present: failed to get backbuffer surface");
+        error(2, "### ERROR __rasterizer_present: failed to get backbuffer surface");
         ok = false;
       }
     } else {
-      error(2, "### ERROR rasterizer_present: invalid bitmap");
+      error(2, "### ERROR __rasterizer_present: invalid bitmap");
       ok = false;
     }
   }
@@ -192,7 +192,7 @@ present:
   *(unsigned __int64 *)0x325668 += 1;
 
   if (!ok) {
-    error(2, "### ERROR rasterizer_present failed");
+    error(2, "### ERROR __rasterizer_present failed");
   }
 }
 
@@ -224,7 +224,7 @@ present:
  * index*4 byte offset (movsx; shl esi,2; unscaled [esi+disp32] reused for
  * all three tables).
  */
-void FUN_001580b0(int framebuffer_blend_function)
+void rasterizer_set_framebuffer_blend_function(int framebuffer_blend_function)
 {
   short index;
   int offset;
@@ -254,10 +254,10 @@ void FUN_001580b0(int framebuffer_blend_function)
 
 /* 0x158140
  *
- * FUN_00158140 — select a render-target surface, bind it (with optional
+ * rasterizer_set_target — select a render-target surface, bind it (with optional
  * z-buffer), set the viewport to cover it, and optionally clear.
  *
- * Switch cases mirror FUN_001584f0's render-target table one dword later:
+ * Switch cases mirror rasterizer_set_target_as_texture's render-target table one dword later:
  * per-target D3D *surface* headers at 0x476a5c..0x476aac (vs the texture
  * headers at 0x476a54..0x476aa8).  Assert reasons: "mipmap_index==0" per
  * case, "d3d_surface" when the selected surface header is NULL,
@@ -300,7 +300,7 @@ void FUN_001580b0(int framebuffer_blend_function)
  *   do_clear     - char bool: issue D3DDevice_Clear
  *   zbuffer      - char bool: bind the target's z surface
  */
-void FUN_00158140(int target, int mipmap_index, uint32_t color, int do_clear,
+void rasterizer_set_target(int target, int mipmap_index, uint32_t color, int do_clear,
                   int zbuffer)
 {
   void *d3d_surface;
@@ -517,7 +517,7 @@ void FUN_00158140(int target, int mipmap_index, uint32_t color, int do_clear,
  *   target      - render-target index (switch on short)
  *   max_mipmap  - top mip level (used as short)
  */
-void FUN_001584f0(int stage, int target, int max_mipmap)
+void rasterizer_set_target_as_texture(int stage, int target, int max_mipmap)
 {
   void *d3d_texture;
   void *water_hdr;
@@ -717,7 +717,7 @@ void FUN_001584f0(int stage, int target, int max_mipmap)
  *
  *   bounds - uint16[4] screen rectangle {x0, y0, x1, y1}
  */
-void FUN_00158800(unsigned short *bounds)
+void rasterizer_secondary_render_target_debug(unsigned short *bounds)
 {
   /* 20-float (5 vertex-shader constant) upload block; must stay one
    * contiguous array so the constants lay out ebp-0x50..ebp-0x4. */
@@ -740,7 +740,7 @@ void FUN_00158800(unsigned short *bounds)
   }
 
   if (*(char *)0x325703 != 0 && *(short *)0x5a5bc0 == 0) {
-    FUN_001584f0(0, 1, 0);
+    rasterizer_set_target_as_texture(0, 1, 0);
     D3DDevice_SetTextureStageState(0, 0xa, 3);
     D3DDevice_SetTextureStageState(0, 0xb, 3);
     D3DDevice_SetTextureStageState(0, 0xd, 2);
@@ -757,7 +757,7 @@ void FUN_00158800(unsigned short *bounds)
     D3DDevice_SetRenderState_ZEnable(0);
     D3DDevice_SetRenderState_ZBias(0);
 
-    FUN_00178b40(4, 8, 0);
+    rasterizer_set_vertex_shader_permutation(4, 8, 0);
 
     /* viewport height from the 16-bit .hi (y) fields, sign-extended */
     height = (short)(*(short *)0x5a5bfa - *(short *)0x5a5bf6);
@@ -835,7 +835,7 @@ void FUN_00158800(unsigned short *bounds)
  * though Ghidra decompiles them as void(void) cdecl. Original call sites:
  * case 0 pushes 0 (disable); cases 1-3 push ESI=1 for StencilEnable and
  * 0x1e00 (D3DSTENCILOP_KEEP) for StencilFail, with NO caller cleanup.
- * Calling them arg-less drifted ESP +4 per call; inlined into FUN_00158df0
+ * Calling them arg-less drifted ESP +4 per call; inlined into __rasterizer_window_begin
  * this turned the epilogue RET into a jump onto the stack -> boot #PF at
  * CR2=0xfffffff5 (fixed 2026-07-11).
  *
@@ -850,7 +850,7 @@ void FUN_00158800(unsigned short *bounds)
  *
  *   param_1 - requested stencil mode (used as short)
  */
-void FUN_00158ae0(int param_1)
+void rasterizer_set_stencil_mode(int param_1)
 {
   short sVar1;
 
@@ -954,7 +954,7 @@ void FUN_00158ae0(int param_1)
 }
 
 /*
- * FUN_00158df0 (0x158df0) — rasterizer scene render begin
+ * __rasterizer_window_begin (0x158df0) — rasterizer scene render begin
  *
  * Ghidra mis-declares this as void(void); the real ABI is a single cdecl
  * stack pointer parameter (`parameters`, a ushort/struct pointer). Copies the
@@ -977,16 +977,16 @@ void FUN_00158ae0(int param_1)
  * Field offsets (parameters is a ushort pointer):
  *   parameters[0]  byte +0x00  render target index (only 0 or 1 supported)
  *   parameters[1]  byte +0x02  target id (0xffff = special/main target)
- *   byte +0x05                 bool selector for FUN_00158140 arg4
+ *   byte +0x05                 bool selector for rasterizer_set_target arg4
  *   float +0x44                camera.z_near
  *
  * All four assert terminals are PUSH -1 (or PUSH EDI with EDI still -1 from
  * the OR EDI,-1 at 0x158e54) then CALL 0x8e2f0 = system_exit(-1) — NOT
  * halt_and_catch_fire (the first parked lift substituted hcf at all four
- * sites; review-gate REJECT, same anti-pattern as FUN_0015c680).
+ * sites; review-gate REJECT, same anti-pattern as rasterizer_detail_objects_dispose).
  */
 /* 0x158df0 */
-void FUN_00158df0(unsigned short *parameters)
+void __rasterizer_window_begin(unsigned short *parameters)
 {
   unsigned int color_pixel;
   char same_target;
@@ -1021,21 +1021,21 @@ void FUN_00158df0(unsigned short *parameters)
   *(unsigned short *)0x476abc = parameters[1];
 
   if (same_target == 0) {
-    rasterizer_memory_pool_reset();
-    FUN_0015d060();
+    rasterizer_memory_pool_begin();
+    rasterizer_dynamic_geometry_begin();
     rasterizer_transparent_geometry_begin();
-    FUN_001659f0();
-    FUN_001812b0();
+    rasterizer_environment_fog_screen_window_begin();
+    rasterizer_lights_begin();
   }
   /* Disasm: push 0 before 0x1792c0 and 0x1592e0, no push before 0x16f880,
    * push 0 before 0x158ae0, push (parameters+0x1e8) before 0x17c8f0;
    * one deferred ADD ESP,0x10 cleans all four dword args. The decompiler
    * dropped the first, second and fifth arguments. */
-  FUN_001792C0(0);
-  FUN_001592e0(0);
-  FUN_0016f880();
-  FUN_00158ae0(0);
-  rasterizer_environment_fog_screen_end((char *)parameters + 0x1e8);
+  rasterizer_water_set_visibility_for_window(0);
+  rasterizer_active_camouflage_set_visibility(0);
+  rasterizer_profile_window_begin();
+  rasterizer_set_stencil_mode(0);
+  rasterizer_window_set_fog((char *)parameters + 0x1e8);
 
   if (*(short *)0x3256bc == 1) {
     color_pixel = 0;
@@ -1044,12 +1044,12 @@ void FUN_00158df0(unsigned short *parameters)
   }
 
   if (*parameters == 0 || *parameters == 1) {
-    FUN_0016f910(0);
+    rasterizer_profile_begin(0);
     /* arg4 is a byte-wide bool; Ghidra's CONCAT31(extraout_EAX>>8,...) is an
      * artifact of the bool being built in EAX — the upper bytes are garbage. */
-    FUN_00158140((unsigned int)*parameters, 0, color_pixel,
+    rasterizer_set_target((unsigned int)*parameters, 0, color_pixel,
                  (*((char *)parameters + 5) == 0), 1);
-    FUN_0016fa40(0);
+    rasterizer_profile_end(0);
     if (*parameters == 0 && *(float *)((char *)parameters + 0x44) == 0.0f) {
       display_assert("parameters->camera.z_near!=0.0f",
                      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
@@ -1071,7 +1071,7 @@ void FUN_00158df0(unsigned short *parameters)
 }
 
 /*
- * FUN_00158f90 (0x158f90)
+ * __rasterizer_window_end (0x158f90)
  *
  * Per-frame rasterizer render-pass dispatcher.  Asserts the D3D device is
  * present (assert line 0x61f in rasterizer_xbox.c), optionally clears the
@@ -1079,21 +1079,21 @@ void FUN_00158df0(unsigned short *parameters)
  * when the split-screen gate is clear, then runs a fixed sequence of
  * sub-render passes, each gated by a global flag.
  *
- * The FUN_00158800 pass is handed a 4-element uint16 screen-bounds rect
- * (built on the stack) that FUN_00158800 reads as bounds[0..3] to emit a
+ * The rasterizer_secondary_render_target_debug pass is handed a 4-element uint16 screen-bounds rect
+ * (built on the stack) that rasterizer_secondary_render_target_debug reads as bounds[0..3] to emit a
  * screen-space quad.  Store order below matches the original (offsets 2, 6,
  * 0, 4) for codegen fidelity.
  *
  * Globals (hardcoded, not in kb.json):
  *   0x476ab0  void *  - global_d3d_device (IDirect3DDevice8 pointer)
  *   0x3256ea  short   - split-screen clear gate (0 => issue the Clear)
- *   0x5a5bc4  char    - gate for FUN_00158800
+ *   0x5a5bc4  char    - gate for rasterizer_secondary_render_target_debug
  *   0x5a5bc2  short   - mode sentinel; -1 (0xFFFF) => 0x17ebb0/0x17ef00 passes
  *   0x476ab8  char    - when non-zero, suppress the main pass sequence
- *   0x5a5400  void *  - argument passed to FUN_0017ebb0
+ *   0x5a5400  void *  - argument passed to rasterizer_frame_statistics_get_fps
  */
 /* 0x158f90 */
-void FUN_00158f90(void)
+void __rasterizer_window_end(void)
 {
   short window_count;
   unsigned short bounds[4];
@@ -1117,29 +1117,29 @@ void FUN_00158f90(void)
     bounds[3] = 0x280; /* 640 */
     bounds[0] = 0x0;
     bounds[2] = 0x60; /* 96 */
-    FUN_00158800(bounds);
+    rasterizer_secondary_render_target_debug(bounds);
   }
 
   if (*(short *)0x5a5bc2 == -1) {
-    FUN_0017ebb0((void *)0x5a5400);
-    rasterizer_frame_statistics_update();
+    rasterizer_frame_statistics_get_fps((void *)0x5a5400);
+    rasterizer_frame_statistics_draw();
   }
 
   if (*(char *)0x476ab8 == 0) {
-    FUN_001825d0();
-    FUN_0015d160();
-    FUN_00184680();
-    FUN_00165a00();
-    FUN_00181410();
-    FUN_0017e030();
-    FUN_0017e010();
+    rasterizer_memory_pool_end();
+    rasterizer_dynamic_geometry_end();
+    rasterizer_transparent_geometry_end();
+    rasterizer_environment_fog_screen_window_end();
+    rasterizer_lights_end();
+    rasterizer_debug_end();
+    rasterizer_debug_begin();
   }
 
-  FUN_0016FEB0();
+  rasterizer_profile_window_end();
 }
 
 /*
- * FUN_00159070  @ 0x159070  (rasterizer_decals.obj)
+ * real_alpha_to_pixel32  @ 0x159070  (rasterizer_decals.obj)
  * -----------------------------------------------------------------------------
  * real_alpha_to_pixel32-style inline from ..\bitmaps\bitmaps_inlines.h
  * (line 0x123): converts a [0,1] alpha float to a pixel32 with the alpha
@@ -1161,7 +1161,7 @@ void FUN_00158f90(void)
  *    FLD alpha; FCOMP 1.0f (test ah,0x41; jnp body) — i.e.
  *    !(alpha >= 0.0f && alpha <= 1.0f) with the assert as fall-through.
  */
-uint32_t FUN_00159070(float alpha)
+uint32_t real_alpha_to_pixel32(float alpha)
 {
   volatile float scale;
   int pixel;
@@ -1179,7 +1179,7 @@ uint32_t FUN_00159070(float alpha)
 }
 
 /*
- * FUN_001592e0  @ 0x1592e0  (rasterizer_decals.obj)
+ * rasterizer_active_camouflage_set_visibility  @ 0x1592e0  (rasterizer_decals.obj)
  * -----------------------------------------------------------------------------
  * Decal-state enable setter. Stores the incoming byte flag to the decal-state
  * enable global (0x476ac0). When the flag is cleared (enable == 0), it also
@@ -1191,7 +1191,7 @@ uint32_t FUN_00159070(float alpha)
  * Store order (enable byte, then 0x476ac4 word, then 0x476ac1 byte) preserved
  * from the decompile.
  */
-void FUN_001592e0(char enable)
+void rasterizer_active_camouflage_set_visibility(char enable)
 {
   *(char *)0x476ac0 = enable;
   if (enable == '\0') {
@@ -1209,15 +1209,15 @@ static const char kActiveCamoFile[] =
  * enabled for this frame (byte gates 0x3256f9 debug-enable and 0x476ac0
  * per-frame flag), draws one full-screen 320x240 quad through the
  * active-camouflage pixel shader into the render target, then hands the
- * result to the camo texture manager (FUN_00158800) with a bounds rect
+ * result to the camo texture manager (rasterizer_secondary_render_target_debug) with a bounds rect
  * derived from the 16-bit frame counter at 0x476ac4.
  *
  * All facts below decoded from the delinked reference
  * delinked/functions/001595c0.obj and the pristine XBE:
  *   - Both assert tails are PUSH -1; CALL 0x8e2f0 = system_exit(-1)
  *     (XBE-verified at 0x1595e2/e4 and 0x159623/25; a parked lift twice
- *     claimed halt_and_catch_fire here — same anti-pattern as FUN_0015c680
- *     and FUN_00158df0, both review-gate REJECTs).
+ *     claimed halt_and_catch_fire here — same anti-pattern as rasterizer_detail_objects_dispose
+ *     and __rasterizer_window_begin, both review-gate REJECTs).
  *   - Guard bytes: MOV AL,[0x3256f9] / MOV AL,[0x476ac0], both JE end.
  *   - Render-target assert compare is 16-bit: CMP WORD PTR [0x5a5bc0],0.
  *   - SetRenderState_Simple(0x40358, 0x10101) — NV2A SET_COLOR_MASK,
@@ -1230,8 +1230,8 @@ static const char kActiveCamoFile[] =
  *     0x3f800000 (literals verified to round-trip to these encodings).
  *   - Quad texcoords are 16-bit globals: u from 0x5a5bf6/0x5a5bfa, v from
  *     0x5a5bf8/0x5a5bf4, all zero-extended (XOR reg,reg; MOV reg16).
- *   - Second FUN_00158140 first arg is the zero-extended WORD at 0x5a5bc0.
- *   - Bounds buffer at ebp-0x8, 4x uint16 passed to FUN_00158800:
+ *   - Second rasterizer_set_target first arg is the zero-extended WORD at 0x5a5bc0.
+ *   - Bounds buffer at ebp-0x8, 4x uint16 passed to rasterizer_secondary_render_target_debug:
  *     [0]=((f*3+3)<<5) low16, [1]=0x200, [2]=((f*3+6)<<5) low16, [3]=0x280,
  *     f = full 32-bit dword read of 0x476ac4 (LEA [EAX+EAX*2+n]; SHL 5).
  *   - Frame counter update is INC WORD PTR [0x476ac4] (low 16 bits only),
@@ -1241,12 +1241,12 @@ static const char kActiveCamoFile[] =
  * c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_active_camouflage.c
  * (asserts at source lines 0x29 and 0x2e).
  */
-void FUN_001595c0(void)
+void rasterizer_active_camouflage_cache_primary_render_target(void)
 {
   /* 20-float (5 vertex-shader constant) upload block; must stay one
    * contiguous array so the constants are laid out ebp-0x58..ebp-0x9. */
   float vs[20];
-  /* 4x uint16 bounds rect at ebp-0x8, passed whole to FUN_00158800. */
+  /* 4x uint16 bounds rect at ebp-0x8, passed whole to rasterizer_secondary_render_target_debug. */
   unsigned short bounds[4];
 
   if (*(int *)0x476ab0 == 0) {
@@ -1263,7 +1263,7 @@ void FUN_001595c0(void)
       system_exit(-1);
     }
 
-    FUN_001584f0(0, 0, 0);
+    rasterizer_set_target_as_texture(0, 0, 0);
 
     D3DDevice_SetTextureStageState(0, 0xa, 3);
     D3DDevice_SetTextureStageState(0, 0xb, 3);
@@ -1282,7 +1282,7 @@ void FUN_001595c0(void)
     D3DDevice_SetRenderState_ZEnable(0);
     D3DDevice_SetRenderState_ZBias(0);
 
-    FUN_00178b40(4, 8, 0);
+    rasterizer_set_vertex_shader_permutation(4, 8, 0);
 
     /* 5 vec4 vertex-shader constants (c[-0x44..-0x40]); literal bit
      * patterns per the reference: see block comment above. */
@@ -1316,8 +1316,8 @@ void FUN_001595c0(void)
     *(uint32_t *)0x5a5ae0 = 8;
     rasterizer_set_pixel_shader((void *)0x5a5ac0);
 
-    FUN_00158140(1, 0, 0, 0, 0);
-    FUN_00158ae0(0);
+    rasterizer_set_target(1, 0, 0, 0, 0);
+    rasterizer_set_stencil_mode(0);
 
     /* full-screen 320x240 quad; texcoords are the 16-bit viewport-rect
      * globals, zero-extended (order per reference relocations). */
@@ -1338,8 +1338,8 @@ void FUN_001595c0(void)
 
     /* first arg is the zero-extended WORD at 0x5a5bc0 (XOR EAX,EAX;
      * MOV AX,[0x5a5bc0]) — asserted 0 above, but re-read here. */
-    FUN_00158140(*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
-    FUN_00158ae0(2);
+    rasterizer_set_target(*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
+    rasterizer_set_stencil_mode(2);
 
     {
       /* bounds math reads the FULL 32-bit dword at 0x476ac4 */
@@ -1348,7 +1348,7 @@ void FUN_001595c0(void)
       bounds[3] = 0x280;
       bounds[0] = (unsigned short)((frame * 3 + 3) << 5);
       bounds[2] = (unsigned short)((frame * 3 + 6) << 5);
-      FUN_00158800(bounds);
+      rasterizer_secondary_render_target_debug(bounds);
     }
 
     {
@@ -1364,7 +1364,7 @@ void FUN_001595c0(void)
   }
 }
 
-/* rasterizer_xbox_active_camouflage_draw (FUN_00159900): emit the
+/* rasterizer_xbox_active_camouflage_draw (rasterizer_active_camouflage_draw): emit the
  * active-camouflage transparent draw for one geometry group. The effect has
  * two regimes selected by the fade intensity (group->effect.intensity at
  * +0x18):
@@ -1411,10 +1411,10 @@ typedef struct {
   uint32_t field_c8; /* +0xc8: *(uint32_t *)(grp + 0x40) (v scale bits) */
 } s_camo_geometry_pass; /* 0xcc bytes */
 
-void FUN_00159900(void *group)
+void rasterizer_active_camouflage_draw(void *group)
 {
   char *grp = (char *)group;
-  char *pv; /* FUN_001906b0(shader, 4): resolved shader params base (edi) */
+  char *pv; /* shader_get_and_verify_type(shader, 4): resolved shader params base (edi) */
   char *cam; /* *(char **)0x476204: active camera / view-parameters block */
   int cull; /* computed CullMode select */
   float fv; /* 1.0f - group->effect fade (+0x1c) */
@@ -1465,7 +1465,7 @@ void FUN_00159900(void *group)
     return;
   }
 
-  pv = (char *)FUN_001906b0(*(void **)(grp + 0xc), 4);
+  pv = (char *)shader_get_and_verify_type(*(void **)(grp + 0xc), 4);
 
   /* --- debug asserts (source lines 0xa4..0xa5) --- */
   if (*(char *)0x476ac1 == 0) {
@@ -1520,10 +1520,10 @@ void FUN_00159900(void *group)
     *(uint32_t *)0x1fb77c = 0x203;
     D3DDevice_SetRenderState_ZBias(0);
 
-    FUN_00178b40(0xd, FUN_00184610(group), 0);
+    rasterizer_set_vertex_shader_permutation(0xd, rasterizer_transparent_geometry_get_primary_vertex_type(group), 0);
 
     /* vs row 0: distortion scale (raw copy + product); rows 1-2 hold the
-     * animated scroll matrix filled by FUN_00190e10 (out ptrs &vs[4]/&vs[8]),
+     * animated scroll matrix filled by shader_texture_animation_evaluate (out ptrs &vs[4]/&vs[8]),
      * seeded with identity. */
     vs[0] = *(float *)(pv + 0xd8);
     vs[1] = *(float *)(pv + 0xec) * *(float *)(pv + 0xd8);
@@ -1537,7 +1537,7 @@ void FUN_00159900(void *group)
     vs[9] = 1.0f;
     vs[10] = 0.0f;
     vs[11] = 0.0f;
-    FUN_00190e10((void *)(pv + 0xfc), *(void **)(grp + 0x6c),
+    shader_texture_animation_evaluate((void *)(pv + 0xfc), *(void **)(grp + 0x6c),
                  *(float *)(pv + 0x9c) * *(float *)(grp + 0x3c),
                  *(float *)(pv + 0xa0) * *(float *)(grp + 0x40), 0.0f, 0.0f,
                  0.0f, *(float *)0x5a5e18, &vs[4], &vs[8]);
@@ -1549,7 +1549,7 @@ void FUN_00159900(void *group)
     *(uint32_t *)0x5a5b94 = 1;
     *(uint32_t *)0x5a5ae4 = 0x1800;
     rasterizer_set_pixel_shader((void *)0x5a5ac0);
-    FUN_00174510(group, 0);
+    rasterizer_transparent_geometry_group_draw__internal(group, 0);
   } else {
     /* ---- SLOW PATH: partial fade, render silhouette geometry first ---- */
     desc.flags = *(int *)grp & 0x80;
@@ -1572,16 +1572,16 @@ void FUN_00159900(void *group)
     } else {
       csmemset(desc.tc, 0, 8);
     }
-    rasterizer_psuedo_dynamic_screen_quad_draw(0);
-    FUN_0017d1a0(0);
+    rasterizer_profile_enable(0);
+    rasterizer_models_begin(0);
     FUN_0017cbb0(&desc, 1);
     FUN_0017cbc0(*(int *)(grp + 0xc), *(unsigned short *)(grp + 0x10),
                  *(int *)(grp + 0x48), *(int *)(grp + 0x44),
                  *(int *)(grp + 0x50), *(int *)(grp + 0x58),
                  *(int *)(grp + 0x54));
-    FUN_0016b1c0();
-    FUN_0016b240();
-    rasterizer_psuedo_dynamic_screen_quad_draw(1);
+    __rasterizer_model_end();
+    __rasterizer_models_end();
+    rasterizer_profile_enable(1);
   }
 
   /* ---- COMMON SECOND PASS: screen-space distortion ---- */
@@ -1594,7 +1594,7 @@ void FUN_00159900(void *group)
   D3DDevice_SetTextureStageState(0, 0xd, 2);
   D3DDevice_SetTextureStageState(0, 0xe, 2);
   D3DDevice_SetTextureStageState(0, 0xf, 2);
-  FUN_001584f0(2, 1, 0);
+  rasterizer_set_target_as_texture(2, 1, 0);
   D3DDevice_SetTextureStageState(2, 0xa, 3);
   D3DDevice_SetTextureStageState(2, 0xb, 3);
   D3DDevice_SetTextureStageState(2, 0xd, 2);
@@ -1628,7 +1628,7 @@ void FUN_00159900(void *group)
     SetRenderStateSmart(0x3b, 0);
   }
 
-  FUN_00178b40(0x40, FUN_00184610(group), 0);
+  rasterizer_set_vertex_shader_permutation(0x40, rasterizer_transparent_geometry_get_primary_vertex_type(group), 0);
 
   /* Screen-space distortion matrix: lerp camera-matrix rows (view-params
    * block at *(char **)0x476204, current row at +0x174.. vs target row at
@@ -1672,11 +1672,11 @@ void FUN_00159900(void *group)
     (-(int)((*(unsigned char *)(*(char **)0x476204 + 0x170) & 1) != 0) &
      (int)0x34001804) +
     0x4200000;
-  *(uint32_t *)0x5a5b6c = FUN_00159070(*(float *)(grp + 0x18));
+  *(uint32_t *)0x5a5b6c = real_alpha_to_pixel32(*(float *)(grp + 0x18));
   *(uint32_t *)0x5a5ae0 = 0xa0c0000;
   *(uint32_t *)0x5a5ae4 = 0x1100;
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
-  FUN_00174510(group, 0);
+  rasterizer_transparent_geometry_group_draw__internal(group, 0);
 
   /* Restore the default depth range. */
   if (*(char *)grp < 0) {
@@ -1685,40 +1685,40 @@ void FUN_00159900(void *group)
 }
 
 /*
- * FUN_0015a290 @ 0x15a290 — empty function in the binary (single RET;
+ * rasterizer_debug_drawing_end @ 0x15a290 — empty function in the binary (single RET;
  * three live call sites). The faithful lift is an empty body.
  */
 /* 0x15a290 */
-void FUN_0015a290(void)
+void rasterizer_debug_drawing_end(void)
 {
 }
 
 /*
- * FUN_0015a4c0 @ 0x15a4c0 — empty function in the binary (single RET;
+ * __rasterizer_debug_immediate_end @ 0x15a4c0 — empty function in the binary (single RET;
  * no direct call sites).
  */
 /* 0x15a4c0 */
-void FUN_0015a4c0(void)
+void __rasterizer_debug_immediate_end(void)
 {
 }
 
 /*
- * FUN_0015a4e0 @ 0x15a4e0 — empty function in the binary (single RET;
+ * __rasterizer_debug_immediate_end_screenspace @ 0x15a4e0 — empty function in the binary (single RET;
  * reached only via the tail-call thunk at 0x17ca70).
  */
 /* 0x15a4e0 */
-void FUN_0015a4e0(void)
+void __rasterizer_debug_immediate_end_screenspace(void)
 {
 }
 
 /*
- * FUN_0015a4f0 @ 0x15a4f0 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_SetVertexData4f_3 @ 0x15a4f0 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetVertexData4f. __stdcall (RET 0x18 = 6 stack args),
  * ignores the device argument, forwards (reg, a, b, c, d) to
  * D3DDevice_SetVertexData4f, returns S_OK. No direct call sites.
  */
 /* 0x15a4f0 */
-int __stdcall FUN_0015a4f0(void *device, uint32_t reg, float a, float b,
+int __stdcall IDirect3DDevice8_SetVertexData4f_3(void *device, uint32_t reg, float a, float b,
                            float c, float d)
 {
   (void)device;
@@ -1743,7 +1743,7 @@ int __stdcall FUN_0015a4f0(void *device, uint32_t reg, float a, float b,
  * c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_debug.c (line 0x13); grouped
  * into rasterizer_decals.obj. cdecl, one byte-bool stack arg at [esp+4].
  */
-void FUN_0015a560(char additive)
+void rasterizer_debug_drawing_begin(char additive)
 {
   if (*(int *)0x476ab0 == 0) {
     display_assert("global_d3d_device",
@@ -1756,7 +1756,7 @@ void FUN_0015a560(char additive)
     return;
   }
 
-  FUN_00178b40(0, 9, 0);
+  rasterizer_set_vertex_shader_permutation(0, 9, 0);
   D3DDevice_SetRenderState_CullMode(0);
   D3DDevice_SetRenderState_Simple(0x40354, 0x203);
   *(uint32_t *)0x1fb77c = 0x203;
@@ -1797,14 +1797,14 @@ void FUN_0015a560(char additive)
 /* 0x15a700
  *
  * Program the D3D render state for a decal-render pass and install the decal
- * pixel shader. Unlike the neighbouring FUN_0015a560 this variant takes no
+ * pixel shader. Unlike the neighbouring rasterizer_debug_drawing_begin this variant takes no
  * arguments, has no per-frame gate byte, and uses a fixed (single) blend
  * configuration: CULL off, ALPHABLENDENABLE off (0x40304=0), no separate-alpha
  * blend (0x40300=0), STENCILFUNC=0x203 (D3DCMP_LESSEQUAL, 0x40354), ZENABLE on,
  * BLENDOP=1 (D3DBLENDOP_ADD, 0x4035c), then ZBias from the global at 0x32570c.
  *
  * Each *(uint32_t *)0x1fbXXX write is the host-side shadow copy of the D3D
- * renderstate just programmed (same shadow globals as FUN_0015a560); preserve
+ * renderstate just programmed (same shadow globals as rasterizer_debug_drawing_begin); preserve
  * each store's value and its interleaved position relative to the D3D call.
  *
  * After the render-state block it clears the 0xf0-byte decal render-state
@@ -1815,7 +1815,7 @@ void FUN_0015a560(char additive)
  * c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_debug.c (line 0x51); the
  * linker grouped it into rasterizer_decals.obj. cdecl, no arguments.
  */
-void FUN_0015a700(void)
+void __rasterizer_debug_immediate_begin(void)
 {
   if (*(int *)0x476ab0 == 0) {
     display_assert("global_d3d_device",
@@ -1836,7 +1836,7 @@ void FUN_0015a700(void)
   D3DDevice_SetRenderState_Simple(0x4035c, 1);
   *(uint32_t *)0x1fb798 = 1;
   D3DDevice_SetRenderState_ZBias(*(uint32_t *)0x32570c);
-  FUN_00178b40(0, 9, 0);
+  rasterizer_set_vertex_shader_permutation(0, 9, 0);
   csmemset((void *)0x5a5ac0, 0, 0xf0);
   *(uint32_t *)0x5a5b98 = 0;
   *(uint32_t *)0x5a5b94 = 1;
@@ -1850,7 +1850,7 @@ void FUN_0015a700(void)
  *
  * Draws a single world-space debug line between two 3D points with optional
  * per-vertex color, using the D3D inline (Begin/SetVertexData4f/End) vertex
- * stream. The 3D counterpart to FUN_0015abe0 (which draws a 2D screen-space
+ * stream. The 3D counterpart to __rasterizer_debug_immediate_line_screenspace (which draws a 2D screen-space
  * line). Originally defined in rasterizer_xbox_debug.c (the assert __FILE__
  * string preserves that path); the linker grouped it into
  * rasterizer_decals.obj.
@@ -1864,7 +1864,7 @@ void FUN_0015a700(void)
  * D3DVSDE_DIFFUSE (color), register 0 = D3DVSDE_VERTEX (position). Each
  * SetVertexData4f pushes the three components plus a hard-coded w = 1.0f.
  */
-void FUN_0015a7f0(float *p0, float *p1, float *color0, float *color1)
+void __rasterizer_debug_immediate_line(float *p0, float *p1, float *color0, float *color1)
 {
   if (p0 == 0 || p1 == 0 || color0 == 0) {
     display_assert(
@@ -1882,7 +1882,7 @@ void FUN_0015a7f0(float *p0, float *p1, float *color0, float *color1)
   D3DDevice_Begin(2);
 
   /* The volatile y/z reads are a VC71 codegen shape lever only (same as
-   * FUN_0015a8f0): they reproduce the original's hybrid arg push (x via GPR
+   * __rasterizer_debug_immediate_triangle): they reproduce the original's hybrid arg push (x via GPR
    * mov+push, y/z via FLD/FSTP [ESP], 1.0f as an immediate push) under /O2.
    * A single read either way - semantics are unchanged. */
   D3DDevice_SetVertexData4f(9, color0[0], *(volatile float *)(color0 + 1),
@@ -1932,7 +1932,7 @@ void FUN_0015a7f0(float *p0, float *p1, float *color0, float *color1)
  * "global_d3d_device"; each pairs display_assert with system_exit(-1)
  * (push -1; call FUN_001029a0) and falls through, matching the binary.
  */
-void FUN_0015a8f0(float *p0, float *p1, float *p2, float *color0, float *color1,
+void __rasterizer_debug_immediate_triangle(float *p0, float *p1, float *p2, float *color0, float *color1,
                   float *color2)
 {
   if (p0 == 0 || p1 == 0 || p2 == 0 || color0 == 0) {
@@ -2004,7 +2004,7 @@ void FUN_0015a8f0(float *p0, float *p1, float *p2, float *color0, float *color1,
  * Render-state cache mirrors: 0x1fb784, 0x1fb788. Pixel-shader state block:
  * 0x5a5ac0 (0xf0 bytes), fields 0x5a5b98=0, 0x5a5b94=1, 0x5a5ae0=4.
  */
-void FUN_0015aa40(void)
+void __rasterizer_debug_immediate_begin_screenspace(void)
 {
   /* 20-float (5 vertex-shader constant) upload block; must stay one
    * contiguous array so the constants are laid out ebp-0x54..ebp-0x8. */
@@ -2029,7 +2029,7 @@ void FUN_0015aa40(void)
   D3DDevice_SetRenderState_ZEnable(0);
   D3DDevice_SetRenderState_ZBias(0);
 
-  FUN_00178b40(4, 8, 0);
+  rasterizer_set_vertex_shader_permutation(4, 8, 0);
 
   /* viewport height from the 16-bit .hi (y) fields, sign-extended */
   height = (short)(*(short *)0x5a5bfa - *(short *)0x5a5bf6);
@@ -2092,7 +2092,7 @@ void FUN_0015aa40(void)
  * zero-extended from the 16-bit screen coords. The trailing D3DDevice_End
  * is emitted by the original as a tail-call (JMP 0x1ed490).
  */
-void FUN_0015abe0(short *p0, short *p1, float *color0, float *color1)
+void __rasterizer_debug_immediate_line_screenspace(short *p0, short *p1, float *color0, float *color1)
 {
   unsigned int packed0;
   unsigned int packed1;
@@ -2162,7 +2162,7 @@ void FUN_0015abe0(short *p0, short *p1, float *color0, float *color1)
  * the sibling assert macro. Laid out at the function tail as fall-through
  * (the original's inverted nesting).
  */
-void FUN_0015acc0(short *points, int16_t point_count, float *color)
+void __rasterizer_debug_immediate_linestrip_screenspace(short *points, int16_t point_count, float *color)
 {
   unsigned int packed;
   unsigned int remaining;
@@ -2224,7 +2224,7 @@ void FUN_0015acc0(short *points, int16_t point_count, float *color)
  * datum_get(g_decals_data at 0x5aa8b8, decal_index) is re-read for each flag
  * check to match the original (0x15b020 and 0x15b05e); do not hoist.
  */
-void FUN_0015afa0(int decal_index)
+void rasterizer_decal_vertices_purge_proc(int decal_index)
 {
   char *decal;
   const char *reason;
@@ -2305,7 +2305,7 @@ LAB_0015b018:
  *   the branchy XOR AL,AL / MOV AL,1 pair.
  * Flag load is a single byte: MOV CL, byte ptr [EAX+2] (§24 — do not widen).
  */
-bool FUN_0015b0c0(int decal_index)
+bool rasterizer_decal_vertices_locked_proc(int decal_index)
 {
   char *decal;
 
@@ -2341,15 +2341,15 @@ ret_locked:
  * rasterizer_decals_register_callbacks
  *
  * Registers the LRUV local_vertex_cache delete/query callbacks. Asserts the
- * cache handle (initialized by rasterizer_decals_initialize) exists, then
- * installs FUN_0015afa0 as the eviction/delete callback and FUN_0015b0c0 as
+ * cache handle (initialized by __rasterizer_decals_initialize) exists, then
+ * installs rasterizer_decal_vertices_purge_proc as the eviction/delete callback and rasterizer_decal_vertices_locked_proc as
  * the lock-query callback via lruv_cache_set_callbacks.
  *
  * The two callbacks are referenced by address only (not called here), so no
- * push-order or FPU concerns. FUN_0015b0c0 returns bool at its address; the
+ * push-order or FPU concerns. rasterizer_decal_vertices_locked_proc returns bool at its address; the
  * cast to int(*)(int) matches the lruv_cache_set_callbacks query_cb slot.
  */
-void FUN_0015b150(void)
+void __rasterizer_decals_update_function_pointers(void)
 {
   if (*(void **)0x476adc == 0) {
     display_assert(
@@ -2357,32 +2357,32 @@ void FUN_0015b150(void)
       "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_decals.c", 0x74, 1);
     system_exit(-1);
   }
-  lruv_cache_set_callbacks(*(void **)0x476adc, FUN_0015afa0,
-                           (int (*)(int))FUN_0015b0c0);
+  lruv_cache_set_callbacks(*(void **)0x476adc, rasterizer_decal_vertices_purge_proc,
+                           (int (*)(int))rasterizer_decal_vertices_locked_proc);
 }
 
 /* 0x15b190
  *
- * rasterizer_decals_initialize_for_new_map
+ * __rasterizer_decals_initialize_for_new_map
  *
  * No-op in this build: the vertex cache is persistent across maps and does
  * not need per-map reinitialization.
  */
-void rasterizer_decals_initialize_for_new_map(void)
+void __rasterizer_decals_initialize_for_new_map(void)
 {
   return;
 }
 
 /* 0x15b1a0
  *
- * rasterizer_decals_dispose_from_old_map
+ * __rasterizer_decals_dispose_from_old_map
  *
  * Asserts the LRUV vertex cache exists, then clears all per-map decal state:
  *   1. Calls decals_unlock(true) to strip lock/permanent flags
  *      from every live decal datum and reset the global lock/permanent counts.
  *   2. Calls lruv_cache_dispose_all() to evict all cached vertex entries.
  */
-void rasterizer_decals_dispose_from_old_map(void)
+void __rasterizer_decals_dispose_from_old_map(void)
 {
   if (*(void **)0x476adc == 0) {
     display_assert(
@@ -2401,7 +2401,7 @@ void rasterizer_decals_dispose_from_old_map(void)
  * Asserts the LRUV vertex cache exists, resets decal state (non-full reset),
  * and evicts all cached vertex entries.
  */
-void FUN_0015b1e0(void)
+void __rasterizer_decals_flush(void)
 {
   if (*(void **)0x476adc == 0) {
     display_assert(
@@ -2420,7 +2420,7 @@ void FUN_0015b1e0(void)
  * Performs idle maintenance on the decal vertex LRUV cache (e.g. eviction
  * of stale entries).
  */
-void FUN_0015b220(void)
+void rasterizer_decal_vertices_begin_update(void)
 {
   lruv_idle(*(void **)0x476adc);
 }
@@ -2431,7 +2431,7 @@ void FUN_0015b220(void)
  * Asserts that cache_size exceeds sizeof(struct decal_vertex) (0x10 bytes)
  * and is aligned to that size, then forwards to the LRUV cache allocator
  * (FUN_0011de10). Returns the allocated block index, or NONE on failure. */
-int FUN_0015b460(uint32_t cache_size)
+int __rasterizer_decal_vertices_new(uint32_t cache_size)
 {
   if (cache_size <= 0x10) {
     display_assert(
@@ -2459,7 +2459,7 @@ int FUN_0015b460(uint32_t cache_size)
  * Asserts valid decal index and cache handle before forwarding to the
  * lruv-cache block removal helper.
  */
-void FUN_0015b530(int decal_index)
+void __rasterizer_decal_vertices_delete(int decal_index)
 {
   if (decal_index == -1) {
     display_assert(
@@ -2479,7 +2479,7 @@ void FUN_0015b530(int decal_index)
 }
 
 /*
- * FUN_0015b5a0 @ 0x15b5a0 — dead register-convention adapter for
+ * IDirect3DDevice8_DrawPrimitive_0 @ 0x15b5a0 — dead register-convention adapter for
  * IDirect3DDevice8::DrawPrimitive: primitive type arrives in EAX, the
  * device pointer (a1) is ignored, and the primitive count (a3) is
  * converted to a vertex count via the per-type {multiplier, addend}
@@ -2487,7 +2487,7 @@ void FUN_0015b530(int decal_index)
  * through with 0 in EAX (S_OK). No direct call sites; RET 0xC.
  */
 /* 0x15b5a0 */
-int FUN_0015b5a0(int index, int a1, int a2, int a3)
+int IDirect3DDevice8_DrawPrimitive_0(int index, int a1, int a2, int a3)
 {
   (void)a1;
   D3DDevice_DrawVertices(index, a2,
@@ -2500,17 +2500,17 @@ int FUN_0015b5a0(int index, int a1, int a2, int a3)
  *
  * Sets the appropriate rasterizer blend/render state for decals based on
  * the current decal rendering mode (global at 0x476ac8). If mode is 3
- * (shadow), calls FUN_00158ae0 to set up shadow state first. Then selects
+ * (shadow), calls rasterizer_set_stencil_mode to set up shadow state first. Then selects
  * a texture stage configuration from a local lookup table indexed by mode.
  */
-void FUN_0015b5e0(void)
+void __rasterizer_decals_end(void)
 {
   short mode;
   short stage_table[5];
 
   mode = *(short *)0x476ac8;
   if (mode == 3) {
-    FUN_00158ae0(2);
+    rasterizer_set_stencil_mode(2);
     mode = *(short *)0x476ac8;
   }
   stage_table[0] = 9;
@@ -2519,19 +2519,19 @@ void FUN_0015b5e0(void)
   stage_table[3] = 7;
   stage_table[4] = 0x14;
   if (mode >= 0 && mode < 5) {
-    FUN_0016fa40((int)stage_table[mode]);
+    rasterizer_profile_end((int)stage_table[mode]);
   }
 }
 
 /*
- * FUN_0015b650 @ 0x15b650 — dead register-convention adapter for
+ * IDirect3DDevice8_SetVertexData4ub @ 0x15b650 — dead register-convention adapter for
  * D3DDevice_SetVertexData4ub: g/b/a components arrive in EDX/ECX/EAX,
  * the register index (s2) and red component (s3) on the stack; s1 is
  * the ignored device pointer. Returns S_OK. No direct call sites;
  * RET 0xC.
  */
 /* 0x15b650 */
-int FUN_0015b650(int r1, int r2, int r3, int s1, int s2, int s3)
+int IDirect3DDevice8_SetVertexData4ub(int r1, int r2, int r3, int s1, int s2, int s3)
 {
   (void)s1;
   D3DDevice_SetVertexData4ub(s2, s3, r3, r2, r1);
@@ -2539,14 +2539,14 @@ int FUN_0015b650(int r1, int r2, int r3, int s1, int s2, int s3)
 }
 
 /*
- * FUN_0015b6a0 @ 0x15b6a0 — dead register-convention adapter for
+ * IDirect3DVertexBuffer8_Lock_3 @ 0x15b6a0 — dead register-convention adapter for
  * D3DVertexBuffer_Lock (0x1ef100, kb.json stub decl is void(void) so the
- * call uses the raw __stdcall cast, matching FUN_0015abe0): vertex buffer
+ * call uses the raw __stdcall cast, matching __rasterizer_debug_immediate_line_screenspace): vertex buffer
  * (s1) and offset (s2) on the stack, size/ppbData/flags in EDX/ECX/EAX.
  * Returns S_OK. No direct call sites; RET 8.
  */
 /* 0x15b6a0 */
-int FUN_0015b6a0(int r1, int r2, int r3, int s1, int s2)
+int IDirect3DVertexBuffer8_Lock_3(int r1, int r2, int r3, int s1, int s2)
 {
   ((void(__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
     (void *)s1, s2, r3, (void **)r2, r1);
@@ -2555,7 +2555,7 @@ int FUN_0015b6a0(int r1, int r2, int r3, int s1, int s2)
 
 /* 0x15b6d0
  *
- * rasterizer_decals_initialize
+ * __rasterizer_decals_initialize
  *
  * Allocates and registers the D3D decal vertex buffer, then creates the
  * LRUV vertex cache that maps decal indices to vertex-buffer ranges.
@@ -2573,7 +2573,7 @@ int FUN_0015b6a0(int r1, int r2, int r3, int s1, int s2)
  * lruv_cache_new args: (name, capacity=0xa00, max_locked=6,
  *                       entry_size=0x800, delete_cb, query_cb)
  */
-void rasterizer_decals_initialize(void)
+void __rasterizer_decals_initialize(void)
 {
   void *puVar1;
   void *iVar2;
@@ -2625,7 +2625,7 @@ void rasterizer_decals_initialize(void)
 
   /* Create the LRUV vertex cache */
   *(void **)0x476adc = lruv_cache_new("decal vertex cache", 0xa00, 6, 0x800,
-                                      FUN_0015afa0, (int (*)(int))FUN_0015b0c0);
+                                      rasterizer_decal_vertices_purge_proc, (int (*)(int))rasterizer_decal_vertices_locked_proc);
 
   if (*(void **)0x476adc == 0) {
     display_assert(
@@ -2679,7 +2679,7 @@ void rasterizer_decals_dispose(void)
  * lruv_block_get_address, then locks that region of the D3D vertex buffer. Sets
  * the GPU lock flag (0x325652) to 5 during the lock operation, clears it
  * afterward. Returns a pointer to the locked vertex buffer memory. */
-void *FUN_0015b890(int cache_index, uint32_t cache_size)
+void *__rasterizer_decal_vertices_lock(int cache_index, uint32_t cache_size)
 {
   uint32_t offset;
   void *locked_data;
@@ -2721,20 +2721,20 @@ void *FUN_0015b890(int cache_index, uint32_t cache_size)
 }
 
 /*
- * FUN_0015b960 @ 0x15b960 — empty function in the binary (single RET;
+ * __rasterizer_decal_vertices_unlock @ 0x15b960 — empty function in the binary (single RET;
  * no direct call sites).
  */
 /* 0x15b960 */
-void FUN_0015b960(void)
+void __rasterizer_decal_vertices_unlock(void)
 {
 }
 
 /*
- * FUN_0015b970 (0x15b970)  rasterizer_decals_begin / decal-layer render setup
+ * __rasterizer_decals_begin (0x15b970)  rasterizer_decals_begin / decal-layer render setup
  *
  * Sets up decal render state for a given decal layer (pass_index, 0..4).
  * Selects a rasterizer texture profile from a 5-entry local table via
- * FUN_0016f910, records the active layer in the 0x476ac8 shadow, and (when
+ * rasterizer_profile_begin, records the active layer in the 0x476ac8 shadow, and (when
  * the two early-out gates pass) resets the cached texture/blend state,
  * programs texture-stage + cull/z/alpha render state (each mirrored into the
  * 0x1fb7xx shadow copies), and rebuilds the 0xf0-byte pixel-shader/format
@@ -2742,7 +2742,7 @@ void FUN_0015b960(void)
  * 0x10).
  *
  * pass_index==3 forces alpha-blend on with alpha-ref 0x7f and switches
- * texture mode via FUN_00158ae0(4). Other layers latch 0x476ae2 from an FPU
+ * texture mode via rasterizer_set_stencil_mode(4). Other layers latch 0x476ae2 from an FPU
  * equality test (fld 0x5a5db8; fcomp 0x2533c8; test ah,0x44; jp) gated by
  * byte 0x325719; the latch selects stream format 3 (with extra combiner
  * dwords) vs 2 in the state block. Branch shape below mirrors the original
@@ -2772,7 +2772,7 @@ void FUN_0015b960(void)
  *
  * 0x15b970 / rasterizer_decals.obj
  */
-void FUN_0015b970(short pass_index)
+void __rasterizer_decals_begin(short pass_index)
 {
   short profile_table[6];
 
@@ -2790,7 +2790,7 @@ void FUN_0015b970(short pass_index)
   profile_table[4] = 0x14;
 
   if ((pass_index >= 0) && (pass_index < 5)) {
-    FUN_0016f910(profile_table[pass_index]);
+    rasterizer_profile_begin(profile_table[pass_index]);
   }
 
   *(short *)0x476ac8 = pass_index;
@@ -2835,7 +2835,7 @@ void FUN_0015b970(short pass_index)
     *(uint32_t *)0x1fb788 = 1;
     D3DDevice_SetRenderState_Simple(0x40340, 0x7f);
     *(uint32_t *)0x1fb78c = 0x7f;
-    FUN_00158ae0(4);
+    rasterizer_set_stencil_mode(4);
   } else {
     /* fld [0x5a5db8]; fcomp [0x2533c8]; test ah,0x44; jp — equality test;
      * the equal path latches 0x476ae2 and falls into the enable block. */
@@ -2854,7 +2854,7 @@ void FUN_0015b970(short pass_index)
   }
 
 LAB_0015bb9c:
-  FUN_00178b40(1, 10, 0);
+  rasterizer_set_vertex_shader_permutation(1, 10, 0);
   csmemset((void *)0x5a5ac0, 0, 0xf0);
   *(uint32_t *)0x5a5b98 = 1;
   *(uint32_t *)0x5a5b74 = 0xc00;
@@ -2874,7 +2874,7 @@ LAB_0015bb9c:
 }
 
 /*
- * FUN_0015bc40 — render every decal in one cluster/layer chain.
+ * __rasterizer_decals_draw — render every decal in one cluster/layer chain.
  *
  * Fetches the decal list head via decal_get_first_decal_index(cluster_index, current_layer),
  * then walks the singly-linked list (link at decal+0x34, -1 terminates). For
@@ -2907,7 +2907,7 @@ LAB_0015bb9c:
  *
  * 0x15bc40 / rasterizer_decals.obj
  */
-void FUN_0015bc40(int rendered_cluster_data)
+void __rasterizer_decals_draw(int rendered_cluster_data)
 {
   int decal_index;
 
@@ -2981,7 +2981,7 @@ void FUN_0015bc40(int rendered_cluster_data)
             0x1d6, 1);
           system_exit(-1);
         }
-        FUN_001580b0(*(uint16_t *)0x476ad4);
+        rasterizer_set_framebuffer_blend_function(*(uint16_t *)0x476ad4);
         rasterizer_set_pixel_shader((void *)0x5a5ac0);
         if (*(uint16_t *)0x3256ba == 2) {
           *(int *)0x5a5458 += 1;
@@ -3061,9 +3061,9 @@ void FUN_0015bc40(int rendered_cluster_data)
  * args, HRESULT in EAX, callee-cleans (no ADD ESP after the CALL).
  */
 /*
- * FUN_0015c190 @ 0x15c190 — detail-objects sprite vertex expansion.
+ * detail_object_build_vertices @ 0x15c190 — detail-objects sprite vertex expansion.
  * Register args (kb.json f0235d66, caller evidence at 0x15cb3e in
- * FUN_0015c980): count@EAX, base@ECX, out@EDX; one stack arg = the
+ * __rasterizer_detail_objects_rebuild_vertices): count@EAX, base@ECX, out@EDX; one stack arg = the
  * 6-byte-stride input entry array.
  *
  * For each input entry it stages an 8-byte packed vertex in a local
@@ -3083,7 +3083,7 @@ void FUN_0015bc40(int rendered_cluster_data)
  * pairs 1-2 written before the first; pairs 3-4 in ascending order).
  */
 /* 0x15c190 */
-void FUN_0015c190(int count, void *base, void *out, void *entries)
+void detail_object_build_vertices(int count, void *base, void *out, void *entries)
 {
   uint8_t *src;
   uint32_t *dst;
@@ -3156,21 +3156,21 @@ void FUN_0015c190(int count, void *base, void *out, void *entries)
 }
 
 /*
- * FUN_0015c2b0 @ 0x15c2b0 — dead register-convention adapter for
+ * IDirect3DDevice8_CreateVertexBuffer_2 @ 0x15c2b0 — dead register-convention adapter for
  * D3DDevice_CreateVertexBuffer: length (s2) and usage (s3) on the stack,
  * fvf/pool/ppVertexBuffer in EDX/ECX/EAX; s1 is the ignored device
  * pointer. No XOR EAX before RET — the callee's HRESULT is the implicit
  * return value. No direct call sites; RET 0xC.
  */
 /* 0x15c2b0 */
-int FUN_0015c2b0(int r1, int r2, int r3, int s1, int s2, int s3)
+int IDirect3DDevice8_CreateVertexBuffer_2(int r1, int r2, int r3, int s1, int s2, int s3)
 {
   (void)s1;
   return D3DDevice_CreateVertexBuffer(s2, s3, r3, r2, (void **)r1);
 }
 
 /* 0x15c2d0 */
-char FUN_0015c2d0(void)
+char rasterizer_detail_objects_initialize(void)
 {
   int hr;
 
@@ -3199,24 +3199,24 @@ char FUN_0015c2d0(void)
 }
 
 /*
- * FUN_0015c5f0 @ 0x15c5f0 — dead wrapper: calls the rasterizer profile
- * function FUN_0016fa40 with profile id 0x15 and returns. PUSH 0x15;
+ * __rasterizer_detail_objects_end @ 0x15c5f0 — dead wrapper: calls the rasterizer profile
+ * function rasterizer_profile_end with profile id 0x15 and returns. PUSH 0x15;
  * CALL 0x16fa40; POP ECX; RET. No direct call sites.
  */
 /* 0x15c5f0 */
-void FUN_0015c5f0(void)
+void __rasterizer_detail_objects_end(void)
 {
-  FUN_0016fa40(0x15);
+  rasterizer_profile_end(0x15);
 }
 
 /*
- * FUN_0015c600 @ 0x15c600 — dead D3D8 inline-wrapper instantiation of
+ * IDirect3DDevice8_SetVertexData4f_2 @ 0x15c600 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetVertexData4f, byte-identical in shape to
- * FUN_0015a4f0 (RET 0x18, device ignored, returns S_OK). No direct
+ * IDirect3DDevice8_SetVertexData4f_3 (RET 0x18, device ignored, returns S_OK). No direct
  * call sites.
  */
 /* 0x15c600 */
-int __stdcall FUN_0015c600(void *device, uint32_t reg, float a, float b,
+int __stdcall IDirect3DDevice8_SetVertexData4f_2(void *device, uint32_t reg, float a, float b,
                            float c, float d)
 {
   (void)device;
@@ -3225,13 +3225,13 @@ int __stdcall FUN_0015c600(void *device, uint32_t reg, float a, float b,
 }
 
 /*
- * FUN_0015c650 @ 0x15c650 — dead register-convention adapter for
- * D3DVertexBuffer_Lock, byte-identical in shape to FUN_0015b6a0 (raw
+ * IDirect3DVertexBuffer8_Lock_2 @ 0x15c650 — dead register-convention adapter for
+ * D3DVertexBuffer_Lock, byte-identical in shape to IDirect3DVertexBuffer8_Lock_3 (raw
  * __stdcall cast for the same reason). Returns S_OK. No direct call
  * sites; RET 8.
  */
 /* 0x15c650 */
-int FUN_0015c650(int r1, int r2, int r3, int s1, int s2)
+int IDirect3DVertexBuffer8_Lock_2(int r1, int r2, int r3, int s1, int s2)
 {
   ((void(__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
     (void *)s1, s2, r3, (void **)r2, r1);
@@ -3261,7 +3261,7 @@ int FUN_0015c650(int r1, int r2, int r3, int s1, int s2)
  *   0x476ab0  void *  - global_d3d_device (IDirect3DDevice8 pointer)
  */
 /* 0x15c680 */
-void FUN_0015c680(void)
+void rasterizer_detail_objects_dispose(void)
 {
   if (*(void **)0x476ae4 == (void *)0x0) {
     display_assert(
@@ -3320,11 +3320,11 @@ void FUN_0015c680(void)
  *   0x1fb7xx  uint32_t  render-state cache mirrors
  *   0x5a5ac0  0xf0 byte detail-object pixel-shader command buffer
  */
-void FUN_0015c6f0(void)
+void __rasterizer_detail_objects_begin(void)
 {
   unsigned int vs[24]; /* ebp-0x60..ebp-0x4: 6 vec4 vertex-shader constants */
 
-  FUN_0016f910(0x15); /* profile begin, id 0x15 */
+  rasterizer_profile_begin(0x15); /* profile begin, id 0x15 */
 
   if (*(char *)0x3256dc == 0) {
     return;
@@ -3415,7 +3415,7 @@ void FUN_0015c6f0(void)
 }
 
 /*
- * FUN_0015c980 @ 0x15c980 — rasterizer_detail_objects_begin: expands every
+ * __rasterizer_detail_objects_rebuild_vertices @ 0x15c980 — rasterizer_detail_objects_begin: expands every
  * visible detail-object cell's sprites into the detail-objects dynamic
  * vertex buffer. Same TU as 0x15c2d0 (rasterizer_xbox_detail_objects.c,
  * __FILE__ assert xref, lines 0xd7-0xd9).
@@ -3435,7 +3435,7 @@ void FUN_0015c6f0(void)
  * up the detail-object-collection palette entry (scenario+0x3C0, element
  * size 0x30, tag index at +0xC), resolves the 'dobc' tag, then per type
  * (24-byte stride off the cell's array): clamps the entry count to the
- * remaining frame budget (0x1000 vertices total), calls FUN_0015c190
+ * remaining frame budget (0x1000 vertices total), calls detail_object_build_vertices
  * (count@EAX, dobc@ECX, out@EDX) to emit 4 packed vertices per entry,
  * records the first-vertex index at +0x10, advances the write cursor by the
  * UNCLAMPED count*4 (original quirk — the cursor uses the stored count read
@@ -3443,7 +3443,7 @@ void FUN_0015c6f0(void)
  * count at +4 and errors once per call ("too many detail object submitted").
  */
 /* 0x15c980 */
-void FUN_0015c980(void *view_data)
+void __rasterizer_detail_objects_rebuild_vertices(void *view_data)
 {
   void *scenario;
   void *locked;
@@ -3531,7 +3531,7 @@ void FUN_0015c980(void *view_data)
         if (count > budget) {
           count = budget;
         }
-        FUN_0015c190(count, dobc, (uint8_t *)locked + written * 8,
+        detail_object_build_vertices(count, dobc, (uint8_t *)locked + written * 8,
                      (uint8_t *)entry_pool + *(int *)sub * 6);
         /* The cursor advances by the stored count read BEFORE the clamp
          * below writes back — original quirk, preserved. */
@@ -3595,7 +3595,7 @@ void FUN_0015c980(void *view_data)
  * Globals: 0x3256dc byte detail-objects-draw enable; 0x476ab0
  * global_d3d_device; scenario+0x3c0 detail_object_collection_palette block.
  */
-void FUN_0015cbb0(void *detail_object_view_data)
+void __rasterizer_detail_objects_draw(void *detail_object_view_data)
 {
   float frame_data[512]; /* 128 vec4 frame slots  (EBP-0x924)          */
   float type_data[64]; /* 16 vec4 type slots    (EBP-0x124)          */
@@ -3660,7 +3660,7 @@ void FUN_0015cbb0(void *detail_object_view_data)
       D3DDevice_SetTextureStageState(0, 0xe, 2);
       D3DDevice_SetTextureStageState(0, 0xf, 2);
       if (*(unsigned short *)collection != 0xffff) {
-        FUN_00178b40(0x21, 0xb, *(unsigned short *)collection);
+        rasterizer_set_vertex_shader_permutation(0x21, 0xb, *(unsigned short *)collection);
       }
 
       /* Type data: one vec4 per type definition (block at collection+0x44,
@@ -3824,28 +3824,28 @@ void FUN_0015cbb0(void *detail_object_view_data)
  */
 
 /*
- * FUN_0015d020 @ 0x15d020 — dead register-convention adapter for
- * D3DDevice_CreateVertexBuffer, byte-identical in shape to FUN_0015c2b0:
+ * IDirect3DDevice8_CreateVertexBuffer_1 @ 0x15d020 — dead register-convention adapter for
+ * D3DDevice_CreateVertexBuffer, byte-identical in shape to IDirect3DDevice8_CreateVertexBuffer_2:
  * length (s2) / usage (s3) on the stack, fvf/pool/ppVertexBuffer in
  * EDX/ECX/EAX, s1 ignored, callee HRESULT is the implicit return. No
  * direct call sites; RET 0xC.
  */
 /* 0x15d020 */
-int FUN_0015d020(int r1, int r2, int r3, int s1, int s2, int s3)
+int IDirect3DDevice8_CreateVertexBuffer_1(int r1, int r2, int r3, int s1, int s2, int s3)
 {
   (void)s1;
   return D3DDevice_CreateVertexBuffer(s2, s3, r3, r2, (void **)r1);
 }
 
 /*
- * FUN_0015d040 @ 0x15d040 — dead register-convention adapter for
+ * IDirect3DDevice8_CreateIndexBuffer_0 @ 0x15d040 — dead register-convention adapter for
  * D3DDevice_CreateIndexBuffer (0x1eef80, kb.json stub decl is void(void)
  * so the call uses a raw __stdcall cast): length (s2) / usage (s3) on the
  * stack, format/pool/ppIndexBuffer in EDX/ECX/EAX, s1 ignored, callee
  * HRESULT is the implicit return. No direct call sites; RET 0xC.
  */
 /* 0x15d040 */
-int FUN_0015d040(int r1, int r2, int r3, int s1, int s2, int s3)
+int IDirect3DDevice8_CreateIndexBuffer_0(int r1, int r2, int r3, int s1, int s2, int s3)
 {
   (void)s1;
   return ((int(__stdcall *)(uint32_t, uint32_t, uint32_t, uint32_t,
@@ -3887,7 +3887,7 @@ static const char kDrawPrimitivesFile[] =
  *
  * 0x15d060 / rasterizer_decals.obj
  */
-void FUN_0015d060(void)
+void rasterizer_dynamic_geometry_begin(void)
 {
   short window_index; /* CX: re-read from 0x5a5bc2 each loop iteration */
   short window_count;
@@ -3942,11 +3942,11 @@ void FUN_0015d060(void)
 }
 
 /*
- * FUN_0015d160 @ 0x15d160 — empty function in the binary (single RET;
+ * rasterizer_dynamic_geometry_end @ 0x15d160 — empty function in the binary (single RET;
  * one live call site in this TU).
  */
 /* 0x15d160 */
-void FUN_0015d160(void)
+void rasterizer_dynamic_geometry_end(void)
 {
 }
 
@@ -3979,7 +3979,7 @@ void FUN_0015d160(void)
  *
  * 0x15d170 / rasterizer_decals.obj
  */
-int _rasterizer_dynamic_triangles_new(int count)
+int __rasterizer_dynamic_triangles_new(int count)
 {
   int result;
   int handle;
@@ -4020,15 +4020,15 @@ int _rasterizer_dynamic_triangles_new(int count)
 }
 
 /*
- * FUN_0015d2a0 @ 0x15d2a0 — dead register-convention adapter for
+ * IDirect3DDevice8_DrawPrimitive @ 0x15d2a0 — dead register-convention adapter for
  * IDirect3DDevice8::DrawPrimitive, byte-identical in shape to
- * FUN_0015b5a0: primitive type in EAX, device (a1) ignored, primitive
+ * IDirect3DDevice8_DrawPrimitive_0: primitive type in EAX, device (a1) ignored, primitive
  * count (a3) converted to a vertex count via the per-type table at
  * 0x29f7e8, forwarded to D3DDevice_DrawVertices. Returns S_OK. No
  * direct call sites; RET 0xC.
  */
 /* 0x15d2a0 */
-int FUN_0015d2a0(int index, int a1, int a2, int a3)
+int IDirect3DDevice8_DrawPrimitive(int index, int a1, int a2, int a3)
 {
   (void)a1;
   D3DDevice_DrawVertices(index, a2,
@@ -4038,7 +4038,7 @@ int FUN_0015d2a0(int index, int a1, int a2, int a3)
 }
 
 /*
- * FUN_0015d2d0 @ 0x15d2d0 — dead register-convention adapter for
+ * IDirect3DDevice8_DrawIndexedPrimitive @ 0x15d2d0 — dead register-convention adapter for
  * IDirect3DDevice8::DrawIndexedPrimitive: primitive type in EAX, index
  * offset (in 16-bit indices) in ECX, primitive count (s3) converted to
  * an index count via the per-type table at 0x29f7e8, index data pointer
@@ -4048,7 +4048,7 @@ int FUN_0015d2a0(int index, int a1, int a2, int a3)
  * call sites; RET 0x10.
  */
 /* 0x15d2d0 */
-int FUN_0015d2d0(int index, int a2, int s1, int s2, int s3, int s4)
+int IDirect3DDevice8_DrawIndexedPrimitive(int index, int a2, int s1, int s2, int s3, int s4)
 {
   (void)s1;
   (void)s2;
@@ -4089,9 +4089,9 @@ int FUN_0015d2d0(int index, int a2, int s1, int s2, int s3, int s4)
  * (rasterizer_dynamic_vertices_new) and pass the handle to
  * 0x15ec50 — a void lift here left garbage in EAX, firing the
  * dynamic_vertex_buffer_index assert (draw_primitives.c:536) in-game
- * (fixed 2026-07-12, same class as sibling _rasterizer_dynamic_triangles_new).
+ * (fixed 2026-07-12, same class as sibling __rasterizer_dynamic_triangles_new).
  *
- * NB: like the sibling _rasterizer_dynamic_triangles_new, every assert path is
+ * NB: like the sibling __rasterizer_dynamic_triangles_new, every assert path is
  * display_assert(...); system_exit(-1); (the pristine XBE's combined
  * `add esp,0x14` after each site proves the second call takes one arg -- it is
  * system_exit(-1), NOT the arg-less halt_and_catch_fire the Ghidra draft
@@ -4099,7 +4099,7 @@ int FUN_0015d2d0(int index, int a2, int s1, int s2, int s3, int s4)
  *
  * 0x15d310 / rasterizer_decals.obj
  */
-int _rasterizer_dynamic_vertices_new(short type, int count)
+int __rasterizer_dynamic_vertices_new(short type, int count)
 {
   int iType;
   int rec;
@@ -4154,7 +4154,7 @@ int _rasterizer_dynamic_vertices_new(short type, int count)
  *
  * Query the short field at +0 of dynamic-vertices reservation record
  * `dynamic_vertex_buffer_index` (the 0x10-stride table at 0x476bd8 filled by
- * _rasterizer_dynamic_vertices_new; +0 is the record's vertex-type short).  Validates the index:
+ * __rasterizer_dynamic_vertices_new; +0 is the record's vertex-type short).  Validates the index:
  * NONE (-1) emits a non-fatal warning and returns NONE; any other
  * out-of-range value asserts.  Asserts cite
  * c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_draw_primitives.c (grouped
@@ -4172,7 +4172,7 @@ int _rasterizer_dynamic_vertices_new(short type, int count)
  *   0x47abd8  int     - dynamic_vertices reservation record_count (bound)
  *   0x476bd8  short   - reservation table base, stride 0x10, +0 short field
  */
-short _rasterizer_dynamic_vertices_get_type(int dynamic_vertex_buffer_index)
+short __rasterizer_dynamic_vertices_get_type(int dynamic_vertex_buffer_index)
 {
   short result = -1;
 
@@ -4209,7 +4209,7 @@ short _rasterizer_dynamic_vertices_get_type(int dynamic_vertex_buffer_index)
  *
  * Draw a batch of `primitive_count` dynamic primitives that were previously
  * reserved into group-buffer slot `dynamic_vertex_buffer_index` (an index into
- * the reservation table filled by _rasterizer_dynamic_vertices_new).  Each primitive consumes
+ * the reservation table filled by __rasterizer_dynamic_vertices_new).  Each primitive consumes
  * `vertices_per_primitive` vertices.  The D3D primitive type is selected from
  * vertices_per_primitive: 2->LINELIST(2), 3->TRIANGLELIST(5), 4->QUADLIST(8);
  * any other value is treated as a single fan/strip run (TRIANGLESTRIP, 6) with

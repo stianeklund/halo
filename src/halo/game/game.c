@@ -296,7 +296,7 @@ void game_dispose_from_old_map()
   decals_dispose_from_old_map();
   breakable_surfaces_dispose_from_old_map();
   structures_dispose_from_old_map();
-  j__render_dispose_from_old_map();
+  render_dispose_from_old_map();
   objects_dispose_from_old_map();
   director_dispose_from_old_map();
   observer_dispose_from_old_map();

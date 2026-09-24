@@ -1083,7 +1083,7 @@ void effect_generate_particles(void *effect)
                       blend *= *(float *)(ef + 0x48);
                   }
 
-                  FUN_0007c270(
+                  rgb_colors_interpolate(
                     (float *)(spawn_params.bytes + 0x50),
                     (uint32_t)((*(uint32_t *)(part + 0x64) >> 3) & 3),
                     (float *)(part + 0xb4), (float *)(part + 0xc4), blend);
@@ -2170,6 +2170,6 @@ void material_effect_new(int param_1, short param_2, short param_3, void *param_
   }
 
   if (*(char *)0x4557e9 != '\0') {
-    FUN_00189540(0, param_4, 0.05f, *(void **)0x2ee6dc);
+    render_debug_sphere(0, param_4, 0.05f, *(void **)0x2ee6dc);
   }
 }

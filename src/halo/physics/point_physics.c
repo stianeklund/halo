@@ -140,7 +140,7 @@ void FUN_001508b0(int *state)
 
   matrix = (float *)(state + 2);
   matrix_transform_point(matrix, (float *)(state[1] + 0xc), local_1c);
-  FUN_0018a990(1, local_1c, (float *)(state + 3), (float *)(state + 9),
+  render_debug_vectors(1, local_1c, (float *)(state + 3), (float *)(state + 9),
                *(float *)((char *)obje_tag + 0x4));
 
   for (i = 0; i < *(int *)(state[1] + 0x74); i++) {
@@ -148,9 +148,9 @@ void FUN_001508b0(int *state)
     matrix_transform_point(matrix, (float *)((char *)elem + 0x38), local_10);
     matrix_transform_vector(matrix, (float *)((char *)elem + 0x44), local_34);
     matrix_transform_vector(matrix, (float *)((char *)elem + 0x50), local_28);
-    FUN_00189540(1, local_10, *(float *)((char *)elem + 0x68),
+    render_debug_sphere(1, local_10, *(float *)((char *)elem + 0x68),
                  *(void **)0x2ee6c4);
-    FUN_0018a990(1, local_10, local_34, local_28,
+    render_debug_vectors(1, local_10, local_34, local_28,
                  *(float *)((char *)elem + 0x68) * *(const float *)0x253398);
   }
 }
@@ -457,5 +457,5 @@ void FUN_00154a20(void *obj, float *point, float val)
     color = *(void **)0x2ee6d4;
   }
 
-  FUN_00189150(1, point, val, color);
+  render_debug_point(1, point, val, color);
 }

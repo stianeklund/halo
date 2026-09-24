@@ -41,7 +41,7 @@ void hud_draw_static_element(int param_1, short *param_2, int param_3,
   i1 = verify_tag_reference((int *)(param_3 + 0x24));
   l_8 = (short *)tag_get(0x6269746d, i1);
   l_c =
-    (int)FUN_00077040(*(int *)(param_3 + 0x30), *(short *)(param_3 + 0x54), 0);
+    (int)bitmap_group_get_bitmap_from_sequence(*(int *)(param_3 + 0x30), *(short *)(param_3 + 0x54), 0);
   i2 = (int)xbox_texture_cache_get_hardware_format((void *)l_c, 0, 1);
   if (i2 != 0) {
     pu3 =
@@ -229,7 +229,7 @@ void render_state_text_0(char param_1, short *src_rect, short *dst_rect, void *t
       return;
     }
   }
-  rasterizer_draw_string(l_8, 0, 0, 0, (unsigned short *)text);
+  rasterizer_draw_unicode_string(l_8, 0, 0, 0, (unsigned short *)text);
   *dst_rect = *src_rect;
 }
 
@@ -672,7 +672,7 @@ void hud_render_timer(void)
     }
     crt_sprintf((char *)0x5ab100, (const char *)0x25acb8,
                 loading_time - *(int *)0x2f66e4);
-    FUN_00189c40(1, (const char *)0x5ab100);
+    render_debug_string(1, (const char *)0x5ab100);
   }
 }
 
@@ -1257,7 +1257,7 @@ void hud_messaging_update(int param_1)
             FUN_0019cdb0(rect_a, (void *)u7, bounds_a, rect_b);
             rect_b[1] = rect_b[1] - 3;
             bounds_a[1] = rect_a[1];
-            rasterizer_draw_string(bounds_a, 0, 0, 0, (unsigned short *)u7);
+            rasterizer_draw_unicode_string(bounds_a, 0, 0, 0, (unsigned short *)u7);
             rect_a[0] = rect_b[0];
             l_30_dw =
               l_30_dw + (int)(unsigned short)(unsigned char)pc9[1];
@@ -1361,7 +1361,7 @@ void hud_messaging_update(int param_1)
                 FUN_0019cdb0(rect_a, (void *)u7, bounds_b, rect_b);
                 rect_b[1] = rect_b[1] - 3;
                 bounds_b[1] = rect_a[1];
-                rasterizer_draw_string(bounds_b, 0, 0, 0,
+                rasterizer_draw_unicode_string(bounds_b, 0, 0, 0,
                                        (unsigned short *)u7);
                 rect_a[0] = rect_b[0];
                 draw_string_set_font(font_index, -1, 0, 0, color);
@@ -1373,7 +1373,7 @@ void hud_messaging_update(int param_1)
                            rect_b);
               rect_b[1] = rect_b[1] - 3;
               bounds_c[1] = rect_a[1];
-              rasterizer_draw_string(bounds_c, 0, 0, 0,
+              rasterizer_draw_unicode_string(bounds_c, 0, 0, 0,
                                      (unsigned short *)L"<no button icon>");
               rect_a[0] = rect_b[0];
             }
@@ -1488,12 +1488,12 @@ LAB_000d5c20:
           }
           usprintf(format_buf, (const wchar_t *)pi10,
                    (int)(short)pi14[0x22] / (int)max_count);
-          rasterizer_draw_string(rect_b, 0, 0, 0, (unsigned short *)format_buf);
+          rasterizer_draw_unicode_string(rect_b, 0, 0, 0, (unsigned short *)format_buf);
         }
       }
       goto LAB_000d5e65_skip;
     LAB_000d5e5d:
-      rasterizer_draw_string(rect_b, 0, 0, 0, (unsigned short *)pi10);
+      rasterizer_draw_unicode_string(rect_b, 0, 0, 0, (unsigned short *)pi10);
     LAB_000d5e65_skip:
       slot_offset = game_ticks - *pi14;
       {

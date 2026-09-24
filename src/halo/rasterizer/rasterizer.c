@@ -1,7 +1,7 @@
 /* 0x16de60 -- a fourth byte-identical instantiation of the D3D8
  * __forceinline wrapper around D3DDevice_SetVertexData2f, matching
- * FUN_001703f0 (0x1703f0), 0x172650, FUN_00179570 (0x179570), and
- * FUN_0017ad20 (0x17ad20) instruction for instruction. No xrefs (Ghidra
+ * IDirect3DDevice8_SetVertexData2f_3 (0x1703f0), 0x172650, IDirect3DDevice8_SetVertexData2f_0 (0x179570), and
+ * IDirect3DDevice8_SetVertexData2f (0x17ad20) instruction for instruction. No xrefs (Ghidra
  * reports none), a dead instantiation like its siblings.
  *
  * Disassembly at 0016de60 (11 instructions):
@@ -12,7 +12,7 @@
  *   xor eax,eax / pop ebp / ret 0xc
  *
  * ABI evidence (Ghidra decompile reports the wrong `void __cdecl
- * FUN_0016de60(void)`, same misread as every prior instantiation):
+ * IDirect3DDevice8_SetVertexData2f_4(void)`, same misread as every prior instantiation):
  *  - RET 0xc => __stdcall with THREE stack args at +8/+0xc/+0x10. The first
  *    (+8, the device pointer of the inline member instantiation) is never
  *    read; it stays in the signature so the callee-cleans immediate is
@@ -34,7 +34,7 @@
  * cdecl interface to C, and patch.py's reverse thunk restores the original
  * RET 0xc contract for the original callers.
  */
-int FUN_0016de60(void *device, uint32_t reg, float a, float b)
+int IDirect3DDevice8_SetVertexData2f_4(void *device, uint32_t reg, float a, float b)
 {
   (void)device;
   D3DDevice_SetVertexData2f(reg, a, b);
@@ -43,7 +43,7 @@ int FUN_0016de60(void *device, uint32_t reg, float a, float b)
 
 /* 0x16de80 -- another dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetVertexData4f, byte-identical in shape to the already
- * ported FUN_0017ad40 (0x17ad40) and FUN_0015a4f0 (rasterizer_xbox_decals.c).
+ * ported IDirect3DDevice8_SetVertexData4f (0x17ad40) and IDirect3DDevice8_SetVertexData4f_3 (rasterizer_xbox_decals.c).
  *
  * Disassembly at 0016de80 (16 instructions):
  *   push ebp / mov ebp,esp
@@ -67,7 +67,7 @@ int FUN_0016de60(void *device, uint32_t reg, float a, float b)
  *    matches the callee's kb.json declaration.
  *  - XOR EAX,EAX is a real `return 0` (S_OK), not a dead write.
  */
-int __stdcall FUN_0016de80(void *device, uint32_t reg, float a, float b,
+int __stdcall IDirect3DDevice8_SetVertexData4f_0(void *device, uint32_t reg, float a, float b,
                            float c, float d)
 {
   (void)device;
@@ -98,26 +98,26 @@ double pow(double x, double y);
  *
  * Argument evidence (disassembly at 0016dee0):
  *  - 0016dee9 PUSH 0 / PUSH 0xc / CALL interface_get_tag_index / ADD ESP,4 /
- *    PUSH EAX / CALL FUN_00076ff0 / ADD ESP,8: the leading PUSH 0 is
- *    FUN_00076ff0's second (bitmap_index) argument, pushed before the
+ *    PUSH EAX / CALL bitmap_group_try_and_get_bitmap / ADD ESP,8: the leading PUSH 0 is
+ *    bitmap_group_try_and_get_bitmap's second (bitmap_index) argument, pushed before the
  *    interface_get_tag_index call whose own argument is cleaned separately.
  *  - 0016df55 PUSH EBX(=1) / PUSH 0 / PUSH ESI: last push is the first
  *    argument, so xbox_texture_cache_get_hardware_format(bitmap, 0, 1).
  *  - 0016df7d PUSH 0 / PUSH EBX / PUSH 0 / PUSH 0 / PUSH 4 =>
- *    FUN_00158140(4, 0, 0, 1, 0); the shared ADD ESP,0x1c at 0016df99 also
+ *    rasterizer_set_target(4, 0, 0, 1, 0); the shared ADD ESP,0x1c at 0016df99 also
  *    retires rasterizer_set_texture_bitmap_data's two pushes (cdecl group).
- *  - 0016e077 PUSH 0 / PUSH 8 / PUSH 4 => FUN_00178b40(4, 8, 0).
+ *  - 0016e077 PUSH 0 / PUSH 8 / PUSH 4 => rasterizer_set_vertex_shader_permutation(4, 8, 0).
  *  - vs_const is the EBP-0x50..EBP-0x4 dword block (20 dwords) uploaded by
  *    D3DDevice_SetVertexShaderConstant(-0x44, &vs_const, 5).
  */
-void FUN_0016dee0(void)
+void __rasterizer_hud_motion_sensor_blip_begin(void)
 {
   float vs_const[20];
   void *blip_bitmap;
   void *background_bitmap;
 
-  blip_bitmap = FUN_00076ff0(interface_get_tag_index(0xc), 0);
-  background_bitmap = FUN_00076ff0(interface_get_tag_index(0xd), 0);
+  blip_bitmap = bitmap_group_try_and_get_bitmap(interface_get_tag_index(0xc), 0);
+  background_bitmap = bitmap_group_try_and_get_bitmap(interface_get_tag_index(0xd), 0);
 
   if (*(int *)0x476ab0 == 0) {
     display_assert(
@@ -133,7 +133,7 @@ void FUN_0016dee0(void)
       xbox_texture_cache_get_hardware_format(background_bitmap, 0, 1) != 0) {
     *(char *)0x47e007 = 1;
 
-    FUN_00158140(4, 0, 0, 1, 0);
+    rasterizer_set_target(4, 0, 0, 1, 0);
     rasterizer_set_texture_bitmap_data(0, blip_bitmap);
 
     D3DDevice_SetTextureStageState(0, 10, 4);
@@ -161,7 +161,7 @@ void FUN_0016dee0(void)
     D3DDevice_SetRenderState_ZEnable(0);
     D3DDevice_SetRenderState_ZBias(0);
 
-    FUN_00178b40(4, 8, 0);
+    rasterizer_set_vertex_shader_permutation(4, 8, 0);
 
     /* Identity 4x4 followed by the constant row (1,1,0,1). */
     vs_const[0] = 1.0f;
@@ -199,7 +199,7 @@ void FUN_0016dee0(void)
  * (assert __FILE__ at 0x2a399c, line 0x9c).
  *
  * Three passes, all gated on the feature byte 0x3256db, the "motion sensor
- * ready" byte 0x47e007 (set by FUN_0016dee0 at 0x16dee0), and both interface
+ * ready" byte 0x47e007 (set by __rasterizer_hud_motion_sensor_blip_begin at 0x16dee0), and both interface
  * bitmaps (interface tag indices 7 and 8, bitmap 0) resolving to a hardware
  * texture:
  *   1. full-screen quad of the blip bitmap, UV swept by param_2 around the
@@ -209,17 +209,17 @@ void FUN_0016dee0(void)
  *      drawn through the viewport-derived orthographic projection built from
  *      the rectangle2d at 0x5a5bf4 ({top,left,bottom,right} int16).
  * If any gate fails but the feature/ready bytes are still both set, the pass
- * only restores the render target (FUN_00158140 at 0x16ea50).
+ * only restores the render target (rasterizer_set_target at 0x16ea50).
  *
  * Argument evidence (disassembly at 0016e2e0):
- *  - Ghidra reports `void __cdecl FUN_0016e2e0(void)` but the body reads
+ *  - Ghidra reports `void __cdecl __rasterizer_hud_motion_sensor_blip_end(void)` but the body reads
  *    [EBP+8] (0016e992 MOV EDI,[EBP+8], then FLD [EDI]/[EDI+4]) and [EBP+0xC]
  *    (0016e5ac FLD float ptr [EBP+0xc]) => (float *position, float param_2),
  *    matching the existing kb.json decl and the caller in rasterizer_sprites.c.
  *  - 0016e2e9 PUSH 0 / PUSH 7 / CALL interface_get_tag_index / ADD ESP,4 /
- *    PUSH EAX / CALL FUN_00076ff0 / ADD ESP,8: the leading PUSH 0 is
- *    FUN_00076ff0's bitmap_index, pushed before the inner call whose own
- *    argument is retired separately (same shape as FUN_0016dee0).
+ *    PUSH EAX / CALL bitmap_group_try_and_get_bitmap / ADD ESP,8: the leading PUSH 0 is
+ *    bitmap_group_try_and_get_bitmap's bitmap_index, pushed before the inner call whose own
+ *    argument is retired separately (same shape as __rasterizer_hud_motion_sensor_blip_begin).
  *  - 0016e5ac FLD [EBP+0xc] / FMUL [0x253398] / FLD [0x253398] / FSUB ST0,ST1
  *    / FSTP [EBP-4] => uv_lo = 0.5f - param_2*0.5f; the un-popped product then
  *    FADD [0x253398] / FSTP [EBP-8] => uv_hi = param_2*0.5f + 0.5f. Both are
@@ -232,9 +232,9 @@ void FUN_0016dee0(void)
  *    vs FADD direction at each site (FSUB [EBP-4] = value - size, FADD = size
  *    + value), not from the decompiler.
  *  - 0016e76e PUSH ESI(1)/PUSH 0/PUSH 0/PUSH 0/PUSH EDX(=zero-extended word
- *    at 0x5a5bc0) => FUN_00158140(target, 0, 0, 0, 1).
- *  - 0016e784 PUSH 0 / PUSH 4 / PUSH 0 => FUN_001584f0(0, 4, 0).
- *  - 0016e486 and 0016e84a PUSH 0 / PUSH 8 / PUSH 4 => FUN_00178b40(4, 8, 0).
+ *    at 0x5a5bc0) => rasterizer_set_target(target, 0, 0, 0, 1).
+ *  - 0016e784 PUSH 0 / PUSH 4 / PUSH 0 => rasterizer_set_target_as_texture(0, 4, 0).
+ *  - 0016e486 and 0016e84a PUSH 0 / PUSH 8 / PUSH 4 => rasterizer_set_vertex_shader_permutation(4, 8, 0).
  *
  * Constants read from the XBE: 0x253398 = 0.5f, 0x2533c8 = 1.0f,
  * 0x255e94 = -1.0f, 0x25eeac = -2.0f.  FDIVR (not FDIV): the 1.0f constant is
@@ -244,7 +244,7 @@ void FUN_0016dee0(void)
  * of the 0xf0-byte pixel-shader state block fields at 0x5a5ac0; both are
  * written verbatim.
  */
-void FUN_0016e2e0(float *position, float param_2)
+void __rasterizer_hud_motion_sensor_blip_end(float *position, float param_2)
 {
   float vs_const[20];
   void *blip_bitmap;
@@ -257,8 +257,8 @@ void FUN_0016e2e0(float *position, float param_2)
   float x_scale;
   float y_scale;
 
-  blip_bitmap = FUN_00076ff0(interface_get_tag_index(7), 0);
-  bg_bitmap = FUN_00076ff0(interface_get_tag_index(8), 0);
+  blip_bitmap = bitmap_group_try_and_get_bitmap(interface_get_tag_index(7), 0);
+  bg_bitmap = bitmap_group_try_and_get_bitmap(interface_get_tag_index(8), 0);
 
   if (*(int *)0x476ab0 == 0) {
     display_assert(
@@ -297,7 +297,7 @@ void FUN_0016e2e0(float *position, float param_2)
       D3DDevice_SetRenderState_ZEnable(0);
       D3DDevice_SetRenderState_ZBias(0);
 
-      FUN_00178b40(4, 8, 0);
+      rasterizer_set_vertex_shader_permutation(4, 8, 0);
 
       /* Identity 4x4 followed by the constant row (1,1,0,1). */
       vs_const[0] = 1.0f;
@@ -376,8 +376,8 @@ void FUN_0016e2e0(float *position, float param_2)
       D3DDevice_End();
 
       /* ---- pass 3: the screen-space blip quad ---- */
-      FUN_00158140((int)*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
-      FUN_001584f0(0, 4, 0);
+      rasterizer_set_target((int)*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
+      rasterizer_set_target_as_texture(0, 4, 0);
 
       D3DDevice_SetTextureStageState(0, 10, 3);
       D3DDevice_SetTextureStageState(0, 0xb, 3);
@@ -397,7 +397,7 @@ void FUN_0016e2e0(float *position, float param_2)
       SetRenderStateSmart(0x7b, 0);
       D3DDevice_SetRenderState_ZBias(0);
 
-      FUN_00178b40(4, 8, 0);
+      rasterizer_set_vertex_shader_permutation(4, 8, 0);
 
       width = *(const short *)0x5a5bfa - *(const short *)0x5a5bf6;
       height = (short)(*(const int *)0x5a5bf8 - *(const int *)0x5a5bf4);
@@ -451,12 +451,12 @@ void FUN_0016e2e0(float *position, float param_2)
     }
 
     if (*(char *)0x3256db != 0 && *(char *)0x47e007 != 0) {
-      FUN_00158140((int)*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
+      rasterizer_set_target((int)*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
     }
   }
 }
 
-/* rasterizer_plasma_energy_draw (FUN_0016eef0): emit the plasma-energy
+/* rasterizer_plasma_energy_draw (rasterizer_plasma_energy_draw): emit the plasma-energy
  * transparent shader (shader type 10) for one geometry group. Binds the two
  * noise-map textures (primary at shader+0xe0, secondary at shader+0x128),
  * sets fixed-function / render state, computes the two animation scroll
@@ -465,10 +465,10 @@ void FUN_0016e2e0(float *position, float param_2)
  * the plasma pixel shader and draws.
  * Original TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_plasma_energy.c
  */
-void FUN_0016eef0(void *group)
+void rasterizer_plasma_energy_draw(void *group)
 {
   char *grp = (char *)group;
-  char *p; /* plasma shader params base = FUN_001906b0(..)+0x28 */
+  char *p; /* plasma shader params base = shader_get_and_verify_type(..)+0x28 */
   int *params; /* grp+0x6c: {color_table, pow_table} pointer pair */
   float *color_table; /* params[0]: 12-byte-stride colour entries */
   float *pow_table; /* params[1]: exponent-table floats [EBP-0xc] */
@@ -495,7 +495,7 @@ void FUN_0016eef0(void *group)
     return;
   }
 
-  p = (char *)FUN_001906b0(*(void **)(grp + 0xc), 10) + 0x28;
+  p = (char *)shader_get_and_verify_type(*(void **)(grp + 0xc), 10) + 0x28;
   tint = *(float **)0x2ee708;
   alpha_c = 1.0f;
   alpha_s = 0.0f;
@@ -567,7 +567,7 @@ void FUN_0016eef0(void *group)
   *(uint32_t *)0x1fb77c = 0x203;
   D3DDevice_SetRenderState_ZBias(0);
 
-  FUN_00178b40(0xf, FUN_00184610(grp), 0);
+  rasterizer_set_vertex_shader_permutation(0xf, rasterizer_transparent_geometry_get_primary_vertex_type(grp), 0);
 
   if (!(*(float *)(p + 0x98) != 0.0f)) {
     display_assert("plasma->primary_noise_map_animation_period!=0.0f",
@@ -665,7 +665,7 @@ void FUN_0016eef0(void *group)
   *(uint32_t *)0x5a5ae0 = 0xc0f0000;
   *(uint32_t *)0x5a5ae4 = 0x1c1c1400;
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
-  FUN_00174510(grp, 0);
+  rasterizer_transparent_geometry_group_draw__internal(grp, 0);
 }
 
 /* Profile-name table: 0x1d (NUMBER_OF_RASTERIZER_PROFILES) pointers into
@@ -675,7 +675,7 @@ void FUN_0016eef0(void *group)
 #define NUMBER_OF_RASTERIZER_PROFILES 0x1d
 #define rasterizer_profile_names ((const char *const *)0x325188)
 
-void FUN_0016f480(const char *message, int16_t profile_index, char condition)
+void profile_assert(const char *message, int16_t profile_index, char condition)
 {
   if (message == 0) {
     display_assert(
@@ -704,8 +704,8 @@ void FUN_0016f480(const char *message, int16_t profile_index, char condition)
  *
  * Both functions validate a profile index (0..0x1c, i.e.
  * NUMBER_OF_RASTERIZER_PROFILES = 0x1d), emit "tell Bernie!" warnings via
- * FUN_0016f480 when begin/end pairing or per-frame duplication rules are
- * violated, and register FUN_0016f500 as a D3D push-buffer callback so the
+ * profile_assert when begin/end pairing or per-frame duplication rules are
+ * violated, and register callback_function as a D3D push-buffer callback so the
  * GPU timestamps the profile section.
  *
  * Globals (not in kb.json, hardcoded):
@@ -715,21 +715,21 @@ void FUN_0016f480(const char *message, int16_t profile_index, char condition)
  *   0x325184  short     – gate: must be 0 for profiling
  *   0x47e458  short     – profile-suppression nesting counter ("local_
  *                        profile_enable"); must be 0 for profiling.  Pushed/
- *                        popped by FUN_0016f8a0, which asserts 0 <= it < 100
+ *                        popped by __rasterizer_profile_enable, which asserts 0 <= it < 100
  *   0x325180  short     – currently open profile index, -1 = none
  *   0x47e45c  unsigned  – bitmask of profiles completed this frame
- *   0x47e460  short     – sticky profile error bits, drained by FUN_0016f730:
+ *   0x47e460  short     – sticky profile error bits, drained by rasterizer_profile_frame_begin:
  *                        1 = callback recieved invalid context, 2 = begin
  *                        out-of-synch, 4 = end out-of-synch.  Written word-
- *                        sized (FUN_0016f500, and the clear at 0x16f816);
- *                        FUN_0016f730 tests it with byte loads
+ *                        sized (callback_function, and the clear at 0x16f816);
+ *                        rasterizer_profile_frame_begin tests it with byte loads
  *   0x47e468  short     – "tell Bernie!" warning-emission counter, capped
  *                        at 3 (signed word CMP/JGE against 3)
  *   0x47e450  short     – current frame slot index, 0..15 (signed mod 16)
  *   0x47e454  short     – report frame slot index, indexes the 0x47e008 table
  *   0x47e440  dword     – per-frame accumulator, cleared on frame arm
  *   0x47e444  dword     – per-frame accumulator, cleared on frame arm
- *                        (0x47e440/0x47e444 are one int64: FUN_0016FDD0 reads
+ *                        (0x47e440/0x47e444 are one int64: rasterizer_profile_frame_end reads
  *                        them with a single 64-bit negate, MOV EAX/MOV ECX/
  *                        NEG EAX/ADC ECX,0/NEG ECX)
  *   0x47e448  dword     – int64 with 0x47e44c; the saturated negation of the
@@ -741,7 +741,7 @@ void FUN_0016f480(const char *message, int16_t profile_index, char condition)
 
 /* 0x16f500 — GPU push-buffer profile callback: timestamps the begin or the
  * end of a profile section.  Registered with D3DDevice_InsertCallback by
- * FUN_0016f910 (type 0, context = index | 0x80000000) and FUN_0016fa40
+ * rasterizer_profile_begin (type 0, context = index | 0x80000000) and rasterizer_profile_end
  * (type 1, context = index), so the single stack argument packs two fields:
  *
  *   bit 31    - begin flag (SHR EBX,0x1f / AND BL,0x1 at 0x16f50d)
@@ -764,16 +764,16 @@ void FUN_0016f480(const char *message, int16_t profile_index, char condition)
  * rather than a folded OR word ptr[...],imm.
  *
  * Per-profile 8-byte (LARGE_INTEGER) slots, 0x1d entries - the same arrays
- * FUN_0016f6c0 zeroes:
+ * rasterizer_profile_initialize zeroes:
  *   0x47e358 - open-section start timestamp, 0 = no section open
  *   0x47e270 - elapsed ticks of the last completed section
  *
  * The begin path indexes with a scaled index (MOVSX ECX,SI then
  * [ECX*0x8 + base]); the end path with a pre-scaled byte offset (MOVSX EAX,SI;
- * SHL EAX,0x3 then [EAX + base]), the same `offset` idiom as FUN_0016f6c0 -
+ * SHL EAX,0x3 then [EAX + base]), the same `offset` idiom as rasterizer_profile_initialize -
  * hence the two different local spellings below.  The 64-bit subtract is the
  * original's SUB/SBB pair at 0x16f59c/0x16f5a1, now minus start. */
-void FUN_0016f500(int profile_and_flag)
+void callback_function(int profile_and_flag)
 {
   /* one 8-byte LARGE_INTEGER at [EBP-0x8]; LEA EAX,[EBP-0x8] is the QPC arg */
   unsigned __int64 now;
@@ -818,7 +818,7 @@ void FUN_0016f500(int profile_and_flag)
 
 /* 0x16f610
  *
- * FUN_0016f610 -- performance-timer start/stop marker (16 slots).
+ * frame_callback_function -- performance-timer start/stop marker (16 slots).
  *
  * Confirmed from disassembly:
  *   - One 32-bit stack argument at [EBP+8] (kb.json previously declared
@@ -851,7 +851,7 @@ void FUN_0016f500(int profile_and_flag)
 #define PERF_TIMER_STOP ((int64_t *)0x47e088)
 #define PERF_TIMER_START ((int64_t *)0x47e108)
 
-void FUN_0016f610(uint32_t marker)
+void frame_callback_function(uint32_t marker)
 {
   int64_t counter;
   int64_t started;
@@ -892,9 +892,9 @@ void FUN_0016f610(uint32_t marker)
  *
  * NOTE: this kb.json entry carries no object mapping, so maintain.py routes
  * it to rasterizer.c; binary evidence (the 0x47eXXX profile record arrays and
- * the 0x1d NUMBER_OF_RASTERIZER_PROFILES count shared with FUN_0016f910 /
- * FUN_0016fa40) places it in this TU. */
-bool FUN_0016f6c0(void)
+ * the 0x1d NUMBER_OF_RASTERIZER_PROFILES count shared with rasterizer_profile_begin /
+ * rasterizer_profile_end) places it in this TU. */
+bool rasterizer_profile_initialize(void)
 {
   int count;
   int offset;
@@ -923,7 +923,7 @@ bool FUN_0016f6c0(void)
  * Drains the three sticky error bits in 0x47e460 as "tell Bernie!" warnings
  * (at most three warnings ever, via the counter at 0x47e468), clears the bit
  * word, and — when profiling is enabled — advances the 16-slot frame index
- * at 0x47e450 and inserts the FUN_0016f610 push-buffer marker with context
+ * at 0x47e450 and inserts the frame_callback_function push-buffer marker with context
  * index*2.
  *
  * Frame is PUSH EBP / MOV EBP,ESP / PUSH ECX / PUSH EBX / PUSH ESI ...
@@ -951,7 +951,7 @@ bool FUN_0016f6c0(void)
  * Like the rest of this TU, the kb.json entry carries no object mapping, so
  * maintain.py wants to route it to rasterizer.c; it is kept here on the
  * shared-__FILE__ and shared-globals evidence. */
-void FUN_0016f730(void)
+void rasterizer_profile_frame_begin(void)
 {
   unsigned char bit_clear;
   int slot;
@@ -997,14 +997,14 @@ void FUN_0016f730(void)
     *(unsigned int *)0x47e440 = 0;
     *(unsigned int *)0x47e444 = 0;
     *(short *)0x47e450 = (short)slot;
-    D3DDevice_InsertCallback(0, (void *)FUN_0016f610,
+    D3DDevice_InsertCallback(0, (void *)frame_callback_function,
                              (unsigned int)((int)*(short *)0x47e450 << 1));
   }
 }
 
 /* 0x16f880
  *
- * FUN_0016f880
+ * rasterizer_profile_window_begin
  *
  * Re-seeds the xbox rasterizer profile state block from the current render
  * window. Copies the current window index (short @0x5a5bc2 -- the same
@@ -1021,9 +1021,9 @@ void FUN_0016f730(void)
  * profiling on `*(short *)0x325184 == 0` and treats 0x325180 == -1 as
  * "no open profile".
  *
- * void FUN_0016f880(void); cdecl, no args, no return value, no callees.
+ * void rasterizer_profile_window_begin(void); cdecl, no args, no return value, no callees.
  */
-void FUN_0016f880(void)
+void rasterizer_profile_window_begin(void)
 {
   *(short *)0x325184 = *(short *)0x5a5bc2;
   *(short *)0x325180 = -1;
@@ -1034,8 +1034,8 @@ void FUN_0016f880(void)
  * strings name the counter "local_profile_enable").
  *
  * A non-zero argument decrements the counter (asserting it is > 0 first); a
- * zero argument increments it (asserting it is < 100).  Since FUN_0016f910 /
- * FUN_0016fa40 only profile while 0x47e458 == 0, the counter is a
+ * zero argument increments it (asserting it is < 100).  Since rasterizer_profile_begin /
+ * rasterizer_profile_end only profile while 0x47e458 == 0, the counter is a
  * suppression depth: the zero-argument call pushes a suppression, the
  * non-zero call pops one.  The parameter name follows that reading
  * (true => allow profiling again); the polarity is Inferred from the gate
@@ -1045,11 +1045,11 @@ void FUN_0016f880(void)
  * __cdecl with a single 1-byte argument read as `MOV AL,[EBP+8]; TEST AL,AL`.
  * 0x47e458 is accessed with word-sized INC/DEC/CMP, hence `short`.
  *
- * Like FUN_0016f6c0 above, this kb.json entry carries no object mapping, so
+ * Like rasterizer_profile_initialize above, this kb.json entry carries no object mapping, so
  * maintain.py wants to route it to rasterizer.c; it is kept here on the same
- * binary evidence (the 0x47e458 gate shared with FUN_0016f910 /
- * FUN_0016fa40 and the shared __FILE__ string at 0x2a3ca4). */
-void FUN_0016f8a0(bool enable_profiling)
+ * binary evidence (the 0x47e458 gate shared with rasterizer_profile_begin /
+ * rasterizer_profile_end and the shared __FILE__ string at 0x2a3ca4). */
+void __rasterizer_profile_enable(bool enable_profiling)
 {
   if (enable_profiling) {
     if (*(short *)0x47e458 <= 0) {
@@ -1080,7 +1080,7 @@ void FUN_0016f8a0(bool enable_profiling)
  * range check 0 <= profile < 0x1d, then MOVSX ECX,SI / MOV EAX,[ECX*4 +
  * 0x325188] -- the loaded dword is the return value in EAX.  All four
  * original call sites (0x17f8b3, 0x17f8d2, 0x17fdf1, 0x17fe09, all inside
- * rasterizer_frame_statistics_update) push exactly one dword and clean up
+ * rasterizer_frame_statistics_draw) push exactly one dword and clean up
  * with ADD ESP,4, and each pushes the returned EAX straight into a
  * "|t%s|t%.2f|t%d" style formatting
  * call -- so the element type is `const char *`, the profile's name string.
@@ -1091,14 +1091,14 @@ void FUN_0016f8a0(bool enable_profiling)
  * The assert tail is display_assert(..., halt=1) then system_exit(-1)
  * (CALL 0x8e2f0), not halt_and_catch_fire; __LINE__ is 0x16b = 363.
  *
- * Uncertain: the kb.json name "rasterizer_initialize" does not describe this
+ * Uncertain: the kb.json name "rasterizer_profile_get_string" does not describe this
  * body -- nothing here initializes anything; it is a profile-name accessor
  * (rasterizer_profile_get_name shape), and its __FILE__ places it in
- * rasterizer_xbox_profile.c alongside FUN_0016f910 / FUN_0016fa40.  The name
+ * rasterizer_xbox_profile.c alongside rasterizer_profile_begin / rasterizer_profile_end.  The name
  * and the rasterizer.obj mapping are left as-is rather than churned through
  * the ABI baseline; treat both as unverified.
  */
-const char *rasterizer_initialize(short profile)
+const char *rasterizer_profile_get_string(short profile)
 {
   if (profile < 0 || profile >= NUMBER_OF_RASTERIZER_PROFILES) {
     display_assert(
@@ -1113,7 +1113,7 @@ const char *rasterizer_initialize(short profile)
 /* 0x16fbd0 — profile section elapsed-time query (asserts at
  * rasterizer_xbox_profile.c lines 0x177/0x187).
  *
- * Ghidra typed this `void FUN_0016fbd0(void)`: BOTH the stack parameter
+ * Ghidra typed this `void rasterizer_profile_query(void)`: BOTH the stack parameter
  * (MOV EDI,[EBP+8]; CMP DI,0x1d — 16-bit signed compares throughout) and the
  * ST0 float return were lost, and the accumulator loop was collapsed into an
  * empty countdown with the FADDP/FDIVP dropped.  Both return expressions are
@@ -1122,7 +1122,7 @@ const char *rasterizer_initialize(short profile)
  * Returns seconds: the per-profile performance-counter delta at
  * 0x47e270 (int64, 8-byte stride, 0x1d entries) divided by the
  * QueryPerformanceFrequency LARGE_INTEGER latched into 0x325178 by
- * FUN_0016f6c0.  Both operands are loaded with FILD qword (signed 64-bit),
+ * rasterizer_profile_initialize.  Both operands are loaded with FILD qword (signed 64-bit),
  * and the dividend is the counter — not the reverse.
  *
  * profile == 0x1d (NUMBER_OF_RASTERIZER_PROFILES) is the "all profiles"
@@ -1139,7 +1139,7 @@ const char *rasterizer_initialize(short profile)
  * FILD qword, matching the original's two 32-bit MOVs per iteration; hence
  * the explicit `counter_value` local rather than a direct cast of the
  * dereference. */
-float FUN_0016fbd0(int16_t profile)
+float rasterizer_profile_query(int16_t profile)
 {
   float total;
   /* volatile reproduces the original's 8-byte staging slot at EBP-8: each
@@ -1180,7 +1180,7 @@ float FUN_0016fbd0(int16_t profile)
       system_exit(-1);
     }
     /* warn when the profile has not completed this frame */
-    FUN_0016f480("profile not completed (query)", profile,
+    profile_assert("profile not completed (query)", profile,
                  (char)(*(short *)0x325180 == -1));
     slot = profile;
     if ((1u << (unsigned int)slot) & *(unsigned int *)0x47e45c) {
@@ -1195,12 +1195,12 @@ float FUN_0016fbd0(int16_t profile)
 /* 0x16fcf0 — profile section raw-tick query (asserts at
  * rasterizer_xbox_profile.c lines 0x19f/0x1ae).
  *
- * The integer sibling of FUN_0016fbd0: same gate, same asserts, same
+ * The integer sibling of rasterizer_profile_query: same gate, same asserts, same
  * "profile not completed" warning, but it returns the raw performance-counter
  * delta from the 0x47e188 record array (int64, 8-byte stride, 0x1d entries)
  * saturated into an int32, rather than seconds from 0x47e270.
  *
- * Ghidra typed this `void FUN_0016fcf0(void)`: BOTH the stack parameter
+ * Ghidra typed this `void rasterizer_profile_query_pushbuffer(void)`: BOTH the stack parameter
  * (MOV EDI,[EBP+8]; CMP DI,0x1d — 16-bit signed compares throughout) and the
  * EAX return were lost (§16 void-EAX), and the tail was reduced to bare
  * `return`s.  Four distinct return values are reconstructed from the
@@ -1210,7 +1210,7 @@ float FUN_0016fbd0(int16_t profile)
  *   profile not completed       -> -1    (OR EAX,0xffffffff at 0x16fdc1)
  *   otherwise                   -> saturated int32 of the int64 counter
  *
- * Unlike FUN_0016fbd0, profile == 0x1d does NOT sum all profiles here — it
+ * Unlike rasterizer_profile_query, profile == 0x1d does NOT sum all profiles here — it
  * returns 0 — and the check happens BEFORE the range assert, so 0x1d is the
  * "no profile" sentinel rather than an "all profiles" request.
  *
@@ -1224,7 +1224,7 @@ float FUN_0016fbd0(int16_t profile)
  * The assert tails are `display_assert(..., 1); system_exit(-1);` (PUSH -1;
  * CALL 0x8e2f0), not halt_and_catch_fire — Ghidra's thunk_FUN_001029a0 is
  * wrong. */
-int FUN_0016fcf0(int16_t profile)
+int rasterizer_profile_query_pushbuffer(int16_t profile)
 {
   int result;
   int slot;
@@ -1250,7 +1250,7 @@ int FUN_0016fcf0(int16_t profile)
       system_exit(-1);
     }
     /* warn when the profile has not completed this frame */
-    FUN_0016f480("profile not completed (query)", profile,
+    profile_assert("profile not completed (query)", profile,
                  (char)(*(short *)0x325180 == -1));
     slot = profile;
     if ((1u << (unsigned int)slot) & *(unsigned int *)0x47e45c) {
@@ -1270,7 +1270,7 @@ int FUN_0016fcf0(int16_t profile)
  *
  * Runs behind the same profile-enabled gate as the rest of the file, then does
  * three things: saturate the negated per-frame accumulator into the int64 at
- * 0x47e448, insert a type-1 FUN_0016f610 push-buffer marker with the odd
+ * 0x47e448, insert a type-1 frame_callback_function push-buffer marker with the odd
  * context `slot * 2 + 1`, and hand the reporting pair (elapsed seconds,
  * saturated ticks) to FUN_0008f810.
  *
@@ -1308,7 +1308,7 @@ int FUN_0016fcf0(int16_t profile)
  * The assert tail is `display_assert(..., 1); system_exit(-1);` (PUSH -1;
  * CALL 0x8e2f0), not halt_and_catch_fire — Ghidra's thunk_FUN_001029a0 is
  * wrong. */
-void FUN_0016FDD0(void)
+void rasterizer_profile_frame_end(void)
 {
   int64_t negated;
   int saturated;
@@ -1328,7 +1328,7 @@ void FUN_0016FDD0(void)
       saturated = 0x7fffffff;
     }
     *(int64_t *)0x47e448 = saturated;
-    D3DDevice_InsertCallback(1, (void *)FUN_0016f610,
+    D3DDevice_InsertCallback(1, (void *)frame_callback_function,
                              (unsigned int)(*(short *)0x47e450 * 2 + 1));
     slot = *(short *)0x47e454;
     FUN_0008f810((float)*(const int64_t *)(slot * 8 + 0x47e008) *
@@ -1337,7 +1337,7 @@ void FUN_0016FDD0(void)
   }
 }
 
-/* FUN_0016FEB0 (0x16feb0) -- empty no-op.
+/* rasterizer_profile_window_end (0x16feb0) -- empty no-op.
  *
  * The entire function is a single instruction:
  *
@@ -1346,16 +1346,16 @@ void FUN_0016FDD0(void)
  * No prologue, no frame, no FPU, no memory access, no callees. Under the
  * cdecl `void (void)` signature in kb.json this is a release-build no-op:
  * a debug/profiling hook whose body compiled out. Called unconditionally
- * from FUN_00158f90 (rasterizer_xbox_decals.c).
+ * from __rasterizer_window_end (rasterizer_xbox_decals.c).
  *
  * kb.json assigns 0x16feb0 to rasterizer.obj; its address neighbours here
- * are rasterizer_initialize (0x16fb80) and 0x16fec0.
+ * are rasterizer_profile_get_string (0x16fb80) and 0x16fec0.
  */
-void FUN_0016FEB0(void)
+void rasterizer_profile_window_end(void)
 {
 }
 
-void FUN_0016fec0(void)
+void rasterizer_profile_dispose(void)
 {
 }
 
@@ -1368,7 +1368,7 @@ void FUN_0016fec0(void)
  * no references and dump_caller_regsetup finds no CALL sites -- so these are
  * dead instantiations the compiler emitted and never linked away.
  *
- * ABI (kb.json previously said `void FUN_001703f0(void)`, wrong on every
+ * ABI (kb.json previously said `void IDirect3DDevice8_SetVertexData2f_3(void)`, wrong on every
  * count), all read off 001703f0 / 00172650 which are instruction-identical:
  *   - RET 0xc => __stdcall with THREE stack args at +8/+0xc/+0x10. The
  *     first (+8, the device pointer) is never read, exactly as in the 4f
@@ -1391,37 +1391,37 @@ void FUN_0016fec0(void)
  * ([EBP+0x10]) then PUSH ECX ([EBP+0xc]) then PUSH EDX, and the last push is
  * the first argument -- so SetVertexData2f(reg, a, b) with a=[EBP+0xc].
  */
-int FUN_001703f0(void *device, uint32_t reg, float a, float b)
+int IDirect3DDevice8_SetVertexData2f_3(void *device, uint32_t reg, float a, float b)
 {
   (void)device;
   D3DDevice_SetVertexData2f(reg, a, b);
   return 0;
 }
 
-void FUN_00172520(void)
+void __rasterizer_environment_shadows_begin(void)
 {
-  FUN_0016f910(4);
+  rasterizer_profile_begin(4);
 }
 
 /* 0x172640
  *
- * FUN_00172640
+ * __rasterizer_environment_shadow_model_end
  *
  * Clear the stashed shadow-parameters pointer at 0x47e4b0, discarding
  * whatever shadow-parameter block the last caller registered.
  *
  * The whole body is a single store: MOV dword ptr [0x0047e4b0],0x0 @00172640
  * followed immediately by RET -- no frame, no arguments, no return value.
- * 0x47e4b0 is the same dword FUN_00172a30 zeroes at the end of its
- * shadow-generate setup above, and that FUN_00172de0 reads before using the
+ * 0x47e4b0 is the same dword __rasterizer_environment_shadow_begin zeroes at the end of its
+ * shadow-generate setup above, and that __rasterizer_environment_shadow_model_draw reads before using the
  * block; writing 0 here is the "no parameters registered" state.
  */
-void FUN_00172640(void)
+void __rasterizer_environment_shadow_model_end(void)
 {
   *(int *)0x47e4b0 = 0;
 }
 
-int FUN_00172650(void *device, uint32_t reg, float a, float b)
+int IDirect3DDevice8_SetVertexData2f_2(void *device, uint32_t reg, float a, float b)
 {
   (void)device;
   D3DDevice_SetVertexData2f(reg, a, b);
@@ -1430,7 +1430,7 @@ int FUN_00172650(void *device, uint32_t reg, float a, float b)
 
 /* 0x1726a0
  *
- * FUN_001726a0
+ * __rasterizer_environment_shadow_end
  *
  * Handles the "empty shadow" case: called when a shadow was cast but no
  * geometry was submitted for it.
@@ -1441,13 +1441,13 @@ int FUN_00172650(void *device, uint32_t reg, float a, float b)
  *   1. If no shadow parameters are active (*(char *)0x47e4b5 == 0), emits the
  *      "empty shadow has been cast" warning.
  *   2. Once per run (latched via *(char *)0x3251fc), performs the fallback
- *      target setup through FUN_00158140 and sets the latch.
+ *      target setup through rasterizer_set_target and sets the latch.
  *
  * Note: the guard tests the 16-bit word at 0x5a5bc0 for zero, yet that same
- * zero-extended word is what gets passed as FUN_00158140's first argument.
+ * zero-extended word is what gets passed as rasterizer_set_target's first argument.
  * This is what the original code does; preserved verbatim.
  */
-void FUN_001726a0(void)
+void __rasterizer_environment_shadow_end(void)
 {
   if (*(void **)0x476ab0 == 0) {
     display_assert(
@@ -1462,7 +1462,7 @@ void FUN_001726a0(void)
     }
     if (*(char *)0x3251fc == 0) {
       /* Zero-extended 16-bit read (XOR EAX,EAX; MOV AX,[0x5a5bc0]). */
-      FUN_00158140((int)*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
+      rasterizer_set_target((int)*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
       *(char *)0x3251fc = 1;
     }
   }
@@ -1470,7 +1470,7 @@ void FUN_001726a0(void)
 
 /* 0x172720
  *
- * rasterizer_window_get_fog
+ * __rasterizer_environment_shadows_end
  *
  * Closes rasterizer profile section 4 and nothing else.
  *
@@ -1479,19 +1479,19 @@ void FUN_001726a0(void)
  * the profile-section end (paired with 0x16f910 begin), so this is the
  * close half of the 0x172520 / 0x172720 profile-4 pair.
  *
- * Uncertain: the kb.json name "rasterizer_window_get_fog" comes from PDB
+ * Uncertain: the kb.json name "__rasterizer_environment_shadows_end" comes from PDB
  * line-containment, not from a string or assert in this function, and it
  * does not describe this body — nothing here reads or returns fog state.
  * The name is left as-is rather than churned, but treat it as unverified.
  */
-void rasterizer_window_get_fog(void)
+void __rasterizer_environment_shadows_end(void)
 {
-  FUN_0016fa40(4);
+  rasterizer_profile_end(4);
 }
 
 /* 0x172a30
  *
- * FUN_00172a30
+ * __rasterizer_environment_shadow_begin
  *
  * Shadow-pass begin / shadow-generate setup. Programs the D3D render
  * states, pixel shader, and vertex-shader constants for the shadow
@@ -1525,7 +1525,7 @@ void rasterizer_window_get_fog(void)
  *
  * Returns 1 (AL).
  */
-char FUN_00172a30(int param_1, const float *shadow_matrix,
+char __rasterizer_environment_shadow_begin(int param_1, const float *shadow_matrix,
                   const float *shadow_color, float object_bounding_radius,
                   float *out_radius)
 {
@@ -1643,9 +1643,9 @@ char FUN_00172a30(int param_1, const float *shadow_matrix,
     vs_const[19] = 0.0f;
     D3DDevice_SetVertexShaderConstant(-0x44, vs_const, 5);
 
-    FUN_00158140(2, 0, (*(unsigned char *)0x3256f7 != 0) ? 0x88888888u : 0u, 1,
+    rasterizer_set_target(2, 0, (*(unsigned char *)0x3256f7 != 0) ? 0x88888888u : 0u, 1,
                  0);
-    FUN_00158ae0(0);
+    rasterizer_set_stencil_mode(0);
 
     /* Stash the 13-dword matrix, then the RGB color, then the radius. */
     src = (const unsigned long *)shadow_matrix;
@@ -1673,13 +1673,13 @@ char FUN_00172a30(int param_1, const float *shadow_matrix,
   return 1;
 }
 
-void FUN_00173ae0(void)
+void rasterizer_text_end(void)
 {
 }
 
 /* 0x173af0
  *
- * FUN_00173af0
+ * IDirect3DDevice8_SetVertexData2f_1
  *
  * Third instruction-identical instantiation of the SetVertexData2f
  * forwarder already lifted at 0x1703f0 and 0x172650 -- see the long ABI
@@ -1702,7 +1702,7 @@ void FUN_00173ae0(void)
  * ([EBP+0xc]) then PUSH EDX; last push is the first argument, hence
  * SetVertexData2f(reg, a, b) with a=[EBP+0xc], b=[EBP+0x10].
  */
-int FUN_00173af0(void *device, uint32_t reg, float a, float b)
+int IDirect3DDevice8_SetVertexData2f_1(void *device, uint32_t reg, float a, float b)
 {
   (void)device;
   D3DDevice_SetVertexData2f(reg, a, b);
@@ -1754,7 +1754,7 @@ int FUN_00173af0(void *device, uint32_t reg, float a, float b)
  * shorts differ by the width, the LOW shorts by the height. Both deltas are
  * 16-bit truncated and sign-extended, then consumed by FIDIV/FILD.
  */
-void FUN_00173b40(float *parameters)
+void rasterizer_text_begin(float *parameters)
 {
   char *p;
   float *offset;
@@ -1823,7 +1823,7 @@ void FUN_00173b40(float *parameters)
   D3DDevice_SetRenderState_ZBias(0);
 
   /* XOR EAX,EAX; MOV AX,[ESI+0x88] — zero-extended 16-bit read. */
-  FUN_001580b0((int)*(unsigned short *)(p + 0x88));
+  rasterizer_set_framebuffer_blend_function((int)*(unsigned short *)(p + 0x88));
 
   /* MOV AX,[0x5a5bfa]; SUB AX,word[0x5a5bf6]; MOVSX EDI,AX  (16-bit sub)
    * MOV ECX,[0x5a5bf8]; SUB ECX,[0x5a5bf4]; MOVSX ...,CX    (32-bit sub,
@@ -1923,7 +1923,7 @@ void FUN_00173b40(float *parameters)
     D3DDevice_SetTextureStageState(i, 0xf, (p[0x8a] == 0) + 1);
   }
 
-  FUN_00178b40(4, 8, 1);
+  rasterizer_set_vertex_shader_permutation(4, 8, 1);
 
   if (*(void **)(p + 0xc) != 0) {
     csmemset((void *)0x5a5ac0, 0, 0xf0);
@@ -1992,18 +1992,18 @@ void FUN_00173b40(float *parameters)
 
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
   D3DDevice_SetRenderState_CullMode(0x901);
-  FUN_00178b40(4, 8, 0);
+  rasterizer_set_vertex_shader_permutation(4, 8, 0);
   D3DDevice_SetTextureStageState(0, 0x15, 0);
 }
 
 /* 0x1741d0
  *
- * FUN_001741d0 — submit one text quad (4 vertices) to D3D.
+ * rasterizer_text_draw_character — submit one text quad (4 vertices) to D3D.
  *
  * TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_text.c (proven by the
  * __FILE__ string in the device assert at line 0xd8).
  *
- * Called by rasterizer_text_draw_cached_char / _draw_cached_chars
+ * Called by rasterizer_draw_character / _draw_cached_chars
  * (src/halo/rasterizer/rasterizer_text.c) with an 80-byte quad_verts buffer.
  * Vertex format is 5 floats (20 bytes) per vertex, 4 vertices:
  *   +0x00 position.x   +0x04 position.y
@@ -2021,14 +2021,14 @@ void FUN_00173b40(float *parameters)
  * to preserve the basic-block layout. Each per-call check compiles to
  * TEST BL,BL / JZ / MOV BL,1 / JMP — reproduced by the
  * `if (success) success = 1; else { success = 0; report; }` shape (same idiom
- * as FUN_0015acc0 in rasterizer_xbox_decals.c); the post-End check is the plain
+ * as __rasterizer_debug_immediate_linestrip_screenspace in rasterizer_xbox_decals.c); the post-End check is the plain
  * `if (!success)` form. `volatile` is required: a plain local folds to constant
  * 1 and VC71 dead-codes every report branch.
  *
  * The device assert tail is display_assert(..., halt=1) followed by
  * system_exit(-1) — NOT halt_and_catch_fire (PUSH -1; CALL 0x8e2f0).
  */
-void FUN_001741d0(float *quad)
+void rasterizer_text_draw_character(float *quad)
 {
   float *v;
   int remaining;
@@ -2089,9 +2089,9 @@ void FUN_001741d0(float *quad)
 }
 
 /*
- * FUN_001744f0 @ 0x1744f0 — register-convention adapter for
- * D3DDevice_CreateVertexBuffer, byte-identical in shape to FUN_0015c2b0
- * (0x15c2b0) and FUN_0015d020 (0x15d020) in rasterizer_xbox_decals.c.
+ * IDirect3DDevice8_CreateVertexBuffer @ 0x1744f0 — register-convention adapter for
+ * D3DDevice_CreateVertexBuffer, byte-identical in shape to IDirect3DDevice8_CreateVertexBuffer_2
+ * (0x15c2b0) and IDirect3DDevice8_CreateVertexBuffer_1 (0x15d020) in rasterizer_xbox_decals.c.
  *
  * The whole body is:
  *     PUSH EBP / MOV EBP,ESP
@@ -2131,7 +2131,7 @@ void FUN_001741d0(float *quad)
  * RET 0xC.
  */
 /* 0x1744f0 */
-int FUN_001744f0(int r1, int r2, int r3, int s1, int s2, int s3)
+int IDirect3DDevice8_CreateVertexBuffer(int r1, int r2, int r3, int s1, int s2, int s3)
 {
   (void)s1;
   return D3DDevice_CreateVertexBuffer(s2, s3, r3, r2, (void **)r1);
@@ -2139,7 +2139,7 @@ int FUN_001744f0(int r1, int r2, int r3, int s1, int s2, int s3)
 
 /* 0x174510
  *
- * FUN_00174510
+ * rasterizer_transparent_geometry_group_draw__internal
  *
  * TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_transparent_geometry.c
  * (proven by the __FILE__ string 0x2a4800 used by all four asserts below).
@@ -2160,7 +2160,7 @@ int FUN_001744f0(int r1, int r2, int r3, int s1, int s2, int s3)
  * 0x174603) and as a signed word (MOV DI, word ptr [ESI+0x44]; NEG DI); the
  * widths below mirror the disassembly exactly.
  */
-void FUN_00174510(void *group, int has_lightmap)
+void rasterizer_transparent_geometry_group_draw__internal(void *group, int has_lightmap)
 {
   char *g;
   char *vertex_buffer;
@@ -2247,7 +2247,7 @@ void FUN_00174510(void *group, int has_lightmap)
 
 /* 0x174980 — dead register-convention adapter for
  * IDirect3DVertexBuffer8::Lock (0x1ef100), byte-identical in shape to the
- * already-ported FUN_0015b6a0 in rasterizer_xbox_decals.c. MSVC emitted the
+ * already-ported IDirect3DVertexBuffer8_Lock_3 in rasterizer_xbox_decals.c. MSVC emitted the
  * D3D8 __forceinline member wrapper once per translation unit that used it;
  * the linker kept every copy, so several identical instantiations survive.
  *
@@ -2263,7 +2263,7 @@ void FUN_00174510(void *group, int has_lightmap)
  *   call 0x1ef100        ; D3DVertexBuffer_Lock, __stdcall, 5 stack args
  *   xor eax,eax / pop ebp / ret 0x8
  *
- * ABI evidence (kb.json previously said `void FUN_00174980(void)`, wrong on
+ * ABI evidence (kb.json previously said `void IDirect3DVertexBuffer8_Lock(void)`, wrong on
  * every count):
  *  - RET 0x8 => __stdcall with TWO stack args, at +8 and +0xc.
  *  - EAX, ECX and EDX are each PUSHed before anything in this function
@@ -2285,7 +2285,7 @@ void FUN_00174510(void *group, int has_lightmap)
  * callers.
  */
 /* 0x174980 */
-int FUN_00174980(int r1, int r2, int r3, int s1, int s2)
+int IDirect3DVertexBuffer8_Lock(int r1, int r2, int r3, int s1, int s2)
 {
   D3DVertexBuffer_Lock((void *)s1, (uint32_t)s2, (uint32_t)r3, (void **)r2,
                        (uint32_t)r1);
@@ -2318,7 +2318,7 @@ int FUN_00174980(int r1, int r2, int r3, int s1, int s2)
  *
  * The failure string names rasterizer_transparent_geometry_groups_begin even
  * though this ends a visibility test; the literal is copied verbatim. */
-void FUN_001749b0(void)
+void rasterizer_transparent_geometry_groups_end(void)
 {
   unsigned int enable_flags;
   short rect[4]; /* [EBP-0xc] x0, y0, x1, y1 */
@@ -2396,8 +2396,8 @@ void FUN_001749b0(void)
     draw_string_set_style_justify_flags(-1, 1, 0);
     draw_string_set_color(*(void **)0x2ee6e0);
     draw_string_set_font_tag(font_tag);
-    FUN_00158ae0(0);
-    rasterizer_text_draw(rect, (short *)0, (const void *)0, 0, text);
+    rasterizer_set_stencil_mode(0);
+    rasterizer_draw_string(rect, (short *)0, (const void *)0, 0, text);
   }
 
   if (ok == 0) {
@@ -2405,7 +2405,7 @@ void FUN_001749b0(void)
   }
 }
 
-/* FUN_00174b60: componentwise 4-float subtract, out = a - b (0x174b60).
+/* subtract_vectors4d: componentwise 4-float subtract, out = a - b (0x174b60).
  * Four FLD/FSUB m32/FSTP triples at offsets 0/4/8/0xc — the FLD is from
  * param1 and the FSUB against param2, so the direction is a - b (not
  * swapped). Four components, not three: this is a real_vector4d / plane /
@@ -2413,7 +2413,7 @@ void FUN_001749b0(void)
  * Each lane is read immediately before being stored, so out may alias a
  * or b; keep the statement order as written. No naming evidence in the
  * binary for a semantic name, so the mechanical name is retained. */
-void FUN_00174b60(float *a, float *b, float *out)
+void subtract_vectors4d(float *a, float *b, float *out)
 {
   out[0] = a[0] - b[0];
   out[1] = a[1] - b[1];
@@ -2421,7 +2421,7 @@ void FUN_00174b60(float *a, float *b, float *out)
   out[3] = a[3] - b[3];
 }
 
-/* FUN_00174b90: componentwise 4-float scale-and-add, out = a + t * b
+/* offset_vector4d: componentwise 4-float scale-and-add, out = a + t * b
  * (0x174b90). The 4-component twin of the subtract helper at 0x174b60 above,
  * and like it a real_vector4d / plane / quaternion-shaped operand — do NOT
  * reduce it to a 3-vector helper.
@@ -2444,7 +2444,7 @@ void FUN_00174b60(float *a, float *b, float *out)
  * operand-direction hazard. Pure leaf: no CALLs, no branches, no globals. No
  * naming evidence in the binary for a semantic name, so the mechanical name
  * is retained. */
-void FUN_00174b90(float *a, float *b, float t, float *out)
+void offset_vector4d(float *a, float *b, float t, float *out)
 {
   out[0] = t * b[0] + a[0];
   out[1] = t * b[1] + a[1];
@@ -2462,7 +2462,7 @@ void FUN_00174b90(float *a, float *b, float t, float *out)
  *
  * Return is a BOOL in AL (MOV AL,0x1 at 0x174c93 on success, MOV AL,BL at
  * 0x174cac on the failure tail), not the `int` Ghidra reports — the caller
- * (rasterizer_text.c, `success = FUN_00174bd0()`) tests it as a flag.
+ * (rasterizer_text.c, `success = rasterizer_transparent_geometry_initialize_aux_buffer()`) tests it as a flag.
  *
  * Ghidra reuses a single `bVar3` for both HRESULT checks; the disassembly
  * instead re-materializes BL independently after each call (MOV BL,1 /
@@ -2474,7 +2474,7 @@ void FUN_00174b90(float *a, float *b, float t, float *out)
  *
  * Both D3D entry points are __stdcall with kb.json `void(void)` stub decls.
  * CreateVertexBuffer has a real signature in kb.json; Lock does not, so it is
- * reached through the raw __stdcall cast idiom used by FUN_0015c650 — do not
+ * reached through the raw __stdcall cast idiom used by IDirect3DVertexBuffer8_Lock_2 — do not
  * "fix" that by calling it by name, which would drop all five arguments.
  *
  * 0x325652 is a WORD (MOV word ptr [0x325652],0x2 before the lock, then
@@ -2486,7 +2486,7 @@ void FUN_00174b90(float *a, float *b, float t, float *out)
  * transcription error and must not be "corrected".  csmemcpy's returned
  * pointer is discarded (Ghidra smuggles it into the return value via
  * CONCAT31; the real return is the AL flag). */
-char FUN_00174bd0(void)
+char rasterizer_transparent_geometry_initialize_aux_buffer(void)
 {
   unsigned char pattern[8]; /* [EBP-0xc] */
   void *vertices; /* [EBP-0x4] — Lock's out pointer, walked by the fill loop */
@@ -2515,7 +2515,7 @@ char FUN_00174bd0(void)
   *(short *)0x325652 = 2;
   /* hazard-ok: fnptr-conv — __stdcall verified: no ADD ESP follows the CALL at
    * 0x1ef100 and the five pushes (ECX=stream, 0, 0x4000, &vertices, 0) are
-   * cleaned by the callee.  Same idiom as FUN_0015c650. */
+   * cleaned by the callee.  Same idiom as IDirect3DVertexBuffer8_Lock_2. */
   ((void(__stdcall *)(void *, uint32_t, uint32_t, void **, uint32_t))0x1ef100)(
     *(void **)0x47e4bc, 0, 0x4000, &vertices, 0);
   if (ok != 0) {
@@ -2555,11 +2555,11 @@ char FUN_00174bd0(void)
 }
 
 /* dispose of rasterizer_xbox_transparent_geometry_texcoord_stream: release the
- * stream-1 texcoord vertex buffer allocated by FUN_00174bd0 and clear the
+ * stream-1 texcoord vertex buffer allocated by rasterizer_transparent_geometry_initialize_aux_buffer and clear the
  * global. The D3DResource_Release return value is discarded (the original
  * never tests EAX after the CALL), and the null-out lives inside the guard
  * because the JZ at 0x174cc7 skips both the CALL and the store (0x174cc0). */
-void FUN_00174cc0(void)
+void rasterizer_transparent_geometry_dispose_aux_buffer(void)
 {
   if (*(void **)0x47e4bc != (void *)0x0) {
     D3DResource_Release(*(void **)0x47e4bc);
@@ -2568,7 +2568,7 @@ void FUN_00174cc0(void)
 }
 
 /* begin the per-frame GPU visibility (occlusion) test -- the Begin counterpart
- * of FUN_001749b0, which ends the test and reports the pixel ratio.
+ * of rasterizer_transparent_geometry_groups_end, which ends the test and reports the pixel ratio.
  *
  * The two counters are cleared UNCONDITIONALLY, before any branch: the
  * scheduler interleaved the stores with the CMPs (0x174ce9 / 0x174cef sit
@@ -2578,7 +2578,7 @@ void FUN_00174cc0(void)
  *
  * Globals (from the disassembly at 0x174ce0-0x174d0a):
  *   0x325740  two enable bytes, both must be non-zero (CMP AL,CL; CMP AH,CL)
- *             -- read as one dword, same as FUN_001749b0
+ *             -- read as one dword, same as rasterizer_transparent_geometry_groups_end
  *   0x5a5bc2  short  current window index; -1 is the "no window" sentinel and
  *             suppresses the test (CMP word [0x5a5bc2],-1; JZ to the RET)
  *   0x47e4b8  int    per-frame counter, cleared here
@@ -2591,7 +2591,7 @@ void FUN_00174cc0(void)
  * enable pair on the fall-through path -- two different values, so no caller
  * can be consuming an implicit return; the decl stays void (lift-learnings
  * S16). */
-void FUN_00174ce0(void)
+void rasterizer_transparent_geometry_groups_begin(void)
 {
   union {
     unsigned int dword;
@@ -2654,13 +2654,13 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
   if (*(int *)(grp + 0x98) != 0 && (char)dirty == 0) {
     return;
   }
-  if (FUN_00184570(grp) == 0) {
+  if (rasterizer_transparent_geometry_get_group_pending_status(grp) == 0) {
     return;
   }
-  FUN_001845b0(grp, 0);
+  rasterizer_transparent_geometry_set_group_pending_status(grp, 0);
   if (*(short *)(grp + 0x94) != -1) {
     rasterizer_transparent_geometry_group_draw(
-      rasterizer_transparent_geometry_group_get(*(short *)(grp + 0x94)), dirty);
+      rasterizer_transparent_geometry_get_group_from_presorted_index(*(short *)(grp + 0x94)), dirty);
   }
 
   /* rasterizer_debug_transparents: draw with random per-group tint */
@@ -2696,7 +2696,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       vertex_shader_table[9] = -1;
       vertex_shader_table[10] = -1;
       vertex_shader_table[11] = -1;
-      vertex_type = (short)FUN_00184610(grp);
+      vertex_type = (short)rasterizer_transparent_geometry_get_primary_vertex_type(grp);
       if (*(short *)0x3256ea >= 1000 || *(short *)0x3256ea < 0) {
         solid_color = 1;
       } else {
@@ -2717,7 +2717,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
                        0x119, 1);
         system_exit(-1);
       }
-      FUN_00178b40(
+      rasterizer_set_vertex_shader_permutation(
         (int)(0xffff0000u |
               (unsigned short)vertex_shader_table[(short)vertex_type]),
         vertex_type, 0);
@@ -2839,7 +2839,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       }
       D3DDevice_SetVertexShaderConstant(0x58, skin_xform, 3);
       success = 1;
-      FUN_00174510(grp, 0);
+      rasterizer_transparent_geometry_group_draw__internal(grp, 0);
       if (solid_color == 0) {
         crt_sprintf(text_buffer, "%.03f", (double)*(float *)(grp + 0x70));
         argb[1] = argb[1] * *(float *)0x254644;
@@ -2859,7 +2859,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           argb[2] = dim;
           argb[3] = dim;
         }
-        FUN_00189cb0(0, grp + 0x74, text_buffer, (int)argb);
+        render_debug_string_at_point(0, grp + 0x74, text_buffer, (int)argb);
       }
     }
     goto tail;
@@ -2877,8 +2877,8 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
 
     first_tag = *(int *)(grp + 8);
     g2 = grp;
-    vertex_type = FUN_00184610(grp);
-    FUN_00178b40(0xd, vertex_type, 0);
+    vertex_type = rasterizer_transparent_geometry_get_primary_vertex_type(grp);
+    rasterizer_set_vertex_shader_permutation(0xd, vertex_type, 0);
     SetRenderStateSmart(0x7f, 0);
     SetRenderStateSmart(0x43, 0);
     SetRenderStateSmart(0x3b, 0);
@@ -2906,7 +2906,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         if (*(int *)(grp + 0x68) != 0) {
           rasterizer_set_model_lighting(*(void **)(g2 + 0x68));
         }
-        FUN_00174510(g2, 0);
+        rasterizer_transparent_geometry_group_draw__internal(g2, 0);
       }
       g2 = (char *)rasterizer_transparent_geometry_next_group(g2);
     } while (g2 != (char *)0);
@@ -2918,12 +2918,12 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       if (*(char *)0x3256fa == 0) {
         if (sh == (char *)0 ||
             (*(short *)(sh + 0x24) != 7 && shader_is_water_decal(sh) == 0)) {
-          FUN_001595c0();
+          rasterizer_active_camouflage_cache_primary_render_target();
         }
       } else if (sh != (char *)0 && *(short *)(sh + 0x24) == 4 &&
                  *(short *)(grp + 0x14) == 1 &&
                  *(int *)(grp + 8) != *(int *)0x47e4b8) {
-        FUN_001595c0();
+        rasterizer_active_camouflage_cache_primary_render_target();
       }
     }
     if ((*grp & 2) == 0 && *(short *)0x5a5bc0 == 0 &&
@@ -2947,7 +2947,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
   }
 
   permutation = shader_get_vertex_shader_permutation(*(void **)(grp + 0xc));
-  vertex_type = FUN_00184610(grp);
+  vertex_type = rasterizer_transparent_geometry_get_primary_vertex_type(grp);
   if ((*grp & 2) == 0) {
     struct {
       void *matrices;
@@ -2989,17 +2989,17 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         }
         rasterizer_set_frustum_z(*(float *)0x32569c, *(float *)0x3256a0);
       } else if ((short)pass != 0) {
-        FUN_00158ae0(2);
+        rasterizer_set_stencil_mode(2);
         SetRenderStateSmart(0x7b, 0);
       } else {
         sh = *(char **)(grp + 0xc);
         if (sh != (char *)0 && *(short *)(sh + 0x24) == 1) {
-          char *senv = (char *)FUN_001906b0(sh, 1);
+          char *senv = (char *)shader_get_and_verify_type(sh, 1);
           if ((*(unsigned char *)(senv + 0x28) & 4) != 0) {
             goto next_pass;
           }
         }
-        FUN_00158ae0(3);
+        rasterizer_set_stencil_mode(3);
       }
     } else if ((short)pass > 0) {
       break;
@@ -3019,7 +3019,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       int stage_count;
       int idx;
 
-      env = (char *)FUN_001906b0(sh, 1);
+      env = (char *)shader_get_and_verify_type(sh, 1);
       /* has_multi = secondary map used as a regular multitexture stage.
        * A z-sprite secondary map (env+0x5c == 2) is NOT a multitexture
        * stage — it goes through the dedicated z-sprite final-combiner
@@ -3059,8 +3059,8 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       SetRenderStateSmart(0x43, 0x10101);
       SetRenderStateSmart(0x3b, 1);
       SetRenderStateSmart(0x3c, 0);
-      FUN_001580b0(*(unsigned short *)(env + 0x2a));
-      FUN_00178b40(0x41, vertex_type, permutation);
+      rasterizer_set_framebuffer_blend_function(*(unsigned short *)(env + 0x2a));
+      rasterizer_set_vertex_shader_permutation(0x41, vertex_type, permutation);
       skin_xform1[0] = 1.0f;
       skin_xform1[1] = 0.0f;
       skin_xform1[2] = 0.0f;
@@ -3104,7 +3104,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         skin_xform1[11] = *(float *)0x5a5bd0;
       }
       if (has_multi != 0) {
-        FUN_00190e10(env + 0x60, *(void **)(grp + 0x6c), *(float *)(grp + 0x3c),
+        shader_texture_animation_evaluate(env + 0x60, *(void **)(grp + 0x6c), *(float *)(grp + 0x3c),
                      *(float *)(grp + 0x40), 0.0f, 0.0f, 0.0f,
                      *(float *)0x5a5e18, &texanim1[8], &texanim1[12]);
       }
@@ -3277,7 +3277,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       if (*(char *)0x47e4c0 != 0) {
         return;
       }
-      FUN_00159900(grp);
+      rasterizer_active_camouflage_draw(grp);
       break;
     case 5: {
       /* shader_transparent_generic */
@@ -3319,7 +3319,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       float x;
       unsigned int blendrow;
 
-      gen = (char *)FUN_001906b0(sh, 5);
+      gen = (char *)shader_get_and_verify_type(sh, 5);
       frame_index = *(unsigned short *)(grp + 0x10);
       layers = gen + 0x48;
       if (*(int *)layers > 0) {
@@ -3334,7 +3334,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           n = n + 1;
         } while ((int)(short)n < *(int *)layers);
       }
-      FUN_00178b40(0x18, vertex_type, permutation);
+      rasterizer_set_vertex_shader_permutation(0x18, vertex_type, permutation);
       SetRenderStateSmart(
         0x7f,
         (int)((-(unsigned int)((*(unsigned char *)(gen + 0x29) & 4) != 0) &
@@ -3344,7 +3344,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       SetRenderStateSmart(0x3b, 1);
       SetRenderStateSmart(0x3c, *(unsigned char *)(gen + 0x29) & 1);
       SetRenderStateSmart(0x3d, 0x7f);
-      FUN_001580b0(*(unsigned short *)(gen + 0x2c));
+      rasterizer_set_framebuffer_blend_function(*(unsigned short *)(gen + 0x2c));
       if ((char)*(char *)(gen + 0x29) < 0 && *(int *)(grp + 0x6c) != 0 &&
           *(int *)(gen + 0x54) > 0) {
         /* numeric-counter driven first map index */
@@ -3456,7 +3456,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
             u = u * *(float *)(grp + 0x3c);
             v = v * *(float *)(grp + 0x40);
           }
-          FUN_00190e10(map + 0x2c, *(void **)(grp + 0x6c), u, v,
+          shader_texture_animation_evaluate(map + 0x2c, *(void **)(grp + 0x6c), u, v,
                        *(float *)(map + 0xc), *(float *)(map + 0x10),
                        *(float *)(map + 0x14), *(float *)0x5a5e18,
                        &anim_out[(short)m * 8], &anim_out[(short)m * 8 + 4]);
@@ -3484,7 +3484,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       } while ((short)m < 4);
       D3DDevice_SetVertexShaderConstant(-0x51, anim_out, 8);
       if (success != 0) {
-        ok = FUN_0017c2f0(*(void **)(grp + 0xc), (void *)0x5a5ac0);
+        ok = shader_transparent_generic_create(*(void **)(grp + 0xc), (void *)0x5a5ac0);
         if (ok == 0) {
           success = 0;
         } else {
@@ -3750,7 +3750,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       float x2;
       unsigned int blendrow2;
 
-      chi = (char *)FUN_001906b0(sh, 6);
+      chi = (char *)shader_get_and_verify_type(sh, 6);
       frame_index2 = *(unsigned short *)(grp + 0x10);
       layers2 = chi + 0x48;
       /* NOTE: original re-reads the layer count each iteration and always
@@ -3763,7 +3763,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           tag_get(0x73686472, *(int *)(map2 + 0xc));
         rasterizer_transparent_geometry_group_draw(sub_group2, dirty);
       }
-      FUN_00178b40(0x18, vertex_type, permutation);
+      rasterizer_set_vertex_shader_permutation(0x18, vertex_type, permutation);
       SetRenderStateSmart(
         0x7f,
         (int)((-(unsigned int)((*(unsigned char *)(chi + 0x29) & 4) != 0) &
@@ -3773,7 +3773,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       SetRenderStateSmart(0x3b, 1);
       SetRenderStateSmart(0x3c, *(unsigned char *)(chi + 0x29) & 1);
       SetRenderStateSmart(0x3d, 0x7f);
-      FUN_001580b0(*(unsigned short *)(chi + 0x2c));
+      rasterizer_set_framebuffer_blend_function(*(unsigned short *)(chi + 0x2c));
       if ((char)*(char *)(chi + 0x29) < 0 && *(int *)(grp + 0x6c) != 0 &&
           *(int *)(chi + 0x54) > 0) {
         map2 = (char *)tag_block_get_element(chi + 0x54, 0, 0xdc);
@@ -3892,7 +3892,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
             u2 = u2 * *(float *)(grp + 0x3c);
             v2 = v2 * *(float *)(grp + 0x40);
           }
-          FUN_00190e10(map2 + 0xa4, *(void **)(grp + 0x6c), u2, v2,
+          shader_texture_animation_evaluate(map2 + 0xa4, *(void **)(grp + 0x6c), u2, v2,
                        *(float *)(map2 + 0x5c), *(float *)(map2 + 0x60),
                        *(float *)(map2 + 0x64), *(float *)0x5a5e18,
                        &anim_out2[(short)m2 * 8],
@@ -3927,7 +3927,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
                      "vsh_constants__texanim, VSH_CONSTANTS__TEXANIM_COUNT)");
         success = 0;
       } else {
-        ok2 = FUN_0017bca0(*(void **)(grp + 0xc), (void *)0x5a5ac0);
+        ok2 = shader_transparent_chicago_create(*(void **)(grp + 0xc), (void *)0x5a5ac0);
         success = 1;
         if (ok2 == 0) {
           success = 0;
@@ -4049,7 +4049,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
     }
 
     case 7:
-      FUN_00179de0(grp);
+      rasterizer_water_draw(grp);
       break;
     case 8: {
       /* shader_transparent_glass */
@@ -4061,7 +4061,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       float bump_color[3]; /* [EBP-0x7c] */
       float bc;
 
-      gls = (char *)FUN_001906b0(sh, 8);
+      gls = (char *)shader_get_and_verify_type(sh, 8);
       reflection_type = *(short *)(gls + 0x8a);
       if (reflection_type == 2) {
         if (*(char *)0x5a5bc4 == 0 || *(short *)0x5a5bc0 != 0) {
@@ -4096,7 +4096,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         SetRenderStateSmart(0x4a, 0x8006);
         SetRenderStateSmart(0x3c, 1);
         SetRenderStateSmart(0x3d, 0);
-        FUN_00178b40(0x2e, vertex_type, permutation);
+        rasterizer_set_vertex_shader_permutation(0x2e, vertex_type, permutation);
         glass_consts[0] = *(float *)(grp + 0x3c) * *(float *)(gls + 0x60);
         glass_consts[1] = *(float *)(grp + 0x40) * *(float *)(gls + 0x60);
         glass_consts[2] = 1.0f;
@@ -4126,14 +4126,14 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         *(uint32_t *)0x5a5b48 = 0x8010000;
         *(uint32_t *)0x5a5b74 = 0xc0;
         if (*(short *)(grp + 0x14) == 1) {
-          *(uint32_t *)0x5a5b08 = FUN_00159070(*(float *)(grp + 0x18));
+          *(uint32_t *)0x5a5b08 = real_alpha_to_pixel32(*(float *)(grp + 0x18));
           *(uint32_t *)0x5a5ac0 = 0x14320000;
           *(uint32_t *)0x5a5b28 = 0x40;
         }
         *(uint32_t *)0x5a5ae0 = 0x140c2000;
         *(uint32_t *)0x5a5ae4 = 0x1400;
         rasterizer_set_pixel_shader((void *)0x5a5ac0);
-        FUN_00174510(grp, 0);
+        rasterizer_transparent_geometry_group_draw__internal(grp, 0);
       }
       if ((*(float *)(gls + 0x8c) > *(float *)0x2533c0 ||
            *(float *)(gls + 0x9c) > *(float *)0x2533c0) &&
@@ -4170,7 +4170,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         SetTextureStageStateSmart(2, 0xe, 1);
         SetTextureStageStateSmart(2, 0xf, 1);
         if (reflection_type == 2) {
-          FUN_001584f0(3, 1, 0);
+          rasterizer_set_target_as_texture(3, 1, 0);
           SetTextureStageStateSmart(3, 0xa, 3);
           SetTextureStageStateSmart(3, 0xb, 3);
           SetTextureStageStateSmart(3, 0xd, 2);
@@ -4197,7 +4197,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         SetRenderStateSmart(0x3f, 1);
         SetRenderStateSmart(0x4a, 0x8006);
         SetRenderStateSmart(0x3c, 0);
-        FUN_00178b40(0x2b, vertex_type, reflection_type);
+        rasterizer_set_vertex_shader_permutation(0x2b, vertex_type, reflection_type);
         refl_consts[0] = *(float *)(grp + 0x3c) * *(float *)(gls + 0xbc);
         refl_consts[1] = *(float *)(grp + 0x40) * *(float *)(gls + 0xbc);
         refl_consts[2] = 320.0f;
@@ -4272,7 +4272,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         *(uint32_t *)0x5a5b4c = 0xc0c0d0d;
         *(uint32_t *)0x5a5b78 = 0xcd;
         if (*(short *)(grp + 0x14) == 1) {
-          *(uint32_t *)0x5a5b0c = FUN_00159070(*(float *)(grp + 0x18));
+          *(uint32_t *)0x5a5b0c = real_alpha_to_pixel32(*(float *)(grp + 0x18));
           *(uint32_t *)0x5a5ac4 = 0x14320000;
           *(uint32_t *)0x5a5b2c = 0x40;
         }
@@ -4294,7 +4294,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
             0x10000 |
           0x1c002000;
         rasterizer_set_pixel_shader((void *)0x5a5ac0);
-        FUN_00174510(grp, 0);
+        rasterizer_transparent_geometry_group_draw__internal(grp, 0);
       }
       if (*(int *)(gls + 0x164) != -1 || *(int *)(gls + 0x178) != -1) {
         /* bump/specular pass */
@@ -4339,7 +4339,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           SetTextureStageStateSmart(2, 0xe, 2);
           SetTextureStageStateSmart(2, 0xf, 2);
         }
-        FUN_00178b40(0x19, vertex_type, permutation);
+        rasterizer_set_vertex_shader_permutation(0x19, vertex_type, permutation);
         bump_consts[0] = *(float *)(gls + 0x154) * *(float *)(grp + 0x3c);
         bump_consts[1] = *(float *)(gls + 0x154) * *(float *)(grp + 0x40);
         bump_consts[2] = *(float *)(gls + 0x168) * *(float *)(grp + 0x3c);
@@ -4378,7 +4378,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         *(uint32_t *)0x5a5ae0 = 0xc;
         *(uint32_t *)0x5a5ae4 = 0x1c00;
         rasterizer_set_pixel_shader((void *)0x5a5ac0);
-        FUN_00174510(grp, *(int *)(grp + 0x5c) != 0);
+        rasterizer_transparent_geometry_group_draw__internal(grp, *(int *)(grp + 0x5c) != 0);
       }
       break;
     }
@@ -4408,7 +4408,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       float px3_alpha;
       float meter_consts[12]; /* [EBP-0x250] */
 
-      met = (char *)FUN_001906b0(sh, 9);
+      met = (char *)shader_get_and_verify_type(sh, 9);
       brightness = 1.0f;
       power = 1.0f;
       gradient = 1.0f;
@@ -4523,7 +4523,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       SetRenderStateSmart(0x4b, px_final);
       SetRenderStateSmart(0x4a, 0x8006);
       SetRenderStateSmart(0x3c, 0);
-      FUN_00178b40(0x16, vertex_type, permutation);
+      rasterizer_set_vertex_shader_permutation(0x16, vertex_type, permutation);
       meter_consts[0] = 1.0f;
       meter_consts[1] = 1.0f;
       meter_consts[2] = 1.0f;
@@ -4588,13 +4588,13 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         *(uint32_t *)0x5a5ae0 = ((*(short *)0x3256ea < 2) - 1 & 0x10) + 8;
       }
       rasterizer_set_pixel_shader((void *)0x5a5ac0);
-      FUN_00174510(grp, 0);
+      rasterizer_transparent_geometry_group_draw__internal(grp, 0);
       SetTextureStageStateSmart(0, 0x15, 0);
       break;
     }
 
     case 10:
-      FUN_0016eef0(grp);
+      rasterizer_plasma_energy_draw(grp);
       break;
 
     default:
@@ -4608,7 +4608,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
   set_shader_and_draw:
     /* shared tail for shader types 1/5/6 (0x17744d) */
     rasterizer_set_pixel_shader((void *)0x5a5ac0);
-    FUN_00174510(grp, 0);
+    rasterizer_transparent_geometry_group_draw__internal(grp, 0);
 
   next_pass:
     pass = pass + 1;
@@ -4627,10 +4627,10 @@ tail:
   }
   if (*(short *)(grp + 0x96) != -1) {
     rasterizer_transparent_geometry_group_draw(
-      rasterizer_transparent_geometry_group_get(*(short *)(grp + 0x96)), dirty);
+      rasterizer_transparent_geometry_get_group_from_presorted_index(*(short *)(grp + 0x96)), dirty);
   }
   if (draw_secondary != 0) {
-    sec = (char *)rasterizer_secondary_geometry_groups_get(&sec_count);
+    sec = (char *)rasterizer_transparent_geometry_get_groups2(&sec_count);
     if ((char)dirty != 0) {
       display_assert("!dirty",
                      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_"
@@ -4660,7 +4660,7 @@ tail:
  * above: a tiny argument-shuffling thunk that forwards to the real D3D
  * entry point. Eleven instructions, one CALL, no FPU, no locals.
  *
- * ABI (kb.json previously said `void FUN_00178820(void)`, wrong on every
+ * ABI (kb.json previously said `void IDirect3DDevice8_CreateVertexShader(void)`, wrong on every
  * count), read straight off the disassembly:
  *   - RET 0x8 => __stdcall with TWO stack args at +8 and +0xc. The first
  *     (+8) is never read anywhere in the body, exactly as the device
@@ -4682,7 +4682,7 @@ tail:
  * from any @<reg> declaration when generating decl.h, and patch.py's
  * reverse thunk is what honours the callee-cleans RET 0x8 contract.
  */
-int FUN_00178820(unsigned long flags, unsigned long *handle,
+int IDirect3DDevice8_CreateVertexShader(unsigned long flags, unsigned long *handle,
                  unsigned long *code, void *unused_arg0,
                  unsigned long *declaration)
 {
@@ -4700,20 +4700,20 @@ int FUN_00178820(unsigned long flags, unsigned long *handle,
  * two stores are kept as separate byte writes, not merged into one 16-bit
  * store, to match the original.
  */
-void FUN_001792a0(char mode)
+void rasterizer_water_set_visibility_for_frame(char mode)
 {
   *(char *)0x47e4c8 = (char)(mode == 0);
   *(char *)0x47e4c9 = mode;
 }
 
 /* 0x1792c0 — byte setter for the global at 0x47e4c9, the second of the pair
- * written by FUN_001792a0 above. Whole body is 5 instructions, no calls, no
+ * written by rasterizer_water_set_visibility_for_frame above. Whole body is 5 instructions, no calls, no
  * FPU, no locals:
  *   push ebp / mov ebp,esp
  *   mov al, byte ptr [ebp+0x8]     ; the single stack arg, read as a BYTE
  *   mov byte ptr [0x0047e4c9], al  ; byte-wide store
  *   pop ebp / ret                  ; RET has no immediate -> cdecl
- * Unlike FUN_001792a0 this variant leaves the companion flag at 0x47e4c8
+ * Unlike rasterizer_water_set_visibility_for_frame this variant leaves the companion flag at 0x47e4c8
  * alone, so it overrides only the raw mode byte. The param is byte-wide by
  * evidence (the load is MOV AL, byte ptr — no MOVSX/MOVZX and no dword read),
  * matching the sibling's signature; kb.json previously declared it int, which
@@ -4723,7 +4723,7 @@ void FUN_001792a0(char mode)
  * PDB evidence — and the only observed caller is the frame-setup path in
  * rasterizer_xbox_decals.c, which passes 0.
  */
-void FUN_001792C0(char mode)
+void rasterizer_water_set_visibility_for_window(char mode)
 {
   *(char *)0x47e4c9 = mode;
 }
@@ -4747,14 +4747,14 @@ void FUN_001792C0(char mode)
  * it is an unaligned byte inside a larger globals block with no string or PDB
  * evidence for a name.
  */
-char FUN_001792d0(void)
+char rasterizer_water_get_visibility_for_window(void)
 {
   return *(char *)0x47e4c9;
 }
 
 /* 0x179570 — a third byte-identical instantiation of the D3D8 __forceinline
- * wrapper around D3DDevice_SetVertexData2f, matching FUN_001703f0 and
- * FUN_00172650 above instruction for instruction. Disassembled from the
+ * wrapper around D3DDevice_SetVertexData2f, matching IDirect3DDevice8_SetVertexData2f_3 and
+ * IDirect3DDevice8_SetVertexData2f_2 above instruction for instruction. Disassembled from the
  * pristine cachebeta.xbe (11 instructions, 0x179570..0x179584):
  *   push ebp / mov ebp,esp
  *   mov eax,[ebp+0x10] ; mov ecx,[ebp+0xc]
@@ -4762,7 +4762,7 @@ char FUN_001792d0(void)
  *   call 0x1ed280                  ; D3DDevice_SetVertexData2f, __stdcall
  *   xor eax,eax / pop ebp / ret 0xc
  *
- * ABI evidence (kb.json previously said `void FUN_00179570(void)`, wrong on
+ * ABI evidence (kb.json previously said `void IDirect3DDevice8_SetVertexData2f_0(void)`, wrong on
  * every count):
  *  - RET 0xc => __stdcall with THREE stack args at +8/+0xc/+0x10. The first
  *    (+8, the device pointer of the inline member instantiation) is never
@@ -4787,7 +4787,7 @@ char FUN_001792d0(void)
  * cdecl interface to C, and patch.py's reverse thunk restores the original
  * RET 0xc contract for the original callers.
  */
-int FUN_00179570(void *device, uint32_t reg, float a, float b)
+int IDirect3DDevice8_SetVertexData2f_0(void *device, uint32_t reg, float a, float b)
 {
   (void)device;
   D3DDevice_SetVertexData2f(reg, a, b);
@@ -4886,7 +4886,7 @@ static __inline int water_alpha_to_pixel32(float alpha_in)
 
 /* 0x1795c0
  *
- * FUN_001795c0 - rasterizer_water_build_bumpmap
+ * rasterizer_water_build_bumpmap - rasterizer_water_build_bumpmap
  *
  * Renders the animated water ripple bump map for a water shader.
  *
@@ -4900,7 +4900,7 @@ static __inline int water_alpha_to_pixel32(float alpha_in)
  *
  * shader: shader tag pointer; shader definition 7 is the water definition.
  */
-void FUN_001795c0(void *shader)
+void rasterizer_water_build_bumpmap(void *shader)
 {
   int ripple;
   int gather_count;
@@ -4938,7 +4938,7 @@ void FUN_001795c0(void *shader)
     return;
   }
 
-  water = FUN_001906b0(shader, 7);
+  water = shader_get_and_verify_type(shader, 7);
 
   layer_count = NUMBER_OF_WATER_RIPPLES;
   if (*(short *)((char *)water + 0xd8) <= NUMBER_OF_WATER_RIPPLES) {
@@ -5007,7 +5007,7 @@ void FUN_001795c0(void *shader)
   *(int *)0x1fb788 = 0;
   D3DDevice_SetRenderState_ZEnable(0);
   D3DDevice_SetRenderState_ZBias(0);
-  FUN_00178b40(0x26, 8, 0);
+  rasterizer_set_vertex_shader_permutation(0x26, 8, 0);
 
   /* Per-ripple 2x4 texture transform: rows (repeats, 0, 0, u) and
    * (0, repeats, 0, v), scrolled along the ripple's animation angle. */
@@ -5083,7 +5083,7 @@ void FUN_001795c0(void *shader)
      ripples[2].contribution_factor + ripples[3].contribution_factor));
 
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
-  FUN_00158ae0(0);
+  rasterizer_set_stencil_mode(0);
 
   /* Dual induction, as the original: the short loop counter ([EBP-0x4],
    * CMP AX vs layer_count at 0x179d8f) plus a separate int copy that is
@@ -5102,7 +5102,7 @@ void FUN_001795c0(void *shader)
       *(int *)0x5a5b6c = water_alpha_to_pixel32(alpha) | 0x8080ff;
     }
     rasterizer_set_pixel_shader((void *)0x5a5ac0);
-    FUN_00158140(6, layer, 0, 0, 0);
+    rasterizer_set_target(6, layer, 0, 0, 0);
 
     scale = 1.0f / (float)(0x80 >> layer);
     horizontal_offset = scale * *(float *)0x25eeac;
@@ -5147,8 +5147,8 @@ void FUN_001795c0(void *shader)
     layer_index++;
   }
 
-  FUN_00158140(*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
-  FUN_00158ae0(2);
+  rasterizer_set_target(*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
+  rasterizer_set_stencil_mode(2);
   if (!success) {
     error(2, "### ERROR rasterizer_water_build_bumpmap failed");
   }
@@ -5156,7 +5156,7 @@ void FUN_001795c0(void *shader)
 
 /* 0x179de0
  *
- * FUN_00179de0 - rasterizer_water_draw_group
+ * rasterizer_water_draw - rasterizer_water_draw_group
  *
  * Draws one water render-group.  Up to three passes are emitted, all sharing
  * the same vertex type / vertex-shader permutation:
@@ -5173,7 +5173,7 @@ void FUN_001795c0(void *shader)
  * group: render-group record; +0x0 flags, +0xc shader tag, +0x10 frame index,
  *        +0x80 float3.
  */
-void FUN_00179de0(void *group)
+void rasterizer_water_draw(void *group)
 {
   void *shader;
   int permutation;
@@ -5206,10 +5206,10 @@ void FUN_00179de0(void *group)
     return;
   }
 
-  shader = FUN_001906b0(*(void **)((char *)group + 0xc), 7);
+  shader = shader_get_and_verify_type(*(void **)((char *)group + 0xc), 7);
   permutation =
     shader_get_vertex_shader_permutation(*(void **)((char *)group + 0xc));
-  vertex_type = FUN_00184610(group);
+  vertex_type = rasterizer_transparent_geometry_get_primary_vertex_type(group);
   /* 16-bit load/AND, as the original: MOV AX,[ESI+0x28]; AND AX,0x8. */
   water_flag = *(unsigned short *)((char *)shader + 0x28);
   water_flag &= 8;
@@ -5227,11 +5227,11 @@ void FUN_00179de0(void *group)
     *(int *)0x1fb77c = 0x203;
     D3DDevice_SetRenderState_Simple(0x4035c, 1);
     *(int *)0x1fb798 = 1;
-    FUN_00178b40(0x14, vertex_type, permutation);
+    rasterizer_set_vertex_shader_permutation(0x14, vertex_type, permutation);
     csmemset((void *)0x5a5ac0, 0, 0xf0);
     *(int *)0x5a5b94 = 1;
     rasterizer_set_pixel_shader((void *)0x5a5ac0);
-    FUN_00174510(group, 0);
+    rasterizer_transparent_geometry_group_draw__internal(group, 0);
     return;
   }
 
@@ -5243,7 +5243,7 @@ void FUN_00179de0(void *group)
   }
 
   if (*(char *)0x47e4c8 != 0) {
-    FUN_001795c0(*(void **)((char *)group + 0xc));
+    rasterizer_water_build_bumpmap(*(void **)((char *)group + 0xc));
     *(char *)0x47e4c8 = 0;
   }
 
@@ -5275,12 +5275,12 @@ void FUN_00179de0(void *group)
     blend_state = alpha_blend_enable;
     D3DDevice_SetRenderState_Simple(0x4035c, blend_state);
     *(int *)0x1fb798 = blend_state;
-    FUN_00178b40(0x14, vertex_type, permutation);
+    rasterizer_set_vertex_shader_permutation(0x14, vertex_type, permutation);
     csmemset((void *)0x5a5ac0, 0, 0xf0);
     *(int *)0x5a5b98 = 0x61;
     *(int *)0x5a5b94 = 2;
-    *(unsigned int *)0x5a5ae8 = FUN_00159070(*(float *)((char *)shader + 0x6c));
-    *(unsigned int *)0x5a5b08 = FUN_00159070(*(float *)((char *)shader + 0x7c));
+    *(unsigned int *)0x5a5ae8 = real_alpha_to_pixel32(*(float *)((char *)shader + 0x6c));
+    *(unsigned int *)0x5a5b08 = real_alpha_to_pixel32(*(float *)((char *)shader + 0x7c));
     *(int *)0x5a5ac0 = 0x29120911;
     *(int *)0x5a5b28 = 0xc00;
     *(int *)0x5a5ac4 = 0x1c180000;
@@ -5288,7 +5288,7 @@ void FUN_00179de0(void *group)
     *(int *)0x5a5ae0 = 0;
     *(int *)0x5a5ae4 = 0x1c00;
     rasterizer_set_pixel_shader((void *)0x5a5ac0);
-    FUN_00174510(group, 0);
+    rasterizer_transparent_geometry_group_draw__internal(group, 0);
   }
 
   if ((*(unsigned char *)((char *)shader + 0x28) & 2) != 0) {
@@ -5309,7 +5309,7 @@ void FUN_00179de0(void *group)
     SetRenderStateSmart(0x7b, 1);
     SetRenderStateSmart(0x39, 0x203);
     SetRenderStateSmart(0x40, alpha_blend_enable);
-    FUN_00178b40(0x14, vertex_type, permutation);
+    rasterizer_set_vertex_shader_permutation(0x14, vertex_type, permutation);
     csmemset((void *)0x5a5ac0, 0, 0xf0);
     *(int *)0x5a5b98 = 1;
     *(int *)0x5a5b94 = 1;
@@ -5318,12 +5318,12 @@ void FUN_00179de0(void *group)
        << 24) |
       0x200800;
     rasterizer_set_pixel_shader((void *)0x5a5ac0);
-    FUN_00174510(group, 0);
+    rasterizer_transparent_geometry_group_draw__internal(group, 0);
   }
 
   mipmap_count = *(short *)((char *)shader + 0xd8);
   max_mipmap = (mipmap_count <= 4) ? mipmap_count : 4;
-  FUN_001584f0(0, 6, max_mipmap);
+  rasterizer_set_target_as_texture(0, 6, max_mipmap);
   D3DDevice_SetTextureStageState(0, 10, 1);
   D3DDevice_SetTextureStageState(0, 0xb, 1);
   D3DDevice_SetTextureStageState(0, 0xd, 2);
@@ -5349,7 +5349,7 @@ void FUN_00179de0(void *group)
   SetRenderStateSmart(0x7b, 1);
   SetRenderStateSmart(0x39, 0x203);
   SetRenderStateSmart(0x40, alpha_blend_enable);
-  FUN_00178b40(0x17, vertex_type, permutation);
+  rasterizer_set_vertex_shader_permutation(0x17, vertex_type, permutation);
 
   /* c[-0x54] .. c[-0x52]: ripple scroll matrix.  Must stay one contiguous
    * 48-byte block - SetVertexShaderConstant uploads 3 vec4 from &constants[0].
@@ -5428,14 +5428,14 @@ void FUN_00179de0(void *group)
    * not an integer conversion of it. */
   stage_value.f = -*(float *)((char *)shader + 0xe0);
   D3DDevice_SetTextureStageState(0, 0x10, stage_value.u);
-  FUN_00174510(group, 0);
+  rasterizer_transparent_geometry_group_draw__internal(group, 0);
   D3DDevice_SetTextureStageState(0, 0x10, 0);
 }
 
 /* Render-target-0 viewport rectangle at 0x5a5bf4, in Bungie's rectangle2d
  * field order (top, left, bottom, right) — the same block
  * rasterizer_xbox_decals.c reads for D3DVIEWPORT8.Y/.Height. The order is
- * proven by which extent scales which screen axis in FUN_0017a8a0: the
+ * proven by which extent scales which screen axis in rasterizer_widget_project_billboard: the
  * right/left difference multiplies screen X, the bottom/top difference
  * multiplies screen Y. (Two older comments in this tree call the bottom/top
  * difference "width"; they are wrong and are not relied on here.) */
@@ -5459,7 +5459,7 @@ void FUN_00179de0(void *group)
  * half-width and half-height of the radius. out_screen arrives in EBX
  * (no store to it from any parameter slot, and FSTP float ptr [EBX] at
  * 0x17a9dd is the first write), so it is annotated @<ebx> in kb.json;
- * Ghidra's `void FUN_0017a8a0(void)` misses both that and the AL return
+ * Ghidra's `void rasterizer_widget_project_billboard(void)` misses both that and the AL return
  * (MOV AL,1 @0x17aa44 versus XOR AL,AL @0x17aa4d and MOV AL,CL @0x17aa55).
  *
  * Both guards are FCOMP against 0.0f with TEST AH,0x41: the guard is taken
@@ -5481,7 +5481,7 @@ void FUN_00179de0(void *group)
  *     mnemonic score).
  *   - The original shares both false guards with a tail `MOV AL,CL`, so the
  *     body is nested under the guards and returns `visible` once. */
-bool FUN_0017a8a0(float *point, float radius, float *out_extent,
+bool rasterizer_widget_project_billboard(float *point, float radius, float *out_extent,
                   float *out_screen)
 {
   float view_point[3]; /* [EBP-0x1c..-0x14] matrix_transform_point output */
@@ -5551,7 +5551,7 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
 
 /* 0x17ad20 — a second, byte-identical instantiation of the same
  * IDirect3DDevice8::SetVertexData2f inline member wrapper already ported at
- * FUN_00179570 above. MSVC emitted the inline body once per translation unit
+ * IDirect3DDevice8_SetVertexData2f_0 above. MSVC emitted the inline body once per translation unit
  * that used it; the linker kept both copies. The two functions are the same
  * eleven instructions with the same encodings:
  *
@@ -5563,7 +5563,7 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
  *   xor eax,eax / pop ebp / ret 0xc
  *
  * ABI evidence (verified against the pristine cachebeta.xbe, not Ghidra,
- * which reports this as `void __cdecl FUN_0017ad20(void)`):
+ * which reports this as `void __cdecl IDirect3DDevice8_SetVertexData2f(void)`):
  *  - EDX is PUSHed at 0017ad2b with no prior write anywhere in the function,
  *    so it is an implicit register input, not a scratch value. It becomes the
  *    callee's `reg` (vertex-data register index) argument -> @<edx>.
@@ -5581,13 +5581,13 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
  *  - XOR EAX,EAX before the RET is a real `return 0` (S_OK), not a dead
  *    write; lifting this as void would be the §16 void-EAX hazard.
  *
- * As with FUN_00179570, the C impl is written cdecl even though kb.json
+ * As with IDirect3DDevice8_SetVertexData2f_0, the C impl is written cdecl even though kb.json
  * records the original as __stdcall: knowledge.py strips the convention from
  * any @<reg> declaration when generating decl.h, because the generated thunk
  * presents a cdecl interface to C, and patch.py's reverse thunk restores the
  * original RET 0xc contract for the original callers.
  */
-int FUN_0017ad20(void *device, uint32_t reg, float a, float b)
+int IDirect3DDevice8_SetVertexData2f(void *device, uint32_t reg, float a, float b)
 {
   (void)device;
   D3DDevice_SetVertexData2f(reg, a, b);
@@ -5596,7 +5596,7 @@ int FUN_0017ad20(void *device, uint32_t reg, float a, float b)
 
 /* 0x17ad40 — dead D3D8 inline-wrapper instantiation of
  * IDirect3DDevice8::SetVertexData4f, byte-identical in shape to the already
- * ported FUN_0015a4f0 in rasterizer_xbox_decals.c.
+ * ported IDirect3DDevice8_SetVertexData4f_3 in rasterizer_xbox_decals.c.
  *
  * Full body (16 instructions):
  *   push ebp / mov ebp,esp
@@ -5624,7 +5624,7 @@ int FUN_0017ad20(void *device, uint32_t reg, float a, float b)
  *    as void would be the §16 void-EAX hazard (dropped implicit return).
  */
 /* 0x17ad40 */
-int __stdcall FUN_0017ad40(void *device, uint32_t reg, float a, float b,
+int __stdcall IDirect3DDevice8_SetVertexData4f(void *device, uint32_t reg, float a, float b,
                            float c, float d)
 {
   (void)device;
@@ -5632,35 +5632,35 @@ int __stdcall FUN_0017ad40(void *device, uint32_t reg, float a, float b,
   return 0;
 }
 
-void FUN_0017ad90(void)
+void __rasterizer_widget_end(void)
 {
 }
 
-/* rasterizer_widget_submit_occlusion_test (0x17ba10): submit one screen-space
+/* __rasterizer_widget_submit_occlusion_test (0x17ba10): submit one screen-space
  * quad to the Xbox D3D occlusion-query ("visibility test") unit for a HUD
  * widget / lens-flare style point.
  *
  * The function name is binary-proven: the failure tail passes the literal
- * "### ERROR rasterizer_widget_submit_occlusion_test failed" (0x2ae898) to
+ * "### ERROR __rasterizer_widget_submit_occlusion_test failed" (0x2ae898) to
  * error().
  *
  * Ghidra lost the whole signature -- it reports `void __cdecl
  * FUN_0017ba10(void)` with extraout_AL / extraout_EAX. The disassembly proves
  * three cdecl stack params at [EBP+8] / [EBP+0xC] / [EBP+0x10] and an int
- * return in EAX: [EBP+8]    forwarded as arg1 of FUN_0017a8a0  -> float
- * *position [EBP+0xC]  forwarded as arg2 of FUN_0017a8a0  -> float radius (kb
+ * return in EAX: [EBP+8]    forwarded as arg1 of rasterizer_widget_project_billboard  -> float
+ * *position [EBP+0xC]  forwarded as arg2 of rasterizer_widget_project_billboard  -> float radius (kb
  * decl of the callee types this slot `float`; it is never touched here, only
  * re-pushed, which is why Ghidra could not see the type) [EBP+0x10] pushed to
  * D3DDevice_EndVisibilityTest -> visibility-test index
  *
  * Return value is EDI, the signed area product, not a bool and not void:
  *   global 0x3256fc == 0        -> 1  (feature disabled: "test passed")
- *   FUN_0017a8a0 returned false -> 0  (point not on screen)
+ *   rasterizer_widget_project_billboard returned false -> 0  (point not on screen)
  *   area < 0                    -> 0
  *   otherwise                   -> area (0 when degenerate, since the D3D
  *                                        block is skipped and EAX still = EDI)
  *
- * FUN_0017a8a0 projects `position` and returns, via a register-passed out
+ * rasterizer_widget_project_billboard projects `position` and returns, via a register-passed out
  * pointer, the screen position and, via a stack out pointer, the half-extent:
  *   LEA EBX,[EBP-0x28] ; out_screen  (3 floats: x, y, z)  -- @<ebx>
  *   LEA EAX,[EBP-0x1c] ; out_extent  (2 floats: half_w, half_h)
@@ -5687,11 +5687,11 @@ void FUN_0017ad90(void)
  * frame at the original's exact SUB ESP,0x28.
  */
 /* 0x17ba10 */
-int rasterizer_widget_submit_occlusion_test(float *position, float radius,
+int __rasterizer_widget_submit_occlusion_test(float *position, float radius,
                                             unsigned int index)
 {
-  float screen[3]; /* [EBP-0x28] FUN_0017a8a0 out_screen (@<ebx>) */
-  float extent[2]; /* [EBP-0x1c] FUN_0017a8a0 out_extent: half_w, half_h */
+  float screen[3]; /* [EBP-0x28] rasterizer_widget_project_billboard out_screen (@<ebx>) */
+  float extent[2]; /* [EBP-0x1c] rasterizer_widget_project_billboard out_extent: half_w, half_h */
   float bounds_tmp; /* [EBP-8] clamp accumulator / floor() result */
   int x0; /* [EBP-0x14] */
   int x1; /* [EBP-0x10] */
@@ -5705,7 +5705,7 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
    * the `return 1` epilogue in the LAST block of the function, which is what
    * MSVC emits for this nesting rather than for inline early returns. */
   if (*(char *)0x3256fc != 0) {
-    if (FUN_0017a8a0(position, radius, extent, screen)) {
+    if (rasterizer_widget_project_billboard(position, radius, extent, screen)) {
       /* FLD 1.0f ; FCOMP extent -- the constant is the left operand, so the
        * test is written 1.0f > extent, not extent < 1.0f, to keep the load
        * order. */
@@ -5776,7 +5776,7 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
               hr,
               "IDirect3DDevice8_EndVisibilityTest(global_d3d_device, index)");
             error(2,
-                  "### ERROR rasterizer_widget_submit_occlusion_test failed");
+                  "### ERROR __rasterizer_widget_submit_occlusion_test failed");
           }
         }
         return area;
@@ -5787,10 +5787,10 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
   return 1;
 }
 
-/* shader_transparent_chicago pixel-shader preprocessor (FUN_0017bca0):
+/* shader_transparent_chicago pixel-shader preprocessor (shader_transparent_chicago_create):
  * build the 0xf0-byte pixel-shader description block for a chicago
  * transparent shader.  Resolves the shader's type-6 parameter block via
- * FUN_001906b0, zero-fills the description, then walks the map tag_block
+ * shader_get_and_verify_type, zero-fills the description, then walks the map tag_block
  * (element stride 0xdc) emitting one combiner colour stage (+0x04+i*4) and
  * one alpha stage (+0x8c+i*4) per map, with the fixed 0xc00 inputs at
  * +0x68+i*4 / +0xb4+i*4.  The final map takes the fixed terminator pair
@@ -5809,10 +5809,10 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
  *   0x2ae8d8  alpha-stage base, 2x13 table indexed by
  *             ((map[0] >> 1) & 1) * 13 + field_2c
  */
-char FUN_0017bca0(void *shader, void *pixel_shader)
+char shader_transparent_chicago_create(void *shader, void *pixel_shader)
 {
   char result; /* [EBP-1]; the loop keeps the 1 in AL */
-  char *shader_data; /* FUN_001906b0 result, spilled to the dead [EBP+8] */
+  char *shader_data; /* shader_get_and_verify_type result, spilled to the dead [EBP+8] */
   int *maps; /* shader_data + 0x54: map tag_block header */
   char *desc; /* EDI: the 0xf0-byte output description */
   int map_count;
@@ -5840,7 +5840,7 @@ char FUN_0017bca0(void *shader, void *pixel_shader)
   }
 
   desc = (char *)pixel_shader;
-  shader_data = (char *)FUN_001906b0(shader, 6);
+  shader_data = (char *)shader_get_and_verify_type(shader, 6);
   csmemset(pixel_shader, 0, 0xf0);
 
   maps = (int *)(shader_data + 0x54);
@@ -5917,7 +5917,7 @@ char FUN_0017bca0(void *shader, void *pixel_shader)
  * (SI/DI, sign-extended with MOVSX before use) and the result is returned in
  * EAX on both exit paths (0x17bebb / 0x17bec6). Asserts are at source lines
  * 0xd4 and 0xd5 and tail into system_exit(-1). */
-int FUN_0017be50(short register_index, short mapping_index)
+int shader_stage_color_input(short register_index, short mapping_index)
 {
   int base;
 
@@ -5984,7 +5984,7 @@ int FUN_0017be50(short register_index, short mapping_index)
  * No prologue at all in the original: the stage pointer arrives in ESI and the
  * result is returned in EAX by the bare RET at 0x17bff8. Asserts are at source
  * lines 0xf6..0xf9 and tail into system_exit(-1). */
-int FUN_0017bf20(void *stage)
+int shader_stage_color_output_flags(void *stage)
 {
   int output_flags;
 
@@ -6044,13 +6044,13 @@ int FUN_0017bf20(void *stage)
   return output_flags;
 }
 
-/* Alpha-side twin of the register/mapping resolver above (FUN_0017be50).
+/* Alpha-side twin of the register/mapping resolver above (shader_stage_color_input).
  * Same shape, same argument registers; only the two 1-D tables differ. The
  * 25x8 register/mapping table at 0x2aeb30 is shared with the colour side. */
 #define SHADER_TRANSPARENT_GENERIC_ALPHA_REGISTER_TABLE ((int *)0x2aea88)
 #define SHADER_TRANSPARENT_GENERIC_ALPHA_MAPPING_TABLE ((int *)0x2aeb0c)
 
-int FUN_0017c000(short register_index, short mapping_index)
+int shader_stage_alpha_input(short register_index, short mapping_index)
 {
   int base;
 
@@ -6086,7 +6086,7 @@ int FUN_0017c000(short register_index, short mapping_index)
   return SHADER_TRANSPARENT_GENERIC_ALPHA_MAPPING_TABLE[mapping_index] | base;
 }
 
-/* The two shader_transparent_generic map fields validated by FUN_0017c140.
+/* The two shader_transparent_generic map fields validated by shader_map_verify.
  * Both names are taken from the error strings the checks report with —
  * 0x2af00c "has no associated bitmap" and 0x2aefc0 "has non-zero mipmap
  * bias"; the widths are proven by the accessing instruction listed against
@@ -6099,7 +6099,7 @@ int FUN_0017c000(short register_index, short mapping_index)
 /* 0x17c140 — validate one shader_transparent_generic map, reporting every
  * problem it finds and returning whether the map came through clean.
  *
- * Same shape as FUN_0017c1b0 below: no prologue at all, so the map pointer
+ * Same shape as shader_stage_verify below: no prologue at all, so the map pointer
  * arrives in ESI (TEST ESI,ESI is the first instruction) and the map index in
  * DI (MOVSX EAX/ECX,DI before each error() push). PUSH EBX / MOV BL,1 at
  * 0x17c142/0x17c143 set up a running "valid" flag returned in AL by the two
@@ -6119,7 +6119,7 @@ int FUN_0017c000(short register_index, short mapping_index)
  *     is not reachable from either spelling. Costs 1 instruction.
  *   - Inverting to `if (bias == 0.0f) return valid;` with the report as the
  *     fall-through is worse: 78.2% and an FCOM-WARN. */
-bool FUN_0017c140(void *map, short map_index)
+bool shader_map_verify(void *map, short map_index)
 {
   bool valid;
 
@@ -6148,7 +6148,7 @@ bool FUN_0017c140(void *map, short map_index)
   return valid;
 }
 
-/* The six output-register selector fields tested by FUN_0017c1b0. They form
+/* The six output-register selector fields tested by shader_stage_verify. They form
  * two structurally identical triples (one per combiner side): the colour side
  * at +0x4c/+0x50/+0x54 interleaves with the already-named AB/CD function
  * fields at +0x4e/+0x52, and the alpha side sits at +0x68/+0x6a/+0x6c.
@@ -6186,7 +6186,7 @@ bool FUN_0017c140(void *map, short map_index)
  * wrong. All four checks run unconditionally: the first error block falls
  * through into the rest, so one stage can produce all four messages.
  * The assert is at source line 0x154 and tails into system_exit(-1). */
-bool FUN_0017c1b0(void *stage, short stage_index)
+bool shader_stage_verify(void *stage, short stage_index)
 {
   bool valid;
 
@@ -6280,11 +6280,11 @@ bool FUN_0017c1b0(void *stage, short stage_index)
  * `extraout_EAX*` pseudo-variables), so all five reg-arg callees below have
  * their arguments read straight out of the MOV SI/MOV DI pairs that precede
  * each CALL:
- *   FUN_0017c140(map@<esi>, map_index@<di>)          @0x17c3f5
- *   FUN_0017c1b0(stage@<esi>, stage_index@<di>)      @0x17c460
- *   FUN_0017be50(reg@<si>, mapping@<di>)  x4         @0x17c486..0x17c4b6
- *   FUN_0017bf20(stage@<esi>)                        @0x17c571
- *   FUN_0017c000(reg@<si>, mapping@<di>)  x4         @0x17c5cb..0x17c5fb
+ *   shader_map_verify(map@<esi>, map_index@<di>)          @0x17c3f5
+ *   shader_stage_verify(stage@<esi>, stage_index@<di>)      @0x17c460
+ *   shader_stage_color_input(reg@<si>, mapping@<di>)  x4         @0x17c486..0x17c4b6
+ *   shader_stage_color_output_flags(stage@<esi>)                        @0x17c571
+ *   shader_stage_alpha_input(reg@<si>, mapping@<di>)  x4         @0x17c5cb..0x17c5fb
  *
  * The six register-index bounds checks are written out inline rather than
  * behind a static helper: the reference has no CALL at those sites, and VC71
@@ -6292,10 +6292,10 @@ bool FUN_0017c1b0(void *stage, short stage_index)
  * Their source lines (0xe9 for the colour side, 0x11f for the alpha side,
  * 0x12d for the alpha output mapping) are the two/three distinct __LINE__
  * values the original's inline accessors were defined at. */
-char FUN_0017c2f0(void *shader, void *pixel_shader)
+char shader_transparent_generic_create(void *shader, void *pixel_shader)
 {
   char valid; /* [EBP-1] */
-  void *generic; /* FUN_001906b0 result, [EBP+8] after reuse */
+  void *generic; /* shader_get_and_verify_type result, [EBP+8] after reuse */
   int *maps; /* &generic->maps.count   (EBX @0x17c368) */
   int *stages; /* &generic->stages.count ([EBP-0xc]) */
   unsigned char *stage; /* EBX inside the stage loop */
@@ -6327,7 +6327,7 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
     system_exit(-1);
   }
 
-  generic = FUN_001906b0(shader, 5);
+  generic = shader_get_and_verify_type(shader, 5);
   csmemset(pixel_shader, 0, 0xf0);
 
   maps = (int *)((char *)generic + 0x54);
@@ -6355,7 +6355,7 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
       do {
         map = tag_block_get_element(maps, i, 100);
         if (valid) {
-          valid = FUN_0017c140(map, i);
+          valid = shader_map_verify(map, i);
         }
         i++;
       } while (i < *maps);
@@ -6381,20 +6381,20 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
     do {
       stage = (unsigned char *)tag_block_get_element(stages, index, 0x70);
       if (valid) {
-        valid = FUN_0017c1b0(stage, i);
+        valid = shader_stage_verify(stage, i);
       }
 
       *(unsigned int *)((char *)pixel_shader + index * 4 + 0x48) =
         real_argb_color_to_pixel32((float *)(stage + 0x2c));
 
       color_in0 =
-        FUN_0017be50(*(short *)(stage + 0x3c), *(short *)(stage + 0x3e));
+        shader_stage_color_input(*(short *)(stage + 0x3c), *(short *)(stage + 0x3e));
       color_in1 =
-        FUN_0017be50(*(short *)(stage + 0x40), *(short *)(stage + 0x42));
+        shader_stage_color_input(*(short *)(stage + 0x40), *(short *)(stage + 0x42));
       color_in2 =
-        FUN_0017be50(*(short *)(stage + 0x44), *(short *)(stage + 0x46));
+        shader_stage_color_input(*(short *)(stage + 0x44), *(short *)(stage + 0x46));
       color_in3 =
-        FUN_0017be50(*(short *)(stage + 0x48), *(short *)(stage + 0x4a));
+        shader_stage_color_input(*(short *)(stage + 0x48), *(short *)(stage + 0x4a));
 
       reg = *(short *)(stage + 0x4c);
       if (reg < 0 ||
@@ -6435,7 +6435,7 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
       }
       color_out_c = SHADER_TRANSPARENT_GENERIC_COLOR_OUTPUT_TABLE[reg];
 
-      color_function = FUN_0017bf20(stage);
+      color_function = shader_stage_color_output_flags(stage);
 
       *(unsigned int *)((char *)pixel_shader + index * 4 + 0x88) =
         (unsigned int)(((color_in0 << 8 | color_in1) << 8 | color_in2) << 8 |
@@ -6447,13 +6447,13 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
                        (color_out_b & 0xf));
 
       alpha_in0 =
-        FUN_0017c000(*(short *)(stage + 0x58), *(short *)(stage + 0x5a));
+        shader_stage_alpha_input(*(short *)(stage + 0x58), *(short *)(stage + 0x5a));
       alpha_in1 =
-        FUN_0017c000(*(short *)(stage + 0x5c), *(short *)(stage + 0x5e));
+        shader_stage_alpha_input(*(short *)(stage + 0x5c), *(short *)(stage + 0x5e));
       alpha_in2 =
-        FUN_0017c000(*(short *)(stage + 0x60), *(short *)(stage + 0x62));
+        shader_stage_alpha_input(*(short *)(stage + 0x60), *(short *)(stage + 0x62));
       alpha_in3 =
-        FUN_0017c000(*(short *)(stage + 0x64), *(short *)(stage + 0x66));
+        shader_stage_alpha_input(*(short *)(stage + 0x64), *(short *)(stage + 0x66));
 
       reg = *(short *)(stage + 0x68);
       if (reg < 0 ||
@@ -6536,21 +6536,21 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
  * taken verbatim from the assert message at 0x17c7aa (#cond string). */
 #define global_rasterizer_model_ambient_reflection_tint (*(void **)0x47e4d0)
 
-/* rasterizer_window_set_fog (0x17c790): allocate the rasterizer model ambient
+/* rasterizer_initialize (0x17c790): allocate the rasterizer model ambient
  * reflection tint block from the game-state heap, assert it succeeded, then
- * tail-call FUN_00157010.
+ * tail-call __rasterizer_initialize.
  * Original TU: c:\halo\SOURCE\rasterizer\rasterizer.c (assert line 0x121)
  */
-bool rasterizer_window_set_fog(void)
+bool rasterizer_initialize(void)
 {
   global_rasterizer_model_ambient_reflection_tint =
     game_state_malloc("rasterizer model ambient reflection tint", 0, 0x10);
   assert_halt_at("c:\\halo\\SOURCE\\rasterizer\\rasterizer.c", 0x121,
                  global_rasterizer_model_ambient_reflection_tint);
-  return FUN_00157010();
+  return __rasterizer_initialize();
 }
 
-void FUN_0017C7D0(void)
+void rasterizer_reset_state(void)
 {
   _rasterizer_reset_state();
 }
@@ -6594,22 +6594,22 @@ void rasterizer_windows_begin(void)
 
 void rasterizer_window_begin(window_parameters_t *a1)
 {
-  FUN_00158df0((unsigned short *)a1);
+  __rasterizer_window_begin((unsigned short *)a1);
 }
 
-void rasterizer_environment_fog_screen_draw(void *fog)
+void rasterizer_window_get_fog(void *fog)
 {
   _rasterizer_window_get_fog(fog);
 }
 
-void rasterizer_environment_fog_screen_end(void *screen_fog)
+void rasterizer_window_set_fog(void *screen_fog)
 {
-  FUN_001579d0(screen_fog);
+  __rasterizer_window_set_fog(screen_fog);
 }
 
 void rasterizer_window_end(void)
 {
-  FUN_00158f90();
+  __rasterizer_window_end();
 }
 
 void rasterizer_windows_end(void)
@@ -6622,39 +6622,39 @@ void rasterizer_frame_end(void)
   _rasterizer_frame_end();
 }
 
-void rasterizer_dynamic_lit_geometry_draw(void *param_1, void *param_2)
+void rasterizer_present(void *param_1, void *param_2)
 {
-  rasterizer_present(param_1, (short *)param_2);
+  __rasterizer_present(param_1, (short *)param_2);
 }
 
-void rasterizer_dynamic_screen_geometry_draw(void)
+void rasterizer_dispose(void)
 {
   _rasterizer_dispose();
 }
 
 void rasterizer_set_vblank_callback(void *cb)
 {
-  FUN_00155c10(cb);
+  __rasterizer_set_vblank_callback(cb);
 }
 
-void rasterizer_psuedo_dynamic_screen_quad_draw(int param_1)
+void rasterizer_profile_enable(int param_1)
 {
-  FUN_0016f8a0((bool)param_1);
+  __rasterizer_profile_enable((bool)param_1);
 }
 
 int rasterizer_dynamic_triangles_new(int mode)
 {
-  return _rasterizer_dynamic_triangles_new(mode);
+  return __rasterizer_dynamic_triangles_new(mode);
 }
 
 void *rasterizer_dynamic_triangles_lock(int handle)
 {
-  return _rasterizer_dynamic_triangles_lock(handle);
+  return __rasterizer_dynamic_triangles_lock(handle);
 }
 
 void rasterizer_dynamic_triangles_unlock(int handle)
 {
-  _rasterizer_dynamic_triangles_unlock(handle);
+  __rasterizer_dynamic_triangles_unlock(handle);
 }
 
 /* Adapter thunk (PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15d300).  The callee
@@ -6663,60 +6663,60 @@ void rasterizer_dynamic_triangles_unlock(int handle)
  * Kept as a real call so the redirect preserves the original control flow. */
 void rasterizer_dynamic_triangles_delete(int handle)
 {
-  _rasterizer_dynamic_triangles_delete(handle);
+  __rasterizer_dynamic_triangles_delete(handle);
 }
 
 int rasterizer_dynamic_vertices_new(int param_1, int param_2)
 {
-  return _rasterizer_dynamic_vertices_new((short)param_1, param_2);
+  return __rasterizer_dynamic_vertices_new((short)param_1, param_2);
 }
 
 short rasterizer_dynamic_vertices_get_type(int dynamic_vertex_buffer_index)
 {
-  return _rasterizer_dynamic_vertices_get_type(dynamic_vertex_buffer_index);
+  return __rasterizer_dynamic_vertices_get_type(dynamic_vertex_buffer_index);
 }
 
 int rasterizer_dynamic_vertices_lock(int zbuf_result)
 {
-  return (int)_rasterizer_dynamic_vertices_lock(zbuf_result);
+  return (int)__rasterizer_dynamic_vertices_lock(zbuf_result);
 }
 
 void rasterizer_dynamic_vertices_unlock(int handle)
 {
-  _rasterizer_dynamic_vertices_unlock(handle);
+  __rasterizer_dynamic_vertices_unlock(handle);
 }
 
 /* Adapter thunk (PUSH EBP; MOV EBP,ESP; POP EBP; JMP 0x15d5a0).  As with
  * rasterizer_dynamic_triangles_delete, the callee at 0x15d5a0 is a lone RET. */
 void rasterizer_dynamic_vertices_delete(int handle)
 {
-  _rasterizer_dynamic_vertices_delete(handle);
+  __rasterizer_dynamic_vertices_delete(handle);
 }
 
-void FUN_0017ca00(void)
+void rasterizer_debug_immediate_begin(void)
 {
-  FUN_0015a700();
+  __rasterizer_debug_immediate_begin();
 }
 
-void rasterizer_hud_motion_sensor_blip_begin(float *p0, float *p1,
+void rasterizer_debug_immediate_line(float *p0, float *p1,
                                              float *color0, float *color1)
 {
-  FUN_0015a7f0(p0, p1, color0, color1);
+  __rasterizer_debug_immediate_line(p0, p1, color0, color1);
 }
 
-void rasterizer_hud_motion_sensor_blip_draw(float *p0, float *p1, float *p2,
+void rasterizer_debug_immediate_triangle(float *p0, float *p1, float *p2,
                                             float *color0, float *color1,
                                             float *color2)
 {
-  FUN_0015a8f0(p0, p1, p2, color0, color1, color2);
+  __rasterizer_debug_immediate_triangle(p0, p1, p2, color0, color1, color2);
 }
 
-void rasterizer_hud_motion_sensor_blip_end(void)
+void rasterizer_debug_immediate_end(void)
 {
-  FUN_0015a4c0();
+  __rasterizer_debug_immediate_end();
 }
 
-void FUN_0017ca40(void)
+void rasterizer_debug_immediate_begin_screenspace(void)
 {
-  FUN_0015aa40();
+  __rasterizer_debug_immediate_begin_screenspace();
 }

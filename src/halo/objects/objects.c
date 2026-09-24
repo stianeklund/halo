@@ -1222,7 +1222,7 @@ void glow_new(int tag_index)
         frame = tag_block_get_element(sequence_block, 0, 0x40);
         frame = tag_block_get_element((void *)((int)frame + 0x34), 0, 0x20);
         lookup =
-          FUN_00077040(*(int *)(glow_definition + 0x150), 0, *(int16_t *)frame);
+          bitmap_group_get_bitmap_from_sequence(*(int *)(glow_definition + 0x150), 0, *(int16_t *)frame);
         *(int *)(glow_widget + 0x224) = tag_index;
         *(int16_t *)(glow_widget + 0x24c) =
           *(int16_t *)(glow_definition + 0x20);
@@ -2629,7 +2629,7 @@ float pow1(float value, float exponent)
  *     object function value (object_get_function_value, function index tag+0x44
  * - 1);
  *   - if visible, emits a sprite strip via the rendering batch
- *     (FUN_0017cfc0/0017cfd0/0017d010/0017ad90).
+ *     (rasterizer_widget_begin/0017cfd0/0017d010/0017ad90).
  *
  * Confirmed: 2 cdecl args (object_handle @ [EBP+0x8], light_volume_datum @
  * [EBP+0xc]). Confirmed: light tag 'lmgs2' = tag_get(0x6d677332,
@@ -2669,7 +2669,7 @@ void light_volume_render(int object_handle, int light_volume_datum)
   float scratch;
   float out_pos[3]; /* local_1c..: world position for sprite */
   float color2[4]; /* local_38..: per-segment ARGB. [0]=alpha (intensity),
-                      [1..3]=RGB (FUN_0007c270 out at EBP-0x34); packed as a
+                      [1..3]=RGB (rgb_colors_interpolate out at EBP-0x34); packed as a
                       4-float a_rgb by real_argb_color_to_pixel32 (EBP-0x38). */
   float interp_a, interp_b; /* local_2c / local_28 */
   unsigned char zfn;
@@ -2732,8 +2732,8 @@ void light_volume_render(int object_handle, int light_volume_datum)
            (*(float *)(marker_state + 0x78) > *(float *)0x2533c0)) &&
           ((*(float *)(marker_state + 0x3c) > *(float *)0x2533c0) ||
            (*(float *)(marker_state + 0x40) > *(float *)0x2533c0))) {
-        FUN_0017cfc0(5, 1);
-        FUN_0017cfd0(0, *(int *)(light_tag + 0x68),
+        rasterizer_widget_begin(5, 1);
+        rasterizer_widget_set_texture(0, *(int *)(light_tag + 0x68),
                      *(short *)(light_tag + 0x6c));
         marker_count = *(unsigned short *)(light_tag + 0x6e);
         if (0 < (short)marker_count) {
@@ -2772,26 +2772,26 @@ void light_volume_render(int object_handle, int light_volume_datum)
             out_pos[2] =
               *(float *)(marker_buf + 0x44) * t + *(float *)(marker_buf + 0x68);
 
-            FUN_0007c270(color2 + 1, *(unsigned char *)(light_tag + 0x22) & 3,
+            rgb_colors_interpolate(color2 + 1, *(unsigned char *)(light_tag + 0x22) & 3,
                          (float *)(marker_state + 0x6c),
                          (float *)(marker_state + 0x7c), interp_b);
 
             /* color2[0] = view/distance-scaled intensity (alpha):
              * ((1-fn)*+0x68 + fn*+0x78) * depth_factor; RGB stays at
-             * color2[1..3] where FUN_0007c270 wrote it (reference: c270 out =
+             * color2[1..3] where rgb_colors_interpolate wrote it (reference: c270 out =
              * EBP-0x34, d1c90 arg = EBP-0x38 — one float apart). */
             color2[0] = (fn_val * *(float *)(marker_state + 0x78) +
                          (*(float *)0x2533c8 - fn_val) *
                            *(float *)(marker_state + 0x68)) *
                         depth_factor;
             color_argb = real_argb_color_to_pixel32(color2);
-            FUN_0017d010(out_pos, interp_a, (float *)0, 0.0f, color_argb);
+            rasterizer_widget_draw_sprite3d(out_pos, interp_a, (float *)0, 0.0f, color_argb);
 
             i = (short)(i + 1);
             rem = rem - 1;
           } while (rem != 0);
         }
-        FUN_0017d020();
+        rasterizer_widget_end();
       }
     }
   }
@@ -2809,7 +2809,7 @@ void light_volume_render(int object_handle, int light_volume_datum)
  * indexed function value (param_4->[+4][index-1]) to be > 0. Then fetches the
  * object marker buffer (object_get_markers_by_string_id) and, if the tag's near
  * distance (+0x38) is 0 or the camera-relative depth along the view forward
- * axis is within it, submits the volume via FUN_0017cfb0(object_handle,
+ * axis is within it, submits the volume via rasterizer_widget_submit(object_handle,
  * light_volume_datum, &marker_position, light_volume_render).
  *
  * Confirmed: 4 cdecl args. object_handle @ [EBP+0x8] (EBX), light_volume_datum
@@ -2818,7 +2818,7 @@ void light_volume_render(int object_handle, int light_volume_datum)
  * Confirmed: PUSH 0x134e80 at 0x135303 — light_volume_render is the draw
  * callback. Confirmed: marker buffer base EBP-0x6c, size 0x6c; position at
  * buf+0x60/+0x64/ +0x68 (FLD [EBP-0xc/-0x8/-0x4]); &buf[0x60] passed as
- * position to FUN_0017cfb0.
+ * position to rasterizer_widget_submit.
  */
 void light_volume_submit(int object_handle, int light_volume_datum, int param_3,
                          int param_4)
@@ -2854,7 +2854,7 @@ void light_volume_submit(int object_handle, int light_volume_datum, int param_3,
           (*(float *)0x50655c * diff[0] + *(float *)0x506560 * diff[1] +
              *(float *)0x506564 * diff[2] <
            *(float *)(light_tag + 0x38))) {
-        FUN_0017cfb0(object_handle, light_volume_datum, marker_pos,
+        rasterizer_widget_submit(object_handle, light_volume_datum, marker_pos,
                      (int)light_volume_render);
       }
     }
@@ -2983,7 +2983,7 @@ void lightning_offset_marker_position(int matrix_ptr /*@ebx*/,
  * width/color/alpha scale functions from the function-state
  * (tag+0x2e/0x30/0x32), and for each point write two offset vertices (+/-
  * perpendicular*width) plus a packed ARGB color and a running texture-v
- * coordinate; track the point bbox and submit via FUN_0017cf60 with the bbox
+ * coordinate; track the point bbox and submit via rasterizer_dynamic_unlit_geometry_draw with the bbox
  * center as origin.
  *
  * Confirmed: 'elec' = 0x656c6563; bitmap tag = 0x6269746d (tag+0x40). Node
@@ -3387,7 +3387,7 @@ void lightning_submit(int *param_1, int param_2, int param_3, int *param_4)
                 source_elem = (void *)0x326a78;
               }
               rasterizer_dynamic_vertices_unlock((int)handle);
-              FUN_0017cf60((unsigned int)source_elem, (unsigned int)bitmap_elem,
+              rasterizer_dynamic_unlit_geometry_draw((unsigned int)source_elem, (unsigned int)bitmap_elem,
                            (int)param_4, vertcount * -2, handle,
                            vertcount * 2 + -2, center, 0);
               rasterizer_dynamic_vertices_delete((int)handle);
@@ -3933,7 +3933,7 @@ float object_get_maximum_body_vitality(int object_handle, char use_raw_max)
  *
  * Confirmed: datum_get(*(data_t**)0x5a90bc, object_handle) — 2 cdecl args.
  * Confirmed: TEST AL,0x2 for active flag, TEST AL,0x4 for connected_to_map.
- * Confirmed: cluster_partition_remove_object(0x5a90b0, handle, light+0x10).
+ * Confirmed: cluster_partition_disconnect(0x5a90b0, handle, light+0x10).
  * Confirmed: AND byte ptr [ESI+0x2],0xfb clears bit 2.
  */
 void object_wake(int object_handle)
@@ -3953,7 +3953,7 @@ void object_wake(int object_handle)
     system_exit(-1);
   }
 
-  cluster_partition_remove_object((void *)0x5a90b0, object_handle,
+  cluster_partition_disconnect((void *)0x5a90b0, object_handle,
                                   (void *)(light + 0x10));
   *(uint8_t *)(light + 0x2) &= ~0x4;
 }
@@ -3998,20 +3998,20 @@ void brighten_real_rgb_color(float *color /* @<ecx> */, float scale)
   color[2] = color[2] * factor;
 }
 
-/* Call cluster_partition_iter_first on the object cluster partition at
+/* Call cluster_partition_get_first_datum on the object cluster partition at
  * 0x5a90b0. 0x1398b0 / objects.obj
  */
 void cluster_get_first_light(int *param_1, int param_2)
 {
-  cluster_partition_iter_first((void *)0x5a90b0, param_1, (int16_t)param_2);
+  cluster_partition_get_first_datum((void *)0x5a90b0, param_1, (int16_t)param_2);
 }
 
-/* Call cluster_partition_iter_next on the object cluster partition at 0x5a90b0.
+/* Call cluster_partition_get_next_datum on the object cluster partition at 0x5a90b0.
  * 0x1398d0 / objects.obj
  */
 void cluster_get_next_light(int *param_1)
 {
-  cluster_partition_iter_next((void *)0x5a90b0, param_1);
+  cluster_partition_get_next_datum((void *)0x5a90b0, param_1);
 }
 
 /* Light analog of object_markers_need_update: return whether this light's
@@ -4057,7 +4057,7 @@ int light_mark(int param_1)
 
 /* Update dynamic lighting for a single light object (object_lights.c).
  * Reads the light tag, builds a 5-float color/scale buffer, and submits
- * it to FUN_00189540 for each active channel. */
+ * it to render_debug_sphere for each active channel. */
 void render_debug_light(int param_1)
 {
   int iVar1;
@@ -4076,21 +4076,21 @@ void render_debug_light(int param_1)
   ctx[2] = *(float *)(*(int *)0x2ee6f0 + 8);
   ctx[3] = *(float *)(*(int *)0x2ee6f0 + 0xc);
   iVar1 = iVar2 + 0x30;
-  FUN_00189540(1, (void *)iVar1, *(float *)(pbVar3 + 0x18), *(void **)0x2ee6c4);
-  FUN_00189540(1, (void *)iVar1, *(float *)((char *)iVar2 + 0x54), ctx);
+  render_debug_sphere(1, (void *)iVar1, *(float *)(pbVar3 + 0x18), *(void **)0x2ee6c4);
+  render_debug_sphere(1, (void *)iVar1, *(float *)((char *)iVar2 + 0x54), ctx);
   ctx[1] = ctx[1] * *(float *)0x2533f0;
   ctx[2] = ctx[2] * *(float *)0x2533f0;
   ctx[3] = ctx[3] * *(float *)0x2533f0;
   if ((*pbVar3 & 2) == 0) {
     ctx[4] = ctx[4] * *(float *)(pbVar3 + 0x24);
-    FUN_00189540(1, (void *)iVar1,
+    render_debug_sphere(1, (void *)iVar1,
                  *(float *)(pbVar3 + 0x24) * *(float *)((char *)iVar2 + 0x54),
                  ctx);
   }
   ctx[1] = ctx[1] * *(float *)0x2533f0;
   ctx[2] = ctx[2] * *(float *)0x2533f0;
   ctx[3] = ctx[3] * *(float *)0x2533f0;
-  FUN_00189540(1, (void *)iVar1, ctx[4], ctx);
+  render_debug_sphere(1, (void *)iVar1, ctx[4], ctx);
 }
 
 /* 0x139b40 (object_lights.c) — register one lens-flare/light marker record
@@ -4113,12 +4113,12 @@ void render_debug_light(int param_1)
  *   +0x1e : 0xffff (short)
  *   +0x20 : (short)count                            (this record's index)
  *   +0x22 : byte at global 0x50654a (0x506548+2)
- *   +0x23 : (byte)FUN_00180770(param_6)             (alpha/intensity quantized)
+ *   +0x23 : (byte)compress_real_to_int8(param_6)             (alpha/intensity quantized)
  * Then count++ at 0x5a90ac.
  *
  * Confirmed (disasm 0x139b40): cdecl 6 stack args, RET (no RET N); ADD ESP,0x1c
  * = 8(rgb)+4(180770)+8(tag_get)+4(180b10)+4(180b10). param_6 is a float passed
- * raw to FUN_00180770 (caller MOV+PUSH, no FILD; callee FLD [EBP+8]). param_3
+ * raw to compress_real_to_int8 (caller MOV+PUSH, no FILD; callee FLD [EBP+8]). param_3
  * and param_4 are vec3 pointers passed as int (FUN_00180b10 derefs them);
  * kept as int to match the existing int(*)(int) thunk.
  */
@@ -4228,7 +4228,7 @@ void find_point_lights_for_object_in_cluster(
   }
 
   light_index =
-    cluster_partition_iter_first((void *)0x5a90b0, &state, marker_index);
+    cluster_partition_get_first_datum((void *)0x5a90b0, &state, marker_index);
   while (light_index != -1) {
     light = (int)datum_get(*(data_t **)0x5a90bc, light_index);
     if (*(char *)0x5a8d60 == '\0') {
@@ -4295,7 +4295,7 @@ void find_point_lights_for_object_in_cluster(
       if (*(int *)(light + 0xc) != *(int *)0x5a8d64)
         *(int *)(light + 0xc) = *(int *)0x5a8d64;
     }
-    light_index = cluster_partition_iter_next((void *)0x5a90b0, &state);
+    light_index = cluster_partition_get_next_datum((void *)0x5a90b0, &state);
   }
 }
 
@@ -4554,12 +4554,12 @@ void light_get_bounding_sphere(int param_1, float *param_2, float *param_3)
 /* 0x13a420 / objects.obj — Render point and spot lights.
  * Iterates through the active lights array, computes position/radius for
  * each enabled light, optionally gathers gel objects via
- * light_build_cluster_array, and dispatches to FUN_00196060 for rasterizer
+ * light_build_cluster_array, and dispatches to structure_render_diffuse_light for rasterizer
  * rendering. No params (void). Bounded by profiling enter/exit calls.
  * Confirmed: loop counter is int16_t, iterates DAT_005a8d68 entries.
  * Confirmed: SUB ESP,0x41c for local buffer (1024 bytes for gel objects).
  * Confirmed: light_build_cluster_array called with EAX=handle, EBX=buf,
- * EDI=0x200. Confirmed: FUN_00196060(obj_handle, &position, radius, gel_count,
+ * EDI=0x200. Confirmed: structure_render_diffuse_light(obj_handle, &position, radius, gel_count,
  * gel_buf).
  */
 void lights_render_diffuse(void)
@@ -4649,7 +4649,7 @@ void lights_render_diffuse(void)
       position[2] = *(float *)(light_reloaded + 0x38);
     }
 
-    FUN_00196060(*(int *)(light + 0x8), position, radius, gel_count,
+    structure_render_diffuse_light(*(int *)(light + 0x8), position, radius, gel_count,
                  (int)((unsigned int)((is_specular != '\0') - 1) &
                        (unsigned int)gel_buffer));
 
@@ -4663,11 +4663,11 @@ done:
 /* 0x13a5f0 / objects.obj — Render specular lights.
  * Similar to lights_render_diffuse but for specular lighting pass. Skips lights
  * with the specular-only flag (tag byte 0 bit 2). Uses
- * light_compute_bounding_sphere to compute position/radius and FUN_00195f30 for
+ * light_compute_bounding_sphere to compute position/radius and structure_render_specular_light for
  * the rasterizer pass. No params (void). Confirmed: same loop structure as
  * 0x13a420 over DAT_005a8d68 lights. Confirmed: calls
  * light_compute_bounding_sphere(handle, position, &radius, 0, 1, 0). Confirmed:
- * calls FUN_00195f30(obj_handle, &position, radius, gel_count, gel_buf).
+ * calls structure_render_specular_light(obj_handle, &position, radius, gel_count, gel_buf).
  * Confirmed: profiling enter 0x17cd50, exit 0x17cd90. */
 void lights_render_specular(void)
 {
@@ -4742,7 +4742,7 @@ void lights_render_specular(void)
       } else {
         gel_buf_arg = (int)gel_buffer;
       }
-      FUN_00195f30(*(int *)(light + 0x8), position, radius, gel_count,
+      structure_render_specular_light(*(int *)(light + 0x8), position, radius, gel_count,
                    gel_buf_arg);
     }
 
@@ -4752,7 +4752,7 @@ void lights_render_specular(void)
   } while ((int16_t)loop_idx < *(int16_t *)0x5a8d68);
 
 done:
-  FUN_0017cd90();
+  rasterizer_environment_specular_lights_end();
 }
 
 /* 0x13a740 — compute_object_lighting_from_bsp: computes BSP-based lighting
@@ -4813,7 +4813,7 @@ void lights_illumination_at_point(int param_1, int param_2, float *param_3)
       (void *)(iVar5 + 0x104), (int)*(short *)((int)&param_3 + 2), 0x20);
     local_10 = tag_block_get_element(psVar6 + 10, (int)local_8[0], 0x100);
     if (*(int *)(iVar5 + 0xc) != -1 && *psVar6 != -1) {
-      uVar7 = (int)FUN_00076ff0(*(int *)(iVar5 + 0xc), *psVar6);
+      uVar7 = (int)bitmap_group_try_and_get_bitmap(*(int *)(iVar5 + 0xc), *psVar6);
       local_24 = (unsigned short *)tag_block_get_element((void *)(iVar5 + 0xf8),
                                                          local_c, 6);
       iVar5 = (int)local_10;
@@ -5047,14 +5047,14 @@ char lights_distant_lighting_at_point(unsigned int param_1, int param_2,
     iVar6 = (int)tag_block_get_element(psVar3 + 10, (int)local_20[0], 0x100);
     iVar4 = (int)tag_get(0x73686472, *(int *)(iVar6 + 0xc));
     if (*(short *)(iVar4 + 0x24) == 3 &&
-        (local_14 = (int)FUN_001906b0((void *)iVar4, 3),
+        (local_14 = (int)shader_get_and_verify_type((void *)iVar4, 3),
          *(int *)(iVar2 + 0xc) != -1) &&
         *psVar3 != -1 && *(int *)(local_14 + 0x94) != -1) {
       puVar5 = (unsigned short *)tag_block_get_element((void *)(iVar2 + 0xf8),
                                                        local_34, 6);
-      iVar2 = (int)FUN_00076ff0(*(int *)(iVar2 + 0xc), *local_18);
+      iVar2 = (int)bitmap_group_try_and_get_bitmap(*(int *)(iVar2 + 0xc), *local_18);
       iVar4 = (int)tag_get(0x6269746d, *(int *)(local_14 + 0x94));
-      local_14 = (int)FUN_00076ff0(*(int *)(local_14 + 0x94),
+      local_14 = (int)bitmap_group_try_and_get_bitmap(*(int *)(local_14 + 0x94),
                                    (int)*(short *)(iVar6 + 0x10) %
                                      *(int *)(iVar4 + 0x60));
       if (iVar2 != 0 && local_14 != 0 &&
@@ -5106,7 +5106,7 @@ char lights_distant_lighting_at_point(unsigned int param_1, int param_2,
           {
             int ds_bits;
             memcpy(&ds_bits, &distance_scale, 4);
-            ((void (*)(int, void *, void *, int, void *))FUN_00189320)(
+            ((void (*)(int, void *, void *, int, void *))render_debug_vector)(
               1, (void *)param_2, local_70, ds_bits, &local_30);
           }
         }
@@ -5144,7 +5144,7 @@ char lights_distant_lighting_at_point(unsigned int param_1, int param_2,
  *
  * Confirmed: SUB ESP,0x84 — 132 bytes of locals.
  * Confirmed: tag_get(0x6c696768, ...) for 'ligh' tag.
- * Confirmed: cluster_partition_add_object(0x5a90b0, ...) with 6 args.
+ * Confirmed: cluster_partition_reconnect(0x5a90b0, ...) with 6 args.
  * Confirmed: OR word ptr [ESI+0x2], BX sets connected_to_map (bit 2).
  */
 void object_move_to_limbo(int object_handle)
@@ -5296,7 +5296,7 @@ void object_move_to_limbo(int object_handle)
         uint32_t u;
       } range_bits;
       range_bits.f = local_range;
-      cluster_partition_add_object((void *)0x5a90b0, object_handle,
+      cluster_partition_reconnect((void *)0x5a90b0, object_handle,
                                    (void *)(light + 0x10), (void *)local_pos,
                                    range_bits.u, (void *)location);
     }
@@ -5505,7 +5505,7 @@ void lights_preprocess_scene(void)
     CALL_thunk_FUN_001029a0(-1);
   }
   *(char *)0x5a8d60 = 0;
-  FUN_001812b0();
+  rasterizer_lights_begin();
   iVar5 = 0;
   if (0 < *(short *)0x5137cc) {
     do {
@@ -5679,7 +5679,7 @@ void lights_preprocess_scene(void)
                   *(unsigned char *)(iVar5 + 2) | 8;
               }
             }
-            uVar11 = rasterizer_lights_submit(light_params);
+            uVar11 = rasterizer_light_submit(light_params);
             *(int *)(iVar5 + 8) = uVar11;
             *(short *)0x5a8d5a = (short)uVar11 + 1;
           }
@@ -5762,7 +5762,7 @@ void lights_preprocess_scene(void)
     } while (sVar4 < *(short *)0x5a90ac);
   }
   *(short *)0x5a90ac = 0;
-  FUN_00181410();
+  rasterizer_lights_end();
   if (*(char *)0x449ef1 != '\0' && *(char *)0x323608 != '\0') {
     CALL_FUN_0008fac0((int *)0x323600);
   }
@@ -7227,27 +7227,27 @@ LAB_0013d51f:
   return param_1;
 }
 
-/* Wrap cluster_partition_iter_first for the non-collideable partition
+/* Wrap cluster_partition_get_first_datum for the non-collideable partition
  * (0x5a8d30). 0x13d570 / objects.obj
  */
 void cluster_get_first_noncollideable_object(int *param_1, int param_2)
 {
-  cluster_partition_iter_first((void *)0x5a8d30, param_1, (int16_t)param_2);
+  cluster_partition_get_first_datum((void *)0x5a8d30, param_1, (int16_t)param_2);
 }
 
-/* Wrap cluster_partition_iter_next for the non-collideable partition
+/* Wrap cluster_partition_get_next_datum for the non-collideable partition
  * (0x5a8d30). 0x13d590 / objects.obj
  */
 void cluster_get_next_noncollideable_object(int *param_1)
 {
-  cluster_partition_iter_next((void *)0x5a8d30, param_1);
+  cluster_partition_get_next_datum((void *)0x5a8d30, param_1);
 }
 
 /*
  * cluster_partition_object_iter_first (0x13d5b0) — begin iteration over
  * objects in a BSP cluster using the collideable partition (0x5a8d40).
  *
- * Wraps cluster_partition_iter_first with the collideable object partition
+ * Wraps cluster_partition_get_first_datum with the collideable object partition
  * constant. Returns the first object handle in the cluster, or -1 if none.
  *
  * Confirmed: PUSH EAX (param_2=cluster_idx), PUSH ECX (param_1=state),
@@ -7256,14 +7256,14 @@ void cluster_get_next_noncollideable_object(int *param_1)
  */
 int cluster_partition_object_iter_first(int *state, int16_t cluster_idx)
 {
-  return cluster_partition_iter_first((void *)0x5a8d40, state, cluster_idx);
+  return cluster_partition_get_first_datum((void *)0x5a8d40, state, cluster_idx);
 }
 
 /*
  * cluster_partition_object_iter_next (0x13d5d0) — advance iteration over
  * objects in a BSP cluster using the collideable partition (0x5a8d40).
  *
- * Wraps cluster_partition_iter_next with the collideable object partition
+ * Wraps cluster_partition_get_next_datum with the collideable object partition
  * constant. Returns the next object handle, or -1 when exhausted.
  *
  * Confirmed: PUSH EAX (param_1=state), PUSH 0x5a8d40, CALL 0x191660.
@@ -7271,7 +7271,7 @@ int cluster_partition_object_iter_first(int *state, int16_t cluster_idx)
  */
 int cluster_partition_object_iter_next(int *state)
 {
-  return cluster_partition_iter_next((void *)0x5a8d40, state);
+  return cluster_partition_get_next_datum((void *)0x5a8d40, state);
 }
 
 /*
@@ -7280,12 +7280,12 @@ int cluster_partition_object_iter_next(int *state)
  * holds the cluster partition pointer at +0x00 (must be the collideable
  * 0x5a8d40 or noncollideable 0x5a8d30 partition) and the current cluster
  * handle at +0x04. Asserts the partition pointer is valid, then forwards to
- * FUN_001916d0(partition, &cluster_handle), which returns the next cluster
+ * cluster_partition_get_next_cluster(partition, &cluster_handle), which returns the next cluster
  * index and advances the handle. Returns the cluster index (or -1 at end).
  *
  * Confirmed: cdecl, param_2 ([EBP+0xc]) is UNUSED in the body.
  * Confirmed: assert string at 0x29b890, file at 0x29b91c, line 0x419.
- * Confirmed: void-EAX return (returns FUN_001916d0's result).
+ * Confirmed: void-EAX return (returns cluster_partition_get_next_cluster's result).
  */
 int16_t object_get_next_cluster(void *param_1, int param_2)
 {
@@ -7299,7 +7299,7 @@ int16_t object_get_next_cluster(void *param_1, int param_2)
       "c:\\halo\\SOURCE\\objects\\objects.c", 0x419, 1);
     CALL_thunk_FUN_001029a0(-1);
   }
-  return (int16_t)FUN_001916d0(iter[0], &iter[1]);
+  return (int16_t)cluster_partition_get_next_cluster(iter[0], &iter[1]);
 }
 
 /*
@@ -8207,7 +8207,7 @@ void object_postprocess_node_matrices(int object_handle /* @<edi> */)
  * sub-block (element+0x20, element size 0x1c) as a cumulative distribution,
  * and on the first permutation whose threshold (perm[0]) is >= the blend
  * value, blends an RGB pair (perm+0x4 .. perm+0x10) into the slot color via
- * FUN_0007c270. Finally clamps each RGB component of the slot to [0,1] and
+ * rgb_colors_interpolate. Finally clamps each RGB component of the slot to [0,1] and
  * writes the clamped triple to the +0x30 mirror (obj+0x138 slot layout:
  * base RGB at +0, clamped RGB at +0x30).
  * Role: object spawn-appearance setup; establishes per-object tinting.
@@ -8286,7 +8286,7 @@ void object_choose_random_change_colors(int object_handle /* @<eax> */,
                                (float)i * *(float *)0x29bbd0,
                              1.0);
 #endif
-            FUN_0007c270(dst, 1, perm + 1, perm + 4, blend);
+            rgb_colors_interpolate(dst, 1, perm + 1, perm + 4, blend);
             break;
           }
           j = j + 1;
@@ -8491,7 +8491,7 @@ void object_compute_change_colors(int object_handle /* @<eax> */)
       float fn_val = (int)blend_fn >= 5 ?
                        *(float *)(obj + 0xe4 + ((int)blend_fn - 5) * 4) :
                        *(float *)(obj + 0xd0 + (int)blend_fn * 4);
-      FUN_0007c270(slot, *(int *)(entry + 0x4), (float *)(entry + 0x8),
+      rgb_colors_interpolate(slot, *(int *)(entry + 0x4), (float *)(entry + 0x8),
                    (float *)(entry + 0x14), fn_val);
     }
 
@@ -9188,7 +9188,7 @@ int find_objects_from_point_vector(int param_1, int param_2, int param_3,
 
   object_reset_markers();
   cluster_data =
-    (int *)structure_bsp_get_cluster_sound_data(scenario_get(), bsp_index);
+    (int *)structure_bsp_get_cluster_pvs(scenario_get(), bsp_index);
 
   {
     void *bsp_data = scenario_get();
@@ -9217,7 +9217,7 @@ int find_objects_from_point_vector(int param_1, int param_2, int param_3,
         do {
           if ((cluster_data[abs_cluster >> 5] & (1 << (abs_cluster & 0x1f))) !=
               0) {
-            obj_handle = cluster_partition_iter_first(
+            obj_handle = cluster_partition_get_first_datum(
               (void *)0x5a8d40, (int *)iter_state, (short)abs_cluster);
             marker_gen_ptr = (int *)0x5a8d28;
             while (obj_handle != -1) {
@@ -9252,7 +9252,7 @@ int find_objects_from_point_vector(int param_1, int param_2, int param_3,
                   param_5, (int *)param_6);
               }
 
-              obj_handle = cluster_partition_iter_next((void *)0x5a8d40,
+              obj_handle = cluster_partition_get_next_datum((void *)0x5a8d40,
                                                        (int *)iter_state);
             }
           }
@@ -9640,8 +9640,8 @@ void objects_initialize_for_new_map(void)
 
   /* Reset collideable and noncollideable cluster partition structs.
    * These are 12-byte structs (3 data_t* fields) at fixed addresses. */
-  cluster_partition_clear((void *)0x5a8d40);
-  cluster_partition_clear((void *)0x5a8d30);
+  cluster_partition_make_valid((void *)0x5a8d40);
+  cluster_partition_make_valid((void *)0x5a8d30);
 
   /* original re-reads object_globals per use (no cached pointer). */
   csmemset(object_globals->combined_pvs, 0, 0x40);
@@ -9736,8 +9736,8 @@ void objects_dispose_from_old_map(void)
   }
 
   /* Dispose cluster partition sub-tables */
-  cluster_partition_dispose((void *)0x5a8d40);
-  cluster_partition_dispose((void *)0x5a8d30);
+  cluster_partition_make_invalid((void *)0x5a8d40);
+  cluster_partition_make_invalid((void *)0x5a8d30);
 }
 
 /*
@@ -9783,8 +9783,8 @@ void objects_dispose(void)
   }
 
   /* Zero out cluster partition structs (3 data_t* fields each) */
-  cluster_partition_null_references((int *)0x5a8d40);
-  cluster_partition_null_references((int *)0x5a8d30);
+  cluster_partition_delete((int *)0x5a8d40);
+  cluster_partition_delete((int *)0x5a8d30);
 }
 
 /*
@@ -9995,7 +9995,7 @@ void object_disconnect_from_map(int object_handle)
     } else
       partition = (void *)0x5a8d30;
 
-    cluster_partition_remove_object(partition, object_handle,
+    cluster_partition_disconnect(partition, object_handle,
                                     (void *)((char *)obj + 0xbc));
 
     /* If header bit 0x40 is set, re-fetch header and clear bit 0x1 */
@@ -10024,9 +10024,9 @@ void object_disconnect_from_map(int object_handle)
  * Resolves the object's root parent (object_get_root_parent), then selects the
  * cluster-partition table based on the root object's flags: table 0x5a8d40 when
  * flag bit 0x2000000 is set, otherwise 0x5a8d30. Stores the table pointer in
- * iter_state[0] and initializes the cluster iterator via FUN_00191690, seeding
+ * iter_state[0] and initializes the cluster iterator via cluster_partition_get_first_cluster, seeding
  * it with the root object's cluster reference (root_object+0xbc) and writing
- * the iterator state into iter_state[1]. Returns FUN_00191690's first cluster
+ * the iterator state into iter_state[1]. Returns cluster_partition_get_first_cluster's first cluster
  * marker.
  *
  * Read-only with respect to object lifecycle: writes only the caller's 8-byte
@@ -10036,7 +10036,7 @@ void object_disconnect_from_map(int object_handle)
  * Confirmed: 2 cdecl args (iter_state @ [EBP+0x8] ESI, object_handle @
  * [EBP+0xc]). Confirmed: object_get_root_parent(object_handle) result reused
  * for both object_get_and_verify_type(root, -1) calls (flags read +0x4, cluster
- * ref +0xbc). Confirmed: returns FUN_00191690's EAX (first cluster marker,
+ * ref +0xbc). Confirmed: returns cluster_partition_get_first_cluster's EAX (first cluster marker,
  * int16_t in callers).
  */
 int16_t object_get_first_cluster(void *iter_state, int object_handle)
@@ -10054,7 +10054,7 @@ int16_t object_get_first_cluster(void *iter_state, int object_handle)
   }
   iter[0] = table;
   root_obj = (int)object_get_and_verify_type(root, -1);
-  return (int16_t)FUN_00191690(iter[0], (int *)(iter + 1),
+  return (int16_t)cluster_partition_get_first_cluster(iter[0], (int *)(iter + 1),
                                *(int *)(root_obj + 0xbc));
 }
 
@@ -10541,7 +10541,7 @@ bool object_get_function_value(int object_handle, short function_index,
  * Begins a marker pass (object_reset_markers), then iterates over
  * cluster indices.  For each cluster, walks the collideable partition
  * (flags & 1 => 0x5a8d40) and/or noncollideable partition (flags & 2 =>
- * 0x5a8d30) using cluster_partition_iter_first/next (0x191a50/0x191660).
+ * 0x5a8d30) using cluster_partition_get_first_datum/next (0x191a50/0x191660).
  *
  * Each found object is verified as having a valid type bit.  If the object's
  * marker_generation differs from the current global generation, it's stamped
@@ -10561,9 +10561,9 @@ bool object_get_function_value(int object_handle, short function_index,
  * Confirmed: 5 cdecl params at [EBP+0x8..0x18].
  * Confirmed: CALL 0x13eb70 (object_reset_markers) with 0 pushed args.
  * Confirmed: flags==0 => overwritten with 0xffffffff.
- * Confirmed: cluster_partition_iter_first at 0x191a50 (3 cdecl args:
+ * Confirmed: cluster_partition_get_first_datum at 0x191a50 (3 cdecl args:
  *            partition, state, cluster_idx).
- * Confirmed: cluster_partition_iter_next at 0x191660 (2 cdecl args:
+ * Confirmed: cluster_partition_get_next_datum at 0x191660 (2 cdecl args:
  *            partition, state).
  * Confirmed: Both iter functions return handle (int) or -1.
  * Confirmed: datum_get at 0x119320: result+8 = object_data_t*.
@@ -10592,7 +10592,7 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
     /* Collideable partition (flags & 1) */
     if (flags & 1) {
       handle =
-        cluster_partition_iter_first((void *)0x5a8d40, iter_state, cluster_idx);
+        cluster_partition_get_first_datum((void *)0x5a8d40, iter_state, cluster_idx);
       while (handle != -1) {
         object_header_data_t *header =
           (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, handle);
@@ -10635,14 +10635,14 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
           out_handles[found] = handle;
           found++;
         }
-        handle = cluster_partition_iter_next((void *)0x5a8d40, iter_state);
+        handle = cluster_partition_get_next_datum((void *)0x5a8d40, iter_state);
       }
     }
 
     /* Noncollideable partition (flags & 2) */
     if (flags & 2) {
       int iter_state2[2];
-      handle = cluster_partition_iter_first((void *)0x5a8d30, iter_state2,
+      handle = cluster_partition_get_first_datum((void *)0x5a8d30, iter_state2,
                                             cluster_idx);
       while (handle != -1) {
         object_header_data_t *header =
@@ -10686,7 +10686,7 @@ int16_t object_find_in_cluster(int flags, int16_t cluster_count,
           out_handles[found] = handle;
           found++;
         }
-        handle = cluster_partition_iter_next((void *)0x5a8d30, iter_state2);
+        handle = cluster_partition_get_next_datum((void *)0x5a8d30, iter_state2);
       }
     }
   }
@@ -11236,7 +11236,7 @@ void object_connect_to_map(int object_handle, void *location)
     self_obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
     obj_list = (self_obj->flags & 0x2000000) ? (void *)0x5a8d40 :
                                                (void *)noncollideable_partition;
-    cluster_partition_add_object(obj_list, object_handle, (char *)obj + 0xbc,
+    cluster_partition_reconnect(obj_list, object_handle, (char *)obj + 0xbc,
                                  (char *)obj_alias + 0x50,
                                  *(uint32_t *)&obj->unk_92, (char *)obj + 0x48);
 
@@ -11804,7 +11804,7 @@ void object_inverse_kinematics(int param_1, int param_2, int param_3,
  *   flags            — passed to object_find_in_cluster
  *   type_mask        — bit mask of object types to include (0 → all types)
  *   cluster_info     — pointer to a cluster location struct; word at +4 is
- *                       the cluster count passed to structure_find_in_cluster
+ *                       the cluster count passed to structure_clusters_in_sphere
  *   position         — float[3] search center (must be non-NULL)
  *   radius           — search radius, added to each object's effective radius
  *   out_handles      — output array for found object handles (must be non-NULL)
@@ -11859,7 +11859,7 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
     type_mask = 0xFFFFFFFF;
 
   iter_count =
-    structure_find_in_cluster(*(uint16_t *)((char *)cluster_info + 4), position,
+    structure_clusters_in_sphere(*(uint16_t *)((char *)cluster_info + 4), position,
                               radius, 512, cluster_indices);
 
   iter_count = object_find_in_cluster(flags, iter_count, cluster_indices, 2048,
@@ -13140,7 +13140,7 @@ void object_render_debug(int param_1)
   if (*(char *)0x5a8d27 != '\0') {
     void *nm;
     nm = object_get_node_matrix(param_1, 0);
-    FUN_001894d0(1, nm, 0.3f);
+    render_debug_matrix(1, nm, 0.3f);
   }
 
   if (*(char *)0x5a8d24 != '\0' && *(short *)((char *)obj + 0x6a) != -1) {
@@ -13150,7 +13150,7 @@ void object_render_debug(int param_1)
     block_elem = tag_block_get_element(
       (void *)(scen_elem + 0x204), (int)*(short *)((char *)obj + 0x6a), 0x24);
     object_get_world_position(param_1, (vector3_t *)root_pos);
-    FUN_00189cb0(0, root_pos, block_elem, *(int *)0x2ee6f4);
+    render_debug_string_at_point(0, root_pos, block_elem, *(int *)0x2ee6f4);
     tag_data = (char *)tag_get(0x6f626a65, *obj);
   }
 
@@ -13165,9 +13165,9 @@ void object_render_debug(int param_1)
     } else {
       name_ptr = backslash + 1;
     }
-    FUN_00189cb0(0, info_text_buf, name_ptr, *(int *)0x2ee6f0);
-    FUN_001894d0(1, world_matrix, ((float *)obj)[0x17]);
-    FUN_00189320(1, info_text_buf, root_pos, 1.0f, *(void **)0x2ee6e0);
+    render_debug_string_at_point(0, info_text_buf, name_ptr, *(int *)0x2ee6f0);
+    render_debug_matrix(1, world_matrix, ((float *)obj)[0x17]);
+    render_debug_vector(1, info_text_buf, root_pos, 1.0f, *(void **)0x2ee6e0);
     tag_data = (char *)tag_get(0x6f626a65, *obj);
   }
 
@@ -13190,7 +13190,7 @@ void object_render_debug(int param_1)
       } else {
         scale_val = 1.0f;
       }
-      FUN_00189540(1, (char *)obj + 0x50, scale_val, sphere_color);
+      render_debug_sphere(1, (char *)obj + 0x50, scale_val, sphere_color);
       tag_data = (char *)tag_get(0x6f626a65, *obj);
     }
   }
@@ -13254,7 +13254,7 @@ void object_render_debug(int param_1)
           matrix_transform_point(
             (float *)nm, (float *)((char *)coll_elem + 0x10), point_out);
         }
-        FUN_00189540(1, point_out, *(float *)((char *)coll_elem + 0x1c),
+        render_debug_sphere(1, point_out, *(float *)((char *)coll_elem + 0x1c),
                      *(void **)0x2ee6d8);
         i++;
         idx = (int)i;
@@ -13297,17 +13297,17 @@ void object_render_debug(int param_1)
               for (bk = 0; bk < 2; bk++) {
                 if (bi == 0) {
                   int e = bk + bj * 2;
-                  FUN_00189270(1, &bbox_corners[e * 3],
+                  render_debug_line(1, &bbox_corners[e * 3],
                                &bbox_corners[(e + 4) * 3], *(void **)0x2ee6d8);
                 }
                 if (bj == 0) {
                   int e = bk + bi * 4;
-                  FUN_00189270(1, &bbox_corners[e * 3],
+                  render_debug_line(1, &bbox_corners[e * 3],
                                &bbox_corners[(e + 2) * 3], *(void **)0x2ee6d8);
                 }
                 if (bk == 0) {
                   int e = bj + bi * 2;
-                  FUN_00189270(1, &bbox_corners[e * 6],
+                  render_debug_line(1, &bbox_corners[e * 6],
                                &bbox_corners[e * 6 + 3], *(void **)0x2ee6d8);
                 }
               }

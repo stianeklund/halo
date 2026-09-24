@@ -1992,7 +1992,7 @@ void player_update_powerups(int datum_handle)
  * The position's z is then raised by the 'bipd' tag's camera height
  * (bipd+0x42c), the world-up vector ([0x31fc44]) is scaled by the height
  * offset, and the resulting segment is collision-tested (FUN_0014e7d0,
- * flags 0x4029).  The arrow is drawn (FUN_00189860) in the "hit" colour
+ * flags 0x4029).  The arrow is drawn (render_debug_pill) in the "hit" colour
  * ([0x2ee6d0]) when the test reports a collision and the "miss" colour
  * ([0x2ee6d4]) otherwise.
  *
@@ -2007,7 +2007,7 @@ void player_update_powerups(int datum_handle)
  *    bipd+0x42c raises the position's z.
  *  - the collision result buffer at EBP-0x84 is 0x50 bytes.
  *  - the float at EBP-0x4 (camera height) is pushed as a raw dword via
- *    MOV ECX,[EBP-0x4]; PUSH ECX for both FUN_0014e7d0 and FUN_00189860 — it
+ *    MOV ECX,[EBP-0x4]; PUSH ECX for both FUN_0014e7d0 and render_debug_pill — it
  *    is a float argument, not an int.
  *  - the assert tail is display_assert(...,true) then system_exit(-1) at
  *    0x8e2f0 (Ghidra's thunk_FUN_001029a0 is wrong).
@@ -2062,17 +2062,17 @@ void players_debug_render(void)
             height_vec[0] = height_offset * global_up_vector_ptr[0];
             height_vec[1] = height_offset * global_up_vector_ptr[1];
             height_vec[2] = height_offset * global_up_vector_ptr[2];
-            /* The original branches around two full FUN_00189860 call sites
+            /* The original branches around two full render_debug_pill call sites
              * (MSVC tail-merged the shared `push flag; call` at the join, which
              * is why Ghidra reconstructed it as one call with a
              * default-then-override colour variable). */
             if (FUN_0014e7d0(0x4029, (float *)&position, height_vec,
                              camera_height, unit_handle,
                              collision_result) != '\0')
-              FUN_00189860('\0', &position, height_vec, camera_height,
+              render_debug_pill('\0', &position, height_vec, camera_height,
                            *(void **)0x2ee6d0);
             else
-              FUN_00189860('\0', &position, height_vec, camera_height,
+              render_debug_pill('\0', &position, height_vec, camera_height,
                            *(void **)0x2ee6d4);
           }
         }

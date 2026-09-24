@@ -4001,7 +4001,7 @@ void main_framerate_render(void)
     }
     draw_string_set_color(color);
     draw_string_set_font_tag(font_tag);
-    rasterizer_text_draw(bounds, NULL, NULL, 0, string);
+    rasterizer_draw_string(bounds, NULL, NULL, 0, string);
   }
 
   /* Overlay 2: int16 ring buffer at 0x46ddde, newest line at the bottom. */
@@ -4030,7 +4030,7 @@ void main_framerate_render(void)
           color = *(const void **)0x2ee6d0;
         }
         draw_string_set_color(color);
-        rasterizer_text_draw(bounds, NULL, NULL, 0, string);
+        rasterizer_draw_string(bounds, NULL, NULL, 0, string);
 
         index = (int16_t)(((int16_t)index + 14) % 15);
       } while ((int16_t)index != *(int16_t *)0x46dddc);
@@ -4055,7 +4055,7 @@ void main_framerate_render(void)
     draw_string_set_style_justify_flags(-1, 0, 0);
     draw_string_set_color(*(const void **)0x2ee6f4);
     draw_string_set_font_tag(font_tag);
-    rasterizer_text_draw(bounds, NULL, NULL, 0, string);
+    rasterizer_draw_string(bounds, NULL, NULL, 0, string);
   }
 }
 
@@ -4182,7 +4182,7 @@ void halt_and_catch_fire(void)
       screen_pos[0] = *(int32_t *)0x32565c;
       screen_pos[1] = *(int32_t *)0x325660;
 
-      /* text_color is not a color: rasterizer_text_draw's 3rd parameter is
+      /* text_color is not a color: rasterizer_draw_string's 3rd parameter is
        * an OUT cursor -- draw_string (0x19c5d0) ends with `*param_3 =
        * CONCAT22(line_y, x_end)`, writing the end-of-text position into
        * bytes 0..3. The original zeroes only bytes 0..3 (two word stores
@@ -4195,7 +4195,7 @@ void halt_and_catch_fire(void)
       draw_string_set_font(tag_index, -1, 0, 0, default_color);
       draw_string_set_tab_stops(0, 0);
       draw_string_set_color(default_color);
-      rasterizer_text_draw(
+      rasterizer_draw_string(
         screen_pos, 0, text_color, -4,
         "halobeta xbox 01.10.12.2276 built at: Oct 12 2001 16:07:48");
 
@@ -4208,21 +4208,21 @@ void halt_and_catch_fire(void)
       *(int16_t *)&screen_pos[0] = (int16_t)(*(int32_t *)(text_color + 2) - 1);
 
       error_msg = error_get();
-      rasterizer_text_draw(screen_pos, 0, text_color, -4,
+      rasterizer_draw_string(screen_pos, 0, text_color, -4,
                            (const char *)error_msg);
     }
 
-    FUN_00184980(1);
-    FUN_00184980(0);
-    FUN_0017e190();
-    FUN_00158f90();
+    rasterizer_transparent_geometry_draw(1);
+    rasterizer_transparent_geometry_draw(0);
+    rasterizer_debug_draw();
+    __rasterizer_window_end();
     _rasterizer_windows_end();
     _rasterizer_frame_end();
     /* Original calls the thunk at 0x17c930 (jmps to 0x157e40) with two null
-     * args -- rasterizer_dynamic_lit_geometry_draw, NOT render_frame_present
+     * args -- rasterizer_present, NOT render_frame_present
      * (0x184dc0). Both args are used by the callee (edi=[ebp+8], esi=[ebp+c]);
      * (0,0) selects its null/no-geometry path. */
-    rasterizer_dynamic_lit_geometry_draw(0, 0);
+    rasterizer_present(0, 0);
     input_update();
   }
 }

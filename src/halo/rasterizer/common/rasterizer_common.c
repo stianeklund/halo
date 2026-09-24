@@ -17,20 +17,20 @@ void rasterizer_initialize_for_new_map(void)
   *(int *)0x476204 = rasterizer_data;
   assert_halt(rasterizer_data);
 
-  FUN_00181150();
+  rasterizer_lights_reset_for_new_map();
   rasterizer_text_cache_flush();
-  FUN_0017d950();
+  rasterizer_screen_effects_initialize_for_new_map();
 
   if (*(void **)0x47e4d0 != 0)
     csmemset(*(void **)0x47e4d0, 0, 0x10);
 
-  FUN_0017dec0(0);
+  rasterizer_set_near_clip_distance(0);
 }
 
 /* Dispose rasterizer state from old map. */
 void rasterizer_dispose_from_old_map(void)
 {
-  FUN_0017d980();
+  rasterizer_screen_effects_dispose_from_old_map();
   rasterizer_text_cache_flush();
   *(int *)0x476204 = 0;
 }
@@ -46,7 +46,7 @@ void rasterizer_frame_update(float delta_time)
  * RET 0x10 cleans all four), reorders them into the standard 6-arg
  * stdcall to IDirect3D8_CreateDevice. No callers observed in the
  * shipped XBE — dead code from debug builds. */
-void FUN_001550c0(unsigned int arg_eax /* @<eax> */,
+void IDirect3D8_CreateDevice(unsigned int arg_eax /* @<eax> */,
                   unsigned int arg_ecx /* @<ecx> */,
                   unsigned int arg_edx /* @<edx> */, unsigned int unused_stack0,
                   unsigned int stack_arg1, unsigned int stack_arg2,
@@ -61,7 +61,7 @@ void FUN_001550c0(unsigned int arg_eax /* @<eax> */,
  * *result. The array is a flat DWORD array at 0x1fb498 with 32 entries per
  * stage row. Register args: EAX=stage, ECX=sub_index; stack arg: result
  * pointer. */
-void FUN_00155110(int stage /* @<eax> */, int sub_index /* @<ecx> */,
+void D3DDevice_GetTextureStageState(int stage /* @<eax> */, int sub_index /* @<ecx> */,
                   unsigned int *result)
 {
   *result = ((unsigned int *)0x1fb498)[stage * 32 + sub_index];

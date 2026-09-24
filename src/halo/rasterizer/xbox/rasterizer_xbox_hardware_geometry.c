@@ -276,10 +276,10 @@ void rasterizer_triangle_buffer_delete(void *triangle_buffer)
 }
 
 /*
- * FUN_00169200 @ 0x169200 — project a world-space point plus a radius into
+ * rasterizer_project_billboard @ 0x169200 — project a world-space point plus a radius into
  * screen space, returning whether it landed in front of the eye.
  *
- * This function is byte-identical to the already-ported FUN_0017a8a0
+ * This function is byte-identical to the already-ported rasterizer_widget_project_billboard
  * (src/halo/rasterizer/rasterizer.c) except for the CALL rel32 displacement
  * to matrix_transform_point, which necessarily differs because the two
  * functions live at different addresses but call the same absolute target
@@ -287,8 +287,8 @@ void rasterizer_triangle_buffer_delete(void *triangle_buffer)
  * bodies against the pristine XBE (tools/verify/xbe_reference.py): the only
  * differing bytes are the 3 low bytes of that one rel32 operand. This is
  * the same "MSVC emitted the inline/shared body once per translation unit"
- * duplication already documented for FUN_0017ad20 in rasterizer.c. The body
- * below is copied from FUN_0017a8a0's proven lift; see that function's
+ * duplication already documented for IDirect3DDevice8_SetVertexData2f in rasterizer.c. The body
+ * below is copied from rasterizer_widget_project_billboard's proven lift; see that function's
  * header comment for the full evidence trail (viewport rect field order,
  * projection matrix row/col layout, FCOM/TEST AH,0x41 guard semantics, and
  * the row-2-first x87 evaluation order).
@@ -296,18 +296,18 @@ void rasterizer_triangle_buffer_delete(void *triangle_buffer)
  * out_screen arrives in EBX (first store to it is FSTP float ptr [EBX], no
  * prior write from any parameter slot), so it stays annotated @<ebx> in
  * kb.json exactly as it already was before this lift; that annotation is
- * unchanged here. Ghidra's `void FUN_00169200(void)` misses that register
+ * unchanged here. Ghidra's `void rasterizer_project_billboard(void)` misses that register
  * argument and the AL return (MOV AL,0x1 vs XOR AL,AL vs MOV AL,CL).
  *
  * Globals confirmed by direct memory read against the pristine XBE:
  *   0x2533c0 = 0.0f, 0x2533c8 = 1.0f, 0x253398 = 0.5f
  * 0x5a5bf4/0x5a5bf8/0x5a5bfa/0x5a5bf6 (viewport rect) and
  * 0x5a5d60..0x5a5d9c (projection matrix rows) and 0x5a5c2c
- * (world-to-view matrix) are the same globals FUN_0017a8a0 uses, proven by
+ * (world-to-view matrix) are the same globals rasterizer_widget_project_billboard uses, proven by
  * the identical operand addresses in both functions' disassembly.
  */
 /* 0x169200 */
-bool FUN_00169200(float *point, float radius, float *out_extent,
+bool rasterizer_project_billboard(float *point, float radius, float *out_extent,
                   float *out_screen)
 {
   float view_point[3]; /* [EBP-0x1c..-0x14] matrix_transform_point output */

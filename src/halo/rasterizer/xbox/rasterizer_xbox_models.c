@@ -1,5 +1,5 @@
 
-/* 40-byte and 16-byte blocks copied wholesale in FUN_0016c090. The reference
+/* 40-byte and 16-byte blocks copied wholesale in __rasterizer_model_transparent_geometry_submit. The reference
  * lowers the first as an inline `rep movsd` (ECX=10) and the second as four
  * dword load/store pairs, which is what a struct assignment of each size
  * produces; no field-level evidence exists for either block's contents, so
@@ -30,7 +30,7 @@ typedef struct {
  * here, so they stay as explicit unknowns.
  *
  * If a profile-collection section was requested (DAT_00325173, set by
- * FUN_0016b180 in this TU), the state block is instead finished as a
+ * __rasterizer_models_begin in this TU), the state block is instead finished as a
  * pixel-shader descriptor and handed to rasterizer_set_pixel_shader, and the
  * request flag is cleared. Otherwise the block's fields are pushed to the
  * device one at a time via the ECX/EDX fastcall
@@ -40,7 +40,7 @@ typedef struct {
  * 2) the frame's accumulated pixel-shader cost (DAT_005a555c) is bumped by a
  * fixed cost of 0x2c.
  */
-void FUN_0016ab00(int16_t detail_function /* @<ax> */,
+void rasterizer_model_set_pixel_shader(int16_t detail_function /* @<ax> */,
                   uint32_t param_3 /* @<ecx> */,
                   int16_t detail_mask /* @<bx> */, uint32_t param_4,
                   uint32_t param_5, uint32_t param_6, uint32_t param_7,
@@ -208,32 +208,32 @@ void FUN_0016ab00(int16_t detail_function /* @<ax> */,
  * Guarded by the profile-collection master switch (DAT_003256c4); when
  * active, records that a models profile section has been requested
  * (DAT_00325173 = 1), latches the requested sub-state (DAT_0047e002), and
- * opens the corresponding profile section via FUN_0016f910 (1 = models with
+ * opens the corresponding profile section via rasterizer_profile_begin (1 = models with
  * the flag set, 2 = models without). */
-void FUN_0016b180(bool flag)
+void __rasterizer_models_begin(bool flag)
 {
   if (*(char *)0x3256c4 != 0) {
     *(char *)0x325173 = 1;
     *(char *)0x47e002 = flag;
     if (flag != 0) {
-      FUN_0016f910(1);
+      rasterizer_profile_begin(1);
       return;
     }
-    FUN_0016f910(2);
+    rasterizer_profile_begin(2);
   }
 }
 
 /* 0x16b1c0 - end of the model local-parameters block; the counterpart of
- * FUN_0016bed0 (0x16bed0), which stashes the parameter block pointer in
+ * __rasterizer_model_begin (0x16bed0), which stashes the parameter block pointer in
  * DAT_0047dff8 and its second argument's low byte in DAT_0047e005.
  * Guarded by the profile-collection master switch (DAT_003256c4). Asserts
  * that a parameter block is currently open ("local_parameters", line 0x5d3),
- * flushes the pending sub-pass when DAT_0047e004 is set (FUN_00165fc0), then
+ * flushes the pending sub-pass when DAT_0047e004 is set (rasterizer_environment_fog_screen_model_end), then
  * - only when the block's first byte is negative and DAT_0047e005 is clear,
  * mirroring the open path's entry condition - restores the default projection
- * with FUN_00158ae0(2) and rasterizer_set_frustum_z(0.0f, 0.0f). Finally
+ * with rasterizer_set_stencil_mode(2) and rasterizer_set_frustum_z(0.0f, 0.0f). Finally
  * clears DAT_0047dff8 to mark the block closed. */
-void FUN_0016b1c0(void)
+void __rasterizer_model_end(void)
 {
   if (*(char *)0x3256c4 != 0) {
     if (*(void **)0x47dff8 == NULL) {
@@ -245,11 +245,11 @@ void FUN_0016b1c0(void)
     }
 
     if (*(char *)0x47e004 != 0) {
-      FUN_00165fc0();
+      rasterizer_environment_fog_screen_model_end();
     }
 
     if (*(signed char *)*(void **)0x47dff8 < 0 && *(char *)0x47e005 == 0) {
-      FUN_00158ae0(2);
+      rasterizer_set_stencil_mode(2);
       rasterizer_set_frustum_z(0.0f, 0.0f);
     }
 
@@ -257,26 +257,26 @@ void FUN_0016b1c0(void)
   }
 }
 
-/* 0x16b240 — model-rendering profile close; the counterpart of FUN_0016b180.
+/* 0x16b240 — model-rendering profile close; the counterpart of __rasterizer_models_begin.
  * Guarded by the same profile-collection master switch (DAT_003256c4); reads
- * back the sub-state latched by FUN_0016b180 (DAT_0047e002) and closes the
- * matching profile section via FUN_0016fa40 (1 = models with the flag set,
+ * back the sub-state latched by __rasterizer_models_begin (DAT_0047e002) and closes the
+ * matching profile section via rasterizer_profile_end (1 = models with the flag set,
  * 2 = models without). */
-void FUN_0016b240(void)
+void __rasterizer_models_end(void)
 {
   if (*(char *)0x3256c4 != 0) {
     if (*(char *)0x47e002 != 0) {
-      FUN_0016fa40(1);
+      rasterizer_profile_end(1);
       return;
     }
-    FUN_0016fa40(2);
+    rasterizer_profile_end(2);
   }
 }
 
 /* global_rasterizer_model_ambient_reflection_tint (DAT_0047e4d0): 0x10-byte
  * game-state allocation holding the model ambient reflection tint. Name is
  * taken verbatim from the assert message at 0x17c7aa (#cond string). The
- * pointer is only populated once rasterizer_window_set_fog has run, hence the
+ * pointer is only populated once rasterizer_initialize has run, hence the
  * null check.
  *
  * Declared in kb.json (<common> data, 0x47e4d0) and emitted into
@@ -294,7 +294,7 @@ void FUN_0016b240(void)
  * FLD/FSTP passthroughs of the incoming stack slots — no numeric conversion
  * takes place, so the parameters must stay typed float. param_1's meaning
  * beyond "the dword at +0x0" has no binary evidence here. */
-void FUN_0016b270(int param_1, float param_2, float param_3, float param_4)
+void rasterizer_model_ambient_reflection_tint(int param_1, float param_2, float param_3, float param_4)
 {
   if (global_rasterizer_model_ambient_reflection_tint != NULL) {
     *(int *)global_rasterizer_model_ambient_reflection_tint = param_1;
@@ -311,12 +311,12 @@ void FUN_0016b270(int param_1, float param_2, float param_3, float param_4)
  * accounting plus cull-plane visibility flag for the model's next draw.
  *
  * Guarded by the profile-collection master switch (DAT_003256c4, see
- * FUN_0016b180); returns immediately when profiling is inactive. Asserts
+ * __rasterizer_models_begin); returns immediately when profiling is inactive. Asserts
  * param_1 (the model's render parameter block) is non-null.
  *
  * When the block's flags byte is negative (bit 0x80 set) and param_2's low
  * byte is 0, forces a near/far-frustum override before anything else:
- * FUN_00158ae0(1) then rasterizer_set_frustum_z(DAT_0032569c, DAT_003256a0).
+ * rasterizer_set_stencil_mode(1) then rasterizer_set_frustum_z(DAT_0032569c, DAT_003256a0).
  *
  * Stashes the parameter block pointer (DAT_0047dff8), clears DAT_0047dffc,
  * and records param_2's low byte into DAT_0047e005.
@@ -337,14 +337,14 @@ void FUN_0016b270(int param_1, float param_2, float param_3, float param_4)
  * (DAT_005a5bc8..d0) minus the plane distance (DAT_005a5dd4) — gated by the
  * cull-enable word DAT_005a5dc4.
  *
- * If the profiling sub-state DAT_0047e002 is 0, calls FUN_00167ee0(param_1)
+ * If the profiling sub-state DAT_0047e002 is 0, calls rasterizer_environment_fog_screen_model_begin(param_1)
  * (returns bool in AL, per-model getter/predicate — not yet ported) and
  * latches its result into DAT_0047e004; otherwise DAT_0047e004 is cleared.
  *
  * In shader-cost accounting mode (DAT_003256ba == 2) bumps the per-frame
  * counter DAT_005a54d4.
  */
-void FUN_0016bed0(void *param_1, int param_2)
+void __rasterizer_model_begin(void *param_1, int param_2)
 {
   int draw_calls_before;
   int draw_calls_delta;
@@ -364,7 +364,7 @@ void FUN_0016bed0(void *param_1, int param_2)
   }
 
   if (*(signed char *)param_1 < 0 && (char)param_2 == 0) {
-    FUN_00158ae0(1);
+    rasterizer_set_stencil_mode(1);
     rasterizer_set_frustum_z(*(float *)0x32569c, *(float *)0x3256a0);
   }
 
@@ -403,7 +403,7 @@ void FUN_0016bed0(void *param_1, int param_2)
   }
 
   if (*(char *)0x47e002 == 0) {
-    profile_getter_result = FUN_00167ee0(param_1);
+    profile_getter_result = rasterizer_environment_fog_screen_model_begin(param_1);
     *(char *)0x47e004 = 1;
     if (profile_getter_result != 0) {
       goto profile_done;
@@ -424,7 +424,7 @@ profile_done:
  *
  * Two shader predicates are computed up front from the shader's base.type
  * (the int16 at +0x24; type 4 is the one that owns the extra data block
- * fetched by FUN_001906b0):
+ * fetched by shader_get_and_verify_type):
  *   - is_decal: type-4 shader whose byte at +0x28 has bit 0x8 set. When set,
  *     the part is dropped entirely: the caller's out block is reset to
  *     {NULL, NULL, 0xffff} and the function returns NULL.
@@ -461,12 +461,12 @@ profile_done:
  * 0x47df48..0x47df54 behind the DAT_0047dffc latch.
  *
  * In shader-cost accounting mode (DAT_003256ba == 2) the part count, total and
- * peak of param_5, and the triangle cost reported by FUN_0017ed90(param_3,
+ * peak of param_5, and the triangle cost reported by rasterizer_frame_statistics_count_static_vertices(param_3,
  * param_6) are accumulated into 0x5a54e4..0x5a54f0.
  *
  * param_3..param_7 are opaque caller-supplied geometry words beyond how they
  * are stored and forwarded here, so they keep mechanical names. */
-void *FUN_0016c090(void *shader, short param_2, int param_3, int param_4,
+void *__rasterizer_model_transparent_geometry_submit(void *shader, short param_2, int param_3, int param_4,
                    int param_5, int param_6, int param_7, float *centroid,
                    void *out)
 {
@@ -488,7 +488,7 @@ void *FUN_0016c090(void *shader, short param_2, int param_3, int param_4,
   }
 
   if (shader != NULL && *(short *)((char *)shader + 0x24) == 4 &&
-      (*(char *)((char *)FUN_001906b0(shader, 4) + 0x28) & 8) != 0) {
+      (*(char *)((char *)shader_get_and_verify_type(shader, 4) + 0x28) & 8) != 0) {
     is_decal = true;
   } else {
     is_decal = false;
@@ -496,7 +496,7 @@ void *FUN_0016c090(void *shader, short param_2, int param_3, int param_4,
 
   if (*(short *)0x47e000 != 1 ||
       (shader != NULL && *(short *)((char *)shader + 0x24) == 4 &&
-       *(short *)((char *)FUN_001906b0(shader, 4) + 0x28) != 0)) {
+       *(short *)((char *)shader_get_and_verify_type(shader, 4) + 0x28) != 0)) {
     use_pool = true;
   } else {
     use_pool = false;
@@ -549,15 +549,15 @@ void *FUN_0016c090(void *shader, short param_2, int param_3, int param_4,
     }
 
     if (*(short *)0x47e000 == 1 && *(short *)((char *)shader + 0x24) != 4) {
-      group = (char *)rasterizer_secondary_geometry_group_new();
+      group = (char *)rasterizer_transparent_geometry_new_group2();
     } else {
-      group = (char *)rasterizer_transparent_geometry_group_new();
+      group = (char *)rasterizer_transparent_geometry_new_group();
       result = group;
     }
 
     if (out != NULL) {
       *(short *)((char *)out + 8) =
-        rasterizer_transparent_geometry_group_to_presorted_index(
+        rasterizer_transparent_geometry_get_group_presorted_index(
           (unsigned int)group);
       *(void **)out = group + 0x94;
       *(void **)((char *)out + 4) = group + 0x96;
@@ -637,19 +637,19 @@ void *FUN_0016c090(void *shader, short param_2, int param_3, int param_4,
           *(char **)(group + 0x68) = lp + 0x10;
           *(char **)(group + 0x6c) = lp + 0x84;
         }
-        FUN_00174ce0();
+        rasterizer_transparent_geometry_groups_begin();
         rasterizer_transparent_geometry_group_draw(group, 0);
-        FUN_001749b0();
+        rasterizer_transparent_geometry_groups_end();
         *(char *)0x325173 = 1;
       } else {
         if (*(char *)0x47dffc == 0) {
           char *lp = *(char **)0x47dff8;
-          *(int *)0x47df54 = rasterizer_memory_pool_copy(
+          *(int *)0x47df54 = rasterizer_memory_alloc_const(
             *(int *)(lp + 8), *(short *)(lp + 0xc) * 0x34);
           *(short *)0x47df50 = *(short *)(lp + 0xc);
           *(int *)0x47df4c =
-            rasterizer_memory_pool_copy((int)(lp + 0x10), 0x74);
-          *(int *)0x47df48 = rasterizer_memory_pool_copy((int)(lp + 0x84), 8);
+            rasterizer_memory_alloc_const((int)(lp + 0x10), 0x74);
+          *(int *)0x47df48 = rasterizer_memory_alloc_const((int)(lp + 0x84), 8);
           *(char *)0x47dffc = 1;
         }
         *(uint32_t *)(group + 0x60) = *(uint32_t *)0x47df54;
@@ -666,7 +666,7 @@ void *FUN_0016c090(void *shader, short param_2, int param_3, int param_4,
           *(int *)0x5a54ec = param_5;
         }
         *(int *)0x5a54e4 =
-          *(int *)0x5a54e4 + FUN_0017ed90((void *)param_3, (void *)param_6);
+          *(int *)0x5a54e4 + rasterizer_frame_statistics_count_static_vertices((void *)param_3, (void *)param_6);
       }
 
     } else if (*(char *)0x47e006 == 0) {

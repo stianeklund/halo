@@ -1,7 +1,7 @@
 
 /* 0x16f910 — profile section begin (asserts at rasterizer_xbox_profile.c
  * lines 0x103/0x109/0x10a) */
-void FUN_0016f910(short profile)
+void rasterizer_profile_begin(short profile)
 {
   int slot;
   unsigned int bit;
@@ -32,13 +32,13 @@ void FUN_0016f910(short profile)
     slot = profile;
     bit = 1u << profile;
     /* warn when this profile already ran this frame */
-    FUN_0016f480("profile duplication within frame (begin)", profile,
+    profile_assert("profile duplication within frame (begin)", profile,
                  (char)((bit & *(unsigned int *)0x47e45c) == 0));
     /* warn when another profile section is still open */
-    FUN_0016f480("profile begin/end pairing incorrect (begin)", profile,
+    profile_assert("profile begin/end pairing incorrect (begin)", profile,
                  (char)(*(short *)0x325180 == -1));
     /* type 0 callback; context = profile index with begin flag in bit 31 */
-    D3DDevice_InsertCallback(0, (void *)FUN_0016f500,
+    D3DDevice_InsertCallback(0, (void *)callback_function,
                              (unsigned int)slot | 0x80000000u);
     *(short *)0x325180 = profile;
     *(unsigned int *)(slot * 8 + 0x47e188) = 0;
@@ -48,7 +48,7 @@ void FUN_0016f910(short profile)
 
 /* 0x16fa40 — profile section end (asserts at rasterizer_xbox_profile.c
  * lines 0x126/0x12c/0x12d) */
-void FUN_0016fa40(short profile)
+void rasterizer_profile_end(short profile)
 {
   int slot;
   /* volatile reproduces the original's [EBP-4] spill of the profile bit:
@@ -86,13 +86,13 @@ void FUN_0016fa40(short profile)
     bit = bit_spill;
     masked = bit & *(unsigned int *)0x47e45c;
     /* warn when this profile already ended this frame */
-    FUN_0016f480("profile duplication within frame (end)", profile,
+    profile_assert("profile duplication within frame (end)", profile,
                  (char)(masked == 0));
     /* warn when the open profile is not the one being ended */
-    FUN_0016f480("profile begin/end pairing incorrect (end)", profile,
+    profile_assert("profile begin/end pairing incorrect (end)", profile,
                  (char)(*(short *)0x325180 == profile));
     /* type 1 callback; context = profile index (no begin flag) */
-    D3DDevice_InsertCallback(1, (void *)FUN_0016f500, (unsigned int)slot);
+    D3DDevice_InsertCallback(1, (void *)callback_function, (unsigned int)slot);
     *(unsigned int *)(slot * 8 + 0x47e188) = 0;
     *(unsigned int *)(slot * 8 + 0x47e18c) = 0;
     *(short *)0x325180 = -1;

@@ -867,7 +867,7 @@ void render_state_bitmap(short *dst_rect, void *state, int param_1, int color,
  * dst_rect/src_rect naming are taken directly from this function's own
  * disassembly (matches FUN_0019cdb0's out_rect/in_rect argument order) and
  * from the structurally identical draw_string_set_indents/FUN_0019cdb0/
- * rasterizer_draw_string sequence already lifted as render_state_text_0's
+ * rasterizer_draw_unicode_string sequence already lifted as render_state_text_0's
  * non-icon path in hud_messaging.c. The incoming ESI register (PUSH ESI at
  * entry, POP ESI at exit) is a callee-saved scratch register the original
  * compiler reused for the indent computation, not a real argument: its low 16
@@ -894,7 +894,7 @@ void render_state_text(short *dst_rect, void *text, short *src_rect)
   FUN_0019cdb0(dst_rect, text, local_bounds, src_rect);
   src_rect[1] = src_rect[1] - 3;
   local_bounds[1] = dst_rect[1];
-  rasterizer_draw_string(local_bounds, NULL, NULL, 0, (unsigned short *)text);
+  rasterizer_draw_unicode_string(local_bounds, NULL, NULL, 0, (unsigned short *)text);
   *dst_rect = *src_rect;
 }
 
@@ -1736,7 +1736,7 @@ void widget_instance_render_text_box(void *definition, void *widget,
   if (string_has_icons_to_draw(*text)) {
     draw_string_and_hack_in_icons(position, (int)bounds, 0, 0, *text, 0);
   } else {
-    rasterizer_draw_string(position, bounds, NULL, 0, (unsigned short *)*text);
+    rasterizer_draw_unicode_string(position, bounds, NULL, 0, (unsigned short *)*text);
   }
 }
 
@@ -1975,7 +1975,7 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
       font_tag = tag_loaded(0x666f6e74, "ui\\small_ui", -1, 0, 0, color);
       ((void (*)(int))0x19b8b0)(font_tag);
       tag_name = tag_get_name(*(int *)(0x46cc20 + i * 4));
-      rasterizer_text_draw(&local_bounds, 0, 0, 0, tag_name);
+      rasterizer_draw_string(&local_bounds, 0, 0, 0, tag_name);
     }
   }
 

@@ -85,12 +85,12 @@ static __inline real plane3d_distance_to_point_inline(const real_plane3d *plane,
          plane->d;
 }
 
-/* render_camera_check_warning_condition - 0x185770
+/* render_camera_warn_once - 0x185770
  * Tracks maximum frustum-integrity violation distances per condition ID.
  * Logs when a condition exceeds its previous worst value.
  * render_camera_build_frustum calls this out of line 22 times (id in AX), so
  * it must not be inlined into that caller. */
-__declspec(noinline) void render_camera_check_warning_condition(int16_t id,
+__declspec(noinline) void render_camera_warn_once(int16_t id,
                                                                 float value)
 {
   assert_halt(id >= 0 && id < MAXIMUM_RENDER_CAMERA_WARNING_CONDITIONS);
@@ -955,9 +955,9 @@ void render_camera_debug_frustum(camera_t *camera, void *frustum)
 
     for (i = 0; i < 3; i++) {
       for (j = 0; j < 3; j++) {
-        FUN_00189270(1, (float *)&points[j][0], (float *)&points[i][2],
+        render_debug_line(1, (float *)&points[j][0], (float *)&points[i][2],
                      global_real_argb_red);
-        FUN_00189270(1, (float *)&points[0][j], (float *)&points[2][i],
+        render_debug_line(1, (float *)&points[0][j], (float *)&points[2][i],
                      global_real_argb_red);
       }
     }
@@ -1364,65 +1364,65 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   /* Planes: 0 left, 1 right, 2 bottom, 3 top, 4 near, 5 far.
    * Vertices: 0 bottom-left, 1 bottom-right, 2 top-left, 3 top-right,
    * 4 apex (camera position). */
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     0, (real)fabs(
          plane3d_distance_to_point_inline(&fr->field_78[0], &fr->field_e0[0])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     1, (real)fabs(
          plane3d_distance_to_point_inline(&fr->field_78[0], &fr->field_e0[2])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     2, (real)fabs(
          plane3d_distance_to_point_inline(&fr->field_78[0], &fr->field_e0[4])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     3, (real)fabs(
          plane3d_distance_to_point_inline(&fr->field_78[1], &fr->field_e0[1])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     4, (real)fabs(
          plane3d_distance_to_point_inline(&fr->field_78[1], &fr->field_e0[3])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     5, (real)fabs(
          plane3d_distance_to_point_inline(&fr->field_78[1], &fr->field_e0[4])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     6, (real)fabs(
          plane3d_distance_to_point_inline(&fr->field_78[2], &fr->field_e0[0])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     7, (real)fabs(
          plane3d_distance_to_point_inline(&fr->field_78[2], &fr->field_e0[1])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     8, (real)fabs(
          plane3d_distance_to_point_inline(&fr->field_78[2], &fr->field_e0[4])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     9, (real)fabs(
          plane3d_distance_to_point_inline(&fr->field_78[3], &fr->field_e0[2])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     10, (real)fabs(plane3d_distance_to_point_inline(&fr->field_78[3],
                                                     &fr->field_e0[3])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     11, (real)fabs(plane3d_distance_to_point_inline(&fr->field_78[3],
                                                     &fr->field_e0[4])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     12, (real)fabs(plane3d_distance_to_point_inline(&fr->field_78[5],
                                                     &fr->field_e0[0])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     13, (real)fabs(plane3d_distance_to_point_inline(&fr->field_78[5],
                                                     &fr->field_e0[1])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     14, (real)fabs(plane3d_distance_to_point_inline(&fr->field_78[5],
                                                     &fr->field_e0[2])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     15, (real)fabs(plane3d_distance_to_point_inline(&fr->field_78[5],
                                                     &fr->field_e0[3])));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     16, plane3d_distance_to_point_inline(&fr->field_78[0], &fr->field_11c));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     17, plane3d_distance_to_point_inline(&fr->field_78[1], &fr->field_11c));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     18, plane3d_distance_to_point_inline(&fr->field_78[2], &fr->field_11c));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     19, plane3d_distance_to_point_inline(&fr->field_78[3], &fr->field_11c));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     20, plane3d_distance_to_point_inline(&fr->field_78[4], &fr->field_11c));
-  render_camera_check_warning_condition(
+  render_camera_warn_once(
     21, plane3d_distance_to_point_inline(&fr->field_78[5], &fr->field_11c));
 }
 
@@ -1474,7 +1474,7 @@ float contrail_fade(contrail_definition_t *definition, int16_t fade_mode,
  * definition->render_type (0 vertical, 1/2 horizontal/media, 4 viewer;
  * 3 and out of range report an error).  The error arm returns without
  * releasing the buffers or clearing the lock operation (original bug,
- * preserved).  PAL 2342 names 0x17cf60 (kb: FUN_0017cf60)
+ * preserved).  PAL 2342 names 0x17cf60 (kb: rasterizer_dynamic_unlit_geometry_draw)
  * rasterizer_dynamic_unlit_geometry_draw.
  */
 typedef struct {
@@ -1497,7 +1497,7 @@ void render_contrail(void *contrail_datum, void *contrail_definition,
   int triangle_buffer_index;
   int vertex_buffer_index;
 
-  bitmap = FUN_00077040(definition->bitmap_index, contrail->sequence_index,
+  bitmap = bitmap_group_get_bitmap_from_sequence(definition->bitmap_index, contrail->sequence_index,
                         contrail->frame_index);
   rasterizer_current_lock_operation = 0xf;
   if (xbox_texture_cache_get_hardware_format(bitmap, 0, 1)) {
@@ -1829,7 +1829,7 @@ void render_contrail(void *contrail_datum, void *contrail_definition,
       }
       rasterizer_dynamic_triangles_unlock(triangle_buffer_index);
       rasterizer_dynamic_vertices_unlock(vertex_buffer_index);
-      FUN_0017cf60((uint32_t)shader, (uint32_t)bitmap, 0, triangle_buffer_index,
+      rasterizer_dynamic_unlit_geometry_draw((uint32_t)shader, (uint32_t)bitmap, 0, triangle_buffer_index,
                    (uint32_t)vertex_buffer_index, triangle_count,
                    (float *)&average_position, 0);
       rasterizer_dynamic_triangles_delete(triangle_buffer_index);

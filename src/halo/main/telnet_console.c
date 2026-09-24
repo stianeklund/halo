@@ -372,7 +372,7 @@ int antenna_debug_data_add(int tag_id)
           first_seq =
             (char *)tag_block_get_element(bitmap_group_element + 0x34, 0, 0x20);
           lookup_result =
-            FUN_00076ff0(*(int *)(tag_def + 0x2c), *(uint16_t *)first_seq);
+            bitmap_group_try_and_get_bitmap(*(int *)(tag_def + 0x2c), *(uint16_t *)first_seq);
 
           if (lookup_result != NULL) {
             int result_field4;

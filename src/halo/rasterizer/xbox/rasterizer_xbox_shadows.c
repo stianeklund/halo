@@ -17,12 +17,12 @@
  *   0x5a5e18  float   – animation time fed to the map-animation evaluator
  *   0x5a5500  int     – per-frame shadow draw-call counter (mode word == 2)
  *   0x5a54fc  int     – per-frame shadow triangle counter (mode word == 2)
- *   0x5a54f8  int     – per-frame counter accumulated from FUN_0017ed90
+ *   0x5a54f8  int     – per-frame counter accumulated from rasterizer_frame_statistics_count_static_vertices
  */
 
 /* 0x172590
  *
- * FUN_00172590
+ * __rasterizer_environment_shadow_model_begin
  *
  * Begins/sets the per-frame shadow rendering parameters.
  *
@@ -37,7 +37,7 @@
  *
  * param_1: pointer to the shadow parameter block.
  */
-void FUN_00172590(int param_1)
+void __rasterizer_environment_shadow_model_begin(int param_1)
 {
   if (*(void **)0x476ab0 == 0) {
     display_assert(
@@ -64,7 +64,7 @@ void FUN_00172590(int param_1)
 
 /* 0x172730
  *
- * FUN_00172730
+ * rasterizer_shadow_convolve
  *
  * Composites the shadow accumulation buffer with a four-tap diagonal blur.
  *
@@ -85,7 +85,7 @@ void FUN_00172590(int param_1)
  *   5. Draws a full-screen quad (D3DPT_QUADLIST, clockwise) spanning
  *      [-129/128, +127/128] in both axes with texcoords (0,0)..(1,1).
  */
-void FUN_00172730(void)
+void rasterizer_shadow_convolve(void)
 {
   /* One contiguous 0x80-byte block: SetVertexShaderConstant uploads all
    * eight vec4 rows starting at &texture_offsets[0]. */
@@ -109,7 +109,7 @@ void FUN_00172730(void)
   }
   if (*(char *)0x3256ca != 0 && *(char *)0x3256f6 != 0) {
     for (stage = 0; (stage - 1) < (4 - 1); stage++) {
-      FUN_001584f0(stage, 2, 0);
+      rasterizer_set_target_as_texture(stage, 2, 0);
       D3DDevice_SetTextureStageState(stage, 10, 4);
       D3DDevice_SetTextureStageState(stage, 0xb, 4);
       D3DDevice_SetTextureStageState(stage, 0xd, 2);
@@ -125,7 +125,7 @@ void FUN_00172730(void)
     *(int *)0x1fb788 = 0;
     D3DDevice_SetRenderState_ZEnable(0);
     D3DDevice_SetRenderState_ZBias(0);
-    FUN_00178b40(0x26, 8, 0);
+    rasterizer_set_vertex_shader_permutation(0x26, 8, 0);
     /* 1/256 = 0x3b800000 */
     texture_offsets[0] = 1.0f;
     texture_offsets[1] = 0.0f;
@@ -169,7 +169,7 @@ void FUN_00172730(void)
     *(int *)0x5a5b74 = 0x30c00;
     *(int *)0x5a5ae0 = 0xc20001c;
     rasterizer_set_pixel_shader((void *)0x5a5ac0);
-    FUN_00158140(3, 0, 0, 0, 0);
+    rasterizer_set_target(3, 0, 0, 0, 0);
     D3DDevice_Begin(7);
     D3DDevice_SetVertexData2s(4, 0, 0);
     D3DDevice_SetVertexData2f(0, -1.0078125f, 1.0078125f);
@@ -185,7 +185,7 @@ void FUN_00172730(void)
 
 /* 0x172de0
  *
- * FUN_00172de0
+ * __rasterizer_environment_shadow_model_draw
  *
  * Draws one shadow-projected decal batch.
  *
@@ -193,7 +193,7 @@ void FUN_00172730(void)
  * (*(short *)0x5a5bc0 == 0) and the shadow feature flag is set
  * (*(char *)0x3256ca != 0), and the shader is of type 4
  * (shader->type at +0x24):
- *   1. Resolves the type-4 shader data block via FUN_001906b0(shader, 4).
+ *   1. Resolves the type-4 shader data block via shader_get_and_verify_type(shader, 4).
  *   2. Selects the cull mode from shader-data flag bit 1 (+0x28):
  *      clear -> 0x901 (D3DCULL_CCW), set -> 0 (D3DCULL_NONE).
  *   3. Programs render state 0x27 from the 16-bit word at the head of the
@@ -204,7 +204,7 @@ void FUN_00172730(void)
  *   5. Builds three vertex-shader constant vectors at register -0x54:
  *      c0 = (alpha, alpha * fade, 1, 1) from +0xd8 / +0xec, and c1/c2 which
  *      are the texture-coordinate generation rows produced by the map
- *      animation evaluator FUN_00190e10 (seeded with the identity rows
+ *      animation evaluator shader_texture_animation_evaluate (seeded with the identity rows
  *      (1,0,0,0) and (0,1,0,0)).
  *   6. Emits the indexed draw via rasterizer_draw_static_triangles_static_vertices.
  *   7. If the render-mode word (*(short *)0x3256ba) == 2, bumps the three
@@ -215,7 +215,7 @@ void FUN_00172730(void)
  * triangle_buffer: index/triangle buffer; triangle count at +0x04.
  * vertex_buffer:   vertex buffer; 16-bit render-state operand at +0x00.
  */
-void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer,
+void __rasterizer_environment_shadow_model_draw(void *shader, int frame_index, void *triangle_buffer,
                   void *vertex_buffer)
 {
   char *shader_data;
@@ -240,7 +240,7 @@ void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer,
       system_exit(-1);
     }
     if (*(short *)((char *)shader + 0x24) == 4) {
-      shader_data = (char *)FUN_001906b0(shader, 4);
+      shader_data = (char *)shader_get_and_verify_type(shader, 4);
       if (vertex_buffer == 0) {
         display_assert(
           "vertex_buffer",
@@ -266,7 +266,7 @@ void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer,
         (*(unsigned char *)(shader_data + 0x28) & 2) != 0 ? 0 : 0x901);
       /* Zero-extended 16-bit operand read from the head of the vertex buffer
        * (XOR EAX,EAX; MOV AX,[EBX]). */
-      FUN_00178b40(0x27, (int)*(unsigned short *)vertex_buffer, 0);
+      rasterizer_set_vertex_shader_permutation(0x27, (int)*(unsigned short *)vertex_buffer, 0);
       if ((*(unsigned char *)(shader_data + 0x28) & 4) != 0) {
         D3DDevice_SetRenderState_PSTextureModes(0);
       } else {
@@ -293,7 +293,7 @@ void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer,
       shader_constants[10] = 0.0f;
       shader_constants[11] = 0.0f;
       parameters = *(char **)0x47e4b0;
-      FUN_00190e10(
+      shader_texture_animation_evaluate(
         shader_data + 0xfc, parameters + 0x84,
         *(float *)(parameters + 0xc4) * *(float *)(shader_data + 0x9c),
         *(float *)(parameters + 0xc8) * *(float *)(shader_data + 0xa0), 0.0f,
@@ -307,25 +307,25 @@ void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer,
         *(int *)0x5a54fc =
           *(int *)0x5a54fc + *(int *)((char *)triangle_buffer + 4);
         *(int *)0x5a54f8 =
-          *(int *)0x5a54f8 + FUN_0017ed90(triangle_buffer, vertex_buffer);
+          *(int *)0x5a54f8 + rasterizer_frame_statistics_count_static_vertices(triangle_buffer, vertex_buffer);
       }
     }
   }
 }
 
 /*
- * FUN_00173090 (0x173090) — draw one batch of stencil-shadow geometry,
+ * __rasterizer_environment_shadow_draw (0x173090) — draw one batch of stencil-shadow geometry,
  * performing the one-time render-state / pixel-shader / vertex-shader-constant
  * setup on the first call of a frame.
  *
  * Original TU: c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_shadows.c
  * (assert line 0x194), the same TU as the three functions above.
  *
- * Ghidra reports `void FUN_00173090(void)` and loses every parameter: the six
+ * Ghidra reports `void __rasterizer_environment_shadow_draw(void)` and loses every parameter: the six
  * cdecl arguments are read straight off the frame — [EBP+8] shader,
  * [EBP+0xc] (never referenced), [EBP+0x10]/[EBP+0x14]/[EBP+0x18] forwarded to
  * rasterizer_draw_dynamic_triangles_static_vertices and the statistics counter, and [EBP+0x1c] the vertex buffer
- * whose leading 16-bit operand feeds FUN_00178b40 (XOR EAX,EAX;
+ * whose leading 16-bit operand feeds rasterizer_set_vertex_shader_permutation (XOR EAX,EAX;
  * MOV AX,[ESI] @0x1733e4).
  *
  * *(char *)0x47e4b4 is the once-per-frame latch: everything between it and
@@ -344,7 +344,7 @@ void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer,
  * Writing `inv_half_range * *(float *)0x47e498` instead was measured
  * codegen-identical.  They cost operand-normalised score only.
  */
-void FUN_00173090(void *shader, int param_2, int vertices_per_primitive,
+void __rasterizer_environment_shadow_draw(void *shader, int param_2, int vertices_per_primitive,
                   int a2, int triangle_count, void *vertex_buffer)
 {
   /* One contiguous 0x50-byte block: SetVertexShaderConstant uploads all five
@@ -367,9 +367,9 @@ void FUN_00173090(void *shader, int param_2, int vertices_per_primitive,
   if (*(short *)0x5a5bc0 == 0 && *(char *)0x3256ca != 0) {
     if (*(char *)0x47e4b4 == 0) {
       if (*(char *)0x3256f6 != 0) {
-        FUN_00172730();
+        rasterizer_shadow_convolve();
       }
-      FUN_001584f0(0, (*(char *)0x3256f6 != 0) + 2, 0);
+      rasterizer_set_target_as_texture(0, (*(char *)0x3256f6 != 0) + 2, 0);
       D3DDevice_SetTextureStageState(0, 10, 4);
       D3DDevice_SetTextureStageState(0, 0xb, 4);
       D3DDevice_SetTextureStageState(0, 0xd, 2);
@@ -437,7 +437,7 @@ void FUN_00173090(void *shader, int param_2, int vertices_per_primitive,
 
       /* MSVC evaluates the argument list right to left, which is why the
        * permutation lookup is emitted before the 16-bit vertex-buffer read. */
-      FUN_00178b40(0x1d, (int)*(unsigned short *)vertex_buffer,
+      rasterizer_set_vertex_shader_permutation(0x1d, (int)*(unsigned short *)vertex_buffer,
                    shader_get_vertex_shader_permutation(shader));
 
       inv_range = 1.0f / *(float *)0x47e478;
@@ -479,18 +479,18 @@ void FUN_00173090(void *shader, int param_2, int vertices_per_primitive,
       D3DDevice_SetVertexShaderConstant(-0x51, shader_constants, 5);
 
       if (*(char *)0x3251fc == 0) {
-        FUN_00158140((int)*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
+        rasterizer_set_target((int)*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
         *(char *)0x3251fc = 1;
       }
       *(char *)0x47e4b4 = 1;
     }
-    FUN_00158ae0(2);
+    rasterizer_set_stencil_mode(2);
     rasterizer_draw_dynamic_triangles_static_vertices(vertices_per_primitive, a2, triangle_count, vertex_buffer);
     if (*(short *)0x3256ba == 2) {
       *(int *)0x5a543c = *(int *)0x5a543c + 1;
       *(int *)0x5a5438 = *(int *)0x5a5438 + triangle_count;
       *(int *)0x5a5434 =
-        *(int *)0x5a5434 + rasterizer_frame_statistics_count_static_vertices(
+        *(int *)0x5a5434 + rasterizer_frame_statistics_count_dynamic_vertices(
                              vertices_per_primitive, a2, triangle_count);
     }
   }

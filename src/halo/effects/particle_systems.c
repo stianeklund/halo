@@ -53,7 +53,7 @@ void material_effect_new_from_point(int effect_tag_index, int param_2, void *pos
     return;
   }
   if (*(char *)0x4557e9 != '\0') {
-    FUN_00189540(0, position, 0.05f, *(void **)0x2ee6d0);
+    render_debug_sphere(0, position, 0.05f, *(void **)0x2ee6d0);
   }
 }
 

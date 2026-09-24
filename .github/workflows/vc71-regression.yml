@@ -61,12 +61,24 @@ jobs:
             git show "$BASE:tools/verify/vc71_scores.json" > "$BASE_SCORES"
             "$PY" - "$BASE_SCORES" tools/verify/vc71_scores.json <<'PY'
           import json
+          import os
           import sys
 
           with open(sys.argv[1], encoding="utf-8") as f:
-              base = json.load(f).get("scores", {})
+              base_doc = json.load(f)
+              base = base_doc.get("scores", {})
           with open(sys.argv[2], encoding="utf-8") as f:
-              candidate = json.load(f).get("scores", {})
+              candidate_doc = json.load(f)
+              candidate = candidate_doc.get("scores", {})
+
+          # Prune stale base entries referencing missing source files so they do not
+          # fail candidate removal checks or get re-copied below.
+          base_pruned = {}
+          for name, entry in base.items():
+              src = entry.get("source", "")
+              if src and not os.path.isfile(src):
+                  continue
+              base_pruned[name] = entry
 
           # Keyed by ADDRESS, not by name: a function keeps its floor across a
           # pure rename (same address, old name -> new name, same-or-better
@@ -82,7 +94,7 @@ jobs:
                   out.setdefault(key, (name, entry))
               return out
 
-          base_by_addr = by_addr(base)
+          base_by_addr = by_addr(base_pruned)
           candidate_by_addr = by_addr(candidate)
 
           errors = []
@@ -105,6 +117,10 @@ jobs:
               if len(errors) > 50:
                   print(f"  ... and {len(errors) - 50} more", file=sys.stderr)
               sys.exit(1)
+
+          base_doc["scores"] = base_pruned
+          with open(sys.argv[1], "w", encoding="utf-8") as f:
+              json.dump(base_doc, f, indent=2)
           PY
             cp "$BASE_SCORES" tools/verify/vc71_scores.json
             mapfile -t CHANGED < <(git diff --name-only "$BASE...$HEAD")

@@ -185,7 +185,7 @@ void draw_quad(int16_t *rect, int color)
   *(unsigned int *)(render_data + 0x00) = 0;
   *(unsigned char *)(render_data + 0x8a) = 0;
   *(void **)(render_data + 0x0c) = sprite;
-  rasterizer_sprites_render(render_data, vertices);
+  rasterizer_psuedo_dynamic_screen_quad_draw(render_data, vertices);
 
   *(int16_t *)0x325652 = 0;
 }
@@ -226,7 +226,7 @@ void cinematic_suppress_bsp_object_creation(unsigned char suppress)
  * game-state allocation holding the model ambient reflection tint. Name is
  * taken verbatim from the assert message at 0x17c7aa (#cond string); the same
  * macro is defined in src/halo/rasterizer/rasterizer.c. The pointer is only
- * populated once rasterizer_window_set_fog has run, hence the null check. */
+ * populated once rasterizer_initialize has run, hence the null check. */
 #define global_rasterizer_model_ambient_reflection_tint (*(void **)0x47e4d0)
 
 /**
@@ -248,7 +248,7 @@ void cinematic_suppress_bsp_object_creation(unsigned char suppress)
  * Both flag stores are byte-wide (`MOV byte ptr`), so the fields must stay one
  * byte each. The csmemset length 0x10 is the literal PUSH 0x10 immediate.
  *
- * FUN_0017dec0 takes one stack argument (PUSH 0 / CALL / ADD ESP,4 at
+ * rasterizer_set_near_clip_distance takes one stack argument (PUSH 0 / CALL / ADD ESP,4 at
  * 0x9308f); Ghidra's decompile dropped it and the kb declaration said (void).
  * check_arg_counts reports observed={1:1} over three call sites.
  *
@@ -261,11 +261,11 @@ void cinematic_stop(void)
   player_input_enable(true);
   ai_globals_dialogue_triggers_enabled(1);
   cinematic_globals->in_progress = false;
-  FUN_0017d950();
+  rasterizer_screen_effects_initialize_for_new_map();
   if (global_rasterizer_model_ambient_reflection_tint != NULL) {
     csmemset(global_rasterizer_model_ambient_reflection_tint, 0, 0x10);
   }
-  FUN_0017dec0(0);
+  rasterizer_set_near_clip_distance(0);
   ui_widget_display_deferred_errors();
 }
 
@@ -621,7 +621,7 @@ void cinematic_render(void)
                            (float)*(unsigned char *)(elem + 0x43) * fade)))
                      << 24 |
                    (*(unsigned int *)(elem + 0x40) & 0xffffff)));
-            rasterizer_draw_string(
+            rasterizer_draw_unicode_string(
               bounds, (short *)0, (const void *)0, 0,
               (unsigned short *)FUN_0019d420(ustr_index,
                                              *(unsigned short *)(elem + 0x30)));

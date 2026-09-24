@@ -308,7 +308,7 @@ void FUN_000db1e0(int *reference, int param_2, bool param_3, short param_4)
     *(float *)0x2f66f4 = 1.0f;
   *(int *)0x5aa680 = reference[0];
   *(int *)0x5aa684 = reference[1];
-  FUN_0017d050();
+  rasterizer_hud_motion_sensor_blip_begin();
 }
 
 /* Update and draw one local player's motion sensor (radar) for a screen point

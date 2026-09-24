@@ -318,7 +318,7 @@ int weather_particle_system_new_particle(int16_t type_index /* @<eax> */,
       random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
                         (float)*(int *)((char *)sequence_element + 0x34));
 
-    FUN_0007c270((float *)(particle + 0x38),
+    rgb_colors_interpolate((float *)(particle + 0x38),
                  *(uint32_t *)((char *)type_element + 0x20),
                  (float *)((char *)type_element + 0x138),
                  (float *)((char *)type_element + 0x148),
