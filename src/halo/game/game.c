@@ -753,7 +753,7 @@ wchar_t *FUN_000b42d0(int param_1, wchar_t *dst)
   return dst;
 }
 
-/* race_engine_update (0xb4300) — race per-player team-win query
+/* race_engine_did_player_win (0xb4300) — race per-player team-win query
  *
  * Signature from binary: reads one stack arg [ebp+8] (player handle, passed to
  * datum_get(player_data) and game_engine_did_player_win_default) and returns
@@ -761,7 +761,7 @@ wchar_t *FUN_000b42d0(int param_1, wchar_t *dst)
  * can_team_win[player->team_index] at 0xb4353, or OR EAX,-1 at 0xb4384).
  * FUN_000b3c60 takes team in EDI (0 then 1). Assert string/line from
  * 0xb4363..0xb437b. */
-int race_engine_update(int player_handle)
+int race_engine_did_player_win(int player_handle)
 {
   player_data_t *player;
   char can_team_win[2];
@@ -1506,7 +1506,7 @@ bool FUN_000b5040(unsigned int player_handle, int event_type, int target_handle,
   return false;
 }
 
-/* 0xb5210 — slayer_engine_display_score
+/* 0xb5210 — slayer_player_update
  *
  * Per-player slayer-engine update: fades the player's score-display alpha
  * toward 1.0, maintains the "target" goal marker when the variant enables
@@ -1537,7 +1537,7 @@ bool FUN_000b5040(unsigned int player_handle, int event_type, int target_handle,
  *   the target handle before the man-out test.
  * Confirmed 0xb538b: JMP 0xa8b00 — tail call to game_engine_start_over.
  */
-void slayer_engine_display_score(int player_index)
+void slayer_player_update(int player_index)
 {
   player_data_t *player;
   player_data_t *target;

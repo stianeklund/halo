@@ -9500,6 +9500,7 @@
     "0xc9b10": "void hs_object_iterate_names_containing(hs_object_name_iterator_t iterator, const char *substring@<ebx>);",
     "0xc9f90": "void *hs_sound_get_gain_reference(const char *sound_name @<esi>);",
     "0xca160": "void FUN_000ca160(int object_handle@<ebx>, int param_2, char param_3, char param_4);",
+    "0xca4b0": "int hs_syntax_nth(int node_index@<eax>, int16_t count@<cx>);",
     "0xca890": "const char *FUN_000ca890(int expression_index@<eax>, int thread_index@<ebx>);",
     "0xca940": "int hs_thread_new(int script_index@<ebx>, int type);",
     "0xcaa30": "void hs_thread_delete(int thread_handle@<esi>);",
