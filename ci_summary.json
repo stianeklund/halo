@@ -1,52 +1,59 @@
 {
-  "generated": "2026-09-24T20:09:17.878384+00:00",
+  "generated": "2026-09-26T09:03:26.156872+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-09-24T20:06:06Z",
-    "last_commit": "b0b676c1",
+    "last_run_time": "2026-09-26T09:01:33Z",
+    "last_commit": "4e7d53c6",
     "workflows": [
       {
         "name": "Progress Report",
-        "conclusion": "",
-        "created_at": "2026-09-24T20:06:06Z",
-        "head_sha": "b0b676c1",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36052585823"
+        "conclusion": "skipped",
+        "created_at": "2026-09-26T09:01:33Z",
+        "head_sha": "4e7d53c6",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36231524150"
       },
       {
-        "name": "Equivalence Tests",
-        "conclusion": "",
-        "created_at": "2026-09-24T20:06:06Z",
-        "head_sha": "b0b676c1",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36052585782"
-      },
-      {
-        "name": "Audit Gates",
-        "conclusion": "",
-        "created_at": "2026-09-24T20:06:06Z",
-        "head_sha": "b0b676c1",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36052585675"
+        "name": "Runtime Oracle Tests",
+        "conclusion": "success",
+        "created_at": "2026-09-26T08:59:44Z",
+        "head_sha": "4e7d53c6",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36231423928"
       },
       {
         "name": "Snapshot Verification",
+        "conclusion": "",
+        "created_at": "2026-09-26T08:57:30Z",
+        "head_sha": "4e7d53c6",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36231325233"
+      },
+      {
+        "name": "Audit Gates",
         "conclusion": "success",
-        "created_at": "2026-09-24T20:06:06Z",
-        "head_sha": "b0b676c1",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36052585604"
+        "created_at": "2026-09-26T08:57:30Z",
+        "head_sha": "4e7d53c6",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36231325228"
+      },
+      {
+        "name": "Equivalence Tests",
+        "conclusion": "success",
+        "created_at": "2026-09-26T08:57:30Z",
+        "head_sha": "4e7d53c6",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36231325214"
       },
       {
         "name": ".github/workflows/main.yml",
-        "conclusion": "",
-        "created_at": "2026-09-24T20:06:06Z",
-        "head_sha": "b0b676c1",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36052585602"
+        "conclusion": "success",
+        "created_at": "2026-09-26T08:57:30Z",
+        "head_sha": "4e7d53c6",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36231325083"
       },
       {
         "name": "pages-build-deployment",
         "conclusion": "success",
-        "created_at": "2026-09-24T18:05:47Z",
-        "head_sha": "33ea9127",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36038855670"
+        "created_at": "2026-09-24T20:11:25Z",
+        "head_sha": "0f1f964b",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36053179549"
       },
       {
         "name": "VC71 Mnemonic-Match Regression",
@@ -54,23 +61,16 @@
         "created_at": "2026-09-24T16:33:32Z",
         "head_sha": "0e25145e",
         "url": "https://github.com/stianeklund/halo/actions/runs/36028208365"
-      },
-      {
-        "name": "Runtime Oracle Tests",
-        "conclusion": "success",
-        "created_at": "2026-09-24T08:56:07Z",
-        "head_sha": "51091877",
-        "url": "https://github.com/stianeklund/halo/actions/runs/35978170615"
       }
     ]
   },
   "equivalence": {
-    "tested": 171,
+    "tested": 205,
     "classified": 8031,
-    "high_confidence": 67,
-    "moderate_confidence": 66,
-    "weak_coverage": 19,
-    "avg_coverage": 65.8
+    "high_confidence": 93,
+    "moderate_confidence": 69,
+    "weak_coverage": 22,
+    "avg_coverage": 68.2
   },
   "snapshot": {
     "total": 20,
