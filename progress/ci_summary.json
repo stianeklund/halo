@@ -1,76 +1,76 @@
 {
-  "generated": "2026-09-26T09:03:26.156872+00:00",
+  "generated": "2026-09-29T14:03:12.418836+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-09-26T09:01:33Z",
-    "last_commit": "4e7d53c6",
+    "last_run_time": "2026-09-29T13:58:32Z",
+    "last_commit": "0e6f309a",
     "workflows": [
-      {
-        "name": "Progress Report",
-        "conclusion": "skipped",
-        "created_at": "2026-09-26T09:01:33Z",
-        "head_sha": "4e7d53c6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36231524150"
-      },
-      {
-        "name": "Runtime Oracle Tests",
-        "conclusion": "success",
-        "created_at": "2026-09-26T08:59:44Z",
-        "head_sha": "4e7d53c6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36231423928"
-      },
       {
         "name": "Snapshot Verification",
         "conclusion": "",
-        "created_at": "2026-09-26T08:57:30Z",
-        "head_sha": "4e7d53c6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36231325233"
+        "created_at": "2026-09-29T13:58:32Z",
+        "head_sha": "0e6f309a",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36579124259"
       },
       {
         "name": "Audit Gates",
-        "conclusion": "success",
-        "created_at": "2026-09-26T08:57:30Z",
-        "head_sha": "4e7d53c6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36231325228"
+        "conclusion": "",
+        "created_at": "2026-09-29T13:58:32Z",
+        "head_sha": "0e6f309a",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36579123940"
+      },
+      {
+        "name": "Progress Report",
+        "conclusion": "",
+        "created_at": "2026-09-29T13:58:32Z",
+        "head_sha": "0e6f309a",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36579123917"
       },
       {
         "name": "Equivalence Tests",
-        "conclusion": "success",
-        "created_at": "2026-09-26T08:57:30Z",
-        "head_sha": "4e7d53c6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36231325214"
+        "conclusion": "",
+        "created_at": "2026-09-29T13:58:32Z",
+        "head_sha": "0e6f309a",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36579123738"
       },
       {
         "name": ".github/workflows/main.yml",
         "conclusion": "success",
-        "created_at": "2026-09-26T08:57:30Z",
-        "head_sha": "4e7d53c6",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36231325083"
+        "created_at": "2026-09-29T13:58:32Z",
+        "head_sha": "0e6f309a",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36579123580"
       },
       {
-        "name": "pages-build-deployment",
+        "name": "Runtime Oracle Tests",
         "conclusion": "success",
-        "created_at": "2026-09-24T20:11:25Z",
-        "head_sha": "0f1f964b",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36053179549"
+        "created_at": "2026-09-29T10:19:32Z",
+        "head_sha": "4e7d53c6",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36554852752"
       },
       {
         "name": "VC71 Mnemonic-Match Regression",
         "conclusion": "failure",
-        "created_at": "2026-09-24T16:33:32Z",
-        "head_sha": "0e25145e",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36028208365"
+        "created_at": "2026-09-29T03:10:19Z",
+        "head_sha": "b4126e5b",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36515954436"
+      },
+      {
+        "name": "Compiler Profile Calibration",
+        "conclusion": "failure",
+        "created_at": "2026-09-27T11:06:07Z",
+        "head_sha": "4e7d53c6",
+        "url": "https://github.com/stianeklund/halo/actions/runs/36314647333"
       }
     ]
   },
   "equivalence": {
-    "tested": 205,
+    "tested": 513,
     "classified": 8031,
-    "high_confidence": 93,
-    "moderate_confidence": 69,
-    "weak_coverage": 22,
-    "avg_coverage": 68.2
+    "high_confidence": 170,
+    "moderate_confidence": 158,
+    "weak_coverage": 102,
+    "avg_coverage": 56.0
   },
   "snapshot": {
     "total": 20,
