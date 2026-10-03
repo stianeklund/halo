@@ -1,75 +1,75 @@
 {
-  "generated": "2026-10-02T15:39:54.294877+00:00",
+  "generated": "2026-10-03T15:28:20.562148+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-10-02T15:37:14Z",
-    "last_commit": "efad613c",
+    "last_run_time": "2026-10-03T15:26:19Z",
+    "last_commit": "f552d82d",
     "workflows": [
-      {
-        "name": "pages-build-deployment",
-        "conclusion": "success",
-        "created_at": "2026-10-02T15:37:14Z",
-        "head_sha": "efad613c",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37028261623"
-      },
-      {
-        "name": "Audit Gates",
-        "conclusion": "",
-        "created_at": "2026-10-02T15:36:53Z",
-        "head_sha": "33623ec7",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37028221196"
-      },
-      {
-        "name": "Snapshot Verification",
-        "conclusion": "",
-        "created_at": "2026-10-02T15:36:53Z",
-        "head_sha": "33623ec7",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37028221093"
-      },
-      {
-        "name": "Progress Report",
-        "conclusion": "",
-        "created_at": "2026-10-02T15:36:53Z",
-        "head_sha": "33623ec7",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37028221002"
-      },
       {
         "name": "Equivalence Tests",
         "conclusion": "",
-        "created_at": "2026-10-02T15:36:53Z",
-        "head_sha": "33623ec7",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37028220972"
+        "created_at": "2026-10-03T15:26:19Z",
+        "head_sha": "f552d82d",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37133238695"
       },
       {
         "name": ".github/workflows/main.yml",
         "conclusion": "",
-        "created_at": "2026-10-02T15:36:53Z",
-        "head_sha": "33623ec7",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37028220954"
+        "created_at": "2026-10-03T15:26:19Z",
+        "head_sha": "f552d82d",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37133238666"
+      },
+      {
+        "name": "Snapshot Verification",
+        "conclusion": "",
+        "created_at": "2026-10-03T15:26:19Z",
+        "head_sha": "f552d82d",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37133238637"
+      },
+      {
+        "name": "Audit Gates",
+        "conclusion": "",
+        "created_at": "2026-10-03T15:26:19Z",
+        "head_sha": "f552d82d",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37133238628"
+      },
+      {
+        "name": "Provenance Artifact Guard",
+        "conclusion": "failure",
+        "created_at": "2026-10-03T15:26:19Z",
+        "head_sha": "f552d82d",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37133238620"
+      },
+      {
+        "name": "Progress Report",
+        "conclusion": "",
+        "created_at": "2026-10-03T15:26:19Z",
+        "head_sha": "f552d82d",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37133238603"
       },
       {
         "name": "Runtime Oracle Tests",
         "conclusion": "success",
-        "created_at": "2026-10-02T10:14:44Z",
-        "head_sha": "0e6f309a",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36994393784"
+        "created_at": "2026-10-03T09:35:34Z",
+        "head_sha": "83dfe48c",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37113571025"
       },
       {
-        "name": "VC71 Mnemonic-Match Regression",
-        "conclusion": "failure",
-        "created_at": "2026-09-29T03:10:19Z",
-        "head_sha": "b4126e5b",
-        "url": "https://github.com/stianeklund/halo/actions/runs/36515954436"
+        "name": "pages-build-deployment",
+        "conclusion": "success",
+        "created_at": "2026-10-02T17:45:59Z",
+        "head_sha": "e684c09b",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37042934675"
       }
     ]
   },
   "equivalence": {
-    "tested": 513,
+    "tested": 548,
     "classified": 8031,
-    "high_confidence": 170,
-    "moderate_confidence": 158,
-    "weak_coverage": 102,
+    "high_confidence": 185,
+    "moderate_confidence": 168,
+    "weak_coverage": 110,
     "avg_coverage": 56.0
   },
   "snapshot": {
