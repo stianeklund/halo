@@ -3544,6 +3544,69 @@
         "RETRIED artifacts/equivalence/allowlist_retry_xbe_names.{csv,json} (2026-09-14) under --oracle=xbe, 20 seeds: vacuous early exit / un-emulatable state handled natively by H10 detector (not_applicable). Scoped to delinked; active under xbe."
       ],
       "oracle": "delinked"
+    },
+    "0x92ec0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "harness artifact: draw_quad deliberately dereferences tag_block_get_element() NULL (+0xb8) when game_globals count==0; clang removes the count guard as UB, so zero-fill seeds take the NULL path in the original only. Call sequence differs (4 vs 5) at count==0; identical for any loaded scenario. Triaged 2026-10-06 against cachebeta.xbe 0x92ec0; no source fix (volatile shaping banned)."
+      ],
+      "oracle": "xbe"
+    },
+    "0x7ef80": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "harness artifact: both sides raise #DE on a random bits_per_channel whose (1<<bits)-1 divisor is 0 (caller global 0x334574 is <=8, never #DE); unicorn_diff hook_interrupt stops cleanly mid-body so ESP delta only reflects clang vs original frame sizes (-76 vs -56). No inlining (0 relocs both sides). Triaged 2026-10-06; divisor-zero cause inferred, not dumped."
+      ],
+      "oracle": "xbe"
+    },
+    "0x1bd3a0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "non-terminating by design: cache I/O worker thread proc loops forever on WaitForSingleObjectEx; both oracle and lifted hit the same 1,000,001 insn cap (emulation_error). Lift logic compared against cachebeta.xbe 0x1bd3a0..0x1bd4c6, no differences found. Triaged 2026-10-06."
+      ],
+      "oracle": "xbe"
+    },
+    "0x93640": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "vacuous under zero-fill: 19-byte wrapper, cinematic_set_title_delayed(value, 0.0f) with the callee stubbed, so no output varies (vacuous_output). Lift verified against original bytes: PUSH 0; PUSH value; CALL 0x930b0. Was a call-sequence FAIL from clang inlining the callee until it was marked noinline. Triaged 2026-10-06."
+      ],
+      "oracle": "xbe"
+    },
+    "0xa6930": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "vacuous under zero-fill: bails at the FUN_000a67c0==-1 guard on every seed (vacuous_output); needs --state-snapshot to reach the placement loop. Was a call-sequence FAIL from clang inlining FUN_000a67c0 until it was marked noinline. Triaged 2026-10-06."
+      ],
+      "oracle": "xbe"
+    },
+    "0x24cf0": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "harness resource limit, not a lift defect: standalone unicorn_diff --seeds 50 gives 74 passed, 0 failed, 6 INSN-LIMIT errors (symmetric, oracle=lifted=1000001) on concolic seeds; batch_verify mem-limit watchdog kills the child (CI limit 2 GB). Triaged 2026-10-06."
+      ],
+      "oracle": "xbe"
+    },
+    "0x93c20": {
+      "statuses": [
+        "*"
+      ],
+      "reasons": [
+        "harness artifact: 1/50 seeds (seed 32) differ only in angles[2..3]; the oracle stubs FUN_00093b60/FUN_00093be0 (sentinel callees) while clang inlines them in the lift, so only the lift applies the +-1000 wrap. Real original calls them out of line, so lift matches real behaviour. noinline on the @<reg> helpers was tried and rejected: byte gate regressed FUN_00093b60 62/64->61/75 and FUN_00093be0 63/63->54/66. Triaged 2026-10-06."
+      ],
+      "oracle": "xbe"
     }
   }
 }

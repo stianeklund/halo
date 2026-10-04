@@ -142,7 +142,8 @@ bool unit_get_aim_assist_parameters(int unit_handle, float *out_params,
         0x77656170, *(int *)object_get_and_verify_type(weapon_handle, 4));
       if ((int16_t)zoom_level != -1 ||
           (*(uint8_t *)(weapon_tag + 0x308) & 0x20) == 0) {
-        magnification = weapon_get_zoom_magnification(weapon_handle, zoom_level);
+        magnification =
+          weapon_get_zoom_magnification(weapon_handle, zoom_level);
         inverse = *(float *)0x2533c8 / magnification;
         out_params[0] = inverse * *(float *)(weapon_tag + 0x3e4);
         /* 0xa5683 FST [EBP-4]: out_params[0] uses the full-width quotient,
@@ -266,8 +267,7 @@ boolean limit3d(real_vector3d *vector, real length)
   real dot;
   real scale;
 
-  dot = vector->i * vector->i + vector->j * vector->j +
-        vector->k * vector->k;
+  dot = vector->i * vector->i + vector->j * vector->j + vector->k * vector->k;
   if (dot > length * length) {
     scale = length / sqrtf(dot);
     vector->i = scale * vector->i;
@@ -405,8 +405,7 @@ void object_compute_autoaim_target(float *point, float *direction,
   cross.i = axis.j * direction[2] - axis.k * direction[1];
   cross.j = axis.k * direction[0] - axis.i * direction[2];
   cross.k = axis.i * direction[1] - axis.j * direction[0];
-  cross_squared =
-    cross.k * cross.k + cross.j * cross.j + cross.i * cross.i;
+  cross_squared = cross.k * cross.k + cross.j * cross.j + cross.i * cross.i;
 
   if (cross_squared > 0.0f) {
     offset.i = point[0] - base.x;
@@ -460,12 +459,12 @@ void object_compute_autoaim_target(float *point, float *direction,
  *   - the dot of field_1c and direction (summed z, y, x) is clamped to
  *     [-1, 1].  Its acos (_CIacos, 0x1d94f0) goes to field_2c.
  *   - with a non-NULL cone_spec:
- *       field_30 = FUN_000a5590(angle, cone[0]) * FUN_000a5590(distance, cone[1])
- *       field_34 = FUN_000a5590(angle, cone[2]) * FUN_000a5590(distance, cone[3])
- *     The distance term is computed first each time.  When field_34 > 0 and
- *     the object's 'unit' tag has bit 0x80000 set at +0x17c, field_34 is
- *     scaled by the float at +8 of game_globals +0x110 element 0 (size 0x80).
- *     With a NULL cone_spec, both fields are zeroed with integer stores.
+ *       field_30 = FUN_000a5590(angle, cone[0]) * FUN_000a5590(distance,
+ * cone[1]) field_34 = FUN_000a5590(angle, cone[2]) * FUN_000a5590(distance,
+ * cone[3]) The distance term is computed first each time.  When field_34 > 0
+ * and the object's 'unit' tag has bit 0x80000 set at +0x17c, field_34 is scaled
+ * by the float at +8 of game_globals +0x110 element 0 (size 0x80). With a NULL
+ * cone_spec, both fields are zeroed with integer stores.
  *   - It returns MOV EAX,1 / XOR EAX,EAX, so the return is a full int.
  */
 int FUN_000a5ac0(float *cone_spec, int object_index, float *point,
@@ -535,6 +534,49 @@ int FUN_000a5ac0(float *cone_spec, int object_index, float *point,
   if (record->field_30 > 0.0f || record->field_34 > 0.0f)
     return 1;
   return 0;
+}
+
+/* FUN_000a5c60 (0xa5c60)
+ *
+ * Sole caller: FUN_000ac220 (0xac355), which tests AL.  EBX = point,
+ * ESI = direction, EDI = out_point for object_compute_autoaim_target;
+ * FUN_000a5830 gets (point, out_point, ignore_object_index, object_index).
+ * The dot of direction and out_vector is summed z, y, x and clamped to
+ * [-1, 1] before _CIacos (0x1d94f0).
+ */
+char FUN_000a5c60(int object_index, float *point, float *direction,
+                  int ignore_object_index, float *out_point, float *out_vector,
+                  float *out_distance, float *out_angle)
+{
+#if defined(_MSC_VER) && !defined(__clang__)
+  double acos(double x);
+#endif
+  char result;
+  real distance;
+  real dot;
+
+  result = 0;
+  object_compute_autoaim_target(point, direction, out_point, object_index);
+  if (FUN_000a5830(point, out_point, (float *)ignore_object_index,
+                   object_index)) {
+    out_vector[0] = out_point[0] - point[0];
+    out_vector[1] = out_point[1] - point[1];
+    out_vector[2] = out_point[2] - point[2];
+    distance = normalize3d(out_vector);
+    *out_distance = distance;
+    if (distance != 0.0f) {
+      dot = CLAMP(direction[2] * out_vector[2] + direction[1] * out_vector[1] +
+                      direction[0] * out_vector[0],
+                  -1.0f, 1.0f);
+#if defined(_MSC_VER) && !defined(__clang__)
+      *out_angle = (float)acos((double)dot);
+#else
+      *out_angle = acosf(dot);
+#endif
+      return 1;
+    }
+  }
+  return result;
 }
 
 /* FUN_000a5d70 (0xa5d70)
@@ -701,12 +743,13 @@ int16_t FUN_000a5f00(float *cone_spec, int16_t starting_cluster, float *point,
       cluster_indices, 0x800, object_indices);
 
     for (i = 0; i < object_count; i++) {
-      total_count = (int16_t)(
-        total_count +
-        FUN_000a5d70(cone_spec, object_indices[i], point, direction, length,
-                     sine, cosine, (int)arg4, (int16_t)(int)arg5,
-                     (int16_t)(max_count - total_count),
-                     (char *)out_buffer + (int)total_count * 0x38));
+      total_count =
+        (int16_t)(total_count +
+                  FUN_000a5d70(cone_spec, object_indices[i], point, direction,
+                               length, sine, cosine, (int)arg4,
+                               (int16_t)(int)arg5,
+                               (int16_t)(max_count - total_count),
+                               (char *)out_buffer + (int)total_count * 0x38));
       if (total_count >= (int16_t)max_count)
         break;
     }
@@ -753,16 +796,15 @@ char FUN_000a6030(float *cone_spec, float *point, float *direction,
   aim_assist_record_t candidates[0x40];
 
   if (FUN_0018e720((int)point) != -1) {
-    cluster_index = *(int16_t *)((char *)tag_block_get_element(
-                                   (char *)scenario_get() + 0xe0,
-                                   FUN_0018e720((int)point) & 0x7fffffff,
-                                   0x10) +
-                                 8);
+    cluster_index =
+      *(int16_t *)((char *)tag_block_get_element(
+                     (char *)scenario_get() + 0xe0,
+                     FUN_0018e720((int)point) & 0x7fffffff, 0x10) +
+                   8);
     if (cluster_index != -1) {
       count = (int16_t)FUN_000a5f00(cone_spec, cluster_index, point, direction,
                                     (float *)ignore_object_index,
-                                    (float *)(int)team_index, 0x40,
-                                    candidates);
+                                    (float *)(int)team_index, 0x40, candidates);
       if (count > 0) {
         qsort(candidates, (size_t)count, sizeof(aim_assist_record_t),
               (qsort_compar_proc)compare_targets);
@@ -996,13 +1038,12 @@ int local_player_aim_assist(short local_player_index, real *autoaim_level,
         xy_squared = record.field_10.j * record.field_10.j +
                      record.field_10.i * record.field_10.i;
         xy_length = sqrtf(xy_squared);
-        rates[0] = (record.field_10.i * delta[1] -
-                    record.field_10.j * delta[0]) /
-                   xy_squared;
-        rates[1] = (delta[2] * xy_length -
-                    (record.field_10.j * delta[1] +
-                     record.field_10.i * delta[0]) /
-                      xy_length * record.field_10.k) /
+        rates[0] =
+          (record.field_10.i * delta[1] - record.field_10.j * delta[0]) /
+          xy_squared;
+        rates[1] = (delta[2] * xy_length - (record.field_10.j * delta[1] +
+                                            record.field_10.i * delta[0]) /
+                                             xy_length * record.field_10.k) /
                    (record.field_10.k * record.field_10.k + xy_squared);
         return record.object_index;
       }

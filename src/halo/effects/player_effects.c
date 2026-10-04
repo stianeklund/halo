@@ -1,5 +1,5 @@
 #include "x87_math.h"
-
+#include "player_effects.h"
 __declspec(noinline) char *player_effect_get(int16_t local_player_index)
 {
   assert_halt_msg_at("local_player_index>=0 && "
@@ -9,12 +9,14 @@ __declspec(noinline) char *player_effect_get(int16_t local_player_index)
                        local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
   assert_halt_at("c:\\halo\\SOURCE\\effects\\player_effects.c", 0x74,
                  player_effect_globals);
-  return player_effect_globals + local_player_index * 0xec;
+  return (char *)&player_effects->effects[local_player_index];
 }
 
 void player_effect_initialize(void)
 {
-  player_effect_globals = (char *)game_state_malloc("player effects", 0, 0x3ec);
+  player_effect_globals =
+    (char *)game_state_malloc("player effects", 0,
+                              sizeof(player_effect_globals_t));
   assert_halt_at("c:\\halo\\SOURCE\\effects\\player_effects.c", 0x7f,
                  player_effect_globals);
 }
@@ -25,9 +27,9 @@ void player_effect_dispose(void)
 
 void player_effect_initialize_for_new_map(void)
 {
-  csmemset(player_effect_globals, 0, 0x3ec);
-  *(_WORD *)(player_effect_globals + 0x3c0) = 0xFFFF;
-  *(_DWORD *)(player_effect_globals + 0x3e8) = game_time_get();
+  csmemset(player_effect_globals, 0, sizeof(player_effect_globals_t));
+  player_effects->field_3c0 = -1;
+  player_effects->field_3e8 = game_time_get();
 }
 
 void player_effect_dispose_from_old_map(void)
@@ -52,12 +54,12 @@ void player_effect_dispose_from_old_map(void)
 void scripted_player_effect_set_rotation(int param_1, float param_2,
                                          float param_3)
 {
-  char *globals;
+  player_effect_globals_t *globals;
 
-  globals = player_effect_globals;
-  *(float *)(globals + 0x3d0) = *(float *)&param_1 * *(float *)0x253d4c;
-  *(float *)(globals + 0x3d4) = param_2 * *(float *)0x253d4c;
-  *(float *)(globals + 0x3d8) = param_3 * *(float *)0x253d4c;
+  globals = player_effects;
+  globals->scripted.field_0c[0] = *(float *)&param_1 * *(float *)0x253d4c;
+  globals->scripted.field_0c[1] = param_2 * *(float *)0x253d4c;
+  globals->scripted.field_0c[2] = param_3 * *(float *)0x253d4c;
 }
 
 /* Forward the two script-supplied motor values to the rumble system.
@@ -119,7 +121,7 @@ void player_telefrag_effect_stop(int player_handle)
   char *player;
   int local_player_index;
 
-  player = (char *)datum_get(*(data_t **)0x5aa6d4, player_handle);
+  player = (char *)datum_get(player_data, player_handle);
   local_player_index = *(int16_t *)(player + 2);
 
   if (local_player_index != -1) {
@@ -146,15 +148,15 @@ void player_telefrag_effect_stop(int player_handle)
 void player_effect_screen_fade_in(float red, float green, float blue,
                                   uint16_t ticks)
 {
-  char *globals;
+  player_effect_globals_t *globals;
 
-  globals = player_effect_globals;
-  *(float *)(globals + 0x3b0) = red;
-  *(float *)(globals + 0x3b4) = green;
-  *(float *)(globals + 0x3b8) = blue;
-  *(uint16_t *)(globals + 0x3c0) = ticks;
-  *(char *)(globals + 0x3c2) = 0;
-  *(int *)(player_effect_globals + 0x3bc) = game_time_get();
+  globals = player_effects;
+  globals->field_3b0.red = red;
+  globals->field_3b0.green = green;
+  globals->field_3b0.blue = blue;
+  globals->field_3c0 = ticks;
+  globals->field_3c2 = 0;
+  player_effects->field_3bc = game_time_get();
 }
 
 /* player_effect_screen_fade_out -- same record as
@@ -173,15 +175,15 @@ void player_effect_screen_fade_in(float red, float green, float blue,
 void player_effect_screen_fade_out(float red, float green, float blue,
                                    uint16_t ticks)
 {
-  char *globals;
+  player_effect_globals_t *globals;
 
-  globals = player_effect_globals;
-  *(float *)(globals + 0x3b0) = red;
-  *(float *)(globals + 0x3b4) = green;
-  *(float *)(globals + 0x3b8) = blue;
-  *(uint16_t *)(globals + 0x3c0) = ticks;
-  *(char *)(globals + 0x3c2) = 1;
-  *(int *)(player_effect_globals + 0x3bc) = game_time_get();
+  globals = player_effects;
+  globals->field_3b0.red = red;
+  globals->field_3b0.green = green;
+  globals->field_3b0.blue = blue;
+  globals->field_3c0 = ticks;
+  globals->field_3c2 = 1;
+  player_effects->field_3bc = game_time_get();
 }
 
 /* player_effect_get_damage_indicators -- copy the local player's four damage
@@ -213,7 +215,7 @@ void player_effect_get_damage_indicators(int player_index, void *out)
   int aged;
 
   indicators =
-    (unsigned char *)(player_effect_get((int16_t)player_index) + 0xe4);
+    ((player_effect_t *)player_effect_get((int16_t)player_index))->field_e4;
   csmemcpy(out, indicators, 4);
   count = 4;
   do {
@@ -246,10 +248,10 @@ void player_effect_get_damage_indicators(int player_index, void *out)
  * 0xa2a70 / player_effects.obj */
 void player_effect_clear_damage_indicators(int player_index)
 {
-  char *effect;
+  player_effect_t *effect;
 
-  effect = player_effect_get((int16_t)player_index);
-  csmemset(effect + 0xe4, 0, 4);
+  effect = (player_effect_t *)player_effect_get((int16_t)player_index);
+  csmemset(effect->field_e4, 0, sizeof(effect->field_e4));
 }
 
 /* effect_scale_factor -- returns base + (1.0f - base) * scale.
@@ -277,17 +279,17 @@ void player_effect_update_screen_flash(int local_player_index, char *effect,
 
   scale = scale * TICKS_PER_SECOND;
   HALO_FLT_ROUNDTRIP(scale);
-  if (!(*(int16_t *)(effect + 0x1a) > ((int16_t *)descriptor)[1] &&
-        (float)*(int16_t *)(effect + 0xde) >
+  if (!(((player_effect_t *)effect)->field_1a > ((int16_t *)descriptor)[1] &&
+        (float)((player_effect_t *)effect)->field_de >
           scale * *(float *)((char *)descriptor + 0x10)) &&
-      ((int16_t *)0x2ef7e0)[*(int16_t *)descriptor] != 0) {
-    memcpy(effect + 0x18, descriptor, 0x38);
+      unknown_flash_type_table[*(int16_t *)descriptor] != 0) {
+    memcpy(&((player_effect_t *)effect)->field_18, descriptor, 0x38);
     /* FST keeps the unnarrowed product in ST0 for _ftol2; a float*float
      * product is exact in double. */
-    duration = (double)scale * *(float *)(effect + 0x28);
-    *(float *)(effect + 0x28) = (float)duration;
-    *(int16_t *)(effect + 0xde) = (int16_t)(int64_t)duration;
-    *(float *)(effect + 0x3c) =
+    duration = (double)scale * ((player_effect_t *)effect)->field_28;
+    ((player_effect_t *)effect)->field_28 = (float)duration;
+    ((player_effect_t *)effect)->field_de = (int16_t)(int64_t)duration;
+    ((player_effect_t *)effect)->field_3c =
       effect_scale_factor(*(float *)((char *)descriptor + 0x24), intensity) <
           *(float *)0x002533c0
         ? *(float *)0x002533c0
@@ -297,7 +299,7 @@ void player_effect_update_screen_flash(int local_player_index, char *effect,
              ? *(float *)((char *)descriptor + 0x20)
              : effect_scale_factor(*(float *)((char *)descriptor + 0x24),
                                    intensity));
-    *(uint8_t *)(effect + 0xe8) |= 1;
+    ((player_effect_t *)effect)->field_e8 |= 1;
   }
 }
 
@@ -323,7 +325,7 @@ void player_effect_update(void)
   int16_t local_player_index;
   int player_index;
   void *player;
-  char *effect;
+  player_effect_t *effect;
 
   local_player_index = (int16_t)local_player_get_next(-1);
   while (local_player_index != -1) {
@@ -336,9 +338,9 @@ void player_effect_update(void)
         continue;
       }
     }
-    effect = player_effect_get(local_player_index);
-    csmemset(effect + 0xe4, 0, 4);
-    csmemset(player_effect_get(local_player_index), 0, 0xec);
+    effect = (player_effect_t *)player_effect_get(local_player_index);
+    csmemset(effect->field_e4, 0, sizeof(effect->field_e4));
+    csmemset(player_effect_get(local_player_index), 0, sizeof(player_effect_t));
     rumble_player_clear(local_player_index);
     local_player_index = (int16_t)local_player_get_next(local_player_index);
   }
@@ -365,12 +367,53 @@ void player_effect_update(void)
 void scripted_player_effect_set_translation(int param_1, float param_2,
                                             float param_3)
 {
-  char *globals;
+  player_effect_globals_t *globals;
 
-  globals = player_effect_globals;
-  *(int *)(globals + 0x3c4) = param_1;
-  *(float *)(globals + 0x3c8) = param_2;
-  *(float *)(globals + 0x3cc) = param_3;
+  globals = player_effects;
+  *(int *)&globals->scripted.field_00[0] = param_1;
+  globals->scripted.field_00[1] = param_2;
+  globals->scripted.field_00[2] = param_3;
+}
+
+/* scripted_player_effect_start -- script-driven start of the scripted player
+ * effect: stores the maximum intensity, converts the duration to ticks and
+ * arms the effect.
+ *
+ * The duration product is narrowed to float32 through its argument slot
+ * (FSTP/FLD) before the round-to-nearest FISTP; HALO_FLT_ROUNDTRIP reproduces
+ * that under clang.
+ *
+ * The first argument is a float: the callee copies it with FLD/FSTP. The only
+ * caller forwards the HaloScript record's first dword with an integer PUSH.
+ *
+ * The first store goes through the global directly (a cached pointer there
+ * turns the FLD/FSTP copy into an integer move); the pointer is cached after
+ * the rounding asm, which forces a reload anyway.
+ *
+ * 0xa2df0 / player_effects.obj */
+enum {
+  _scripted_player_effect_active_bit,
+  _scripted_player_effect_stopping_bit,
+  NUMBER_OF_SCRIPTED_PLAYER_EFFECT_FLAGS
+};
+
+void scripted_player_effect_start(float param_1, float param_2)
+{
+  player_effect_globals_t *globals;
+  real duration;
+  int16_t ticks;
+
+  player_effects->scripted.field_18 = param_1;
+  duration = param_2 * TICKS_PER_SECOND;
+  HALO_FLT_ROUNDTRIP(duration);
+  ticks = (int16_t)x87_round_to_int(duration);
+  globals = player_effects;
+  globals->scripted.field_1c = ticks;
+  globals->scripted.field_1e = ticks;
+  globals->field_3e4 =
+    (globals->field_3e4 &
+     ~(uint32_t)FLAG(_scripted_player_effect_stopping_bit)) |
+    (uint32_t)FLAG(_scripted_player_effect_active_bit);
 }
 
 /* scripted_player_effect_stop -- script-driven stop of the scripted player
@@ -390,15 +433,15 @@ void scripted_player_effect_set_translation(int param_1, float param_2,
  * 0xa2e40 / player_effects.obj */
 void scripted_player_effect_stop(int param_1)
 {
-  char *globals;
+  player_effect_globals_t *globals;
   int16_t ticks;
 
   *(float *)&param_1 = *(float *)&param_1 * TICKS_PER_SECOND;
   ticks = (int16_t)x87_round_to_int(*(float *)&param_1);
-  globals = player_effect_globals;
-  *(int16_t *)(globals + 0x3e0) = ticks;
-  *(int16_t *)(globals + 0x3e2) = ticks;
-  *(uint32_t *)(globals + 0x3e4) |= 2;
+  globals = player_effects;
+  globals->scripted.field_1c = ticks;
+  globals->scripted.field_1e = ticks;
+  globals->field_3e4 |= 2;
 }
 
 void player_effect_screen_flash(int player_handle, void *effect_descriptor,
@@ -559,81 +602,72 @@ void player_telefrag_effect_start(int player_handle, float intensity)
  * Uncertain: +0x3c2 = 1 is fade OUT (set by 0xa29c0) -- the name of that
  *   flag is inferred from the fade_in/fade_out twins, not proven here.
  *
+ * Offsets are player_effect_globals_t / player_effect_t fields
+ *   (player_effects.h).  0x2ef7e0 is unknown_flash_type_table (MOVSX
+ *   EDX,[EDI+0x18]; MOV AX,[EDX*2+0x2ef7e0]) giving the output flash type;
+ *   0x5ab100 is error_string_buffer, the assert_valid_real scratch buffer.
+ * Copy shapes: globals +0x3b0 -> out +0x0c is one 12-byte rgb copy
+ *   (LEA ECX/LEA EDX, three dwords); effect +0x40 -> out +0x08 is one
+ *   16-byte argb copy (alpha first, four dwords).
+ * The fade intensity value stays on the x87 stack across the fade-in
+ *   flip (FST [ESI+4]; FLD 1.0; FSUB ST0,ST1), and the final [0,1] pin is
+ *   one expression (FLD const / FSTP per arm, including the x = x arm).
+ * The scripted-fade arm re-reads player_effect_globals after each call
+ *   (MOV EAX,[0x4557ec]); only the duration address survives in EDI.
+ * The 0x217 check passes csprintf's result straight to display_assert
+ *   (display_assert args are pushed before the csprintf call).
+ *
+ * Uncertain: what the 0x2ef7e0 entries mean beyond feeding out +0x00.
+ *
  * 0xa2fc0 / player_effects.obj */
 void player_effect_get_screen_flash(int16_t player_index, void *screen_flash)
 {
   char *out;
-  char *globals;
-  char *effect;
+  player_effect_t *effect;
   float value;
 
   out = (char *)screen_flash;
   assert_halt_at("c:\\halo\\SOURCE\\effects\\player_effects.c", 0x1e4,
                  screen_flash);
   if (!console_is_active()) {
-    globals = player_effect_globals;
-    if (*(int16_t *)(globals + 0x3c0) != -1 &&
-        (*(char *)(globals + 0x3c2) != 0 ||
-         game_time_get() - *(int *)(player_effect_globals + 0x3bc) <=
-           *(int16_t *)(globals + 0x3c0))) {
+    if (player_effects->field_3c0 != -1 &&
+        (player_effects->field_3c2 != 0 ||
+         game_time_get() - player_effects->field_3bc <=
+           player_effects->field_3c0)) {
       *(int16_t *)(out + 0x00) = 1;
-      *(float *)(out + 0x0c) = *(float *)(globals + 0x3b0);
-      *(float *)(out + 0x10) = *(float *)(globals + 0x3b4);
-      *(float *)(out + 0x14) = *(float *)(globals + 0x3b8);
+      *(real_rgb_color *)(out + 0x0c) = player_effects->field_3b0;
       *(float *)(out + 0x08) = 1.0f;
-      if (*(int16_t *)(globals + 0x3c0) > 0) {
-        /* PIN(elapsed / duration, 0, 1) expanded in place: each use re-reads
-         * game_time_get() (CALL 0xb5aa0 at 0xa3070, 0xa30ad, 0xa30e8) and
-         * the single CALL 0x10a710 takes the pinned value from [EBP+0xc]. */
-        value = transition_function_evaluate(
-          5,
-          (float)(game_time_get() - *(int *)(player_effect_globals + 0x3bc)) /
-                *(int16_t *)(player_effect_globals + 0x3c0) <
-              0.0f ?
-            0.0f :
-            ((float)(game_time_get() -
-                     *(int *)(player_effect_globals + 0x3bc)) /
-                   *(int16_t *)(player_effect_globals + 0x3c0) >
-                 1.0f ?
-               1.0f :
-               (float)(game_time_get() -
-                       *(int *)(player_effect_globals + 0x3bc)) /
-                 *(int16_t *)(player_effect_globals + 0x3c0)));
+      /* PIN(elapsed / duration, 0, 1) expanded in place: each use re-reads
+       * game_time_get() (CALL 0xb5aa0 at 0xa3070, 0xa30ad, 0xa30e8) and
+       * the single CALL 0x10a710 takes the pinned value from [EBP+0xc]. */
+      if (player_effects->field_3c0 > 0) {
+        value = CLAMP((float)(game_time_get() - player_effects->field_3bc) /
+                        player_effects->field_3c0,
+                      0.0f, 1.0f);
+        value = transition_function_evaluate(5, value);
       } else {
         value = 1.0f;
       }
       *(float *)(out + 0x04) = value;
-      if (*(char *)(player_effect_globals + 0x3c2) == 0) {
-        *(float *)(out + 0x04) = 1.0f - value;
+      if (player_effects->field_3c2 == 0) {
+        *(float *)(out + 0x04) = 1.0f - *(float *)(out + 0x04);
       }
-      if (*(float *)(out + 0x04) < 0.0f) {
-        *(float *)(out + 0x04) = 0.0f;
-      } else if (*(float *)(out + 0x04) > 1.0f) {
-        *(float *)(out + 0x04) = 1.0f;
-      } else {
-        *(float *)(out + 0x04) = *(float *)(out + 0x04);
-      }
+      *(float *)(out + 0x04) = CLAMP(*(float *)(out + 0x04), 0.0f, 1.0f);
     } else if (player_index != -1) {
-      effect = player_effect_get(player_index);
-      *(int16_t *)(player_effect_globals + 0x3c0) = -1;
-      if (*(int16_t *)(effect + 0xde) > 0 ||
-          (*(uint8_t *)(effect + 0xe8) & 1) != 0) {
-        *(uint8_t *)(effect + 0xe8) &= 0xfe;
-        *(int16_t *)(out + 0x00) =
-          ((int16_t *)0x2ef7e0)[*(int16_t *)(effect + 0x18)];
-        *(float *)(out + 0x08) = *(float *)(effect + 0x40);
-        *(float *)(out + 0x0c) = *(float *)(effect + 0x44);
-        *(float *)(out + 0x10) = *(float *)(effect + 0x48);
-        *(float *)(out + 0x14) = *(float *)(effect + 0x4c);
-        if (*(float *)(effect + 0x28) > 0.0f) {
+      effect = (player_effect_t *)player_effect_get(player_index);
+      player_effects->field_3c0 = -1;
+      if (effect->field_de > 0 || (effect->field_e8 & 1) != 0) {
+        effect->field_e8 &= 0xfe;
+        *(int16_t *)(out + 0x00) = unknown_flash_type_table[effect->field_18];
+        *(real_argb_color *)(out + 0x08) = effect->field_40;
+        if (effect->field_28 > 0.0f) {
           *(float *)(out + 0x04) = transition_function_evaluate(
-            (short)*(uint16_t *)(effect + 0x2c),
-            (float)*(int16_t *)(effect + 0xde) / *(float *)(effect + 0x28) *
-              *(float *)(effect + 0x3c));
+            (short)effect->field_2c,
+            effect->field_3c * ((float)effect->field_de / effect->field_28));
         } else {
-          *(float *)(out + 0x04) = *(float *)(effect + 0x3c);
+          *(float *)(out + 0x04) = effect->field_3c;
         }
-        *(int16_t *)(effect + 0xde) -= game_time_get_elapsed();
+        effect->field_de -= game_time_get_elapsed();
         assert_halt_msg_at(
           "screen_flash->intensity>=0.0f && screen_flash->intensity<=1.0f",
           "c:\\halo\\SOURCE\\effects\\player_effects.c", 0x212,
@@ -642,12 +676,12 @@ void player_effect_get_screen_flash(int16_t player_index, void *screen_flash)
     }
   }
   if ((*(uint32_t *)(out + 0x04) & 0x7f800000u) == 0x7f800000u) {
-    char *msg;
-
-    msg = csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
-                   "screen_flash->intensity", *(uint32_t *)(out + 0x04),
-                   (double)*(float *)(out + 0x04));
-    display_assert(msg, "c:\\halo\\SOURCE\\effects\\player_effects.c", 0x217,
+    display_assert(csprintf(error_string_buffer,
+                            "%s: assert_valid_real(0x%08X %f)",
+                            "screen_flash->intensity",
+                            *(uint32_t *)(out + 0x04),
+                            (double)*(float *)(out + 0x04)),
+                   "c:\\halo\\SOURCE\\effects\\player_effects.c", 0x217,
                    1);
     system_exit(-1);
   }
@@ -724,6 +758,10 @@ void get_shake_matrix(float *matrix /* @<esi> */, float translation_scale,
  *     +0xdc += elapsed and, when > 0, reset with +0xcc..+0xdb zeroed;
  *     get_shake_matrix(local, translation, rotation); +0xe2 -= elapsed;
  *     matrix4x3_multiply(matrix, local, matrix).
+ * Field map: globals +0x3c4..+0x3e3 is player_effect_globals_t.scripted
+ *   (+0x3dc/+0x3e0/+0x3e2 are its field_18/field_1c/field_1e).
+ * effect_fields aliases effect->field_00; indexing through the field
+ *   directly gives different register allocation (3 bytes shorter).
  * Uncertain: the x87 temporaries in the original keep i * +0x58 and
  *   i * +0x5c at extended precision; x87_fsin/x87_fcos take float.
  *
@@ -731,8 +769,9 @@ void get_shake_matrix(float *matrix /* @<esi> */, float translation_scale,
 void player_effect_get_camera_effect_matrix(int16_t local_player_index,
                                             float *matrix)
 {
-  char *globals;
-  char *effect;
+  scripted_player_effect_t *scripted;
+  player_effect_t *effect;
+  real *rumble;
   float *effect_fields;
   float *up;
   const real_matrix4x3 *source;
@@ -747,34 +786,34 @@ void player_effect_get_camera_effect_matrix(int16_t local_player_index,
   float translation;
   float rotation;
   float level;
+  float duration;
+  float zero_scale;
   int16_t ticks;
 
   assert_halt_at("c:\\halo\\SOURCE\\effects\\player_effects.c", 0x259, matrix);
   if (local_player_index == -1) {
     return;
   }
-
   game_time_get();
-  globals = player_effect_globals;
-  if ((*(uint8_t *)(globals + 0x3e4) & 1) != 0) {
-    scale = *(float *)(globals + 0x3dc);
-    *(real_matrix4x3 *)matrix = **(real_matrix4x3 **)0x31fc60;
-
-    ticks = *(int16_t *)(globals + 0x3e0);
+  /* The binary tests the flag dword through its low byte (TEST byte). */
+  if ((*(uint8_t *)&player_effects->field_3e4 & 1) != 0) {
+    scripted = &player_effects->scripted;
+    scale = scripted->field_18;
+    *(real_matrix4x3 *)matrix = *global_identity4x3;
+    ticks = scripted->field_1c;
     if (ticks > 0) {
-      if ((*(uint8_t *)(globals + 0x3e4) & 2) != 0) {
-        scale = (float)ticks / (float)*(int16_t *)(globals + 0x3e2) * scale;
+      if ((*(uint8_t *)&player_effects->field_3e4 & 2) != 0) {
+        scale = (float)ticks / (float)scripted->field_1e * scale;
       } else {
-        scale =
-          (1.0f - (float)ticks / (float)*(int16_t *)(globals + 0x3e2)) * scale;
+        scale = (1.0f - (float)ticks / (float)scripted->field_1e) * scale;
       }
-      *(int16_t *)(globals + 0x3e0) -= game_time_get_elapsed();
-    } else if ((*(uint32_t *)(globals + 0x3e4) & 2) != 0) {
-      *(uint32_t *)(globals + 0x3e4) &= 0xfffffffeu;
+      scripted->field_1c -= game_time_get_elapsed();
+    } else if ((player_effects->field_3e4 & 2) != 0) {
+      player_effects->field_3e4 &= 0xfffffffeu;
       rumble_player_set_scale(0.0f);
     }
 
-    if ((*(uint8_t *)(player_effect_globals + 0x3e4) & 1) == 0) {
+    if ((*(uint8_t *)&player_effects->field_3e4 & 1) == 0) {
       return;
     }
 
@@ -791,9 +830,9 @@ void player_effect_get_camera_effect_matrix(int16_t local_player_index,
                                  -1.0f, 1.0f);
     random_c = random_real_range((int *)random_math_get_local_seed_address(),
                                  -1.0f, 1.0f);
-    FUN_00109e90(matrix, random_c * *(float *)(globals + 0x3d0) * scale,
-                 random_b * *(float *)(globals + 0x3d4) * scale,
-                 random_a * *(float *)(globals + 0x3d8) * scale);
+    FUN_00109e90(matrix, random_c * scripted->field_0c[0] * scale,
+                 random_b * scripted->field_0c[1] * scale,
+                 random_a * scripted->field_0c[2] * scale);
 
     random_a = random_real_range((int *)random_math_get_local_seed_address(),
                                  -1.0f, 1.0f);
@@ -801,98 +840,100 @@ void player_effect_get_camera_effect_matrix(int16_t local_player_index,
                                  -1.0f, 1.0f);
     random_c = random_real_range((int *)random_math_get_local_seed_address(),
                                  -1.0f, 1.0f);
-    matrix[10] = random_c * *(float *)(globals + 0x3c8) * scale;
-    matrix[11] = random_b * *(float *)(globals + 0x3c4) * scale;
-    matrix[12] = random_a * *(float *)(globals + 0x3cc) * scale;
+    ((real_matrix4x3 *)matrix)->position.x =
+      random_c * scripted->field_00[1] * scale;
+    ((real_matrix4x3 *)matrix)->position.y =
+      random_b * scripted->field_00[0] * scale;
+    ((real_matrix4x3 *)matrix)->position.z =
+      random_a * scripted->field_00[2] * scale;
     return;
   }
 
-  effect = player_effect_get(local_player_index);
-  effect_fields = (float *)effect;
+  effect = (player_effect_t *)player_effect_get(local_player_index);
+  effect_fields = effect->field_00;
 
-  ticks = *(int16_t *)(effect + 0xe0);
-  if (ticks > 0 || (*(uint8_t *)(effect + 0xe8) & 2) != 0) {
-    if ((*(uint8_t *)(effect + 0xe8) & 2) != 0) {
+  ticks = effect->field_e0;
+  if (ticks > 0 || (effect->field_e8 & 2) != 0) {
+    if ((effect->field_e8 & 2) != 0) {
       intensity = 1.0f;
     } else {
+      duration = effect->field_50;
+      zero_scale = effect->field_68;
       intensity = transition_function_evaluate(
-                    *(int16_t *)(effect + 0x54),
-                    1.0f - (*(float *)(effect + 0x50) - (float)ticks) /
-                             *(float *)(effect + 0x50)) *
-                  *(float *)(effect + 0x68);
+                    (int16_t)effect->field_54,
+                    1.0f - (duration - (float)ticks) / duration) *
+                  zero_scale;
     }
-    *(uint8_t *)(effect + 0xe8) &= 0xfd;
+    effect->field_e8 &= 0xfd;
 
     up = global_up_vector_ptr;
     axis[0] = effect_fields[2] * up[1] - up[2] * effect_fields[1];
     axis[1] = up[2] * effect_fields[0] - effect_fields[2] * up[0];
     axis[2] = effect_fields[1] * up[0] - effect_fields[0] * up[1];
 
-    angle = intensity * *(float *)(effect + 0x58);
+    angle = intensity * effect->field_58;
     FUN_001092d0((float *)&effect_matrix, axis, x87_fsin(angle),
                  x87_fcos(angle));
 
-    translation = intensity * *(float *)(effect + 0x5c);
+    translation = intensity * effect->field_5c;
+    effect_matrix.position.x = translation * effect_fields[0];
+    effect_matrix.position.y = translation * effect_fields[1];
+    effect_matrix.position.z = translation * effect_fields[2];
     effect_matrix.position.x =
-      intensity * effect_fields[3] + translation * effect_fields[0];
+      intensity * effect->field_0c[0] + effect_matrix.position.x;
     effect_matrix.position.y =
-      intensity * effect_fields[4] + translation * effect_fields[1];
+      intensity * effect->field_0c[1] + effect_matrix.position.y;
     effect_matrix.position.z =
-      intensity * effect_fields[5] + translation * effect_fields[2];
+      intensity * effect->field_0c[2] + effect_matrix.position.z;
 
-    *(int16_t *)(effect + 0xe0) -= game_time_get_elapsed();
+    effect->field_e0 -= game_time_get_elapsed();
     source = &effect_matrix;
   } else {
-    source = *(real_matrix4x3 **)0x31fc60;
+    source = global_identity4x3;
   }
   *(real_matrix4x3 *)matrix = *source;
 
-  ticks = *(int16_t *)(effect + 0xe2);
-  if (ticks > 0 || (*(uint8_t *)(effect + 0xe8) & 4) != 0) {
-    effect_matrix = **(real_matrix4x3 **)0x31fc60;
+  ticks = effect->field_e2;
+  if (ticks > 0 || (effect->field_e8 & 4) != 0) {
+    effect_matrix = *global_identity4x3;
 
-    if ((*(uint8_t *)(effect + 0xe8) & 4) != 0) {
+    if ((effect->field_e8 & 4) != 0) {
       intensity = 1.0f;
     } else {
       intensity = transition_function_evaluate(
-                    *(int16_t *)(effect + 0x88),
-                    1.0f - (*(float *)(effect + 0x84) - (float)ticks) /
-                             *(float *)(effect + 0x84)) *
-                  *(float *)(effect + 0xac);
+                    (int16_t)effect->field_88,
+                    1.0f - (effect->field_84 - (float)ticks) /
+                             effect->field_84) *
+                  effect->field_ac;
     }
 
-    level = ((1.0f - *(float *)(effect + 0xa8)) +
-             FUN_0010a5e0(*(int16_t *)(effect + 0xa0),
-                          (*(float *)(effect + 0x84) -
-                           (float)*(int16_t *)(effect + 0xe2)) /
-                            *(float *)(effect + 0xa4)) *
-               *(float *)(effect + 0xa8)) *
+    level = ((1.0f - effect->field_a8) +
+             FUN_0010a5e0((int16_t)effect->field_a0,
+                          (effect->field_84 -
+                           (float)effect->field_e2) /
+                            effect->field_a4) *
+               effect->field_a8) *
             intensity;
 
-    translation = level * *(float *)(effect + 0x8c);
-    if (!(translation > 0.0f)) {
-      translation = 0.0f;
-    }
-    rotation = level * *(float *)(effect + 0x90);
-    if (!(rotation > 0.0f)) {
-      rotation = 0.0f;
-    }
-
-    *(uint8_t *)(effect + 0xe8) &= 0xfb;
+    translation = level * effect->field_8c > 0.0f ?
+                    level * effect->field_8c : 0.0f;
+    rotation = level * effect->field_90 > 0.0f ?
+                 level * effect->field_90 : 0.0f;
+    effect->field_e8 &= 0xfb;
+    rumble = effect->field_cc;
     get_shake_matrix((float *)&effect_matrix,
-                     translation + *(float *)(effect + 0xd4),
-                     rotation + *(float *)(effect + 0xd8));
-    rumble_player_continuous(local_player_index, *(int *)(effect + 0xcc),
-                             *(int *)(effect + 0xd0));
+                     translation + rumble[2],
+                     rotation + effect->field_cc[3]);
+    rumble_player_continuous(local_player_index, *(int *)&rumble[0],
+                             *(int *)&rumble[1]);
 
-    *(int16_t *)(effect + 0xdc) += game_time_get_elapsed();
-    if (*(int16_t *)(effect + 0xdc) > 0) {
-      *(int16_t *)(effect + 0xdc) = 0;
-      csmemset(effect + 0xcc, 0, 0x10);
+    effect->field_dc += game_time_get_elapsed();
+    if (effect->field_dc > 0) {
+      effect->field_dc = 0;
+      csmemset(rumble, 0, sizeof(effect->field_cc));
     }
-
     get_shake_matrix((float *)&effect_matrix, translation, rotation);
-    *(int16_t *)(effect + 0xe2) -= game_time_get_elapsed();
+    effect->field_e2 -= game_time_get_elapsed();
     matrix4x3_multiply(matrix, (float *)&effect_matrix, matrix);
   }
 }
@@ -923,7 +964,7 @@ void player_effect_start(int player_handle, void *damage_params,
   char *player;
   int16_t unit_index;
   char *jpt_tag;
-  char *effect;
+  player_effect_t *effect;
   int driver_handle;
   int driver_type_valid;
   int damage_type_valid;
@@ -935,7 +976,7 @@ void player_effect_start(int player_handle, void *damage_params,
   float length;
   float angle;
 
-  player = (char *)datum_get(*(data_t **)0x5aa6d4, player_handle);
+  player = (char *)datum_get(player_data, player_handle);
   unit_index = *(int16_t *)(player + 2);
 
   if ((int)direction == 0) {
@@ -946,9 +987,10 @@ void player_effect_start(int player_handle, void *damage_params,
 
   if (unit_index != -1) {
     jpt_tag = (char *)tag_get(0x6a707421, *(int *)damage_params);
-    effect = player_effect_get(unit_index);
+    effect = (player_effect_t *)player_effect_get(unit_index);
 
-    player_effect_update_screen_flash(unit_index, effect, damage_amount, 1.0f,
+    player_effect_update_screen_flash(unit_index, (char *)effect,
+                                      damage_amount, 1.0f,
                                       (void *)(jpt_tag + 0x24) /* @<ebx> */);
     player_effect_update_camera_impulse(unit_index, (float *)(jpt_tag + 0x98),
                                         direction, damage_amount, 1.0f,
@@ -966,7 +1008,7 @@ void player_effect_start(int player_handle, void *damage_params,
     if ((*(float *)0x2533c0 < scale) &&
         (*(int *)((char *)damage_params + 0xc) != -1)) {
       if ((*(unsigned int *)(jpt_tag + 0x1c8) & 0x100) != 0) {
-        *(unsigned char *)(effect + 0xe6) = 1;
+        effect->field_e4[2] = 1;
         unlock_global_random_seed();
         return;
       }
@@ -976,7 +1018,7 @@ void player_effect_start(int player_handle, void *damage_params,
         driver_handle = -1;
       } else {
         driver_handle = local_player_get_player_index(unit_index);
-        player = (char *)datum_get(*(data_t **)0x5aa6d4, driver_handle);
+        player = (char *)datum_get(player_data, driver_handle);
         driver_handle = *(int *)(player + 0x34);
       }
 
@@ -1013,20 +1055,20 @@ void player_effect_start(int player_handle, void *damage_params,
           if (length != 0.0f) {
             if ((0.0f < fabsf(rotated_delta[2]))) {
               if (rotated_delta[2] <= 0.0f) {
-                *(unsigned char *)(effect + 0xe6) = 1;
+                effect->field_e4[2] = 1;
               } else {
-                *(unsigned char *)(effect + 0xe4) = 1;
+                effect->field_e4[0] = 1;
               }
             }
 
             angle = (float)atan2(rotated_delta[1], rotated_delta[0]);
             if ((angle < *(float *)0x254a58) || (*(float *)0x26af48 < angle)) {
               if ((*(float *)0x2568bc < fabsf(angle))) {
-                *(unsigned char *)(effect + 0xe5) = 1;
+                effect->field_e4[1] = 1;
                 unlock_global_random_seed();
                 return;
               }
-              *(unsigned char *)(effect + 0xe7) = 1;
+              effect->field_e4[3] = 1;
             }
           }
         }

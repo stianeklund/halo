@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "struct": "ui_widget_definition_t",
+  "sources": [
+    "widget_instance_initialize (0xe7b10) listing: MOV EAX,dword [EDI+0x30] / TEST EAX,EAX / SETLE; MOV EAX,dword [EDI+0x34] / TEST EAX,EAX / SETLE",
+    "ui_widget_load_children_recursive listing: dword read of +0x1b0 compared to -1 @0xe5ce4",
+    "existing ui_widget_definition_t in src/types.h (size 0x3ec)"
+  ],
+  "size": {
+    "value": 1004,
+    "evidence": "existing cs(ui_widget_definition_t, 0x3ec) in src/types.h"
+  },
+  "fields": [
+    {
+      "offset": "0x30",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV EAX,dword [EDI+0x30] / TEST / SETLE (signed > 0 test) @0xe7b84"
+    },
+    {
+      "offset": "0x34",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV EAX,dword [EDI+0x34] / TEST / SETLE (signed > 0 test) @0xe7b96"
+    },
+    {
+      "offset": "0x1b0",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "dword read compared to -1 then passed as a tag index @0xe5ce4 (index member of a tag reference at +0x1a4)"
+    }
+  ],
+  "notes": [
+    "+0x1a4..+0x1af (rest of the tag reference) not observed accessed; left as pad.",
+    "src/types.h carries only the 1:1 renames (no added members): every probed layout that adds struct members moved VC71 code in unrelated TUs (debug_realloc, FUN_000abd20, widget_instance_process_one_event_recursive, solo_level_select_list_update_displayed_items, game_engine_post_rasterize_post_game). The remaining fields here are proven but not yet rendered."
+  ]
+}

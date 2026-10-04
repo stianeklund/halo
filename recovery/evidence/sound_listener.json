@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "struct": "sound_listener",
+  "sources": [
+    "2276 sound_listener_get @0x1cbac0: asserts index in [0,4) (string 0x2c12f4, line 0x430), returns 0x4eaf58 + index*0x44 (IMUL EAX,EAX,0x44 @0x1cbaee)",
+    "2276 FUN_001ccbe0 @0x1ccbe0 / FUN_001ccca0 @0x1ccca0: assert string 'listener_get(listener_index)->valid' @0x2c1624, CMP byte ptr [EAX],0x0 @0x1ccc7a; FLD/FSUB float ptr [EAX+0x2c/+0x30/+0x34] @0x1ccc47..0x1ccc56",
+    "2276 sound_update_music (FUN_001ceda0) @0x1ceecf: CMP byte ptr [ESI],0x0 with assert string 'listener->valid' @0x2c18d4; LEA EDI,[ESI+0x4] passed to 0x1096e0/0x1097f0/0x109780; FSUB float ptr [ESI+0x38/+0x3c/+0x40] @0x1cef32..0x1cef50; XOR ECX,ECX; MOV CL,byte ptr [ESI+0x1] @0x1cef30/0x1cef56",
+    "2276 sound_allocate_channel (FUN_001cd5a0) @0x1cd61b: CMP byte ptr [EBX],0x0 walking EBX from 0x4eaf58 by ADD EBX,0x44 @0x1cd63c"
+  ],
+  "size": {
+    "value": "0x44",
+    "evidence": "IMUL EAX,EAX,0x44 in sound_listener_get @0x1cbaee; ADD EBX,0x44 cursor stride in sound_allocate_channel @0x1cd63c"
+  },
+  "stride": {
+    "value": "0x44",
+    "evidence": "table at 0x4eaf58, 4 slots (CMP SI,0x4 @0x1cbac5, assert 'index>=0 && index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS')"
+  },
+  "fields": [
+    {
+      "offset": "0x00",
+      "width": 1,
+      "signed": true,
+      "name": "valid",
+      "confidence": "named",
+      "evidence": "assert strings 'listener_get(listener_index)->valid' @0x2c1624 and 'listener->valid' @0x2c18d4 guard CMP byte ptr [listener],0x0 @0x1ccc7a / @0x1ceecf"
+    },
+    {
+      "offset": "0x01",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "XOR ECX,ECX; MOV CL,byte ptr [ESI+0x1] @0x1cef30/0x1cef56 (zero-extended, pushed as the 6th vtable+0x30 argument)"
+    },
+    {
+      "offset": "0x04",
+      "width": 4,
+      "kind": "float",
+      "array_len": 13,
+      "name": "matrix",
+      "confidence": "typed",
+      "evidence": "LEA EDI,[ESI+0x4] passed as the matrix operand of 0x1096e0, 0x1097f0 (4x3 transform_point) and 0x109780 @0x1ceefc..0x1cef1c; its +0x28 translation row is read at listener+0x2c/0x30/0x34 @0x1ccc47..0x1ccc56"
+    },
+    {
+      "offset": "0x38",
+      "width": 4,
+      "kind": "float",
+      "array_len": 3,
+      "confidence": "typed",
+      "evidence": "FSUB float ptr [ESI+0x38/+0x3c/+0x40] @0x1cef32/0x1cef41/0x1cef50"
+    }
+  ],
+  "notes": [
+    "+0x04 is rendered as real_matrix4x3 (0x34 bytes: scale, forward, left, up, position) in the C header; the evidence schema has no embedded-struct kind, so it is recorded as 13 floats.",
+    "+0x38 is rendered as real_vector3d field_38; meaning (velocity-like, subtracted after scaling by 30.0) is not proven by a string.",
+    "+0x02..0x03 never observed accessed.",
+    "+0x00 signedness is not proven by the binary (only CMP byte ptr ...,0x0 and byte stores of 0/1); signed follows the lift's existing char reads."
+  ]
+}

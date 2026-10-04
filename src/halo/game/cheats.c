@@ -105,7 +105,7 @@ void cheat_active_camouflage_local_player(int local_player_index)
  * Returns the datum handle of the player, or -1 if none found.
  * The datum handle is stored in the iterator at offset 8 (data_iter_t.datum).
  */
-int FUN_000a67c0(void)
+__declspec(noinline) int FUN_000a67c0(void)
 {
   data_iter_t iter;
   char *player;

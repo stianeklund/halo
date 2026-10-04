@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "struct": "widget_instance_t",
+  "sources": [
+    "widget_instance_initialize (0xe7b10) listing: LEA EDX,[EDI+0x4] / MOV dword [ESI+0x4],EDX; MOV byte [ESI+0x11],DL (definition flags bit 9); MOV byte [ESI+0x13],AL (definition flags bit 1); MOV dword [ESI+0x18],ECX; MOV dword [ESI+0x1c]/[ESI+0x20] from definition +0x30/+0x34; MOV word [ESI+0x56],DX; MOV CL,byte [EDI+0x12] / TEST CL,CL; CMP byte [ESI+0x13],0x1",
+    "column_list_update (0xe5380) listing: CMP word [EAX+0x56],DX (DX=2)",
+    "ui_widget.c 2276 listing sites: TEST CL,CL on +0x12 @0xe5d73; byte +0x15 @0xe5a58; dword +0x18 @0xe5a64; dword +0x1c @0xe5a72; dword +0x20 @0xe5a5f; widget pointer +0x48 @0xe5d0a",
+    "existing widget_instance_t in src/types.h (size 0x58)"
+  ],
+  "size": {
+    "value": 88,
+    "evidence": "PUSH 0x58 to the zero-fill call at the top of widget_instance_initialize (0xe7b19)"
+  },
+  "fields": [
+    {
+      "offset": "0x04",
+      "width": 4,
+      "kind": "pointer",
+      "points_to": "void",
+      "confidence": "typed",
+      "evidence": "LEA EDX,[EDI+0x4] / MOV dword [ESI+0x4],EDX @0xe7b54 (pointer into the definition)"
+    },
+    {
+      "offset": "0x11",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "MOV byte [ESI+0x11],DL @0xe7b6e (definition flags bit 9)"
+    },
+    {
+      "offset": "0x12",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "MOV CL,byte [EDI+0x12] / TEST CL,CL @0xe7c82; TEST CL,CL @0xe5d73"
+    },
+    {
+      "offset": "0x13",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "MOV byte [ESI+0x13],AL @0xe7b78 (definition flags bit 1); CMP byte [ESI+0x13],0x1 @0xe7cb3"
+    },
+    {
+      "offset": "0x15",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "byte compare @0xe5a58"
+    },
+    {
+      "offset": "0x18",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV dword [ESI+0x18],ECX from global tick @0xe7b81; read @0xe5a64"
+    },
+    {
+      "offset": "0x1c",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV dword [ESI+0x1c],EAX @0xe7b93; write @0xe5a72"
+    },
+    {
+      "offset": "0x20",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV dword [ESI+0x20],EAX @0xe7bab; write @0xe5a5f"
+    },
+    {
+      "offset": "0x48",
+      "width": 4,
+      "kind": "pointer",
+      "points_to": "widget_instance_t",
+      "confidence": "typed",
+      "evidence": "widget instance pointer stored @0xe5d0a; its previous/parent cleared"
+    },
+    {
+      "offset": "0x56",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV word [ESI+0x56],DX @0xe7be5; CMP word [EAX+0x56],DX @0xe5395"
+    }
+  ],
+  "notes": [
+    "+0x40 is also written as a word (MOV word [ESI+0x40],0xffff @0xe7bb5) overlapping list_items; not split here (would need a union).",
+    "+0x14 and +0x16..+0x17 not observed accessed.",
+    "src/types.h carries only the 1:1 renames (no added members): every probed layout that adds struct members moved VC71 code in unrelated TUs (debug_realloc, FUN_000abd20, widget_instance_process_one_event_recursive, solo_level_select_list_update_displayed_items, game_engine_post_rasterize_post_game). The remaining fields here are proven but not yet rendered."
+  ]
+}

@@ -420,6 +420,8 @@ def compare(base, candidate, header_noise=None):
 
 # Not preceded by a word character: the `x34` inside `0x34` is no identifier.
 _IDENTIFIER_RE = re.compile(r"(?<!\w)[A-Za-z_]\w*")
+# A `//` comment to end of line or a `/* */` comment closed on the same line.
+_LINE_COMMENT_RE = re.compile(r"//.*|/\*.*?\*/")
 
 
 def changed_kb_names(root, base, head):
@@ -476,7 +478,11 @@ def changed_header_names(root, base, head):
         if line.startswith("@@"):
             names.update(_IDENTIFIER_RE.findall(line.split("@@")[-1]))
         elif line[:1] in "+-" and not line.startswith(("+++", "---")):
-            names.update(_IDENTIFIER_RE.findall(line[1:]))
+            # Trailing comment words ("offset", "not accessed here") are no
+            # declarations; counting them blocks the filter on any function
+            # whose body happens to use the same word.
+            code = _LINE_COMMENT_RE.sub("", line[1:])
+            names.update(_IDENTIFIER_RE.findall(code))
     return names - _HEADER_COMMON_NAMES
 
 

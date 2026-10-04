@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "struct": "player_effect_globals_t",
+  "size": {
+    "value": "0x3ec",
+    "evidence": "game_state_malloc(\"player effects\", 0, 0x3ec) @0xa2700; csmemset(player_effect_globals,0,0x3ec) @0xa2750"
+  },
+  "sources": [
+    "assert string \"player_effect_globals\" @0x26ae7c",
+    "player_effect_initialize @0xa2700",
+    "player_effect_initialize_for_new_map @0xa2750",
+    "player_effect_screen_fade_in @0xa2970 / fade_out @0xa29c0",
+    "player_effect_get_screen_flash @0xa2fc0",
+    "player_effect_get_camera_effect_matrix @0xa3370",
+    "FUN_000a2df0 @0xa2df0",
+    "scripted_player_effect_stop @0xa2e40"
+  ],
+  "notes": [
+    "+0x000..+0x3af is player_effect_t[MAXIMUM_NUMBER_OF_LOCAL_PLAYERS=4] (stride 0xec, see player_effect_t.json); rendered here as one opaque range.",
+    "+0x3c4..+0x3e3 is scripted_player_effect_t (see scripted_player_effect_t.json); rendered here as one opaque range.",
+    "Struct name from the assert string; members have no string evidence and are field_<hex>."
+  ],
+  "fields": [
+    {
+      "offset": "0x000",
+      "width": 1,
+      "signed": false,
+      "array_len": 944,
+      "confidence": "typed",
+      "evidence": "player_effect_t[4]: player_effect_get @0xa2690 index*0xec, assert local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS"
+    },
+    {
+      "offset": "0x3b0",
+      "width": 4,
+      "kind": "float",
+      "array_len": 3,
+      "confidence": "typed",
+      "evidence": "FLD/FSTP float [EAX+0x3b0], dword MOVs to +0x3b4/+0x3b8 @0xa2970; 12-byte copy to screen_flash+0x0c @0xa3045"
+    },
+    {
+      "offset": "0x3bc",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV [EAX+0x3bc],EAX (game_time_get result) @0xa2970; SUB ECX,[EAX+0x3bc] @0xa302e"
+    },
+    {
+      "offset": "0x3c0",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "CMP word [EAX+0x3c0],-1 @0xa2ffd; MOVSX EDX,word ptr [EDI] (EDI=+0x3c0) @0xa3034; MOV word [ECX+0x3c0],0xffff @0xa31aa"
+    },
+    {
+      "offset": "0x3c2",
+      "width": 1,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV CL,byte ptr [EAX+0x3c2]; TEST CL,CL @0xa3012; byte stores 0/1 in fade_in/fade_out. Sign unobserved (TEST only); declared char"
+    },
+    {
+      "offset": "0x3c3",
+      "width": 1,
+      "array_len": 1,
+      "confidence": "gap",
+      "signed": false
+    },
+    {
+      "offset": "0x3c4",
+      "width": 1,
+      "signed": false,
+      "array_len": 32,
+      "confidence": "typed",
+      "evidence": "scripted_player_effect_t: LEA EBX,[EAX+0x3c4] @0xa33d0"
+    },
+    {
+      "offset": "0x3e4",
+      "width": 4,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "TEST byte ptr [EAX+0x3e4],1 @0xa33b7; MOV ECX,[EAX+0x3e4]; AND ECX,0xfffffffe; MOV [EAX+0x3e4],ECX @0xa3440; AND ECX,0xfffffffd; OR ECX,1 @0xa2e24"
+    },
+    {
+      "offset": "0x3e8",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "game_time_get() result stored at +0x3e8 in player_effect_initialize_for_new_map @0xa2750"
+    }
+  ]
+}

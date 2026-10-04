@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "struct": "ui_widget_cinematic_deferred_error_t",
+  "sources": [
+    "0xe8910 display_error writer: CMP word [EAX*4+0x46cc6c],-1 @0xe895d; MOV word [EAX*4+0x46cc6c],CX @0xe896f; MOV byte [EAX*4+0x46cc6e],DL @0xe897a; MOV byte [EAX*4+0x46cc6f],CL @0xe8981",
+    "drain loop: MOV ESI,0x46cc6c @0xe8ddd; MOV AX,word [ESI] @0xe8de2; MOV word [ESI],0xffff @0xe8e06; ADD ESI,4 @0xe8e0c; CMP DI,4",
+    "string \"there is already a deferred-for-cinematic error queued for player #%d; ignoring this one\""
+  ],
+  "size": {
+    "value": "0x04",
+    "evidence": "EAX*4 indexing @0xe895d; ADD ESI,4 @0xe8e0c"
+  },
+  "fields": [
+    {
+      "offset": "0x00",
+      "width": 2,
+      "signed": true,
+      "name": "error_handle",
+      "confidence": "typed",
+      "evidence": "MOV AX,word [ESI]; TEST AX,AX; JL; CMP AX,0x28 @0xe8de2..0xe8dea; -1 = empty"
+    },
+    {
+      "offset": "0x02",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "MOV byte [EAX*4+0x46cc6e],DL @0xe897a"
+    },
+    {
+      "offset": "0x03",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "MOV byte [EAX*4+0x46cc6f],CL @0xe8981"
+    }
+  ],
+  "notes": [
+    "Element of widget_globals +0x4c [4]. error_handle is a descriptive (not string-proven) name inherited from the parallel deferred-error record."
+  ]
+}

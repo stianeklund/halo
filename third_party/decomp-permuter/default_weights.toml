@@ -78,6 +78,12 @@ perm_dummy_comma_expr = 0
 # Semantics-changing: perm_remove_ast has been the source of audited bad
 # winners (candidates that "improve" score by deleting behavior). Disabled.
 perm_remove_ast = 0
+# Value-changing by construction: a duplicated assignment lands at a random
+# point in the function, 0xFF masks truncate, and a*x*(b/x) is inexact
+# integer division.
+perm_duplicate_assignment = 0
+perm_add_mask = 0
+perm_factor_mult = 0
 # Rarely effective for VC71; halved rather than zeroed since they are cheap
 # and occasionally still explain a diff.
 perm_xor_zero = 5

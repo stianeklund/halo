@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "struct": "scripted_player_effect_t",
+  "size": {
+    "value": "0x20",
+    "evidence": "player_effect_globals+0x3c4..+0x3e3, between field_3c2/pad_3c3 and the flag dword at +0x3e4; LEA EBX,[EAX+0x3c4] @0xa33d0"
+  },
+  "sources": [
+    "scripted_player_effect_set_translation @0xa2dc0",
+    "scripted_player_effect_set_rotation @0xa28e0",
+    "FUN_000a2df0 @0xa2df0",
+    "scripted_player_effect_stop @0xa2e40",
+    "player_effect_get_camera_effect_matrix @0xa3370"
+  ],
+  "notes": [
+    "Offsets relative to player_effect_globals+0x3c4. Written only by the scripted_player_effect_* functions; no field names (no assert/string names a member)."
+  ],
+  "fields": [
+    {
+      "offset": "0x00",
+      "width": 4,
+      "kind": "float",
+      "array_len": 3,
+      "confidence": "typed",
+      "evidence": "dword stores [EAX+0x3c4..0x3cc] @0xa2dc0; FMUL float [EBX],[EBX+4],[EBX+8] @0xa357a..0xa358b"
+    },
+    {
+      "offset": "0x0c",
+      "width": 4,
+      "kind": "float",
+      "array_len": 3,
+      "confidence": "typed",
+      "evidence": "FSTP float [EAX+0x3d0..0x3d8] @0xa28e0; FMUL float [EBX+0xc..0x14] @0xa34fa..0xa3514"
+    },
+    {
+      "offset": "0x18",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FSTP float [EAX+0x3dc] @0xa2dfb; MOV ECX,[EAX+0x3dc] then FMUL float [EBP+8] @0xa33c4"
+    },
+    {
+      "offset": "0x1c",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV word [EAX+0x3e0],CX @0xa2e16; MOV CX,[EBX+0x1c]; TEST CX,CX; JLE; MOVSX ECX,CX @0xa33e0"
+    },
+    {
+      "offset": "0x1e",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV word [EAX+0x3e2],CX @0xa2e1d; MOVSX EAX,word ptr [EBX+0x1e] @0xa33f2"
+    }
+  ]
+}

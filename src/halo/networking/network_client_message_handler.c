@@ -11,7 +11,7 @@
 char network_game_client_handle_message_server_postgame_keep_alive(void *client, void *source_address, void *message,
                   int message_size)
 {
-  char decoded[4];
+  char keep_alive[4];
   int packet_version;
   int packet_type;
 
@@ -23,7 +23,7 @@ char network_game_client_handle_message_server_postgame_keep_alive(void *client,
       message_size -= 2;
       packet_type = 0xb;
       packet_version = 1;
-      if (!decode_network_game_message((int)decoded, (int)message + 2, (short *)&message_size,
+      if (!decode_network_game_message((int)keep_alive, (int)message + 2, (short *)&message_size,
                         (short *)&packet_type, (short *)&packet_version, 6)) {
         network_event(
           "failed to decode a message_server_postgame_keep_alive packet");
@@ -49,7 +49,7 @@ char network_game_client_handle_message_server_postgame_keep_alive(void *client,
 char network_game_client_handle_message_server_begin_game(void *client, void *source_address, void *message,
                   int message_size)
 {
-  char decoded[4];
+  char begin_game[4];
   int packet_type;
   int packet_version;
   char result;
@@ -60,7 +60,7 @@ char network_game_client_handle_message_server_begin_game(void *client, void *so
       message_size -= 2;
       packet_type = 8;
       packet_version = 1;
-      if (decode_network_game_message((int)decoded, (int)message + 2, (short *)&message_size,
+      if (decode_network_game_message((int)begin_game, (int)message + 2, (short *)&message_size,
                        (short *)&packet_type, (short *)&packet_version, 2)) {
         result = network_game_client_game_has_started(client);
         if (!result) {
@@ -76,7 +76,7 @@ char network_game_client_handle_message_server_begin_game(void *client, void *so
   } else {
     network_event(
       "ignoring a message_server_begin_game message; came from a bad machine");
-    return 1;
+    result = 1;
   }
   return result;
 }
@@ -90,7 +90,7 @@ char network_game_client_handle_message_server_begin_game(void *client, void *so
 char network_game_client_handle_message_server_graceful_game_exit_pregame(void *client, void *source_address, void *message,
                   int message_size)
 {
-  char decoded[4];
+  char game_exit[4];
   int packet_type;
   int packet_version;
 
@@ -99,7 +99,7 @@ char network_game_client_handle_message_server_graceful_game_exit_pregame(void *
       message_size -= 2;
       packet_type = 9;
       packet_version = 1;
-      if (decode_network_game_message((int)decoded, (int)message + 2, (short *)&message_size,
+      if (decode_network_game_message((int)game_exit, (int)message + 2, (short *)&message_size,
                        (short *)&packet_type, (short *)&packet_version, 2)) {
         network_game_client_game_shutdown(client);
       } else {
@@ -129,7 +129,7 @@ char network_game_client_handle_message_server_graceful_game_exit_pregame(void *
 char network_game_client_handle_message_server_game_update(void *client, void *source_address, void *message,
                   int message_size)
 {
-  char decoded[528];
+  char game_update[528];
   int packet_type;
   int packet_version;
   char result;
@@ -140,26 +140,26 @@ char network_game_client_handle_message_server_game_update(void *client, void *s
       message_size -= 2;
       packet_type = 0x14;
       packet_version = 1;
-      if (decode_network_game_message((int)decoded, (int)message + 2, (short *)&message_size,
+      if (decode_network_game_message((int)game_update, (int)message + 2, (short *)&message_size,
                         (short *)&packet_type, (short *)&packet_version, 4)) {
-        result = network_game_client_handle_game_update(client, decoded);
+        result = network_game_client_handle_game_update(client, game_update);
         if (result == 0) {
           network_event("network_game_client_handle_game_update() failed");
-          network_game_client_game_out_of_sync(client);
         }
       } else {
         network_event("failed to decode a message_server_game_update packet");
-        network_game_client_game_out_of_sync(client);
       }
     } else {
       network_event("failed to handle a message_server_game_update message; we are "
                        "not in game");
-      network_game_client_game_out_of_sync(client);
     }
   } else {
     network_event(
       "ignoring a message_server_game_update message; came from a bad machine");
-    return 1;
+    result = 1;
+  }
+  if (result == 0) {
+    network_game_client_game_out_of_sync(client);
   }
   return result;
 }
@@ -175,7 +175,7 @@ char network_game_client_handle_message_server_game_update(void *client, void *s
 char network_game_client_handle_message_server_add_player_ingame(void *client, void *source_address, void *message,
                   int message_size)
 {
-  char decoded[32];
+  char player[32];
   int packet_type;
   int packet_version;
   char result;
@@ -186,27 +186,27 @@ char network_game_client_handle_message_server_add_player_ingame(void *client, v
       message_size -= 2;
       packet_type = 0x15;
       packet_version = 1;
-      if (decode_network_game_message((int)decoded, (int)message + 2, (short *)&message_size,
+      if (decode_network_game_message((int)player, (int)message + 2, (short *)&message_size,
                        (short *)&packet_type, (short *)&packet_version, 4)) {
-        result = network_game_client_add_player_to_game(client, decoded);
+        result = network_game_client_add_player_to_game(client, player);
         if (result == 0) {
           network_event("network_game_client_add_player_to_game() failed");
-          network_game_client_game_out_of_sync(client);
         }
       } else {
         network_event("failed to decode a message_server_add_player_ingame packet");
-        network_game_client_game_out_of_sync(client);
       }
     } else {
       network_event("failed to handle a message_server_add_player_ingame message; we "
                        "are not in game");
-      network_game_client_game_out_of_sync(client);
     }
   } else {
     network_event(
       "ignoring a message_server_add_player_ingame message; came "
       "from a bad machine");
-    return 1;
+    result = 1;
+  }
+  if (result == 0) {
+    network_game_client_game_out_of_sync(client);
   }
   return result;
 }
@@ -241,21 +241,21 @@ char network_game_client_handle_message_server_remove_player_ingame(void *client
                                                    *(int *)(decoded + 0x20));
         if (result == 0) {
           network_event("network_game_client_remove_player() failed");
-          network_game_client_game_out_of_sync(client);
         }
       } else {
         network_event("failed to decode a message_server_remove_player_ingame packet");
-        network_game_client_game_out_of_sync(client);
       }
     } else {
       network_event("failed to handle a message_server_remove_player_ingame message; "
                        "we are not in game");
-      network_game_client_game_out_of_sync(client);
     }
   } else {
     network_event("ignoring a message_server_remove_player_ingame message; "
                      "came from a bad machine");
-    return 1;
+    result = 1;
+  }
+  if (result == 0) {
+    network_game_client_game_out_of_sync(client);
   }
   return result;
 }
@@ -306,7 +306,7 @@ char network_game_client_handle_message_server_game_over(void *client, void *sou
 char network_game_client_handle_message_server_switch_to_pregame(void *client, void *source_address, void *message,
                   int message_size)
 {
-  char decoded[4];
+  char switch_to_pregame[4];
   int packet_type;
   int packet_version;
   char result;
@@ -317,7 +317,7 @@ char network_game_client_handle_message_server_switch_to_pregame(void *client, v
       message_size -= 2;
       packet_type = 0x1e;
       packet_version = 1;
-      if (!decode_network_game_message((int)decoded, (int)message + 2, (short *)&message_size,
+      if (!decode_network_game_message((int)switch_to_pregame, (int)message + 2, (short *)&message_size,
                         (short *)&packet_type, (short *)&packet_version, 6)) {
         network_event(
           "failed to decode a message_server_switch_to_pregame packet");
@@ -334,7 +334,7 @@ char network_game_client_handle_message_server_switch_to_pregame(void *client, v
     network_event(
       "ignoring a message_server_switch_to_pregame message; came "
       "from a bad machine");
-    return 1;
+    result = 1;
   }
   return result;
 }
@@ -349,7 +349,7 @@ char network_game_client_handle_message_server_switch_to_pregame(void *client, v
 char network_game_client_handle_message_server_graceful_game_exit_postgame(void *client, void *source_address, void *message,
                   int message_size)
 {
-  char decoded[4];
+  char game_exit[4];
   int packet_type;
   int packet_version;
   char result;
@@ -360,7 +360,7 @@ char network_game_client_handle_message_server_graceful_game_exit_postgame(void 
       message_size -= 2;
       packet_type = 0x1f;
       packet_version = 1;
-      if (!decode_network_game_message((int)decoded, (int)message + 2, (short *)&message_size,
+      if (!decode_network_game_message((int)game_exit, (int)message + 2, (short *)&message_size,
                         (short *)&packet_type, (short *)&packet_version, 6)) {
         network_event("failed to decode a message_server_graceful_game_exit_"
                          "postgame packet (not critical)");
@@ -418,35 +418,35 @@ bool network_game_client_handle_message(void *client, void *message, int message
 {
   char result;
   unsigned short header;
-  unsigned short category;
-  int type_byte;
-  char *error_str;
+  unsigned short message_type;
+  int packet_type;
+  char *error_message;
 
   result = 1;
 
-  assert_halt_msg(
+  assert_halt_msg_at(
+    "client && message && (message_size == GET_MESSAGE_SIZE(*message)) && source_address",
+    "c:\\halo\\SOURCE\\networking\\network_client_message_handler.c", 0x2f,
     client != (void *)0 && message != (void *)0 &&
       (short)message_size == (*(unsigned short *)message >> 4) &&
-      source_address != (void *)0,
-    "client && message && (message_size == GET_MESSAGE_SIZE(*message)) && "
-    "source_address");
+      source_address != (void *)0);
 
   header = *(unsigned short *)message;
-  category = (unsigned short)(((unsigned char)header >> 2) & 3);
+  message_type = (unsigned short)(((unsigned char)header >> 2) & 3);
 
   if ((header & 3) != 0) {
     network_event("client received client message with invalid flags");
     return 1;
   }
 
-  switch (category) {
+  switch (message_type) {
   case 1:
     if ((unsigned short)message_size >= 0x83) {
-      error_str = (char *)message + 2;
+      error_message = (char *)message + 2;
       network_event(
         "client received low-level error message: error= #%d (%s)",
-        (unsigned char)error_str[0x80],
-        error_str);
+        (unsigned char)error_message[0x80],
+        error_message);
     } else {
       network_event(
         "client received a malformed/damaged message from a server");
@@ -458,8 +458,8 @@ bool network_game_client_handle_message(void *client, void *message, int message
     break;
 
   case 3:
-    type_byte = (int)((unsigned char *)message)[(short)message_size - 1];
-    switch (type_byte) {
+    packet_type = (int)((unsigned char *)message)[(short)message_size - 1];
+    switch (packet_type) {
     case 2:
       result = network_game_client_handle_message_server_game_advertise(client, message, message_size, source_address);
       if (result == 0) {

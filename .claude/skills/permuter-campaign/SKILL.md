@@ -66,16 +66,20 @@ skeleton; `opnd_percent` additionally compares operands. A lift can reproduce
 the skeleton while getting the dataflow wrong, and the permuter cannot fix that
 any more than it can fix a sub-85% body.
 
-**In-process candidate ranking is now mnemonic-LCS.** `tools/permuter/run.py`
-writes `score_algorithm="lcs"` (plus `ref_mnemonics_file`) into the permuter's
-own `settings.toml` whenever a reference resolves, so the search itself now
-optimizes toward the same LCS metric this campaign measures — resolving the
-old misalignment where the permuter's internal candidate selection ran on an
-unrelated upstream penalty score and could discard exactly the candidates that
-would have improved our LCS%. This does NOT make semantic audit optional: a
-candidate can still be instruction-order-close to the reference while getting
-the dataflow wrong (same caveat as `opnd_percent` above). Read the diff of
-every surviving candidate before applying it (Step 3b).
+**In-process ranking is raw aligned bytes (`--objective raw`, the default).**
+`tools/permuter/run.py` compiles every candidate with its body spliced into a
+copy of the real TU (`tools/permuter/splice_compile.py`, same `compile_vc71`
+path and per-function opt as the byte gate) and scores it with
+`raw_xbe_structural.audit()`: unmatched bytes, plus 20 units per unit of lost
+matching bytes or increased mismatched/uncertain/unpaired relocations or
+alignment ambiguity, with LCS as the tie-break. The ranking is the byte gate's
+metric. `lcs_results.txt` gains `baseline_raw=` and per-rank `raw=`/
+`raw_units=` columns, and `verdict=` applies the gate's per-function rule.
+`--objective lcs` restores the old standalone-base.c mnemonic-LCS search.
+Raw bytes do NOT make the semantic audit optional. On RGBToColor the first raw
+winner moved the struct store above `result.rgba[3] = 0`, so the stored alpha
+was uninitialized, and `audit_candidate` passed it. Read the diff of every
+surviving candidate before applying it (Step 3b).
 
 **If a target has a `artifacts/score_context/<name>.json` pack, prefer its
 `classification` over ad-hoc inspection.** A `"rule": "regarg_structural_ceiling"`
@@ -255,7 +259,9 @@ Check the exit code before trusting `lcs_results.txt`: exit 3 means Guard 1
 fired (VACUOUS RUN — 0 candidate iterations, a setup problem, not a real
 "no improvement" result); exit 4 means Guard 2 fired (BASELINE MISMATCH — the
 permuter's own score of the unmodified base disagrees with the pipeline's
-baseline, so any candidate scores from that run are untrustworthy). Both print
+baseline, or, with the raw objective, `base.o` does not score the same
+matching/compared bytes as a fresh gate compile of the committed source, so any
+candidate scores from that run are untrustworthy). Both print
 their own diagnostic regardless of `--quiet`. Treat either as
 `skip_reason: "vacuous_run"` / `"baseline_mismatch"` in Step C, not as
 `permuter_improved: false`.
@@ -278,7 +284,7 @@ Write `$CAMPAIGN_DIR/<funcname>/search_result.json`:
 
 Set `permuter_improved: false` and `skip_reason` if:
 - `lcs_results.txt` is absent or empty (no candidates)
-- The best LCS from `lcs_results.txt` does not exceed `baseline_pct`
+- The best candidate's `verdict=` in `lcs_results.txt` is not `IMPROVED`
 - Pre-compile of `base.c` failed (incompatible function — cannot permute)
 
 ### Concurrency cap

@@ -64,6 +64,10 @@ class Scorer:
         score_algorithm: str = "difflib",
         ref_mnemonics: Optional[Sequence[str]] = None,
         cand_func_name: Optional[str] = None,
+        # [halo] raw_aligned mode: function VA and the base candidate's
+        # aligned_byte_match counters (precomputed by run.py).
+        raw_address: Optional[int] = None,
+        raw_base: Optional[Dict[str, int]] = None,
     ):
         self.target_o = target_o
         self.arch = get_arch(target_o)
@@ -77,6 +81,16 @@ class Scorer:
         self._lcs_ref_mnemonics = list(ref_mnemonics) if ref_mnemonics else []
         self._lcs_func_name = cand_func_name
         self._lcs_co_module = None
+        self._raw_address = raw_address
+        self._raw_base = raw_base
+        self._raw_module_cache = None
+        self.raw_failures = 0
+        if self.score_algorithm == "raw_aligned" and (
+            raw_address is None or not raw_base or not self._lcs_ref_mnemonics
+        ):
+            raise ValueError(
+                "[halo] score_algorithm=raw_aligned requires raw_address, raw_base and ref_mnemonics"
+            )
         if self.score_algorithm == "lcs" and not self._lcs_ref_mnemonics:
             raise ValueError(
                 "[halo] score_algorithm=lcs requires a non-empty ref_mnemonics sequence"
@@ -132,9 +146,68 @@ class Scorer:
         h = hashlib.sha256("\n".join(cand_insns).encode()).hexdigest()
         return score, h
 
+    # [halo] Gate counters whose increase over base fails the byte gate
+    # (docs/byte-regression-ci.md).  Each extra unit costs RAW_GATE_PENALTY
+    # unmatched-byte equivalents: steep enough to rank gate-failing candidates
+    # below base, not infinite, so the search can still pass through them.
+    RAW_GATE_COUNTERS = (
+        "mismatched_relocations",
+        "uncertain_relocations",
+        "unpaired_relocations",
+        "alignment_ambiguous_steps",
+    )
+    RAW_GATE_PENALTY = 20
+    # Score = raw units * RAW_SCALE + LCS loss (0..1000) as tie-break.
+    RAW_SCALE = 1001
+
+    def _raw_module(self):
+        if self._raw_module_cache is None:
+            here = Path(__file__).resolve()
+            for parent in here.parents:
+                candidate = parent / "tools" / "permuter" / "splice_compile.py"
+                if candidate.is_file():
+                    spec = importlib.util.spec_from_file_location(
+                        "splice_compile", str(candidate)
+                    )
+                    mod = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mod)
+                    self._raw_module_cache = mod
+                    break
+            else:
+                raise RuntimeError("[halo] raw_aligned needs tools/permuter/splice_compile.py")
+        return self._raw_module_cache
+
+    def raw_units(self, metrics: Dict[str, int]) -> int:
+        """[halo] Unmatched bytes plus gate-counter and matching-loss penalties."""
+        base = self._raw_base
+        units = metrics["compared_bytes"] - metrics["matching_bytes"]
+        units += self.RAW_GATE_PENALTY * max(
+            0, base["matching_bytes"] - metrics["matching_bytes"]
+        )
+        for key in self.RAW_GATE_COUNTERS:
+            units += self.RAW_GATE_PENALTY * max(0, metrics[key] - base[key])
+        return units
+
+    def _score_raw(self, cand_o: str) -> Tuple[int, str]:
+        """[halo] score_algorithm="raw_aligned": the byte gate's aligned
+        byte comparison (raw_xbe_structural.audit) on the candidate object."""
+        metrics = self._raw_module().raw_metrics(
+            cand_o, self._lcs_func_name.lstrip("_"), self._raw_address
+        )
+        if metrics is None:
+            self.raw_failures += 1
+            return Scorer.PENALTY_INF, ""
+        lcs_score, h = self._score_lcs(cand_o)
+        if lcs_score >= Scorer.PENALTY_INF:
+            lcs_score = 1000
+        return self.raw_units(metrics) * self.RAW_SCALE + lcs_score, h
+
     def score(self, cand_o: Optional[str]) -> Tuple[int, str]:
         if not cand_o:
             return Scorer.PENALTY_INF, ""
+
+        if self.score_algorithm == "raw_aligned":
+            return self._score_raw(cand_o)
 
         # [halo] LCS scoring mode: score by mnemonic-only LCS against a
         # precomputed reference mnemonic sequence (matches

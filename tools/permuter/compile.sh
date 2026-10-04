@@ -75,6 +75,12 @@ if [[ "$1" != "-o" ]]; then
 fi
 O_FILE="$2"
 
+# Raw-byte objective: compile the candidate body spliced into the real TU, the
+# way the byte gate compiles it (run.py sets these for score_algorithm=raw_aligned).
+if [[ -n "${PERMUTER_SPLICE_SOURCE:-}" ]]; then
+    exec python3 "${SCRIPT_DIR}/splice_compile.py" "$C_FILE" -o "$O_FILE"
+fi
+
 # --------------------------------------------------------------------------
 # WSL→Windows path conversion helper
 # Must only be called on paths that are under a /mnt/<drive>/ mount point.

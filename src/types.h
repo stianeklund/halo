@@ -1762,12 +1762,32 @@ co(animation_graph_t, animations, 0x74);
  * tag_block_get_element calls in 0x85000 / 0x853c0. */
 typedef struct {
   char name[0x20];                         ///< offset=0x00  crt_stricmp key
-  uint8_t pad_20[2];                       ///< offset=0x20  not accessed here
-  int16_t frame_count;                     ///< offset=0x22  MOVSX in 0x85000
-  uint8_t pad_24[0x90];                    ///< offset=0x24  not accessed here
+  int16_t field_20;                      ///< offset=0x20
+  int16_t frame_count;                   ///< offset=0x22
+  int16_t frame_size;                    ///< offset=0x24
+  int16_t field_26;                      ///< offset=0x26
+  int32_t field_28;                      ///< offset=0x28
+  int16_t field_2c;                      ///< offset=0x2c
+  int16_t field_2e;                      ///< offset=0x2e
+  uint8_t pad_30[0xa];
+  uint8_t field_3a;                      ///< offset=0x3a
+  uint8_t pad_3b[0x7];
+  uint16_t field_42;                     ///< offset=0x42
+  uint8_t pad_44[0x10];
+  void *field_54;                        ///< offset=0x54
+  uint8_t pad_58[0x5c];
 } animation_t;
 cs(animation_t, 0xb4);
+co(animation_t, field_20, 0x20);
 co(animation_t, frame_count, 0x22);
+co(animation_t, frame_size, 0x24);
+co(animation_t, field_26, 0x26);
+co(animation_t, field_28, 0x28);
+co(animation_t, field_2c, 0x2c);
+co(animation_t, field_2e, 0x2e);
+co(animation_t, field_3a, 0x3a);
+co(animation_t, field_42, 0x42);
+co(animation_t, field_54, 0x54);
 
 /* scenario_t::cutscene_camera_points element; stride 0x68 from
  * scripted_camera_set (0x85180). */
@@ -5606,13 +5626,21 @@ co(camera_command_t, field_54, 0x54);
  * ------------------------------------------------------------------------- */
 typedef struct widget_instance_t {
   int32_t definition_tag_index;         ///< offset=0x00 tag_get('DeLa', [ESI])
-  uint8_t pad_04[4];                    ///< offset=0x04
+  void *field_04;                       ///< offset=0x04 definition+4 @0xe7b54
   int16_t local_player_index;           ///< offset=0x08 MOV DX,[ESI+8] zero-extended
   int16_t horizontal_offset;            ///< offset=0x0a ADD [ESI+0xa],CX @0xe7112
   int16_t vertical_offset;              ///< offset=0x0c ADD [ESI+0xc],CX @0xe711a
   int16_t type;                         ///< offset=0x0e 2 spinner list, 3 column list
   uint8_t visible;                      ///< offset=0x10 TEST AL @0xe6484
-  uint8_t pad_11[0x13];                 ///< offset=0x11
+  uint8_t field_11;                    ///< offset=0x11
+  uint8_t field_12;                    ///< offset=0x12
+  uint8_t field_13;                    ///< offset=0x13
+  uint8_t pad_14[0x1];
+  uint8_t field_15;                    ///< offset=0x15
+  uint8_t pad_16[0x2];
+  int32_t field_18;                    ///< offset=0x18
+  int32_t field_1c;                    ///< offset=0x1c
+  int32_t field_20;                    ///< offset=0x20
   real alpha_modifier;                  ///< offset=0x24 parent-chain product @0xe645f
   struct widget_instance_t *previous;   ///< offset=0x28
   struct widget_instance_t *next;       ///< offset=0x2c
@@ -5623,10 +5651,12 @@ typedef struct widget_instance_t {
   int16_t list_last_tab_direction;      ///< offset=0x3e set to +15 / -15
   void *list_items;                     ///< offset=0x40
   uint16_t list_number_of_items;        ///< offset=0x44 MOVZX / JBE (unsigned)
-  uint8_t pad_46[0x6];                  ///< offset=0x46
+  uint8_t pad_46[0x2];
+  struct widget_instance_t *field_48;  ///< offset=0x48
   wchar_t *list_item_text;              ///< offset=0x4c read @0xe66dd (PAL item_text)
   int16_t field_50;                     ///< offset=0x50 read/write @0xe73c0 callers
-  uint8_t pad_52[0x6];                  ///< offset=0x52
+  uint8_t pad_52[0x4];
+  int16_t field_56;                     ///< offset=0x56
 } widget_instance_t;
 cs(widget_instance_t, 0x58);
 co(widget_instance_t, local_player_index, 0x08);
@@ -5644,6 +5674,16 @@ co(widget_instance_t, list_last_tab_direction, 0x3e);
 co(widget_instance_t, list_items, 0x40);
 co(widget_instance_t, list_number_of_items, 0x44);
 co(widget_instance_t, field_50, 0x50);
+co(widget_instance_t, field_04, 0x04);
+co(widget_instance_t, field_20, 0x20);
+co(widget_instance_t, field_1c, 0x1c);
+co(widget_instance_t, field_18, 0x18);
+co(widget_instance_t, field_15, 0x15);
+co(widget_instance_t, field_13, 0x13);
+co(widget_instance_t, field_12, 0x12);
+co(widget_instance_t, field_11, 0x11);
+co(widget_instance_t, field_56, 0x56);
+co(widget_instance_t, field_48, 0x48);
 
 #define UI_WIDGET_TYPE_SPINNER_LIST 2
 #define UI_WIDGET_TYPE_COLUMN_LIST 3

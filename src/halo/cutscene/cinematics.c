@@ -365,7 +365,7 @@ typedef struct {
  * original as `CMP AX,4; JGE` at
  *    0x93102, so it is kept.
  */
-void cinematic_set_title_delayed(int index, float value)
+__declspec(noinline) void cinematic_set_title_delayed(int index, float value)
 {
   int16_t slot;
 

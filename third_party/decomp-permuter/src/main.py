@@ -1,6 +1,7 @@
 import argparse
 from dataclasses import dataclass, field
 import itertools
+import json
 import multiprocessing
 from multiprocessing import Queue
 import os
@@ -372,12 +373,23 @@ def run_inner(options: Options, heartbeat: Callable[[], None]) -> List[int]:
         score_algorithm = json_prop(settings, "score_algorithm", str, "difflib")
         ref_mnemonics_file = json_prop(settings, "ref_mnemonics_file", str, "") or None
         ref_mnemonics: Optional[List[str]] = None
-        if score_algorithm == "lcs" and ref_mnemonics_file:
+        if score_algorithm in ("lcs", "raw_aligned") and ref_mnemonics_file:
             ref_mnemonics_path = ref_mnemonics_file
             if not os.path.isabs(ref_mnemonics_path):
                 ref_mnemonics_path = os.path.join(d, ref_mnemonics_path)
             with open(ref_mnemonics_path, encoding="utf-8") as f:
                 ref_mnemonics = [line.rstrip("\n") for line in f if line.rstrip("\n")]
+
+        # [halo] raw_aligned: the byte gate's metric (see scorer.py).
+        raw_address = None
+        raw_base = None
+        if score_algorithm == "raw_aligned":
+            raw_address = int(json_prop(settings, "raw_address", str, "0"), 0)
+            raw_base_file = json_prop(settings, "raw_base_file", str, "")
+            if not os.path.isabs(raw_base_file):
+                raw_base_file = os.path.join(d, raw_base_file)
+            with open(raw_base_file, encoding="utf-8") as f:
+                raw_base = json.load(f)
 
         scorer = Scorer(
             target_o,
@@ -389,6 +401,8 @@ def run_inner(options: Options, heartbeat: Callable[[], None]) -> List[int]:
             score_algorithm=score_algorithm,
             ref_mnemonics=ref_mnemonics,
             cand_func_name=fn_name,
+            raw_address=raw_address,
+            raw_base=raw_base,
         )
         c_source = preprocess(base_c)
 

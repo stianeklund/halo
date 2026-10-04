@@ -1,0 +1,307 @@
+{
+  "schema": 1,
+  "struct": "player_effect_t",
+  "size": {
+    "value": "0xec",
+    "evidence": "player_effect_get @0xa2690 returns player_effect_globals + index*0xec; player_effect_update csmemset(effect,0,0xec)"
+  },
+  "stride": {
+    "value": "0xec",
+    "evidence": "player_effect_get @0xa2690; 4 * 0xec = 0x3b0 = start of player_effect_globals_t.field_3b0"
+  },
+  "sources": [
+    "player_effect_get @0xa2690",
+    "player_effect_update_screen_flash @0xa2ab0",
+    "player_effect_update_camera_shake @0xa2ba0",
+    "FUN_000a27a0 @0xa27a0",
+    "player_effect_get_screen_flash @0xa2fc0",
+    "player_effect_get_camera_effect_matrix @0xa3370",
+    "player_effect_update_camera_impulse @0xa3890",
+    "player_effect_start @0xa3b80",
+    "player_effect_get_damage_indicators @0xa2a10"
+  ],
+  "notes": [
+    "+0x18..+0x4f is filled by REP MOVSD 0xe from the screen-flash descriptor (0xa2b0e); +0x50..+0x83 by REP MOVSD 0xd (0xa39eb); +0x84..+0xcb by REP MOVSD 0x12 (0xa2c22). Pads inside those ranges are only touched by the block copies.",
+    "No field names: no assert or string names a player_effect member; all fields are field_<hex>."
+  ],
+  "fields": [
+    {
+      "offset": "0x00",
+      "width": 4,
+      "kind": "float",
+      "array_len": 3,
+      "confidence": "typed",
+      "evidence": "FLD/FMUL float [EBX],[EBX+4],[EBX+8] cross product with global_up_vector @0xa3614; FSTP [EBX],[EBX+4] @0xa3a22"
+    },
+    {
+      "offset": "0x0c",
+      "width": 4,
+      "kind": "float",
+      "array_len": 3,
+      "confidence": "typed",
+      "evidence": "FMUL float [EBX+0xc..0x14] @0xa369a..0xa36b3; FSTP [ESI..ESI+8] with ESI=EBX+0xc @0xa3a7e"
+    },
+    {
+      "offset": "0x18",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOVSX EDX,word ptr [EDI+0x18] @0xa31d1"
+    },
+    {
+      "offset": "0x1a",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV AX,word ptr [EDX+0x1a]; CMP AX,word [EBX+2]; JLE (signed) @0xa2ac0"
+    },
+    {
+      "offset": "0x1c",
+      "width": 1,
+      "array_len": 12,
+      "confidence": "gap",
+      "signed": false
+    },
+    {
+      "offset": "0x28",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FMUL/FST float [EDX+0x28] @0xa2b10; FDIV float [EDI+0x28] @0xa3220"
+    },
+    {
+      "offset": "0x2c",
+      "width": 2,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "XOR EAX,EAX; MOV AX,word ptr [EDI+0x2c] @0xa3216 (zero-extend)"
+    },
+    {
+      "offset": "0x2e",
+      "width": 1,
+      "array_len": 14,
+      "confidence": "gap",
+      "signed": false
+    },
+    {
+      "offset": "0x3c",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FSTP float [ECX+0x3c] @0xa2b85; FMUL float [EDI+0x3c] @0xa3223"
+    },
+    {
+      "offset": "0x40",
+      "width": 4,
+      "kind": "float",
+      "array_len": 4,
+      "confidence": "typed",
+      "evidence": "16-byte argb copy to screen_flash+0x08 (four dwords from LEA ECX,[EDI+0x40]) @0xa31e0"
+    },
+    {
+      "offset": "0x50",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FLD/FSUBR float [EBX+0x50] @0xa35dc; FST float [EBX+0x50] @0xa39f0"
+    },
+    {
+      "offset": "0x54",
+      "width": 2,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "XOR EAX,EAX; MOV AX,word ptr [EBX+0x54] @0xa35e8"
+    },
+    {
+      "offset": "0x56",
+      "width": 1,
+      "array_len": 2,
+      "confidence": "gap",
+      "signed": false
+    },
+    {
+      "offset": "0x58",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FMUL float [EBX+0x58] @0xa3663"
+    },
+    {
+      "offset": "0x5c",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FMUL float [EBX+0x5c] @0xa367d"
+    },
+    {
+      "offset": "0x60",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "MOV ECX,[EBX+0x60] passed to random_real_range lower bound @0xa39fe"
+    },
+    {
+      "offset": "0x64",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "MOV EAX,[EBX+0x64] passed to random_real_range upper bound @0xa3a0c"
+    },
+    {
+      "offset": "0x68",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FCOMP float [EBX+0x68] @0xa38e4; dword store @0xa39f6; MOV EDX,[EBX+0x68] then FMUL @0xa35e5"
+    },
+    {
+      "offset": "0x6c",
+      "width": 1,
+      "array_len": 24,
+      "confidence": "gap",
+      "signed": false
+    },
+    {
+      "offset": "0x84",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FLD/FSUBR float [EBX+0x84] @0xa3710; FMUL/FST [EAX] (EAX=EBX+0x84) @0xa2c2d"
+    },
+    {
+      "offset": "0x88",
+      "width": 2,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "XOR EAX,EAX; MOV AX,word ptr [EBX+0x88] @0xa372b"
+    },
+    {
+      "offset": "0x8a",
+      "width": 1,
+      "array_len": 2,
+      "confidence": "gap",
+      "signed": false
+    },
+    {
+      "offset": "0x8c",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FMUL float [EBX+0x8c] @0xa379c"
+    },
+    {
+      "offset": "0x90",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FMUL float [EBX+0x90] @0xa37bd"
+    },
+    {
+      "offset": "0x94",
+      "width": 1,
+      "array_len": 12,
+      "confidence": "gap",
+      "signed": false
+    },
+    {
+      "offset": "0xa0",
+      "width": 2,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "XOR EDX,EDX; MOV DX,word ptr [EBX+0xa0] @0xa3760"
+    },
+    {
+      "offset": "0xa2",
+      "width": 1,
+      "array_len": 2,
+      "confidence": "gap",
+      "signed": false
+    },
+    {
+      "offset": "0xa4",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FDIV float [EBX+0xa4] @0xa3771; FSTP float [EBX+0xa4] @0xa2c55"
+    },
+    {
+      "offset": "0xa8",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FMUL/FSUB float [EBX+0xa8] @0xa3780"
+    },
+    {
+      "offset": "0xac",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FMUL float [EBP-8] loaded from [EBX+0xac] @0xa371c; FCOM/FSTP float [EBX+0xac] @0xa2bed"
+    },
+    {
+      "offset": "0xb0",
+      "width": 1,
+      "array_len": 28,
+      "confidence": "gap",
+      "signed": false
+    },
+    {
+      "offset": "0xcc",
+      "width": 4,
+      "kind": "float",
+      "array_len": 4,
+      "confidence": "typed",
+      "evidence": "FADD/FSTP float [EDI],[EDI+4],[EDI+8],[EDI+0xc] with EDI=EBX+0xcc @0xa28c3; csmemset(EDI,0,0x10) @0xa384b"
+    },
+    {
+      "offset": "0xdc",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ADD word ptr [EBX+0xdc],AX; CMP word [EBX+0xdc],0; JLE (signed) @0xa382c"
+    },
+    {
+      "offset": "0xde",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOVSX ECX,word ptr [EDX+0xde] @0xa2acd; CMP word [EDI+0xde],0; JG @0xa31b3"
+    },
+    {
+      "offset": "0xe0",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOVSX EAX,word ptr [EBX+0xe0] @0xa38ac; TEST AX,AX; JG @0xa35b9"
+    },
+    {
+      "offset": "0xe2",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOVSX EAX,word ptr [EBX+0xe2] @0xa2bb5; MOV word [EBX+0xe2],AX @0xa2c36"
+    },
+    {
+      "offset": "0xe4",
+      "width": 1,
+      "signed": false,
+      "array_len": 4,
+      "confidence": "typed",
+      "evidence": "csmemcpy(out, effect+0xe4, 4) @0xa2a10; byte stores of 1 in player_effect_start @0xa3b80"
+    },
+    {
+      "offset": "0xe8",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "OR AL,1 @0xa2b88; AND byte [EDI+0xe8],0xfe @0xa31ca; OR AL,0x2 @0xa3acd; OR AL,0x4 @0xa2c4c"
+    },
+    {
+      "offset": "0xe9",
+      "width": 1,
+      "array_len": 3,
+      "confidence": "gap",
+      "signed": false
+    }
+  ]
+}

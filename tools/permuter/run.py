@@ -50,6 +50,7 @@ COMPILE_SH = REPO_ROOT / "tools" / "permuter" / "compile.sh"
 COMPARE_OBJ = REPO_ROOT / "tools" / "verify" / "compare_obj.py"
 XBE_REFERENCE = REPO_ROOT / "tools" / "verify" / "xbe_reference.py"
 LIFT_PIPELINE = REPO_ROOT / "tools" / "lift" / "lift_pipeline.py"
+SPLICE_COMPILE = REPO_ROOT / "tools" / "permuter" / "splice_compile.py"
 OBJDIFF_JSON = REPO_ROOT / "objdiff.json"
 DELINKED_DIR = REPO_ROOT / "delinked"
 BUILD_VC71 = REPO_ROOT / "build" / "vc71"
@@ -154,6 +155,20 @@ typedef union {
   long long QuadPart;
 } CACHE_DECOMPRESS_LARGE_INTEGER;
 """
+
+# typedef name -> incomplete struct tag declared for it in PYCPARSER_TYPEDEFS.
+_OPAQUE_TAGS = {m.group(2): m.group(1) for m in re.finditer(
+    r"typedef\s+struct\s+(\w+)\s+(\w+)\s*;", PYCPARSER_TYPEDEFS)}
+
+
+def _complete_opaque_tag(block_text: str, name: str) -> str | None:
+    """Rewrite `typedef struct [tag] {...} name;` as `struct <opaque tag> {...};`."""
+    m = re.match(r"\s*typedef\s+struct\s*(\w+)?\s*\{", block_text)
+    tail = re.search(r"\}\s*%s\s*;\s*$" % re.escape(name), block_text)
+    if not m or not tail or tail.start() < m.end():
+        return None
+    return "struct %s {%s};\n" % (
+        _OPAQUE_TAGS[name], block_text[m.end():tail.start()])
 
 
 # ---------------------------------------------------------------------------
@@ -517,22 +532,25 @@ def extract_function_body(source: Path, func_name: str) -> tuple[str, str] | Non
 
     # Keep blocks that define names used by the function.  Then iteratively
     # resolve transitive dependencies (a kept typedef may reference another).
+    # Emit kept blocks in source order: a dependency found on a later pass
+    # still precedes its users, or pycparser rejects the use.
     kept = []
     resolved = set(func_ids)
+    remaining = list(enumerate(all_blocks))
     changed = True
     while changed:
         changed = False
-        remaining = []
-        for block_text, def_names, block_ids in all_blocks:
+        still = []
+        for pos, (block_text, def_names, block_ids) in remaining:
             if def_names & resolved:
-                kept.append(block_text)
+                kept.append((pos, block_text))
                 resolved |= block_ids
                 changed = True
             else:
-                remaining.append((block_text, def_names, block_ids))
-        all_blocks = remaining
+                still.append((pos, (block_text, def_names, block_ids)))
+        remaining = still
 
-    return "\n\n".join(kept), func_body
+    return "\n\n".join(text for _, text in sorted(kept)), func_body
 
 
 def _generate_implicit_decls(func_body: str, file_statics: str) -> str:
@@ -611,7 +629,14 @@ def build_base_c(func_name: str, func_body: str, file_statics: str = "") -> str:
                 name = mname.group(1) if mname else None
                 pyc_names = _typedef_names_in_text(PYCPARSER_TYPEDEFS)
                 guard_names = _FI_TYPEDEF_NAMES | pyc_names
-                if name and name in pyc_names:
+                if name and name in _OPAQUE_TAGS and '{' in block_text:
+                    # PYCPARSER_TYPEDEFS declares this typedef over an
+                    # incomplete tag; complete that tag so the permuter's
+                    # type queries (struct_member_type) can see the fields.
+                    completed = _complete_opaque_tag(block_text, name)
+                    if completed:
+                        type_statics_lines.append(completed)
+                elif name and name in pyc_names:
                     # Already in PYCPARSER_TYPEDEFS; do not duplicate in type_statics
                     pass
                 elif name and name not in guard_names and '__int64' not in block_text:
@@ -915,6 +940,50 @@ def _audit_candidate(base_c: Path, cand_c: Path, func_name: str) -> str:
     return "UNKNOWN"
 
 
+_splice_module = None
+
+
+def _load_splice_compile():
+    global _splice_module
+    if _splice_module is None:
+        spec = importlib.util.spec_from_file_location("splice_compile", str(SPLICE_COMPILE))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _splice_module = mod
+    return _splice_module
+
+
+# Must equal third_party/decomp-permuter/src/scorer.py Scorer.raw_units().
+RAW_GATE_COUNTERS = ("mismatched_relocations", "uncertain_relocations",
+                     "unpaired_relocations", "alignment_ambiguous_steps")
+RAW_GATE_PENALTY = 20
+RAW_SCALE = 1001
+
+
+def raw_units(metrics: dict, base: dict) -> int:
+    units = metrics["compared_bytes"] - metrics["matching_bytes"]
+    units += RAW_GATE_PENALTY * max(0, base["matching_bytes"] - metrics["matching_bytes"])
+    for key in RAW_GATE_COUNTERS:
+        units += RAW_GATE_PENALTY * max(0, metrics[key] - base[key])
+    return units
+
+
+def raw_gate_verdict(metrics: dict, base: dict) -> str:
+    """The byte gate's per-function rule: matching bytes and their fraction
+    must not fall, and no gate counter may rise."""
+    if metrics["matching_bytes"] < base["matching_bytes"]:
+        return "REGRESSED"
+    if (metrics["matching_bytes"] * base["compared_bytes"]
+            < base["matching_bytes"] * metrics["compared_bytes"]):
+        return "REGRESSED"
+    if any(metrics[k] > base[k] for k in RAW_GATE_COUNTERS):
+        return "REGRESSED"
+    if (metrics["matching_bytes"] == base["matching_bytes"]
+            and metrics["compared_bytes"] == base["compared_bytes"]):
+        return "EQUAL"
+    return "IMPROVED"
+
+
 def get_lcs_score(func_name: str, compiled_obj: Path, ref_obj: Path,
                   ref_kind: str = "synth", source: Path | None = None) -> float | None:
     """Get LCS match % for a function between compiled and reference objects."""
@@ -988,6 +1057,17 @@ def main():
                     help="Save work dir to this path after run")
     ap.add_argument("--quiet", "-q", action="store_true",
                     help="Suppress diagnostic noise; only print final summary and errors")
+    ap.add_argument("--objective", choices=("raw", "lcs"), default="raw",
+                    help="Search/rank objective. raw (default): the byte gate's "
+                         "aligned raw-byte match, candidates compiled spliced into "
+                         "the real TU. lcs: legacy mnemonic-LCS on a standalone base.c.")
+    ap.add_argument("--unsafe-mutations", action="store_true",
+                    help="Allow the upstream mutation passes to move code without "
+                         "dependency checks (PERMUTER_SAFE_MUTATIONS=0). Off by "
+                         "default: unchecked moves produce behavior-changing winners.")
+    ap.add_argument("--restart-best-prob", type=float, default=0.5,
+                    help="Probability that a fresh random-walk chain starts from the "
+                         "worker's best candidate instead of base (0 = upstream).")
     ap.add_argument("--delinked-ref", action="store_true",
                     help="Score against the Ghidra-delinked object instead of the "
                          "XBE-derived reference vc71_verify uses. Opt-in only: the "
@@ -1028,6 +1108,9 @@ def main():
         print(f"[run.py] Source not found: {source}", file=sys.stderr)
         sys.exit(1)
 
+    os.environ["PERMUTER_SAFE_MUTATIONS"] = "0" if args.unsafe_mutations else "1"
+    os.environ["PERMUTER_RESTART_BEST_PROB"] = str(args.restart_best_prob)
+
     func_name = args.function
     _log(f"[run.py] Target function : {func_name}")
     _log(f"[run.py] Source file     : {source}")
@@ -1064,6 +1147,20 @@ def main():
               file=sys.stderr)
         sys.exit(1)
     _log(f"[run.py] Reference COFF  : {ref_coff} ({ref_kind})")
+
+    raw_address = None
+    if args.objective == "raw":
+        raw_address = _target_address(func_name, source)
+        if args.delinked_ref or ref_kind != "synth" or raw_address is None:
+            print("[run.py] ERROR: --objective raw needs the XBE-derived reference "
+                  "and a resolvable address; use --objective lcs.", file=sys.stderr)
+            sys.exit(1)
+        # compile.sh hands every compile (base, permuter candidates, rerank)
+        # to splice_compile.py, which compiles the body inside the real TU.
+        os.environ["PERMUTER_SPLICE_SOURCE"] = str(source)
+        os.environ["PERMUTER_SPLICE_FUNC"] = func_name
+        _log(f"[run.py] Objective       : raw aligned bytes @ 0x{raw_address:x} "
+             f"(opt {_load_splice_compile().function_opt(source, func_name)})")
 
     # ------------------------------------------------------------------
     # Set up work directory (must be on Windows-accessible path)
@@ -1129,7 +1226,16 @@ def main():
             f'compiler_type = "msvc"\n',
             f'objdump_command = "llvm-objdump -d --no-show-raw-insn --no-leading-addr"\n',
         ]
-        if has_lcs_ref:
+        if raw_address is not None:
+            if not has_lcs_ref:
+                print("[run.py] ERROR: raw objective needs the reference mnemonics "
+                      "for its LCS tie-break.", file=sys.stderr)
+                sys.exit(1)
+            settings_lines.append('score_algorithm = "raw_aligned"\n')
+            settings_lines.append(f'ref_mnemonics_file = "{ref_mnemonics_path.name}"\n')
+            settings_lines.append(f'raw_address = "0x{raw_address:x}"\n')
+            settings_lines.append('raw_base_file = "raw_base.json"\n')
+        elif has_lcs_ref:
             settings_lines.append('score_algorithm = "lcs"\n')
             settings_lines.append(f'ref_mnemonics_file = "{ref_mnemonics_path.name}"\n')
         settings_f.write_text("".join(settings_lines))
@@ -1151,6 +1257,36 @@ def main():
         else:
             _log("[run.py] Initial LCS     : (could not compute)")
 
+        raw_base = None
+        if raw_address is not None:
+            # Guard: the base candidate must score exactly what the byte gate
+            # measures for the committed source, or the search optimises a
+            # number the gate never sees.
+            sc = _load_splice_compile()
+            raw_base = sc.raw_metrics(base_o, func_name, raw_address)
+            gate_o = work_dir / "gate.o"
+            gate = (sc.raw_metrics(gate_o, func_name, raw_address)
+                    if sc.compile_spliced(None, source, func_name, gate_o) else None)
+            if raw_base is None or gate is None:
+                print("[run.py] BASELINE MISMATCH: raw byte audit failed for "
+                      f"{'base.o' if raw_base is None else 'the gate compile'}.",
+                      file=sys.stderr)
+                sys.exit(4)
+            keys = ("matching_bytes", "compared_bytes") + RAW_GATE_COUNTERS
+            if any(raw_base[k] != gate[k] for k in keys):
+                print("[run.py] BASELINE MISMATCH: base.o raw "
+                      f"{raw_base['matching_bytes']}/{raw_base['compared_bytes']} != gate "
+                      f"{gate['matching_bytes']}/{gate['compared_bytes']} -- base.c "
+                      "extraction changes codegen; the search would optimise the "
+                      "wrong number.", file=sys.stderr)
+                sys.exit(4)
+            raw_base = {k: raw_base[k] for k in keys}
+            (work_dir / "raw_base.json").write_text(json.dumps(raw_base) + "\n")
+            _log(f"[run.py] Initial raw     : {raw_base['matching_bytes']}/"
+                 f"{raw_base['compared_bytes']} bytes "
+                 f"({100.0 * raw_base['matching_bytes'] / raw_base['compared_bytes']:.1f}%), "
+                 "equals gate (OK)")
+
         expected_in_search_base_score = None
         if has_lcs_ref:
             try:
@@ -1162,6 +1298,12 @@ def main():
                 expected_in_search_base_score = round((100.0 - ratio * 100.0) * 10)
             except Exception:
                 pass
+            if raw_base is not None:
+                lcs_loss = (expected_in_search_base_score
+                            if expected_in_search_base_score is not None else init_score)
+                expected_in_search_base_score = (
+                    None if lcs_loss is None
+                    else raw_units(raw_base, raw_base) * RAW_SCALE + lcs_loss)
 
         # ------------------------------------------------------------------
         # Run permuter
@@ -1235,6 +1377,11 @@ def main():
             base_score_matches = re.findall(r"base score = (-?\d+)", child_combined)
             if base_score_matches:
                 printed_base_score = int(base_score_matches[0])
+                if printed_base_score != target_expected and raw_base is not None:
+                    print("[run.py] BASELINE MISMATCH: permuter's in-search raw base "
+                          f"score {printed_base_score} != expected {target_expected}.",
+                          file=sys.stderr)
+                    sys.exit(4)
                 if printed_base_score != target_expected:
                     _log("\n[run.py] NOTE: permuter's in-search base score "
                          f"({printed_base_score}) differs from init_score "
@@ -1250,18 +1397,15 @@ def main():
         # ------------------------------------------------------------------
         # LCS-gated candidate selection
         # ------------------------------------------------------------------
-        # The permuter's penalty score can diverge from the repo's LCS
-        # instruction-match metric.  We compile every output candidate,
-        # compute the repo LCS for each, and select by:
-        #   1. Highest LCS first (must exceed baseline)
-        #   2. Lowest permuter penalty as tie-breaker
-        #   3. Equal-LCS candidates labelled as manual-inspection only
+        # Recompile every output candidate and rank by the objective: raw
+        # mode by (raw units, -LCS, penalty) with the byte gate's verdict;
+        # LCS mode by highest LCS, then lowest permuter penalty.
         # ------------------------------------------------------------------
         outputs = sorted(work_dir.glob("output-*"))
         if not outputs:
             print("\n[run.py] No improvements found in this run.")
         else:
-            _log(f"\n[run.py] Scoring {len(outputs)} candidate(s) by LCS...")
+            _log(f"\n[run.py] Scoring {len(outputs)} candidate(s) by {args.objective}...")
 
             candidates = []
             for out_dir in outputs:
@@ -1283,24 +1427,48 @@ def main():
                 if lcs is None:
                     _log(f"  penalty={perm_penalty}: LCS lookup failed, skipping")
                     continue
-                candidates.append((lcs, perm_penalty, out_dir, obj_file))
-                is_best = init_pct is None or lcs > init_pct
-                label = "NEW BEST" if is_best else ""
+                raw = None
+                if raw_base is not None:
+                    raw = _load_splice_compile().raw_metrics(obj_file, func_name, raw_address)
+                    if raw is None:
+                        _log(f"  penalty={perm_penalty}: raw byte audit failed, skipping")
+                        continue
+                candidates.append((lcs, perm_penalty, out_dir, obj_file, raw))
+                if raw is not None:
+                    verdict = raw_gate_verdict(raw, raw_base)
+                    is_best = verdict == "IMPROVED"
+                    shown = (f"raw={raw['matching_bytes']}/{raw['compared_bytes']}  "
+                             f"LCS={lcs:5.1f}%  {verdict}")
+                else:
+                    is_best = init_pct is None or lcs > init_pct
+                    shown = f"LCS={lcs:5.1f}%  {'NEW BEST' if is_best else ''}"
                 # In quiet mode only log candidates that beat the baseline
                 if not _quiet or is_best:
-                    print(f"  penalty={perm_penalty:>6d}  LCS={lcs:5.1f}%  {label}")
+                    print(f"  penalty={perm_penalty:>6d}  {shown}")
 
             if not candidates:
                 print("[run.py] No candidates compiled successfully.")
             else:
-                candidates.sort(key=lambda c: (-c[0], c[1]))
-                best_lcs, best_penalty, best_dir, best_obj = candidates[0]
+                if raw_base is not None:
+                    candidates.sort(key=lambda c: (raw_units(c[4], raw_base), -c[0], c[1]))
+                else:
+                    candidates.sort(key=lambda c: (-c[0], c[1]))
+                best_lcs, best_penalty, best_dir, best_obj, best_raw = candidates[0]
 
                 print(f"\n[run.py] Best permuter penalty: {best_penalty}")
                 print(f"[run.py] Best LCS            : {best_lcs:.1f}%")
                 _log(f"[run.py] Best output dir     : {best_dir}")
 
-                if init_pct is not None:
+                if best_raw is not None:
+                    verdict = raw_gate_verdict(best_raw, raw_base)
+                    print(f"[run.py] Best raw bytes      : {best_raw['matching_bytes']}/"
+                          f"{best_raw['compared_bytes']} (baseline "
+                          f"{raw_base['matching_bytes']}/{raw_base['compared_bytes']})")
+                    print({"IMPROVED": "[run.py] Result: IMPROVED on the byte gate's metric",
+                           "EQUAL": "[run.py] Result: EQUAL to baseline — manual inspection only",
+                           "REGRESSED": "[run.py] Result: REGRESSED on the byte gate — do not apply",
+                           }[verdict])
+                elif init_pct is not None:
                     delta = best_lcs - init_pct
                     print(f"[run.py] Baseline            : {init_pct:.1f}%")
                     if delta > 0:
@@ -1317,7 +1485,7 @@ def main():
                 # equivalence gates.  See tools/permuter/audit_candidate.py and
                 # docs/lift-learnings.md section 44.
                 audits = {}
-                for _, penalty, d, _obj in candidates:
+                for _, penalty, d, _obj, _raw in candidates:
                     audits[d.name] = _audit_candidate(
                         base_c=work_dir / "base.c",
                         cand_c=d / "source.c",
@@ -1336,12 +1504,21 @@ def main():
                 summary = work_dir / "lcs_results.txt"
                 with open(summary, "w") as sf:
                     sf.write(f"baseline_lcs={init_pct}\n")
-                    for rank, (lcs, penalty, d, _) in enumerate(candidates, 1):
+                    if raw_base is not None:
+                        sf.write(f"baseline_raw={raw_base['matching_bytes']}/"
+                                 f"{raw_base['compared_bytes']}\n")
+                    for rank, (lcs, penalty, d, _, raw) in enumerate(candidates, 1):
                         delta_str = f"{lcs - init_pct:+.1f}" if init_pct else "n/a"
-                        verdict = "IMPROVED" if init_pct and lcs > init_pct else (
-                            "EQUAL" if init_pct and lcs == init_pct else (
-                            "REGRESSED" if init_pct and lcs < init_pct else "UNKNOWN"))
-                        sf.write(f"rank={rank} lcs={lcs:.1f} penalty={penalty} "
+                        if raw is not None:
+                            verdict = raw_gate_verdict(raw, raw_base)
+                            raw_str = (f"raw={raw['matching_bytes']}/{raw['compared_bytes']} "
+                                       f"raw_units={raw_units(raw, raw_base)} ")
+                        else:
+                            verdict = "IMPROVED" if init_pct and lcs > init_pct else (
+                                "EQUAL" if init_pct and lcs == init_pct else (
+                                "REGRESSED" if init_pct and lcs < init_pct else "UNKNOWN"))
+                            raw_str = ""
+                        sf.write(f"rank={rank} {raw_str}lcs={lcs:.1f} penalty={penalty} "
                                  f"delta={delta_str} verdict={verdict} "
                                  f"audit={audits.get(d.name, 'UNKNOWN')} "
                                  f"dir={d.name}\n")

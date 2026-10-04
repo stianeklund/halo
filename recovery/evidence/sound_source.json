@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "struct": "sound_source",
+  "sources": [
+    "2276 assert string 'source->spatialization_mode==_sound_spatialization_mode_none || valid_real_normal3d(&source->location.forward)' @0x2c17c0, xrefs @0x1ce1f8 / @0x1ce587: CMP word ptr [EDI],0x0 then LEA ECX,[EDI+0x18] passed to 0x21fb0",
+    "2276 assert string 'source->spatialization_mode==_sound_spatialization_mode_absolute' @0x2bc640 (xref @0x1c8391): CMP word ptr [ESI],0x1 @0x1c8371",
+    "2276 assert string 'sound_valid_for_channel(..., sound->source.spatialization_mode, ...)' @0x2c19c8: MOV DX,word ptr [ESI+0x14] @0x1cf532 (source embedded at sound+0x14)",
+    "2276 FUN_001ccbe0 @0x1ccbe0 / FUN_001ccca0 @0x1ccca0: MOVSX EAX,word ptr [EDI] switch 0/1/2; FLD/FSUB float ptr [EDI+0xc/+0x10/+0x14]",
+    "2276 FUN_001c8310 @0x1c8375/0x1c837c: MOV dword ptr [ESI+0x38],0x3f19999a; MOV dword ptr [ESI+0x3c],0x3f800000; CMP word ptr [ESI+0x34],BX @0x1c83a4",
+    "2276 sound_allocate_channel @0x1cd672: CMP dword ptr [EDI+0x3c],0x3f800000",
+    "2276 sound_refresh_looping (FUN_001ce550) @0x1ce64b..0x1ce656: MOV ESI,[EBP+0x10] (source); LEA EDI,[EBX+0xc]; MOV ECX,0x10; MOVSD.REP (0x40-byte copy)",
+    "2276 sound_start (FUN_001ce180) @0x1ce1a3: MOV EAX,dword ptr [EDI+0x4] (source+4)",
+    "2276 FUN_001ce9c0 @0x1cea76..0x1cea83: stack source at EBP-0x7c: MOV word [EBP-0x7c],0; MOV dword [EBP-0x78],0x3f800000; MOV dword [EBP-0x74],0x3f800000; passed to sound_start @0x1ceaaf"
+  ],
+  "fields": [
+    {
+      "offset": "0x00",
+      "width": 2,
+      "signed": true,
+      "name": "spatialization_mode",
+      "confidence": "named",
+      "evidence": "assert strings @0x2c17c0 / @0x2bc640 / @0x2c19c8 name source->spatialization_mode; MOVSX EAX,word ptr [EDI] @0x1ccbe7"
+    },
+    {
+      "offset": "0x04",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "MOV dword ptr [EBP-0x78],0x3f800000 (1.0f) @0x1cea7c; MOV EAX,dword ptr [EDI+0x4] in sound_start @0x1ce1a3"
+    },
+    {
+      "offset": "0x08",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "MOV dword ptr [EBP-0x74],0x3f800000 (1.0f) @0x1cea83"
+    },
+    {
+      "offset": "0x0c",
+      "width": 4,
+      "kind": "float",
+      "array_len": 3,
+      "name": "location_position",
+      "confidence": "typed",
+      "evidence": "FSUB float ptr [EDI+0xc/+0x10/+0x14] against listener matrix translation @0x1ccc4a..0x1ccc59; squared length in mode 2 @0x1ccc1e..0x1ccc25"
+    },
+    {
+      "offset": "0x18",
+      "width": 4,
+      "kind": "float",
+      "array_len": 3,
+      "name": "location_forward",
+      "confidence": "named",
+      "evidence": "'valid_real_normal3d(&source->location.forward)' @0x2c17c0 with LEA ECX,[EDI+0x18] @0x1ce1dc"
+    },
+    {
+      "offset": "0x34",
+      "width": 2,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "CMP word ptr [ESI+0x34],BX @0x1c83a4; XOR EDX,EDX; MOV DX,word ptr [ESI+0x34] @0x1c83bd/0x1c83bf (zero-extended)"
+    },
+    {
+      "offset": "0x38",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "MOV dword ptr [ESI+0x38],0x3f19999a (0.6f) @0x1c8375"
+    },
+    {
+      "offset": "0x3c",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "MOV dword ptr [ESI+0x3c],0x3f800000 (1.0f) @0x1c837c; CMP dword ptr [EDI+0x3c],0x3f800000 @0x1cd672"
+    }
+  ],
+  "notes": [
+    "location_position / location_forward render in C as a nested 'location' member { real_point3d position; real_vector3d forward; } at +0x0c; 'location' and 'forward' are T1 from @0x2c17c0, 'position' is T2 (the point subtracted from the listener translation).",
+    "spatialization_mode values: 0 = _sound_spatialization_mode_none, 1 = _sound_spatialization_mode_absolute (assert strings); 2 (location already listener-relative, read as a delta vector) has no string name and stays a literal.",
+    "+0x02..0x03, +0x24..0x33, +0x36..0x37 never observed accessed in the consulted functions."
+  ],
+  "size": {
+    "value": "0x40",
+    "evidence": "sound_refresh_looping copies the whole source with MOV ECX,0x10; MOVSD.REP @0x1ce651/0x1ce656; FUN_001ce9c0 builds a source in a 0x40-byte stack block"
+  }
+}

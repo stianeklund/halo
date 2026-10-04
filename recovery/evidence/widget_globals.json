@@ -1,0 +1,348 @@
+{
+  "schema": 1,
+  "struct": "widget_globals",
+  "sources": [
+    "assert string \"widget_globals.initialized\" @0x2832d4 (refs 0xe3e28, 0xe69cd, 0xe6a40, 0xe9471, 0xe8512, 0xe8718)",
+    "assert string \"widget && widget_globals.initialized\" @0x28379c (ref 0xe5646)",
+    "assert string \"widget_globals.initialization_thread==NULL\" @0x283bbc (ref 0xe6995)",
+    "ui_widgets_initialize: csmemset(0x46cc20, 0, 0x68) (DATA ref 0xe3c26)",
+    "Ghidra xref listing for 0x46cc20..0x46cc87"
+  ],
+  "size": {
+    "value": "0x68",
+    "evidence": "ui_widgets_initialize / ui_widgets_dispose csmemset(0x46cc20, 0, 0x68)"
+  },
+  "fields": [
+    {
+      "offset": "0x00",
+      "width": 4,
+      "signed": true,
+      "array_len": 4,
+      "confidence": "typed",
+      "evidence": "0xe3d70 loop: CMP dword [ECX],0; ADD ECX,4; CMP ECX,0x46cc30 (root widget per stack)"
+    },
+    {
+      "offset": "0x10",
+      "width": 4,
+      "signed": true,
+      "array_len": 4,
+      "confidence": "typed",
+      "evidence": "dword list heads read/written @0xe58d6/0xe58ed, loop bound 0x46cc40 (pending-load lists)"
+    },
+    {
+      "offset": "0x20",
+      "width": 4,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "MOV ECX,dword [0x46cc40] @0xe7b7b; written from system_milliseconds @0xe9491; unsigned compare in event dispatch"
+    },
+    {
+      "offset": "0x24",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "kb.json global int dword_46CC44 (ui_widgets_disable_pause_game)"
+    },
+    {
+      "offset": "0x28",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "kb.json global __int16 word_46CC48; -1 sentinel stored in ui_widgets_initialize"
+    },
+    {
+      "offset": "0x2a",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "CMP word [0x46cc4a],SI @0xe5763; INC/DEC word @0xe578c/0xe7cbc"
+    },
+    {
+      "offset": "0x2c",
+      "width": 4,
+      "kind": "float",
+      "confidence": "typed",
+      "evidence": "FLD float [0x46cc4c] @0xe7a73"
+    },
+    {
+      "offset": "0x30",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[0].error_handle (CMP word [0x46cc50],DI @0xe9583)"
+    },
+    {
+      "offset": "0x32",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[0].local_player_index (MOV word [EAX+0x46cc52],DI @0xe455f)"
+    },
+    {
+      "offset": "0x34",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[0] byte @+4 (@0xe4567)"
+    },
+    {
+      "offset": "0x35",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[0] byte @+5 (@0xe456d)"
+    },
+    {
+      "offset": "0x36",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[1].error_handle (CMP word [0x46cc50],DI @0xe9583)"
+    },
+    {
+      "offset": "0x38",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[1].local_player_index (MOV word [EAX+0x46cc52],DI @0xe455f)"
+    },
+    {
+      "offset": "0x3a",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[1] byte @+4 (@0xe4567)"
+    },
+    {
+      "offset": "0x3b",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[1] byte @+5 (@0xe456d)"
+    },
+    {
+      "offset": "0x3c",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[2].error_handle (CMP word [0x46cc50],DI @0xe9583)"
+    },
+    {
+      "offset": "0x3e",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[2].local_player_index (MOV word [EAX+0x46cc52],DI @0xe455f)"
+    },
+    {
+      "offset": "0x40",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[2] byte @+4 (@0xe4567)"
+    },
+    {
+      "offset": "0x41",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[2] byte @+5 (@0xe456d)"
+    },
+    {
+      "offset": "0x42",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[3].error_handle (CMP word [0x46cc50],DI @0xe9583)"
+    },
+    {
+      "offset": "0x44",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[3].local_player_index (MOV word [EAX+0x46cc52],DI @0xe455f)"
+    },
+    {
+      "offset": "0x46",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[3] byte @+4 (@0xe4567)"
+    },
+    {
+      "offset": "0x47",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "ui_widget_deferred_error_t[3] byte @+5 (@0xe456d)"
+    },
+    {
+      "offset": "0x48",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV AX,[0x46cc68] @0xe9559; MOV word [0x46cc68],DX @0xe3c3d"
+    },
+    {
+      "offset": "0x4a",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "MOV CL,byte [0x46cc6a] @0xe9566"
+    },
+    {
+      "offset": "0x4b",
+      "width": 1,
+      "array_len": 1,
+      "confidence": "gap"
+    },
+    {
+      "offset": "0x4c",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_cinematic_deferred_error_t[0].error_handle (@0xe895d)"
+    },
+    {
+      "offset": "0x4e",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "cinematic record [0] byte @+2 (@0xe897a)"
+    },
+    {
+      "offset": "0x4f",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "cinematic record [0] byte @+3 (@0xe8981)"
+    },
+    {
+      "offset": "0x50",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_cinematic_deferred_error_t[1].error_handle (@0xe895d)"
+    },
+    {
+      "offset": "0x52",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "cinematic record [1] byte @+2 (@0xe897a)"
+    },
+    {
+      "offset": "0x53",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "cinematic record [1] byte @+3 (@0xe8981)"
+    },
+    {
+      "offset": "0x54",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_cinematic_deferred_error_t[2].error_handle (@0xe895d)"
+    },
+    {
+      "offset": "0x56",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "cinematic record [2] byte @+2 (@0xe897a)"
+    },
+    {
+      "offset": "0x57",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "cinematic record [2] byte @+3 (@0xe8981)"
+    },
+    {
+      "offset": "0x58",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ui_widget_cinematic_deferred_error_t[3].error_handle (@0xe895d)"
+    },
+    {
+      "offset": "0x5a",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "cinematic record [3] byte @+2 (@0xe897a)"
+    },
+    {
+      "offset": "0x5b",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "cinematic record [3] byte @+3 (@0xe8981)"
+    },
+    {
+      "offset": "0x5c",
+      "width": 4,
+      "kind": "pointer",
+      "points_to": "void",
+      "name": "initialization_thread",
+      "confidence": "named",
+      "evidence": "MOV EAX,[0x46cc7c] @0xe6980 feeds assert \"widget_globals.initialization_thread==NULL\""
+    },
+    {
+      "offset": "0x60",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOVSX EAX,word [0x46cc80] @0xe94c9"
+    },
+    {
+      "offset": "0x62",
+      "width": 1,
+      "signed": false,
+      "name": "initialized",
+      "confidence": "named",
+      "evidence": "MOV AL,[0x46cc82]; TEST AL,AL @0xe3e13 feeds assert \"widget_globals.initialized\""
+    },
+    {
+      "offset": "0x63",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "MOV byte [0x46cc83],1/0 @0xe5bb7/0xe5c11"
+    },
+    {
+      "offset": "0x64",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "MOV AL,[0x46cc84] @0xe79ed"
+    },
+    {
+      "offset": "0x65",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "MOV byte [0x46cc85],CL @0xe3e49"
+    },
+    {
+      "offset": "0x66",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "MOV AL,[0x46cc86] @0xe45d0"
+    },
+    {
+      "offset": "0x67",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "CMP byte [0x46cc87],1 @0xe57c4"
+    }
+  ],
+  "notes": [
+    "Realised in src/halo/interface/ui_widget_globals.h as widget_globals_<member> macros off widget_globals_base, not as a struct type. Observed (2026-10-05): a widget_globals_t struct definition (with 2+ members, even unused, any tag/member names, any include position) and a used stride-0x50 child-reference struct each moved widget_instance_process_one_event_recursive from 1102 to 1100 bytes (register swap dx<->si around the 0x7fff/0xffff8000 int16 clamp constants). Not monotonic in member count: an unused 8-member struct passed, and a forward-typedef variant with fewer members failed.",
+    "0x30..0x47 is ui_widget_deferred_error_t[4] (recovery/evidence/ui_widget_deferred_error_t.json); 0x4c..0x5b is ui_widget_cinematic_deferred_error_t[4] (recovery/evidence/ui_widget_cinematic_deferred_error_t.json); both flattened here per element.",
+    "Neighbouring globals outside the 0x68 block: byte 0x46cc88 (MOV AL,[0x46cc88] @0xe43e0) and uint32 table 0x46cc90 (MOV dword [ECX*4+0x46cc90],EDX @0xe8442)."
+  ]
+}

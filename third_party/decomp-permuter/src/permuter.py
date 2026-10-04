@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import difflib
 import hashlib
 import itertools
+import os
 import random
 import re
 import traceback
@@ -138,6 +139,15 @@ class Permuter:
         self._last_score: Optional[int] = None
         self._score_for_source: Dict[bytes, int] = {}
         self.speed = speed
+        # [halo] Elitist restarts: when the random walk does not keep its last
+        # candidate, restart from this worker's best candidate (instead of
+        # base) with this probability, so multi-step improvements can build
+        # on each other.  0 keeps upstream behavior.
+        self._restart_best_prob = float(
+            os.environ.get("PERMUTER_RESTART_BEST_PROB", "0") or 0
+        )
+        self._local_best_score = self.base_score
+        self._local_best_source: Optional[str] = None
 
     def _create_and_score_base(self) -> Tuple[int, str, str]:
         base_source, eval_state = perm_evaluate_one(self._permutations)
@@ -183,7 +193,14 @@ class Permuter:
         # we're randomizing anyway.
         if not self._cur_cand or not keep:
             eval_state = EvalState()
-            cand_c = self._permutations.evaluate(seed, eval_state)
+            if (
+                self._local_best_source is not None
+                and self._permutations.is_random()
+                and random.uniform(0, 1) < self._restart_best_prob
+            ):
+                cand_c = self._local_best_source
+            else:
+                cand_c = self._permutations.evaluate(seed, eval_state)
             rng_seed = self._force_rng_seed or random.randrange(1, 10**20)
             self._cur_seed = (seed, rng_seed)
             self._cur_cand = Candidate.from_source(
@@ -222,6 +239,12 @@ class Permuter:
             result.profiler = profiler
 
         self._last_score = result.score
+        if (
+            result.score < self._local_best_score
+            and result.score != self.scorer.PENALTY_INF
+        ):
+            self._local_best_score = result.score
+            self._local_best_source = cand_source
 
         if not self._need_to_send_source(result):
             result.source = None

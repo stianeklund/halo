@@ -1,0 +1,180 @@
+{
+  "schema": 1,
+  "struct": "animation_t",
+  "sources": [
+    "assert strings (2276, model_animation_definitions.c / model_animations.c): 'frame_index>=0 && frame_index<animation->frame_count' @0x290c60, 'compressed || (byte *)data-(byte *)animation_get_frame_data(animation, frame_index)==animation->frame_size' @0x291230, 'compressed || (byte *)default_data-(byte *)animation_get_default_data(animation)==animation->default_data.size' @0x2911c0, 'animation->frame_count>1' @0x291440",
+    "FUN_00120500 (0x120500) listing: TEST byte [EDI+0x3a],1; LEA [EDI+0xa0] -> tag_data_get_pointer; CMP BX,word [EDI+0x22]; ADD ESI,dword [EDI+0x88]; MOVSX ECX,word [EDI+0x24]",
+    "animation_set_frame_size (0x120790) listing: CMP word [ESI+0x2c],0 / MOVZX EBX,word [ESI+0x2c]; TEST dword [ESI+ECX*4+0x6c/0x5c/0x7c],EAX with ECX=node_index>>5; MOV word [ESI+0x24],DI",
+    "FUN_00121d60 (0x121d60) listing: MOVSX EAX,word [EDI+0x24] compared under the frame_size assert @0x121fdf; MOV EDX,dword [EDI+0x98] / MOV ECX,dword [EDI+0x8c] compared under the default_data.size assert @0x12200d",
+    "stride 0xb4: tag_block_get_element(antr+0x74, index, 0xb4) @0x120f9e and in animation_graph_get_animation_by_name (0x120cb0); existing animation_t in src/types.h (name[0x20], frame_count @0x22, cs 0xb4)",
+    "animation_get_x_offsets (0x120710), animation_frame_get_xy_translation (0x120ee0), animation_update_internal (0x121c30) listings"
+  ],
+  "size": {
+    "value": 180,
+    "evidence": "element size 0xb4 pushed to tag_block_get_element for antr+0x74 (0x120f9e, 0x120cb0)"
+  },
+  "stride": {
+    "value": 180,
+    "evidence": "element size 0xb4 pushed to tag_block_get_element for antr+0x74 (0x120f9e, 0x120cb0)"
+  },
+  "fields": [
+    {
+      "offset": "0x20",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "CMP word [EDI+0x20],BX (BX=0) @0x121d70 in FUN_00121d60"
+    },
+    {
+      "offset": "0x22",
+      "width": 2,
+      "signed": true,
+      "name": "frame_count",
+      "confidence": "named",
+      "evidence": "assert 'frame_index>=0 && frame_index<animation->frame_count' @0x290c60; CMP BX,word [EDI+0x22] + JL (signed) @0x12053e"
+    },
+    {
+      "offset": "0x24",
+      "width": 2,
+      "signed": true,
+      "name": "frame_size",
+      "confidence": "named",
+      "evidence": "assert '...==animation->frame_size' @0x291230 compares MOVSX word [EDI+0x24] @0x121fdf; stored by animation_set_frame_size MOV word [ESI+0x24],DI @0x120801"
+    },
+    {
+      "offset": "0x26",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOVSX EBX,word [ECX+0x26] @0x120735; CMP word [EAX+0x26],0x1 @0x120ee6"
+    },
+    {
+      "offset": "0x28",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV EAX,dword [EDI+0x28] compared with a tag index @0x121d7e"
+    },
+    {
+      "offset": "0x2c",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "per-node loop bound: CMP word [ESI+0x2c],0 + JLE (signed) @0x1207bb in animation_set_frame_size"
+    },
+    {
+      "offset": "0x2e",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV CX,word [EDI+0x2e] / TEST CX,CX / JLE @0x121cd5"
+    },
+    {
+      "offset": "0x34",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV CX,word [ECX+0x34] @0x120739; CMP CX,word [EDI+0x34] @0x121d3f"
+    },
+    {
+      "offset": "0x36",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "CMP CX,word [EDI+0x36] @0x121d45"
+    },
+    {
+      "offset": "0x3a",
+      "width": 1,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "TEST byte [EDI+0x3a],1 @0x120509 (bit 0 selects the compressed frame-data path)"
+    },
+    {
+      "offset": "0x3c",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV AX,word [EDI+0x3c] / CMP AX,0xffff / MOVSX as block index @0x121c8e"
+    },
+    {
+      "offset": "0x3e",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV DX,word [EDI+0x3e] / CMP DX,word [ESI+0x2] @0x121c98"
+    },
+    {
+      "offset": "0x42",
+      "width": 2,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "XOR EAX,EAX / MOV AX,word [EDI+0x42] pushed to 0x120f20 @0x121d01 (zero-extending load; signedness depends on the callee parameter type)"
+    },
+    {
+      "offset": "0x54",
+      "width": 4,
+      "kind": "pointer",
+      "points_to": "void",
+      "confidence": "typed",
+      "evidence": "MOV EAX,dword [ECX+0x54] walked as float data @0x12071d (address member of a tag_data at +0x48)"
+    },
+    {
+      "offset": "0x5c",
+      "width": 4,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "TEST dword [ESI+ECX*4+0x5c],EAX @0x1207ea, ECX=node_index>>5 (per-node bit words; adds 0xc bytes per set node); array extent not proven"
+    },
+    {
+      "offset": "0x6c",
+      "width": 4,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "TEST dword [ESI+ECX*4+0x6c],EAX @0x1207e1, ECX=node_index>>5 (adds 8 bytes per set node); array extent not proven"
+    },
+    {
+      "offset": "0x7c",
+      "width": 4,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "TEST dword [ESI+ECX*4+0x7c],EAX @0x1207f3, ECX=node_index>>5 (adds 4 bytes per set node); array extent not proven"
+    },
+    {
+      "offset": "0x88",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "ADD ESI,dword [EDI+0x88] @0x12056b (byte offset added to the 0xa0 tag_data pointer on the compressed path)"
+    },
+    {
+      "offset": "0x8c",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOV ECX,dword [EDI+0x8c] compared under assert '...==animation->default_data.size' @0x122013 (default_data tag_data, size member)"
+    },
+    {
+      "offset": "0x98",
+      "width": 4,
+      "kind": "pointer",
+      "points_to": "void",
+      "confidence": "typed",
+      "evidence": "MOV EDX,dword [EDI+0x98] subtracted from the walked default_data pointer @0x12200d (default_data tag_data, address member at +0xc)"
+    },
+    {
+      "offset": "0xa0",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "LEA EAX,[EDI+0xa0] passed to tag_data_get_pointer @0x120522 (frame data tag_data; first member)"
+    }
+  ],
+  "notes": [
+    "Only offsets read in the 2276 listing are recorded.",
+    "Widths for +0x20/+0x26/+0x28/+0x2e/+0x34/+0x36/+0x3c/+0x3e/+0x42/+0x54 re-checked in the 0x120710, 0x120ee0, 0x121c30 and 0x121d60 listings. +0x48 (tag_data head) not observed directly.",
+    "0x8c..0xa0 and 0xa0..0xb4 are 0x14-byte tag_data members (default_data, frame data).",
+    "types.h currently declares only name/frame_count; extending it there is the owner's call because adding layout to types.h moves unrelated VC71 code.",
+    "src/types.h carries only the 1:1 renames (no added members): every probed layout that adds struct members moved VC71 code in unrelated TUs (debug_realloc, FUN_000abd20, widget_instance_process_one_event_recursive, solo_level_select_list_update_displayed_items, game_engine_post_rasterize_post_game). The remaining fields here are proven but not yet rendered."
+  ]
+}

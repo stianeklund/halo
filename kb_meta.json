@@ -910,6 +910,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x22b40": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x22ba0": {
       "kind": "function",
       "status": "ported"
@@ -972,6 +976,10 @@
       ]
     },
     "0x24770": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x24850": {
       "kind": "function",
       "status": "ported"
     },
@@ -2652,6 +2660,10 @@
         "The three color constants at 0x2ee6c8, 0x2ee6d8 and 0x2ee6e0 are dereferenced pointer globals (PTR_DAT_* in the delinked reference) whose meaning is unnamed; only the selector byte at encounter datum +0xd is known to choose between 0x2ee6e0 and 0x2ee6d8."
       ]
     },
+    "0x497c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x498d0": {
       "kind": "function",
       "status": "ported"
@@ -2839,6 +2851,10 @@
       ]
     },
     "0x53790": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x53800": {
       "kind": "function",
       "status": "ported"
     },
@@ -3732,6 +3748,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x5e330": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x5e560": {
       "kind": "function",
       "status": "ported"
@@ -3777,6 +3797,14 @@
       "status": "ported"
     },
     "0x60c40": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x60c80": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x61280": {
       "kind": "function",
       "status": "ported"
     },
@@ -5798,6 +5826,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x89240": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x89270": {
       "kind": "function",
       "status": "ported"
@@ -5883,6 +5915,10 @@
       "status": "ported"
     },
     "0x8ab90": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x8ac70": {
       "kind": "function",
       "status": "ported"
     },
@@ -8702,6 +8738,10 @@
       "status": "ported"
     },
     "0xb4300": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0xb46b0": {
       "kind": "function",
       "status": "ported"
     },
@@ -16916,7 +16956,19 @@
         "Semantic name is uncertain: could be matrix4x3_angular_delta, matrix_rotation_difference_as_axis_angle, or similar; the name was inferred from the observer caller context."
       ]
     },
+    "0x10a570": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10a710": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10a930": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x10aa60": {
       "kind": "function",
       "status": "ported"
     },
@@ -19195,6 +19247,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x131a20": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x132f40": {
       "kind": "function",
       "status": "ported"
@@ -21194,6 +21250,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x158140": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x15b190": {
       "kind": "function",
       "status": "ported"
@@ -21386,6 +21446,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1686c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1688d0": {
       "kind": "function",
       "status": "ported"
@@ -21477,7 +21541,7 @@
     },
     "0x1726a0": {
       "kind": "function",
-      "status": "unknown",
+      "status": "ported",
       "uncertain": [
         "The guard tests the 16-bit word at 0x5a5bc0 for zero, yet that same zero-extended word is what is passed as FUN_00158140's first argument, so the argument is always 0 on the taken path; this is faithful to the original and not a lift error."
       ]
@@ -21497,6 +21561,10 @@
         "The program order of the three render-state shadow-copy stores to 0x1fb7a4, 0x1fb784 and 0x1fb788 relative to their D3DDevice_SetRenderState_Simple calls cannot be recovered: in the original each store sits between the EDX and ECX argument loads, which no C source ordering can express, and this accounts for most of the residual VC71 gap.",
         "Equivalence evidence covers only the early-exit path at 5.8 percent coverage because nine of the twenty-seven callees are unstubbable and a gate-opening synthetic snapshot makes every seed fetch from address zero, so the enabled blur-pass body has no runtime oracle yet."
       ]
+    },
+    "0x173090": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x173b40": {
       "kind": "function",
@@ -21833,6 +21901,14 @@
       "status": "unknown"
     },
     "0x17cce0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17ccf0": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x17cd00": {
       "kind": "function",
       "status": "ported"
     },
@@ -22354,6 +22430,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x18b990": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x18c0b0": {
       "kind": "function",
       "status": "ported"
@@ -22766,6 +22846,10 @@
         "The 6-float seed behind PTR 0x31fc6c is transcribed as a raw qmemcpy of 0x18 bytes because the pointed-to initial-bounds array has no kb symbol; its contents are unverified, only its 24-byte size (REP MOVSD ECX=6 at ref+0x2e) is proven.",
         "Residual VC71 gap at 90.2 percent is three dominant-axis guards where the reference encodes the same less-than predicate as TEST AH,0x1 plus JNE while our lift emits TEST AH,0x5 plus JNP; the predicate is equivalent for ordered operands and the instruction counts are equal, so this is an encoding-form lever and not a bound-sense bug."
       ]
+    },
+    "0x1929a0": {
+      "kind": "function",
+      "status": "ported"
     },
     "0x192a50": {
       "kind": "function",
@@ -25643,6 +25727,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x1c1720": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x1c18f0": {
       "kind": "function",
       "status": "ported"
@@ -25674,6 +25762,10 @@
       "status": "ported"
     },
     "0x1c1e20": {
+      "kind": "function",
+      "status": "ported"
+    },
+    "0x1c1f70": {
       "kind": "function",
       "status": "ported"
     },

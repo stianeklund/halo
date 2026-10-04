@@ -650,10 +650,8 @@ int TIFFSetupShortPair(void *tif_, unsigned short tag, void *dir)
   tiff_t *tif = (tiff_t *)tif_;
   tiff_dir_entry_t *d = (tiff_dir_entry_t *)dir;
   unsigned short v[2];
-  unsigned long v0;
 
   _TIFFgetfield(&tif->tif_dir, tag, &v[0], &v[1]);
-  v0 = v[0];
   /* TIFFWriteShortArray(tif, TIFF_SHORT, tag, dir, 2, v), inlined by the
    * original with n == 2 folded: 0x68049..0x68094 carries only the in-place
    * (n <= 2) arm and there is no call to 0x67ac0 or 0x67760. v[0] is widened
@@ -663,12 +661,13 @@ int TIFFSetupShortPair(void *tif_, unsigned short tag, void *dir)
   d->tdir_type = TIFF_SHORT;
   d->tdir_count = 2;
   if (tif->tif_header.tiff_magic == TIFF_BIGENDIAN)
-    d->tdir_offset = (v0 << 16) | (v[1] & 0xffff);
+    d->tdir_offset = ((unsigned long)v[0] << 16) | (v[1] & 0xffff);
   else
-    d->tdir_offset = (v0 & 0xffff) | ((long)v[1] << 16);
+    d->tdir_offset = v[0] | ((long)v[1] << 16);
   return (1);
 }
 
+#undef dataoff
 /* 0x680a0 -- write the contents of the current directory to the file. This
  * routine doesn't handle overwriting a directory with auxiliary storage
  * that's been changed. */

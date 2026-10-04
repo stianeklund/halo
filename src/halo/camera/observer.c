@@ -178,7 +178,7 @@ void following_camera_new(void *camera_data)
  * returns seat element + 0x84 when the selected seat flags include any of
  * 0x15; otherwise it returns unit definition + 0x1a8. The +0xcc and +0x2a0
  * unit offsets remain mechanical. */
-void *unit_camera_get(int unit_handle /* @eax */)
+void *unit_camera_get(int unit_handle /* @<eax> */)
 {
   uint8_t *tag_element;
   void *unit;

@@ -2,6 +2,7 @@
 #include "halo/math/rng_trace.h"
 #endif
 #include "../../x87_math.h"
+#include "model_animations.h"
 #line 1
 /* FUN_00120250 (0x120250) — Allocate a rectangle in a texture page's packed
  * bitmap layout.
@@ -318,7 +319,7 @@ bool FUN_001204a0(void *page, short width, short height)
  *
  * Given an animation structure and a frame index, returns a pointer to the
  * frame data for that frame. If compression is active (flag bit 0 at
- * animation+0x3a set, and DAT_00322600 is nonzero), returns a pointer
+ * animation+0x3a set, and model_animation_compression is nonzero), returns a pointer
  * offset by the compressed data offset (animation+0x88). Otherwise,
  * returns a pointer offset by frame_size * frame_index.
  *
@@ -341,7 +342,7 @@ void *FUN_00120500(void *animation, short frame_index)
 
   anim = (char *)animation;
 
-  if (((*(unsigned char *)(anim + 0x3a) & 1) != 0) && DAT_00322600 != '\0') {
+  if (((((animation_t *)anim)->field_3a & 1) != 0) && model_animation_compression != '\0') {
     compressed = 1;
   } else {
     compressed = 0;
@@ -349,7 +350,7 @@ void *FUN_00120500(void *animation, short frame_index)
 
   data = (char *)tag_data_get_pointer(anim + 0xa0, 0, 0);
 
-  if (frame_index < 0 || frame_index >= *(short *)(anim + 0x22)) {
+  if (frame_index < 0 || frame_index >= ((animation_t *)anim)->frame_count) {
     display_assert("frame_index>=0 && frame_index<animation->frame_count",
                    "c:\\halo\\SOURCE\\models\\model_animation_definitions.c",
                    0x47a, 1);
@@ -359,7 +360,7 @@ void *FUN_00120500(void *animation, short frame_index)
   if (compressed) {
     return (void *)(data + *(int *)(anim + 0x88));
   }
-  return (void *)(data + (int)*(short *)(anim + 0x24) * (int)frame_index);
+  return (void *)(data + (int)((animation_t *)anim)->frame_size * (int)frame_index);
 }
 
 /* FUN_00120590 (0x120590) — Resolve a pointer to a specific animation frame's
@@ -394,7 +395,7 @@ void *FUN_00120590(void *animation, short frame_index, short frame_size)
 
   anim = (char *)animation;
 
-  if (frame_index < 0 || frame_index >= *(short *)(anim + 0x22)) {
+  if (frame_index < 0 || frame_index >= ((animation_t *)anim)->frame_count) {
     display_assert("frame_index>=0 && frame_index<animation->frame_count",
                    "c:\\halo\\SOURCE\\models\\model_animation_definitions.c",
                    0x48e, 1);
@@ -428,8 +429,8 @@ const char *FUN_001205f0(void *string_table, int16_t index)
  * Confirmed: register arg — TEST ESI,ESI at entry, no prologue, no stack
  *   args; every caller loads ESI before the CALL.
  * Confirmed: TEST byte [ESI+0x3a],1 (compressed flag); then the byte
- *   global 0x322600 (PAL: hs_model_animation_compression_enabled) or
- *   dword [ESI+0x88] == 0 (PAL: compressed_data_offset).  Returns via
+ *   model_animation_compression (0x322600) or
+ *   dword [ESI+0x88] == 0.  Returns via
  *   MOV EAX,1 / XOR EAX,EAX.
  */
 char FUN_00120620(int animation)
@@ -440,8 +441,8 @@ char FUN_00120620(int animation)
     system_exit(-1);
   }
 
-  return (*(unsigned char *)(animation + 0x3a) & 1) &&
-         (DAT_00322600 != '\0' || *(int *)(animation + 0x88) == 0);
+  return (((animation_t *)animation)->field_3a & 1) &&
+         (model_animation_compression != '\0' || *(int *)(animation + 0x88) == 0);
 }
 
 /* build_damage_animation_index (0x120670) — flatten a (damage_type,
@@ -521,14 +522,14 @@ void animation_get_x_offsets(int anim_entry, int tick_out, int damage_time_out)
   float tick_value;
 
   anim = (char *)anim_entry;
-  data = *(float **)(anim + 0x54);
+  data = (float *)((animation_t *)anim)->field_54;
   frame_index = 0;
   tick_value = 0.0f;
   accum = *(float *)0x2533c0;
-  frame_count = *(int16_t *)(anim + 0x22);
+  frame_count = ((animation_t *)anim)->frame_count;
 
   if (frame_count > 0) {
-    translation_type = *(int16_t *)(anim + 0x26);
+    translation_type = ((animation_t *)anim)->field_26;
     tick_index = *(int16_t *)(anim + 0x34);
     do {
       switch (translation_type) {
@@ -603,7 +604,7 @@ void animation_set_frame_size(void *animation)
     system_exit(-1);
   }
 
-  if (0 < *(short *)(anim + 0x2c)) {
+  if (0 < ((animation_t *)anim)->field_2c) {
     node_count = (int)*(unsigned short *)(anim + 0x2c);
     i = 0;
     do {
@@ -623,7 +624,7 @@ void animation_set_frame_size(void *animation)
     } while (node_count != 0);
   }
 
-  *(short *)(anim + 0x24) = (short)frame_size;
+  ((animation_t *)anim)->frame_size = (short)frame_size;
 }
 
 /* quaternion_decompress_8byte (0x120810) — Convert 4 packed int16 values to
@@ -1074,7 +1075,7 @@ void animation_frame_get_xy_translation(void *animation, short frame_index,
   char *anim = (char *)animation;
   void *frame_data;
 
-  if (*(short *)(anim + 0x26) == 1) {
+  if (((animation_t *)anim)->field_26 == 1) {
     frame_data = FUN_00120590(animation, frame_index, 8);
     out_translation[0] = *(float *)frame_data;
     out_translation[1] = *(float *)((char *)frame_data + 4);
@@ -1140,6 +1141,28 @@ int16_t model_animation_choose_random(int update_kind,
   return animation_index;
 }
 
+/* |p1 - p0|; the IK solve below inlines this three times (FSQRT, then the
+ * three x87-resident deltas are popped). */
+/* Stores (x, y, z); VC71 evaluates the arguments right to left, so the IK
+ * basis rebuild computes z first and keeps all three on the x87 stack. */
+static __inline void anim_set_vector3d(vector3_t *v, float x, float y, float z)
+{
+  v->x = x;
+  v->y = y;
+  v->z = z;
+}
+
+static __inline float anim_distance3d(const vector3_t *p0, const vector3_t *p1)
+{
+  vector3_t delta;
+
+  delta.x = p1->x - p0->x;
+  delta.y = p1->y - p0->y;
+  delta.z = p1->z - p0->z;
+  return (float)x87_sqrtd(delta.x * delta.x + delta.y * delta.y +
+                          delta.z * delta.z);
+}
+
 /* inverse_kinematics_adjust_matrices (0x120fd0) — Two-bone IK solve.
  *
  * Confirmed (disassembly): cdecl, 4 stack args, void return. All four args are
@@ -1156,8 +1179,8 @@ int16_t model_animation_choose_random(int update_kind,
  *   c.forward = axis*(len_ab - x) - perp*h; both bases re-orthonormalized with
  *   normalize3d (return value discarded, FSTP ST0); c.position = b.pos +
  *   b.forward * len_bc; finally *d = *composed.
- * Inferred: multiply operand orders in each cross product transcribed from the
- *   FLD/FMUL pairs; the b and c `up` products differ in operand order.
+ * Inferred: basis cross products are passed to anim_set_vector3d; VC71
+ *   picks the FLD/FMUL operand order, which source order only partly steers.
  * Dormant (ported:false) body for the standalone build.
  */
 void inverse_kinematics_adjust_matrices(float *composed_matrix,
@@ -1169,36 +1192,27 @@ void inverse_kinematics_adjust_matrices(float *composed_matrix,
   real_matrix4x3 *c = (real_matrix4x3 *)node_matrix_c;
   real_matrix4x3 *d = (real_matrix4x3 *)node_matrix_d;
   vector3_t *c_position = &c->position;
-  float dx, dy, dz;
   float len_bc, len_cd, len_ab;
   float inv_len_ab, reach, split, height;
+  vector3_t *b_forward, *b_left, *b_up;
+  vector3_t *c_forward, *c_left, *c_up;
+  vector3_t bc_dir;
   vector3_t axis, bend, perp, offset, new_position;
 
-  dx = c->position.x - b->position.x;
-  dy = c->position.y - b->position.y;
-  dz = c->position.z - b->position.z;
-  len_bc = (float)x87_sqrtd(dx * dx + dy * dy + dz * dz);
+  len_bc = anim_distance3d(&b->position, c_position);
+  len_cd = anim_distance3d(c_position, &d->position);
+  len_ab = anim_distance3d(&composed->position, &b->position);
 
-  dx = d->position.x - c_position->x;
-  dy = d->position.y - c_position->y;
-  dz = d->position.z - c_position->z;
-  len_cd = (float)x87_sqrtd(dx * dx + dy * dy + dz * dz);
-
-  dx = b->position.x - composed->position.x;
-  dy = b->position.y - composed->position.y;
-  dz = b->position.z - composed->position.z;
-  len_ab = (float)x87_sqrtd(dx * dx + dy * dy + dz * dz);
-
-  dx = c_position->x - b->position.x;
-  dy = c->position.y - b->position.y;
-  dz = c->position.z - b->position.z;
+  bc_dir.x = c_position->x - b->position.x;
+  bc_dir.y = c->position.y - b->position.y;
+  bc_dir.z = c->position.z - b->position.z;
   inv_len_ab = 1.0f / len_ab;
   axis.x = (composed->position.x - b->position.x) * inv_len_ab;
   axis.y = (composed->position.y - b->position.y) * inv_len_ab;
   axis.z = (composed->position.z - b->position.z) * inv_len_ab;
-  bend.x = axis.y * dz - axis.z * dy;
-  bend.y = axis.z * dx - axis.x * dz;
-  bend.z = axis.x * dy - axis.y * dx;
+  bend.x = axis.y * bc_dir.z - axis.z * bc_dir.y;
+  bend.y = axis.z * bc_dir.x - axis.x * bc_dir.z;
+  bend.z = axis.x * bc_dir.y - axis.y * bc_dir.x;
   normalize3d((float *)&bend);
   perp.x = bend.y * axis.z - bend.z * axis.y;
   perp.y = bend.z * axis.x - bend.x * axis.z;
@@ -1216,38 +1230,48 @@ void inverse_kinematics_adjust_matrices(float *composed_matrix,
           (len_ab + len_ab);
   len_ab = len_ab - split;
   height = (float)x87_sqrtd(len_bc * len_bc - split * split);
+  b_forward = &b->forward;
+  b_left = &b->left;
+  b_up = &b->up;
   offset.x = perp.x * height;
-  b->forward.x = split * axis.x + offset.x;
+  b_forward->x = split * axis.x + offset.x;
   offset.y = perp.y * height;
-  b->forward.y = split * axis.y + offset.y;
+  b_forward->y = split * axis.y + offset.y;
   offset.z = perp.z * height;
-  b->forward.z = split * axis.z + offset.z;
-  normalize3d((float *)&b->forward);
+  b_forward->z = split * axis.z + offset.z;
+  normalize3d((float *)b_forward);
 
-  b->up.x = b->forward.y * b->left.z - b->forward.z * b->left.y;
-  b->up.y = b->forward.z * b->left.x - b->forward.x * b->left.z;
-  b->up.z = b->forward.x * b->left.y - b->left.x * b->forward.y;
-  normalize3d((float *)&b->up);
-  b->left.x = b->forward.z * b->up.y - b->forward.y * b->up.z;
-  b->left.y = b->forward.x * b->up.z - b->forward.z * b->up.x;
-  b->left.z = b->up.x * b->forward.y - b->up.y * b->forward.x;
+  anim_set_vector3d(b_up,
+                    b_left->z * b_forward->y - b_left->y * b_forward->z,
+                    b_left->x * b_forward->z - b_left->z * b_forward->x,
+                    b_left->y * b_forward->x - b_forward->y * b_left->x);
+  normalize3d((float *)b_up);
+  anim_set_vector3d(b_left,
+                    b_up->y * b_forward->z - b_up->z * b_forward->y,
+                    b_up->z * b_forward->x - b_up->x * b_forward->z,
+                    b_forward->y * b_up->x - b_forward->x * b_up->y);
 
-  new_position.x = len_bc * b->forward.x + b->position.x;
-  new_position.y = len_bc * b->forward.y + b->position.y;
-  new_position.z = len_bc * b->forward.z + b->position.z;
+  new_position.x = len_bc * b_forward->x + b->position.x;
+  new_position.y = len_bc * b_forward->y + b->position.y;
+  new_position.z = len_bc * b_forward->z + b->position.z;
 
-  c->forward.x = len_ab * axis.x - offset.x;
-  c->forward.y = len_ab * axis.y - offset.y;
-  c->forward.z = len_ab * axis.z - offset.z;
-  normalize3d((float *)&c->forward);
+  c_forward = &c->forward;
+  c_left = &c->left;
+  c_up = &c->up;
+  c_forward->x = len_ab * axis.x - offset.x;
+  c_forward->y = len_ab * axis.y - offset.y;
+  c_forward->z = len_ab * axis.z - offset.z;
+  normalize3d((float *)c_forward);
 
-  c->up.x = c->left.z * c->forward.y - c->left.y * c->forward.z;
-  c->up.y = c->left.x * c->forward.z - c->left.z * c->forward.x;
-  c->up.z = c->left.y * c->forward.x - c->left.x * c->forward.y;
-  normalize3d((float *)&c->up);
-  c->left.x = c->up.y * c->forward.z - c->up.z * c->forward.y;
-  c->left.y = c->up.z * c->forward.x - c->up.x * c->forward.z;
-  c->left.z = c->up.x * c->forward.y - c->up.y * c->forward.x;
+  anim_set_vector3d(c_up,
+                    c_forward->y * c_left->z - c_forward->z * c_left->y,
+                    c_forward->z * c_left->x - c_forward->x * c_left->z,
+                    c_forward->x * c_left->y - c_forward->y * c_left->x);
+  normalize3d((float *)c_up);
+  anim_set_vector3d(c_left,
+                    c_forward->z * c_up->y - c_forward->y * c_up->z,
+                    c_forward->x * c_up->z - c_forward->z * c_up->x,
+                    c_forward->y * c_up->x - c_forward->x * c_up->y);
 
   *c_position = new_position;
   *d = *composed;
@@ -1351,7 +1375,7 @@ void animation_get_node_orientations(void *animation, float frame,
   }
 
   /* Assert: real_frame_index < (real)animation->frame_count */
-  frame_count_i = (int)*(short *)(anim + 0x22);
+  frame_count_i = (int)((animation_t *)anim)->frame_count;
   if (frame >= (float)frame_count_i) {
     display_assert("real_frame_index<(real)animation->frame_count",
                    "c:\\halo\\SOURCE\\models\\model_animations.c", 0x5f4, 1);
@@ -1389,7 +1413,7 @@ void animation_get_node_orientations(void *animation, float frame,
   /* Assert: keyframe_frame_indices[keyframe_count-1] == animation->frame_count
    * - 1 */
   if ((unsigned int)keyframe_frame_indices[kf_count_i - 1] !=
-      (unsigned int)((int)*(short *)(anim + 0x22) - 1)) {
+      (unsigned int)((int)((animation_t *)anim)->frame_count - 1)) {
     display_assert(
       "keyframe_frame_indices[keyframe_count-1]==animation->frame_count-1",
       "c:\\halo\\SOURCE\\models\\model_animations.c", 0x60a, 1);
@@ -1560,7 +1584,7 @@ void animation_get_keyframe_scale(void *animation, float frame,
   }
 
   /* Assert: real_frame_index < (real)animation->frame_count */
-  frame_count_i = (int)*(short *)(anim + 0x22);
+  frame_count_i = (int)((animation_t *)anim)->frame_count;
   if (frame >= (float)frame_count_i) {
     display_assert("real_frame_index<(real)animation->frame_count",
                    "c:\\halo\\SOURCE\\models\\model_animations.c", 0x64c, 1);
@@ -1594,7 +1618,7 @@ void animation_get_keyframe_scale(void *animation, float frame,
   /* Assert: keyframe_frame_indices[keyframe_count-1] == animation->frame_count
    * - 1 */
   if ((unsigned int)keyframe_frame_indices[kf_count_i - 1] !=
-      (unsigned int)((int)*(short *)(anim + 0x22) - 1)) {
+      (unsigned int)((int)((animation_t *)anim)->frame_count - 1)) {
     display_assert(
       "keyframe_frame_indices[keyframe_count-1]==animation->frame_count-1",
       "c:\\halo\\SOURCE\\models\\model_animations.c", 0x663, 1);
@@ -1713,9 +1737,9 @@ int animation_update_internal(int update_kind, int animation_graph_tag_index,
   }
   state[1]++;
   frame = state[1];
-  frame_count = *(short *)(animation + 0x22);
+  frame_count = ((animation_t *)animation)->frame_count;
   if (frame >= frame_count) {
-    loop_frame = *(short *)(animation + 0x2e);
+    loop_frame = ((animation_t *)animation)->field_2e;
     if (loop_frame > 0) {
       clamped = frame_count - 1;
       if ((int)loop_frame <= frame_count - 1)
@@ -1728,7 +1752,7 @@ int animation_update_internal(int update_kind, int animation_graph_tag_index,
     state[1] = 0;
     return 3;
   }
-  if (frame + 1 == (int)frame_count && *(short *)(animation + 0x2e) == 0)
+  if (frame + 1 == (int)frame_count && ((animation_t *)animation)->field_2e == 0)
     return 2;
   if (frame != *(short *)(animation + 0x34) &&
       frame != *(short *)(animation + 0x36))
@@ -1799,14 +1823,14 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
   param_4 = (int)out_node_data;
   uVar6 = 0;
 
-  if (*(short *)(param_2 + 0x20) == 0 &&
+  if (((animation_t *)param_2)->field_20 == 0 &&
       (param_1 == 0 ||
-       (((*(int *)(param_2 + 0x28) == 0 ||
-          *(int *)(param_2 + 0x28) == *(int *)(param_1 + 4) ||
+       (((((animation_t *)param_2)->field_28 == 0 ||
+          ((animation_t *)param_2)->field_28 == *(int *)(param_1 + 4) ||
           *(int *)(param_1 + 4) == 0) &&
-         *(int *)(param_1 + 0xb8) == (int)*(short *)(param_2 + 0x2c))))) {
-    if (((*(unsigned char *)(param_2 + 0x3a) & 1) == 0) ||
-        (DAT_00322600 == '\0' && *(int *)(param_2 + 0x88) != 0)) {
+         *(int *)(param_1 + 0xb8) == (int)((animation_t *)param_2)->field_2c)))) {
+    if (((((animation_t *)param_2)->field_3a & 1) == 0) ||
+        (model_animation_compression == '\0' && *(int *)(param_2 + 0x88) != 0)) {
       bVar2 = 0;
     } else {
       bVar2 = 1;
@@ -1817,7 +1841,7 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
     local_10 = 0;
     local_18 = 0;
     local_24 = 0;
-    if (0 < *(short *)(param_2 + 0x2c)) {
+    if (0 < ((animation_t *)param_2)->field_2c) {
       do {
         sVar5 = (short)uVar6;
         iVar7 = sVar5 * 0x20 + param_4;
@@ -1890,11 +1914,11 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
         local_20 = local_20 >> 1;
 
         uVar6 = uVar6 + 1;
-      } while ((short)uVar6 < *(short *)(param_2 + 0x2c));
+      } while ((short)uVar6 < ((animation_t *)param_2)->field_2c);
     }
     if (!bVar2) {
       iVar7 = (int)FUN_00120500(animation, (short)animation_index);
-      if ((int)local_8 - iVar7 != (int)*(short *)(param_2 + 0x24)) {
+      if ((int)local_8 - iVar7 != (int)((animation_t *)param_2)->frame_size) {
         display_assert("compressed || (byte *)data-(byte "
                        "*)animation_get_frame_data(animation, "
                        "frame_index)==animation->frame_size",
@@ -1969,16 +1993,16 @@ void replacement_animation_apply(void *animation, short frame_index,
 
   anim = (char *)animation;
 
-  if (*(short *)(anim + 0x20) == 2) {
+  if (((animation_t *)anim)->field_20 == 2) {
     node_index = 0;
-    if (frame_index >= node_index && frame_index < *(short *)(anim + 0x22)) {
+    if (frame_index >= node_index && frame_index < ((animation_t *)anim)->frame_count) {
       compressed = FUN_00120620((int)anim);
       data = (int *)FUN_00120500(animation, frame_index);
       rotation_count = 0;
       translation_count = 0;
       scale_count = 0;
 
-      if (0 < *(short *)(anim + 0x2c)) {
+      if (0 < ((animation_t *)anim)->field_2c) {
         do {
           out_node = (int)node_data + (int)node_index * 0x20;
           if ((node_index & 0x1f) == 0) {
@@ -2032,12 +2056,12 @@ void replacement_animation_apply(void *animation, short frame_index,
           scale_flags = scale_flags >> 1;
 
           node_index = node_index + 1;
-        } while (node_index < *(short *)(anim + 0x2c));
+        } while (node_index < ((animation_t *)anim)->field_2c);
       }
 
       if (compressed == 0) {
         frame_data = (int)FUN_00120500(animation, frame_index);
-        if ((int)data - frame_data != (int)*(short *)(anim + 0x24)) {
+        if ((int)data - frame_data != (int)((animation_t *)anim)->frame_size) {
           display_assert("compressed || ((byte *)data-(byte "
                          "*)animation_get_frame_data(animation, "
                          "frame_index)==animation->frame_size)",
@@ -2113,16 +2137,16 @@ void overlay_animation_apply(void *anim_entry, int frame, void *node_data)
   anim = (char *)anim_entry;
   frame_index = (short)frame;
 
-  if (*(short *)(anim + 0x20) == 1) {
+  if (((animation_t *)anim)->field_20 == 1) {
     node_index = 0;
-    if (frame_index >= node_index && frame_index < *(short *)(anim + 0x22)) {
+    if (frame_index >= node_index && frame_index < ((animation_t *)anim)->frame_count) {
       compressed = FUN_00120620((int)anim);
       data = (int *)FUN_00120500(anim_entry, frame_index);
       rotation_count = 0;
       translation_count = 0;
       scale_count = 0;
 
-      if (0 < *(short *)(anim + 0x2c)) {
+      if (0 < ((animation_t *)anim)->field_2c) {
         do {
           out_node = (int)node_data + (int)node_index * 0x20;
           if ((node_index & 0x1f) == 0) {
@@ -2183,12 +2207,12 @@ void overlay_animation_apply(void *anim_entry, int frame, void *node_data)
           scale_flags = scale_flags >> 1;
 
           node_index = node_index + 1;
-        } while (node_index < *(short *)(anim + 0x2c));
+        } while (node_index < ((animation_t *)anim)->field_2c);
       }
 
       if (compressed == 0) {
         frame_data = (int)FUN_00120500(anim_entry, frame_index);
-        if ((int)data - frame_data != (int)*(short *)(anim + 0x24)) {
+        if ((int)data - frame_data != (int)((animation_t *)anim)->frame_size) {
           display_assert("compressed || ((byte *)data-(byte "
                          "*)animation_get_frame_data(animation, "
                          "frame_index)==animation->frame_size)",
@@ -2231,20 +2255,20 @@ void overlay_animation_apply_scaled(void *animation, int16_t frame_index,
   unsigned int scale_flags;
   int16_t node_index;
   float rotation[4];
-  float translation[3];
+  real_point3d translation;
   float scale;
 
   anim = (char *)animation;
-  inverse_animation_scale = *(float *)0x2533c8 - animation_scale;
-  if (*(short *)(anim + 0x20) == 1 && frame_index >= 0 &&
-      frame_index < *(short *)(anim + 0x22)) {
+  inverse_animation_scale = 1.0f - animation_scale;
+  if (((animation_t *)anim)->field_20 == 1 && frame_index >= 0 &&
+      frame_index < ((animation_t *)anim)->frame_count) {
     compressed = FUN_00120620((int)anim);
     data = (char *)FUN_00120500(animation, frame_index);
     rotation_index = 0;
     translation_index = 0;
     scale_index = 0;
 
-    for (node_index = 0; node_index < *(short *)(anim + 0x2c); node_index++) {
+    for (node_index = 0; node_index < ((animation_t *)anim)->field_2c; node_index++) {
       float *orientation = (float *)node_orientations + node_index * 8;
 
       if ((node_index & 0x1f) == 0) {
@@ -2263,7 +2287,7 @@ void overlay_animation_apply_scaled(void *animation, int16_t frame_index,
           quaternion_decompress_8byte((short *)data, rotation);
           data += 8;
         }
-        FUN_0010ba90(*(float **)0x31fc5c, rotation, animation_scale, rotation);
+        FUN_0010ba90(global_identity_quaternion_ptr, rotation, animation_scale, rotation);
         FUN_0010b9c0(rotation, orientation, orientation);
       }
       rotation_flags >>= 1;
@@ -2272,16 +2296,17 @@ void overlay_animation_apply_scaled(void *animation, int16_t frame_index,
         if (compressed) {
           animation_get_node_orientations(animation, (float)frame_index,
                                           (unsigned short)translation_index++,
-                                          node_index, translation);
+                                          node_index, &translation);
         } else {
-          *(int *)&translation[0] = ((int *)data)[0];
-          *(int *)&translation[1] = ((int *)data)[1];
-          *(int *)&translation[2] = ((int *)data)[2];
+          translation = *(real_point3d *)data;
           data += 0xc;
+
+
+
         }
-        orientation[4] += translation[0] * animation_scale;
-        orientation[5] += translation[1] * animation_scale;
-        orientation[6] += translation[2] * animation_scale;
+        orientation[4] += translation.x * animation_scale;
+        orientation[5] += translation.y * animation_scale;
+        orientation[6] += translation.z * animation_scale;
       }
       translation_flags >>= 1;
 
@@ -2291,7 +2316,7 @@ void overlay_animation_apply_scaled(void *animation, int16_t frame_index,
                                        (unsigned short)scale_index++,
                                        node_index, &scale);
         } else {
-          *(int *)&scale = *(int *)data;
+          scale = *(real *)data;
           data += 4;
         }
         orientation[7] *= scale * animation_scale + inverse_animation_scale;
@@ -2300,7 +2325,7 @@ void overlay_animation_apply_scaled(void *animation, int16_t frame_index,
     }
 
     if (!compressed && data - (char *)FUN_00120500(animation, frame_index) !=
-                         *(short *)(anim + 0x24)) {
+                         ((animation_t *)anim)->frame_size) {
       display_assert("compressed || ((byte *)data-(byte "
                      "*)animation_get_frame_data(animation, "
                      "frame_index)==animation->frame_size)",
@@ -2327,7 +2352,7 @@ void overlay_animation_apply_scaled(void *animation, int16_t frame_index,
  * the double 1.0 at 0x2573d8; floor is CRT 0x1d9c2b (anim_floor here); the
  * float->int is a bare FISTP (fast_ftol).  animation_is_compressed
  * (animation_is_compressed) is expanded inline WITHOUT its null assert:
- * (anim+0x3a & 1) && (*(char *)0x322600 || *(int *)(anim+0x88) == 0).
+ * (anim+0x3a & 1) && (model_animation_compression || *(int *)(anim+0x88) == 0).
  * Compressed rotation samples at (real)frame_index; compressed translation
  * and scale sample at real_frame_index (PUSH [EBP+0xc] at 0x1228fe /
  * 0x122964). */
@@ -2356,7 +2381,6 @@ void overlay_animation_apply_continuous(void *animation, float real_frame_index,
   float this_rotation[4];
   float next_rotation[4];
   float translation[3];
-  float scale;
 
   anim = (char *)animation;
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -2367,32 +2391,32 @@ void overlay_animation_apply_continuous(void *animation, float real_frame_index,
   frame_floor = (real)anim_floor(fabs(real_frame_index));
   frame_index = (int16_t)x87_round_to_int(frame_floor);
 
-  if (real_frame_index < *(float *)0x2533c0 ||
-      real_frame_index > (real) * (short *)(anim + 0x22)) {
+  if (real_frame_index < 0.0f ||
+      real_frame_index > (real)((animation_t *)anim)->frame_count) {
     error(2,
           "### ERROR animation frame index out of bounds A(%f,%x) -- tell "
           "Bernie!!",
           (double)real_frame_index, *(long *)&real_frame_index);
   }
 
-  if (frame_index >= *(short *)(anim + 0x22)) {
-    frame_index = (int16_t)(*(short *)(anim + 0x22) - 1);
+  if (frame_index >= ((animation_t *)anim)->frame_count) {
+    frame_index = (int16_t)(((animation_t *)anim)->frame_count - 1);
     fraction = 1.0f;
     real_frame_index = (real)frame_index;
   }
 
-  if (*(short *)(anim + 0x20) == 1) {
-    compressed = (*(uint8_t *)(anim + 0x3a) & 1) &&
-                 (*(char *)0x322600 || *(int *)(anim + 0x88) == 0);
+  if (((animation_t *)anim)->field_20 == 1) {
+    compressed = (((animation_t *)anim)->field_3a & 1) &&
+                 (model_animation_compression || *(int *)(anim + 0x88) == 0);
     next_frame_index =
-      frame_index == *(short *)(anim + 0x22) - 1 ? 0 : frame_index + 1;
+      frame_index == ((animation_t *)anim)->frame_count - 1 ? 0 : frame_index + 1;
     data = (char *)FUN_00120500(animation, frame_index);
     next_data = (char *)FUN_00120500(animation, (short)next_frame_index);
     rotation_index = 0;
     translation_index = 0;
     scale_index = 0;
 
-    for (node_index = 0; node_index < *(short *)(anim + 0x2c); node_index++) {
+    for (node_index = 0; node_index < ((animation_t *)anim)->field_2c; node_index++) {
       float *orientation = (float *)node_orientations + node_index * 8;
 
       if ((node_index & 0x1f) == 0) {
@@ -2440,6 +2464,7 @@ void overlay_animation_apply_continuous(void *animation, float real_frame_index,
       translation_flags >>= 1;
 
       if ((scale_flags & 1) != 0) {
+        float scale;
         if (compressed) {
           animation_get_keyframe_scale(animation, real_frame_index,
                                        (unsigned short)scale_index++,
@@ -2448,9 +2473,9 @@ void overlay_animation_apply_continuous(void *animation, float real_frame_index,
           float this_scale;
           float next_scale;
 
-          *(int *)&this_scale = *(int *)data;
+          this_scale = *(real *)data;
           data += 4;
-          *(int *)&next_scale = *(int *)next_data;
+          next_scale = *(real *)next_data;
           next_data += 4;
           scalars_interpolate(this_scale, next_scale, fraction, &scale);
         }
@@ -2461,7 +2486,7 @@ void overlay_animation_apply_continuous(void *animation, float real_frame_index,
 
     if (!compressed) {
       if (data - (char *)FUN_00120500(animation, frame_index) !=
-          *(short *)(anim + 0x24)) {
+          ((animation_t *)anim)->frame_size) {
         display_assert("compressed || ((byte *)data-(byte "
                        "*)animation_get_frame_data(animation, "
                        "frame_index)==animation->frame_size)",
@@ -2471,7 +2496,7 @@ void overlay_animation_apply_continuous(void *animation, float real_frame_index,
       }
       if (next_data -
             (char *)FUN_00120500(animation, (short)next_frame_index) !=
-          *(short *)(anim + 0x24)) {
+          ((animation_t *)anim)->frame_size) {
         display_assert("compressed || ((byte *)next_data-(byte "
                        "*)animation_get_frame_data(animation, "
                        "next_frame_index)==animation->frame_size)",
@@ -2795,16 +2820,26 @@ typedef struct render_model_skinning_data {
   short pad_06;
 } render_model_skinning_data;
 
+/* Opaque payloads copied whole (REP MOVSD, ECX=0x1d / 0xa at 0x1245f6 /
+ * 0x124621). */
+typedef struct render_model_lighting_bytes {
+  unsigned char bytes[0x74];
+} render_model_lighting_bytes;
+
+typedef struct render_model_effect_bytes {
+  unsigned char bytes[0x28];
+} render_model_effect_bytes;
+
 typedef struct render_model_begin_data {
   unsigned int geometry_flags;
   int unique_identifier;
   render_model_skinning_data skinning;
-  unsigned char lighting[0x74];
+  render_model_lighting_bytes lighting;
   struct {
     void *colors;
     void *values;
   } animation;
-  unsigned char effect[0x28];
+  render_model_effect_bytes effect;
   float centroid[3];
   float radius;
   float base_map_scale[2];
@@ -2839,12 +2874,11 @@ void render_model(int model_ref, float distance, void *node_matrices,
   render_model_begin_data parameters;
   short detail_level;
   short node_index;
-  int profiling;
+  unsigned int geometry_flags;
 
   model = (char *)tag_get(0x6d6f6465, model_ref);
-  profiling = *(char *)0x449ef1 && *(char *)0x322610;
-  if (profiling) {
-    profile_enter_private((void *)0x322608);
+  if (profile_global_enable && render_model_profile_section_active) {
+    profile_enter_private(render_model_profile_section);
   }
 
   if (!lighting) {
@@ -2860,8 +2894,6 @@ void render_model(int model_ref, float distance, void *node_matrices,
   }
 
   if (distance >= *(float *)(model + 8) || (flags & 2)) {
-    int node_count;
-
     if (!region_permutation_indices) {
       region_permutation_indices = (void *)0x46e898;
     }
@@ -2878,9 +2910,8 @@ void render_model(int model_ref, float distance, void *node_matrices,
       centroid = (char *)node_matrices + 0x28;
     }
 
-    node_count = *(int *)(model + 0xb8);
     if (node_matrices) {
-      for (node_index = 0; node_index < node_count; node_index++) {
+      for (node_index = 0; node_index < *(int *)(model + 0xb8); node_index++) {
         char *node;
 
         node = (char *)tag_block_get_element((void *)(model + 0xb8), node_index,
@@ -2890,7 +2921,7 @@ void render_model(int model_ref, float distance, void *node_matrices,
                            (float *)&relative_node_matrices[node_index]);
       }
     } else {
-      for (node_index = 0; node_index < node_count; node_index++) {
+      for (node_index = 0; node_index < *(int *)(model + 0xb8); node_index++) {
         relative_node_matrices[node_index] = *(real_matrix4x3 *)0x5065b4;
       }
     }
@@ -2900,13 +2931,17 @@ void render_model(int model_ref, float distance, void *node_matrices,
            distance < *(float *)(model + 8 + detail_level * 4)) {
       detail_level--;
     }
-    if (*(short *)0x3256c0 != -1) {
-      if (*(short *)0x3256c0 < 0) {
-        detail_level = 0;
-      } else if (*(short *)0x3256c0 > 4) {
-        detail_level = 4;
-      } else {
-        detail_level = *(short *)0x3256c0;
+    {
+      short detail_level_override = rasterizer_debug_model_lod;
+
+      if (detail_level_override != -1) {
+        if (detail_level_override < 0) {
+          detail_level = 0;
+        } else if (detail_level_override > 4) {
+          detail_level = 4;
+        } else {
+          detail_level = detail_level_override;
+        }
       }
     }
     if (detail_level < 0 || detail_level >= 5) {
@@ -2918,8 +2953,9 @@ void render_model(int model_ref, float distance, void *node_matrices,
     }
 
     if (!(flags & 2)) {
-      if (*(char *)0x5aa254) {
-        for (node_index = 0; node_index < node_count; node_index++) {
+      if (render_model_nodes) {
+        for (node_index = 0; node_index < *(int *)(model + 0xb8);
+             node_index++) {
           char *node;
           short parent_node_index;
 
@@ -2931,34 +2967,32 @@ void render_model(int model_ref, float distance, void *node_matrices,
               1, (float *)((char *)node_matrices + node_index * 0x34 + 0x28),
               (float *)((char *)node_matrices + parent_node_index * 0x34 +
                         0x28),
-              *(void **)0x2ee6c4);
+              global_real_argb_white);
           }
           FUN_001894d0(1, (float *)((char *)node_matrices + node_index * 0x34),
                        0.05f);
         }
       }
 
-      if (*(char *)0x5aa251) {
+      if (render_model_markers) {
         short marker_index;
-        int marker_count;
 
-        marker_count = *(int *)(model + 0xac);
-        for (marker_index = 0; marker_index < marker_count; marker_index++) {
+        for (marker_index = 0; marker_index < *(int *)(model + 0xac);
+             marker_index++) {
           char *marker;
           short instance_index;
-          int instance_count;
 
           marker = (char *)tag_block_get_element((void *)(model + 0xac),
                                                  marker_index, 0x40);
-          instance_count = *(int *)(marker + 0x34);
-          for (instance_index = 0; instance_index < instance_count;
+          for (instance_index = 0; instance_index < *(int *)(marker + 0x34);
                instance_index++) {
             unsigned char *instance;
 
             instance = (unsigned char *)tag_block_get_element(
               (void *)(marker + 0x34), instance_index, 0x20);
-            if (*(char *)((char *)region_permutation_indices + instance[0]) ==
-                (char)instance[1]) {
+            /* MOVSX of the permutation byte vs MOVZX of instance[1]. */
+            if (*((char *)region_permutation_indices + instance[0]) ==
+                instance[1]) {
               real_matrix4x3 marker_matrix;
 
               component_vectors_from_normal3d((float *)&marker_matrix,
@@ -2969,27 +3003,26 @@ void render_model(int model_ref, float distance, void *node_matrices,
                 (float *)&marker_matrix, (float *)&marker_matrix);
               FUN_001894d0(0, (float *)&marker_matrix, 0.05f);
               FUN_00189cb0(0, &marker_matrix.position, marker,
-                           (int)*(void **)0x2ee6c4);
+                           (int)global_real_argb_white);
             }
           }
         }
       }
 
-      if (*(char *)0x5aa253 || *(char *)0x5aa252) {
+      if (render_model_vertex_counts || render_model_index_counts) {
         short maximum_detail_level;
         short vertex_count;
         short index_count;
         short region_index;
         char has_unstripped_parts;
-        int region_count;
         float screen_offset;
 
         maximum_detail_level = detail_level;
         vertex_count = 0;
         index_count = 0;
         has_unstripped_parts = 0;
-        region_count = *(int *)(model + 0xc4);
-        for (region_index = 0; region_index < region_count; region_index++) {
+        for (region_index = 0; region_index < *(int *)(model + 0xc4);
+             region_index++) {
           char *region;
           char permutation_index;
 
@@ -3031,30 +3064,30 @@ void render_model(int model_ref, float distance, void *node_matrices,
             if (geometry_index != -1) {
               char *geometry;
               short part_index;
-              int part_count;
 
               geometry = (char *)tag_block_get_element((void *)(model + 0xd0),
                                                        geometry_index, 0x30);
-              part_count = *(int *)(geometry + 0x24);
-              for (part_index = 0; part_index < part_count; part_index++) {
+              for (part_index = 0; part_index < *(int *)(geometry + 0x24);
+                   part_index++) {
                 char *part;
-                short triangle_count;
 
                 part = (char *)tag_block_get_element((void *)(geometry + 0x24),
                                                      part_index, 0x68);
-                vertex_count = (short)(vertex_count + *(short *)(part + 0x58));
-                triangle_count = *(short *)(part + 0x48);
-                if (*(short *)(part + 0x44) == 0) {
-                  index_count = (short)(index_count + triangle_count * 3);
+                vertex_count += *(short *)(part + 0x58);
+                switch (*(short *)(part + 0x44)) {
+                case 0:
+                  index_count += *(short *)(part + 0x48) * 3;
                   has_unstripped_parts = 1;
-                } else if (*(short *)(part + 0x44) == 1) {
-                  index_count =
-                    (short)(index_count + (unsigned short)(triangle_count + 2));
-                } else {
+                  break;
+                case 1:
+                  index_count += (unsigned short)(*(short *)(part + 0x48) + 2);
+                  break;
+                default:
                   display_assert("!\"unreachable\"",
                                  "c:\\halo\\SOURCE\\models\\models.c", 0x114,
                                  1);
                   system_exit(-1);
+                  break;
                 }
               }
             }
@@ -3066,71 +3099,79 @@ void render_model(int model_ref, float distance, void *node_matrices,
                       *(float *)0x5065d8 * *((float *)centroid + 2) +
                       *(float *)0x5065cc * *((float *)centroid + 1) +
                       *(float *)0x5065e4) /
-          *(float *)0x50672c * distance * *(float *)0x253398;
-        if (screen_offset > *(float *)0x253f44) {
-          void *detail_colors[5];
+          *(float *)0x50672c * distance * 0.5f;
+        if (screen_offset > 0.0001f) {
           void *color;
           char text[256];
-          float point[3];
-          int length;
 
-          detail_colors[0] = *(void **)0x2ee6d8;
-          detail_colors[1] = *(void **)0x2ee6d4;
-          detail_colors[2] = *(void **)0x2ee6e0;
-          detail_colors[3] = *(void **)0x2ee6f0;
-          detail_colors[4] = *(void **)0x2ee6d0;
-          color = detail_colors[maximum_detail_level];
+          {
+            void *detail_colors[5];
+
+            detail_colors[0] = *(void **)0x2ee6d8;
+            detail_colors[1] = *(void **)0x2ee6d4;
+            detail_colors[2] = *(void **)0x2ee6e0;
+            detail_colors[3] = global_real_argb_orange;
+            detail_colors[4] = *(void **)0x2ee6d0;
+            color = detail_colors[maximum_detail_level];
+          }
           if (has_unstripped_parts && (game_time_get() + model_ref) % 30 < 15) {
-            color = *(void **)0x2ee6c4;
+            color = global_real_argb_white;
           }
 
           csstrcpy(text, "");
-          if (*(char *)0x5aa253) {
-            length = csstrlen(text);
-            snprintf(text + length, 0x100 - length, "%d", vertex_count);
+          if (render_model_vertex_counts) {
+            snprintf(text + csstrlen(text), 0x100 - csstrlen(text), "%d",
+                     vertex_count);
+            if (render_model_vertex_counts && render_model_index_counts) {
+              snprintf(text + csstrlen(text), 0x100 - csstrlen(text), "/");
+            }
           }
-          if (*(char *)0x5aa253 && *(char *)0x5aa252) {
-            length = csstrlen(text);
-            snprintf(text + length, 0x100 - length, "/");
-          }
-          if (*(char *)0x5aa252) {
-            length = csstrlen(text);
-            snprintf(text + length, 0x100 - length, "%d", index_count);
+          if (render_model_index_counts) {
+            snprintf(text + csstrlen(text), 0x100 - csstrlen(text), "%d",
+                     index_count);
           }
 
-          point[0] = *(float *)centroid;
-          point[1] = *((float *)centroid + 1);
-          point[2] = *((float *)centroid + 2) + screen_offset;
-          FUN_00189cb0(0, point, text, (int)color);
+          {
+            float point[3];
+
+            point[0] = *(float *)centroid;
+            point[1] = *((float *)centroid + 1);
+            point[2] = screen_offset + *((float *)centroid + 2);
+            FUN_00189cb0(0, point, text, (int)color);
+          }
         }
       }
     }
 
     parameters.unique_identifier = object_handle;
-    csmemcpy(parameters.lighting, (void *)lighting, 0x74);
+    parameters.lighting = *(render_model_lighting_bytes *)lighting;
     parameters.centroid[0] = *(float *)centroid;
     parameters.centroid[1] = *((float *)centroid + 1);
     parameters.centroid[2] = *((float *)centroid + 2);
     parameters.radius = *(float *)&radius;
-    csmemcpy(parameters.effect, model_effect, 0x28);
+    parameters.effect = *(render_model_effect_bytes *)model_effect;
     parameters.animation.colors = change_colors;
     parameters.animation.values = function_values;
     parameters.skinning.node_matrices = relative_node_matrices;
-    parameters.skinning.node_matrix_count = (short)node_count;
-    parameters.skinning.pad_06 = 0;
-    parameters.geometry_flags = 0;
+    parameters.skinning.node_matrix_count = *(short *)(model + 0xb8);
     parameters.base_map_scale[0] = *(float *)(model + 0x30);
     parameters.base_map_scale[1] = *(float *)(model + 0x34);
 
+    geometry_flags = 0;
     if (flags & 1) {
-      parameters.geometry_flags = 0x1f;
+      geometry_flags = 0x1f;
     }
     if (flags & 4) {
-      parameters.geometry_flags |= 0x40;
+      geometry_flags |= 0x40;
+    } else {
+      geometry_flags &= ~0x40;
     }
     if (flags & 8) {
-      parameters.geometry_flags |= 0x80;
+      geometry_flags |= 0x80;
+    } else {
+      geometry_flags &= ~0x80;
     }
+    parameters.geometry_flags = geometry_flags;
 
     if (flags & 2) {
       FUN_0017ccc0((int)&parameters);
@@ -3142,15 +3183,15 @@ void render_model(int model_ref, float distance, void *node_matrices,
                        (short)forced_shader_permutation_index,
                        (unsigned char)flags);
     if (flags & 2) {
-      FUN_00172640();
+      rasterizer_environment_shadow_model_end();
     } else {
-      FUN_0016b1c0();
+      rasterizer_model_end();
     }
   }
 
   *(char *)0x5a5570 = 0;
-  if (profiling) {
-    profile_exit_private((void *)0x322608);
+  if (profile_global_enable && render_model_profile_section_active) {
+    profile_exit_private(render_model_profile_section);
   }
 }
 
@@ -3205,23 +3246,23 @@ void overlay_animation_apply_continuous_scaled(int animation, float frame_pos, f
   frame_idx_int = x87_round_to_int(floor_val);
 
   if (frame_pos < *(float *)0x2533c0 ||
-      (float)*(short *)(animation + 0x22) < frame_pos) {
+      (float)((animation_t *)animation)->frame_count < frame_pos) {
     error(
       2,
       "### ERROR animation frame index out of bounds B(%f,%x) -- tell Bernie!!",
       (double)frame_pos, *(int *)&frame_pos);
   }
 
-  frame_count_u = *(unsigned short *)(animation + 0x22);
+  frame_count_u = (unsigned short)((animation_t *)animation)->frame_count;
   if ((short)frame_idx_int >= (short)frame_count_u) {
     frame_idx_int = (int)(unsigned short)(frame_count_u - 1);
     frac = 1.0f;
     frame_pos = (float)(int)(short)frame_idx_int;
   }
 
-  if (*(short *)(animation + 0x20) == 1) {
-    if ((*(unsigned char *)(animation + 0x3a) & 1) == 0 ||
-        (*(char *)0x322600 == '\0' && *(int *)(animation + 0x88) != 0)) {
+  if (((animation_t *)animation)->field_20 == 1) {
+    if ((((animation_t *)animation)->field_3a & 1) == 0 ||
+        (model_animation_compression == '\0' && *(int *)(animation + 0x88) != 0)) {
       compressed = 0;
     } else {
       compressed = 1;
@@ -3242,7 +3283,7 @@ void overlay_animation_apply_continuous_scaled(int animation, float frame_pos, f
     translation_counter = 0;
     scale_counter = 0;
     node_idx = 0;
-    if (0 < *(short *)(animation + 0x2c)) {
+    if (0 < ((animation_t *)animation)->field_2c) {
       do {
         node_output_ptr = (short)node_idx * 0x20 + node_output;
         if ((node_idx & 0x1f) == 0) {
@@ -3326,13 +3367,13 @@ void overlay_animation_apply_continuous_scaled(int animation, float frame_pos, f
         }
         has_scale = has_scale >> 1;
         node_idx = node_idx + 1;
-      } while ((short)node_idx < *(short *)(animation + 0x2c));
+      } while ((short)node_idx < ((animation_t *)animation)->field_2c);
     }
 
     if (!compressed) {
       int check_base;
       check_base = (int)FUN_00120500((void *)animation, (short)frame_idx_int);
-      if ((int)data - check_base != (int)*(short *)(animation + 0x24)) {
+      if ((int)data - check_base != (int)((animation_t *)animation)->frame_size) {
         display_assert(
           "compressed || ((byte *)data-(byte *)animation_get_frame_data"
           "(animation, frame_index)==animation->frame_size)",
@@ -3341,7 +3382,7 @@ void overlay_animation_apply_continuous_scaled(int animation, float frame_pos, f
       }
       check_base =
         (int)FUN_00120500((void *)animation, (short)next_frame_index);
-      if ((int)next_data - check_base != (int)*(short *)(animation + 0x24)) {
+      if ((int)next_data - check_base != (int)((animation_t *)animation)->frame_size) {
         display_assert("compressed || ((byte *)next_data-(byte *)"
                        "animation_get_frame_data(animation, next_frame_index)"
                        "==animation->frame_size)",
@@ -3417,13 +3458,13 @@ void aiming_screen_apply(int animation, float *blend_params, float direction,
                                     *(short *)((int)blend_params + 0x16)) +
                    1;
 
-  if (*(short *)(animation + 0x20) != 1) {
+  if (((animation_t *)animation)->field_20 != 1) {
     return;
   }
 
   throttle_count_s = (int)(short)throttle_count;
   dir_count_s = (short)direction_count;
-  if (dir_count_s * throttle_count_s > (int)*(short *)(animation + 0x22)) {
+  if (dir_count_s * throttle_count_s > (int)((animation_t *)animation)->frame_count) {
     return;
   }
 
@@ -3545,7 +3586,7 @@ void aiming_screen_apply(int animation, float *blend_params, float direction,
     node_idx = 0;
     rotation_counter = 0;
 
-    if (0 >= *(short *)(animation + 0x2c)) {
+    if (0 >= ((animation_t *)animation)->field_2c) {
       return;
     }
 
@@ -3657,7 +3698,7 @@ void aiming_screen_apply(int animation, float *blend_params, float direction,
       }
       has_translation = has_translation >> 1;
       node_idx = node_idx + 1;
-    } while ((short)node_idx < *(short *)(animation + 0x2c));
+    } while ((short)node_idx < ((animation_t *)animation)->field_2c);
   }
 }
 
@@ -3678,7 +3719,7 @@ void animation_get_root_velocity(void *mode_tag, void *animation, int frame_inde
   uint8_t prev_frame_data[0x800];
   int frame;
 
-  if (*(short *)((char *)animation + 0x22) < 2) {
+  if (((animation_t *)animation)->frame_count < 2) {
     display_assert("animation->frame_count>1",
                    "c:\\halo\\SOURCE\\models\\model_animations.c", 0xdd, true);
     system_exit(-1);

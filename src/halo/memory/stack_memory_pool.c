@@ -1049,6 +1049,14 @@ void stack_memory_pool_deallocate(void *pool, void *block)
   *(int *)(pool_p + 0x1c) -= 1;
 }
 
+/* Forwards incoming EDX/ECX/EAX unchanged as the stack args of 0x11f1e0;
+ * the only stack param becomes its EAX size. No callers in the binary. */
+void *stack_memory_pool_new_block(void *pool, const char *file,
+                                  unsigned int line, int alloc_size)
+{
+  return stack_memory_pool_alloc_internal(alloc_size, pool, file, line);
+}
+
 /* stack_memory_pool_alloc_or_resize — allocate new or grow existing block.
  *
  * Register convention (kb.json):

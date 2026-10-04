@@ -2182,10 +2182,10 @@ void FUN_001a1e70(int unit_handle)
           (object_get_world_position(unit_handle, (vector3_t *)world_pos),
            !(*(float *)((char *)unit_obj + 0x20) > *(float *)0x2533c0) &&
              (fall_term = (world_pos[2] - probe_hit[2]) * *(float *)0x32512c,
-              !(*(float *)(physics + 0x94) * *(float *)(physics + 0x94) >
-                *(float *)((char *)unit_obj + 0x20) *
+              !(*(float *)((char *)unit_obj + 0x20) *
                     *(float *)((char *)unit_obj + 0x20) +
-                  fall_term + fall_term)))) {
+                  (fall_term + fall_term) <
+                *(float *)(physics + 0x94) * *(float *)(physics + 0x94))))) {
         unit_scream(unit_handle, 0);
       }
     }
@@ -4501,12 +4501,14 @@ void FUN_001a4a70(int biped_index, float *acceleration_vector)
     biped_stop_limp_body_physics(biped_index);
   }
 
-  biped->object.translational_velocity.i =
-    biped->object.translational_velocity.i + acceleration->i;
-  biped->object.translational_velocity.j =
-    biped->object.translational_velocity.j + acceleration->j;
-  biped->object.translational_velocity.k =
-    biped->object.translational_velocity.k + acceleration->k;
+  {
+    real_vector3d const *velocity = &biped->object.translational_velocity;
+    real_vector3d *result = &biped->object.translational_velocity;
+
+    result->i = velocity->i + acceleration->i;
+    result->j = velocity->j + acceleration->j;
+    result->k = velocity->k + acceleration->k;
+  }
   SET_FLAG(biped->object.flags, _object_at_rest_bit, false);
   SET_FLAG(biped->flags, _biped_airborne_bit, true);
   SET_FLAG(biped->flags, _biped_slipping_bit, true);

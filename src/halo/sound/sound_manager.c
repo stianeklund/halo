@@ -1,3 +1,4 @@
+#include "sound_manager_types.h"
 /* FUN_001ac030 (0x1ac030)
  *
  * Sets or clears bit 0x10000 of the flags dword at (unit-type object)+0x1b4.
@@ -26,7 +27,6 @@ void FUN_001ac030(int param_1, int param_2)
     *(uint32_t *)(obj + 0x1b4) = flags;
   }
 }
-
 /* FUN_001ac070 (0x1ac070)
  *
  * Stores the low byte of param_2 into the byte field at (unit-type
@@ -1239,7 +1239,7 @@ void *sound_listener_get(short listener_index /* @<si> */)
                      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x430,
                      index >= 0 && index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-  return (void *)(0x4eaf58 + (int)index * 0x44);
+  return &((sound_listener *)0x4eaf58)[index];
 }
 
 /* Check whether a sound should be promoted to its promotion sound.
@@ -2375,34 +2375,34 @@ void sound_stop_channel(int sound_handle /* @<ebx> */)
  * tail-merges the invalid-listener assert into the default-case call site. */
 float FUN_001ccbe0(int channel_index, void *source)
 {
-  void *listener;
+  real_point3d *listener_position;
+  real_point3d *delta;
   float dx;
   float dy;
   float dz;
   float dist_sq;
 
-  switch (*(short *)source) {
-  case 0:
-    return *(float *)0x2533c0;
-  case 1:
-    listener = sound_listener_get((short)channel_index);
-    dx = *(float *)((char *)listener + 0x2c) - *(float *)((char *)source + 0xc);
-    dy =
-      *(float *)((char *)listener + 0x30) - *(float *)((char *)source + 0x10);
-    dz =
-      *(float *)((char *)listener + 0x34) - *(float *)((char *)source + 0x14);
-    dist_sq = dz * dz + dx * dx + dy * dy;
-    if (*(char *)sound_listener_get((short)channel_index) == 0) {
+  switch (((sound_source *)source)->spatialization_mode) {
+  case _sound_spatialization_mode_none:
+    return REAL_ZERO_POOL;
+  case _sound_spatialization_mode_absolute:
+    listener_position =
+      &((sound_listener *)sound_listener_get((short)channel_index))->matrix.position;
+    dx = listener_position->x - ((sound_source *)source)->location.position.x;
+    dy = listener_position->y - ((sound_source *)source)->location.position.y;
+    dz = listener_position->z - ((sound_source *)source)->location.position.z;
+    dist_sq = (dz * dz + dx * dx) + dy * dy;
+    if (!((sound_listener *)sound_listener_get((short)channel_index))->valid) {
       display_assert("listener_get(listener_index)->valid",
                      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x574, 1);
       system_exit(-1);
     }
     break;
   case 2:
-    dx = *(float *)((char *)source + 0xc);
-    dy = *(float *)((char *)source + 0x10);
-    dz = *(float *)((char *)source + 0x14);
-    return dx * dx + dy * dy + dz * dz;
+    /* mode 2: location already holds the listener-relative delta */
+    delta = &((sound_source *)source)->location.position;
+    return delta->x * delta->x + delta->y * delta->y +
+           delta->z * delta->z;
   default:
     display_assert(NULL, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x57a, 1);
     system_exit(-1);
@@ -2428,34 +2428,34 @@ float FUN_001ccbe0(int channel_index, void *source)
  * tail-merge into one CALL 0x8d9f0. */
 float FUN_001ccca0(int channel_index, void *source)
 {
-  void *listener;
+  real_point3d *listener_position;
+  real_point3d *delta;
   float dx;
   float dy;
   float dz;
   float distance;
 
-  switch (*(short *)source) {
-  case 0:
-    return *(float *)0x2533c0;
-  case 1:
-    listener = sound_listener_get((short)channel_index);
-    dx = *(float *)((char *)listener + 0x2c) - *(float *)((char *)source + 0xc);
-    dy =
-      *(float *)((char *)listener + 0x30) - *(float *)((char *)source + 0x10);
-    dz =
-      *(float *)((char *)listener + 0x34) - *(float *)((char *)source + 0x14);
-    distance = xbox_sqrtf(dz * dz + dx * dx + dy * dy);
-    if (*(char *)sound_listener_get((short)channel_index) == 0) {
+  switch (((sound_source *)source)->spatialization_mode) {
+  case _sound_spatialization_mode_none:
+    return REAL_ZERO_POOL;
+  case _sound_spatialization_mode_absolute:
+    listener_position =
+      &((sound_listener *)sound_listener_get((short)channel_index))->matrix.position;
+    dx = listener_position->x - ((sound_source *)source)->location.position.x;
+    dy = listener_position->y - ((sound_source *)source)->location.position.y;
+    dz = listener_position->z - ((sound_source *)source)->location.position.z;
+    distance = xbox_sqrtf((dz * dz + dx * dx) + dy * dy);
+    if (!((sound_listener *)sound_listener_get((short)channel_index))->valid) {
       display_assert("listener_get(listener_index)->valid",
                      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x58d, 1);
       system_exit(-1);
     }
     break;
   case 2:
-    dx = *(float *)((char *)source + 0xc);
-    dy = *(float *)((char *)source + 0x10);
-    dz = *(float *)((char *)source + 0x14);
-    return xbox_sqrtf(dx * dx + dy * dy + dz * dz);
+    /* mode 2: location already holds the listener-relative delta */
+    delta = &((sound_source *)source)->location.position;
+    return xbox_sqrtf(delta->x * delta->x + delta->y * delta->y +
+                      delta->z * delta->z);
   default:
     display_assert(NULL, "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x593, 1);
     system_exit(-1);
@@ -3050,13 +3050,13 @@ int16_t sound_allocate_channel(void *source /* @<eax> */, float priority)
   int best_channel;
   float best_dist_sq;
   int i;
-  char *listener_ptr;
+  sound_listener *listener_ptr;
   float sqrt_dist;
 
-  spatialization_mode = *(short *)source;
+  spatialization_mode = ((sound_source *)source)->spatialization_mode;
   best_channel = -1;
 
-  if (spatialization_mode == 0)
+  if (spatialization_mode == _sound_spatialization_mode_none)
     return 0;
 
   if (spatialization_mode == 2) {
@@ -3071,15 +3071,15 @@ int16_t sound_allocate_channel(void *source /* @<eax> */, float priority)
 
   /* Mode 1 / other: iterate over local player listeners. */
   best_dist_sq = 3.4028235e+38f; /* FLT_MAX (0x7f7fffff) */
-  listener_ptr = (char *)0x4eaf58;
+  listener_ptr = (sound_listener *)0x4eaf58;
 
-  for (i = 0; (short)i < 4; i++, listener_ptr += 0x44) {
+  for (i = 0; (short)i < 4; i++, listener_ptr++) {
     if ((short)i < 0 || (short)i >= 4) {
       display_assert("index>=0 && index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
                      "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x430, 1);
       system_exit(-1);
     }
-    if (*listener_ptr != '\0') {
+    if (listener_ptr->valid) {
       /* Compute distance squared for this listener. */
       float this_dist = FUN_001ccbe0(i, source);
       if (this_dist < best_dist_sq) {
@@ -3097,7 +3097,7 @@ int16_t sound_allocate_channel(void *source /* @<eax> */, float priority)
 
   if (priority * priority < best_dist_sq)
     return -1;
-  if (*(int *)((char *)source + 0x3c) == 0x3f800000)
+  if (*(int *)&((sound_source *)source)->field_3c == 0x3f800000)
     return -1;
 
   return (short)best_channel;
@@ -3769,7 +3769,7 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
   short permutation_index;
 
   sound_tag = tag_get(0x736e6421, sound_tag_index);
-  source_scale = *(float *)((char *)source + 4);
+  source_scale = ((sound_source *)source)->field_04;
 
   /* Assert: track_data_size <= MAXIMUM_SOUND_CALLBACK_DATA (0x30 = 48) */
   if ((short)track_data_size > 0x30) {
@@ -3778,8 +3778,8 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
     system_exit(-1);
   }
 
-  if (*(short *)source != 0 &&
-      !valid_real_normal3d((float *)((char *)source + 0x18))) {
+  if (((sound_source *)source)->spatialization_mode != _sound_spatialization_mode_none &&
+      !valid_real_normal3d((float *)&((sound_source *)source)->location.forward)) {
     display_assert(
       "source->spatialization_mode==_sound_spatialization_mode_none || "
       "valid_real_normal3d(&source->location.forward)",
@@ -3797,12 +3797,12 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
       *(int *)0x4eaf44 = fade_deadline;
     /* If a global flag is set, force spatialization to none. */
     if (*(char *)0x4fc383 != '\0')
-      *(short *)source = 0;
+      ((sound_source *)source)->spatialization_mode = _sound_spatialization_mode_none;
   }
 
   /* Class 0x2f always forces spatialization to none. */
   if (*(short *)((char *)sound_tag + 4) == 0x2f)
-    *(short *)source = 0;
+    ((sound_source *)source)->spatialization_mode = _sound_spatialization_mode_none;
 
   if (*(uint8_t *)0x4eaf40 != 0 && *(uint8_t *)0x4eaf41 != 0) {
     /* Check encoding compatibility: must be 1 pitch range, and either
@@ -3813,7 +3813,7 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
          *(short *)((char *)sound_tag + 0x6c) == 1)) {
       /* Volume/distance culling: skip if both source scale and sound
        * skip_fraction are zero (always audible). */
-      if (*(float *)((char *)source + 4) != 0.0f ||
+      if (((sound_source *)source)->field_04 != 0.0f ||
           *(float *)((char *)sound_tag + 0x40) != 0.0f) {
         unsigned int *seed = random_math_get_local_seed_address();
         float random_val = random_math_real(seed);
@@ -3871,7 +3871,7 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
                         *(float *)((char *)sound_tag + 0x18),
                         *(float *)((char *)sound_tag + 0x44),
                         *(float *)((char *)sound_tag + 0x5c),
-                        *(float *)((char *)source + 4));
+                        ((sound_source *)source)->field_04);
                       *(float *)(sound_entry + 0x88) = rscale;
                     }
 
@@ -4003,8 +4003,8 @@ bool sound_refresh_looping(int sound_tag_index, int looping_sound_index,
   char *sound;
 
   created = (short)param_4 == 2;
-  if (*(short *)source != 0 &&
-      !valid_real_normal3d((float *)((char *)source + 0x18))) {
+  if (((sound_source *)source)->spatialization_mode != _sound_spatialization_mode_none &&
+      !valid_real_normal3d((float *)&((sound_source *)source)->location.forward)) {
     display_assert("source->spatialization_mode==_sound_spatialization_mode_"
                    "none || valid_real_normal3d(&source->location.forward)",
                    "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x2f4, 1);
@@ -4039,7 +4039,7 @@ bool sound_refresh_looping(int sound_tag_index, int looping_sound_index,
   }
 
   /* REP MOVSD, ECX=0x10: the whole 0x40-byte source block. */
-  memcpy(loop + 0xc, source, 0x40);
+  memcpy(loop + 0xc, source, sizeof(sound_source));
   *(unsigned char *)(loop + 0x4c) = *(unsigned char *)0x4eaf54;
 
   if (((short)param_4 == 2 || *(char *)(loop + 0x4e) != 0) &&
@@ -4050,7 +4050,7 @@ bool sound_refresh_looping(int sound_tag_index, int looping_sound_index,
 
   if (*(int *)(definition + 0x38) != -1) {
     player_effect_continuous_refresh(*(int *)(definition + 0x38),
-                                     (float *)((char *)source + 0xc));
+                                     (float *)&((sound_source *)source)->location.position);
   }
 
   track_index = 0;
@@ -4167,8 +4167,8 @@ bool sound_refresh_looping(int sound_tag_index, int looping_sound_index,
  *
  * Pass 1 walks the four local-player listener slots in the table at 0x4eaf58
  * (stride 0x44).  The reference keeps EDI at base+1, so [EDI-1] is
- * listener+0 and [EDI] is listener+1; the same base+1 cursor is reproduced
- * here so the +3 / +0x37 displacements match the reference literally.
+ * listener+0 and [EDI] is listener+1; a base-pointer sound_listener cursor
+ * matches the reference closer than reproducing that cursor literally.
  *   - listener+0 (byte) = slot-active flag.  Cleared when
  *     local_player_get_player_index returns -1.
  *   - Otherwise observer_get_camera yields the camera block (asserted
@@ -4204,7 +4204,7 @@ bool sound_refresh_looping(int sound_tag_index, int looping_sound_index,
  * nothing writes it in between, so it is hoisted into a local here. */
 void FUN_001ce9c0(void)
 {
-  uint32_t sound_source[16];
+  sound_source source;
   uint32_t listener_block[13];
   const uint32_t *global_vector;
   int *transition_sounds;
@@ -4212,7 +4212,7 @@ void FUN_001ce9c0(void)
   int sound_tag_index;
   void *element;
   float *camera;
-  char *listener;
+  sound_listener *listener;
   int index;
   bool state;
 
@@ -4220,7 +4220,7 @@ void FUN_001ce9c0(void)
     return;
 
   index = 0;
-  listener = (char *)0x4eaf59;
+  listener = (sound_listener *)0x4eaf58;
   do {
     if ((short)index < 0 || (short)index >= 4) {
       display_assert("index>=0 && index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
@@ -4229,7 +4229,7 @@ void FUN_001ce9c0(void)
     }
 
     if (local_player_get_player_index((int16_t)index) == -1) {
-      listener[-1] = 0;
+      listener->valid = 0;
     } else {
       camera = (float *)observer_get_camera((unsigned short)index);
       if (camera == 0) {
@@ -4238,39 +4238,39 @@ void FUN_001ce9c0(void)
         system_exit(-1);
       }
 
-      listener[-1] = 1;
+      listener->valid = 1;
       state = FUN_0018f3e0(camera + 3, camera, (int16_t *)0);
 
-      if (listener[0] != (char)state) {
+      if (listener->field_01 != (uint8_t)state) {
         transition_sounds = (int *)((char *)game_globals_get() + 0xf8);
-        *(int16_t *)&sound_source[0] = 0;
-        *(float *)&sound_source[1] = 1.0f;
-        *(float *)&sound_source[2] = 1.0f;
+        source.spatialization_mode = _sound_spatialization_mode_none;
+        source.field_04 = 1.0f;
+        source.field_08 = 1.0f;
         element_count = *transition_sounds;
         if (state) {
           if (element_count > 0) {
             element = tag_block_get_element(transition_sounds, 0, 0x10);
             sound_tag_index = *(int *)((char *)element + 0xc);
             if (sound_tag_index != -1)
-              sound_start(sound_tag_index, sound_source, -1, 0, (void *)0, 0);
+              sound_start(sound_tag_index, &source, -1, 0, (void *)0, 0);
           }
         } else if (element_count > 1) {
           element = tag_block_get_element(transition_sounds, 1, 0x10);
           sound_tag_index = *(int *)((char *)element + 0xc);
           if (sound_tag_index != -1)
-            sound_start(sound_tag_index, sound_source, -1, 0, (void *)0, 0);
+            sound_start(sound_tag_index, &source, -1, 0, (void *)0, 0);
         }
       }
 
-      listener[0] = (char)state;
-      matrix4x3_from_forward_up_position(listener + 3, camera, camera + 8,
+      listener->field_01 = (uint8_t)state;
+      matrix4x3_from_forward_up_position(&listener->matrix, camera, camera + 8,
                                          camera + 11);
-      real_matrix3x3_transform_vector(listener + 3, (vector3_t *)(camera + 5),
-                                      (vector3_t *)(listener + 0x37));
+      real_matrix3x3_transform_vector(&listener->matrix, (vector3_t *)(camera + 5),
+                                      (vector3_t *)&listener->field_38);
     }
 
     index++;
-    listener += 0x44;
+    listener++;
   } while ((short)index < 4);
 
   global_vector = *(const uint32_t **)0x31fc3c;
@@ -4448,7 +4448,7 @@ void sound_update_music(void)
     float forward[3];
     float up[3];
   } location;
-  char *listener;
+  sound_listener *listener;
 
   channel_count = *(int *)0x4eb0b4;
   if ((short)channel_count <= 0)
@@ -4487,14 +4487,14 @@ void sound_update_music(void)
         system_exit(-1);
         break;
       case 1:
-        listener = (char *)sound_listener_get(*(short *)(sound_entry + 0x6));
-        if (*listener == '\0') {
+        listener = (sound_listener *)sound_listener_get(*(short *)(sound_entry + 0x6));
+        if (!listener->valid) {
           display_assert("listener->valid",
                          "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x7db, 1);
           system_exit(-1);
         }
 
-        matrix = listener + 4;
+        matrix = &listener->matrix;
         real_matrix3x3_transform_point(matrix, (float *)(sound_entry + 0x20),
                                        location.position);
         real_matrix4x3_transform_point(matrix, sound_entry + 0x2c,
@@ -4502,14 +4502,14 @@ void sound_update_music(void)
         real_matrix3x3_transform_vector(
           matrix, (vector3_t *)(sound_entry + 0x38), (vector3_t *)location.up);
 
-        location.up[0] = location.up[0] * 30.0f - *(float *)(listener + 0x38);
-        location.up[1] = location.up[1] * 30.0f - *(float *)(listener + 0x3c);
-        location.up[2] = location.up[2] * 30.0f - *(float *)(listener + 0x40);
+        location.up[0] = location.up[0] * 30.0f - listener->field_38.i;
+        location.up[1] = location.up[1] * 30.0f - listener->field_38.j;
+        location.up[2] = location.up[2] * 30.0f - listener->field_38.k;
 
         (*(void (**)(int, int, void *, int, int, int))(*(int *)0x4eaf48 +
                                                        0x30))(
           (int)i, 1, location.position, *(int *)(sound_entry + 0x4c),
-          *(int *)(sound_entry + 0x50), (int)*(uint8_t *)(listener + 1));
+          *(int *)(sound_entry + 0x50), (int)listener->field_01);
         break;
       case 2:
         (*(void (**)(int, int, void *, int, int, int))(
@@ -4531,13 +4531,13 @@ void sound_update_music(void)
       case 0:
         break;
       case 1:
-        listener = (char *)sound_listener_get(*(short *)(sound_entry + 0x6));
-        if (*listener == '\0') {
+        listener = (sound_listener *)sound_listener_get(*(short *)(sound_entry + 0x6));
+        if (!listener->valid) {
           display_assert("listener->valid",
                          "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x7fa, 1);
           system_exit(-1);
         }
-        real_matrix3x3_transform_point(listener + 4,
+        real_matrix3x3_transform_point(&listener->matrix,
                                        (float *)(sound_entry + 0x20), pos);
         break;
       case 2:

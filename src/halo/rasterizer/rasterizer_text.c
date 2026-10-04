@@ -543,15 +543,13 @@ short FUN_00180890(float f)
  * bits[31:22]=k (10-bit). (0x1808f0) */
 unsigned int FUN_001808f0(float *param_1)
 {
-  real_vector3d v2;
   unsigned int i_11;
   unsigned int j_11;
-  unsigned int packed;
-  float rounded;
-  int tmp;
+  unsigned int k_10;
+  real_vector3d v2;
 
   if (param_1 == 0) {
-    display_assert("parameters",
+    display_assert("v",
                    "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x45,
                    1);
     system_exit(-1);
@@ -566,18 +564,18 @@ unsigned int FUN_001808f0(float *param_1)
       "c:\\halo\\SOURCE\\rasterizer\\rasterizer_geometry.c", 0x4e, 1);
     system_exit(-1);
   }
-  rounded = (float)floor((double)(*param_1 * *(float *)0x2b0118));
-  tmp = x87_round_to_int(rounded);
-  i_11 = (unsigned int)tmp & 0x7ff;
-  rounded = (float)floor((double)(param_1[1] * *(float *)0x2b0118));
-  tmp = x87_round_to_int(rounded);
-  j_11 = (unsigned int)tmp & 0x7ff;
-  rounded = (float)floor((double)(param_1[2] * *(float *)0x2b0114));
-  tmp = x87_round_to_int(rounded);
-  packed = (((unsigned int)tmp & 0x3ff) << 11 | j_11) << 11 | i_11;
+  i_11 =
+    x87_round_to_int((float)floor((double)(*param_1 * *(float *)0x2b0118))) &
+    0x7ff;
+  j_11 =
+    x87_round_to_int((float)floor((double)(param_1[1] * *(float *)0x2b0118))) &
+    0x7ff;
+  k_10 =
+    x87_round_to_int((float)floor((double)(param_1[2] * *(float *)0x2b0114))) &
+    0x3ff;
 
-  v2 =
-    *(real_vector3d *)uncompress_int32_to_real_vector3d((float *)&v2, packed);
+  v2 = *(real_vector3d *)uncompress_int32_to_real_vector3d(
+    (float *)&v2, ((k_10 << 11) | j_11) << 11 | i_11);
 
   if (!(fabs(v2.i - *param_1) < *(double *)0x28b800)) {
     display_assert("fabs(v2.i - v->i)<0.01f",
@@ -597,7 +595,7 @@ unsigned int FUN_001808f0(float *param_1)
                    1);
     system_exit(-1);
   }
-  return packed;
+  return ((k_10 << 11) | j_11) << 11 | i_11;
 }
 
 /* rasterizer_geometry_pack_normal_11_11_10_clamped: clamp float[3] normal to
@@ -1276,49 +1274,49 @@ void FUN_00181a90(void)
   real_vector3d perp; /* scratch output of uncompress_int32_to_real_vector3d */
   real_vector3d dir; /* decoded direction */
   real_vector3d pos; /* occlusion test position */
+  short screenshot_count;
 
   FUN_0016f910(0x17);
 
-  if (*(char *)0x3256d7 != 0 && *(short *)0x46e008 <= 1 &&
-      (*(short *)0x46e008 != 1 || *(short *)0x31fa98 <= 1) &&
+  if (*(char *)0x3256d7 != 0 &&
+      (screenshot_count = *(short *)0x46e008) <= 1 &&
+      (screenshot_count != 1 || *(short *)0x31fa98 <= 1) &&
       *(short *)0x5a5bc0 == 0 && *(int *)0x4d0480 > 0) {
     FUN_0017cfc0(6, 1);
 
-    if (*(int *)0x4d0480 > 0) {
-      for (i = 0; i < *(int *)0x4d0480; i++) {
-        entry = FUN_00181020(i);
-        definition = *entry;
-        dir = *(real_vector3d *)uncompress_int32_to_real_vector3d(
-          (float *)&perp, (unsigned int)entry[4]);
+    for (i = 0; i < *(int *)0x4d0480; i++) {
+      entry = FUN_00181020(i);
+      definition = *entry;
+      dir = *(real_vector3d *)uncompress_int32_to_real_vector3d(
+        (float *)&perp, (unsigned int)entry[4]);
 
-        if ((short)(*(unsigned char *)((char *)entry + 0x22) & ~0x80) ==
-            *(short *)0x5a5bc2) {
-          radius = *(float *)(definition + 0x10);
+      if ((short)(*(unsigned char *)((char *)entry + 0x22) & ~0x80) ==
+          *(short *)0x5a5bc2) {
+        radius = *(float *)(definition + 0x10);
 
-          switch (*(short *)(definition + 0x14)) {
-          case 0:
-            vector3d_scale_add((float *)(entry + 1), (float *)0x5a5bd4,
-                               -*(float *)(definition + 0x10), (float *)&pos);
-            break;
-          case 1:
-            vector3d_scale_add((float *)(entry + 1), (float *)&dir,
-                               *(float *)(definition + 0x10) *
-                                 *(float *)0x254e68,
-                               (float *)&pos);
-            break;
-          case 2:
-            pos = *(real_vector3d *)(entry + 1);
-            break;
-          default:
-            display_assert(
-              "### ERROR unsupported lens flare occlusion offset direction",
-              "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0x1e2, 1);
-            system_exit(-1);
-            break;
-          }
-
-          entry[9] = FUN_0017d030((float *)&pos, radius, i);
+        switch (*(short *)(definition + 0x14)) {
+        case 0:
+          vector3d_scale_add((float *)(entry + 1), (float *)0x5a5bd4,
+                             -*(float *)(definition + 0x10), (float *)&pos);
+          break;
+        case 1:
+          vector3d_scale_add((float *)(entry + 1), (float *)&dir,
+                             *(float *)(definition + 0x10) *
+                               *(float *)0x254e68,
+                             (float *)&pos);
+          break;
+        case 2:
+          pos = *(real_vector3d *)(entry + 1);
+          break;
+        default:
+          display_assert(
+            "### ERROR unsupported lens flare occlusion offset direction",
+            "c:\\halo\\SOURCE\\rasterizer\\rasterizer_lights.c", 0x1e2, 1);
+          system_exit(-1);
+          break;
         }
+
+        entry[9] = FUN_0017d030((float *)&pos, radius, i);
       }
     }
 

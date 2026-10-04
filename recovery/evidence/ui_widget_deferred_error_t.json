@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "struct": "ui_widget_deferred_error_t",
+  "sources": [
+    "display_error_deferred 0xe4500: CMP word [EAX+0x46cc50],-1 @0xe4544; MOV word [EAX+0x46cc50],CX @0xe4555; MOV word [EAX+0x46cc52],DI @0xe455f; MOV byte [EAX+0x46cc54],DL @0xe4567; MOV byte [EAX+0x46cc55],CL @0xe456d",
+    "process_ui_widgets sweep: MOV AL,byte [ESI+4] @0xe97df; MOV CX,word [ESI+2] @0xe97e4; MOV DX,word [ESI] @0xe97eb"
+  ],
+  "size": {
+    "value": "0x06",
+    "evidence": "stride 6: loop bound 0x46cc68 = 0x46cc50 + 4*6"
+  },
+  "fields": [
+    {
+      "offset": "0x00",
+      "width": 2,
+      "signed": true,
+      "name": "error_handle",
+      "confidence": "typed",
+      "evidence": "CMP word [EAX+0x46cc50],-1 @0xe4544"
+    },
+    {
+      "offset": "0x02",
+      "width": 2,
+      "signed": true,
+      "name": "local_player_index",
+      "confidence": "typed",
+      "evidence": "MOV word [EAX+0x46cc52],DI @0xe455f"
+    },
+    {
+      "offset": "0x04",
+      "width": 1,
+      "signed": false,
+      "name": "a3",
+      "confidence": "typed",
+      "evidence": "MOV byte [EAX+0x46cc54],DL @0xe4567"
+    },
+    {
+      "offset": "0x05",
+      "width": 1,
+      "signed": false,
+      "name": "a4",
+      "confidence": "typed",
+      "evidence": "MOV byte [EAX+0x46cc55],CL @0xe456d"
+    }
+  ],
+  "notes": [
+    "Moved verbatim from ui_widget.c into ui_widget_globals.h; member names are legacy descriptive names, not string-proven."
+  ]
+}

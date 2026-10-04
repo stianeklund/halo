@@ -148,6 +148,8 @@ tools/retrieval/index.duckdb.bak-*
 # Ephemeral worktrees
 /.qmd/
 /.vc71_stage/
+# Permuter splice-compile temporaries (next to the real TU while compiling)
+.permuter_*
 
 # Backup and generated DB files
 *.bak

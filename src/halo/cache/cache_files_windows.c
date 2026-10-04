@@ -420,11 +420,11 @@ void FUN_001bb430(char *self, short *request, short read_buffer_index)
  */
 void acquire_read_request(char *self, short *request)
 {
-  int read_buffer_index;
+  short read_buffer_index;
   unsigned int mask;
   unsigned int *flags;
 
-  read_buffer_index = ((int)request - (int)self - 0xa78) >> 1;
+  read_buffer_index = (short)(((int)request - (int)self - 0xa78) >> 1);
 
   if (read_buffer_index < 0 || read_buffer_index >= 8) {
     display_assert(
@@ -447,7 +447,7 @@ void acquire_read_request(char *self, short *request)
   *flags = *flags & ~mask;
   *request = -1;
 
-  FUN_001bb430(self, request, (short)read_buffer_index);
+  FUN_001bb430(self, request, read_buffer_index);
 }
 
 /* cache_copy_issue_write — issue the current write buffer, then advance the
@@ -1828,11 +1828,11 @@ void FUN_001bcea0(short map_file_index)
   short start;
 
   start = map_file_index + 1;
-  if ((unsigned short)start < 0x14) {
+  if (start < 0x14) {
     i = (int)start;
     count = (unsigned int)(unsigned short)(0x14 - start);
     do {
-      csprintf(local_buf, "z:\\cache%03d.map", i);
+      crt_sprintf(local_buf, "z:\\cache%03d.map", i);
       DeleteFileA(local_buf);
       i = i + 1;
       count = count - 1;

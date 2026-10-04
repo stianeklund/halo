@@ -6092,7 +6092,8 @@ void hs_evaluate_player_effect_start(int16_t function_index, int thread_datum, c
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != 0) {
-    scripted_player_effect_start(result[0], *(float *)((char *)result + 4));
+    scripted_player_effect_start(*(float *)&result[0],
+                                 *(float *)((char *)result + 4));
     hs_return(thread_datum, 0);
   }
   return;

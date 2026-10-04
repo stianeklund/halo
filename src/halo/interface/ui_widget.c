@@ -1,4 +1,5 @@
 #include "x87_math.h"
+#include "ui_widget_globals.h"
 
 /* event_controller_index_compatible_with_widget (0xe3b80) — true if the
  * widget accepts input from any controller (local_player_index == -1, at
@@ -15,7 +16,6 @@ int event_controller_index_compatible_with_widget(void *event, void *widget)
   }
   return 0;
 }
-
 /* set_ui_plasma_effect_color (0xe3bb0) — stores four caller-supplied dword
  * values into four consecutive UI plasma-effect-color globals at
  * 0x5aa460-0x5aa46c. No callers found in the binary (xrefs empty) and no
@@ -25,19 +25,21 @@ int event_controller_index_compatible_with_widget(void *event, void *widget)
 void set_ui_plasma_effect_color(uint32_t component_0, uint32_t component_1,
                                 uint32_t component_2, uint32_t component_3)
 {
-  *(uint32_t *)0x5aa460 = component_0;
-  *(uint32_t *)0x5aa464 = component_1;
-  *(uint32_t *)0x5aa468 = component_2;
-  *(uint32_t *)0x5aa46c = component_3;
+  ((uint32_t *)&ui_plasma_effect_color)[0] = component_0;
+  ((uint32_t *)&ui_plasma_effect_color)[1] = component_1;
+  ((uint32_t *)&ui_plasma_effect_color)[2] = component_2;
+  ((uint32_t *)&ui_plasma_effect_color)[3] = component_3;
 }
 
 /* ui_widgets_initialize — sets up the UI widget subsystem. Allocates a
- * 0x4000-byte block via debug_malloc for the stack memory pool at
- * [0x31e04c], initializes the pool, zeroes the 0x68-byte static widget
- * state block at 0x46cc20, and sets sentinel values (-1) in various
- * 16-bit slots within the state block. The byte at 0x46cc82 records
- * whether the allocation succeeded. The float at 0x46cc4c is set to
- * -1.0f as an initial value. */
+ * 0x4000-byte block via debug_malloc for widget_memory_pool ([0x31e04c]),
+ * initializes the pool, zeroes widget_globals (0x68 bytes at 0x46cc20),
+ * and sets the -1 sentinels: the queued main-menu error (field_28), the
+ * deferred dashboard error (field_48), and the error_handle of each
+ * per-player deferred error (field_30[]) and cinematic-deferred error
+ * (field_4c[]). widget_globals_initialized (0x46cc82) records whether the
+ * allocation succeeded. The fade float (field_2c, 0x46cc4c) starts at
+ * -1.0f. */
 void ui_widgets_initialize(void)
 {
   int alloc_result;
@@ -50,31 +52,31 @@ void ui_widgets_initialize(void)
   alloc_result = (int)debug_malloc(
     0x4000, 0, "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x75);
   if (alloc_result != 0) {
-    pool = *(int **)0x31e04c;
+    pool = (int *)widget_memory_pool;
     pool[1] = alloc_result;
-    pool = *(int **)0x31e04c;
+    pool = (int *)widget_memory_pool;
     pool[2] = 0x4000;
   } else {
     succeeded = false;
   }
 
-  stack_memory_pool_initialize(*(void **)0x31e04c);
-  csmemset((void *)0x46cc20, 0, 0x68);
+  stack_memory_pool_initialize(widget_memory_pool);
+  csmemset((void *)widget_globals_base, 0, WIDGET_GLOBALS_SIZE);
 
-  *(int16_t *)0x46cc48 = -1;
-  *(int16_t *)0x46cc68 = -1;
+  widget_globals_field_28 = -1;
+  widget_globals_field_48 = -1;
 
-  ptr_b = (int16_t *)0x46cc6c;
-  ptr_a = (int16_t *)0x46cc50;
+  ptr_b = &widget_globals_field_4c[0].error_handle;
+  ptr_a = &widget_globals_field_30[0].error_handle;
   do {
     *ptr_a = -1;
     *ptr_b = -1;
     ptr_a = (int16_t *)((char *)ptr_a + 6);
     ptr_b = (int16_t *)((char *)ptr_b + 4);
-  } while ((int)ptr_a < 0x46cc68);
+  } while ((int)ptr_a < (int)&widget_globals_field_48);
 
-  *(uint8_t *)0x46cc82 = (uint8_t)succeeded;
-  *(uint32_t *)0x46cc4c = 0xBF800000; /* -1.0f */
+  widget_globals_initialized = succeeded;
+  widget_globals_field_2c = -1.0f;
 }
 
 void ui_widgets_safe_to_load(bool a1)
@@ -87,7 +89,7 @@ void ui_widgets_safe_to_load(bool a1)
  * to preserve the bit pattern. */
 void ui_widgets_set_fade_value(float value)
 {
-  *(float *)0x46cc4c = value;
+  widget_globals_field_2c = value;
 }
 
 /* ui_widget_debug_show_path — sets the debug overlay flag at 0x46cc84 that
@@ -95,7 +97,7 @@ void ui_widgets_set_fade_value(float value)
  * name in the small debug font (see the render_ui_widgets comment below). */
 void ui_widget_debug_show_path(unsigned char value)
 {
-  *(uint8_t *)0x46cc84 = value;
+  widget_globals_field_64 = value;
 }
 
 /* widget_instance_count_children (0xe3cb0) — counts widget's children by
@@ -157,7 +159,7 @@ void *widget_instance_get_nth_child(void *widget, int n)
 void *ui_widget_realloc(int a1, unsigned short a2, const char *a3,
                         unsigned int a4)
 {
-  return stack_memory_pool_realloc(*(void **)0x31e04c, a1, a2, a3, a4);
+  return stack_memory_pool_realloc(widget_memory_pool, a1, a2, a3, a4);
 }
 
 /* widget_free — releases a widget node back to the global widget stack
@@ -166,7 +168,7 @@ void *ui_widget_realloc(int a1, unsigned short a2, const char *a3,
  * and the other stack_memory_pool_deallocate call sites in this file. */
 void widget_free(void *widget)
 {
-  stack_memory_pool_deallocate(*(void **)0x31e04c, widget);
+  stack_memory_pool_deallocate(widget_memory_pool, widget);
 }
 
 /* ui_widgets_active — reports whether the widget subsystem is initialized
@@ -186,8 +188,9 @@ bool ui_widgets_active(void)
   bool active;
 
   active = false;
-  if (*(uint8_t *)0x46cc82 != 0) {
-    for (slot = (int *)0x46cc20; (int)slot < 0x46cc30; slot++) {
+  if (widget_globals_initialized != 0) {
+    for (slot = widget_globals_field_00;
+         (int)slot < (int)&widget_globals_field_00[4]; slot++) {
       if (*slot != 0) {
         return true;
       }
@@ -212,8 +215,9 @@ bool ui_widgets_active_for_local_player(int16_t local_player_index)
   assert_halt_msg_at("expected a valid local_player_index",
                      "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x456,
                      local_player_index >= 0 && local_player_index < 4);
-  if (*(uint8_t *)0x46cc82 != 0) {
-    for (slot = (int *)0x46cc20; (int)slot < 0x46cc30; slot++) {
+  if (widget_globals_initialized != 0) {
+    for (slot = widget_globals_field_00;
+         (int)slot < (int)&widget_globals_field_00[4]; slot++) {
       if (*slot != 0 &&
           *(int16_t *)((char *)*slot + 0x08) == local_player_index) {
         active = true;
@@ -226,16 +230,17 @@ bool ui_widgets_active_for_local_player(int16_t local_player_index)
 }
 
 /* ui_widgets_inhibit_processing — sets or clears the events-suppressed
- * flag at 0x46cc85 in the widget globals block. When suppressed, the
+ * flag widget_globals_field_65 (0x46cc85). When suppressed, the
  * per-frame event dispatch in process_ui_widgets skips input processing.
- * Asserts that the widget subsystem has been initialized (0x46cc82). */
+ * Asserts that the widget subsystem has been initialized
+ * (widget_globals_initialized, 0x46cc82). */
 void ui_widgets_inhibit_processing(
   bool inhibit) /* name: PAL 2342 ui_widget.c:1624 */
 {
   assert_halt_msg_at("widget_globals.initialized",
                      "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x496,
-                     *(uint8_t *)0x46cc82);
-  *(uint8_t *)0x46cc85 = (uint8_t)inhibit;
+                     widget_globals_initialized);
+  widget_globals_field_65 = (uint8_t)inhibit;
 }
 
 /* compute_offset_coordinate (0xe3e60-0xe3e7b) — returns the fractional part
@@ -267,8 +272,8 @@ double compute_offset_coordinate(int param_1, float param_2)
  * With no_plasma the bitmap is map[0]. Otherwise map[0]/map[1] are element 0
  * of the bitmap block (+0x60, element size 0x30) of interface bitmap 0xf, the
  * plasma layers, scrolled by fmod(time * k, 1.0) (compute_offset_coordinate
- * inlined; the k = delta * 0.001f products are pre-folded into
- * 0x283304/0x2832fc/0x2832f8/0x2832f0), and the bitmap is map[2].
+ * inlined; the k = delta * 0.001f products are pre-folded constants
+ * in the binary), and the bitmap is map[2].
  * plasma_fade is a copy of ui_plasma_effect_color (0x5aa460), taken on entry.
  */
 void draw_bitmap_in_rect(int bitmap, int16_t *rect, int16_t *bitmap_rect,
@@ -303,17 +308,17 @@ void draw_bitmap_in_rect(int bitmap, int16_t *rect, int16_t *bitmap_rect,
   float time_real;
 
   if (bitmap != 0 && rect != NULL) {
-    plasma_fade = *(real_argb_color *)0x5aa460;
+    plasma_fade = ui_plasma_effect_color;
     map_tint[0] = 0.9f;
     map_tint[1] = 0.9f;
     map_tint[2] = 0.9f;
     map_fade = 0.9f;
 
     if (bitmap_rect == NULL) {
-      default_bitmap_rect[0] = 0;
       default_bitmap_rect[1] = 0;
-      default_bitmap_rect[2] = *(int16_t *)(bitmap + 6);
+      default_bitmap_rect[0] = 0;
       default_bitmap_rect[3] = *(int16_t *)(bitmap + 4);
+      default_bitmap_rect[2] = *(int16_t *)(bitmap + 6);
       bitmap_rect = default_bitmap_rect;
     }
 
@@ -380,26 +385,26 @@ void draw_bitmap_in_rect(int bitmap, int16_t *rect, int16_t *bitmap_rect,
       time_ms = system_milliseconds();
       time_real = (float)time_ms;
 #if defined(_MSC_VER) && !defined(__clang__)
-      map0_offset.x = (float)fmod(time_real * *(float *)0x283304, 1.0) * 311.0f;
-      map0_offset.y = (float)fmod(time_real * *(float *)0x2832fc, 1.0) * 311.0f;
-      map1_offset.x =
-        -(float)fmod(time_real * *(float *)0x2832f8, 1.0) * 201.0f;
-      map1_offset.y =
-        -(float)fmod(time_real * *(float *)0x2832f0, 1.0) * 201.0f;
+      map0_offset.x = (float)fmod(time_real * 3.215434e-05f, 1.0) * 311.0f;
+      map0_offset.y = (float)fmod(time_real * 2.6795286e-05f, 1.0) * 311.0f;
+      map1_offset.x = -(float)fmod(time_real * 3.5536603e-05f, 1.0);
+      map1_offset.x *= 201.0f;
+      map1_offset.y = -(float)fmod(time_real * 3.1094525e-05f, 1.0);
+      map1_offset.y *= 201.0f;
 #else
       /* x87_fmod: FPREM like _CIfmod (0x1daf7e); clang's fmod is FPREM1. */
-      map0_offset.x = x87_fmod(time_real * *(float *)0x283304, 1.0) * 311.0f;
-      map0_offset.y = x87_fmod(time_real * *(float *)0x2832fc, 1.0) * 311.0f;
-      map1_offset.x = -x87_fmod(time_real * *(float *)0x2832f8, 1.0) * 201.0f;
-      map1_offset.y = -x87_fmod(time_real * *(float *)0x2832f0, 1.0) * 201.0f;
+      map0_offset.x = x87_fmod(time_real * 3.215434e-05f, 1.0) * 311.0f;
+      map0_offset.y = x87_fmod(time_real * 2.6795286e-05f, 1.0) * 311.0f;
+      map1_offset.x = -x87_fmod(time_real * 3.5536603e-05f, 1.0) * 201.0f;
+      map1_offset.y = -x87_fmod(time_real * 3.1094525e-05f, 1.0) * 201.0f;
 #endif
 
       parameters.map[0] = plasma_bitmap;
       parameters.map0_to_1_blend_function = 5;
       parameters.map_scale[0].i = 1.0f;
       parameters.map_scale[0].j = 1.0f;
-      parameters.map_wrapped[0] = 1;
       parameters.map_anchor_screen[0] = 1;
+      parameters.map_wrapped[0] = 1;
       parameters.map_texture_scale[0].i = 1.0f / 311.0f;
       parameters.map_texture_scale[0].j = 1.0f / 311.0f;
       parameters.map_tint[0] = map_tint;
@@ -409,8 +414,8 @@ void draw_bitmap_in_rect(int bitmap, int16_t *rect, int16_t *bitmap_rect,
       parameters.map1_to_2_blend_function = 0;
       parameters.map_scale[1].i = 1.0f;
       parameters.map_scale[1].j = 1.0f;
-      parameters.map_wrapped[1] = 1;
       parameters.map_anchor_screen[1] = 1;
+      parameters.map_wrapped[1] = 1;
       parameters.map_texture_scale[1].i = 1.0f / 201.0f;
       parameters.map_texture_scale[1].j = 1.0f / 201.0f;
       parameters.map_tint[1] = map_tint;
@@ -519,7 +524,7 @@ void widget_instance_set_visibility_recursive(void *widget, bool visible)
  * teardown/setup paths with a literal false/true argument. */
 void main_menu_active(bool active)
 {
-  *(uint8_t *)0x46cc88 = (uint8_t)active;
+  byte_46CC88 = (uint8_t)active;
 }
 
 /* main_menu_is_active — reads the "main menu active" byte at 0x46cc88 set by
@@ -527,15 +532,15 @@ void main_menu_active(bool active)
  * byte load truncated to bool, no other logic. */
 bool main_menu_is_active(void)
 {
-  return (bool)(*(uint8_t *)0x46cc88);
+  return (bool)byte_46CC88;
 }
 
 bool main_menu_screen_is_active(void)
 {
   int root_widget;
 
-  if (*(uint8_t *)0x46cc88 == 1) {
-    root_widget = *(int *)0x46cc20;
+  if (byte_46CC88 == 1) {
+    root_widget = widget_globals_field_00[0];
     if (root_widget != 0) {
       if (csstrcmp(*(const char **)(root_widget + 4), "the_main_menu") == 0) {
         return true;
@@ -587,7 +592,7 @@ void ui_widget_load_progress_widget(void)
 
 bool filesystem_check_thread_is_active(void)
 {
-  return *(int *)0x46cc7c != 0;
+  return widget_globals_initialization_thread != NULL;
 }
 
 /* display_error_when_main_menu_loaded — queues a single error message handle
@@ -607,15 +612,10 @@ void display_error_when_main_menu_loaded(int16_t error_handle)
            "main menu; ignoring this one");
 }
 
-/* Deferred per-local-player error slots at 0x46cc50, stride 6 bytes:
+/* Deferred per-local-player error slots: widget_globals_field_30[4]
+ * (ui_widget_deferred_error_t, ui_widget_globals.h), stride 6 bytes:
  * word error_handle (-1 == slot empty), word local_player_index, then the
  * two flag bytes forwarded to the error screen. */
-typedef struct ui_widget_deferred_error {
-  int16_t error_handle;
-  int16_t local_player_index;
-  uint8_t a3;
-  uint8_t a4;
-} ui_widget_deferred_error_t;
 
 /* display_error_deferred — queues one error message per local player, to be
  * dispatched by the deferred-error sweep in process_ui_widgets(). A
@@ -629,7 +629,7 @@ display_error_deferred(short error_code, short player_index, bool a3, bool a4)
   ui_widget_deferred_error_t *deferred_errors;
   int index;
 
-  deferred_errors = (ui_widget_deferred_error_t *)0x46cc50;
+  deferred_errors = widget_globals_field_30;
   if ((int16_t)player_index == -1) {
     index = 0;
   } else {
@@ -667,9 +667,9 @@ display_error_deferred(short error_code, short player_index, bool a3, bool a4)
 void display_error_abort_to_dashboard_deferred(int16_t error_handle,
                                                uint8_t allow_abort)
 {
-  if (*(int16_t *)0x46cc68 == -1) {
-    *(int16_t *)0x46cc68 = error_handle;
-    *(uint8_t *)0x46cc6a = allow_abort;
+  if (widget_globals_field_48 == -1) {
+    widget_globals_field_48 = error_handle;
+    widget_globals_field_4a = allow_abort;
     return;
   }
   error(2, "there is already a deferred dashbaord error queued; ignoring "
@@ -686,7 +686,7 @@ void ui_start_main_menu_music(void)
 {
   int tag_index;
 
-  if (*(uint8_t *)0x46cc86 != 0)
+  if (widget_globals_field_66 != 0)
     return;
 
   if (main_change_map_name_in_progress())
@@ -696,7 +696,7 @@ void ui_start_main_menu_music(void)
   if (tag_index != -1) {
     error(2, "starting main menu music");
     sound_looping_start(tag_index, -1, 1.0f);
-    *(uint8_t *)0x46cc86 = 1;
+    widget_globals_field_66 = 1;
     return;
   }
   error(2, "title music tag not found");
@@ -706,7 +706,7 @@ void ui_stop_main_menu_music(void)
 {
   int tag_index;
 
-  if (*(uint8_t *)0x46cc86 != 1) {
+  if (widget_globals_field_66 != 1) {
     return;
   }
 
@@ -714,12 +714,12 @@ void ui_stop_main_menu_music(void)
   if (tag_index != -1) {
     error(2, "stopping main menu music");
     sound_looping_stop(tag_index);
-    *(uint8_t *)0x46cc86 = 0;
+    widget_globals_field_66 = 0;
     return;
   }
 
   error(2, "title music tag not found");
-  *(uint8_t *)0x46cc86 = 0;
+  widget_globals_field_66 = 0;
 }
 
 /* noinline: main_menu_initialize (0xea090) CALLs this at 0xea0bc; in PAL it
@@ -727,7 +727,7 @@ void ui_stop_main_menu_music(void)
  * original never inlined it. */
 __declspec(noinline) bool ui_main_menu_music_active(void)
 {
-  return *(bool *)0x46cc86;
+  return widget_globals_field_66;
 }
 
 void ui_widgets_disable_pause_game(int duration_ticks)
@@ -750,7 +750,7 @@ void push_widget(int *head, void *record)
   widget_stack_node_t *node;
 
   node = (widget_stack_node_t *)stack_memory_pool_allocate(
-    *(void **)0x31e04c, sizeof(widget_stack_node_t),
+    widget_memory_pool, sizeof(widget_stack_node_t),
     "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x9e4);
   if (head == NULL || record == NULL) {
     display_assert("top && data", "c:\\halo\\SOURCE\\interface\\ui_widget.c",
@@ -784,7 +784,7 @@ void pop_widget(int *head, void *output)
   ((int *)output)[1] = top[1];
   ((int *)output)[2] = top[2];
   *head = top[3];
-  stack_memory_pool_deallocate(*(void **)0x31e04c, top);
+  stack_memory_pool_deallocate(widget_memory_pool, top);
 }
 
 /* ui_widget_add_child (0xe4800) — appends child to the end of parent's
@@ -929,7 +929,7 @@ bool widget_instance_can_receive_events(void *widget)
 
   w = (int *)widget;
 
-  if (*(uint8_t *)((char *)w + 0x12) != 0) {
+  if (((widget_instance_t *)w)->field_12 != 0) {
     return false;
   }
 
@@ -1481,7 +1481,7 @@ int search_and_replace(const wchar_t *search, const wchar_t *replace,
   }
 
   block = stack_memory_pool_realloc(
-    *(void **)0x31e04c, (int)buffer,
+    widget_memory_pool, (int)buffer,
     (unsigned short)((delta * count + total_length) * 2),
     "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x1382);
   if (block == NULL) {
@@ -1522,10 +1522,10 @@ void column_list_update(void *widget, void *definition)
   for (child = *(char **)((char *)widget + 0x34); child != NULL;
        child = *(char **)(child + 0x2c)) {
     if (child == *(char **)((char *)widget + 0x38)) {
-      if (*(short *)(child + 0x56) == 2) {
+      if (((widget_instance_t *)child)->field_56 == 2) {
         *(short *)(child + 0x50) = 1;
       }
-    } else if (*(short *)(child + 0x56) == 2) {
+    } else if (((widget_instance_t *)child)->field_56 == 2) {
       *(short *)(child + 0x50) = 0;
     }
   }
@@ -1712,7 +1712,7 @@ void __stdcall filesystem_initialization_thread_proc(int param_1)
   (void)param_1;
 
   result = saved_game_perform_file_system_checks();
-  *(int16_t *)0x46cc80 = result;
+  widget_globals_field_60 = result;
   if (result == 0) {
     local_4 = 1;
     FUN_001c26b0(-1, &local_4, &local_8);
@@ -1771,7 +1771,7 @@ void ui_widget_delete(void *widget)
 
   w = (int *)widget;
 
-  assert_halt(widget && *(uint8_t *)0x46cc82);
+  assert_halt(widget && widget_globals_initialized);
 
   /* already being deleted — bail out */
   if (*(uint8_t *)((char *)w + 0x14) != 0)
@@ -1818,26 +1818,26 @@ void ui_widget_delete(void *widget)
   }
 
   /* manage the pause counter */
-  if (*(uint8_t *)((char *)w + 0x13) == 1) {
+  if (((widget_instance_t *)w)->field_13 == 1) {
     assert_halt_msg_at("widget pause counter out of whack",
                        "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x220,
-                       *(int16_t *)0x46cc4a >= 1);
+                       widget_globals_field_2a >= 1);
 
-    (*(int16_t *)0x46cc4a)--;
+    widget_globals_field_2a--;
 
-    if (*(int16_t *)0x46cc4a == 0) {
+    if (widget_globals_field_2a == 0) {
       if (game_time_get_paused()) {
         game_time_set_paused(0);
-        if (*(uint8_t *)0x46cc88 != 0) {
+        if (byte_46CC88 != 0) {
           main_reset_player_actions();
           game_time_dispose_from_old_map();
           game_time_initialize_for_new_map();
           game_time_start();
         }
       }
-      if (*(uint8_t *)0x46cc87 == 1) {
+      if (widget_globals_field_67 == 1) {
         sound_set_music_enabled(0);
-        *(uint8_t *)0x46cc87 = 0;
+        widget_globals_field_67 = 0;
       }
     }
   }
@@ -1868,7 +1868,7 @@ void ui_widget_delete(void *widget)
   if (widget_type == 1) {
     /* text widget: free text data */
     if (w[0xf] != 0) {
-      stack_memory_pool_deallocate(*(void **)0x31e04c, (void *)w[0xf]);
+      stack_memory_pool_deallocate(widget_memory_pool, (void *)w[0xf]);
     }
   } else if (widget_type > 1 && widget_type < 4) {
     /* list widget (type 2 or 3): warn about possible leak, free skin data,
@@ -1883,7 +1883,7 @@ void ui_widget_delete(void *widget)
             tag_name);
     }
     if (w[0x13] != 0) {
-      stack_memory_pool_deallocate(*(void **)0x31e04c, (void *)w[0x13]);
+      stack_memory_pool_deallocate(widget_memory_pool, (void *)w[0x13]);
     }
     if (w[0x12] != 0) {
       ui_widget_delete((void *)w[0x12]);
@@ -1891,22 +1891,20 @@ void ui_widget_delete(void *widget)
   }
 
   /* free the widget itself */
-  stack_memory_pool_deallocate(*(void **)0x31e04c, w);
+  stack_memory_pool_deallocate(widget_memory_pool, w);
 
   /* clear root widget slot if this widget was a root */
   for (idx = 0; idx < 4; idx++) {
-    if (*(int *)(0x46cc20 + idx * 4) == (int)w) {
-      *(int *)(0x46cc20 + idx * 4) = 0;
+    if (widget_globals_field_00[idx] == (int)w) {
+      widget_globals_field_00[idx] = 0;
       return;
     }
   }
 }
 
-/* ui_widgets_close_all — iterates over the 4 UI widget stacks and tears
- * them down. For each stack, closes the root widget via ui_widget_delete
- * (0xe5620), then walks the linked list at 0x46cc30[i] and deallocates
- * each widget node from the stack memory pool at [0x31e04c]. The list
- * is linked through offset +0xc in each widget node. */
+/* ui_widgets_close_all — for each of the 4 UI widget stacks, closes the
+ * root via ui_widget_delete (0xe5620), then frees every node on the
+ * pending list widget_globals_field_10[i] (linked through +0xc). */
 void ui_widgets_close_all(void)
 {
   int *list_heads;
@@ -1914,7 +1912,7 @@ void ui_widgets_close_all(void)
   int next;
   void *pool;
 
-  list_heads = (int *)0x46cc30;
+  list_heads = widget_globals_field_10;
   do {
     /* close the root widget for this stack if present */
     if (list_heads[-4] != 0) {
@@ -1924,7 +1922,7 @@ void ui_widgets_close_all(void)
     widget = *list_heads;
     if (widget != 0) {
       while (widget != 0) {
-        pool = *(void **)0x31e04c;
+        pool = widget_memory_pool;
         next = *(int *)(widget + 0xc);
         *list_heads = next;
         stack_memory_pool_deallocate(pool, (void *)widget);
@@ -1932,17 +1930,15 @@ void ui_widgets_close_all(void)
       }
     }
     list_heads++;
-  } while ((int)list_heads < 0x46cc40);
+  } while ((int)list_heads < (int)&widget_globals_field_10[4]);
 }
 
 /* ui_widgets_close_all_for_local_player (0xe5910) — like ui_widgets_close_all
- * above, but only tears down the one root-widget stack (of the 4 at
- * 0x46cc20..2c / 0x46cc30..3c) whose root widget's local_player_index field
+ * above, but only for the one stack whose root widget's local_player_index
  * (+8) matches local_player_index: closes that root via ui_widget_delete
- * (0xe5620), then drains its pending-close list at 0x46cc30[i] (linked
- * through +0xc) back to the stack memory pool at [0x31e04c]. Asserts
- * local_player_index is in [0,4) -- unlike ui_widgets_pop_stack below,
- * -1 is NOT special-cased to player 0 here. */
+ * (0xe5620), then drains its pending list (linked through +0xc) back to
+ * widget_memory_pool. Asserts local_player_index is in [0,4) -- unlike
+ * ui_widgets_pop_stack below, -1 is NOT special-cased to player 0 here. */
 void ui_widgets_close_all_for_local_player(int16_t local_player_index)
 {
   int *list_heads;
@@ -1957,7 +1953,7 @@ void ui_widgets_close_all_for_local_player(int16_t local_player_index)
     system_exit(-1);
   }
 
-  list_heads = (int *)0x46cc30;
+  list_heads = widget_globals_field_10;
   do {
     root = list_heads[-4];
     if (root != 0 && *(int16_t *)(root + 8) == local_player_index) {
@@ -1966,7 +1962,7 @@ void ui_widgets_close_all_for_local_player(int16_t local_player_index)
       widget = *list_heads;
       if (widget != 0) {
         while (widget != 0) {
-          pool = *(void **)0x31e04c;
+          pool = widget_memory_pool;
           next = *(int *)(widget + 0xc);
           *list_heads = next;
           stack_memory_pool_deallocate(pool, (void *)widget);
@@ -1975,7 +1971,7 @@ void ui_widgets_close_all_for_local_player(int16_t local_player_index)
       }
     }
     list_heads++;
-  } while ((int)list_heads < 0x46cc40);
+  } while ((int)list_heads < (int)&widget_globals_field_10[4]);
 }
 
 /* ui_widgets_pop_stack — drains one pending queued entry from the
@@ -2001,23 +1997,20 @@ __declspec(noinline) void ui_widgets_pop_stack(int16_t local_player_index)
     system_exit(-1);
   }
 
-  if (*(int *)(0x46cc30 + (int)local_player_index * 4) != 0) {
-    pop_widget((int *)(0x46cc30 + (int)local_player_index * 4),
+  if (widget_globals_field_10[(int)local_player_index] != 0) {
+    pop_widget(&widget_globals_field_10[(int)local_player_index],
                (void *)&record);
   }
 }
 
 /* main_screen_shell_begin_fade — starts the shell's screen-fade-out on each
- * of the 4 UI root widget stacks (0x46cc20..2c) whose root is not in
- * "in_game_mode" (+0x15, see render_ui_widgets above). Stops attract mode,
- * then for each eligible root stamps the fade duration (+0x20) with
- * duration_ms and the timeout (+0x1c) with (current_tick - start_tick) + 100
- * ticks, where start_tick is +0x18 and current_tick is the global at
- * 0x46cc40 (see ui_widget_event_handler_function_invoke's timeout check against
- * +0x18/+0x1c/+0x20 above). Finally frees every widget already queued on
- * that stack's pending-close list (0x46cc30[i], linked through +0xc) back
- * to the stack memory pool — the same list-drain as ui_widgets_close_all,
- * but without closing the root widget itself. */
+ * of the 4 UI root widget stacks whose root is not in "in_game_mode" (+0x15,
+ * see render_ui_widgets above). Stops attract mode, then for each eligible
+ * root stamps the fade duration (+0x20) with duration_ms and the timeout
+ * (+0x1c) with (widget_globals_field_20 - start_tick (+0x18)) + 100. Finally
+ * frees every widget queued on that stack's pending-close list
+ * (widget_globals_field_10[i], linked through +0xc) — the same list-drain as
+ * ui_widgets_close_all, but without closing the root widget itself. */
 void main_screen_shell_begin_fade(int duration_ms)
 {
   int *root_slots;
@@ -2029,17 +2022,18 @@ void main_screen_shell_begin_fade(int duration_ms)
 
   ui_stop_main_menu_music();
 
-  root_slots = (int *)0x46cc20;
+  root_slots = widget_globals_field_00;
   do {
     root = *root_slots;
     if (root != 0 && *(uint8_t *)(root + 0x15) == 0) {
       *(int *)(root + 0x20) = duration_ms;
-      *(int *)(root + 0x1c) = (*(int *)0x46cc40 - *(int *)(root + 0x18)) + 100;
+      *(int *)(root + 0x1c) =
+        ((int)widget_globals_field_20 - *(int *)(root + 0x18)) + 100;
 
-      list_head = root_slots + 4; /* matching slot in 0x46cc30[] */
+      list_head = root_slots + 4; /* matching slot in field_10[] */
       widget = *list_head;
       while (widget != 0) {
-        pool = *(void **)0x31e04c;
+        pool = widget_memory_pool;
         next = *(int *)(widget + 0xc);
         *list_head = next;
         stack_memory_pool_deallocate(pool, (void *)widget);
@@ -2047,7 +2041,7 @@ void main_screen_shell_begin_fade(int duration_ms)
       }
     }
     root_slots++;
-  } while ((int)root_slots < 0x46cc30);
+  } while ((int)root_slots < (int)&widget_globals_field_00[4]);
 }
 
 /* ui_play_audio_feedback_sound (0xe5ab0) — plays one of four canned UI
@@ -2104,68 +2098,64 @@ int ui_widget_load_widget_children(void *definition, void *widget);
  */
 char ui_widget_load_children_recursive(void *widget_ptr, void *definition_ptr)
 {
-  char *widget;
-  char *definition;
+  widget_instance_t *widget;
+  ui_widget_definition_t *definition;
   char result;
   int child_index;
-  int child_count;
 
-  widget = (char *)widget_ptr;
-  definition = (char *)definition_ptr;
+  widget = (widget_instance_t *)widget_ptr;
+  definition = (ui_widget_definition_t *)definition_ptr;
   result = 1;
 
-  if ((*(unsigned char *)(definition + 0x150) & 2) != 0) {
+  if ((definition->list_flags &
+       UI_LIST_ITEMS_GENERATED_FROM_STRING_LIST_TAG_FLAG) != 0) {
     int *string_list;
     int string_index;
 
-    if (*(short *)(widget + 0xe) != 2) {
+    if (widget->type != UI_WIDGET_TYPE_SPINNER_LIST) {
       display_assert("_list_items_generated_from_string_list_tag flag should "
                      "only be set for 1-wide spinner list widgets",
                      "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0xa20, 1);
       system_exit(-1);
     }
-    if (*(int *)(definition + 0x3e0) != 0) {
+    if (definition->child_widgets.count != 0) {
       display_assert("no child widget references are needed to define list "
                      "items when generating a list from a string list tag",
                      "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0xa22, 1);
       system_exit(-1);
     }
-    if (*(int *)(definition + 0xf8) == -1) {
+    if (definition->text_label_string_list.tag_index == -1) {
       display_assert("_list_items_generated_from_string_list_tag flag was set "
                      "but no string list tag was specified",
                      "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0xa24, 1);
       system_exit(-1);
     }
-
-    string_list = (int *)tag_get(0x75737472, *(int *)(definition + 0xf8));
-    *(char *)0x46cc83 = 1;
+    string_list = (int *)tag_get(0x75737472 /* 'ustr' */,
+                                 definition->text_label_string_list.tag_index);
+    widget_globals_field_63 = 1;
     for (string_index = 0; string_index < *string_list; string_index++) {
       void *child;
 
       child = ui_widget_load_by_name_or_tag(
-        NULL, *(int *)widget, (int)widget,
-        (unsigned short)*(short *)(widget + 8), -1, -1, -1);
+        NULL, widget->definition_tag_index, (int)widget,
+        (unsigned short)widget->local_player_index, -1, -1, -1);
       if (child == NULL) {
         result = 0;
         break;
       }
       ui_widget_add_child(child, widget);
-      (*(short *)(widget + 0x44))++;
+      widget->list_number_of_items++;
     }
-    *(char *)0x46cc83 = 0;
+    widget_globals_field_63 = 0;
   }
 
-  child_count = *(int *)(definition + 0x3e0);
-  for (child_index = 0; child_index < child_count; child_index++) {
-    char *reference;
-    short controller_index;
-
-    reference = *(char **)(definition + 0x3e4) + child_index * 0x50;
-    controller_index = *(short *)(widget + 8);
+  for (child_index = 0; child_index < definition->child_widgets.count;
+       child_index++) {
+    char *reference =
+      (char *)definition->child_widgets.address + child_index * 0x50;
+    short controller_index = widget->local_player_index;
     if ((reference[0x30] & 1) != 0) {
-      short custom_controller_index;
-
-      custom_controller_index = *(short *)(reference + 0x34);
+      short custom_controller_index = *(short *)(reference + 0x34);
       if (custom_controller_index >= 0 && custom_controller_index < 4) {
         controller_index = custom_controller_index;
       } else {
@@ -2175,67 +2165,71 @@ char ui_widget_load_children_recursive(void *widget_ptr, void *definition_ptr)
     }
 
     if (*(int *)(reference + 0xc) != -1) {
-      char *child;
+      widget_instance_t *child;
 
-      child = (char *)ui_widget_load_by_name_or_tag(
+      child = (widget_instance_t *)ui_widget_load_by_name_or_tag(
         NULL, *(int *)(reference + 0xc), (int)widget,
         (unsigned short)controller_index, -1, -1, -1);
       if (child == NULL) {
         result = 0;
         break;
       }
-      *(short *)(child + 0xa) =
-        *(short *)(reference + 0x38) + *(short *)(widget + 0xa);
-      *(short *)(child + 0xc) =
-        *(short *)(reference + 0x36) + *(short *)(widget + 0xc);
+      child->horizontal_offset =
+        *(short *)(reference + 0x38) + widget->horizontal_offset;
+      child->vertical_offset =
+        *(short *)(reference + 0x36) + widget->vertical_offset;
       ui_widget_add_child(child, widget);
     }
   }
 
-  if (*(short *)(widget + 0xe) == 3 && *(int *)(definition + 0x1b0) != -1) {
-    char *description;
-
-    description = (char *)ui_widget_load_by_name_or_tag(
-      NULL, *(int *)(definition + 0x1b0), (int)widget,
-      (unsigned short)*(short *)(widget + 8), -1, -1, -1);
-    *(char **)(widget + 0x48) = description;
-    if (description != NULL) {
-      if (*(char **)(description + 0x28) != NULL) {
-        *(int *)(*(int *)(description + 0x28) + 0x2c) = 0;
+  if (widget->type == UI_WIDGET_TYPE_COLUMN_LIST &&
+      *(int *)((char *)definition + 0x1b0) != -1) {
+    widget_instance_t *description;
+    *(widget_instance_t **)((char *)widget + 0x48) =
+      (widget_instance_t *)ui_widget_load_by_name_or_tag(
+        NULL, *(int *)((char *)definition + 0x1b0), (int)widget,
+        (unsigned short)widget->local_player_index, -1, -1, -1);
+    if (*(widget_instance_t **)((char *)widget + 0x48) != NULL) {
+      description = *(widget_instance_t **)((char *)widget + 0x48);
+      if (description->previous != NULL) {
+        description->previous->next = NULL;
       }
-      *(int *)(description + 0x28) = 0;
-      *(int *)(description + 0x30) = 0;
+      (*(widget_instance_t **)((char *)widget + 0x48))->previous = NULL;
+      (*(widget_instance_t **)((char *)widget + 0x48))->parent = NULL;
     }
   }
 
-  if ((int)*(unsigned int *)(definition + 0x2c) >= 0) {
-    if (*(short *)(widget + 0xe) == 2 || *(short *)(widget + 0xe) == 3) {
-      *(short *)(widget + 0x3c) = 0;
-      *(short *)(widget + 0x3e) = 0;
-    } else if ((*(unsigned int *)(definition + 0x2c) & 1) == 0) {
+  if (definition->flags >= 0) {
+    if (widget->type == UI_WIDGET_TYPE_SPINNER_LIST ||
+        widget->type == UI_WIDGET_TYPE_COLUMN_LIST) {
+      widget->list_selected_index = 0;
+      widget->list_last_tab_direction = 0;
+    } else if ((definition->flags &
+                UI_WIDGET_PASS_UNHANDLED_EVENTS_TO_CHILDREN_FLAG) == 0) {
       return result;
     }
 
-    if (*(char **)(widget + 0x34) != NULL) {
-      char *child;
-
-      child = *(char **)(widget + 0x34);
+    if (widget->child != NULL) {
+      widget_instance_t *child = widget->child;
       while (child != NULL) {
-        char *child_definition;
+        ui_widget_definition_t *child_definition;
 
-        if (*(short *)(widget + 0xe) == 2 || *(short *)(widget + 0xe) == 3) {
+        if (widget->type == UI_WIDGET_TYPE_SPINNER_LIST ||
+            widget->type == UI_WIDGET_TYPE_COLUMN_LIST) {
           break;
         }
-        child_definition = (char *)tag_get(0x44654c61, *(int *)child);
-        if (child[0x12] == 0 &&
-            (*(int *)(child_definition + 0x54) > 0 ||
-             *(short *)(child + 0xe) == 2 || *(short *)(child + 0xe) == 3)) {
+        child_definition = (ui_widget_definition_t *)tag_get(
+          0x44654c61 /* 'DeLa' */, child->definition_tag_index);
+        if (((widget_instance_t *)child)->field_12 == 0 &&
+            (child_definition->event_handlers.count > 0 ||
+             child->type == UI_WIDGET_TYPE_SPINNER_LIST ||
+             child->type == UI_WIDGET_TYPE_COLUMN_LIST)) {
           break;
         }
-        child = *(char **)(child + 0x2c);
+        child = child->next;
       }
       if (child != NULL) {
-        *(char **)(widget + 0x38) = child;
+        widget->focused_child = child;
       }
     }
   }
@@ -2497,7 +2491,7 @@ void widget_instance_render_text_box(void *definition, void *widget,
     source_text = (const wchar_t *)FUN_0019d420(string_tag, string_index);
     length = ustrlen((const unsigned short *)source_text) * 2;
     block = stack_memory_pool_realloc(
-      *(void **)0x31e04c, (int)*(void **)((char *)widget + 0x3c),
+      widget_memory_pool, (int)*(void **)((char *)widget + 0x3c),
       (unsigned short)(length + 2), "c:\\halo\\SOURCE\\interface\\ui_widget.c",
       0x1145);
     *(void **)((char *)widget + 0x3c) = block;
@@ -2594,8 +2588,9 @@ void widget_instance_render_text_box(void *definition, void *widget,
   color[0] = definition_color[0] * opacity;
 
   if ((*(uint8_t *)((char *)definition + 0x11e) & 4) != 0) {
-    color[0] = (x87_fcos((float)*(uint32_t *)0x46cc40 * 0.001f * 3.0f) + 1.5f) *
-               0.4f * color[0];
+    color[0] =
+      (x87_fcos((float)widget_globals_field_20 * 0.001f * 3.0f) + 1.5f) *
+      0.4f * color[0];
   }
 
   draw_string_set_font(font_tag, -1, justification, 0, color);
@@ -2621,14 +2616,14 @@ void widget_instance_render_text_box(void *definition, void *widget,
  *    offset (packed {int16 x low; int16 y high}); alpha * 255 is rounded with a
  *    bare FISTP (fast_ftol).
  *  - With no child widgets the item text is either the selected entry of the
- *    text label string list (copied into a widget_memory_pool block at
- *    0x31e04c, ui_widget.c line 0x1202, then run through the search-and-
- *    replace functions and freed at the end — also when the allocation failed)
- *    or the widget's own list_item_text.
+ *    text label string list (copied into a widget_memory_pool block,
+ *    ui_widget.c line 0x1202, run through the search-and-replace functions
+ *    and freed at the end, also when the allocation failed) or the widget's
+ *    own list_item_text.
  *  - Text colour: focused items use the UI white RGB with the definition
  *    alpha; the non-focused (1,1,1) comparison selects the same alpha in both
  *    arms, as in PAL.  Flashing-text flag 0x4 pulses the alpha with
- *    (sin(ms * 0.001 * 3) + 1) * 0.5 on the unsigned UI clock at 0x46cc40. */
+ *    (sin(ms * 0.001 * 3) + 1) * 0.5 of widget_globals_field_20. */
 void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
                                          viewport_bounds_t *clip_rect,
                                          int32_t offset, char focus)
@@ -2644,6 +2639,7 @@ void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
   viewport_bounds_t bounds;
   viewport_bounds_t clip;
   wchar_t *item_text;
+  wchar_t *replace;
   const wchar_t *string;
   void *bitmap;
   float alpha_modifier;
@@ -2656,13 +2652,13 @@ void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
   int length;
   int search_index;
   int16_t last_list_tab_direction;
-  int16_t offset_x;
-  int16_t offset_y;
+  /* offset_xy[0] = x (low half), offset_xy[1] = y (high half) */
+  const int16_t *offset_xy;
 
   widget = (widget_instance_t *)widget_ptr;
   definition = (ui_widget_definition_t *)definition_ptr;
-  offset_x = (int16_t)offset;
-  offset_y = (int16_t)((uint32_t)offset >> 16);
+  offset_xy = (const int16_t *)&offset;
+
   header_frame_index = 0;
   footer_frame_index = 0;
 
@@ -2695,10 +2691,10 @@ void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
     alpha = x87_round_to_int(alpha_modifier * 255.0f);
     csmemset(parameters, 0, sizeof(parameters));
     bounds = definition->list_header_bounds;
-    bounds.x0 += offset_x;
-    bounds.y0 += offset_y;
-    bounds.x1 += offset_x;
-    bounds.y1 += offset_y;
+    bounds.x0 += offset_xy[0];
+    bounds.y0 += offset_xy[1];
+    bounds.x1 += offset_xy[0];
+    bounds.y1 += offset_xy[1];
     draw_bitmap_in_rect((int)bitmap, (int16_t *)&bounds, (int16_t *)&bounds,
                         (int16_t *)clip_rect, (alpha << 24) | 0x00ffffff,
                         (int)parameters, 0); /* dup-args-ok */
@@ -2710,10 +2706,10 @@ void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
     alpha = x87_round_to_int(alpha_modifier * 255.0f);
     csmemset(parameters, 0, sizeof(parameters));
     bounds = definition->list_footer_bounds;
-    bounds.x0 += offset_x;
-    bounds.y0 += offset_y;
-    bounds.x1 += offset_x;
-    bounds.y1 += offset_y;
+    bounds.x0 += offset_xy[0];
+    bounds.y0 += offset_xy[1];
+    bounds.x1 += offset_xy[0];
+    bounds.y1 += offset_xy[1];
     draw_bitmap_in_rect((int)bitmap, (int16_t *)&bounds, (int16_t *)&bounds,
                         (int16_t *)clip_rect, (alpha << 24) | 0x00ffffff,
                         (int)parameters, 0); /* dup-args-ok */
@@ -2729,7 +2725,7 @@ void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
       (int)widget->list_selected_index);
     length = ustrlen((const unsigned short *)string) * 2;
     item_text = (wchar_t *)stack_memory_pool_allocate(
-      *(void **)0x31e04c /* widget_memory_pool */, length + 2,
+      widget_memory_pool, length + 2,
       "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x1202);
     if (item_text != NULL) {
       csmemcpy(item_text, (void *)string, (size_t)length);
@@ -2741,12 +2737,12 @@ void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
                       definition->search_and_replace_functions.address +
                     search_index;
         if (reference != NULL && reference->search_string[0] != '\0') {
-          search_and_replace(
-            ascii_to_wide(reference->search_string, search_string,
-                          sizeof(search_string)),
-            ui_widget_search_and_replace_invoke(widget,
-                                                reference->replace_function),
-            &item_text);
+          replace = ui_widget_search_and_replace_invoke(
+            widget, reference->replace_function);
+          search_and_replace(ascii_to_wide(reference->search_string,
+                                           search_string,
+                                           sizeof(search_string)),
+                             replace, &item_text);
         }
       }
     }
@@ -2766,16 +2762,15 @@ void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
     } else {
       text_alpha_modifier =
         widget_instance_get_cumulative_alpha_modifier(widget);
-      if (clip_rect != NULL) {
-        clip = *clip_rect;
-      } else {
-        clip = definition->bounds;
-      }
+      clip = clip_rect != NULL ? *clip_rect : definition->bounds;
+
+
+
       bounds = definition->bounds;
-      bounds.x1 += offset_x;
-      bounds.y1 += offset_y;
-      bounds.x0 += offset_x;
-      bounds.y0 += offset_y;
+      bounds.x1 += offset_xy[0];
+      bounds.y1 += offset_xy[1];
+      bounds.x0 += offset_xy[0];
+      bounds.y0 += offset_xy[1];
       if (focus) {
         color.alpha = definition->text_color.alpha;
         rgb = get_ui_rgb_white(white);
@@ -2794,8 +2789,8 @@ void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
       color.alpha = text_alpha_modifier * color_alpha;
       if ((definition->text_box_flags & UI_TEXT_BOX_FLASHING_TEXT_FLAG) != 0) {
         color.alpha =
-          (x87_fsin((float)*(uint32_t *)0x46cc40 * 0.001f * 3.0f) + 1.0f) *
-          0.5f * color.alpha;
+          color.alpha *
+          ((x87_fsin(3.0f * ((float)widget_globals_field_20 * 0.001f)) + 1.0f) * 0.5f);
       }
       draw_string_set_font(definition->text_font.tag_index, -1,
                            (uint16_t)definition->justification, 0, &color);
@@ -2805,7 +2800,7 @@ void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
   }
 
   if (definition->text_label_string_list.tag_index != -1) {
-    stack_memory_pool_deallocate(*(void **)0x31e04c, item_text);
+    stack_memory_pool_deallocate(widget_memory_pool, item_text);
   }
 }
 
@@ -2836,10 +2831,9 @@ void widget_instance_give_focus_by_tag(void *widget, int tag_handle,
 
 /* widget_instance_go_back_to_previous (0xe68e0) — widget arrives in EAX
  * (kb.json @<eax>). Pops the history entry of the widget's player stack
- * (0x46cc30[local_player_index], slot 0 when the index is NONE), deletes the
- * widget's topmost parent (walk inlined in the binary, no CALL to 0xe4310),
- * then reloads the previous screen and restores its focused child. Names
- * follow PAL 2342 (T2). */
+ * (slot 0 when the index is NONE), deletes the widget's topmost parent (walk
+ * inlined in the binary, no CALL to 0xe4310), then reloads the previous
+ * screen and restores its focused child. */
 void widget_instance_go_back_to_previous(void *widget_ptr)
 {
   widget_instance_t *widget;
@@ -2854,8 +2848,8 @@ void widget_instance_go_back_to_previous(void *widget_ptr)
   widget_stack =
     (widget->local_player_index == -1) ? 0 : widget->local_player_index;
   previous_local_player_index = -1;
-  if (((int *)0x46cc30)[widget_stack] != 0) {
-    pop_widget((int *)0x46cc30 + widget_stack, &data);
+  if (widget_globals_field_10[widget_stack] != 0) {
+    pop_widget(&widget_globals_field_10[widget_stack], &data);
     previous_local_player_index = data.local_player_index;
     previous_widget_tag = data.previous_widget_tag;
   } else {
@@ -2878,51 +2872,50 @@ void widget_instance_go_back_to_previous(void *widget_ptr)
 }
 
 /* perform_filesystem_initialization — spawns a background thread to perform
- * filesystem and saved-game file enumeration. Asserts that no initialization
- * thread is already running (0x46cc7c == NULL) and that the widget subsystem
- * is initialized (0x46cc82). Suppresses UI events (0x46cc85 = 1) and resets
- * the filesystem check result word at 0x46cc80 to 0 before spawning the
- * thread via thread_new (0x81630). If thread creation fails, runs the check
+ * filesystem and saved-game file enumeration. Asserts no initialization
+ * thread is running and the widget subsystem is initialized. Suppresses UI
+ * events (field_65 = 1) and resets the filesystem check result (field_60)
+ * before thread_new (0x81630). If thread creation fails, runs the check
  * procedure synchronously (0xe5590) and re-clears the suppress flag. */
 void perform_filesystem_initialization(void)
 {
   assert_halt_msg_at("widget_globals.initialization_thread==NULL",
                      "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x153f,
-                     *(int *)0x46cc7c == 0);
+                     widget_globals_initialization_thread == NULL);
   error(2, "begining filesystem checks & saved game file enumeration...");
   assert_halt_msg_at("widget_globals.initialized",
                      "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x496,
-                     *(uint8_t *)0x46cc82);
-  *(uint8_t *)0x46cc85 = 1;
-  *(int16_t *)0x46cc80 = 0;
-  if (!thread_new(0, (void *)0xe5590, 0, (void **)0x46cc7c)) {
+                     widget_globals_initialized);
+  widget_globals_field_65 = 1;
+  widget_globals_field_60 = 0;
+  if (!thread_new(0, (void *)0xe5590, 0,
+                  &widget_globals_initialization_thread)) {
     error(2, "failed to spawn thread for filesystem checks - running "
              "synchronously!");
-    *(int *)0x46cc7c = 0;
+    widget_globals_initialization_thread = NULL;
     filesystem_initialization_thread_proc(0);
     assert_halt_msg_at("widget_globals.initialized",
                        "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x496,
-                       *(uint8_t *)0x46cc82);
-    *(uint8_t *)0x46cc85 = 0;
+                       widget_globals_initialized);
+    widget_globals_field_65 = 0;
   }
 }
 
-/* ui_widgets_dispose — tears down the UI widget system. Closes all open
- * widgets, frees the widget memory pool allocated by ui_widgets_initialize
- * (0x4000 bytes at [ptr+4]), zeros the pool pointer and size fields, and
- * clears the 0x68-byte static widget state block at 0x46cc20. Called during
- * engine shutdown. */
+/* ui_widgets_dispose — tears down the UI widget system at engine shutdown.
+ * Closes all open widgets, frees widget_memory_pool's 0x4000-byte block
+ * (at [ptr+4]), zeros the pool pointer and size fields, and clears
+ * widget_globals. */
 void ui_widgets_dispose(void)
 {
   ui_widgets_close_all();
 
-  if ((*(int **)0x31e04c)[1] != 0) {
-    debug_free((void *)(*(int **)0x31e04c)[1],
+  if (((int *)widget_memory_pool)[1] != 0) {
+    debug_free((void *)((int *)widget_memory_pool)[1],
                "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x76);
   }
-  (*(int **)0x31e04c)[1] = 0;
-  (*(int **)0x31e04c)[2] = 0;
-  csmemset((void *)0x46cc20, 0, 0x68);
+  ((int *)widget_memory_pool)[1] = 0;
+  ((int *)widget_memory_pool)[2] = 0;
+  csmemset((void *)widget_globals_base, 0, WIDGET_GLOBALS_SIZE);
 }
 
 /* widget_event_function_list_widget_goto_next_item (0xe6ab0) — dpad-down /
@@ -3242,10 +3235,11 @@ void event_handler_dispatch(void *widget_ptr, void *definition_ptr,
       other_widget = NULL;
       for (widget_index = 0; widget_index < 4 && other_widget == NULL;
            widget_index++) {
-        if (((int **)0x46cc20)[widget_index] != NULL) {
+        if ((int *)widget_globals_field_00[widget_index] != NULL) {
           other_widget =
             (widget_instance_t *)widget_instance_find_by_tag_index_recursive(
-              ((int **)0x46cc20)[widget_index], handler->widget_tag.tag_index);
+              (int *)widget_globals_field_00[widget_index],
+              handler->widget_tag.tag_index);
         }
       }
       if (other_widget != NULL) {
@@ -3324,8 +3318,9 @@ void event_handler_dispatch(void *widget_ptr, void *definition_ptr,
         }
         new_widget->previous = previous;
         for (widget_index = 0; widget_index < 4; widget_index++) {
-          if (((widget_instance_t **)0x46cc20)[widget_index] == new_widget) {
-            ((widget_instance_t **)0x46cc20)[widget_index] = NULL;
+          if ((widget_instance_t *)widget_globals_field_00[widget_index] ==
+              new_widget) {
+            widget_globals_field_00[widget_index] = 0;
             break;
           }
         }
@@ -3355,12 +3350,14 @@ void event_handler_dispatch(void *widget_ptr, void *definition_ptr,
     }
     if (close_all) {
       for (widget_index = 0; widget_index < 4; widget_index++) {
-        if (((widget_instance_t **)0x46cc20)[widget_index] != NULL) {
-          ui_widget_delete(((widget_instance_t **)0x46cc20)[widget_index]);
+        if ((widget_instance_t *)widget_globals_field_00[widget_index] !=
+            NULL) {
+          ui_widget_delete(
+            (widget_instance_t *)widget_globals_field_00[widget_index]);
         }
         /* pop_widget is inlined here in the binary (assert line 0x9fc) */
-        while (((int *)0x46cc30)[widget_index] != 0) {
-          pop_widget((int *)0x46cc30 + widget_index, &data);
+        while (widget_globals_field_10[widget_index] != 0) {
+          pop_widget(&widget_globals_field_10[widget_index], &data);
         }
       }
       widget_deleted = true;
@@ -3424,11 +3421,10 @@ void event_handler_dispatch(void *widget_ptr, void *definition_ptr,
  *    function index at +0) is invoked, even for invisible widgets.
  *  - Nothing else happens unless the visible byte at widget+0x10 is set.
  *  - Background bitmap: tag +0x44, frame index widget+0x50.  While drawing
- *    with plasma fx the four dwords at 0x5aa460 (ui_plasma_effect_color in
- *    PAL: alpha, red, green, blue) are set to {0, 0.05, 0.05, 0.05} and then
- *    cleared.  Definition flag 0x4 at +0x2c pulses the alpha with
- *    (cos(ms * 0.001 * 3) + 1) * 0.5 using the unsigned UI millisecond clock
- *    at 0x46cc40.  The alpha * 255 is rounded with a bare FISTP (fast_ftol).
+ *    with plasma fx ui_plasma_effect_color is set to {0, 0.05, 0.05, 0.05}
+ *    and then cleared.  Definition flag 0x4 at +0x2c pulses the alpha with
+ *    (cos(ms * 0.001 * 3) + 1) * 0.5 of the unsigned UI millisecond clock
+ *    widget_globals_field_20.  The alpha * 255 is rounded with a bare FISTP.
  *    The 'bitm' sequence-block lookup (+0x54, element 0, size 0x40) has its
  *    result discarded, as in the binary.
  *  - Type at widget+0x0e: 1 text box, 2 spinner list (skips children when
@@ -3438,7 +3434,8 @@ void event_handler_dispatch(void *widget_ptr, void *definition_ptr,
  *    child gets plasma fx when focused inside a spinner or column list.
  *    The binary stores focus / use_nifty_plasma_fx back into the low byte of
  *    their own argument slots before each recursive call. */
-void widget_instance_render_recursive(int widget, viewport_bounds_t *clip_rect,
+void widget_instance_render_recursive(int widget_address,
+                                      viewport_bounds_t *clip_rect,
                                       int32_t offset, char focus,
                                       char use_nifty_plasma_fx)
 {
@@ -3447,9 +3444,10 @@ void widget_instance_render_recursive(int widget, viewport_bounds_t *clip_rect,
   viewport_bounds_t clipped;
   viewport_bounds_t *clip;
   int16_t *offset_xy;
-  int definition;
-  int parent;
-  int child;
+  widget_instance_t *widget = (widget_instance_t *)widget_address;
+  ui_widget_definition_t *definition;
+  widget_instance_t *parent;
+  widget_instance_t *child;
   int input_index;
   int bitmap;
   float alpha_modifier;
@@ -3457,48 +3455,45 @@ void widget_instance_render_recursive(int widget, viewport_bounds_t *clip_rect,
   int alpha_byte;
   boolean render_children;
 
-  definition = (int)tag_get(0x44654c61, *(int *)widget);
-  alpha_modifier = *(float *)(widget + 0x24);
-  for (parent = *(int *)(widget + 0x30); parent != 0;
-       parent = *(int *)(parent + 0x30)) {
-    alpha_modifier *= *(float *)(parent + 0x24);
+  definition = (ui_widget_definition_t *)tag_get(0x44654c61 /* 'DeLa' */,
+                                                 widget->definition_tag_index);
+  alpha_modifier = widget->alpha_modifier;
+  for (parent = widget->parent; parent != NULL; parent = parent->parent) {
+    alpha_modifier *= parent->alpha_modifier;
   }
   render_children = 1;
-
   if (!use_nifty_plasma_fx &&
-      (*(uint32_t *)(definition + 0x2c) & 0x2000) != 0) {
+      ((uint32_t)definition->flags & 0x2000) != 0) {
     use_nifty_plasma_fx = 1;
   }
 
   /* offset_xy[0] = x (low half), offset_xy[1] = y (high half) */
   offset_xy = (int16_t *)&offset;
-  offset_xy[0] += *(int16_t *)(widget + 0xa);
-  offset_xy[1] += *(int16_t *)(widget + 0xc);
-
-  for (input_index = 0; input_index < *(int *)(definition + 0x48);
-       input_index++) {
+  offset_xy[0] += widget->horizontal_offset;
+  offset_xy[1] += widget->vertical_offset;
+  for (input_index = 0; input_index < definition->field_48; input_index++) {
     ui_widget_game_data_function_invoke(
-      (void *)widget,
-      *(uint16_t *)(*(char **)(definition + 0x4c) + input_index * 0x24));
+      widget,
+      *(uint16_t *)((char *)definition->field_4c + input_index * 0x24));
   }
 
-  if (*(uint8_t *)(widget + 0x10) == 0) {
+  if (widget->visible == 0) {
     return;
   }
 
-  bitmap = (int)FUN_00077040(*(int *)(definition + 0x44), 0,
-                             (short)*(uint16_t *)(widget + 0x50));
+  bitmap = (int)FUN_00077040(definition->field_44, 0,
+                             (short)(uint16_t)widget->field_50);
   if (bitmap != 0) {
     alpha = alpha_modifier;
-    bounds = *(viewport_bounds_t *)(definition + 0x24);
+    bounds = definition->bounds;
     clip = clip_rect;
     tag_block_get_element(
-      (char *)tag_get(0x6269746d, *(int *)(definition + 0x44)) + 0x54, 0, 0x40);
+      (char *)tag_get(0x6269746d, definition->field_44) + 0x54, 0, 0x40);
     if (use_nifty_plasma_fx) {
-      *(float *)0x5aa460 = 0.0f;
-      *(float *)0x5aa464 = 0.05f;
-      *(float *)0x5aa468 = 0.05f;
-      *(float *)0x5aa46c = 0.05f;
+      ui_plasma_effect_color.alpha = 0.0f;
+      ui_plasma_effect_color.red = 0.05f;
+      ui_plasma_effect_color.green = 0.05f;
+      ui_plasma_effect_color.blue = 0.05f;
     }
     bounds.x0 += offset_xy[0];
     bounds.x1 += offset_xy[0];
@@ -3512,9 +3507,9 @@ void widget_instance_render_recursive(int widget, viewport_bounds_t *clip_rect,
       clipped.y1 += offset_xy[1];
       clip = &clipped;
     }
-    if ((*(uint8_t *)(definition + 0x2c) & 4) != 0) {
-      alpha = (x87_fcos((float)*(uint32_t *)0x46cc40 * 0.001f * 3.0f) + 1.0f) *
-              0.5f * alpha_modifier;
+    if ((definition->flags & 4) != 0) {
+      alpha = alpha_modifier *
+              ((x87_fcos(3.0f * ((float)widget_globals_field_20 * 0.001f)) + 1.0f) * 0.5f);
     }
     alpha *= 255.0f;
     alpha_byte = x87_round_to_int(alpha);
@@ -3523,41 +3518,42 @@ void widget_instance_render_recursive(int widget, viewport_bounds_t *clip_rect,
                         (int16_t *)clip, (alpha_byte << 24) | 0xffffff,
                         (int)parameters, 0); /* dup-args-ok */
     if (use_nifty_plasma_fx) {
-      *(float *)0x5aa460 = 0.0f;
-      *(float *)0x5aa464 = 0.0f;
-      *(float *)0x5aa468 = 0.0f;
-      *(float *)0x5aa46c = 0.0f;
+      ui_plasma_effect_color.alpha = 0.0f;
+      ui_plasma_effect_color.red = 0.0f;
+      ui_plasma_effect_color.green = 0.0f;
+      ui_plasma_effect_color.blue = 0.0f;
     }
   }
 
-  switch (*(int16_t *)(widget + 0xe)) {
+  switch (widget->type) {
   case 1:
-    widget_instance_render_text_box(
-      (void *)definition, (void *)widget, (const int32_t *)clip_rect, offset,
-      widget_instance_text_box_is_focused((void *)widget));
+    widget_instance_render_text_box(definition, widget,
+                                    (const int32_t *)clip_rect, offset,
+                                    widget_instance_text_box_is_focused(widget));
     break;
-  case 2:
-    widget_instance_render_spinner_list((void *)widget, (void *)definition,
-                                        clip_rect, offset, focus);
-    if ((*(uint8_t *)(definition + 0x150) & 2) != 0 &&
-        *(int *)(definition + 0x3e0) == 0) {
+  case UI_WIDGET_TYPE_SPINNER_LIST:
+    widget_instance_render_spinner_list(widget, definition, clip_rect, offset,
+                                        focus);
+    if ((definition->list_flags &
+         UI_LIST_ITEMS_GENERATED_FROM_STRING_LIST_TAG_FLAG) != 0 &&
+        definition->child_widgets.count == 0) {
       render_children = 0;
     }
     break;
-  case 3:
-    widget_instance_render_column_list(widget, definition, clip_rect, offset,
-                                       focus);
-    render_children = (*(uint8_t *)(definition + 0x150) & 1) == 0;
+  case UI_WIDGET_TYPE_COLUMN_LIST:
+    widget_instance_render_column_list((int)widget, (int)definition, clip_rect,
+                                       offset, focus);
+    render_children = (definition->list_flags & 1) == 0;
     break;
   }
 
   if (render_children) {
-    for (child = *(int *)(widget + 0x34); child != 0;
-         child = *(int *)(child + 0x2c)) {
-      focus = child == *(int *)(widget + 0x38);
-      use_nifty_plasma_fx = focus && (*(int16_t *)(widget + 0xe) == 2 ||
-                                      *(int16_t *)(widget + 0xe) == 3);
-      widget_instance_render_recursive(child, clip_rect, offset, focus,
+    for (child = widget->child; child != NULL; child = child->next) {
+      focus = child == widget->focused_child;
+      use_nifty_plasma_fx =
+        focus && (widget->type == UI_WIDGET_TYPE_SPINNER_LIST ||
+                  widget->type == UI_WIDGET_TYPE_COLUMN_LIST);
+      widget_instance_render_recursive((int)child, clip_rect, offset, focus,
                                        use_nifty_plasma_fx);
     }
   }
@@ -3587,7 +3583,7 @@ void widget_instance_render_column_list(int widget, int param_2,
   int index;
   int is_last;
 
-  target = *(int *)(widget + 0x48);
+  target = (int)((widget_instance_t *)widget)->field_48;
   if (target != 0) {
     scale = *(float *)(widget + 0x24);
     parent = *(int *)(widget + 0x30);
@@ -3647,15 +3643,15 @@ void render_ui_widgets_postgame(__int16 local_player_index, __int16 *bounds)
   }
 
   for (i = 0; i < 4; i++) {
-    widget = *(int *)(0x46cc20 + i * 4);
+    widget = widget_globals_field_00[i];
     if (widget == 0)
       continue;
 
-    if (*(uint8_t *)(widget + 0x11) != 1) {
+    if (((widget_instance_t *)widget)->field_11 != 1) {
       widget_player = *(int16_t *)(widget + 0x8);
-      if (*(uint8_t *)(widget + 0x15) == 1) {
+      if (((widget_instance_t *)widget)->field_15 == 1) {
         if (widget_player != local_player_index && widget_player != -1 &&
-            local_player_index != -1 && *(uint8_t *)0x46cc88 == 0)
+            local_player_index != -1 && byte_46CC88 == 0)
           continue;
       } else {
         if (!(widget_player == -1 && i == 0) &&
@@ -3669,23 +3665,22 @@ void render_ui_widgets_postgame(__int16 local_player_index, __int16 *bounds)
     local_bounds.x1 = bounds[3] - bounds[1];
     local_bounds.y1 = bounds[2] - bounds[0];
     widget_instance_render_recursive(
-      *(int *)(0x46cc20 + i * 4), &local_bounds,
+      widget_globals_field_00[i], &local_bounds,
       *(int *)player_offsets[local_player_count() - 1][local_player_index], 1,
       0);
   }
 }
 
 /* render_ui_widgets — renders all active UI widget stacks and an optional
- * screen fade overlay. For each of the 4 widget root slots (0x46cc20..2c),
- * determines whether the widget should render based on its local player index
- * vs the current player, the "always render" flag at +0x11, and the
- * "in_game_mode" flag at +0x15. Renders the widget tree via
- * widget_instance_render_recursive. If the debug overlay flag at 0x46cc84 is
- * set, also renders the widget's tag name in a small debug font. After all
- * stacks, checks the global fade value at 0x46cc4c: if it is in [0.0, 1.0],
- * draws a fullscreen fade rectangle (alpha = fade * 255, shifted to the high
- * byte of an ARGB color). When fade >= 0.95 it is clamped to 1.0. The fade
- * value is initialised to -1.0 (inactive). */
+ * screen fade overlay. For each of the 4 widget root slots
+ * (widget_globals_field_00), determines whether the widget should render
+ * based on its local player index vs the current player, the "always render"
+ * flag at +0x11, and the "in_game_mode" flag at +0x15, then renders the tree
+ * via widget_instance_render_recursive (plus its tag name in a small debug
+ * font when widget_globals_field_64 is set). Afterwards a fade value
+ * (widget_globals_field_2c) in [0.0, 1.0] draws a fullscreen fade rectangle
+ * (alpha = fade * 255 in the high byte of an ARGB color); fade >= 0.95 is
+ * clamped to 1.0. The fade value is initialised to -1.0 (inactive). */
 void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
 {
   int widget;
@@ -3724,17 +3719,17 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
   }
 
   for (i = 0; i < 4; i++) {
-    widget = *(int *)(0x46cc20 + i * 4);
+    widget = widget_globals_field_00[i];
     if (widget == 0)
       continue;
 
     /* always-render flag at widget+0x11 */
-    if (*(uint8_t *)(widget + 0x11) == 1) {
+    if (((widget_instance_t *)widget)->field_11 == 1) {
       goto do_render;
     }
 
     /* in-game mode flag at widget+0x15 */
-    if (*(uint8_t *)(widget + 0x15) == 1) {
+    if (((widget_instance_t *)widget)->field_15 == 1) {
       uint16_t widget_player = *(uint16_t *)(widget + 0x8);
       if (widget_player == (uint16_t)clamped_player)
         goto do_render;
@@ -3742,7 +3737,7 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
         goto do_render;
       if ((uint16_t)clamped_player == 0xffff)
         goto do_render;
-      if (*(uint8_t *)0x46cc88 != 0)
+      if (byte_46CC88 != 0)
         goto do_render;
       continue;
     } else {
@@ -3764,7 +3759,7 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
     widget_instance_render_recursive(widget, &local_bounds, 0, 1, 0);
 
     /* debug overlay: draw widget tag name */
-    if (*(uint8_t *)0x46cc84 != 0) {
+    if (widget_globals_field_64 != 0) {
       local_bounds.x0 += 0x20;
       local_bounds.x1 += 0x20;
       local_bounds.y0 += 0x20;
@@ -3775,23 +3770,24 @@ void render_ui_widgets(int16_t player_index, viewport_bounds_t *window_bounds)
       color[3] = 1.0f;
       font_tag = tag_loaded(0x666f6e74, "ui\\small_ui");
       draw_string_set_font(font_tag, -1, 0, 0, color);
-      tag_name = tag_get_name(**(int **)(0x46cc20 + i * 4));
+      tag_name = tag_get_name(*(int *)widget_globals_field_00[i]);
       rasterizer_text_draw(&local_bounds, 0, 0, 0, tag_name);
     }
   }
 
   /* screen fade overlay */
-  fade = *(float *)0x46cc4c;
+  fade = widget_globals_field_2c;
   if (fade >= 0.0f && fade <= 1.0f) {
     local_bounds.y0 = 0;
     local_bounds.x1 = 0x280;
     local_bounds.x0 = 0;
     local_bounds.y1 = 0x1e0;
     if (fade >= *(float *)0x255ed4) { /* 0.95f */
-      *(float *)0x46cc4c = 1.0f;
+      widget_globals_field_2c = 1.0f;
     }
     {
-      int alpha = (int)(*(float *)0x46cc4c * *(float *)0x2602c8); /* * 255.0 */
+      int alpha =
+        (int)(widget_globals_field_2c * *(float *)0x2602c8); /* * 255.0 */
       draw_quad((int16_t *)&local_bounds, alpha << 24);
     }
   }
@@ -3809,96 +3805,96 @@ void widget_instance_initialize(void *definition_ptr, void *widget_ptr,
                                 void *parent_ptr, int tag_index,
                                 int local_player_index, int widget_stack)
 {
-  char *definition;
-  char *widget;
-  char *parent;
+  ui_widget_definition_t *definition;
+  widget_instance_t *widget;
+  widget_instance_t *parent;
   int handler_index;
-  int handler_count;
 
-  definition = (char *)definition_ptr;
-  widget = (char *)widget_ptr;
-  parent = (char *)parent_ptr;
+  definition = (ui_widget_definition_t *)definition_ptr;
+  widget = (widget_instance_t *)widget_ptr;
+  parent = (widget_instance_t *)parent_ptr;
 
   csmemset(widget, 0, 0x58);
-  if ((*(unsigned char *)(definition + 0x150) & 2) && parent != NULL &&
-      tag_index == *(int *)parent) {
-    *(short *)(widget + 0xe) = 1;
+  if ((definition->list_flags &
+       UI_LIST_ITEMS_GENERATED_FROM_STRING_LIST_TAG_FLAG) &&
+      parent != NULL && tag_index == parent->definition_tag_index) {
+    widget->type = 1;
+  }
+  widget->local_player_index = (short)local_player_index;
+  widget->definition_tag_index = tag_index;
+  widget->field_04 = (char *)definition + 4;
+  widget->type = definition->type;
+  widget->visible = 1;
+  ((widget_instance_t *)widget)->field_11 = (char)(((unsigned int)definition->flags >> 9) & 1);
+  ((widget_instance_t *)widget)->field_13 = (char)(((unsigned int)definition->flags >> 1) & 1);
+  ((widget_instance_t *)widget)->field_18 = (int)widget_globals_field_20;
+  ((widget_instance_t *)widget)->field_1c = *(int *)((char *)definition + 0x30) > 0
+                                      ? *(int *)((char *)definition + 0x30)
+                                      : 0;
+  ((widget_instance_t *)widget)->field_20 = *(int *)((char *)definition + 0x34) > 0
+                                      ? *(int *)((char *)definition + 0x34)
+                                      : 0;
+  widget->alpha_modifier = 1.0f;
+  widget->parent = parent;
+
+  switch (widget->type) {
+  case 1:
+    *(short *)((char *)widget + 0x40) = -1;
   }
 
-  *(short *)(widget + 8) = (short)local_player_index;
-  *(int *)widget = tag_index;
-  *(void **)(widget + 4) = definition + 4;
-  *(short *)(widget + 0xe) = *(short *)definition;
-  widget[0x10] = 1;
-  widget[0x11] = (char)((*(unsigned int *)(definition + 0x2c) >> 9) & 1);
-  widget[0x13] = (char)((*(unsigned int *)(definition + 0x2c) >> 1) & 1);
-  *(int *)(widget + 0x18) = *(int *)0x46cc40;
-  *(int *)(widget + 0x1c) =
-    *(int *)(definition + 0x30) > 0 ? *(int *)(definition + 0x30) : 0;
-  *(int *)(widget + 0x20) =
-    *(int *)(definition + 0x34) > 0 ? *(int *)(definition + 0x34) : 0;
-  *(float *)(widget + 0x24) = 1.0f;
-  *(void **)(widget + 0x30) = parent;
-
-  if (*(short *)(widget + 0xe) == 1) {
-    *(short *)(widget + 0x40) = -1;
+  if (definition->field_44 != -1) {
+    ((widget_instance_t *)widget)->field_56 =
+      *(short *)((char *)tag_block_get_element(
+                   (char *)tag_get(0x6269746d /* 'bitm' */,
+                                   definition->field_44) +
+                     0x54,
+                   0, 0x40) +
+                 0x22);
   }
 
-  if (*(int *)(definition + 0x44) != -1) {
-    char *bitmap;
-    char *sequence;
-
-    bitmap = (char *)tag_get(0x6269746d, *(int *)(definition + 0x44));
-    sequence = (char *)tag_block_get_element(bitmap + 0x54, 0, 0x40);
-    *(short *)(widget + 0x56) = *(short *)(sequence + 0x22);
-  }
-
-  if (*(char *)0x46cc83 == 0 &&
+  if (widget_globals_field_63 == 0 &&
       !ui_widget_load_children_recursive(widget, definition)) {
     error(2, "failed to load widget children");
   }
 
-  handler_count = *(int *)(definition + 0x54);
-  for (handler_index = 0; handler_index < handler_count; handler_index++) {
-    char *handler;
+  for (handler_index = 0; handler_index < definition->event_handlers.count;
+       handler_index++) {
+    ui_widget_event_handler_reference_t *handler;
 
-    handler = *(char **)(definition + 0x58) + handler_index * 0x48;
-    if (*(short *)(handler + 4) == 0x18) {
-      unsigned char event_data[8];
-
-      *(int *)event_data = 0;
-      *(int *)(event_data + 4) = 0;
-      *(short *)(event_data + 2) = *(short *)(widget + 8);
+    handler = (ui_widget_event_handler_reference_t *)
+                definition->event_handlers.address +
+              handler_index;
+    if (handler->event_type == 0x18) {
+      int16_t event_data[4] = {0};
+      event_data[1] = widget->local_player_index;
       event_handler_dispatch(widget, definition, event_data, handler,
                              (char *)&widget_stack + 3);
     }
   }
 
-  if (*(void **)(widget + 0x38) == NULL) {
-    char *child;
-
-    child = *(char **)(widget + 0x34);
+  if (widget->focused_child == NULL) {
+    widget_instance_t *child = widget->child;
     while (child != NULL) {
-      char *child_definition;
-
-      child_definition = (char *)tag_get(0x44654c61, *(int *)child);
-      if (child[0x12] == 0 &&
-          (*(int *)(child_definition + 0x54) > 0 ||
-           *(short *)(child + 0xe) == 2 || *(short *)(child + 0xe) == 3)) {
+      ui_widget_definition_t *child_definition = (ui_widget_definition_t *)
+        tag_get(0x44654c61 /* 'DeLa' */, child->definition_tag_index);
+      if (((widget_instance_t *)child)->field_12 == 0 &&
+          (child_definition->event_handlers.count > 0 ||
+           child->type == UI_WIDGET_TYPE_SPINNER_LIST ||
+           child->type == UI_WIDGET_TYPE_COLUMN_LIST)) {
         widget_instance_give_focus_directly(widget, child);
       }
-      child = *(char **)(child + 0x2c);
+      child = child->next;
     }
   }
 
-  if (widget[0x13] == 1) {
-    (*(short *)0x46cc4a)++;
+  if (((widget_instance_t *)widget)->field_13 == 1) {
+    widget_globals_field_2a++;
     if (!game_time_get_paused()) {
       game_time_set_paused(true);
     }
-    if (*(char *)0x46cc87 == 0 && *(char *)0x46cc88 == 0) {
+    if (widget_globals_field_67 == 0 && byte_46CC88 == 0) {
       sound_set_music_enabled(1);
-      *(char *)0x46cc87 = 1;
+      widget_globals_field_67 = 1;
     }
   }
 }
@@ -3947,10 +3943,10 @@ void widget_instance_process_one_event_recursive(void *widget, void *widget_tag,
 
   if (*(int16_t *)event == 3 && event[5] > 1 && *(int16_t *)(event + 2) >= 0 &&
       *(int16_t *)(event + 2) < 4 && event[4] >= 8 && event[4] <= 0xb &&
-      (uint32_t)(*(uint32_t *)0x46cc40 -
-                 *(uint32_t *)(0x46cc90 +
-                               ((event[4] - 8) + *(int16_t *)(event + 2) * 4) *
-                                 4)) >= 0xfa) {
+      (uint32_t)(widget_globals_field_20 -
+                 dword_46CC90[(event[4] - 8) +
+                              *(int16_t *)(event + 2) * 4]) >=
+        0xfa) {
     event[5] = 1;
   }
 
@@ -4010,10 +4006,10 @@ void widget_instance_process_one_event_recursive(void *widget, void *widget_tag,
   }
 
   if (!widget_deleted) {
-    timeout = *(int *)((char *)w + 0x1c);
+    timeout = ((widget_instance_t *)w)->field_1c;
     if (timeout > 0) {
-      elapsed = *(int *)0x46cc40 - *(int *)((char *)w + 0x18);
-      fade_ticks = *(int *)((char *)w + 0x20);
+      elapsed = (int)widget_globals_field_20 - ((widget_instance_t *)w)->field_18;
+      fade_ticks = ((widget_instance_t *)w)->field_20;
 
       if ((uint32_t)elapsed >= (uint32_t)(timeout + fade_ticks)) {
         child = (int)w;
@@ -4047,7 +4043,7 @@ void widget_instance_process_one_event_recursive(void *widget, void *widget_tag,
            child = *(int *)(child + 0x2c)) {
         *(int16_t *)(child + 0x50) = 0;
         if (child == *(int *)((char *)w + 0x38) &&
-            *(int16_t *)(child + 0x56) == 2) {
+            ((widget_instance_t *)child)->field_56 == 2) {
           *(int16_t *)(child + 0x50) = 1;
         }
       }
@@ -4251,7 +4247,8 @@ after_local_handling:
   }
 
   flags = *(uint32_t *)(definition + 0xb);
-  if ((flags & 0x400) != 0 && (flags & 1) == 0) {
+  if ((flags & UI_WIDGET_PASS_HANDLED_EVENTS_TO_ALL_CHILDREN_FLAG) != 0 &&
+      (flags & UI_WIDGET_PASS_UNHANDLED_EVENTS_TO_CHILDREN_FLAG) == 0) {
     display_assert("if the _widget_pass_handled_events_to_all_children_bit "
                    "flag is checked, "
                    "_widget_pass_unhandled_events_to_children_bit must also "
@@ -4259,8 +4256,11 @@ after_local_handling:
                    "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0xd95, false);
   }
 
-  if (!(((flags & 0x400) == 0 && consumed) ||
-        (((flags & 1) == 0 && (flags & 0x100) == 0)) || widget_deleted)) {
+  if (!(((flags & UI_WIDGET_PASS_HANDLED_EVENTS_TO_ALL_CHILDREN_FLAG) == 0 &&
+         consumed) ||
+        ((flags & UI_WIDGET_PASS_UNHANDLED_EVENTS_TO_CHILDREN_FLAG) == 0 &&
+         (flags & 0x100) == 0) ||
+        widget_deleted)) {
     if ((flags & 0x100) == 0) {
       child = *(int *)((char *)w + 0x38);
       if (child != 0) {
@@ -4292,7 +4292,7 @@ after_local_handling:
 
   if (widget_deleted && (flags & 0x800) != 0) {
     for (i = 0; i < 4; i++) {
-      if (*(int *)(0x46cc20 + i * 4) != 0) {
+      if (widget_globals_field_00[i] != 0) {
         break;
       }
     }
@@ -4303,8 +4303,8 @@ after_local_handling:
 
   if (*(int16_t *)event == 3 && event[5] == 1 && *(int16_t *)(event + 2) >= 0 &&
       *(int16_t *)(event + 2) < 4 && event[4] >= 8 && event[4] < 0xc) {
-    *(int *)(0x46cc90 + ((event[4] - 8) + *(int16_t *)(event + 2) * 4) * 4) =
-      *(int *)0x46cc40;
+    dword_46CC90[(event[4] - 8) + *(int16_t *)(event + 2) * 4] =
+      widget_globals_field_20;
   }
 
   switch (sound_effect) {
@@ -4355,7 +4355,7 @@ __declspec(noinline) void *ui_widget_load_by_name_or_tag(const char *name,
 
   widget_stack_base = ((int16_t)widget_stack == -1) ? 0 : widget_stack;
 
-  if (*(uint8_t *)0x46cc82 == 0) {
+  if (widget_globals_initialized == 0) {
     display_assert("widget_globals.initialized",
                    "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x179, true);
     system_exit(-1);
@@ -4384,7 +4384,7 @@ __declspec(noinline) void *ui_widget_load_by_name_or_tag(const char *name,
 
   tag_data = (int)tag_get(0x44654c61, tag_index);
   widget = (int)stack_memory_pool_allocate(
-    *(void **)0x31e04c, 0x58, "c:\\halo\\SOURCE\\interface\\ui_widget.c",
+    widget_memory_pool, 0x58, "c:\\halo\\SOURCE\\interface\\ui_widget.c",
     0x18b);
   if (widget == 0) {
     error(2, "failed to create new widget; out of memory!");
@@ -4392,7 +4392,7 @@ __declspec(noinline) void *ui_widget_load_by_name_or_tag(const char *name,
   }
 
   if (a3 == 0) {
-    root_widget = *(int *)(0x46cc20 + (int)stack_index * 4);
+    root_widget = widget_globals_field_00[(int)stack_index];
     if (root_widget != 0) {
       previous_stack_player = *(int16_t *)(root_widget + 8);
       ui_widget_delete((void *)root_widget);
@@ -4400,7 +4400,7 @@ __declspec(noinline) void *ui_widget_load_by_name_or_tag(const char *name,
       previous_stack_player = -1;
     }
 
-    *(int *)(0x46cc20 + (int)stack_index * 4) = widget;
+    widget_globals_field_00[(int)stack_index] = widget;
 
     if (parent_tag_index != -1 &&
         (*(uint32_t *)((int)tag_get(0x44654c61, parent_tag_index) + 0x2c) &
@@ -4409,7 +4409,7 @@ __declspec(noinline) void *ui_widget_load_by_name_or_tag(const char *name,
       pending_load.a6 = a6;
       pending_load.a7 = (int16_t)a7;
       pending_load.widget_stack = previous_stack_player;
-      push_widget((int *)(0x46cc30 + (int)stack_index * 4), &pending_load);
+      push_widget(&widget_globals_field_10[(int)stack_index], &pending_load);
     }
   }
 
@@ -4455,9 +4455,9 @@ void main_screen_shell_load(void)
   int widget;
 
   play_main_menu = true;
-  assert_halt(*(uint8_t *)0x46cc82);
+  assert_halt(widget_globals_initialized);
 
-  *(uint8_t *)0x46cc85 = 0;
+  widget_globals_field_65 = 0;
 
   if (*(uint8_t *)0x31e050 == 1) {
     command_line = shell_get_command_line();
@@ -4494,7 +4494,7 @@ void main_screen_shell_load(void)
     word_46CC48 = -1;
   }
 
-  if (*(uint8_t *)0x46cc86 == 0) {
+  if (widget_globals_field_66 == 0) {
     ui_start_main_menu_music();
   }
 
@@ -4584,7 +4584,7 @@ void ui_widget_display_error(int16_t error_handle, int16_t local_player_index,
       system_exit(-1);
     }
 
-    deferred_slot = *(int16_t *)(0x46cc6c + (int)stack_index * 4);
+    deferred_slot = widget_globals_field_4c[(int)stack_index].error_handle;
     if (deferred_slot != -1) {
       error(2,
             "there is already a deferred-for-cinematic error queued for player"
@@ -4593,9 +4593,9 @@ void ui_widget_display_error(int16_t error_handle, int16_t local_player_index,
       return;
     }
 
-    *(int16_t *)(0x46cc6c + (int)stack_index * 4) = error_handle;
-    *(uint8_t *)(0x46cc6e + (int)stack_index * 4) = (uint8_t)is_modal;
-    *(uint8_t *)(0x46cc6f + (int)stack_index * 4) = (uint8_t)pause_game;
+    widget_globals_field_4c[(int)stack_index].error_handle = error_handle;
+    widget_globals_field_4c[(int)stack_index].field_02 = (uint8_t)is_modal;
+    widget_globals_field_4c[(int)stack_index].field_03 = (uint8_t)pause_game;
     return;
   }
 
@@ -4618,7 +4618,7 @@ void ui_widget_display_error(int16_t error_handle, int16_t local_player_index,
       local_player = local_player_get_next(local_player);
     }
 
-    if (*(uint8_t *)0x46cc88 == 0) {
+    if (byte_46CC88 == 0) {
       if (matched_player == -1) {
         stack_index = -1;
       }
@@ -4667,20 +4667,20 @@ void ui_widget_display_error(int16_t error_handle, int16_t local_player_index,
     widget_stack_index = stack_index;
   }
 
-  if (*(uint8_t *)0x46cc88 != 0 && *(float *)0x46cc4c <= 1.0f &&
-      *(float *)0x46cc4c >= 0.0f) {
+  if (byte_46CC88 != 0 && widget_globals_field_2c <= 1.0f &&
+      widget_globals_field_2c >= 0.0f) {
     error(2, "aborting to the main menu root, for safety's sake");
     main_screen_shell_load();
     main_defer_map_map_change();
-    *(float *)0x46cc4c = -1.0f;
+    widget_globals_field_2c = -1.0f;
   }
 
-  root_widget = *(int *)(0x46cc20 + widget_stack_index * 4);
+  root_widget = widget_globals_field_00[widget_stack_index];
   if (root_widget == 0) {
     root_tag_index = -1;
   } else {
     root_tag_index = *(int *)root_widget;
-    if (*(uint8_t *)(root_widget + 0x15) == 1) {
+    if (((widget_instance_t *)root_widget)->field_15 == 1) {
       error(2,
             "there is already an error message displayed for this local player"
             " index");
@@ -4719,24 +4719,24 @@ void ui_widget_display_error(int16_t error_handle, int16_t local_player_index,
   }
   *(int16_t *)(text_widget + 0x40) = text_value;
 
-  *(uint8_t *)(widget + 0x15) = 1;
-  if (*(uint8_t *)(widget + 0x13) == 0) {
-    *(uint8_t *)(widget + 0x13) = (uint8_t)pause_game;
+  ((widget_instance_t *)widget)->field_15 = 1;
+  if (((widget_instance_t *)widget)->field_13 == 0) {
+    ((widget_instance_t *)widget)->field_13 = (uint8_t)pause_game;
     if (pause_game == 1) {
-      if (*(int16_t *)0x46cc4a < 0) {
+      if (widget_globals_field_2a < 0) {
         display_assert("widget pause counter is out of whack",
                        "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x8a9, true);
         system_exit(-1);
       }
 
-      (*(int16_t *)0x46cc4a)++;
+      widget_globals_field_2a++;
       if (!game_time_get_paused()) {
         game_time_set_paused(1);
       }
 
-      if (*(uint8_t *)0x46cc87 == 0 && *(uint8_t *)0x46cc88 == 0) {
+      if (widget_globals_field_67 == 0 && byte_46CC88 == 0) {
         sound_set_music_enabled(1);
-        *(uint8_t *)0x46cc87 = 1;
+        widget_globals_field_67 = 1;
       }
     }
   }
@@ -4746,8 +4746,8 @@ void ui_widget_display_error(int16_t error_handle, int16_t local_player_index,
     *(uint8_t *)(widget + 0x16) = 1;
     /* fallthrough */
   case 0xc:
-    *(int *)(widget + 0x1c) = 0;
-    *(int *)(widget + 0x20) = 0;
+    ((widget_instance_t *)widget)->field_1c = 0;
+    ((widget_instance_t *)widget)->field_20 = 0;
     break;
   default:
     *(uint8_t *)(widget + 0x16) = 0;
@@ -4788,7 +4788,7 @@ void ui_widget_load_error_screen(int16_t error_handle, int allow_abort)
       system_exit(-1);
     }
     *(int16_t *)((char *)widget + 0x40) = error_handle;
-    *(uint8_t *)((char *)widget + 0x15) = 1;
+    ((widget_instance_t *)widget)->field_15 = 1;
     *(int16_t *)0x31e054 = error_handle;
     return;
   }
@@ -4815,7 +4815,7 @@ bool ui_check_for_pause_game(void)
   network_game = network_game_in_progress();
 
   if (game_in_progress() && !cinematic_in_progress() &&
-      game_connection() != 3 && *(uint8_t *)0x46cc88 == 0 &&
+      game_connection() != 3 && byte_46CC88 == 0 &&
       dword_46CC44 == 0) {
     for (stack_index = 0; stack_index < 4; stack_index++) {
       if (!input_has_gamepad((int16_t)stack_index) ||
@@ -4848,7 +4848,7 @@ bool ui_check_for_pause_game(void)
       if (network_game) {
         if (game_engine_allow_pause() &&
             target_local_player == (int16_t)stack_index) {
-          root_widget = *(int *)(0x46cc20 + stack_index * 4);
+          root_widget = widget_globals_field_00[stack_index];
           if (root_widget == 0) {
             client = global_network_game_client_get();
             network_game_client_get_game(client);
@@ -4894,9 +4894,9 @@ bool ui_check_for_pause_game(void)
           error(2, "the ui seems to be confused... assuming you are playing "
                    "full-screen single player?");
 
-          if (*(uint8_t *)0x46cc82 != 0) {
+          if (widget_globals_initialized != 0) {
             for (i = 0; i < 4; i++) {
-              if (*(int *)(0x46cc20 + i * 4) != 0) {
+              if (widget_globals_field_00[i] != 0) {
                 ui_widgets_close_all();
                 break;
               }
@@ -4911,7 +4911,7 @@ bool ui_check_for_pause_game(void)
           goto done;
         }
 
-        root_widget = *(int *)(0x46cc20 + stack_index * 4);
+        root_widget = widget_globals_field_00[stack_index];
         if (local_player_count == 2 && root_widget == 0) {
           if (!game_time_get_paused()) {
             if (ui_widget_load_by_name_or_tag(
@@ -5103,29 +5103,29 @@ void process_ui_widgets(void)
   uint8_t handled;
 
   did_work = 0;
-  if (*(uint8_t *)0x46cc82 == 0) {
+  if (widget_globals_initialized == 0) {
     display_assert("widget_globals.initialized",
                    "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x284, true);
     system_exit(-1);
   }
 
   /* Record frame timestamp for event throttling. */
-  *(uint32_t *)0x46cc40 = system_milliseconds();
+  widget_globals_field_20 = system_milliseconds();
 
   /* If an async filesystem operation is pending, poll for completion. */
-  if (*(int *)0x46cc7c != 0) {
-    if (thread_is_done((void *)*(int *)0x46cc7c) != 0) {
-      thread_close((void *)*(int *)0x46cc7c);
-      *(int *)0x46cc7c = 0;
+  if (widget_globals_initialization_thread != NULL) {
+    if (thread_is_done(widget_globals_initialization_thread) != 0) {
+      thread_close(widget_globals_initialization_thread);
+      widget_globals_initialization_thread = NULL;
       ui_widgets_inhibit_processing(false);
-      if (*(int16_t *)0x46cc80 == 1) {
+      if (widget_globals_field_60 == 1) {
         if (bink_playback_has_video()) {
           bink_playback_stop();
         }
         ui_widget_load_error_screen(0x21, 1);
         return;
       }
-      if (*(int16_t *)0x46cc80 == 2) {
+      if (widget_globals_field_60 == 2) {
         if (bink_playback_has_video()) {
           bink_playback_stop();
         }
@@ -5155,38 +5155,45 @@ void process_ui_widgets(void)
   }
 
   /* If a pending error screen load is queued, dispatch it now. */
-  if (*(int16_t *)0x46cc68 != -1) {
-    ui_widget_load_error_screen(*(int16_t *)0x46cc68, *(uint8_t *)0x46cc6a);
-    *(int16_t *)0x46cc68 = -1;
+  if (widget_globals_field_48 != -1) {
+    ui_widget_load_error_screen(widget_globals_field_48,
+                                widget_globals_field_4a);
+    widget_globals_field_48 = -1;
     return;
   }
 
   /* If any deferred error slots are populated, try to show them. */
-  if ((*(int16_t *)0x46cc50 == -1) && (*(int16_t *)0x46cc56 == -1) &&
-      (*(int16_t *)0x46cc5c == -1) && (*(int16_t *)0x46cc62 == -1)) {
+  if ((widget_globals_field_30[0].error_handle == -1) &&
+      (widget_globals_field_30[1].error_handle == -1) &&
+      (widget_globals_field_30[2].error_handle == -1) &&
+      (widget_globals_field_30[3].error_handle == -1)) {
     /* Normal widget event processing path. */
     blocked_by_pause = ui_check_for_pause_game() != 0;
 
     active_widget_stacks[0] =
-      (*(int *)0x46cc20 != 0) && (*(uint8_t *)(*(int *)0x46cc20 + 0x15) == 1);
+      (widget_globals_field_00[0] != 0) &&
+      (*(uint8_t *)(widget_globals_field_00[0] + 0x15) == 1);
     active_widget_stacks[1] =
-      (*(int *)0x46cc24 != 0) && (*(uint8_t *)(*(int *)0x46cc24 + 0x15) == 1);
+      (widget_globals_field_00[1] != 0) &&
+      (*(uint8_t *)(widget_globals_field_00[1] + 0x15) == 1);
     active_widget_stacks[2] =
-      (*(int *)0x46cc28 != 0) && (*(uint8_t *)(*(int *)0x46cc28 + 0x15) == 1);
+      (widget_globals_field_00[2] != 0) &&
+      (*(uint8_t *)(widget_globals_field_00[2] + 0x15) == 1);
     active_widget_stacks[3] =
-      (*(int *)0x46cc2c != 0) && (*(uint8_t *)(*(int *)0x46cc2c + 0x15) == 1);
+      (widget_globals_field_00[3] != 0) &&
+      (*(uint8_t *)(widget_globals_field_00[3] + 0x15) == 1);
     any_active_widget_stack = active_widget_stacks[0] |
                               active_widget_stacks[1] |
                               active_widget_stacks[2] | active_widget_stacks[3];
 
-    widget_roots = (int *)0x46cc20;
+    widget_roots = widget_globals_field_00;
     for (stack_index = 0; stack_index < 4; stack_index++, widget_roots++) {
       widget = *widget_roots;
       if (active_widget_stacks[stack_index] == 1) {
-        if ((widget == 0) || (*(uint8_t *)(widget + 0x15) != 1)) {
+        if ((widget == 0) || (((widget_instance_t *)widget)->field_15 != 1)) {
           continue;
         }
-      } else if (*(uint8_t *)0x46cc88 == 0) {
+      } else if (byte_46CC88 == 0) {
         if (widget == 0) {
           continue;
         }
@@ -5202,7 +5209,7 @@ void process_ui_widgets(void)
       process_data.unk4 = 0;
       process_data.unk6 = 0;
 
-      if ((*(uint8_t *)0x46cc85 == 0) &&
+      if ((widget_globals_field_65 == 0) &&
           (event_manager_get_next_event(&process_data,
                                         *(uint16_t *)(widget + 8)) != 0)) {
         do {
@@ -5247,10 +5254,10 @@ void process_ui_widgets(void)
 
   /* Deferred error display: wait for game_in_progress and enough
    * ticks before showing queued error dialogs. */
-  deferred_error = (ui_widget_deferred_error_t *)0x46cc50;
-  while ((int)deferred_error < 0x46cc68) {
+  deferred_error = widget_globals_field_30;
+  while ((int)deferred_error < (int)&widget_globals_field_48) {
     if (deferred_error->error_handle != -1) {
-      if ((*(uint8_t *)0x46cc88 == 0) && (!network_game_in_progress()) &&
+      if ((byte_46CC88 == 0) && (!network_game_in_progress()) &&
           (game_time_get() < 0x1e)) {
         error(2, "waiting for %d ticks before displaying deferred errors",
               0x1e);
@@ -5284,7 +5291,8 @@ void process_ui_widgets(void)
  *
  * Uncertain: the meaning of the entry fields at +0x00/+0x08/+0x18 handed
  * to FUN_00082bd0 is not evidenced here, so they stay raw offsets. */
-bool FUN_000e9dd0(void *widget, void *event_data, bool *widget_deleted)
+bool network_game_join_game_from_server_list(void *widget, void *event_data,
+                                             bool *widget_deleted)
 {
   widget_instance_t *list;
   void *entry;
@@ -5401,7 +5409,7 @@ void ui_widget_display_deferred_errors(void)
   }
 
   local_player_index = 0;
-  record = (int16_t *)0x46cc6c;
+  record = &widget_globals_field_4c[0].error_handle;
   do {
     error_handle = *record;
     if (error_handle >= 0 && error_handle < 0x28) {
@@ -5518,7 +5526,7 @@ void display_error_damaged_media(void)
       system_exit(-1);
     }
     *(int16_t *)((char *)widget + 0x40) = 0x23;
-    *(uint8_t *)((char *)widget + 0x15) = 1;
+    ((widget_instance_t *)widget)->field_15 = 1;
     *(int16_t *)0x31e054 = 0x23;
     input_frame_end();
     main_halt_entry();

@@ -21,6 +21,7 @@ from typing import (
 from perm_pycparser import c_ast as ca
 
 from . import ast_util
+from . import safety
 from .ast_util import Block, Indices, Statement, Expression, to_c_raw
 from .ast_types import (
     SimpleType,
@@ -611,6 +612,10 @@ def perm_temp_for_expr(
     # Step 0: decide whether to make a pointer to the chosen expression, or to
     # copy it by value.
     should_make_ptr = random_bool(random, PROB_TEMP_PTR)
+    safe = safety.enabled()
+    if safe:
+        # [halo] A pointer temp aliases the original object; not modelled.
+        should_make_ptr = False
 
     def surrounding_writes(expr: Expression, base: Expression) -> Tuple[int, int]:
         """Compute the previous and next write to a variable included in expr,
@@ -716,6 +721,7 @@ def perm_temp_for_expr(
         and isinstance(type.type, (ca.Struct, ca.Union))
         and ast_util.is_lvalue(expr)
     ):
+        ensure(not safe)
         should_make_ptr = True
         expr = ca.UnaryOp("&", expr)
         type = decayed_expr_type(expr, typemap)
@@ -727,6 +733,27 @@ def perm_temp_for_expr(
     else:
         orig_expr = expr
     # print("replacing:", to_c(expr))
+
+    if safe:
+        # [halo] The assignment must run exactly when, and with the same
+        # value as, the original evaluation: same block, unconditional within
+        # its statement, nothing in between that it depends on.
+        tracked = safety.tracked_vars(fn, ast)
+        parents = safety.parent_map(fn.body)
+        if place is not None:
+            safe_stmts = ast_util.get_block_stmts(place[0], False)
+            safe_k = safety.can_hoist(safe_stmts, place[1], orig_expr, tracked, parents)
+            ensure(safe_k is not None)
+            safe_anchor = place[1]
+        else:
+            owner = parents.get(id(orig_expr))
+            while owner is not None and not isinstance(owner, (ca.Compound, ca.Case, ca.Default)):
+                owner = parents.get(id(owner))
+            ensure(owner is not None)
+            safe_stmts = ast_util.get_block_stmts(owner, False)
+            safe_k = safety.index_of_containing(safe_stmts, orig_expr)
+            ensure(safe_k is not None)
+            safe_anchor = safe_k + 1
 
     # Step 3: decide on a variable to hold the expression
     if place is not None:
@@ -744,6 +771,17 @@ def perm_temp_for_expr(
         typemap,
         random,
     )
+    if reused_var is not None and safe:
+        # [halo] Exact type only, never across a loop back-edge, and only a
+        # variable no pointer can observe.
+        reused_type = decayed_expr_type(ca.ID(reused_var), typemap)
+        if (
+            reused_var not in tracked
+            or not same_type(reused_type, type, typemap, allow_similar=False)
+            or safety.in_loop(assign_before, parents)
+            or safety.in_loop(orig_expr, parents)
+        ):
+            reused_var = None
     if reused_var is not None:
         reused = True
         var = reused_var
@@ -770,6 +808,22 @@ def perm_temp_for_expr(
         replace_cands = [orig_expr]
     else:
         replace_subexprs(fn.body, find_duplicates)
+        if safe:
+            # [halo] A duplicate may reuse the temp only if it sits in a
+            # later statement of the same block and the value cannot change
+            # from the assignment up to and including that statement.
+            def stable_dup(e: Expression) -> bool:
+                if e is orig_expr:
+                    return True
+                j = safety.index_of_containing(safe_stmts, e)
+                if j is None or j < safe_anchor:
+                    return False
+                if place is None and j <= safe_k:
+                    return False
+                start = place[1] if place is not None else safe_k
+                return safety.value_stable(safe_stmts, start, j, orig_expr, tracked)
+
+            replace_cands = [e for e in replace_cands if stable_dup(e)]
 
     assert orig_expr in replace_cands
     replace_cand_set: Set[Expression] = set(
@@ -795,7 +849,8 @@ def perm_temp_for_expr(
         assignment = ca.Assignment("=", ca.ID(var), expr)
         ast_util.insert_statement(block, index, assignment)
     if not reused:
-        if random_bool(random, PROB_RANDOMIZE_TYPE):
+        # [halo] A narrower or differently signed temp changes the value.
+        if not safe and random_bool(random, PROB_RANDOMIZE_TYPE):
             type = randomize_type(type, typemap, random)
         ast_util.insert_decl(fn, var, type, random)
 
@@ -858,6 +913,27 @@ def perm_expand_expr(
         keep_var = random_bool(random, PROB_KEEP_REPLACED_VAR)
     repl_cands_set = set(repl_cands)
 
+    if safety.enabled():
+        # [halo] Keep the original assignment (other paths may read it), and
+        # only substitute reads in later statements of the write's block whose
+        # inputs, and the variable itself, cannot change before the read.
+        keep_var = True
+        tracked = safety.tracked_vars(fn, ast)
+        parents = safety.parent_map(fn.body)
+        owner = parents.get(id(write))
+        while owner is not None and not isinstance(owner, (ca.Compound, ca.Case, ca.Default)):
+            owner = parents.get(id(owner))
+        ensure(owner is not None)
+        stmts = ast_util.get_block_stmts(owner, False)
+        ensure(any(stmt is write for stmt in stmts))
+        w = next(i for i, stmt in enumerate(stmts) if stmt is write)
+        for read_index in repl_cands:
+            read = rev_indices[read_index]
+            j = safety.index_of_containing(stmts, read)
+            ensure(j is not None and j > w)
+            ensure(safety.value_stable(stmts, w + 1, j, repl_expr, tracked))
+            ensure(safety.value_stable(stmts, w + 1, j, ca.ID(var), tracked))
+
     # Don't duplicate effectful expressions.
     if ast_util.is_effectful(repl_expr):
         ensure(len(repl_cands) == 1 and not keep_var)
@@ -884,6 +960,8 @@ def perm_randomize_internal_type(
     """Randomize types of pre-existing local variables. Function parameters
     are not included -- those are handled by perm_randomize_function_type.
     Only variables mentioned within the given region are affected."""
+    # Retyping a local changes how every store to it truncates or extends.
+    ensure(not safety.enabled())
     names: Set[str] = set()
 
     class IdVisitor(ca.NodeVisitor):
@@ -1429,6 +1507,19 @@ def perm_reorder_stmts(
     if fromb == tob:
         ensure(toi != fromi and toi != fromi + 1)
 
+    if safety.enabled():
+        # [halo] Only within one block, and only across statements the moved
+        # one does not depend on (no shared variable writes, memory writes,
+        # calls or control transfers).
+        ensure(fromb is tob)
+        tracked = safety.tracked_vars(fn, ast)
+        stmts = ast_util.get_block_stmts(fromb, False)
+        crossed = stmts[fromi + 1 : toi] if toi > fromi else stmts[toi:fromi]
+        moved: ca.Node = from_stmt
+        if isinstance(from_stmt, ca.Decl):
+            moved = ca.Assignment("=", ca.ID(from_stmt.name), from_stmt.init)
+        ensure(safety.can_cross(safety.effects(moved, tracked), crossed, tracked))
+
     if isinstance(from_stmt, ca.Decl):
         assert from_stmt.name
         assert from_stmt.init is not None
@@ -1820,6 +1911,9 @@ def perm_cast_simple(
         # Cast to floating point type
         new_type = random.choice(floating_type)
 
+    if safety.enabled():
+        ensure(safety.value_preserving_cast(expr, new_type, typemap))
+
     # Surround the original expression with a cast to the chosen type
     typedecl = ca.TypeDecl(None, [], [], ca.IdentifierType(new_type))
     new_expr = ca.Cast(ca.Typename(None, [], None, [], typedecl), expr)
@@ -2043,17 +2137,33 @@ def perm_split_assignment(
     typemap = build_typemap(ast, fn)
     vartype = decayed_expr_type(var, typemap)
 
+    safe = safety.enabled()
+    if safe:
+        # [halo] The target must be a plain variable the rest of the
+        # expression does not read, the moved side must keep its exact type,
+        # and the two halves must be independent so evaluating one first
+        # cannot change the other.
+        tracked = safety.tracked_vars(fn, ast)
+        ensure(isinstance(var, ca.ID) and var.name in tracked)
+        rvalue_eff = safety.effects(assign.rvalue, tracked)
+        ensure(not safety.overlaps({var.name}, rvalue_eff.reads))
+
     # Choose which side to move to a new assignment
     if random_bool(random, 0.5):
         side = split.left
         sidetype = decayed_expr_type(side, typemap)
-        ensure(same_type(vartype, sidetype, typemap, allow_similar=True))
+        ensure(same_type(vartype, sidetype, typemap, allow_similar=not safe))
         split.left = copy.deepcopy(var)
     else:
         side = split.right
         sidetype = decayed_expr_type(side, typemap)
-        ensure(same_type(vartype, sidetype, typemap, allow_similar=True))
+        ensure(same_type(vartype, sidetype, typemap, allow_similar=not safe))
         split.right = copy.deepcopy(var)
+    if safe:
+        # The moved side now runs before everything else in the rvalue.
+        # An effectful side conflicts with itself here and is rejected.
+        ensure(split.op not in ("&&", "||", ","))
+        ensure(not safety.conflict(safety.effects(side, tracked), rvalue_eff))
 
     # The assignment is always inserted before the original
     new_assign = ca.Assignment("=", copy.deepcopy(var), side)
@@ -2168,6 +2278,35 @@ def perm_chain_assignment(
     assert isinstance(stmt, ca.Assignment)
     assert isinstance(next_stmt, ca.Assignment)
 
+    if safety.enabled():
+        # [halo] next_stmt moves up past the statements in between, and a
+        # chained value passes through the inner lvalue's type.
+        tracked = safety.tracked_vars(fn, ast)
+        typemap = build_typemap(ast, fn)
+        ensure(stmt.op == "=" and next_stmt.op == "=")
+        ensure(
+            safety.can_cross(
+                safety.effects(next_stmt, tracked),
+                statements[chosen_assignment_idx + 1 : next_stmt_idx],
+                tracked,
+            )
+        )
+        ensure(
+            same_type(
+                decayed_expr_type(stmt.lvalue, typemap),
+                decayed_expr_type(next_stmt.lvalue, typemap),
+                typemap,
+                allow_similar=False,
+            )
+        )
+        stmt_eff = safety.effects(stmt, tracked)
+        ensure(
+            not safety.overlaps(
+                stmt_eff.writes, safety.effects(next_stmt.rvalue, tracked).reads
+            )
+        )
+        ensure(not stmt_eff.mem_write or ast_util.equal_ast(stmt.lvalue, next_stmt.rvalue))
+
     # Insert the new lvalue into left or right side of old lvalue
     if random_bool(random, 0.5):
         new_lvalue = next_stmt.lvalue
@@ -2229,6 +2368,26 @@ def perm_long_chain_assignment(
         start_idx, end_idx = a, b
 
     statements = ast_util.get_block_stmts(block, True)
+
+    if safety.enabled():
+        # [halo] Every later copy of the rvalue must see the same value, and
+        # every lvalue must have the same type (the value passes through each).
+        tracked = safety.tracked_vars(fn, ast)
+        typemap = build_typemap(ast, fn)
+        first = statements[start_idx]
+        assert isinstance(first, ca.Assignment)
+        rvalue_eff = safety.effects(first.rvalue, tracked)
+        first_type = decayed_expr_type(first.lvalue, typemap)
+        for i in range(start_idx, end_idx):
+            st = statements[i]
+            assert isinstance(st, ca.Assignment)
+            ensure(st.op == "=")
+            ensure(same_type(first_type, decayed_expr_type(st.lvalue, typemap),
+                             typemap, allow_similar=False))
+            lv = safety.Effects()
+            safety._write_lvalue(st.lvalue, tracked, lv, also_read=False)
+            ensure(not safety.overlaps(lv.writes, rvalue_eff.reads))
+            ensure(not (lv.mem_write and rvalue_eff.mem_read))
 
     # Merge all statements into long chain assignment at start_idx
     stmt = statements[start_idx]

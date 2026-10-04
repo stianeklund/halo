@@ -338,6 +338,17 @@ class HeaderNoise(unittest.TestCase):
         self.assertTrue({"object_datum_t", "pad_48", "vitality"} <= names)
         self.assertFalse(names & {"char", "real"})
 
+    def test_changed_header_names_ignores_same_line_comment_words(self):
+        diff = ("--- a/src/types.h\n+++ b/src/types.h\n"
+                "@@ -10 +10,2 @@ typedef struct {\n"
+                "-  uint8_t pad_24[0x90];  ///< offset=0x24  not accessed here\n"
+                "+  uint8_t pad_24[0x10];  ///< offset=0x24  not accessed here\n"
+                "+  uint8_t pad_34[0x80]; /* offset tail */\n")
+        with patch.object(gate, "git", return_value=diff):
+            names = gate.changed_header_names(Path("/unused"), "base", "head")
+        self.assertTrue({"pad_24", "pad_34"} <= names)
+        self.assertFalse(names & {"offset", "not", "accessed", "here", "tail"})
+
     def test_changed_kb_names_collects_changed_entries_only(self):
         def kb(decl, source="a.c"):
             return json.dumps({"md5": "m", "objects": [{

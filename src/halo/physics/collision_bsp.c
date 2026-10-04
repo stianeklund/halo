@@ -635,12 +635,11 @@ char collision_surface_find_closest_point2d(int bsp, int surface_index,
   unsigned char side;
   void *va;
   void *vb;
+  real_vector2d edge_vector;
   real_point2d a2d;
   real_point2d b2d;
   float px;
   float py;
-  float ex;
-  float ey;
   float dot;
   float len2;
   float t;
@@ -668,20 +667,20 @@ char collision_surface_find_closest_point2d(int bsp, int surface_index,
     FUN_00061df0(vb, (short)param3, (unsigned char)param4, &b2d);
     px = point[0] - a2d.x;
     py = point[1] - a2d.y;
-    ex = b2d.x - a2d.x;
-    ey = b2d.y - a2d.y;
-    if (ey * px - ex * py > 0.0f) {
-      dot = ex * px + ey * py;
+    edge_vector.i = b2d.x - a2d.x;
+    edge_vector.j = b2d.y - a2d.y;
+    if (edge_vector.j * px - edge_vector.i * py > 0.0f) {
+      dot = edge_vector.i * px + edge_vector.j * py;
       if (dot < 0.0f) {
         before_start = 1;
       } else {
-        len2 = ey * ey + ex * ex;
+        len2 = edge_vector.j * edge_vector.j + edge_vector.i * edge_vector.i;
         if (dot > len2) {
           beyond_end = 1;
         } else {
           t = dot / len2;
-          out_point[0] = ex * t + a2d.x;
-          out_point[1] = ey * t + a2d.y;
+          out_point[0] = edge_vector.i * t + a2d.x;
+          out_point[1] = edge_vector.j * t + a2d.y;
           return 0;
         }
       }
@@ -701,8 +700,8 @@ char collision_surface_find_closest_point2d(int bsp, int surface_index,
     prev_beyond_end = beyond_end;
   } while (edge_index != first_edge);
 
-  if (beyond_end ? (first_before_start || !first_beyond_end)
-                 : (first_before_start && !before_start)) {
+  if ((beyond_end && (first_before_start || !first_beyond_end)) ||
+      (first_before_start && (beyond_end || !before_start))) {
     edge = (int *)tag_block_get_element(edges, edge_index, 0x18);
     side = (edge[5] == surface_index);
     va = tag_block_get_element(vertices, edge[side], 0x10);

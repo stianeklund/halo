@@ -351,7 +351,7 @@ void breakable_surfaces_enable(char active)
  *   0x8b (139), __FILE__ "c:\halo\SOURCE\physics\breakable_surfaces.c".
  * Confirmed: LEA EAX,[EAX + ECX*1 + 0x1] — ptr = globals + bsp_index*32 + 1.
  */
-char *breakable_surfaces_get_bsp_surface_data(void)
+__declspec(noinline) char *breakable_surfaces_get_bsp_surface_data(void)
 {
   assert_halt(breakable_surface_globals);
   assert_halt(global_structure_bsp_index >= 0 &&

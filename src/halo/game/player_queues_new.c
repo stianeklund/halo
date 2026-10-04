@@ -649,7 +649,7 @@ int update_client_get_maximum_possible_server_time(void)
  * (rejects NaN/Inf values where the exponent bits are all 1s).
  *
  * The actions pointer advances by 0x20 bytes per player slot. */
-void update_server_apply_actions(int16_t machine_index, void *actions)
+void update_server_apply_actions(int machine_index, void *actions)
 {
   int *player_list;
   int player_handle;
