@@ -114,6 +114,20 @@ OVERRIDES = {
                 "to the ret at 0x67f44, then the 10-slot `jmp [edx*4+0x67f48]` "
                 "switch table (field_type 2..11). Next function is 0x67f70.",
     },
+    0x1029A0: {
+        "end": 0x102C32,
+        "kind": "auto",
+        "note": "halt_and_catch_fire: no ret; the body ends `push ebx / call "
+                "0x1d980b / int3` (0x102c2b..0x102c31), after the unconditional jmp "
+                "at 0x102c26. 14 nop bytes of alignment follow before 0x102c40.",
+    },
+    0x1D81F4: {
+        "end": 0x1D8259,
+        "kind": "auto",
+        "note": "XapiBootToDash: the last ret is at 0x1d824d; the error path "
+                "`push 4 / call [0x2531f8] / int3` (0x1d8250..0x1d8258) never "
+                "returns, and the int3 is the final byte before 0x1d8259.",
+    },
 }
 
 _MD = None

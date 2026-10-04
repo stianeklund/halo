@@ -5670,10 +5670,10 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
   float screen[3]; /* [EBP-0x28] FUN_0017a8a0 out_screen (@<ebx>) */
   float extent[2]; /* [EBP-0x1c] FUN_0017a8a0 out_extent: half_w, half_h */
   float bounds_tmp; /* [EBP-8] clamp accumulator / floor() result */
-  int x0; /* [EBP-0x14] */
-  int x1; /* [EBP-0x10] */
-  int y0; /* [EBP-0xc] */
-  int y1; /* [EBP-4] */
+  short x0; /* [EBP-0x14] */
+  short x1; /* [EBP-0x10] */
+  short y0; /* [EBP-0xc] */
+  short y1; /* [EBP-4] */
   int area;
   int hr;
 
@@ -5702,7 +5702,7 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
         bounds_tmp = 32767.0f;
       }
       bounds_tmp = (float)floor(bounds_tmp);
-      x0 = x87_round_to_int(bounds_tmp);
+      x0 = (short)x87_round_to_int(bounds_tmp);
 
       bounds_tmp = screen[1] - extent[1];
       if (bounds_tmp < -32767.0f) {
@@ -5711,7 +5711,7 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
         bounds_tmp = 32767.0f;
       }
       bounds_tmp = (float)floor(bounds_tmp);
-      y0 = x87_round_to_int(bounds_tmp);
+      y0 = (short)x87_round_to_int(bounds_tmp);
 
       bounds_tmp = screen[0] + extent[0];
       if (bounds_tmp < -32767.0f) {
@@ -5720,7 +5720,7 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
         bounds_tmp = 32767.0f;
       }
       bounds_tmp = (float)floor(bounds_tmp);
-      x1 = x87_round_to_int(bounds_tmp);
+      x1 = (short)x87_round_to_int(bounds_tmp);
 
       bounds_tmp = screen[1] + extent[1];
       if (bounds_tmp < -32767.0f) {
@@ -5729,13 +5729,7 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
         bounds_tmp = 32767.0f;
       }
       bounds_tmp = (float)floor(bounds_tmp);
-      y1 = x87_round_to_int(bounds_tmp);
-
-      /* MOVSX word: the bounds are truncated to 16 bits before use. */
-      x0 = (short)x0;
-      y0 = (short)y0;
-      x1 = (short)x1;
-      y1 = (short)y1;
+      y1 = (short)x87_round_to_int(bounds_tmp);
 
       area = (x1 - x0) * (y1 - y0);
       if (area >= 0) {

@@ -110,5 +110,16 @@ class TestExtractCoffFunction(unittest.TestCase):
         self.assertEqual(summary["totals"]["not audited"]["original_bytes"], 5)
 
 
+class SymbolDecoration(unittest.TestCase):
+    def names(self, *symbols):
+        return [{"name": symbol} for symbol in symbols]
+
+    def test_leading_underscore_c_name_does_not_collide_with_its_sibling(self):
+        matches = self.names("__TIFFVSetField", "_TIFFVSetField")
+        self.assertTrue(all(raw._same_symbol(m["name"], "_TIFFVSetField") for m in matches))
+        self.assertEqual(raw.prefer_exact_decoration(matches, "_TIFFVSetField"),
+                         [{"name": "__TIFFVSetField"}])
+
+
 if __name__ == "__main__":
     unittest.main()

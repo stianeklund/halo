@@ -4,8 +4,10 @@
 import copy
 import importlib.util
 import json
+import os
 import subprocess
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -54,6 +56,21 @@ class ByteRatchet(unittest.TestCase):
     def test_tiny_fraction_loss_is_not_rounded_away(self):
         self.assertTrue(self.result(record(100000, 100001), record(100000, 100002))["errors"])
 
+    def test_literal_address_replaced_by_resolved_symbol_is_neutral(self):
+        after = record(4, 6)
+        after["aligned_byte_match"]["masked_relocation_bytes"] = 4
+        self.assertFalse(self.result(record(8, 10), after)["errors"])
+
+    def test_resolved_relocation_does_not_hide_a_real_byte_loss(self):
+        after = record(3, 6)
+        after["aligned_byte_match"]["masked_relocation_bytes"] = 4
+        self.assertTrue(self.result(record(8, 10), after)["errors"])
+
+    def test_uncertain_relocation_is_still_a_loss(self):
+        after = record(4, 10)
+        after["aligned_byte_match"]["uncertain_relocation_bytes"] = 4
+        self.assertTrue(self.result(record(8, 10), after)["errors"])
+
     def test_improvement_elsewhere_does_not_hide_loss(self):
         before = {1: record(8), 2: record(1)}
         after = {1: record(7), 2: record(10)}
@@ -68,11 +85,56 @@ class ByteRatchet(unittest.TestCase):
         self.assertTrue(self.result(record(), after)["errors"])
 
     def test_reference_changes_are_invalid_comparisons(self):
-        for key in ("sha256", "end", "sha256_span", "bound_kind", "bound_provenance"):
+        for key in ("sha256", "start", "end", "sha256_span", "bound_kind", "bound_provenance"):
             with self.subTest(key=key):
                 after = record(10)
                 after["reference"][key] = "changed"
                 self.assertIn("reference span changed", self.result(record(), after)["errors"][0])
+
+    @staticmethod
+    def spanless(reason="candidate has 0 COFF function symbols for example"):
+        base = record()
+        base.pop("aligned_byte_match")
+        base["reference"] = {"sha256": "xbe"}
+        base["reason"] = reason
+        return base
+
+    def test_spanless_base_may_become_measured(self):
+        result = self.result(self.spanless(), record())
+        self.assertFalse(result["errors"])
+        self.assertEqual(result["existing_gaps"], [])
+
+    def test_spanless_base_may_become_measured_under_other_options(self):
+        after = record()
+        after["tool"]["opt"] = "/O1"
+        self.assertFalse(self.result(self.spanless(), after)["errors"])
+
+    def test_unverified_bound_may_be_verified_and_measured(self):
+        base = record()
+        base.pop("aligned_byte_match")
+        base["reference"]["bound_kind"] = "no_terminator"
+        after = record()
+        after["reference"].update({"end": "0x00012008", "bound_kind": "auto"})
+        self.assertFalse(self.result(base, after)["errors"])
+
+    def test_spanless_base_still_requires_same_xbe(self):
+        after = record()
+        after["reference"]["sha256"] = "other"
+        self.assertIn("reference span changed", self.result(self.spanless(), after)["errors"][0])
+
+    def test_unscored_base_with_span_still_rejects_span_change(self):
+        base = record()
+        base.pop("aligned_byte_match")
+        base["reference"]["bound_provenance"] = "computed"
+        after = record()
+        after["reference"]["end"] = "0x00012008"
+        self.assertIn("reference span changed", self.result(base, after)["errors"][0])
+
+    def test_spanless_base_unmeasured_candidate_with_new_reason_fails(self):
+        after = record()
+        after.pop("aligned_byte_match")
+        after["reason"] = "different failure"
+        self.assertIn("unmeasured result changed", self.result(self.spanless(), after)["errors"][0])
 
     def test_changed_options_are_invalid_comparisons(self):
         after = record()
@@ -190,7 +252,8 @@ class HeaderNoise(unittest.TestCase):
         self.assertTrue(result["errors"])
         self.assertFalse(result["header_noise"])
 
-    def classifier(self, changed="kb.json\nsrc/other.c", names=("changed_fn",), symbols=("_other",)):
+    def classifier(self, changed="kb.json\nsrc/other.c", names=("changed_fn",), symbols=("_other",),
+                   header_names=(), root=Path("/unused")):
         def parse(path, function):
             if path == "missing.obj":
                 raise OSError("missing")
@@ -198,8 +261,9 @@ class HeaderNoise(unittest.TestCase):
         raw = SimpleNamespace(_parse_coff=parse, _c_name=lambda name: name[1:])
         with patch.object(gate, "git", return_value=changed), \
                 patch.object(gate, "changed_kb_names", return_value=set(names)), \
+                patch.object(gate, "changed_header_names", return_value=set(header_names)), \
                 patch.dict("sys.modules", {"raw_xbe_structural": raw}):
-            return gate.header_noise_filter(Path("/unused"), "base", "head")
+            return gate.header_noise_filter(root, "base", "head")
 
     def after(self, **changes):
         after = record(7)
@@ -223,9 +287,56 @@ class HeaderNoise(unittest.TestCase):
         self.assertFalse(is_noise(record(), self.after(candidate={"path": "missing.obj"})))
 
     def test_other_shared_inputs_disable_classification(self):
-        for changed in ("kb.json\nsrc/types.h", "CMakeLists.txt", "tools/analysis/knowledge.py"):
+        for changed in ("kb.json\nsrc/types.h\nthird_party/xbox/x.h", "CMakeLists.txt",
+                        "tools/analysis/knowledge.py"):
             with self.subTest(changed=changed):
                 self.assertIsNone(self.classifier(changed=changed))
+
+    def test_unrelated_function_is_noise_when_types_header_changed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "src/example.c"
+            source.parent.mkdir()
+            source.write_text("/* object_datum_t */\nint other(void) { return 0; }\n"
+                              "int example(int x)\n{\n  return x + 1;\n}\n")
+            is_noise = self.classifier(changed="src/types.h", header_names=("object_datum_t", "vitality"),
+                                       root=Path(tmp))
+            self.assertTrue(is_noise(record(), self.after()))
+
+    def test_function_using_a_changed_header_name_is_a_regression(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "src/example.c"
+            source.parent.mkdir()
+            source.write_text("int example(object_datum_t *o)\n{\n  return o->vitality[0];\n}\n")
+            is_noise = self.classifier(changed="src/types.h", header_names=("vitality",), root=Path(tmp))
+            self.assertFalse(is_noise(record(), self.after()))
+
+    def test_hex_literal_digits_are_not_identifiers(self):
+        self.assertEqual(gate._IDENTIFIER_RE.findall("a = 0x34 + b2 + 0x5a8d30;"), ["a", "b2"])
+
+    def test_function_source_not_found_is_a_regression(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "src/example.c"
+            source.parent.mkdir()
+            source.write_text("int unrelated(void) { return 0; }\n")
+            is_noise = self.classifier(changed="src/types.h", header_names=("vitality",), root=Path(tmp))
+            self.assertFalse(is_noise(record(), self.after()))
+
+    def test_function_text_matches_definition_not_prototype_or_call(self):
+        text = ("int example(int x);\nint caller(void)\n{\n  return example(1);\n}\n"
+                "static int example(int x)\n{\n  if (x) { return 1; }\n  return 0;\n}\n")
+        body = gate.function_text(text, "example")
+        self.assertTrue(body.startswith("static int example"))
+        self.assertTrue(body.endswith("return 0;\n}"))
+        self.assertIsNone(gate.function_text("int other(void) { return 0; }\n", "example"))
+
+    def test_changed_header_names_collects_changed_lines_and_enclosing_declaration(self):
+        diff = ("diff --git a/src/types.h b/src/types.h\n--- a/src/types.h\n+++ b/src/types.h\n"
+                "@@ -3273 +3273,3 @@ typedef struct object_datum_t {\n"
+                "-  char pad_48[0xb6 - 0x48];\n+  char pad_48[0x88 - 0x48];\n+  real vitality[4];\n")
+        with patch.object(gate, "git", return_value=diff):
+            names = gate.changed_header_names(Path("/unused"), "base", "head")
+        self.assertTrue({"object_datum_t", "pad_48", "vitality"} <= names)
+        self.assertFalse(names & {"char", "real"})
 
     def test_changed_kb_names_collects_changed_entries_only(self):
         def kb(decl, source="a.c"):
@@ -273,6 +384,20 @@ class ScopeAndInputs(unittest.TestCase):
                 first = gate.input_manifest(root)
                 (root / "src/header.h").write_text("changed")
                 self.assertNotEqual(first, gate.input_manifest(root))
+
+    def test_working_tree_staging_skips_gitignored_input_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.check_call(["git", "-C", str(root), "init", "-q"])
+            (root / ".gitignore").write_text("local.json\n")
+            (root / "local.json").write_text("{}")
+            (root / "tracked.json").write_text("{}")
+            (root / "src").mkdir()
+            (root / "src/example.c").write_text("original")
+            paths = ("src", "tracked.json", "local.json")
+            with patch.object(gate, "INPUT_PATHS", paths):
+                self.assertEqual(gate.stageable_inputs(root), ["src", "tracked.json"])
+                subprocess.check_call(["git", "-C", str(root), "add", "-A", "--", *gate.stageable_inputs(root)])
 
     def test_wrong_revision_dirty_inputs_and_untracked_headers_rejected(self):
         for responses in (("wrong",), ("commit", "src/example.c"),
@@ -367,6 +492,39 @@ class ReusableTrees(unittest.TestCase):
                 self.assertEqual((tree / "file.c").read_text(), "one")
                 self.assertEqual(subprocess.check_output(["git", "-C", str(tree), "rev-parse", "HEAD"],
                                                          text=True).strip(), first)
+
+
+class PruneRuns(unittest.TestCase):
+    def make(self, parent, name, age, checkout=False):
+        path = parent / name
+        (path / "measurements").mkdir(parents=True)
+        if checkout:
+            (path / ".git").write_text("gitdir: elsewhere\n")
+        stamp = time.time() - age
+        os.utime(path, (stamp, stamp))
+        return path
+
+    def test_prunes_old_runs_but_never_reusable_cache_or_checkouts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent = Path(tmp)
+            old = [self.make(parent, "local-old%05d" % i, 86400 + i) for i in range(4)]
+            fresh = self.make(parent, "local-fresh001", 60)
+            reusable = self.make(parent, gate.REUSABLE_TREES, 10 * 86400)
+            cache = self.make(parent, "cache", 10 * 86400)
+            checkout = self.make(parent, "local-chkout01", 10 * 86400, checkout=True)
+            other = self.make(parent, "local-too-long-name", 10 * 86400)
+            gate.prune_runs(parent, keep=1, min_age=3600)
+            self.assertTrue(fresh.exists())
+            self.assertFalse(any(path.exists() for path in old))
+            for kept in (reusable, cache, checkout, other):
+                self.assertTrue(kept.exists(), kept.name)
+
+    def test_recent_runs_survive_even_beyond_keep(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent = Path(tmp)
+            runs = [self.make(parent, "local-run%05d" % i, 30 + i) for i in range(5)]
+            gate.prune_runs(parent, keep=1, min_age=3600)
+            self.assertTrue(all(path.exists() for path in runs))
 
 
 class ByteCache(unittest.TestCase):

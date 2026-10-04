@@ -525,11 +525,12 @@ bool hs_parse_scenario_datum(int datum_index, void *tag_block, int element_size,
                   short offset)
 {
   char *node;
-  int i;
+  bool result;
+  short element_index;
   char *element;
-  int cmp;
 
-  node = (char *)datum_get(*(data_t **)0x5aa6c8, datum_index);
+  node = (char *)datum_get(hs_syntax_data, datum_index);
+  result = false;
 
   if (element_size > 0x7fff) {
     display_assert("element_size<=SHORT_MAX",
@@ -542,26 +543,25 @@ bool hs_parse_scenario_datum(int datum_index, void *tag_block, int element_size,
     system_exit(-1);
   }
 
-  i = 0;
-  if (*(int *)tag_block > 0) {
-    do {
-      element = (char *)tag_block_get_element(tag_block, i, element_size);
-      cmp =
-        crt_stricmp(element + (int)offset,
-                    (const char *)(*(int *)(node + 0xc) + *(int *)0x46b6e8));
-      if (cmp == 0) {
-        *(int *)(node + 0x10) = (int)(int16_t)i;
-        return true;
-      }
-      i++;
-    } while ((int)(int16_t)i < *(int *)tag_block);
+  for (element_index = 0; element_index < *(int *)tag_block; element_index++) {
+    element = (char *)tag_block_get_element(tag_block, element_index,
+                                            element_size);
+    if (crt_stricmp(element + offset,
+                    (const char *)(*(int *)(node + 0xc) +
+                                   *(int *)0x46b6e8)) == 0) {
+      *(int *)(node + 0x10) = element_index;
+      result = true;
+      break;
+    }
   }
 
-  crt_sprintf((char *)0x46b704, "this is not a valid %s name",
-              ((const char **)0x2f14a8)[(int)*(int16_t *)(node + 0x4)]);
-  *(const char **)0x46b6fc = (const char *)0x46b704;
-  *(int *)0x46b700 = *(int *)(node + 0xc);
-  return false;
+  if (!result) {
+    crt_sprintf((char *)0x46b704, "this is not a valid %s name",
+                ((const char **)0x2f14a8)[(int)*(int16_t *)(node + 0x4)]);
+    *(const char **)0x46b6fc = (const char *)0x46b704;
+    *(int *)0x46b700 = *(int *)(node + 0xc);
+  }
+  return result;
 }
 
 /* 0xc6230 — Compile trigger_volume literal. Asserts type==0xb, then delegates
@@ -1396,6 +1396,7 @@ void hs_skip_whitespace(
   char ch;
   int16_t state;
   int16_t i;
+  int16_t j;
 
   state = 0;
   do {
@@ -1408,7 +1409,7 @@ void hs_skip_whitespace(
         state = 1;
         if (p[1] == '*') {
           state = 2;
-          *cursor = p + 2;
+          (*cursor)++;
         }
         break;
       }
@@ -1416,10 +1417,12 @@ void hs_skip_whitespace(
         if (ch == *(char *)(0x27bb78 + i))
           goto skip_char;
       }
-      for (i = 0; i < 2; i++) {
-        if (ch == *(char *)(0x27bb7c + i))
+      j = 0;
+      do {
+        if (ch == *(char *)(0x27bb7c + j))
           goto skip_char;
-      }
+        j++;
+      } while (j < 2);
       return;
 
     case 1:
@@ -2762,60 +2765,59 @@ int hs_compile(int source_length, const char *source, int *error_info,
  * 0xc72b0 = hs_skip_whitespace (@ESI=&cursor)
  * 0xc7be0 = hs_parse_expression (@EAX=&cursor, returns datum index)
  */
-bool hs_compile_source(int source_file_size, void *source_ptr,
+void hs_compile_source(int source_file_size, void *source_ptr,
                        char **error_info, char **error_text)
 {
   char *cursor;
-  bool ok;
+  bool valid;
   int expr_datum;
 
   cursor = hs_compile_initialize(source_file_size, source_ptr);
 
-  if (cursor == NULL) {
-    *error_info = "couldn't allocate memory for compiled source.";
-    return false;
-  }
+  if (cursor != NULL) {
+    *(char **)0x46b6fc = NULL;
+    *error_info = NULL;
+    *error_text = NULL;
+    valid = true;
+    *(int *)0x46b700 = -1;
 
-  *(char **)0x46b6fc = NULL;
-  *error_info = NULL;
-  *error_text = NULL;
-  *(int *)0x46b700 = -1;
-
-  hs_skip_whitespace(&cursor);
-
-  do {
-    if (*cursor == '\0')
-      return true;
-
-    expr_datum = hs_tokenize(&cursor);
     hs_skip_whitespace(&cursor);
 
-    if (*(char **)0x46b6fc != NULL)
-      break;
+    do {
+      if (*cursor == '\0')
+        break;
 
-    ok = hs_type_check(expr_datum, 1);
-  } while (ok);
+      expr_datum = hs_tokenize(&cursor);
+      hs_skip_whitespace(&cursor);
+      valid = *(char **)0x46b6fc == NULL;
+      if (valid)
+        valid = hs_type_check(expr_datum, 1);
+    } while (valid);
 
-  if (*(char **)0x46b6fc == NULL) {
-    display_assert("tell matt that somebody failed to correctly report a "
-                   "parsing error.",
-                   "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x131, true);
-    system_exit(-1);
-  }
+    if (!valid) {
+      if (*(char **)0x46b6fc == NULL) {
+        display_assert("tell matt that somebody failed to correctly report a "
+                       "parsing error.",
+                       "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x131, true);
+        system_exit(-1);
+      }
 
-  *error_info = *(char **)0x46b6fc;
-  *(uint8_t *)0x46b6f8 = 1;
+      *error_info = *(char **)0x46b6fc;
+      *(uint8_t *)0x46b6f8 = 1;
 
-  if (*(int *)0x46b700 != -1) {
-    *(int *)0x46b700 = *(int *)0x46b700 + (source_file_size - *(int *)0x46b6e4);
-    if (*(int *)0x46b700 < 0 || *(int *)0x46b700 >= source_file_size) {
-      display_assert("hs_compile_globals.error_offset>=0 && "
-                     "hs_compile_globals.error_offset<source_file_size",
-                     "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x13b, true);
-      system_exit(-1);
+      if (*(int *)0x46b700 != -1) {
+        *(int *)0x46b700 =
+          *(int *)0x46b700 + (source_file_size - *(int *)0x46b6e4);
+        if (*(int *)0x46b700 < 0 || *(int *)0x46b700 >= source_file_size) {
+          display_assert("hs_compile_globals.error_offset>=0 && "
+                         "hs_compile_globals.error_offset<source_file_size",
+                         "c:\\halo\\SOURCE\\hs\\hs_compile.c", 0x13b, true);
+          system_exit(-1);
+        }
+        *error_text = (char *)(*(int *)0x46b700 + (int)source_ptr);
+      }
     }
-    *error_text = (char *)(*(int *)0x46b700 + (int)source_ptr);
+  } else {
+    *error_info = "couldn't allocate memory for compiled source.";
   }
-
-  return false;
 }

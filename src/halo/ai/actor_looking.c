@@ -4439,58 +4439,54 @@ void action_obey_individual_perform(int actor_handle, int unit_handle,
                                     int cmd_param, char *finished_ref)
 {
   char *atom_table;
-  char cVar5;
+  char command_valid;
   char out_index;
-  bool validated;
 
+  datum_get(actor_data, actor_handle);
   atom_table = (char *)tag_block_get_element(
     (char *)global_scenario_get() + 0x438, (int)scenario_idx, 0x60);
 
-  if ((state_data[4] & 2) != 0)
-    goto LAB_check_finished;
+  if ((state_data[4] & 2) == 0) {
+    command_valid = 0;
+    if ((int)(unsigned char)state_data[0] < *(int *)(atom_table + 0x30)) {
+      command_valid = 1;
+    }
+    state_data[1] = 0;
 
-  cVar5 = (int)(unsigned char)state_data[0] < *(int *)(atom_table + 0x30);
-  state_data[1] = 0;
-
-  do {
-    if (cVar5 != 0) {
-      validated = action_obey_command_perform(
-        unit_handle, actor_handle, scenario_idx, state_data, (void *)cmd_param);
-      if (validated == 0)
+    do {
+      if (command_valid != 0 &&
+          !action_obey_command_perform(unit_handle, actor_handle, scenario_idx,
+                                       state_data, (void *)cmd_param)) {
         break;
-    }
+      }
 
-    if (state_data[0] == (char)0xff) {
-      out_index = 0;
-    } else {
-      out_index = state_data[0] + 1;
-    }
+      out_index = state_data[0] == (char)0xff ? 0 : state_data[0] + 1;
 
-    if (cVar5 != 0) {
-      action_obey_command_end(actor_handle, unit_handle, scenario_idx,
-                              cmd_param, &out_index, state_data);
-    }
+      if (command_valid != 0) {
+        action_obey_command_end(actor_handle, unit_handle, scenario_idx,
+                                cmd_param, &out_index, state_data);
+      }
 
-    if (*(int *)(atom_table + 0x30) <= (int)(unsigned char)out_index) {
-      state_data[4] = state_data[4] | 2;
-      break;
-    }
+      if ((int)(unsigned char)out_index >= *(int *)(atom_table + 0x30)) {
+        state_data[4] = state_data[4] | 2;
+        break;
+      }
 
-    state_data[0] = out_index;
-    cVar5 = action_obey_command_begin(actor_handle, scenario_idx, state_data,
-                                      cmd_param, unit_handle);
-  } while ((state_data[4] & 4) == 0);
-
-LAB_check_finished:
-  if ((state_data[4] & 2) != 0)
-    return;
-
-  if (finished_ref == NULL) {
-    display_assert("finished_reference", "c:\\halo\\SOURCE\\ai\\action_obey.c",
-                   0x595, 1);
-    system_exit(-1);
+      state_data[0] = out_index;
+      command_valid = action_obey_command_begin(actor_handle, scenario_idx,
+                                                state_data, cmd_param,
+                                                unit_handle);
+    } while ((state_data[4] & 4) == 0);
   }
-  *finished_ref = 0;
+
+  if ((state_data[4] & 2) == 0) {
+    if (finished_ref == NULL) {
+      display_assert("finished_reference",
+                     "c:\\halo\\SOURCE\\ai\\action_obey.c", 0x595, 1);
+      system_exit(-1);
+    }
+    *finished_ref = 0;
+  }
 }
 
 /* action_obey_individual_update (0x19230)

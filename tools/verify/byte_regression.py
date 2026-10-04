@@ -61,6 +61,13 @@ def input_manifest(root):
     return {name: digest(root / name) for name in sorted(set(paths))}
 
 
+def stageable_inputs(root):
+    """INPUT_PATHS minus gitignored paths: `git add` rejects an ignored pathspec it
+    is given by name, and vc71_current.json is a local, ignored measurement file."""
+    return [path for path in INPUT_PATHS
+            if subprocess.run(["git", "-C", str(root), "check-ignore", "-q", "--", path]).returncode != 0]
+
+
 def environment_manifest(raw):
     compiler = Path(raw.vc71.VC71_CL if os.name == "nt" else raw.vc71.VC71_CL_WSL)
     include = Path(raw.vc71.RXDK_INC)
@@ -139,6 +146,34 @@ def prune_cache(cache_dir):
                 path.unlink()
         except OSError:
             pass
+
+
+# Each local gate run leaves a `local-XXXXXXXX` output dir (~230 MB of
+# measurements) that nothing reads again; keep only the newest few for
+# inspection. A recent mtime guard protects a run another gate is still writing.
+RUN_KEEP = 3
+RUN_MIN_AGE = 3600
+RUN_DIR = re.compile(r"local-[a-z0-9_]{8}")
+
+
+def prune_runs(parent, keep=RUN_KEEP, min_age=RUN_MIN_AGE):
+    """Remove old per-run output dirs; never the reusable checkouts or the cache."""
+    runs = []
+    for path in parent.iterdir():
+        # `local-reusable` has the same length as mkdtemp's names: exclude by name.
+        if path.name == REUSABLE_TREES or not RUN_DIR.fullmatch(path.name):
+            continue
+        # Real directories only, and never a checkout (a worktree has a .git).
+        if path.is_symlink() or not path.is_dir() or os.path.lexists(path / ".git"):
+            continue
+        try:
+            runs.append((path.stat().st_mtime, path))
+        except OSError:
+            pass
+    cutoff = time.time() - min_age
+    for mtime, path in sorted(runs, reverse=True)[keep:]:
+        if mtime < cutoff:
+            shutil.rmtree(path, ignore_errors=True)
 
 
 def ensure_revision(root, commit):
@@ -266,7 +301,15 @@ def indexed(snapshot, commit, run_id, root, plan, allow_empty=False):
     return result
 
 
-def counts(record):
+def counts(record, proven=False):
+    """``(matching, compared)`` aligned bytes of one measured function.
+
+    ``proven`` also counts the 4-byte operand of every relocation whose target
+    the resolver verified against the reference. The lower-bound metric masks
+    those fields, so swapping a literal address for a named symbol would
+    otherwise lower the matching count with no loss. Uncertain and mismatched
+    relocations are already inside ``compared`` and never count as matching.
+    """
     aligned = record.get("aligned_byte_match", {})
     ref = record.get("reference", {})
     if (aligned.get("status") != "scored" or ref.get("bound_provenance") != "table" or
@@ -276,6 +319,11 @@ def counts(record):
     if (type(matched) is not int or type(compared) is not int or
             not 0 <= matched <= compared or compared <= 0):
         raise ValueError("invalid measured byte counts")
+    if proven:
+        resolved = aligned.get("masked_relocation_bytes") or 0
+        if type(resolved) is not int or resolved < 0:
+            raise ValueError("invalid resolved relocation byte count")
+        matched, compared = matched + resolved, compared + resolved
     return matched, compared
 
 
@@ -323,10 +371,20 @@ def compare(base, candidate, header_noise=None):
                 errors.append(label + ": new port has no valid byte measurement")
             continue
         reference_keys = ("sha256", "start", "end", "sha256_span", "bound_kind", "bound_provenance")
+        spanless = before["reference"].get("start") is None
+        # An unmeasured base whose bound was explicitly unverified (`no_terminator`) holds no
+        # byte result either, so verifying that bound is not a reference change.
+        unverified = old is None and before["reference"].get("bound_kind") == "no_terminator"
+        if spanless or unverified:
+            # The base never resolved a span (compile/COFF/lookup failure), so it holds no
+            # byte result to compare; only the XBE identity must still agree.
+            reference_keys = ("sha256",)
         if any(before["reference"].get(key) != after["reference"].get(key) for key in reference_keys):
             errors.append(label + ": reference span changed; byte results are not comparable")
             continue
-        if before.get("tool", {}).get("opt") != after.get("tool", {}).get("opt"):
+        # A spanless base compiled nothing for this function, so its options (which
+        # belong to whichever TU it was wrongly attributed to) are not a baseline.
+        if not spanless and before.get("tool", {}).get("opt") != after.get("tool", {}).get("opt"):
             errors.append(label + ": compiler options changed")
             continue
         if old is None:
@@ -340,6 +398,7 @@ def compare(base, candidate, header_noise=None):
             errors.append(label + ": lost byte measurement")
             continue
         losses = []
+        old, new = counts(before, proven=True), counts(after, proven=True)
         if new[0] < old[0] or new[0] * old[1] < old[0] * new[1]:
             losses.append(label + ": bytes %d/%d -> %d/%d" % (*old, *new))
         for key in ("uncertain_relocation_bytes", "mismatched_relocations", "unpaired_relocations",
@@ -359,7 +418,8 @@ def compare(base, candidate, header_noise=None):
             "new_functions": added, "base_functions": len(base), "candidate_functions": len(candidate)}
 
 
-_IDENTIFIER_RE = re.compile(r"[A-Za-z_]\w*")
+# Not preceded by a word character: the `x34` inside `0x34` is no identifier.
+_IDENTIFIER_RE = re.compile(r"(?<!\w)[A-Za-z_]\w*")
 
 
 def changed_kb_names(root, base, head):
@@ -397,29 +457,83 @@ def changed_kb_names(root, base, head):
     return names
 
 
+# Spelled-out in changed header lines but never the subject of an edit.
+_HEADER_COMMON_NAMES = frozenset((
+    "char", "short", "int", "long", "unsigned", "signed", "float", "double", "void",
+    "struct", "union", "enum", "typedef", "const", "static", "define", "bool", "real",
+    "int8_t", "int16_t", "int32_t", "uint8_t", "uint16_t", "uint32_t", "co", "cs"))
+
+
+def changed_header_names(root, base, head):
+    """Identifiers on every changed src/types.h line, plus each hunk's enclosing declaration.
+
+    Over-collects on purpose, like ``changed_kb_names``: a larger set only makes
+    ``header_noise_filter`` classify fewer losses as noise.
+    """
+    names = set()
+    diff = git(root, "diff", "-U0", base, head, "--", "src/types.h")
+    for line in diff.splitlines():
+        if line.startswith("@@"):
+            names.update(_IDENTIFIER_RE.findall(line.split("@@")[-1]))
+        elif line[:1] in "+-" and not line.startswith(("+++", "---")):
+            names.update(_IDENTIFIER_RE.findall(line[1:]))
+    return names - _HEADER_COMMON_NAMES
+
+
+def function_text(text, name):
+    """Signature and body of the column-0 definition of ``name``, else None."""
+    for match in re.finditer(r"(?m)^[A-Za-z_][^\n=;]*\b%s\s*\(" % re.escape(name), text):
+        brace = text.find("{", match.end())
+        semi = text.find(";", match.end())
+        if brace < 0 or 0 <= semi < brace:
+            continue
+        depth = 0
+        for index in range(brace, len(text)):
+            depth += (text[index] == "{") - (text[index] == "}")
+            if depth == 0:
+                return text[match.start():index + 1]
+    return None
+
+
 def header_noise_filter(root, base, head):
-    """Classifier for losses that only the length of decl.h can explain.
+    """Classifier for losses that only unrelated declarations can explain.
 
     VC71 numbers its internal labels across the whole TU, so adding parameters
-    to unrelated prototypes in the generated decl.h can reshuffle registers and
-    scheduling in functions that use none of them. A loss counts as that noise
-    only when the base-to-head input change is kb.json plus .c files, the
+    to unrelated prototypes in the generated decl.h, or reshaping an unrelated
+    struct in src/types.h, can reshuffle registers and scheduling in functions
+    that use none of them. A loss counts as that noise only when the
+    base-to-head input change is kb.json, src/types.h and .c files, the
     function's own source is unchanged, and neither the function nor any symbol
-    its candidate object relocates against changed in kb.json. Anything that
-    cannot be proven stays a regression. Returns None when classification is
-    not possible for this revision pair.
+    its candidate object relocates against changed in kb.json. When src/types.h
+    changed, the function's own source must also mention no identifier on a
+    changed header line. Anything that cannot be proven stays a regression.
+    Returns None when classification is not possible for this revision pair.
     """
     changed = git(root, "diff", "--name-only", base, head, "--", *INPUT_PATHS).splitlines()
-    if any(path != "kb.json" and not (path.startswith("src/") and path.endswith(".c"))
+    if any(path not in ("kb.json", "src/types.h") and
+           not (path.startswith("src/") and path.endswith(".c"))
            for path in changed):
         return None
     names = changed_kb_names(root, base, head) if "kb.json" in changed else set()
     if names is None:
         return None
+    header_names = changed_header_names(root, base, head) if "src/types.h" in changed else set()
     import raw_xbe_structural as raw
+    sources = {}
+
+    def uses_changed_header_name(after):
+        if not header_names:
+            return False
+        path = after["source"]["path"]
+        if path not in sources:
+            sources[path] = (root / path).read_text(errors="replace")
+        body = function_text(sources[path], after["function"])
+        return body is None or bool(set(_IDENTIFIER_RE.findall(body)) & header_names)
 
     def is_noise(before, after):
         if before.get("source") != after.get("source") or after["function"] in names:
+            return False
+        if uses_changed_header_name(after):
             return False
         candidate = after.get("candidate") or {}
         try:
@@ -500,7 +614,8 @@ def check(args):
     if result.get("header_noise"):
         lines += ["", "### Header-length noise (not counted)", "",
                   "These functions and everything they reference are unchanged; only the",
-                  "longer generated decl.h moved their VC71 code.", "",
+                  "longer generated decl.h or an unrelated src/types.h edit moved their",
+                  "VC71 code.", "",
                   *["- " + item for item in result["header_noise"][:100]]]
     report = "\n".join(lines) + "\n"
     print(report)
@@ -557,6 +672,7 @@ def local(args):
     parent = ROOT / "artifacts/byte_regression"
     parent.mkdir(parents=True, exist_ok=True)
     output = Path(tempfile.mkdtemp(prefix="local-", dir=parent))
+    prune_runs(parent)
     base = git(ROOT, "rev-parse", args.base_ref + "^{commit}")
     if args.head_ref:
         head = git(ROOT, "rev-parse", args.head_ref + "^{commit}")
@@ -565,7 +681,7 @@ def local(args):
         if args.working_tree:
             env["GIT_INDEX_FILE"] = str(output / "snapshot.index")
             subprocess.run(["git", "read-tree", "HEAD"], cwd=ROOT, env=env, check=True)
-            subprocess.run(["git", "add", "-A", "--", *INPUT_PATHS], cwd=ROOT, env=env, check=True)
+            subprocess.run(["git", "add", "-A", "--", *stageable_inputs(ROOT)], cwd=ROOT, env=env, check=True)
         tree = subprocess.check_output(["git", "write-tree"], cwd=ROOT, env=env, text=True).strip()
         # An unreachable commit object only: no branch/ref moves and no hooks run.
         head = subprocess.check_output(

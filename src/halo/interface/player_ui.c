@@ -13,7 +13,7 @@ typedef struct short_rectangle2d {
   short right;
 } short_rectangle2d;
 
-void FUN_000e0620(int unknown0, int unknown1, float *position)
+void overhead_map_post_rasterize(int unknown0, int unknown1, float *position)
 {
   short_rectangle2d bounds;
   short x;

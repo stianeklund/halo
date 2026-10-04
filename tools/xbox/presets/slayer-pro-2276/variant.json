@@ -1,0 +1,36 @@
+{
+  "format": "Halo Xbox debug 2276 game_variant_t",
+  "capture_date": "2026-10-03",
+  "name": "Slayer Pro",
+  "size_bytes": 104,
+  "reference_ip": "10.0.0.24",
+  "reference_xbe": "E:\\GAMES\\halo-patched\\cachebeta.xbe",
+  "map": "levels\\test\\carousel\\carousel",
+  "active_address": "0x456af8",
+  "requested_address": "0x5aa820",
+  "ui_address": "0x46bfcc",
+  "playlist_address": "0x5aa7a0",
+  "reference_copies_matched": true,
+  "initial_client_active_variant_matched": true,
+  "guest_memory_writes": false,
+  "variant_hex": "53006c0061007900650072002000500072006f000000000002000000000000002300000000000000000000000000000000000000c2010000000000000000803f19000000000000000200000001010000000000000000000000000000000000000000000001010000",
+  "sha256": "77a9cc559a0dc4e9f10e6833d5a263d541e830a5dbee2cc7f259843c5bdd81ce",
+  "confirmed_values": {
+    "engine_type_18": 2,
+    "team_play_1c": 0,
+    "flags_20": "0x23",
+    "value_34": 450,
+    "value_3c_float": 1.0,
+    "score_limit_40": 25,
+    "weapon_remap_44": 0,
+    "value_48": 2,
+    "bytes_4c_4f": [1, 1, 0, 0],
+    "bytes_64_67": [1, 1, 0, 0]
+  },
+  "confirmed_starting_weapons_all_four_initial_players": [
+    "weapons\\assault rifle\\assault rifle",
+    "weapons\\pistol\\pistol"
+  ],
+  "native_game_variant_command_supports_this_name": false,
+  "deployment_note": "Preserve normal multiplayer session initialization and use the full variant through a verified custom-variant loading path. A raw variant file is not automatically consumed by Halo or init.txt. Do not replace this with the debug game_variant slayer preset."
+}

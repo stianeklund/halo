@@ -273,8 +273,19 @@ class TestScoreEntrySchema(unittest.TestCase):
         current = {"fn": vc71.make_score_entry(91.2, "src/x.c", self.INFO)}
         self.assertEqual(vc71.backfill_optional_fields(baseline, current), 1)
         self.assertEqual(baseline["fn"]["score"], 95.0)
-        self.assertEqual(baseline["fn"]["raw_mnemonic_pct"], 89.7)
-        self.assertEqual(baseline["fn"]["abi_model"], "regparam_stripped")
+        self.assertEqual(baseline["fn"]["opnd_percent"], 73.3)
+        self.assertEqual(baseline["fn"]["ref"], "synth")
+
+    def test_save_baseline_strips_current_only_fields(self):
+        entry = vc71.make_score_entry(91.2, "src/x.c", self.INFO)
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "scores.json"
+            with patch.object(vc71, "BASELINE_PATH", path):
+                vc71.save_baseline({"fn": entry})
+            saved = json.loads(path.read_text())["scores"]["fn"]
+        for field in vc71._CURRENT_ONLY_FIELDS:
+            self.assertNotIn(field, saved)
+        self.assertEqual(saved["opnd_percent"], 73.3)
 
 
 class TestRefmetaParsing(unittest.TestCase):

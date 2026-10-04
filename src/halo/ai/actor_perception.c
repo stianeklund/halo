@@ -188,6 +188,8 @@ void actor_get_vision_distances(int actor_handle, float range,
 {
   char *actor;
   char *actor_tag;
+  float full_distance;
+  float partial_distance;
   float lit_range;
   float peripheral_range;
   float certain_range;
@@ -199,42 +201,41 @@ void actor_get_vision_distances(int actor_handle, float range,
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_tag = (char *)tag_get('actr', ((actor_t *)actor)->field_058);
   if (angle > *(float *)(actor_tag + 0x28)) {
-    *out_range = 0.0f;
-    *out_certain = 0.0f;
-    return;
+    partial_distance = 0.0f;
+    full_distance = 0.0f;
+  } else {
+    lit_range = range * light_scale;
+    peripheral_range = light_scale * *(float *)(actor_tag + 0x2c);
+    certain_range = *(float *)0x2533c4 * lit_range;
+    peripheral_certain = peripheral_range * *(float *)0x2533c4;
+    if (peripheral_certain > *(float *)0x253f30) {
+      peripheral_certain = 3.5f;
+    }
+    if (angle > *(float *)(actor_tag + 0x20)) {
+      partial_distance = peripheral_range;
+      full_distance = peripheral_certain;
+    } else {
+      inner = *(float *)(actor_tag + 0x1c);
+      blend_start = *(float *)0x2533f0 * inner;
+      if (angle < inner) {
+        partial_distance = lit_range;
+      } else {
+        t = (angle - inner) / (*(float *)(actor_tag + 0x20) - inner);
+        partial_distance =
+          (*(float *)0x2533c8 - t) * lit_range + peripheral_range * t;
+      }
+      if (angle < blend_start) {
+        full_distance = certain_range;
+      } else {
+        t = (angle - blend_start) /
+            (*(float *)(actor_tag + 0x20) - blend_start);
+        full_distance =
+          (*(float *)0x2533c8 - t) * certain_range + peripheral_certain * t;
+      }
+    }
   }
-
-  lit_range = range * light_scale;
-  peripheral_range = light_scale * *(float *)(actor_tag + 0x2c);
-  certain_range = *(float *)0x2533c4 * lit_range;
-  peripheral_certain = peripheral_range * *(float *)0x2533c4;
-  if (peripheral_certain > *(float *)0x253f30) {
-    peripheral_certain = 3.5f;
-  }
-
-  if (angle > *(float *)(actor_tag + 0x20)) {
-    *out_range = peripheral_range;
-    *out_certain = peripheral_certain;
-    return;
-  }
-
-  inner = *(float *)(actor_tag + 0x1c);
-  blend_start = *(float *)0x2533f0 * inner;
-  if (angle >= inner) {
-    t = (angle - inner) / (*(float *)(actor_tag + 0x20) - inner);
-    lit_range = (*(float *)0x2533c8 - t) * lit_range + t * peripheral_range;
-  }
-
-  if (angle < blend_start) {
-    *out_range = lit_range;
-    *out_certain = certain_range;
-    return;
-  }
-
-  t = (angle - blend_start) / (*(float *)(actor_tag + 0x20) - blend_start);
-  *out_range = lit_range;
-  *out_certain =
-    (*(float *)0x2533c8 - t) * certain_range + t * peripheral_certain;
+  *out_range = partial_distance;
+  *out_certain = full_distance;
 }
 
 /* actor_perception_qsort_compare_optional_props (0x2f5b0)
@@ -538,7 +539,7 @@ int actor_perception_find_recent_damaging_prop_index(int actor_handle,
       if (unit_result != -1) {
         prop_handle = prop_get_active_by_unit_index(actor_handle, unit_result);
         if (prop_handle != -1) {
-          prop_rec = (char *)datum_get(*(data_t **)0x5ab23c, prop_handle);
+          prop_rec = (char *)datum_get(prop_data, prop_handle);
           prop_type = *(short *)(prop_rec + 0x24);
           if (prop_type >= 2 && prop_type <= 3) {
             if (*(char *)(prop_rec + 0x60) != '\0' || prefer_visible == '\0') {
@@ -954,16 +955,13 @@ void actor_situation_update_target_status(int actor_handle)
 void actor_situation_combat_status_update(int actor_handle)
 {
   actor_t *actor;
-  short pending;
-  short status;
 
   actor = (actor_t *)datum_get(actor_data, actor_handle);
-  pending = actor->field_34a;
-  if (pending > 0) {
-    if (actor->field_074 < pending) {
-      actor->field_074 = pending;
+  if (actor->field_34a > 0) {
+    if (actor->field_074 < actor->field_34a) {
+      actor->field_074 = actor->field_34a;
       actor->field_078 = actor->field_34c;
-    } else if (actor->field_074 == pending) {
+    } else if (actor->field_074 == actor->field_34a) {
       actor->field_078 = actor->field_078 > actor->field_34c ?
                            actor->field_078 :
                            actor->field_34c;
@@ -978,7 +976,7 @@ void actor_situation_combat_status_update(int actor_handle)
     system_exit(-1);
   }
 
-  status =
+  actor->field_06e =
     actor->field_074 >
         (actor->field_072 > ((short *)0x255f18)[actor->target_target_type] ?
            actor->field_072 :
@@ -987,8 +985,7 @@ void actor_situation_combat_status_update(int actor_handle)
       (actor->field_072 > ((short *)0x255f18)[actor->target_target_type] ?
          actor->field_072 :
          ((short *)0x255f18)[actor->target_target_type]);
-  actor->field_06e = status;
-  if (status > actor->field_074) {
+  if (actor->field_06e > actor->field_074) {
     actor->field_074 = 0;
   }
 
@@ -998,23 +995,23 @@ void actor_situation_combat_status_update(int actor_handle)
     actor->field_07c++;
   }
 
-  if (status == 0) {
+  if (actor->field_06e == 0) {
     actor->field_080 = 0;
   } else {
     actor->field_080++;
   }
 
-  if (status < 4) {
+  if (actor->field_06e >= 4) {
+    actor->field_084++;
+    actor->field_088 = 0;
+  } else {
     actor->field_084 = 0;
     if (actor->field_088 != -1) {
       actor->field_088++;
     }
-  } else {
-    actor->field_084++;
-    actor->field_088 = 0;
   }
 
-  if (status >= 7) {
+  if (actor->field_06e >= 7) {
     actor->field_08c = 1;
   }
 }
@@ -1103,7 +1100,7 @@ void actor_situation_update(int actor_handle)
                 level = 2;
               }
               if (!charging &&
-                  prop->distance < *(float *)0x253f40) {
+                  prop->distance < 2.0f) {
                 counts[0x1fe]++;
                 if (level <= 7) {
                   level = 7;
@@ -1158,7 +1155,7 @@ void actor_situation_update(int actor_handle)
             "c:\\halo\\SOURCE\\ai\\actor_perception.c", 0x11dc, true);
           system_exit(-1);
         }
-        if (prop->distance < *(float *)0x253f78) {
+        if (prop->distance < 8.0f) {
           area_friend = 1;
         } else if (prop->fighting != 0 && other_actor != NULL &&
                    actor->target_target_prop_index != -1 &&
@@ -1173,7 +1170,7 @@ void actor_situation_update(int actor_handle)
         }
         if (prop->line_of_sight == 0 || prop->line_of_sight == 1) {
           visible_friend = 1;
-          if (prop->distance < *(float *)0x254644) {
+          if (prop->distance < 3.0f) {
             close_friend = 1;
           }
         }
@@ -1637,7 +1634,7 @@ void actor_emotion_unopposable_retreat(int actor_index)
         }
       } else if (*(short *)(prop + 0x24) >= 2 && *(short *)(prop + 0x24) <= 3 &&
                  *(char *)(prop + 0x60) == 0 && *(int *)(prop + 0x1c) != -1 &&
-                 *(float *)(prop + 0x11c) < *(float *)0x00253f78) {
+                 *(float *)(prop + 0x11c) < 8.0f) {
         actor_t *other;
 
         other = (actor_t *)datum_get(actor_data, *(int *)(prop + 0x1c));
@@ -1818,7 +1815,7 @@ void actor_berserk(int actor_handle, int berserk_flag)
       object_handle = ((actor_t *)actor)->field_024;
       while (object_handle != -1) {
         object = (char *)object_get_and_verify_type(object_handle, 3);
-        *(unsigned char *)(object + 0xb6) |= 0x80;
+        *(unsigned short *)(object + 0xb6) |= 0x80;
         object_handle = *(int *)(object + 0x1ac);
       }
     } else {
@@ -2029,71 +2026,66 @@ int actor_audibility_at_point(int actor_handle, void *input_block,
   actor = (char *)datum_get(actor_data, actor_handle);
   actor_tag = (char *)tag_get('actr', ((actor_t *)actor)->field_058);
   result = 0;
-  if (volume == 0) {
-    return 0;
-  }
-  if (*(short *)((char *)input_block + 0x28) == -1 ||
-      *(short *)((char *)location + 4) == -1) {
-    return 0;
-  }
+  if (volume != 0 && *(short *)((char *)input_block + 0x28) != -1 &&
+      *(short *)((char *)location + 4) != -1) {
+    range =*(float *)(actor_tag + 0x4c);
+    cluster_distance = -1.0f;
+    effective_distance = -1.0f;
+    d0 = position[0] - ((float *)input_block)[0];
+    d1 = position[1] - ((float *)input_block)[1];
+    d2 = position[2] - ((float *)input_block)[2];
+    distance_squared = d2 * d2 + d0 * d0 + d1 * d1;
+    if (d2 * *(float *)((char *)input_block + 0x20) +
+          d1 * *(float *)((char *)input_block + 0x1c) +
+          d0 * *(float *)((char *)input_block + 0x18) <
+        0.0f) {
+      range = range * *(float *)0x2533f0;
+    }
+    if (((actor_t *)actor)->field_06a == 2) {
+      range = range * *(float *)0x2533c4;
+    } else if (((actor_t *)actor)->field_06a == 1) {
+      range = range * *(float *)0x253524;
+    }
+    if (volume == 4) {
+      range = range * *(float *)0x2549d4;
+    } else if (volume == 1) {
+      range = range * *(float *)0x25614c;
+    } else if (volume == 3) {
+      range = range * *(float *)0x2533c4;
+    }
+    if (FUN_0018e5c0((int)((char *)input_block + 0x24)) != '\0' ||
+        FUN_0018e5c0((int)location) != '\0') {
+      range = range * *(float *)0x25337c;
+    }
+    if (flags != 0 && flags != 1) {
+      range = range * *(float *)0x2533c4;
+    }
 
-  range = *(float *)(actor_tag + 0x4c);
-  cluster_distance = -1.0f;
-  effective_distance = -1.0f;
-  d0 = position[0] - ((float *)input_block)[0];
-  d1 = position[1] - ((float *)input_block)[1];
-  d2 = position[2] - ((float *)input_block)[2];
-  distance_squared = d2 * d2 + d0 * d0 + d1 * d1;
-  if (d2 * *(float *)((char *)input_block + 0x20) +
-        d1 * *(float *)((char *)input_block + 0x1c) +
-        d0 * *(float *)((char *)input_block + 0x18) <
-      0.0f) {
-    range = range * *(float *)0x2533f0;
-  }
-  if (((actor_t *)actor)->field_06a == 2) {
-    range = range * *(float *)0x2533c4;
-  } else if (((actor_t *)actor)->field_06a == 1) {
-    range = range * *(float *)0x253524;
-  }
-  if (volume == 4) {
-    range = range * *(float *)0x2549d4;
-  } else if (volume == 1) {
-    range = range * *(float *)0x25614c;
-  } else if (volume == 3) {
-    range = range * *(float *)0x2533c4;
-  }
-  if (FUN_0018e5c0((int)((char *)input_block + 0x24)) != '\0' ||
-      FUN_0018e5c0((int)location) != '\0') {
-    range = range * *(float *)0x25337c;
-  }
-  if (flags != 0 && flags != 1) {
-    range = range * *(float *)0x2533c4;
-  }
-
-  if (range * range > distance_squared) {
-    encoding = structure_bsp_cluster_sound_encoding(
-      scenario_get(), *(short *)((char *)location + 4),
-      *(short *)((char *)input_block + 0x28));
-    if ((signed char)encoding >= 0) {
-      cluster_distance = (float)(encoding & 0x7f) * *(float *)0x256148;
-      effective_distance = cluster_distance + cluster_distance;
-      distance = x87_sqrt(distance_squared);
-      if (!(effective_distance > distance)) {
-        effective_distance = distance;
-      }
-      if (effective_distance < range) {
-        result = (short)((volume >= 3) + 2);
+    if (range * range > distance_squared) {
+      encoding = structure_bsp_cluster_sound_encoding(
+        scenario_get(), *(short *)((char *)location + 4),
+        *(short *)((char *)input_block + 0x28));
+      if (!(encoding & 0x80)) {
+        cluster_distance = (float)(encoding & ~0x80) * *(float *)0x256148;
+        effective_distance = cluster_distance + cluster_distance;
+        distance = x87_sqrt(distance_squared);
+        if (!(effective_distance > distance)) {
+          effective_distance = distance;
+        }
+        if (effective_distance < range) {
+          result = (short)((volume >= 3) + 2);
+        }
       }
     }
-  }
 
-  record = *(char **)0x331f58 + (actor_handle & 0xffff) * 0x657c;
-  *(float *)(record + 0xa8) = range;
-  *(float *)(record + 0xac) = x87_sqrt(distance_squared);
-  *(char *)(record + 0xa4) = 1;
-  *(short *)(record + 0xa6) = result;
-  *(float *)(record + 0xb4) = effective_distance;
-  *(float *)(record + 0xb0) = cluster_distance;
+    record = *(char **)0x331f58 + (actor_handle & 0xffff) * 0x657c;
+    *(float *)(record + 0xa8) = range;
+    *(float *)(record + 0xac) = x87_sqrt(distance_squared);
+    *(char *)(record + 0xa4) = 1;
+    *(short *)(record + 0xa6) = result;
+    *(float *)(record + 0xb4) = effective_distance;
+    *(float *)(record + 0xb0) = cluster_distance;
+  }
   return result;
 }
 
@@ -2528,26 +2520,15 @@ void actor_perception_refresh_danger_zone(int actor_handle)
 {
   char *actor;
   char *object;
-  char *tag;
-  char *location_object;
-  char *encounter;
   float *position;
+  float *velocity;
   char sense_block[0x38];
   short look_buf[8];
   float dx;
   float dy;
   float dz;
-  float frames;
-  int los_result;
-  int prop_index;
-  uint16_t knowledge;
-  int16_t animation_state;
-  int animation_frames;
-  short visibility;
-  short object_type_word;
   char perceived;
   char is_own_projectile;
-  char ignore_visibility;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if (*(short *)(actor + 0x280) <= 0) {
@@ -2572,25 +2553,23 @@ void actor_perception_refresh_danger_zone(int actor_handle)
   position = (float *)(actor + 0x2b0);
   object_get_world_position(*(int *)(actor + 0x28c), (vector3_t *)position);
   actor_perception_find_sense_position(actor_handle, position, -1, sense_block);
-  *(vector3_t *)(actor + 0x2bc) = *(vector3_t *)(object + 0x18);
+  velocity = (float *)(actor + 0x2bc);
+  *(vector3_t *)velocity = *(vector3_t *)(object + 0x18);
 
   dx = position[0] - *(float *)(sense_block + 0xc);
   dy = position[1] - *(float *)(sense_block + 0x10);
   dz = position[2] - *(float *)(sense_block + 0x14);
   *(float *)(actor + 0x2d4) = (float)x87_sqrtd(dz * dz + dy * dy + dx * dx);
 
-  *(float *)(actor + 0x2c8) =
-    *(float *)(actor + 0x2bc) * *(float *)0x2548f8 + position[0];
-  *(float *)(actor + 0x2cc) =
-    *(float *)(actor + 0x2c0) * *(float *)0x2548f8 + position[1];
-  *(float *)(actor + 0x2d0) =
-    *(float *)(actor + 0x2c4) * *(float *)0x2548f8 + position[2];
+  *(float *)(actor + 0x2c8) = velocity[0] * *(float *)0x2548f8 + position[0];
+  *(float *)(actor + 0x2cc) = velocity[1] * *(float *)0x2548f8 + position[1];
+  *(float *)(actor + 0x2d0) = velocity[2] * *(float *)0x2548f8 + position[2];
   *(float *)(actor + 0x2dc) =
-    (*(float *)(actor + 0x2c8) + position[0]) * *(float *)0x253398;
+    (position[0] + *(float *)(actor + 0x2c8)) * *(float *)0x253398;
   *(float *)(actor + 0x2e0) =
-    (position[1] + *(float *)(actor + 0x2cc)) * *(float *)0x253398;
+    (*(float *)(actor + 0x2cc) + position[1]) * *(float *)0x253398;
   *(float *)(actor + 0x2e4) =
-    (position[2] + *(float *)(actor + 0x2d0)) * *(float *)0x253398;
+    (*(float *)(actor + 0x2d0) + position[2]) * *(float *)0x253398;
 
   dx = position[0] - *(float *)(actor + 0x2dc);
   dy = position[1] - *(float *)(actor + 0x2e0);
@@ -2601,157 +2580,148 @@ void actor_perception_refresh_danger_zone(int actor_handle)
     (float)x87_sqrtd(dz * dz + dy * dy + dx * dx) + *(float *)(actor + 0x294);
 
   switch (*(short *)(actor + 0x280)) {
-  case 1: /* suicide */
-    perceived = *(char *)(actor + 0x286);
-    if (perceived == 0) {
-      prop_index =
-        prop_get_active_by_unit_index(actor_handle, *(int *)(actor + 0x28c));
-      if (prop_index != -1) {
-        perceived = (char)(*(short *)((char *)datum_get(prop_data, prop_index) +
-                                      0x30) >= 2);
+  case 3: /* vehicle */ {
+    char *tag;
+    char *encounter;
+    char *location_object;
+    int prop_index;
+    int los_result;
+    char ignore_visibility;
+
+      tag = (char *)tag_get(0x76656869, *(int *)object);
+      if (FUN_00012170((float *)(object + 0x18)) < *(float *)0x256240 ||
+          *(float *)(tag + 4) + *(float *)0x253f34 < *(float *)(actor + 0x2d4)) {
+        *(short *)(actor + 0x280) = 0;
+        break;
       }
-    }
-    animation_frames = unit_get_animation_frames_remaining(
-      *(int *)(actor + 0x28c), &animation_state);
-    if (animation_state == 0x19) {
-      *(short *)(actor + 0x2e8) = (short)animation_frames;
-    } else {
-      *(short *)(actor + 0x2e8) = -1;
-    }
-    if (perceived == 0) {
-      goto done;
-    }
-    break;
-
-  case 2: /* projectile */
-    if (*(int *)(actor + 0x18) != -1 &&
-        *(int *)(object + 0xcc) == *(int *)(actor + 0x18)) {
-      is_own_projectile = 1;
-    }
-    if (*(short *)(object + 0x64) != 5) {
-      display_assert("object->object.type == _object_type_projectile",
-                     "c:\\halo\\SOURCE\\ai\\actor_perception.c", 0xcb9, true);
-      system_exit(-1);
-    }
-    if (*(float *)(object + 0x1f0) > *(float *)0x2533c0 &&
-        *(float *)(object + 0x1f4) > *(float *)0x2533c0) {
-      frames = (*(float *)0x2533c8 - *(float *)(object + 0x1f0)) /
-               *(float *)(object + 0x1f4);
-      *(short *)(actor + 0x2e8) = (short)x87_round_to_int(frames);
-    } else {
-      *(short *)(actor + 0x2e8) = -1;
-    }
-    if (*(char *)(actor + 0x286) != 0 || is_own_projectile) {
-      perceived = 1;
-      break;
-    }
-    perceived = 0;
-    if (*(int *)(actor + 0x34) == -1) {
-      encounter = (char *)0;
-    } else {
-      encounter = (char *)datum_get(encounter_data, *(int *)(actor + 0x34));
-    }
-    if (*(short *)(actor + 0x6a) == 1) {
-      goto done;
-    }
-    if (encounter != (char *)0 && *(char *)(encounter + 0x40) != 0) {
-      goto done;
-    }
-    tag = (char *)tag_get(0x70726f6a, *(int *)object);
-    if (!(*(float *)(actor + 0x2d4) < *(float *)(tag + 0x19c))) {
-      goto done;
-    }
-    object_type_word = *(short *)(object + 0x4c);
-    if (*(int *)(object + 0xcc) != -1) {
-      location_object = (char *)object_get_and_verify_type(
-        object_get_root_parent(*(int *)(actor + 0x28c)), -1);
-      object_type_word = *(short *)(location_object + 0x4c);
-    }
-    los_result = ai_test_line_of_sight(
-      (float *)sense_block, *(int *)(sense_block + 0x28), position,
-      (int)(unsigned short)object_type_word, 0, 0, *(int *)(actor + 0x28c),
-      *(int *)(actor + 0x158) != -1);
-    knowledge = actor_get_perception_knowledge(actor_handle, -1);
-    visibility =
-      actor_visibility_at_point(actor_handle, sense_block, position, 0,
-                                (short)los_result, 1, 0, (short)knowledge);
-    if (visibility < 2) {
-      goto done;
-    }
-    perceived = 1;
-    break;
-
-  case 3: /* vehicle */
-    tag = (char *)tag_get(0x76656869, *(int *)object);
-    if (FUN_00012170((float *)(object + 0x18)) < *(float *)0x256240 ||
-        *(float *)(tag + 4) + *(float *)0x253f34 < *(float *)(actor + 0x2d4)) {
-      *(short *)(actor + 0x280) = 0;
-      goto done;
-    }
-    perceived = *(char *)(actor + 0x286);
-    if (perceived != 0) {
-      break;
-    }
-    if (*(int *)(object + 0x2d4) != -1) {
-      prop_index =
-        prop_get_active_by_unit_index(actor_handle, *(int *)(object + 0x2d4));
-      if (prop_index != -1) {
-        perceived = (char)(*(short *)((char *)datum_get(prop_data, prop_index) +
-                                      0x30) >= 2);
-        if (perceived == 0) {
-          goto done;
+      perceived = *(char *)(actor + 0x286);
+      if (perceived == 0) {
+        if (*(int *)(object + 0x2d4) != -1 &&
+            (prop_index = prop_get_active_by_unit_index(
+               actor_handle, *(int *)(object + 0x2d4))) != -1) {
+          perceived = (char)(*(short *)((char *)datum_get(prop_data, prop_index) +
+                                        0x30) >= 2);
+        } else {
+          if (*(int *)(actor + 0x34) == -1) {
+            encounter = (char *)0;
+          } else {
+            encounter = (char *)datum_get(encounter_data, *(int *)(actor + 0x34));
+          }
+          ignore_visibility = 0;
+          if (*(short *)(actor + 0x6a) == 1 ||
+              (encounter != (char *)0 && *(char *)(encounter + 0x40) != 0)) {
+            ignore_visibility = 1;
+          }
+          if (*(int *)(object + 0xcc) == -1) {
+            location_object = object;
+          } else {
+            location_object = (char *)object_get_and_verify_type(
+              object_get_root_parent(*(int *)(actor + 0x28c)), -1);
+          }
+          los_result = ai_test_line_of_sight(
+            (float *)sense_block, *(int *)(sense_block + 0x28), position,
+            (int)*(unsigned short *)(location_object + 0x4c), 0, 0,
+            *(int *)(actor + 0x28c), *(int *)(actor + 0x158) != -1);
+          if (!ignore_visibility &&
+              actor_visibility_at_point(
+                actor_handle, sense_block, position, 0, (short)los_result, 1, 0,
+                (short)actor_get_perception_knowledge(actor_handle, -1)) >= 2) {
+            perceived = 1;
+          } else if ((short)actor_audibility_at_point(
+                       actor_handle, sense_block, position,
+                       location_object + 0x48,
+                       (short)*(unsigned short *)(tag + 0x182),
+                       0x3f800000 /* 1.0f bits; never read */,
+                       (short)los_result) >= 2) {
+            perceived = 1;
+          }
         }
-        break;
       }
-    }
-    if (*(int *)(actor + 0x34) == -1) {
-      encounter = (char *)0;
-    } else {
-      encounter = (char *)datum_get(encounter_data, *(int *)(actor + 0x34));
-    }
-    ignore_visibility = 0;
-    if (*(short *)(actor + 0x6a) == 1 ||
-        (encounter != (char *)0 && *(char *)(encounter + 0x40) != 0)) {
-      ignore_visibility = 1;
-    }
-    location_object = object;
-    if (*(int *)(object + 0xcc) != -1) {
-      location_object = (char *)object_get_and_verify_type(
-        object_get_root_parent(*(int *)(actor + 0x28c)), -1);
-    }
-    los_result = ai_test_line_of_sight(
-      (float *)sense_block, *(int *)(sense_block + 0x28), position,
-      (int)*(unsigned short *)(location_object + 0x4c), 0, 0,
-      *(int *)(actor + 0x28c), *(int *)(actor + 0x158) != -1);
-    if (!ignore_visibility) {
-      knowledge = actor_get_perception_knowledge(actor_handle, -1);
-      visibility =
-        actor_visibility_at_point(actor_handle, sense_block, position, 0,
-                                  (short)los_result, 1, 0, (short)knowledge);
-      if (visibility >= 2) {
-        perceived = 1;
-        break;
-      }
-    }
-    if ((short)actor_audibility_at_point(
-          actor_handle, sense_block, position, location_object + 0x48,
-          (short)*(unsigned short *)(tag + 0x182),
-          0x3f800000 /* 1.0f bits; never read */, (short)los_result) < 2) {
-      goto done;
-    }
-    perceived = 1;
-    break;
-
-  default:
-    goto done;
+      break;
   }
 
-  if (*(char *)(actor + 0x286) == 0) {
+  case 2: /* projectile */ {
+    char *encounter;
+    char *location_object;
+    float frames;
+    int los_result;
+    short object_type_word;
+
+      if (*(int *)(actor + 0x18) != -1 &&
+          *(int *)(object + 0xcc) == *(int *)(actor + 0x18)) {
+        is_own_projectile = 1;
+      }
+      if (*(short *)(object + 0x64) != 5) {
+        display_assert("object->object.type == _object_type_projectile",
+                       "c:\\halo\\SOURCE\\ai\\actor_perception.c", 0xcb9, true);
+        system_exit(-1);
+      }
+      if (*(float *)(object + 0x1f0) > *(float *)0x2533c0 &&
+          *(float *)(object + 0x1f4) > *(float *)0x2533c0) {
+        frames = (*(float *)0x2533c8 - *(float *)(object + 0x1f0)) /
+                 *(float *)(object + 0x1f4);
+        *(short *)(actor + 0x2e8) = (short)x87_round_to_int(frames);
+      } else {
+        *(short *)(actor + 0x2e8) = -1;
+      }
+      perceived = *(char *)(actor + 0x286) != 0 || is_own_projectile;
+      if (perceived == 0) {
+        if (*(int *)(actor + 0x34) == -1) {
+          encounter = (char *)0;
+        } else {
+          encounter = (char *)datum_get(encounter_data, *(int *)(actor + 0x34));
+        }
+        if (*(short *)(actor + 0x6a) != 1 &&
+            (encounter == (char *)0 || *(char *)(encounter + 0x40) == 0) &&
+            *(float *)(actor + 0x2d4) <
+              *(float *)((char *)tag_get(0x70726f6a, *(int *)object) + 0x19c)) {
+          object_type_word = *(short *)(object + 0x4c);
+          if (*(int *)(object + 0xcc) != -1) {
+            location_object = (char *)object_get_and_verify_type(
+              object_get_root_parent(*(int *)(actor + 0x28c)), -1);
+            object_type_word = *(short *)(location_object + 0x4c);
+          }
+          los_result = ai_test_line_of_sight(
+            (float *)sense_block, *(int *)(sense_block + 0x28), position,
+            (int)(unsigned short)object_type_word, 0, 0, *(int *)(actor + 0x28c),
+            *(int *)(actor + 0x158) != -1);
+          if (actor_visibility_at_point(
+                actor_handle, sense_block, position, 0, (short)los_result, 1, 0,
+                (short)actor_get_perception_knowledge(actor_handle, -1)) >= 2) {
+            perceived = 1;
+          }
+        }
+      }
+      break;
+  }
+
+  case 1: /* suicide */ {
+    int prop_index;
+    int16_t animation_state;
+    int animation_frames;
+
+      perceived = *(char *)(actor + 0x286);
+      if (perceived == 0) {
+        prop_index =
+          prop_get_active_by_unit_index(actor_handle, *(int *)(actor + 0x28c));
+        if (prop_index != -1) {
+          perceived = (char)(*(short *)((char *)datum_get(prop_data, prop_index) +
+                                        0x30) >= 2);
+        }
+      }
+      animation_frames = unit_get_animation_frames_remaining(
+        *(int *)(actor + 0x28c), &animation_state);
+      *(short *)(actor + 0x2e8) =
+        animation_state == 0x19 ? (short)animation_frames : -1;
+      break;
+  }
+  }
+
+  if (perceived != 0 && *(char *)(actor + 0x286) == 0) {
     look_buf[0] = 5;
     actor_look_secondary(actor_handle, 0xc, 1, look_buf);
   }
 
-done:
   *(char *)(actor + 0x286) = perceived;
   *(char *)(actor + 0x28a) = is_own_projectile;
 }
@@ -3317,9 +3287,12 @@ void prop_status_refresh(int actor_handle, int prop_handle, void *out_data)
   char lighting;
   short previous_quantized_speed;
   short visibility;
-  short look_buf[4];
+  short look_buf[8];
   float velocity[3];
   float speed;
+  float relative_i;
+  float relative_j;
+  float relative_k;
   float closing_speed;
   float facing;
   float facing_distance;
@@ -3359,12 +3332,12 @@ void prop_status_refresh(int actor_handle, int prop_handle, void *out_data)
             break;
           case 1:
             if ((short)((actor->field_1d8 >> 16) & 0xff) ==
-                prop_actor->field_03c)
+                prop_actor->field_03a)
               prop->preferred_target = 1;
             break;
           case 2:
             if ((short)((actor->field_1d8 >> 16) & 0xff) ==
-                prop_actor->field_03a)
+                prop_actor->field_03c)
               prop->preferred_target = 1;
             break;
           }
@@ -3392,10 +3365,12 @@ void prop_status_refresh(int actor_handle, int prop_handle, void *out_data)
   else
     prop->quantized_speed = 3;
 
-  closing_speed =
-    -((velocity[2] - *(float *)(position + 0x34)) * prop->actor_to_prop.k +
-      (velocity[1] - *(float *)(position + 0x30)) * prop->actor_to_prop.j +
-      (velocity[0] - *(float *)(position + 0x2c)) * prop->actor_to_prop.i);
+  relative_i = velocity[0] - *(float *)(position + 0x2c);
+  relative_j = velocity[1] - *(float *)(position + 0x30);
+  relative_k = velocity[2] - *(float *)(position + 0x34);
+  closing_speed = -(relative_k * prop->actor_to_prop.k +
+                    relative_j * prop->actor_to_prop.j +
+                    relative_i * prop->actor_to_prop.i);
   if (closing_speed < *(float *)0x256348)
     prop->quantized_closing_speed = 0;
   else if (closing_speed < *(float *)0x256344)

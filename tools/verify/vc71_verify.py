@@ -868,10 +868,93 @@ def regen_decl_header(quiet: bool = False) -> bool:
     return True
 
 
-def _make_fastcall_decl_shadow(names: set[str]) -> Path | None:
+def _get_static_in_tu() -> set[str]:
+    """Names of kb.json functions flagged ``"static_in_tu": true``.
+
+    The flag records that the original function was file-static: every binary
+    caller is in its own TU and its address is never taken, so VC7.1 /O2 gave
+    it a private register convention and no frame (docs/lift-learnings.md
+    32a).  The production clang build ignores the flag -- the lift stays an
+    external, patch-redirected function.  Only the VC7.1 verifier compile
+    re-creates the original linkage (see _preprocess_static_defs).
+    ``tools/audit/check_static_in_tu.py`` proves each flag against the XBE.
+    """
+    kb = _load_kb()
+    result: set[str] = set()
+    for obj in kb.get("objects", []):
+        for fn in obj.get("functions", []):
+            if fn.get("static_in_tu") is not True:
+                continue
+            m = re.search(r"\b(\w+)\s*\(", fn.get("decl", "") or "")
+            if m:
+                result.add(m.group(1))
+    return result
+
+
+def _static_defs_in(text: str, names: set[str]) -> set[str]:
+    """The flagged names whose top-level definition is in ``text``.
+
+    Only the defining TU is rewritten: a file that merely calls a flagged
+    function keeps its decl.h prototype (check_static_in_tu.py forbids such
+    callers, but the verifier must never turn one into an implicit decl)."""
+    found = set()
+    for name in names:
+        if name not in text:
+            continue
+        for m in _fastcall_sig_re(name).finditer(text):
+            depth, i = 1, m.end()
+            while i < len(text) and depth:
+                depth += {"(": 1, ")": -1}.get(text[i], 0)
+                i += 1
+            if not depth and text[i:].lstrip().startswith("{"):
+                found.add(name)
+                break
+    return found
+
+
+def _static_sub(m: "re.Match[str]") -> str:
+    """Give a matched definition/prototype the original file-static linkage.
+
+    __declspec(noinline): /O2 implies /Ob2, under which VC7.1 is free to
+    inline a small static helper into its callers -- the original did not
+    (the function exists at its own address and is CALLed), and an inlined
+    helper vanishes from the object so it cannot be scored at all."""
+    return f"static __declspec(noinline) {m.group(1)}{m.group(2)}{m.group(3)}"
+
+
+def _preprocess_static_defs(source: Path, names: set[str],
+                            orig_source: Path) -> Path:
+    """Make the definitions (and any prototypes) of ``names`` file-static in
+    a verifier-only copy of ``source``.  Returns the (possibly new) path."""
+    if not names:
+        return source
+    text = source.read_text()
+    changed = False
+    for name in names:
+        new_text, n = _fastcall_sig_re(name).subn(_static_sub, text)
+        if n:
+            text = new_text
+            changed = True
+    if not changed:
+        return source
+    tmp = orig_source.parent / f".vc71_static_{orig_source.name}"
+    tmp.write_text(text)
+    return tmp
+
+
+_DECL_SHADOW_HFUNC_RE = r"^HFUNC [\w \t\*]*\b{name}\s*\([^\n]*\n"
+
+
+def _make_fastcall_decl_shadow(names: set[str],
+                               static_names: set[str] = frozenset()) -> Path | None:
     """Write a decl.h copy with __fastcall on mappable prototypes into a
     shadow include dir (searched before build/generated), so prototypes agree
-    with the rewritten definitions and call sites compile as fastcall."""
+    with the rewritten definitions and call sites compile as fastcall.
+
+    Prototypes of ``static_names`` (static_in_tu functions defined in the TU
+    being compiled) are dropped: decl.h emits every kb function as
+    ``__declspec(dllexport)``, which would keep the external linkage the
+    static rewrite exists to remove."""
     decl_path = BUILD_DIR / "generated" / "decl.h"
     if not decl_path.exists():
         return None
@@ -881,6 +964,13 @@ def _make_fastcall_decl_shadow(names: set[str]) -> Path | None:
         if name not in text:
             continue
         new_text, n = _fastcall_sig_re(name).subn(_fastcall_sub, text)
+        if n:
+            text = new_text
+            changed = True
+    for name in static_names:
+        new_text, n = re.subn(
+            _DECL_SHADOW_HFUNC_RE.format(name=re.escape(name)),
+            f"// static_in_tu (verifier): {name}\n", text, flags=re.MULTILINE)
         if n:
             text = new_text
             changed = True
@@ -944,9 +1034,16 @@ def source_stamp(source: Path, opt: str) -> str:
     """Identity of a compile input: source CONTENT plus the flags it was built
     with.  Content, not mtime — see obj_is_current."""
     try:
-        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        raw = source.read_bytes()
     except OSError:
         return ""
+    digest = hashlib.sha256(raw).hexdigest()
+    # A static_in_tu flag flip in kb.json changes the compile without
+    # touching the source; key it in (only when present, so every other
+    # TU's existing stamp stays valid).
+    statics = _static_defs_in(raw.decode("utf-8", "replace"), _get_static_in_tu())
+    if statics:
+        return f"{digest}:{opt}:static={','.join(sorted(statics))}"
     return f"{digest}:{opt}"
 
 
@@ -998,17 +1095,33 @@ def compile_vc71(source: Path, output: Path, regcall_elide: bool = False, opt: s
     """
     output.parent.mkdir(parents=True, exist_ok=True)
 
+    # static_in_tu functions defined here get the original file-static
+    # linkage (verifier only; production is untouched).  They leave the
+    # fastcall/regcall rewrites: VC7.1 picks a static helper's private
+    # register convention itself, as the original compile did.
+    static_names = _static_defs_in(source.read_text(), _get_static_in_tu())
+
     actual_source = source
     if regcall_elide:
-        callees = _get_regarg_callees(source)
+        callees = {k: v for k, v in _get_regarg_callees(source).items()
+                   if k not in static_names}
         if callees:
             actual_source = _preprocess_regcall(source, callees)
 
-    fastcall_names = _get_fastcall_mappable()
+    if static_names:
+        static_src = _preprocess_static_defs(actual_source, static_names, source)
+        if actual_source != source and static_src != actual_source:
+            actual_source.unlink(missing_ok=True)
+        actual_source = static_src
+
+    fastcall_names = _get_fastcall_mappable() - static_names
     shadow_inc = None
-    if fastcall_names:
-        actual_source = _preprocess_fastcall_defs(actual_source, fastcall_names, source)
-        shadow_inc = _make_fastcall_decl_shadow(fastcall_names)
+    if fastcall_names or static_names:
+        fc_source = _preprocess_fastcall_defs(actual_source, fastcall_names, source)
+        if actual_source != source and fc_source != actual_source:
+            actual_source.unlink(missing_ok=True)
+        actual_source = fc_source
+        shadow_inc = _make_fastcall_decl_shadow(fastcall_names, static_names)
 
     src_win = wsl_to_win(actual_source)
     out_win = wsl_to_win(output)

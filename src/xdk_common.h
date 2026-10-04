@@ -130,6 +130,9 @@ static const int _scenario_type_main_menu = 2;
 #define network_game_server_loading_flag (*(char *)0x5a9599)
 #define network_game_server_all_loaded_time (*(int *)0x5a9564)
 
+/* hs boolean global "allow_out_of_sync". Kept in sync with src/common.h. */
+#define allow_out_of_sync (*(char *)0x46e8b8)
+
 /* assert_halt_at(file, line, cond) — byte-match-faithful assert (see common.h). */
 #define assert_halt_at(file, line, cond)                       \
     do {                                                     \

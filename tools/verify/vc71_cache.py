@@ -91,6 +91,22 @@ def fn_decl_sha256(fn_name: str) -> str:
 
 # Module-level kb.json decl map  {fn_name: decl_string}
 _KB_DECL_MAP: dict[str, str] | None = None
+# Names flagged "static_in_tu": the VC7.1 compile of their defining TU differs
+# (vc71_verify._preprocess_static_defs), so the flag is a key input for every
+# function in a TU that names one.
+_STATIC_IN_TU: set[str] = set()
+
+
+def static_in_tu_token(source_path: Path) -> str:
+    """Sorted static_in_tu names mentioned in the source, or "" if none."""
+    _load_kb()
+    if not _STATIC_IN_TU:
+        return ""
+    try:
+        text = Path(source_path).read_text(errors="replace")
+    except OSError:
+        return ""
+    return ",".join(sorted(n for n in _STATIC_IN_TU if n in text))
 
 
 def _load_kb() -> dict[str, str]:
@@ -110,6 +126,10 @@ def _load_kb() -> dict[str, str]:
                     continue
                 fun_name = f"FUN_{int(addr, 16):08x}"
                 _KB_DECL_MAP[fun_name] = decl
+                if fn_entry.get("static_in_tu") is True:
+                    m = re.search(r"\b(\w+)\s*\(", decl)
+                    if m:
+                        _STATIC_IN_TU.add(m.group(1))
                 # Also index by declared name if different
                 m = re.search(r"\b(\w+)\s*\(", decl)
                 if m:
@@ -179,6 +199,9 @@ def make_cache_key(fn_name: str, source_path: Path, ref_path: Path | None = None
     bounds_tok = _fn_bounds_token(fn_name)
     raw = (f"v{KEY_VERSION}|{fn_name}|{src_sha}|{ref_sha}|{cc_ver}|{decl_sha}|"
            f"{comparator_sha}|{synth_sha}|{bounds_tok}|{opt}")
+    static_tok = static_in_tu_token(source_path)
+    if static_tok:  # only when present, so every other key is unchanged
+        raw += f"|static={static_tok}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 

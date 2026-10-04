@@ -1366,7 +1366,7 @@ void FUN_0010a4c0(int out_matrix, float *plane)
 
 /* 0x10a570 — periodic_functions_dispose: free all 12 periodic + 6 transition
  * function tables and clear the initialized flag. */
-void FUN_0010a570(void)
+void periodic_functions_dispose(void)
 {
   void **table;
   int i;
@@ -1645,7 +1645,7 @@ void real_math_initialize(void)
 void real_math_dispose(void)
 {
   random_math_dispose();
-  FUN_0010a570();
+  periodic_functions_dispose();
 }
 
 void real_math_reset_precision(void)

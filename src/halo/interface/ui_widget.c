@@ -2296,9 +2296,9 @@ void draw_string_and_hack_in_icons(short *bounds, int param_2, int param_3,
           2,
           "initial_indent<0 in render_state_text() and was about to explode");
       }
-      if (indent < 0) {
-        indent = 0;
-      }
+      indent = (0 > indent)
+                 ? 0
+                 : indent;
       draw_string_set_indents(indent, 0);
       FUN_0019cdb0(bounds, current, text_bounds, cursor);
       cursor[1] -= 3;
@@ -2319,9 +2319,9 @@ void draw_string_and_hack_in_icons(short *bounds, int param_2, int param_3,
           2,
           "initial_indent<0 in render_state_text() and was about to explode");
       }
-      if (indent < 0) {
-        indent = 0;
-      }
+      indent = (0 > indent)
+                 ? 0
+                 : indent;
       draw_string_set_indents(indent, 0);
       FUN_0019cdb0(bounds, L"%", text_bounds, cursor);
       cursor[1] -= 3;
@@ -3081,15 +3081,15 @@ bool widget_event_function_list_widget_goto_previous_item(void *widget_ptr,
     if (widget->type == UI_WIDGET_TYPE_COLUMN_LIST) {
       child =
         (widget_instance_t *)widget_instance_get_nth_child(widget, item_index);
-      if (child == NULL) {
-        error(
-          2, "failed to set focus to the #%d list item of a column list widget",
-          item_index);
+      if (child != NULL) {
+        widget_instance_give_focus_by_tag(widget, child->definition_tag_index,
+                                          widget->local_player_index);
+        widget->list_selected_index = (int16_t)item_index;
+      } else {
+        error(2, "failed to set focus to the #%d list item of a column list "
+                 "widget", item_index);
         return false;
       }
-      widget_instance_give_focus_by_tag(widget, child->definition_tag_index,
-                                        widget->local_player_index);
-      widget->list_selected_index = (int16_t)item_index;
     } else if (widget->type == UI_WIDGET_TYPE_SPINNER_LIST) {
       if (definition->child_widgets.count > 1) {
         if (definition->child_widgets.count != 3) {
@@ -3182,7 +3182,7 @@ void event_handler_dispatch(void *widget_ptr, void *definition_ptr,
   widget_stack_data_t data;
   int widget_index;
   int conditional_index;
-  int16_t audio_feedback;
+  int audio_feedback;
   bool widget_deleted;
   bool success;
   bool function_failed;
@@ -4555,7 +4555,7 @@ void network_game_reset_to_pregame_ui(void)
   }
 }
 
-void ui_widget_display_error(int16_t error_handle, int local_player_index,
+void ui_widget_display_error(int16_t error_handle, int16_t local_player_index,
                              char is_modal, char pause_game)
 {
   int16_t stack_index;
@@ -5283,75 +5283,75 @@ void process_ui_widgets(void)
  * which is only ever set on the fully successful path.
  *
  * Uncertain: the meaning of the entry fields at +0x00/+0x08/+0x18 handed
- * to FUN_00082bd0 is not evidenced here, so they stay raw offsets; the
- * 0x18-byte address record is zeroed as six dwords because the callee
- * writes +0x14, past the declared transport_address tail. */
+ * to FUN_00082bd0 is not evidenced here, so they stay raw offsets. */
 bool FUN_000e9dd0(void *widget, void *event_data, bool *widget_deleted)
 {
-  unsigned char address[0x18];
-  unsigned char join_params[0x22];
+  widget_instance_t *list;
   void *entry;
   void *spawned;
-  void *last_child;
-  int *player_index_ptr;
-  int player_index;
+  widget_instance_t *topmost_parent;
+  widget_instance_t *parent;
+  int parent_tag_index;
   int child_index;
   short selected;
   bool result;
 
   (void)event_data;
 
+  list = (widget_instance_t *)widget;
   result = false;
-  if (*(int *)((char *)widget + 0x38) == 0) {
+  if (list->focused_child == NULL) {
     goto done;
   }
-  selected = *(short *)((char *)widget + 0x3c);
+  selected = list->list_selected_index;
   if (selected < 0) {
     goto done;
   }
-  if ((int)selected < (int)*(uint16_t *)((char *)widget + 0x44) &&
-      *(int *)((char *)widget + 0x40) != 0) {
-    if (*(uint16_t *)((char *)widget + 0x44) != 0) {
-      entry = *(void **)(*(char **)((char *)widget + 0x40) + (int)selected * 4);
+  if ((int)selected < (int)list->list_number_of_items &&
+      list->list_items != NULL) {
+    if (list->list_number_of_items > 0) {
+      entry = ((void **)list->list_items)[selected];
       if (*(unsigned char *)((char *)entry + 0xe0) == 1) {
         if (*(short *)((char *)entry + 0xde) == 0) {
-          ((uint32_t *)address)[0] = 0;
-          ((uint32_t *)address)[1] = 0;
-          ((uint32_t *)address)[2] = 0;
-          ((uint32_t *)address)[3] = 0;
-          ((uint32_t *)address)[4] = 0;
-          ((uint32_t *)address)[5] = 0;
+          transport_address address = {{0}};
+          unsigned char join_params[0x22];
+
           FUN_00082bd0((char *)entry + 0x18,
                        (const uint32_t *)((char *)entry + 8),
-                       (const uint32_t *)entry, 0x141e, (uint32_t *)address);
-          if (((uint32_t *)address)[0] != 0 &&
-              *(uint16_t *)(address + 0x12) != 0) {
+                       (const uint32_t *)entry,
+                       0x141e,
+                       (uint32_t *)&address);
+          if (address.address.ipv4_address != 0 &&
+              address.port != 0) {
             *(uint16_t *)(join_params + 2) = 0;
             network_game_generate_join_game_token(join_params + 0x12);
             if (network_game_client_initiate_join_game(
                   global_network_game_client_get(), entry, join_params,
-                  address)) {
-              last_child = widget_instance_get_topmost_parent(widget);
-              player_index_ptr = *(int **)((char *)widget + 0x30);
-              if (player_index_ptr != NULL) {
-                player_index = *player_index_ptr;
+                  &address)) {
+              topmost_parent = widget_instance_get_topmost_parent(widget);
+              parent = list->parent;
+              if (parent != NULL) {
+                parent_tag_index = parent->definition_tag_index;
               } else {
-                player_index = -1;
+                parent_tag_index = -1;
               }
               child_index = widget_instance_get_child_index_from_parent(widget);
               spawned = ui_widget_load_by_name_or_tag(
                 "ui\\shell\\main_menu\\multiplayer_type_"
                 "select\\connected\\pregame\\"
                 "connected_pregame_screen",
-                -1, 0, -1, *(int *)last_child, player_index, child_index);
+                -1,
+                0,
+                -1,
+                topmost_parent->definition_tag_index,
+                parent_tag_index,
+                child_index);
               if (spawned == NULL) {
                 error(2, "event handler failed to spawn widget");
-                *widget_deleted = true;
-                goto done;
+              } else {
+                set_game_connection(1);
+                result = true;
               }
-
-              set_game_connection(1);
-              result = true;
               *widget_deleted = true;
             } else {
               network_game_abort();

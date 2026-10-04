@@ -70,6 +70,22 @@ def _same_symbol(left, right):
     return undecorate(left) in (undecorate(right), right)
 
 
+def prefer_exact_decoration(matches, function):
+    """Narrow several _same_symbol matches to the one ``function`` itself compiles to.
+
+    _same_symbol also accepts the symbol of the C name without its leading
+    underscore, so a TU defining both ``_name`` and ``name`` yields two matches
+    (``__name`` and ``_name``). The C name's own cdecl, stdcall or fastcall
+    decoration is the only one that is unambiguous; with none, keep the matches.
+    """
+    def decorated(symbol):
+        tail = symbol.rsplit("@", 1)[1] if "@" in symbol[1:] else ""
+        return (symbol == "_" + function
+                or (tail.isdigit() and symbol[:-len(tail) - 1] in ("_" + function, "@" + function)))
+    exact = [s for s in matches if decorated(s["name"])]
+    return exact if len(matches) > 1 and exact else matches
+
+
 def extract_coff_function(obj_path, function):
     """Return literal candidate bytes and extraction provenance.
 
@@ -135,6 +151,7 @@ def extract_coff_function(obj_path, function):
     matches = [s for s in symbols if s["section"] > 0
                and s["type"] == IMAGE_SYM_DTYPE_FUNCTION
                and _same_symbol(s["name"], function)]
+    matches = prefer_exact_decoration(matches, function)
     if len(matches) != 1:
         raise NotComparable("candidate has %d COFF function symbols for %s" %
                             (len(matches), function))

@@ -8949,8 +8949,11 @@ void hs_enumerate_function_names(void)
 /* 0xc4240 — Enumerate registered scenario script names. */
 void hs_enumerate_script_names(void)
 {
+  void *block;
+
   if (*(int *)0x326a08 != NONE) {
-    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x49c, 0, 0x5c);
+    block = (char *)global_scenario_get() + 0x49c;
+    hs_tokens_enumerate_tag_block(block, 0, 0x5c);
   }
 }
 
@@ -8983,80 +8986,110 @@ void hs_enumerate_variable_names(void)
 /* 0xc4320 — Enumerate encounter and squad AI names for script binding. */
 void hs_enumerate_ai_names(void)
 {
+  void *block;
+
   if (*(int *)0x326a08 != NONE) {
-    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x42c, 0, 0xb0);
+    block = (char *)global_scenario_get() + 0x42c;
+    hs_tokens_enumerate_tag_block(block, 0, 0xb0);
   }
 }
 
 /* 0xc4350 — Enumerate AI command lists. */
 void hs_enumerate_ai_command_list_names(void)
 {
+  void *block;
+
   if (*(int *)0x326a08 != NONE) {
-    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x438, 0, 0x60);
+    block = (char *)global_scenario_get() + 0x438;
+    hs_tokens_enumerate_tag_block(block, 0, 0x60);
   }
 }
 
 /* 0xc4380 — Enumerate player starting equipment profiles. */
 void hs_enumerate_starting_profile_names(void)
 {
+  void *block;
+
   if (*(int *)0x326a08 != NONE) {
-    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x348, 0, 0x68);
+    block = (char *)global_scenario_get() + 0x348;
+    hs_tokens_enumerate_tag_block(block, 0, 0x68);
   }
 }
 
 /* 0xc43b0 — Enumerate cinematic conversations. */
 void hs_enumerate_conversation_names(void)
 {
+  void *block;
+
   if (*(int *)0x326a08 != NONE) {
-    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x468, 0, 0x74);
+    block = (char *)global_scenario_get() + 0x468;
+    hs_tokens_enumerate_tag_block(block, 0, 0x74);
   }
 }
 
 /* 0xc43e0 — Enumerate named scenario object references. */
 void hs_enumerate_object_names(void)
 {
+  void *block;
+
   if (*(int *)0x326a08 != NONE) {
-    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x204, 0, 0x24);
+    block = (char *)global_scenario_get() + 0x204;
+    hs_tokens_enumerate_tag_block(block, 0, 0x24);
   }
 }
 
 /* 0xc4410 — Enumerate trigger volumes. */
 void hs_enumerate_trigger_volume_names(void)
 {
+  void *block;
+
   if (*(int *)0x326a08 != NONE) {
-    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x360, 4, 0x60);
+    block = (char *)global_scenario_get() + 0x360;
+    hs_tokens_enumerate_tag_block(block, 4, 0x60);
   }
 }
 
 /* 0xc4440 — Enumerate cutscene markers. */
 void hs_enumerate_cutscene_flag_names(void)
 {
+  void *block;
+
   if (*(int *)0x326a08 != NONE) {
-    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x4e4, 4, 0x5c);
+    block = (char *)global_scenario_get() + 0x4e4;
+    hs_tokens_enumerate_tag_block(block, 4, 0x5c);
   }
 }
 
 /* 0xc4470 — Enumerate camera tracks. */
 void hs_enumerate_cutscene_camera_point_names(void)
 {
+  void *block;
+
   if (*(int *)0x326a08 != NONE) {
-    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x4f0, 4, 0x68);
+    block = (char *)global_scenario_get() + 0x4f0;
+    hs_tokens_enumerate_tag_block(block, 4, 0x68);
   }
 }
 
 /* 0xc44a0 — Enumerate chapter and mission title cards. */
 void hs_enumerate_cutscene_title_names(void)
 {
+  void *block;
+
   if (*(int *)0x326a08 != NONE) {
-    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x4fc, 4, 0x60);
+    block = (char *)global_scenario_get() + 0x4fc;
+    hs_tokens_enumerate_tag_block(block, 4, 0x60);
   }
 }
 
 /* 0xc44d0 — Enumerate recorded animations. */
 void hs_enumerate_cutscene_recording_names(void)
 {
+  void *block;
+
   if (*(int *)0x326a08 != NONE) {
-    hs_tokens_enumerate_tag_block((char *)global_scenario_get() + 0x36c, 0, 0x40);
+    block = (char *)global_scenario_get() + 0x36c;
+    hs_tokens_enumerate_tag_block(block, 0, 0x40);
   }
 }
 

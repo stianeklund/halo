@@ -657,6 +657,16 @@ class RelocationIdentityResolverTest(unittest.TestCase):
         self.assertFalse(raw._is_pad_instruction({"mnemonic": "lea", "op_str": "ecx, [eax]"}))
         self.assertFalse(raw._is_pad_instruction({"mnemonic": "jmp", "op_str": "0x10"}))
 
+    def test_table_data_reference_cut_at_table_base(self):
+        # jmp dword ptr [eax*4 + 0x1008]; ret; then a table whose first entry
+        # decodes as `ret 0x12a3` -- the cut must be the table base, not it.
+        code = (b"\xff\x24\x85" + struct.pack("<I", 0x1008) + b"\xc3" +
+                b"\xc2\xa3\x12\x00" + struct.pack("<I", 0x1007))
+        with mock.patch.object(raw.xref, "function_bytes", return_value=(code, None)), \
+                mock.patch.object(raw.xref, "function_extent",
+                                  return_value=(0x1000 + len(code), "table_data", "table")):
+            self.assertEqual(raw.reference_code(0x1000), (code[:8], None))
+
     def test_crt_helper_named_fun_in_bounds(self):
         bounds = {0x1d90e0: {"name": "FUN_001d90e0"}}
         with mock.patch.object(raw.xref, "_bounds", return_value=bounds):

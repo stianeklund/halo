@@ -217,6 +217,11 @@ _OPTIONAL_FIELDS = (
     "opnd_percent", "raw_mnemonic_pct", "abi_modeled_mnemonic_pct",
     "abi_model", "abi_model_items", "ref",
 )
+# Diagnostics kept in vc71_current.json and verify output but never in the
+# committed floor: no floor reader uses them, and they churn on every rescore.
+_CURRENT_ONLY_FIELDS = (
+    "raw_mnemonic_pct", "abi_modeled_mnemonic_pct", "abi_model", "abi_model_items",
+)
 # Fields this module owns and may overwrite when rebuilding an entry.  Anything
 # else found on an existing entry is copied forward untouched, so a key some
 # other consumer stamped into the baseline is not lost the next time a score is
@@ -262,6 +267,8 @@ def backfill_optional_fields(baseline: dict, current: dict) -> int:
         if entry is None:
             continue
         for field in _OPTIONAL_FIELDS:
+            if field in _CURRENT_ONLY_FIELDS:
+                continue
             value = info.get(field)
             if value is not None and entry.get(field) != value:
                 entry[field] = value
@@ -302,7 +309,10 @@ def save_baseline(scores: dict[str, dict]) -> None:
     data = {k: v for k, v in _load_baseline_doc().items()
             if k not in ("version", "scores")}
     data["version"] = BASELINE_VERSION
-    data["scores"] = scores
+    data["scores"] = {
+        name: {k: v for k, v in entry.items() if k not in _CURRENT_ONLY_FIELDS}
+        if isinstance(entry, dict) else entry
+        for name, entry in scores.items()}
     _atomic_write_json(BASELINE_PATH, data, indent=2, sort_keys=True)
 
 

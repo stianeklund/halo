@@ -78,6 +78,89 @@ void render_debug_leaf_faces(int *leaf_map, int leaf_index)
   }
 }
 
+/* 0x192da0 -- Recurse down a leaf-map node's children building portals
+ * between the given leaf and every other leaf reached. */
+void leaf_map_build_portals_from_leaf(int *leaf_map, int ancestor_node_index,
+                                      int leaf_index, int node_index,
+                                      int16_t levels_up)
+{
+  int *node;
+  int first_traversal_node;
+  char found;
+  char found_child_index;
+  int16_t child_index;
+  bool from_node;
+  int *leaf;
+  int16_t face_index;
+  int16_t matching_face_index;
+  int child;
+
+  node = (int *)tag_block_get_element((void *)*leaf_map, node_index, 0xc);
+  if (ancestor_node_index == NONE) {
+    if (levels_up < 0 || levels_up >= *(int16_t *)0x4d8e90) {
+      display_assert(
+        "levels_up>=0 && levels_up<leaf_map_globals.node_stack_count",
+        "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x3b, 1);
+      system_exit(-1);
+    }
+    first_traversal_node =
+      *(int *)(0x4d8a8c + ((int)*(int16_t *)0x4d8e90 - (int)levels_up) * 4);
+  } else {
+    first_traversal_node = NONE;
+  }
+  found = FUN_00191bd0(*node, (void **)leaf_map, &found_child_index);
+  if (ancestor_node_index == NONE &&
+      (first_traversal_node & 0x7fffffff) != node_index) {
+    display_assert("ancestor_node_index!=NONE || "
+                   "index_from_node(first_traversal_node)==node_index",
+                   "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x19f, 1);
+    system_exit(-1);
+  }
+  for (child_index = 0; child_index < 2; child_index++) {
+    if (ancestor_node_index == NONE && child_index != 0 &&
+        first_traversal_node < 0) {
+      from_node = 1;
+    } else {
+      from_node = 0;
+    }
+    if (ancestor_node_index == NONE) {
+      if (child_index == 0 && first_traversal_node >= 0) {
+        continue;
+      }
+      if (from_node) {
+        leaf = (int *)tag_block_get_element((void *)(leaf_map + 1),
+                                            leaf_index & 0x7fffffff, 0x18);
+        matching_face_index = NONE;
+        for (face_index = 0; face_index < *leaf; face_index++) {
+          if (*(int *)tag_block_get_element(leaf, face_index, 0x10) ==
+              node_index) {
+            matching_face_index = face_index;
+            break;
+          }
+        }
+        if (matching_face_index == NONE) {
+          continue;
+        }
+      }
+    } else if (found &&
+               (int16_t)(unsigned char)found_child_index == child_index) {
+      continue;
+    }
+    child = node[child_index + 1];
+    if (child < 0) {
+      if (child != NONE && (child & 0x7fffffff) != leaf_index) {
+        leaf_map_build_portal_from_leaves(
+          leaf_map, from_node ? node_index : ancestor_node_index, leaf_index,
+          child);
+      }
+    } else {
+      leaf_map_build_portals_from_leaf(
+        leaf_map, from_node ? node_index : ancestor_node_index, leaf_index,
+        child, (int16_t)(levels_up - 1));
+    }
+  }
+}
+
 /* 0x192f80 polygon working buffer: 0x204 bytes (REP MOVSD 0x81 dwords from
  * the template at 0x3271e0); int16 count at +0x00, 64 2D points at +0x04
  * (clip max_count 0x40, csmemcpy size count<<3). */

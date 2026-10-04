@@ -1588,14 +1588,14 @@ void texture_page_verify(void *texture_page)
  * TU alongside texture_page_verify; the texture_page.c path in the assert and
  * allocator strings is binary-proven and must be spelled as the original did.
  */
-void *texture_page_new(uint32_t unknown_field_04, int16_t page_width,
-                       int16_t page_height, int16_t unknown_field_0c)
+void *texture_page_new(uint32_t user_data, int16_t page_width,
+                       int16_t page_height, int16_t spacing)
 {
-  char *page;
+  char *texture_page;
   data_t *textures;
 
-  page = (char *)debug_malloc(0x1c, 0,
-                              "c:\\halo\\SOURCE\\memory\\texture_page.c", 0x1d);
+  texture_page = (char *)debug_malloc(0x1c, 0,
+                                      "c:\\halo\\SOURCE\\memory\\texture_page.c", 0x1d);
 
   if (page_width <= 0 || page_height <= 0) {
     ((fatal_assert_stdcall_fn)(void *)display_assert)(
@@ -1604,31 +1604,31 @@ void *texture_page_new(uint32_t unknown_field_04, int16_t page_width,
     system_exit(-1);
   }
 
-  if (page == NULL) {
-    return NULL;
+  if (texture_page != NULL) {
+    csmemset(texture_page, 0, 0x1c);
+
+    *(int16_t *)(texture_page + 8) = page_width;
+    *(int16_t *)(texture_page + 0xa) = page_height;
+    *(int16_t *)(texture_page + 0xc) = spacing;
+    *(uint32_t *)(texture_page + 4) = user_data;
+    *(uint32_t *)(texture_page + 0x10) = 0;
+    *(uint32_t *)(texture_page + 0x14) = 0;
+    *texture_page = 0;
+
+    *(data_t **)(texture_page + 0x18) = data_new((char *)"texture page textures", 0x7fff, 0xc);
+
+    if (*(data_t **)(texture_page + 0x18) != NULL) {
+      data_delete_all(*(data_t **)(texture_page + 0x18));
+      texture_page_verify(texture_page);
+      return texture_page;
+    }
+
+    textures = *(data_t **)(texture_page + 0x18);
+    texture_page = NULL;
+    debug_free(textures, "c:\\halo\\SOURCE\\memory\\texture_page.c", 0x38);
   }
 
-  csmemset(page, 0, 0x1c);
-
-  *(int16_t *)(page + 8) = page_width;
-  *(int16_t *)(page + 0xa) = page_height;
-  *(int16_t *)(page + 0xc) = unknown_field_0c;
-  *(uint32_t *)(page + 4) = unknown_field_04;
-  *(uint32_t *)(page + 0x10) = 0;
-  *(uint32_t *)(page + 0x14) = 0;
-  *page = 0;
-
-  textures = data_new((char *)"texture page textures", 0x7fff, 0xc);
-  *(data_t **)(page + 0x18) = textures;
-
-  if (textures == NULL) {
-    debug_free(NULL, "c:\\halo\\SOURCE\\memory\\texture_page.c", 0x38);
-    return NULL;
-  }
-
-  data_delete_all(textures);
-  texture_page_verify(page);
-  return page;
+  return texture_page;
 }
 
 

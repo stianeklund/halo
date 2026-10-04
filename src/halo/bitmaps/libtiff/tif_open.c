@@ -3645,7 +3645,7 @@ void TIFFPrintDirectory(void *tif_, void *fd, long flags)
      * bare `TEST AL,AL / JS`, i.e. a sign test, the same shape TIFFIsTiled
      * (0x6d880) reads. */
     crt_fprintf(fd, "  %u %s:\n", tif->td_nstrips,
-                tif->field_0a.b < 0 ? "Tiles" : "Strips");
+                (tif->field_0a.b & 0x80) ? "Tiles" : "Strips");
     for (s = 0; s < tif->td_nstrips; s++) {
       crt_fprintf(fd, "    %3d: [%8u, %8u]\n", s, tif->td_stripoffset[s],
                   tif->td_stripbytecount[s]);

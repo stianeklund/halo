@@ -1752,6 +1752,274 @@ void error_heap(void *path, unsigned short type)
   }
 }
 
+/* 0x00060330 — heap verify: assert every heap entry's step float (+0x20 of
+ * the 40-byte step record) is not less than its parent's; on failure log
+ * param_2 and dump the heap via error_heap(path, 3).
+ *
+ * The binary sets AL (1 on success, 0 after the failure dump) before RET;
+ * the kb.json decl is void and is kept unchanged (protected baseline), and
+ * all lifted callers discard the result.
+ */
+void FUN_00060330(void *param_1, const char *param_2)
+{
+  char *base;
+  short heap_index;
+  short parent_index;
+  short heap_count;
+  short step_index;
+  short step_count;
+  float parent_value;
+
+  base = (char *)param_1;
+  for (heap_index = 1; heap_index < *(short *)(base + 0x1430); heap_index++) {
+    if (heap_index <= 0) {
+      display_assert("heap_index>0",
+                     "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x39,
+                     1);
+      system_exit(-1);
+    }
+    parent_index = (short)(((int)heap_index - 1) >> 1);
+
+    heap_count = *(short *)(base + 0x1430);
+    if (parent_index < 0 || heap_count <= parent_index || heap_count > 0x80) {
+      display_assert("heap_index>=0 && heap_index<path->heap_count && "
+                     "path->heap_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                     "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x31,
+                     1);
+      system_exit(-1);
+    }
+    step_index = *(short *)(base + 0x1432 + (int)parent_index * 2);
+    step_count = *(short *)(base + 0x2c);
+    if (step_index < 0 || step_count <= step_index || step_count > 0x80) {
+      display_assert("step_index>=0 && step_index<path->step_count && "
+                     "path->step_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                     "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x28,
+                     1);
+      system_exit(-1);
+    }
+    parent_value = *(float *)(base + ((int)step_index + 2) * 40);
+
+    heap_count = *(short *)(base + 0x1430);
+    if (heap_index < 0 || heap_count <= heap_index || heap_count > 0x80) {
+      display_assert("heap_index>=0 && heap_index<path->heap_count && "
+                     "path->heap_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                     "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x31,
+                     1);
+      system_exit(-1);
+    }
+    step_index = *(short *)(base + 0x1432 + (int)heap_index * 2);
+    step_count = *(short *)(base + 0x2c);
+    if (step_index < 0 || step_count <= step_index || step_count > 0x80) {
+      display_assert("step_index>=0 && step_index<path->step_count && "
+                     "path->step_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                     "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x28,
+                     1);
+      system_exit(-1);
+    }
+    if (*(float *)(base + ((int)step_index + 2) * 40) < parent_value) {
+      error(2, "heap_verify failed (%s)", param_2);
+      error(2, "please give this debug.txt to chucky");
+      error_heap(param_1, 3);
+      return;
+    }
+  }
+}
+
+/* 0x000604e0 — heap sift-up: while heap[param_2]'s step float (+0x20 of the
+ * 40-byte step record) is less than its parent's, swap the two heap entries
+ * and continue from the parent. path arrives in ESI (never loaded here).
+ * The exit compare is FCOMP+TEST AH,5+JP, so an unordered compare also stops.
+ */
+void FUN_000604e0(void *param_1, int16_t param_2)
+{
+  char *base;
+  short heap_index;
+  short parent_index;
+  short heap_count;
+  short step_index;
+  short step_count;
+  short swap;
+  short *parent_slot;
+  float parent_value;
+
+  base = (char *)param_1;
+  heap_index = param_2;
+  while (heap_index > 0) {
+    if (heap_index <= 0) {
+      display_assert("heap_index>0",
+                     "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x39,
+                     1);
+      system_exit(-1);
+    }
+    parent_index = (short)(((int)heap_index - 1) >> 1);
+
+    heap_count = *(short *)(base + 0x1430);
+    if (parent_index < 0 || heap_count <= parent_index || heap_count > 0x80) {
+      display_assert("heap_index>=0 && heap_index<path->heap_count && "
+                     "path->heap_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                     "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x31,
+                     1);
+      system_exit(-1);
+    }
+    parent_slot = (short *)(base + 0x1432 + (int)parent_index * 2);
+    step_index = *parent_slot;
+    step_count = *(short *)(base + 0x2c);
+    if (step_index < 0 || step_count <= step_index || step_count > 0x80) {
+      display_assert("step_index>=0 && step_index<path->step_count && "
+                     "path->step_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                     "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x28,
+                     1);
+      system_exit(-1);
+    }
+    parent_value = *(float *)(base + ((int)step_index + 2) * 40);
+
+    heap_count = *(short *)(base + 0x1430);
+    if (heap_index < 0 || heap_count <= heap_index || heap_count > 0x80) {
+      display_assert("heap_index>=0 && heap_index<path->heap_count && "
+                     "path->heap_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                     "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x31,
+                     1);
+      system_exit(-1);
+    }
+    step_index = *(short *)(base + 0x1432 + (int)heap_index * 2);
+    step_count = *(short *)(base + 0x2c);
+    if (step_index < 0 || step_count <= step_index || step_count > 0x80) {
+      display_assert("step_index>=0 && step_index<path->step_count && "
+                     "path->step_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                     "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x28,
+                     1);
+      system_exit(-1);
+    }
+    if (!(*(float *)(base + ((int)step_index + 2) * 40) < parent_value)) {
+      return;
+    }
+
+    swap = *parent_slot;
+    *parent_slot = *(short *)(base + 0x1432 + (int)heap_index * 2);
+    *(short *)(base + 0x1432 + (int)heap_index * 2) = swap;
+    heap_index = parent_index;
+  }
+}
+
+/* 0x00060670 — heap sift-down: swap heap[param_2] with its smaller child
+ * (by the +0x20 step float) until neither child is smaller. path arrives in
+ * ESI. The loop entry test runs once; the back-edge does not re-test it.
+ */
+void FUN_00060670(void *param_1, int param_2)
+{
+  char *base;
+  short heap_index;
+  short smallest;
+  short child_index;
+  short heap_count;
+  short step_index;
+  short step_count;
+  short swap;
+  float smallest_value;
+
+  base = (char *)param_1;
+  heap_index = (short)param_2;
+  if (heap_index < *(short *)(base + 0x1430)) {
+    for (;;) {
+      heap_count = *(short *)(base + 0x1430);
+      child_index = (short)(heap_index * 2 + 1);
+      smallest = heap_index;
+      if (child_index < heap_count) {
+        if (heap_index < 0 || heap_count <= heap_index || heap_count > 0x80) {
+          display_assert("heap_index>=0 && heap_index<path->heap_count && "
+                         "path->heap_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                         "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c",
+                         0x31, 1);
+          system_exit(-1);
+        }
+        step_index = *(short *)(base + 0x1432 + (int)heap_index * 2);
+        step_count = *(short *)(base + 0x2c);
+        if (step_index < 0 || step_count <= step_index || step_count > 0x80) {
+          display_assert("step_index>=0 && step_index<path->step_count && "
+                         "path->step_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                         "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c",
+                         0x28, 1);
+          system_exit(-1);
+        }
+        smallest_value = *(float *)(base + ((int)step_index + 2) * 40);
+
+        heap_count = *(short *)(base + 0x1430);
+        if (child_index < 0 || heap_count <= child_index || heap_count > 0x80) {
+          display_assert("heap_index>=0 && heap_index<path->heap_count && "
+                         "path->heap_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                         "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c",
+                         0x31, 1);
+          system_exit(-1);
+        }
+        step_index = *(short *)(base + 0x1432 + (int)child_index * 2);
+        step_count = *(short *)(base + 0x2c);
+        if (step_index < 0 || step_count <= step_index || step_count > 0x80) {
+          display_assert("step_index>=0 && step_index<path->step_count && "
+                         "path->step_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                         "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c",
+                         0x28, 1);
+          system_exit(-1);
+        }
+        if (*(float *)(base + ((int)step_index + 2) * 40) < smallest_value) {
+          smallest = child_index;
+        }
+      }
+
+      heap_count = *(short *)(base + 0x1430);
+      if ((short)(heap_index * 2 + 2) < heap_count) {
+        if (smallest < 0 || heap_count <= smallest || heap_count > 0x80) {
+          display_assert("heap_index>=0 && heap_index<path->heap_count && "
+                         "path->heap_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                         "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c",
+                         0x31, 1);
+          system_exit(-1);
+        }
+        step_index = *(short *)(base + 0x1432 + (int)smallest * 2);
+        step_count = *(short *)(base + 0x2c);
+        if (step_index < 0 || step_count <= step_index || step_count > 0x80) {
+          display_assert("step_index>=0 && step_index<path->step_count && "
+                         "path->step_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                         "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c",
+                         0x28, 1);
+          system_exit(-1);
+        }
+        smallest_value = *(float *)(base + ((int)step_index + 2) * 40);
+
+        child_index = (short)(heap_index * 2 + 2);
+        heap_count = *(short *)(base + 0x1430);
+        if (child_index < 0 || heap_count <= child_index || heap_count > 0x80) {
+          display_assert("heap_index>=0 && heap_index<path->heap_count && "
+                         "path->heap_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                         "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c",
+                         0x31, 1);
+          system_exit(-1);
+        }
+        step_index = *(short *)(base + 0x1432 + (int)child_index * 2);
+        step_count = *(short *)(base + 0x2c);
+        if (step_index < 0 || step_count <= step_index || step_count > 0x80) {
+          display_assert("step_index>=0 && step_index<path->step_count && "
+                         "path->step_count<=MAXIMUM_OBSTACLE_AVOIDANCE_STEPS",
+                         "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c",
+                         0x28, 1);
+          system_exit(-1);
+        }
+        if (*(float *)(base + ((int)step_index + 2) * 40) < smallest_value) {
+          smallest = child_index;
+        }
+      }
+
+      if (smallest == heap_index) {
+        return;
+      }
+      swap = *(short *)(base + 0x1432 + (int)smallest * 2);
+      *(short *)(base + 0x1432 + (int)smallest * 2) =
+        *(short *)(base + 0x1432 + (int)heap_index * 2);
+      *(short *)(base + 0x1432 + (int)heap_index * 2) = swap;
+      heap_index = smallest;
+    }
+  }
+}
+
 /* 0x00060910 — bounded push onto a fixed-size 16-bit value list
  * The owning structure's type is not established by this call site (it is
  * NOT the giant path-state struct used elsewhere in this file — offset

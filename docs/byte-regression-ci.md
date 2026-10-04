@@ -82,3 +82,5 @@ them. Older exploratory records retain their limited source/XBE/bound validation
 and are never comparison inputs for the regression gate.
 
 Local byte commands default to one worker and recycle workers between translation units to contain compiler and disassembly caches. CI selects its worker count explicitly.
+
+Each local run leaves a `artifacts/byte_regression/local-XXXXXXXX` output directory (about 230 MB); the gate keeps the newest three and deletes older ones that are more than an hour old. `local-reusable/` (persistent checkouts) and `cache/` are never removed by this pruning.

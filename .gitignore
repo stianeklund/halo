@@ -271,3 +271,6 @@ host_snapshots/provenance-local/
 
 # objdiff CLI, fetched by tools/fetch_objdiff.sh.
 /tools/objdiff-cli-linux-x86_64
+
+# Xbox launch-preset variant binaries; derivable from the hex in each preset.
+/tools/xbox/presets/**/*.bin

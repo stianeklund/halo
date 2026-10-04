@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "struct": "bitmap_data",
+  "sources": [
+    "assert strings (pristine 2276): bitmap_extract.c 0x6a6-0x6b2 (source/destination_bitmap->width/height/depth/type/mipmap_count/flags), bitmaps.c 0x20e 'bitmap->base_address' @0x7c98a/0x75024, FUN_00077120 '!bitmap->hardware_format' @0x7737c, xbox_texture_cache.c 0x187 'texture->bitmap->cache_block_index==block_index'",
+    "bitmap_2d_new/bitmap_3d_new/bitmap_cube_new (bitmaps.c): csmemset(bitmap,0,0x30), field stores",
+    "texture_cache_bitmap_new 0x1be960, extract_pixels_to_mipmap 0x74210, extract_pixels_from_mipmap 0x745c0, extract_mipmaps_to_bitmap 0x74fb0, bitmap_2d_address 0x7c940, rasterizer_bitmap_2d_changed 0x168500",
+    "SIZEOF_BITMAP_DATA 0x30 (tag_block_get_element @0x1355b7, src/types.h)"
+  ],
+  "size": {
+    "value": 48,
+    "evidence": "csmemset(bitmap, 0, 0x30) in bitmap_2d_new; tag_block_get_element(..., 0, 0x30) @0x1355b7"
+  },
+  "stride": {
+    "value": 48,
+    "evidence": "element size of the bitm tag's bitmap_data block (tag_block_get_element @0x1355b7)"
+  },
+  "fields": [
+    {
+      "offset": "0x00",
+      "width": 4,
+      "signed": false,
+      "confidence": "typed",
+      "evidence": "bitmap_2d_new/3d/cube store the constant 0x6269746d ('bitm') here after csmemset"
+    },
+    {
+      "offset": "0x04",
+      "width": 2,
+      "signed": true,
+      "name": "width",
+      "confidence": "named",
+      "evidence": "assert 'source_bitmap->width ==MAX(1, destination_bitmap->width >>destination_mipmap_index)' (bitmap_extract.c 0x6a7); MOVSX word [reg+4]"
+    },
+    {
+      "offset": "0x06",
+      "width": 2,
+      "signed": true,
+      "name": "height",
+      "confidence": "named",
+      "evidence": "assert 'source_bitmap->height==MAX(1, ...)' (bitmap_extract.c 0x6a8); MOVSX word [reg+6]"
+    },
+    {
+      "offset": "0x08",
+      "width": 2,
+      "signed": true,
+      "name": "depth",
+      "confidence": "named",
+      "evidence": "assert 'source_bitmap->depth ==MAX(1, ...)' (bitmap_extract.c 0x6a9); MOVSX word [reg+8]"
+    },
+    {
+      "offset": "0x0a",
+      "width": 2,
+      "signed": true,
+      "name": "type",
+      "confidence": "named",
+      "evidence": "assert 'destination_bitmap->type==source_bitmap->type' (bitmap_extract.c 0x6ac); CMP/MOVSX word [reg+0xa]; 2d/3d/cube type asserts"
+    },
+    {
+      "offset": "0x0c",
+      "width": 2,
+      "signed": true,
+      "name": "format",
+      "confidence": "named",
+      "evidence": "assert 'slice_bitmap->format==source_bitmap->format'; bitmap_2d_new stores its format argument as a word at +0xc; MOVSX word [reg+0xc] in rasterizer_bitmap_2d_changed"
+    },
+    {
+      "offset": "0x0e",
+      "width": 2,
+      "signed": false,
+      "name": "flags",
+      "confidence": "named",
+      "evidence": "assert TEST_FLAG(bitmap->flags, ...); bitmap_2d_new stores a word (0x40/0x41) and ORs bytes; MOVZX word [reg+0xe] @0x7d470. Bits: 0 has_power_of_two_dimensions (rasterizer_xbox_hardware_bitmaps.c 0x34), 1 compressed (bitmap_extract.c TEST), 3 swizzled (bitmap_extract.c 0x6ae), 4 linear (bitmaps.c 0x263), 7 cached (xbox_texture_cache.c 0x86)"
+    },
+    {
+      "offset": "0x10",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOVSX word [reg+0x10] @0x75380/0x75e70; bitmap_utilities.c halves it as a word pair with +0x12 ((v+1)/2), otherwise copies the pair as one dword"
+    },
+    {
+      "offset": "0x12",
+      "width": 2,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "MOVSX word [reg+0x12] @0x75380/0x75e70; second half of the +0x10 pair"
+    },
+    {
+      "offset": "0x14",
+      "width": 2,
+      "signed": true,
+      "name": "mipmap_count",
+      "confidence": "named",
+      "evidence": "assert 'destination_mipmap_index>=0 && destination_mipmap_index<=destination_bitmap->mipmap_count' (bitmap_extract.c 0x6ad); CMP word [reg+0x14]; MOVSX word @0x74a30"
+    },
+    {
+      "offset": "0x16",
+      "width": 1,
+      "array_len": 2,
+      "confidence": "gap"
+    },
+    {
+      "offset": "0x18",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "texture_cache_bitmap_new: ADD [bm+0x18], [tag+0x38] (relative -> absolute pixel offset); 32-bit MOV/SUB in FUN_00077120"
+    },
+    {
+      "offset": "0x1c",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "texture_cache_bitmap_new stores the bitmap_get_pixel_data_size result here; 32-bit MOV @0x1be960/0x1bf180/0x1bf570"
+    },
+    {
+      "offset": "0x20",
+      "width": 4,
+      "signed": true,
+      "confidence": "typed",
+      "evidence": "texture_cache_bitmap_new stores its tag_index argument; FUN_001beb70 passes it to tag_get_name; 32-bit MOV/CMP"
+    },
+    {
+      "offset": "0x24",
+      "width": 4,
+      "signed": true,
+      "name": "cache_block_index",
+      "confidence": "named",
+      "evidence": "assert 'texture->bitmap->cache_block_index==block_index' (xbox_texture_cache.c 0x187) compares dword [bitmap+0x24]; NONE stored on release"
+    },
+    {
+      "offset": "0x28",
+      "width": 4,
+      "signed": false,
+      "kind": "pointer",
+      "name": "hardware_format",
+      "confidence": "named",
+      "evidence": "assert '!bitmap->hardware_format' @0x7737c follows MOV EAX,[ESI+0x28]/TEST; assert text 'IDirect3DTexture8_LockRect((IDirect3DTexture8*)bitmap->hardware_format' with the +0x28 pointer passed to D3D (rasterizer_bitmap_2d_changed)"
+    },
+    {
+      "offset": "0x2c",
+      "width": 4,
+      "signed": false,
+      "kind": "pointer",
+      "name": "base_address",
+      "confidence": "named",
+      "evidence": "assert 'bitmap->base_address' @0x7c98a follows MOV EAX,[EBX+0x2c]/TEST/JNE; bitmap_2d_new stores the debug_malloc result at +0x2c"
+    }
+  ],
+  "notes": [
+    "Flag bit 2 (value 4) is set for format 0x11 in bitmap_2d_new but has no assert-proven name; bits 5, 6 (0x40 is stored by bitmap_2d_new) and the high byte are unnamed.",
+    "+0x10/+0x12 are left unnamed: the 'halve when group flag 8 set' behavior does not prove a semantic name.",
+    "+0x18/+0x1c/+0x20 are left unnamed (field_xx): the stores prove role, not a string-backed name.",
+    "+0x16..0x17 never observed accessed as a bitmap_data field (0x75a20/0x76790 hits at 0x16/0x1a are other structs)."
+  ]
+}

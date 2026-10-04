@@ -34,8 +34,8 @@ void first_person_camera_new(void *camera)
  * ESI after the first call), [EBP+0xc] (EBX) and [EBP+0x10] (EDI) at
  * 0x88c89/0x88c94/0x88ca0, so it is a three-parameter cdecl function.
  *
- * Baseline: unit_get_camera_position fills the caller's position vector, and the
- * unit's own aiming vector at +0x1ec..+0x1f4 is copied out as the forward
+ * Baseline: unit_get_camera_position fills the caller's position vector, and
+ * the unit's own aiming vector at +0x1ec..+0x1f4 is copied out as the forward
  * vector.  Both copies are plain dword moves in the reference
  * (MOV EDX,[EAX] / MOV [ECX],EDX at 0x88ca9..0x88cb8), so they are spelled as
  * dword copies here rather than float assignments.
@@ -52,9 +52,10 @@ void first_person_camera_new(void *camera)
  * record, one marker requested).
  *
  * Note the two halves are written to opposite parameters: the marker position
- * (+0x60, read at [EBP-0xc]) goes to the EBX parameter that unit_get_camera_position
- * filled, and the marker forward (+0x3c, read at [EBP-0x30]) goes to the EDI
- * parameter that received the unit's aiming vector. */
+ * (+0x60, read at [EBP-0xc]) goes to the EBX parameter that
+ * unit_get_camera_position filled, and the marker forward (+0x3c, read at
+ * [EBP-0x30]) goes to the EDI parameter that received the unit's aiming vector.
+ */
 void FUN_00088c80(int unit_handle, float *out_position, float *out_forward)
 {
   char *unit;
@@ -81,8 +82,8 @@ void FUN_00088c80(int unit_handle, float *out_position, float *out_forward)
 
       if (*seat < 0) {
         if (object_get_marker_by_name(*(int *)(unit + 0xcc),
-                                            (void *)"primary trigger",
-                                            marker_buf, 1) != 0) {
+                                      (void *)"primary trigger", marker_buf,
+                                      1) != 0) {
           ((uint32_t *)out_position)[0] = *(uint32_t *)(marker_buf + 0x60);
           ((uint32_t *)out_position)[1] = *(uint32_t *)(marker_buf + 0x64);
           ((uint32_t *)out_position)[2] = *(uint32_t *)(marker_buf + 0x68);
@@ -133,8 +134,8 @@ void first_person_camera_for_unit_and_vector(float *vector, int32_t unit_index,
   }
 
   if (unit_index != -1) {
-    unit = (unit_data_t *)object_get_and_verify_type(unit_index,
-                                                     _object_mask_unit);
+    unit =
+      (unit_data_t *)object_get_and_verify_type(unit_index, _object_mask_unit);
     unit_get_camera_position(unit_index, (float *)&command->position);
     object_get_root_location(unit_index, (float *)&command->velocity, NULL);
     if (unit->object.parent_object_index.value != -1) {
@@ -156,10 +157,9 @@ void first_person_camera_for_unit_and_vector(float *vector, int32_t unit_index,
         } else {
           /* in-place transforms: 0x88edc/0x88ef4 PUSH EDI twice, 0x88f02
            * PUSH EBX twice (same buffer as input and output) */
-          matrix4x3_from_forward_up_position(&matrix,
-                                             (float *)&vehicle->position,
-                                             (float *)&vehicle->forward,
-                                             (float *)&vehicle->up);
+          matrix4x3_from_forward_up_position(
+            &matrix, (float *)&vehicle->position, (float *)&vehicle->forward,
+            (float *)&vehicle->up);
           real_matrix4x3_transform_point(
             &matrix, &command->forward,
             &command->forward); /* dup-args-ok: in-place */
@@ -185,47 +185,15 @@ void first_person_camera_for_unit_and_vector(float *vector, int32_t unit_index,
   }
 }
 
+/* Camera for a unit looking along the unit's own vector at +0x1ec (0x89240). */
+void first_person_camera_fake(int unit_index, void *result)
+{
+  char *unit;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  unit = (char *)object_get_and_verify_type(unit_index, _object_mask_unit);
+  first_person_camera_for_unit_and_vector((float *)(unit + 0x1ec), unit_index,
+                                          result);
+}
 
 
 /* Per-tick update for the first-person camera mode (0x89270).

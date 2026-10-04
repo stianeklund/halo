@@ -612,7 +612,7 @@ def audit_tu(source, items, decl_hash, maps):
             try:
                 record = rxs.audit(obj, symbol, item["address"], source)
                 candidate, relocs, _prov = rxs._parse_coff(obj, symbol)
-                reference, _error = rxs.xref.function_bytes(item["address"])
+                reference, _error = rxs.reference_code(item["address"])
                 extra = {}
                 if reference is not None:
                     second = _second_alignment(rxs, candidate, relocs, reference, item["address"])

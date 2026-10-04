@@ -3003,7 +3003,7 @@ typedef struct {
   int32_t field_6a4;                                 /* +0x6a4  accessed 1x, meaning unproven */
   float field_6a8;                                   /* +0x6a8  accessed 1x, meaning unproven */
   float field_6ac;                                   /* +0x6ac  accessed 1x, meaning unproven */
-  char pad_6b0[0x4];
+  float field_6b0;                                   /* +0x6b0  MOV [EDI+0x8] (EDI=actor+0x6a8) @0x22b8e, meaning unproven */
   int32_t field_6b4;                                 /* +0x6b4  accessed 3x, meaning unproven */
   int32_t field_6b8;                                 /* +0x6b8  accessed 1x, meaning unproven */
   float field_6bc;                                   /* +0x6bc  accessed 2x, meaning unproven */
@@ -3270,14 +3270,21 @@ typedef struct object_datum_t {
   real_vector3d forward;                                ///< offset=0x24
   real_vector3d up;                                     ///< offset=0x30
   real_vector3d angular_velocity;                       ///< offset=0x3c
-  char pad_48[0xb6 - 0x48];                             ///< offset=0x48
+  char pad_48[0x88 - 0x48];                             ///< offset=0x48
+  real vitality[4];                                     ///< offset=0x88, indexed by OBJECT_VITALITY_*
+  char pad_98[0xb6 - 0x98];                             ///< offset=0x98
   uint8_t damage_flags;                                 ///< offset=0xb6 (bit 2 dead)
   char pad_b7[0xcc - 0xb7];                             ///< offset=0xb7
   int32_t parent_object_index;                          ///< offset=0xcc
   char pad_d0[0x1a4 - 0xd0];                            ///< offset=0xd0
 } object_datum_t;
 cs(object_datum_t, 0x1a4);
+co(object_datum_t, vitality, 0x88);
 co(object_datum_t, damage_flags, 0xb6);
+#define OBJECT_VITALITY_MAXIMUM_BODY   0
+#define OBJECT_VITALITY_MAXIMUM_SHIELD 1
+#define OBJECT_VITALITY_BODY           2
+#define OBJECT_VITALITY_SHIELD         3
 co(object_datum_t, parent_object_index, 0xcc);
 
 /* Biped object datum.  Only the biped flags dword is modelled; the span
@@ -4117,6 +4124,7 @@ co(sound_cache_sound, field_34,           0x34);
  * at 0x845dc-0x845fb. See recovery/evidence/transport_address.json.
  * ------------------------------------------------------------------------- */
 #define IPV4_ADDRESS_LENGTH 4 /* T1: assert text; stored as 4 at 0x84702 */
+#define IPV4_LOOPBACK_ADDRESS 0x7f000001 /* 127.0.0.1; compared in network_game_server_add_new_client */
 
 typedef struct transport_address {
     /* ipv4_address is T1: assert text "address->address.ipv4_address"

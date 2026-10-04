@@ -66,8 +66,9 @@ a strict byte-equality score. A raw-byte audit is required for a raw-byte claim.
 
 For functions with custom `@<reg>` parameters, the official score may remove
 narrowly identified candidate-only phantom stack-slot loads. Status output and
-score artifacts report both `raw_mnemonic_pct` and
-`abi_modeled_mnemonic_pct`, plus the applied `abi_model`. A modeled 100% means
+the gitignored `tools/verify/vc71_current.json` report both `raw_mnemonic_pct`
+and `abi_modeled_mnemonic_pct`, plus the applied `abi_model`; the committed
+floor `vc71_scores.json` omits them. A modeled 100% means
 the mnemonic sequences match after the disclosed ABI adjustment; it does not
 mean byte identity or prove behavioral equivalence.
 

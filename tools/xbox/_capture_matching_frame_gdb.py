@@ -96,9 +96,11 @@ def apply_poses():
                               'target_poses': poses})
 
 def resolve(address):
-    prologue = read(address, 5)
+    prologue = read(address, 6)
     if prologue[0] == 0xe9:
         return address + 5 + struct.unpack('<i', prologue[1:5])[0]
+    if prologue[0] == 0x68 and prologue[5] == 0xc3:
+        return struct.unpack('<I', prologue[1:5])[0]
     return address
 
 def capture_rendered_backbuffer():

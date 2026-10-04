@@ -120,22 +120,30 @@ void debug_sound_classes_set_wet(char *pattern, float wet)
 
 void sound_classes_initialize_for_new_map(void)
 {
-  int16_t i;
+  int16_t class_index;
   int offset;
-  int *entry;
+  int *sound_class;
 
-  i = 0;
+  class_index = 0;
   offset = 0;
   do {
-    assert_halt(i >= 0 && i < 0x33);
-    assert_halt(*(int *)0x50548c);
-    entry = (int *)(*(int *)0x50548c + offset);
-    i++;
+    if (class_index < 0 || class_index >= 0x33) {
+      display_assert("index>=0 && index<NUMBER_OF_SOUND_CLASSES",
+                     "c:\\halo\\SOURCE\\sound\\sound_classes.c", 0x120, 1);
+      system_exit(-1);
+    }
+    if (*(int *)0x50548c == 0) {
+      display_assert("sound_class_data",
+                     "c:\\halo\\SOURCE\\sound\\sound_classes.c", 0x121, 1);
+      system_exit(-1);
+    }
+    sound_class = (int *)(*(int *)0x50548c + offset);
+    class_index++;
     offset += 0xc;
-    entry[1] = 0x3f800000;
-    entry[0] = 0x3f800000;
-    *(int16_t *)(entry + 2) = 0;
-  } while (i < 0x33);
+    sound_class[1] = 0x3f800000;
+    sound_class[0] = 0x3f800000;
+    *(int16_t *)(sound_class + 2) = 0;
+  } while (class_index < 0x33);
 }
 
 /* Advance sound class gain interpolation by delta_ticks. */

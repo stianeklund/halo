@@ -33,63 +33,63 @@ void rumble_player_set_scale(float scale)
 
 /* Apply a rumble impulse to a unit's player slot. Finds the sub-slot with the
  * highest elapsed timer (most stale), copies the rumble definition into it,
- * then scales the motor columns by damage_amount (lerped) and scale.
+ * then scales the motor columns by scale (lerped) and duration_scale.
  *
  * 0xb9bc0 / player_rumble.obj */
-void rumble_player_impulse(short unit_index, float *rumble_def,
-                           float damage_amount, float scale)
+void rumble_player_impulse(short local_player_index, float *rumble_definition,
+                           float scale, float duration_scale)
 {
   struct rumble_definition_copy { float values[15]; };
-  char *slot_base;
-  float *dest;
-  float max_timer;
-  float t;
-  int slot_index;
+  char *player;
+  float *impulse;
+  float longest;
+  float motor_scale;
+  int impulse_index;
 
-  slot_base = rumble_globals + (int)unit_index * 0x208;
-  max_timer = *(float *)(slot_base + 0x1e0);
-  dest = (float *)slot_base;
+  player = rumble_globals + (int)local_player_index * 0x208;
+  longest = *(float *)(player + 0x1e0);
+  impulse = (float *)player;
 
-  assert_halt_msg(rumble_def != NULL, "rumble_definition");
+  assert_halt_msg_at("rumble_definition", "c:\\halo\\SOURCE\\game\\player_rumble.c", 0xa4, rumble_definition != NULL);
 
-  if (max_timer < *(float *)(slot_base + 0x1e4)) {
-    dest = (float *)(slot_base + 0x3c);
-    max_timer = *(float *)(slot_base + 0x1e4);
+  if (longest < *(float *)(player + 0x1e4)) {
+    impulse = (float *)(player + 0x3c);
+    longest = *(float *)(player + 0x1e4);
   }
-  if (max_timer < *(float *)(slot_base + 0x1e8)) {
-    dest = (float *)(slot_base + 0x78);
-    max_timer = *(float *)(slot_base + 0x1e8);
+  if (longest < *(float *)(player + 0x1e8)) {
+    impulse = (float *)(player + 0x78);
+    longest = *(float *)(player + 0x1e8);
   }
-  if (max_timer < *(float *)(slot_base + 0x1ec)) {
-    dest = (float *)(slot_base + 0xb4);
-    max_timer = *(float *)(slot_base + 0x1ec);
+  if (longest < *(float *)(player + 0x1ec)) {
+    impulse = (float *)(player + 0xb4);
+    longest = *(float *)(player + 0x1ec);
   }
-  if (max_timer < *(float *)(slot_base + 0x1f0)) {
-    dest = (float *)(slot_base + 0xf0);
-    max_timer = *(float *)(slot_base + 0x1f0);
+  if (longest < *(float *)(player + 0x1f0)) {
+    impulse = (float *)(player + 0xf0);
+    longest = *(float *)(player + 0x1f0);
   }
-  if (max_timer < *(float *)(slot_base + 0x1f4)) {
-    dest = (float *)(slot_base + 0x12c);
-    max_timer = *(float *)(slot_base + 0x1f4);
+  if (longest < *(float *)(player + 0x1f4)) {
+    impulse = (float *)(player + 0x12c);
+    longest = *(float *)(player + 0x1f4);
   }
-  if (max_timer < *(float *)(slot_base + 0x1f8)) {
-    dest = (float *)(slot_base + 0x168);
-    max_timer = *(float *)(slot_base + 0x1f8);
+  if (longest < *(float *)(player + 0x1f8)) {
+    impulse = (float *)(player + 0x168);
+    longest = *(float *)(player + 0x1f8);
   }
-  if (max_timer < *(float *)(slot_base + 0x1fc)) {
-    dest = (float *)(slot_base + 0x1a4);
+  if (longest < *(float *)(player + 0x1fc)) {
+    impulse = (float *)(player + 0x1a4);
   }
 
-  *(struct rumble_definition_copy *)dest = *(struct rumble_definition_copy *)rumble_def;
+  *(struct rumble_definition_copy *)impulse = *(struct rumble_definition_copy *)rumble_definition;
 
-  t = (*(float *)0x2533c8 - rumble_def[10]) * damage_amount + rumble_def[10];
-  dest[0] *= t;
-  dest[5] *= t;
-  dest[1] *= scale;
-  dest[6] *= scale;
+  motor_scale = (1.0f - rumble_definition[10]) * scale + rumble_definition[10];
+  impulse[0] *= motor_scale;
+  impulse[5] *= motor_scale;
+  impulse[1] *= duration_scale;
+  impulse[6] *= duration_scale;
 
-  slot_index = ((int)dest - (int)slot_base) / 0x3c;
-  *(float *)(slot_base + 0x1e0 + slot_index * 4) = 0.0f;
+  impulse_index = ((int)impulse - (int)player) / 0x3c;
+  *(float *)(player + 0x1e0 + impulse_index * 4) = 0.0f;
 }
 
 void rumble_player_clear(int16_t local_player_index)
@@ -201,41 +201,42 @@ uint32_t rumble_calculate(char *slot)
 
 void rumble_update(void)
 {
-  int i;
-  uint32_t rumble;
-  int player_handle;
+  int local_player_index;
   char *player;
-  int16_t local_player_index;
-  int controller;
-  char *slot;
+  union {
+    uint32_t packed;
+    struct {
+      uint16_t left;
+      uint16_t right;
+    } m;
+  } motors;
+  int player_handle;
+  int controller_index;
 
-  for (i = 0; (int16_t)i < 4; i++) {
-    slot = rumble_globals + i * 0x208;
-    rumble = rumble_calculate(slot);
-    *(float *)(slot + 0x1e0) += *(float *)0x2546a4;
-    *(float *)(slot + 0x1e4) += *(float *)0x2546a4;
-    *(float *)(slot + 0x1e8) += *(float *)0x2546a4;
-    *(float *)(slot + 0x1ec) += *(float *)0x2546a4;
-    *(float *)(slot + 0x1f0) += *(float *)0x2546a4;
-    *(float *)(slot + 0x1f4) += *(float *)0x2546a4;
-    *(float *)(slot + 0x1f8) += *(float *)0x2546a4;
-    *(float *)(slot + 0x1fc) += *(float *)0x2546a4;
-    player_handle = local_player_get_player_index(i);
+  for (local_player_index = 0; (int16_t)local_player_index < 4; local_player_index++) {
+    player = rumble_globals + local_player_index * 0x208;
+    motors.packed = rumble_calculate(player);
+    *(float *)(player + 0x1e0) += *(float *)0x2546a4;
+    *(float *)(player + 0x1e4) += *(float *)0x2546a4;
+    *(float *)(player + 0x1e8) += *(float *)0x2546a4;
+    *(float *)(player + 0x1ec) += *(float *)0x2546a4;
+    *(float *)(player + 0x1f0) += *(float *)0x2546a4;
+    *(float *)(player + 0x1f4) += *(float *)0x2546a4;
+    *(float *)(player + 0x1f8) += *(float *)0x2546a4;
+    *(float *)(player + 0x1fc) += *(float *)0x2546a4;
+    player_handle = local_player_get_player_index(local_player_index);
     if (player_handle != NONE) {
-      player = (char *)datum_get(player_data, player_handle);
-      local_player_index = *(int16_t *)(player + 2);
-      if (local_player_index != NONE) {
-        controller = player_ui_get_single_player_local_player_from_controller(
-          local_player_index);
-        if (!player_ui_rumble_disabled(controller)) {
-          input_set_rumble(local_player_index, (uint16_t)rumble,
-                           (uint16_t)(rumble >> 16));
+      controller_index = *(int16_t *)((char *)datum_get(player_data, player_handle) + 2);
+      if (controller_index != NONE) {
+        if (!player_ui_rumble_disabled(
+              player_ui_get_single_player_local_player_from_controller(controller_index))) {
+          input_set_rumble(controller_index, motors.m.left, motors.m.right);
         } else {
-          input_set_rumble(local_player_index, 0, 0);
+          input_set_rumble(controller_index, 0, 0);
         }
       }
     } else {
-      input_set_rumble(i, 0, 0);
+      input_set_rumble(local_player_index, 0, 0);
     }
   }
 }

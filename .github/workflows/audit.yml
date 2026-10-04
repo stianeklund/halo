@@ -214,6 +214,7 @@ jobs:
           OUTPUT=$("$PY" -m pytest -q -p no:cacheprovider \
             tools/audit/test_audit_object_provenance.py \
             tools/audit/test_check_ported_addr_compare.py \
+            tools/audit/test_check_static_in_tu.py \
             tools/audit/test_detect_param_return.py \
             tools/audit/test_patch.py \
             tools/audit/test_recover_assert_sites.py \

@@ -91,7 +91,7 @@ double __cdecl sin(double);
  *
  * 0x10a930 / random_math.obj
  */
-void FUN_0010a930(int16_t type_index, void *buffer)
+void transition_table_fill(int16_t type_index, void *buffer)
 {
   float phase;
   float sample;
@@ -137,7 +137,7 @@ void FUN_0010a930(int16_t type_index, void *buffer)
 }
 
 /*
- * FUN_0010aa60 — fill a 0x400-byte periodic function lookup table for one of
+ * periodic_table_fill — fill a 0x400-byte periodic function lookup table for one of
  * 12 types: one(0), zero(1), cosine(2), cosine_variable(3), triangle(4),
  * soft_triangle(5), diagonal_saw(6), saw_wave(7), gaussian(8),
  * stutter_4harmonic x2 (9,10), square_wave(11).
@@ -149,7 +149,7 @@ void FUN_0010a930(int16_t type_index, void *buffer)
  *
  * 0x10aa60 / random_math.obj (periodic_functions.c)
  */
-void FUN_0010aa60(short type_index, void *buffer)
+void periodic_table_fill(short type_index, void *buffer)
 {
   float gaussian_scratch[0x400];
   float sample_scratch[0x400];
@@ -282,8 +282,8 @@ void FUN_0010aa60(short type_index, void *buffer)
  * Confirmed: CALL 0x10b0d0 (get_global_random_seed_address), seed set to
  * 0x20f3f660. Confirmed: PUSH EBX(0); PUSH 0x400; CALL 0x8ee60 (debug_malloc)
  * per table. Confirmed: PUSH EAX; PUSH EDI → CALL 0x10aa60
- * (FUN_0010aa60(type_index, buf)). Confirmed: MOV EBX,EDI; PUSH EAX → CALL
- * 0x10a930 (FUN_0010a930 BX=type, buf). Confirmed: CMP DI,0xc loop limit (12);
+ * (periodic_table_fill(type_index, buf)). Confirmed: MOV EBX,EDI; PUSH EAX → CALL
+ * 0x10a930 (transition_table_fill BX=type, buf). Confirmed: CMP DI,0xc loop limit (12);
  * CMP DI,0x6 (6).
  */
 void periodic_functions_initialize(void)
@@ -312,7 +312,7 @@ void periodic_functions_initialize(void)
     if (!buf) {
       *(uint8_t *)0x46e39c = 0;
     } else {
-      FUN_0010aa60(i, buf);
+      periodic_table_fill(i, buf);
     }
   }
 
@@ -324,7 +324,7 @@ void periodic_functions_initialize(void)
     if (!buf) {
       *(uint8_t *)0x46e39c = 0;
     } else {
-      FUN_0010a930(i, buf);
+      transition_table_fill(i, buf);
     }
   }
 }

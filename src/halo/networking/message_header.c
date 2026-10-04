@@ -55,11 +55,12 @@ bool FUN_000803b0(void *data, char *encoded_packet,
 unsigned short *key_agreement_build_message(short type, void *data, int buffer,
                                             unsigned short buffer_size)
 {
-  unsigned char encoded_buf[0x88];
+  unsigned char encoded_buf[0x80];
   int encoded_size;
   unsigned short *msg;
   int i;
 
+  msg = (unsigned short *)0;
   encoded_buf[0] = 0;
   for (i = 0; i < 0x7f; i++) {
     encoded_buf[1 + i] = 0;
@@ -76,10 +77,9 @@ unsigned short *key_agreement_build_message(short type, void *data, int buffer,
       3, (int)encoded_buf, (unsigned int)encoded_size, buffer, buffer_size);
     if (msg != (unsigned short *)0) {
       *msg = (*msg & 0xfffe) | 2;
-      return msg;
     }
   }
-  return (unsigned short *)0;
+  return msg;
 }
 
 /* 0x80470 - Pack prime/g/key values and build a key-agreement message.
@@ -423,44 +423,41 @@ void tea_decrypt(unsigned int *v, unsigned int *w, int *key)
 void message_encrypt(unsigned short *msgptr, unsigned int *key)
 {
   unsigned short hdr;
-  unsigned int blocks;
-  unsigned int remain;
+  unsigned short message_size;
+  unsigned short flags;
+  unsigned short block_count;
+  short remainder_size;
   unsigned short *cursor;
   unsigned int key_copy[4];
-  unsigned int i;
-  unsigned int flags;
+  unsigned int block_index;
 
   assert_halt_msg_at("msgptr && key", "c:\\halo\\SOURCE\\bungie_net\\common\\message_encryption.c", 0x1f,
       msgptr != (unsigned short *)0 && key != (unsigned int *)0);
 
   hdr = *msgptr;
-  flags = (unsigned int)(hdr & 3);
-  if ((hdr & 1) == 0) {
-    blocks = (unsigned int)(((unsigned short)(hdr >> 4) - 2) >> 3);
-    remain = (unsigned int)((unsigned char)((char)((hdr >> 4) - 2)) & 7);
+  flags = hdr & 3;
+  message_size = hdr >> 4;
+  if ((flags & 1) == 0) {
+    block_count = (unsigned short)((message_size - sizeof(unsigned short)) >> 3);
+    remainder_size = (short)((message_size - sizeof(unsigned short)) & 7);
     cursor = msgptr + 1;
-    key_copy[2] = key[0];
-    key_copy[0] = key_copy[2];
-    key_copy[3] = key[1];
-    key_copy[1] = key_copy[3];
-
-    if ((short)blocks != 0) {
-      i = (unsigned int)(blocks & 0xffff);
+    key_copy[0] = key_copy[2] = key[0];
+    key_copy[1] = key_copy[3] = key[1];
+    if (block_count) {
+      block_index = block_count;
       do {
         tea_encrypt((unsigned int *)cursor, (unsigned int *)cursor,
                     (int *)key_copy);
-        cursor = cursor + 4;
-        i = i - 1;
-      } while (i != 0);
-      i = 0;
+        cursor += 4;
+      } while (--block_index);
     }
-    if ((short)remain != 0) {
-      key_message_xor_keystream((int)cursor, (int)(short)remain, (int)key, 8);
+    if (remainder_size) {
+      key_message_xor_keystream((int)cursor, (int)remainder_size, (int)key, 8);
     }
-    hdr = (unsigned short)flags | 1;
+    flags |= 1;
     assert_halt_msg_at("(0<=flags) && ((flags)<=MESSAGE_FLAG_BITS_MASK)", "c:\\halo\\SOURCE\\bungie_net\\common\\message_encryption.c", 0x4c,
-        !(3 < hdr));
-    *msgptr = (*msgptr & 0xfffc) | hdr;
+        flags <= 3);
+    *msgptr = (*msgptr & 0xfffc) | flags;
   }
 }
 
@@ -632,19 +629,20 @@ unsigned int *sieve_of_eratosthenes(unsigned int limit,
 {
   unsigned int count;
   unsigned int *primes;
-  unsigned int uVar3;
-  unsigned int p;
-  unsigned int local_c;
-  unsigned int local_8;
-  unsigned int uVar5;
-  unsigned int *puVar6;
+  unsigned int limit_sqrt;
+  unsigned int candidate;
+  unsigned int remaining;
+  unsigned int sqrt_index;
+  unsigned int index;
+  unsigned int *divisor;
+  unsigned int multiple;
 
   count = limit >> 1;
   if ((limit & 1) == 0) {
     count = count - 1;
   }
-  uVar5 = 0;
-  local_8 = 0;
+  index = 0;
+  sqrt_index = 0;
 
   assert_halt_msg_at("num_primes", "c:\\halo\\SOURCE\\bungie_net\\common\\prime_numbers.c", 0x3d, num_primes != (unsigned int *)0);
 
@@ -653,45 +651,38 @@ unsigned int *sieve_of_eratosthenes(unsigned int limit,
     return (unsigned int *)0;
   }
 
-  uVar3 = count + 1;
-  *num_primes = uVar3;
+  *num_primes = count + 1;
 
   primes =
     (unsigned int *)debug_malloc(count * 4 + 4, 0, "prime_numbers.c", 0x47);
   if (primes != (unsigned int *)0) {
-    p = 3;
-    uVar3 = (unsigned int)(int)sqrtf((float)(int)limit);
-    if (count == 0) {
-      local_8 = 0;
-    } else {
-      do {
-        primes[uVar5] = p;
-        uVar5++;
-        p += 2;
-      } while (uVar5 < count);
-      do {
-        if (primes[local_8] > uVar3)
-          break;
-        local_8++;
-      } while (local_8 < count);
+    candidate = 3;
+    limit_sqrt = (unsigned int)sqrt((double)limit);
+    for (; index < count; index++) {
+      primes[index] = candidate;
+      candidate += 2;
     }
-    if (local_8 != 0) {
-      uVar5 = 1;
-      puVar6 = primes;
-      local_c = local_8;
+    for (; sqrt_index < count; sqrt_index++) {
+      if (primes[sqrt_index] > limit_sqrt)
+        break;
+    }
+    if (sqrt_index > 0) {
+      index = 1;
+      divisor = primes;
+      remaining = sqrt_index;
       do {
-        if (*puVar6 != 0) {
-          for (p = uVar5; p < count; p++) {
-            if (primes[p] != 0 && primes[p] % *puVar6 == 0) {
-              primes[p] = 0;
+        if (*divisor != 0) {
+          for (multiple = index; multiple < count; multiple++) {
+            if (primes[multiple] != 0 && primes[multiple] % *divisor == 0) {
+              primes[multiple] = 0;
               *num_primes = *num_primes - 1;
             }
           }
         }
-        uVar5++;
-        puVar6++;
-        local_c--;
-      } while (local_c != 0);
+        index++;
+        divisor++;
+        remaining--;
+      } while (remaining != 0);
     }
     primes[count] = 2;
     qsort(primes, count + 1, 4,

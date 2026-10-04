@@ -1,6 +1,5 @@
 #include "camera_internal.h"
 #include "x87_math.h"
-#include "x87_math.h"
 
 /* Camera observer — tracks camera position/orientation per player. */
 
@@ -354,7 +353,7 @@ void following_camera_update(void *camera_data, void *control_data,
   real_euler_angles2d facing;
   real_vector3d track_offset;
   real depth;
-  uint8_t crouched;
+  int crouched;
   char *unit;
 
   camera = (following_camera_t *)camera_data;
@@ -375,8 +374,8 @@ void following_camera_update(void *camera_data, void *control_data,
   if (info.camera != NULL) {
     unit = (char *)object_get_and_verify_type(info.unit_index, 3);
     /* 0x89d9d loads only the low byte of unit control flags at +0x1b8. */
-    crouched = (*(uint8_t *)(unit + 0x1b8) & 1) ||
-               (*(uint8_t *)(unit + 0x1b8) & 2);
+    crouched =
+      (*(uint8_t *)(unit + 0x1b8) & 1) || (*(uint8_t *)(unit + 0x1b8) & 2);
     if (crouched != camera->crouched) {
       result->field_4c[1] = 1;
       result->field_54[1] =
@@ -397,12 +396,11 @@ void following_camera_update(void *camera_data, void *control_data,
     facing = *(real_euler_angles2d *)player_control_get_facing_angles(
       controls->local_player_index);
     facing.yaw += camera->facing_offset.yaw;
-    facing.pitch =
-      facing.pitch + camera->facing_offset.pitch < -1.57079637f ?
-        -1.57079637f :
-        (facing.pitch + camera->facing_offset.pitch > 1.57079637f ?
-           1.57079637f :
-           facing.pitch + camera->facing_offset.pitch);
+    facing.pitch = facing.pitch + camera->facing_offset.pitch < -1.57079637f ?
+                     -1.57079637f :
+                     (facing.pitch + camera->facing_offset.pitch > 1.57079637f ?
+                        1.57079637f :
+                        facing.pitch + camera->facing_offset.pitch);
     angles_to_vector((float *)&result->forward, (float *)&facing);
     assert_halt_msg_at(
       "magnitude3d(&result->forward) > 0.9999f && "
@@ -411,14 +409,15 @@ void following_camera_update(void *camera_data, void *control_data,
       (real)x87_sqrtd(magnitude_squared3d(&result->forward)) > 0.999899983f &&
         (real)x87_sqrtd(magnitude_squared3d(&result->forward)) < 1.00010002f);
     camera_track_splut(info.camera, facing.pitch, (float *)&track_offset);
-    depth =
-      (real)x87_sqrtd(track_offset.i * track_offset.i + track_offset.j * track_offset.j + track_offset.k * track_offset.k);
+    depth = (real)x87_sqrtd(track_offset.i * track_offset.i +
+                            track_offset.j * track_offset.j +
+                            track_offset.k * track_offset.k);
     result->depth = depth;
-    result->offset.i =
-      (depth * x87_fcos(facing.pitch) + track_offset.i) * camera->distance_scale;
+    result->offset.i = (depth * x87_fcos(facing.pitch) + track_offset.i) *
+                       camera->distance_scale;
     result->offset.j = -track_offset.j * camera->distance_scale;
-    result->offset.k =
-      (depth * x87_fsin(facing.pitch) + track_offset.k) * camera->distance_scale;
+    result->offset.k = (depth * x87_fsin(facing.pitch) + track_offset.k) *
+                       camera->distance_scale;
     depth = (depth - 0.6f) * camera->distance_scale + 0.6f;
     result->depth = depth > 0.6f ? depth : 0.6f;
     object_get_root_location(info.unit_index, (float *)&result->velocity, NULL);
@@ -428,8 +427,7 @@ void following_camera_update(void *camera_data, void *control_data,
   if (!camera_command_valid(result)) {
     display_assert(csprintf(error_string_buffer, CAMERA_COMMAND_INVALID_FORMAT,
                             CAMERA_COMMAND_INVALID_ARGUMENTS(result)),
-                   "c:\\halo\\SOURCE\\camera\\following_camera.c", 0xee,
-                   1);
+                   "c:\\halo\\SOURCE\\camera\\following_camera.c", 0xee, 1);
     system_exit(-1);
   }
   camera->initialized = 1;
@@ -861,6 +859,20 @@ bool FUN_0008ab90(float *out_fraction, bool indoor, float *ray_origin,
   return result;
 }
 
+/* 0x8ac70: vector @<eax>, point @<ecx>, ray_origin @<esi>; the callee's AL
+ * result is left in EAX. No direct callers in the binary. */
+bool observer_collision_test_differential(float scale, float *out_fraction,
+                                          bool indoor, float *ray_origin,
+                                          float *point, float *vector)
+{
+  float endpoint[3];
+
+  endpoint[0] = scale * vector[0] + point[0];
+  endpoint[1] = scale * vector[1] + point[1];
+  endpoint[2] = scale * vector[2] + point[2];
+  return FUN_0008ab90(out_fraction, indoor, ray_origin, endpoint);
+}
+
 /* Hand a camera command block to a local player's observer (0x8acb0).
  * Sole caller: director_update (0x877a3, cdecl, `push eax; push esi`, ADD
  * ESP,8) passing the player index and the director's per-player command.
@@ -894,8 +906,7 @@ void observer_set_camera(int16_t local_player_index, void *camera_command)
   if (!observer->first_command) {
     observer->first_command = 1;
     observer->pending_command->timer = 0.0f;
-    observer->pending_command->flags |=
-      FLAG(_observer_command_force_time_bit);
+    observer->pending_command->flags |= FLAG(_observer_command_force_time_bit);
     csmemset(observer->pending_command->field_54, 0,
              sizeof(observer->pending_command->field_54));
   }
@@ -2098,7 +2109,7 @@ void orbiting_camera_update(void *camera_data, void *control_data,
     result->position.z += *(real *)0x2676ac;
     result->flags = 1;
   }
-  result->offset = **(real_vector3d **)0x31fc38;
+  result->offset = *(real_vector3d *)global_zero_vector_ptr;
   result->depth = camera->distance;
   result->field_of_view = *(real *)0x26769c;
   result->timer = *(real *)0x2676a8;
@@ -2113,8 +2124,8 @@ void orbiting_camera_update(void *camera_data, void *control_data,
          valid_world_real(result->offset.k) &&
          real_vector3d_valid((float *)&result->velocity) &&
          valid_real(result->depth) && result->depth >= 0.0f &&
-         result->depth <= 5000.0f &&
-         valid_real(*(real *)0x26769c) && *(real *)0x26769c >= 0.001f &&
+         result->depth <= 5000.0f && valid_real(*(real *)0x26769c) &&
+         *(real *)0x26769c >= 0.001f &&
          *(real *)0x26769c <= 1.57079637f /* pi/2 */ &&
          valid_real(*(real *)0x2676a8) && *(real *)0x2676a8 >= 0.0f &&
          *(real *)0x2676a8 <= 3600.0f))) {

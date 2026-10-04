@@ -155,6 +155,7 @@ def _parse_coff(path, function):
     matches = [s for s in symbols if s["section"] > 0 and
                s["type"] == IMAGE_SYM_DTYPE_FUNCTION and
                strict._same_symbol(s["name"], function)]
+    matches = strict.prefer_exact_decoration(matches, function)
     if len(matches) != 1:
         raise strict.NotComparable("candidate has %d COFF function symbols for %s" %
                                   (len(matches), function))
@@ -659,6 +660,56 @@ def _decode_instructions(code):
         return None
     _INSTRUCTION_CACHE[key] = records
     return records
+
+
+def _table_data_code_length(code, address):
+    """Length of the code in front of an inline switch table in ``code``.
+
+    The table base is the lowest memory displacement inside the span itself
+    (the ``jmp [reg*4 + base]`` or index-byte load).  Cutting after the last
+    ``ret`` instead is wrong: table bytes can decode as one (0x12a2d0's table
+    starts ``c2 a3 12``).  Pad in front of the table is dropped.
+    """
+    try:
+        from capstone import CS_ARCH_X86, CS_MODE_32, Cs
+        from capstone.x86 import X86_OP_MEM
+    except ImportError:
+        return len(code)
+    decoder = Cs(CS_ARCH_X86, CS_MODE_32)
+    decoder.detail = True
+    cut = len(code)
+    for instruction in decoder.disasm(bytes(code), address):
+        if instruction.address - address >= cut:
+            break
+        for operand in instruction.operands:
+            if operand.type == X86_OP_MEM:
+                target = operand.mem.disp & 0xFFFFFFFF
+                if address <= target < address + cut:
+                    cut = target - address
+    insns = _decode_instructions(code[:cut])
+    if not insns:
+        return cut
+    insns = list(insns)  # the decoder result is cached; do not pop from it
+    while insns and _is_pad_instruction(insns[-1]):
+        insns.pop()
+    return insns[-1]["offset"] + insns[-1]["size"] if insns else cut
+
+
+def reference_code(address):
+    """The original's code bytes at ``address``, or (None, reason).
+
+    A ``table_data`` bound spans the function's inline switch table; the
+    candidate side has its table cut by ``_strip_inline_switch_tables``, so
+    the reference is cut to match before decoding.  Other bounds are returned
+    unchanged.
+    """
+    reference, error = xref.function_bytes(address)
+    if reference is None:
+        return None, error
+    extent = xref.function_extent(address)
+    if extent is None or extent[1] != "table_data":
+        return reference, None
+    return reference[:_table_data_code_length(reference, address)], None
 
 
 def _instruction_alignment(candidate_insns, reference_insns):
@@ -1242,7 +1293,8 @@ def _register_argument_residual(aligned):
 def audit(candidate_obj, function, address, source=None):
     """Run the relocation-shape-aware comparison against the pristine raw XBE."""
     candidate, relocs, provenance = _parse_coff(candidate_obj, function)
-    reference, error = xref.function_bytes(address)
+    span, error = xref.function_bytes(address)
+    reference = reference_code(address)[0] if span is not None else None
     record = {"schema_version": 2, "lane": "raw_xbe_structural",
               "generated_at": datetime.now(timezone.utc).isoformat(),
               "tool": {"version": "2", "compiler": _compiler_token() if source else "supplied object",
@@ -1277,7 +1329,8 @@ def audit(candidate_obj, function, address, source=None):
     if extent is not None:
         end, kind, bound_provenance = extent
         record["reference"].update({"start": "0x%08x" % address, "end": "0x%08x" % end,
-                                     "length": len(reference), "sha256_span": _sha256(reference),
+                                     "length": len(span), "sha256_span": _sha256(span),
+                                     "code_end": "0x%08x" % (address + len(reference)),
                                      "bound_kind": kind, "bound_provenance": bound_provenance})
         record["bounds"] = {"start": "0x%08x" % address, "end": "0x%08x" % end,
                              "sha256": _hash_path(ROOT / "tools" / "verify" / "function_bounds.json")}

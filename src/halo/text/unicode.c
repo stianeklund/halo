@@ -45,33 +45,22 @@ int ustrlen(const unsigned short *string)
 
 /* ustrnlen (0x19d930) — wide-string length bounded by an explicit maximum.
  * Halts if string is NULL (assert reason is the stringized condition
- * "string", matching the recovered .rdata literal). When max_count is
- * nonzero, scans at most max_count wide chars for a NUL terminator, then
+ * "string", matching the recovered .rdata literal). Scans at most
+ * maximum_length wide chars for a NUL terminator, then
  * halts if the resulting length is not < 0x8000 (same MAXIMUM_STRING_SIZE
- * bound as ustrlen). The size assert sits inside the max_count != 0 branch
- * in the original, so a zero max_count returns 0 without applying it. */
-int ustrnlen(const unsigned short *string, unsigned int max_count)
+ * bound as ustrlen). */
+int ustrnlen(const unsigned short *string, unsigned int maximum_length)
 {
   unsigned int size;
-  const unsigned short *p;
-  unsigned short ch;
 
   size = 0;
   assert_halt_at("c:\\halo\\SOURCE\\text\\unicode.c", 0xd0, string);
-  if (max_count != 0) {
-    p = string;
-    do {
-      ch = *p;
-      p++;
-      if (ch == 0) {
-        break;
-      }
-      size++;
-    } while (size < max_count);
-    assert_halt_msg_at("size < MAXIMUM_STRING_SIZE",
-                       "c:\\halo\\SOURCE\\text\\unicode.c", 0xd6,
-                       size < 0x8000);
+  while (size < maximum_length && *string++) {
+    size++;
   }
+  assert_halt_msg_at("size < MAXIMUM_STRING_SIZE",
+                     "c:\\halo\\SOURCE\\text\\unicode.c", 0xd6,
+                     size < 0x8000);
   return size;
 }
 
@@ -195,10 +184,12 @@ int ustrncmp(const wchar_t *s1, const wchar_t *s2, size_t count)
 
 wchar_t *ustrncpy(wchar_t *dest, wchar_t *src, size_t count)
 {
-  assert_halt_at("c:\\halo\\SOURCE\\text\\unicode.c", 0x136, dest && src);
-  assert_halt(count < 0x8000);
-  _wcsncpy(dest, src, count);
-  return dest;
+  assert_halt_msg_at("dest && src", "c:\\halo\\SOURCE\\text\\unicode.c", 0x136,
+                     dest && src);
+  assert_halt_msg_at("(count >= 0) && (count < MAXIMUM_STRING_SIZE)",
+                     "c:\\halo\\SOURCE\\text\\unicode.c", 0x137,
+                     count < 0x8000);
+  return _wcsncpy(dest, src, count);
 }
 
 /* ustrpbrk (0x19dd00) — wide-string pointer-break search.
@@ -1402,9 +1393,12 @@ char *wide_to_ascii(const wchar_t *unicode, char *ascii, int size)
   unsigned int length;
   unsigned int i;
 
-  assert_halt_at("c:\\halo\\SOURCE\\text\\unicode.c", 0x410, unicode && ascii);
+  assert_halt_msg_at("unicode && ascii", "c:\\halo\\SOURCE\\text\\unicode.c",
+                     0x410, unicode && ascii);
   length = _wcslen(unicode);
-  assert_halt(length < 0x8000);
+  assert_halt_msg_at("length < MAXIMUM_STRING_SIZE",
+                     "c:\\halo\\SOURCE\\text\\unicode.c", 0x412,
+                     length < 0x8000);
 
   if (length > (unsigned int)(size - 1))
     return NULL;

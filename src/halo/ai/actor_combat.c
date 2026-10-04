@@ -382,8 +382,9 @@ char actor_combat_find_grenade_target(int actor_handle, float *out_pos,
   return result;
 }
 
-char actor_combat_check_collateral_damage(int actor_handle, float range, float param3,
-                  float *encounter_pos, short *out_count)
+char actor_combat_check_collateral_damage(int actor_handle, float range,
+                                          float param3, float *encounter_pos,
+                                          short *out_count)
 {
   int actor;
   int candidates[32];
@@ -515,7 +516,8 @@ char actor_combat_check_collateral_damage(int actor_handle, float range, float p
 
 /* 0x22010 — Check whether the current fire target is still valid.
  * Only applies when mode==3 (prop targeting). Checks prop data
- * and falls back to actor_combat_check_collateral_damage distance-based search. */
+ * and falls back to actor_combat_check_collateral_damage distance-based search.
+ */
 int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
@@ -544,7 +546,8 @@ int actor_combat_check_fire_target(int actor_handle /* @<edi> */, short mode)
 
   {
     short result = 0;
-    actor_combat_check_collateral_damage(actor_handle, 6.0f, 0.0f, (float *)(prop + 0xbc), &result);
+    actor_combat_check_collateral_damage(actor_handle, 6.0f, 0.0f,
+                                         (float *)(prop + 0xbc), &result);
     return result >= 3;
   }
 }
@@ -681,7 +684,8 @@ void actor_start_burst(int actor_handle)
     weapon_handle = actor_get_weapon(actor_handle);
     if (weapon_handle != -1) {
       weapon_obj = (int *)object_get_and_verify_type(weapon_handle, 4);
-      projectile_damage = weapon_definition_get_damage_potential(*weapon_obj, &max_range);
+      projectile_damage =
+        weapon_definition_get_damage_potential(*weapon_obj, &max_range);
       if (*(float *)(actv + 0x78) > *(float *)0x2533c0 &&
           max_range > *(float *)(actv + 0x78)) {
         max_range = *(float *)(actv + 0x78);
@@ -865,8 +869,27 @@ void actor_start_burst(int actor_handle)
     } else {
       sound_type = (((actor_t *)actor)->field_161 != 0) ? 0x1b : 0x1a;
     }
-    ai_communication_event(sound_type, ((actor_t *)actor)->field_018, prop_handle, 3, -1,
-                 -1, 0);
+    ai_communication_event(sound_type, ((actor_t *)actor)->field_018,
+                           prop_handle, 3, -1, -1, 0);
+  }
+}
+
+/* 0x22b40 — The binary also returns AL (1 on success, 0 otherwise); the
+ * kb.json decl is void and the only caller (0x22c25) ignores it. */
+void actor_combat_retarget_grenade(int actor_handle /* @<ebx> */,
+                                   float *aim_vector /* @<esi> */)
+{
+  actor_t *actor;
+  char *actor_definition;
+
+  actor = (actor_t *)datum_get(*(void **)0x6325a4, actor_handle);
+  actor_definition = (char *)tag_get(0x61637476, actor->field_05c);
+  if (actor_combat_check_collateral_damage(
+        actor_handle, *(float *)(actor_definition + 0x188),
+        *(float *)(actor_definition + 0x19c), aim_vector, NULL)) {
+    actor->field_6a8 = aim_vector[0];
+    actor->field_6ac = aim_vector[1];
+    actor->field_6b0 = aim_vector[2];
   }
 }
 
@@ -914,7 +937,8 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
   int result; /* [ebp-0x4] prop datum / -1             */
   char *prop;
   short prop_type;
-  float aim_vec[3]; /* contiguous buffer for actor_combat_retarget_grenade (ESI)   */
+  float
+    aim_vec[3]; /* contiguous buffer for actor_combat_retarget_grenade (ESI) */
   float speed;
   float planar_mag;
   float t;
@@ -993,7 +1017,8 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
 
 /* ---------- actor_combat_update support (0x22dc0) */
 
-/* Tag group codes read by actor_combat_update (the literals spell the names). */
+/* Tag group codes read by actor_combat_update (the literals spell the names).
+ */
 #ifndef TAG_GROUP_ACTR
 #define TAG_GROUP_ACTR 0x61637472 /* 'actr' */
 #endif
@@ -1003,51 +1028,51 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
 
 #define ACTOR_COMBAT_SOURCE_FILE "c:\\halo\\SOURCE\\ai\\actor_combat.c"
 
-#define _actor_fire_state_none     0
-#define _actor_fire_state_holding  1
+#define _actor_fire_state_none 0
+#define _actor_fire_state_holding 1
 #define _actor_fire_state_bursting 2
-#define _actor_fire_state_pausing  3
-#define _actor_fire_state_wild     4
+#define _actor_fire_state_pausing 3
+#define _actor_fire_state_wild 4
 
 #define _actor_fire_target_none 0
 
-#define _firing_disabled             0
-#define _firing_busy                 1
-#define _firing_wrong_target         2
-#define _firing_no_target            3
-#define _firing_outside_active_area  4
-#define _firing_not_visible          5
-#define _firing_outside_range        6
-#define _firing_blocked              7
-#define _firing_holding_for_line     8
-#define _firing_holding              9
-#define _firing_pausing_for_line     10
-#define _firing_pausing              11
-#define _firing_wild                 12
-#define _firing_burst                13
-#define _firing_not_in_midair        14
-#define _firing_not_crouching        15
-#define _firing_not_standing         16
-#define _firing_not_stationary       17
-#define _firing_underwater           18
-#define _firing_min_range            19
+#define _firing_disabled 0
+#define _firing_busy 1
+#define _firing_wrong_target 2
+#define _firing_no_target 3
+#define _firing_outside_active_area 4
+#define _firing_not_visible 5
+#define _firing_outside_range 6
+#define _firing_blocked 7
+#define _firing_holding_for_line 8
+#define _firing_holding 9
+#define _firing_pausing_for_line 10
+#define _firing_pausing 11
+#define _firing_wild 12
+#define _firing_burst 13
+#define _firing_not_in_midair 14
+#define _firing_not_crouching 15
+#define _firing_not_standing 16
+#define _firing_not_stationary 17
+#define _firing_underwater 18
+#define _firing_min_range 19
 
-#define _actor_special_fire_mode_none       0
+#define _actor_special_fire_mode_none 0
 #define _actor_special_fire_mode_overcharge 1
-#define _actor_special_fire_mode_secondary  2
+#define _actor_special_fire_mode_secondary 2
 #define _actor_special_fire_situation_strafing 3
 
-#define _game_difficulty_value_rate_of_fire        10
-#define _game_difficulty_value_target_tracking     15
-#define _game_difficulty_value_target_leading      16
-#define _game_difficulty_value_overcharge_chance   17
-#define _game_difficulty_value_special_fire_delay  18
+#define _game_difficulty_value_rate_of_fire 10
+#define _game_difficulty_value_target_tracking 15
+#define _game_difficulty_value_target_leading 16
+#define _game_difficulty_value_overcharge_chance 17
+#define _game_difficulty_value_special_fire_delay 18
 
 #define _ai_communication_grenade_throwing 9
-#define _ai_communication_blocked          14
-#define _comm_hostility_friend             2
+#define _ai_communication_blocked 14
+#define _comm_hostility_friend 2
 
-#define _ai_line_of_sight_clear    0
+#define _ai_line_of_sight_clear 0
 #define _ai_line_of_sight_occluded 1
 
 #define _actor_target_acknowledged_enemy 7
@@ -1055,34 +1080,38 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
 #define _unit_estimate_gun_position 3
 
 typedef struct {
-  uint32_t flags;                  //+0x00  bit 9 must_crouch_to_fire
-  uint32_t flags2;                 // +0x04  bit 1 must_stand_to_fire @0x23500, bit 2 must_stop_to_fire @0x23520 */
-  char pad_08[0x2c];               // padding
-  real_vector3d gun_offset_stand;  // +0x34  fallback when the variant's is zero @0x23c55 */
-  real_vector3d gun_offset_crouch; // +0x40  fallback when the variant's is zero @0x23c31 */
+  uint32_t flags; //+0x00  bit 9 must_crouch_to_fire
+  uint32_t flags2; // +0x04  bit 1 must_stand_to_fire @0x23500, bit 2
+                   // must_stop_to_fire @0x23520 */
+  char pad_08[0x2c]; // padding
+  real_vector3d
+    gun_offset_stand; // +0x34  fallback when the variant's is zero @0x23c55 */
+  real_vector3d
+    gun_offset_crouch; // +0x40  fallback when the variant's is zero @0x23c31 */
 } actor_combat_actor_definition_t;
 cs(actor_combat_actor_definition_t, 0x4c);
 
 typedef struct {
-  uint32_t flags;                          /* +0x000  bit 0 can_shoot_while_flying (TEST byte [ECX],1 @0x234c4) */
+  uint32_t flags; /* +0x000  bit 0 can_shoot_while_flying (TEST byte [ECX],1
+                     @0x234c4) */
   char pad_004[0x70];
-  real maximum_firing_range;               /* +0x074 */
-  real rate_of_fire;                       /* +0x078 */
+  real maximum_firing_range; /* +0x074 */
+  real rate_of_fire; /* +0x078 */
   char pad_07c[0x28];
-  real_vector3d gun_offset_stand;          /* +0x0a4 */
-  real_vector3d gun_offset_crouch;         /* +0x0b0 */
-  real target_track_fraction;              /* +0x0bc */
-  real target_lead_fraction;               /* +0x0c0 */
+  real_vector3d gun_offset_stand; /* +0x0a4 */
+  real_vector3d gun_offset_crouch; /* +0x0b0 */
+  real target_track_fraction; /* +0x0bc */
+  real target_lead_fraction; /* +0x0c0 */
   char pad_0c4[0x84];
-  real weapon_super_ballistic_range;       /* +0x148 */
-  real weapon_bombardment_range;           /* +0x14c */
+  real weapon_super_ballistic_range; /* +0x148 */
+  real weapon_bombardment_range; /* +0x14c */
   char pad_150[0x4];
-  int16_t special_fire_mode;               /* +0x154 */
-  int16_t special_fire_situation;          /* +0x156 */
-  real special_fire_chance;                /* +0x158 */
-  real special_fire_delay;                 /* +0x15c */
+  int16_t special_fire_mode; /* +0x154 */
+  int16_t special_fire_situation; /* +0x156 */
+  real special_fire_chance; /* +0x158 */
+  real special_fire_delay; /* +0x15c */
   char pad_160[0x20];
-  int16_t grenade_type;                    /* +0x180  grenade_combat.grenade_type */
+  int16_t grenade_type; /* +0x180  grenade_combat.grenade_type */
 } actor_combat_variant_definition_t;
 
 co(actor_combat_variant_definition_t, maximum_firing_range, 0x74);
@@ -1092,9 +1121,9 @@ co(actor_combat_variant_definition_t, special_fire_mode, 0x154);
 co(actor_combat_variant_definition_t, grenade_type, 0x180);
 
 typedef struct {
-  real burst_duration_modifier;    /* +0x00 */
-  real burst_separation_modifier;  /* +0x04 */
-  real rate_of_fire_modifier;      /* +0x08  FMUL [ECX+8] @0x23f32 */
+  real burst_duration_modifier; /* +0x00 */
+  real burst_separation_modifier; /* +0x04 */
+  real rate_of_fire_modifier; /* +0x08  FMUL [ECX+8] @0x23f32 */
 } actor_combat_firing_pattern_t;
 
 /* weapon definition ('weap') fields read here. */
@@ -1102,7 +1131,8 @@ typedef struct {
   char pad_000[0x40c];
   real ai_minimum_target_range;
   char pad_410[0xec];
-  tag_block triggers;              /* +0x4fc  element size 0x114 (tag_block_get_element @0x23224) */
+  tag_block
+    triggers; /* +0x4fc  element size 0x114 (tag_block_get_element @0x23224) */
 } actor_combat_weapon_definition_t;
 co(actor_combat_weapon_definition_t, triggers, 0x4fc);
 
@@ -1111,16 +1141,17 @@ co(actor_combat_weapon_definition_t, triggers, 0x4fc);
 #define actor_debug_array (*(actor_debug_info_t **)0x331f58)
 
 /* 0x22dc0 — actor_combat_update: per-tick firing state machine.
- * The 2276 binary inlines actor_get_weapon_definition (actor_get_weapon + 'weap'
- * tag lookup) and calls the helpers below by address:
+ * The 2276 binary inlines actor_get_weapon_definition (actor_get_weapon +
+ * 'weap' tag lookup) and calls the helpers below by address:
  *   actor_combat_check_mode (0x20f80, @<eax>) = enable_special_fire_situation
- *   actor_combat_check_fire_target (0x22010, @<edi>) = allow_special_fire_situation
- *   actor_combat_evaluate_firing (0x21640, @<eax>/@<edi>) = start_first_burst_delay
- *   actor_combat_set_fire_timer (0x21590, @<esi>) = actor_start_pause
- *   actor_combat_get_burst_parameters (0x21270, @<eax>/@<ecx>) = get_firing_parameters
- *   FUN_0002a360 = actor_move_animation_busy (tested as AL)
- * Assert lines are the original immediates (0x85, 0xad, 0x128, 0x205,
- * 0x21a, 0x246, 0x24c, 0x263, 0x280, 0x2c3, 0x310, 0x311). */
+ *   actor_combat_check_fire_target (0x22010, @<edi>) =
+ * allow_special_fire_situation actor_combat_evaluate_firing (0x21640,
+ * @<eax>/@<edi>) = start_first_burst_delay actor_combat_set_fire_timer
+ * (0x21590, @<esi>) = actor_start_pause actor_combat_get_burst_parameters
+ * (0x21270, @<eax>/@<ecx>) = get_firing_parameters FUN_0002a360 =
+ * actor_move_animation_busy (tested as AL) Assert lines are the original
+ * immediates (0x85, 0xad, 0x128, 0x205, 0x21a, 0x246, 0x24c, 0x263, 0x280,
+ * 0x2c3, 0x310, 0x311). */
 void actor_combat_update(int actor_handle)
 {
   actor_t *actor;
@@ -1185,9 +1216,9 @@ void actor_combat_update(int actor_handle)
                        actor->control_current_fire_target_prop_index;
     else if (fire_target_type == _actor_fire_target_manual_point)
       target_changed =
-        distance_squared3d(
-          &actor->orders_combat_target_point.x,
-          &actor->control_current_fire_target_manual_point.x) > 0.25f;
+        distance_squared3d(&actor->orders_combat_target_point.x,
+                           &actor->control_current_fire_target_manual_point.x) >
+        0.25f;
     else
       target_changed = false;
 
@@ -1210,9 +1241,9 @@ void actor_combat_update(int actor_handle)
 
   actor->control_aiming_at_fire_target = false;
   actor->control_weapon_maximum_range =
-    actor_has_ranged_weapon(actor_handle)
-      ? firing_variant_definition->maximum_firing_range
-      : 0.0f;
+    actor_has_ranged_weapon(actor_handle) ?
+      firing_variant_definition->maximum_firing_range :
+      0.0f;
 
   if (actor->field_45c) { /* orders.combat.throw_grenade */
     if (actor_variant_definition->grenade_type != -1 &&
@@ -1268,16 +1299,18 @@ void actor_combat_update(int actor_handle)
       if (special_fire &&
           (unsigned char)actor_combat_check_mode(
             actor_handle, firing_variant_definition->special_fire_situation)) {
-        real special_fire_delay =
-          FUN_000121e0(0.0f, 1.5f) + firing_variant_definition->special_fire_delay;
-        real special_fire_random = random_math_real(
-          (unsigned int *)get_global_random_seed_address());
+        real special_fire_delay = FUN_000121e0(0.0f, 1.5f) +
+                                  firing_variant_definition->special_fire_delay;
+        real special_fire_random =
+          random_math_real((unsigned int *)get_global_random_seed_address());
 
         actor->control_special_fire_delay =
           (short)(int)(special_fire_delay * 30.0f);
-        if (special_fire_random < firing_variant_definition->special_fire_chance &&
+        if (special_fire_random <
+              firing_variant_definition->special_fire_chance &&
             (unsigned char)actor_combat_check_fire_target(
-              actor_handle, firing_variant_definition->special_fire_situation)) {
+              actor_handle,
+              firing_variant_definition->special_fire_situation)) {
           if (firing_variant_definition->special_fire_situation ==
               _actor_special_fire_situation_strafing)
             actor->control_special_fire_deny_attempts = 3;
@@ -1314,17 +1347,16 @@ void actor_combat_update(int actor_handle)
              (1u << (cluster_index & 0x1f))) == 0;
         }
       } else {
-        assert_halt_msg_at(
-          "actor->control.current_fire_target_type == "
-          "_actor_fire_target_manual_point",
-          ACTOR_COMBAT_SOURCE_FILE, 0x128,
-          actor->control_current_fire_target_type ==
-            _actor_fire_target_manual_point);
+        assert_halt_msg_at("actor->control.current_fire_target_type == "
+                           "_actor_fire_target_manual_point",
+                           ACTOR_COMBAT_SOURCE_FILE, 0x128,
+                           actor->control_current_fire_target_type ==
+                             _actor_fire_target_manual_point);
         actor->control_current_fire_target_position =
           actor->control_current_fire_target_manual_point;
-        actor->control_current_fire_target_range = FUN_0001ad60(
-          &actor->head_position.x,
-          &actor->control_current_fire_target_manual_point.x);
+        actor->control_current_fire_target_range =
+          FUN_0001ad60(&actor->head_position.x,
+                       &actor->control_current_fire_target_manual_point.x);
         actor->control_current_fire_target_underwater = false;
         actor->control_current_fire_target_outside_active_area = false;
         if (actor->control_current_fire_target_timer % 10 == 0)
@@ -1359,7 +1391,8 @@ void actor_combat_update(int actor_handle)
     } else if (actor->control_current_fire_target_outside_active_area) {
       firing_decision = _firing_outside_active_area;
       fire = false;
-    } else if (!actor->field_457 && /* orders.combat.override_firing_restrictions */
+    } else if (!actor->field_457 && /* orders.combat.override_firing_restrictions
+                                     */
                actor->control_burst_disable_timer > 0) {
       firing_decision = _firing_disabled;
       fire = false;
@@ -1395,7 +1428,7 @@ void actor_combat_update(int actor_handle)
       fire = false;
     } else if (actor->field_3e8 == 0 || /* orders.look.primary_priority */
                actor->field_3ec != 2 || /* orders.look.primary_direction.type */
-               actor->field_58c) {      /* control.aiming_away_from_primary */
+               actor->field_58c) { /* control.aiming_away_from_primary */
       firing_decision = _firing_wrong_target;
       fire = false;
     } else if (actor->control_fire_state == _actor_fire_state_bursting) {
@@ -1468,17 +1501,17 @@ void actor_combat_update(int actor_handle)
       firing_decision = _firing_wild;
       break;
     case _actor_fire_state_holding:
-      firing_decision = actor->control_fire_state_timer != 0
-                          ? _firing_holding
-                          : _firing_holding_for_line;
+      firing_decision = actor->control_fire_state_timer != 0 ?
+                          _firing_holding :
+                          _firing_holding_for_line;
       break;
     case _actor_fire_state_bursting:
       firing_decision = _firing_burst;
       break;
     case _actor_fire_state_pausing:
-      firing_decision = actor->control_fire_state_timer != 0
-                          ? _firing_pausing
-                          : _firing_pausing_for_line;
+      firing_decision = actor->control_fire_state_timer != 0 ?
+                          _firing_pausing :
+                          _firing_pausing_for_line;
       break;
     default:
       display_assert(NULL, ACTOR_COMBAT_SOURCE_FILE, 0x21a, true);
@@ -1529,8 +1562,8 @@ void actor_combat_update(int actor_handle)
         }
         break;
       case _actor_fire_state_bursting:
-        assert_halt_msg_at("!hold_burst_start", ACTOR_COMBAT_SOURCE_FILE,
-                           0x263, !hold_burst_start);
+        assert_halt_msg_at("!hold_burst_start", ACTOR_COMBAT_SOURCE_FILE, 0x263,
+                           !hold_burst_start);
         actor_start_burst(actor_handle);
         break;
       case _actor_fire_state_pausing:
@@ -1574,10 +1607,9 @@ void actor_combat_update(int actor_handle)
         actor_debug_info->burst_last_known_position = prop->center_of_mass;
         ignore_unit_index = prop->attached_to_unit_index;
 
-        target_tracking =
-          firing_variant_definition->target_track_fraction +
-          FUN_000b55b0(_game_difficulty_value_target_tracking,
-                       (uint16_t)actor->meta_team_index);
+        target_tracking = firing_variant_definition->target_track_fraction +
+                          FUN_000b55b0(_game_difficulty_value_target_tracking,
+                                       (uint16_t)actor->meta_team_index);
         /* MIN(1, x) > 0: FLD 1.0 / FCOMP ST1 takes 1.0 unless 1.0 > x */
         if ((target_tracking < 1.0f ? target_tracking : 1.0f) > 0.0f &&
             !actor->control_current_fire_target_bombardment) {
@@ -1585,17 +1617,15 @@ void actor_combat_update(int actor_handle)
 
           FUN_00012140(&actor->control_burst_initial_position.x,
                        &prop->center_of_mass.x, &tracking_vector.i);
-          vector3d_scale_add(&actor->control_burst_origin.x,
-                             &tracking_vector.i,
+          vector3d_scale_add(&actor->control_burst_origin.x, &tracking_vector.i,
                              firing_variant_definition->target_track_fraction,
                              &actor->control_burst_origin.x);
         }
         actor_debug_info->burst_tracked_position = actor->control_burst_origin;
 
-        target_leading =
-          firing_variant_definition->target_lead_fraction +
-          FUN_000b55b0(_game_difficulty_value_target_leading,
-                       (uint16_t)actor->meta_team_index);
+        target_leading = firing_variant_definition->target_lead_fraction +
+                         FUN_000b55b0(_game_difficulty_value_target_leading,
+                                      (uint16_t)actor->meta_team_index);
         if ((target_leading < 1.0f ? target_leading : 1.0f) > 0.0f) {
           real time_to_target = weapon_estimate_time_to_target(
             weapon_index, actor->control_fire_burst_secondary != 0,
@@ -1611,12 +1641,11 @@ void actor_combat_update(int actor_handle)
                              &actor->control_burst_origin.x);
         }
       } else {
-        assert_halt_msg_at(
-          "actor->control.current_fire_target_type == "
-          "_actor_fire_target_manual_point",
-          ACTOR_COMBAT_SOURCE_FILE, 0x2c3,
-          actor->control_current_fire_target_type ==
-            _actor_fire_target_manual_point);
+        assert_halt_msg_at("actor->control.current_fire_target_type == "
+                           "_actor_fire_target_manual_point",
+                           ACTOR_COMBAT_SOURCE_FILE, 0x2c3,
+                           actor->control_current_fire_target_type ==
+                             _actor_fire_target_manual_point);
         actor_debug_info->burst_last_known_position =
           actor->control_burst_origin;
       }
@@ -1630,12 +1659,12 @@ void actor_combat_update(int actor_handle)
       actor->control_burst_relative_position.k =
         actor->control_burst_adjustment.k +
         actor->control_burst_relative_position.k;
-      actor->control_burst_target.x =
-        actor->control_burst_relative_position.i + actor->control_burst_origin.x;
-      actor->control_burst_target.y =
-        actor->control_burst_origin.y + actor->control_burst_relative_position.j;
-      actor->control_burst_target.z =
-        actor->control_burst_origin.z + actor->control_burst_relative_position.k;
+      actor->control_burst_target.x = actor->control_burst_relative_position.i +
+                                      actor->control_burst_origin.x;
+      actor->control_burst_target.y = actor->control_burst_origin.y +
+                                      actor->control_burst_relative_position.j;
+      actor->control_burst_target.z = actor->control_burst_origin.z +
+                                      actor->control_burst_relative_position.k;
 
       if (actor->vehicle_index != -1) {
         unit_get_camera_position(actor->meta_unit_index, &origin.x);
@@ -1673,30 +1702,28 @@ void actor_combat_update(int actor_handle)
             facing.j = actor->input_facing_vector[1];
             facing.k = actor->input_facing_vector[2];
           }
-          unit_estimate_position(actor->meta_unit_index,
-                                 _unit_estimate_gun_position,
-                                 (vector3_t *)&actor->body_position,
-                                 (vector3_t *)&facing, (vector3_t *)gun_offset,
-                                 (vector3_t *)&origin);
+          unit_estimate_position(
+            actor->meta_unit_index, _unit_estimate_gun_position,
+            (vector3_t *)&actor->body_position, (vector3_t *)&facing,
+            (vector3_t *)gun_offset, (vector3_t *)&origin);
         }
       }
 
-      aiming_success = weapon_aim(
-        weapon_index, actor->control_fire_burst_secondary != 0, &origin,
-        &actor->control_burst_target,
-        actor->control_current_fire_target_superballistic,
-        actor->control_burst_aim_vector, 0, NULL, &linear);
+      aiming_success =
+        weapon_aim(weapon_index, actor->control_fire_burst_secondary != 0,
+                   &origin, &actor->control_burst_target,
+                   actor->control_current_fire_target_superballistic,
+                   actor->control_burst_aim_vector, 0, NULL, &linear);
       assert_halt_msg_at("aiming_success", ACTOR_COMBAT_SOURCE_FILE, 0x310,
                          aiming_success);
       if (!valid_real_normal3d(actor->control_burst_aim_vector)) {
-        display_assert(
-          csprintf(error_string_buffer,
-                   "%s: assert_valid_real_normal3d(%f, %f, %f)",
-                   "&actor->control.burst_aim_vector",
-                   (double)actor->control_burst_aim_vector[0],
-                   (double)actor->control_burst_aim_vector[1],
-                   (double)actor->control_burst_aim_vector[2]),
-          ACTOR_COMBAT_SOURCE_FILE, 0x311, true);
+        display_assert(csprintf(error_string_buffer,
+                                "%s: assert_valid_real_normal3d(%f, %f, %f)",
+                                "&actor->control.burst_aim_vector",
+                                (double)actor->control_burst_aim_vector[0],
+                                (double)actor->control_burst_aim_vector[1],
+                                (double)actor->control_burst_aim_vector[2]),
+                       ACTOR_COMBAT_SOURCE_FILE, 0x311, true);
         system_exit(-1);
       }
       actor->control_burst_aim_by_vector = !linear;
@@ -1733,8 +1760,9 @@ void actor_combat_update(int actor_handle)
     {
       boolean primary_trigger = false;
       boolean secondary_trigger = false;
-      /* The trigger value travels as a dword (MOV [EBP-0x1c],0x3f800000 @0x23eee)
-       * into actor_unit_control_primary_trigger's int-declared third slot. */
+      /* The trigger value travels as a dword (MOV [EBP-0x1c],0x3f800000
+       * @0x23eee) into actor_unit_control_primary_trigger's int-declared third
+       * slot. */
       union {
         real value;
         int bits;

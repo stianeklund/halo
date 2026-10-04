@@ -36,6 +36,32 @@ def load_function_sizes(cache_path: str) -> dict:
         return json.load(f)
 
 
+def _fill_sizes_from_bounds(function_cache: dict, bounds_path: str) -> None:
+    """Add sizes the Ghidra cache lacks from the committed bounds table.
+
+    build/function_sizes.json is gitignored, so CI has none; without it sizes
+    fall back to the gap to the next kb address in the unit, which spans other
+    units' code.  The bounds table is tied to the same XBE (end - start).
+    """
+    try:
+        with open(bounds_path) as f:
+            table = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return
+    functions = function_cache.setdefault('functions', {})
+    known = {int(k, 16) for k in functions}
+    for key, entry in table.items():
+        if key == '_meta' or not isinstance(entry, dict):
+            continue
+        try:
+            start = int(key, 16)
+            size = int(entry['end'], 16) - start
+        except (KeyError, TypeError, ValueError):
+            continue
+        if size > 0 and start not in known:
+            functions[f'0x{start:x}'] = {'size': size}
+
+
 def _file_hash(path: str, algorithm: str) -> str | None:
     """Return a content hash without loading a report input into memory at once."""
     digest = hashlib.new(algorithm)
@@ -1507,7 +1533,8 @@ def generate_report(output_path: str) -> dict:
     
     # Load function sizes
     function_cache = load_function_sizes(cache_path)
-    
+    _fill_sizes_from_bounds(function_cache, bounds_path)
+
     # Load VC71 match scores: floor first, current layered over it (see above).
     floor_doc = _load_vc71_doc(vc71_floor)
     current_doc = _load_vc71_doc(vc71_current)

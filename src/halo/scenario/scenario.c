@@ -3251,7 +3251,7 @@ char FUN_0018ed90(short cluster_index, float *point)
  * point-in-volume test FUN_0018ed90. Returns false (AL=0) when the handle is
  * -1. cdecl: cluster_index [EBP+8], object_handle [EBP+0xc]; byte (AL) return.
  */
-char FUN_0018ef00(int cluster_index, int object_handle)
+char FUN_0018ef00(int16_t cluster_index, int object_handle)
 {
   char result;
   int obj;

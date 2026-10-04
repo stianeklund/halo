@@ -2634,6 +2634,7 @@ bool saved_game_file_open(file_ref_t *saved_game_file,
   int32_t type;
   int32_t memory_unit;
   int32_t n;
+  bool success;
 
   type = saved_game_file_index & 0xf;
   memory_unit = (saved_game_file_index >> 8) & 0xff;
@@ -2675,10 +2676,10 @@ bool saved_game_file_open(file_ref_t *saved_game_file,
     system_exit(-1);
   }
 
-  return get_nth_entry_in_mapfile((int16_t)memory_unit, n, &file) &&
-         file_reference_create_from_path(saved_game_file, file.path, 0) !=
-           NULL &&
-         memory_unit == 0 && file_open(saved_game_file, 3);
+  success = get_nth_entry_in_mapfile((int16_t)memory_unit, n, &file) &&
+            file_reference_create_from_path(saved_game_file, file.path, 0) &&
+            memory_unit == 0 && file_open(saved_game_file, 3);
+  return success;
 }
 
 /* 0x1c4990 — synchronize_metadata_display_name_with_profile_name.  Name
@@ -2722,10 +2723,10 @@ bool synchronize_metadata_display_name_with_profile_name(
   int32_t memory_unit;
   int32_t n;
 
+  success = 1;
+  type = saved_game_file_index & 0xf;
   memory_unit = (saved_game_file_index >> 8) & 0xff;
   n = (saved_game_file_index >> 0x10) & 0xfff;
-  type = saved_game_file_index & 0xf;
-  success = 1;
 
   if (memory_unit != 0) {
     display_assert("memory_unit==_memory_unit_hard_drive",

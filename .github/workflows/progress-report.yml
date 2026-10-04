@@ -148,6 +148,14 @@ jobs:
             ($inputs.raw_byte_snapshot.dirty == false)
           ' artifacts/progress/report.json
       
+      - name: Validate Report Byte Totals
+        run: |
+          # Unit byte totals cannot exceed the XBE; inflated sizes (e.g. a missing
+          # size source falling back to cross-unit address gaps) shrink the treemap.
+          XBE_SIZE=$(stat -c%s halo-patched/cachebeta.xbe)
+          jq -e --argjson max "$XBE_SIZE" '.summary.bytes.total <= $max' artifacts/progress/report.json \
+            || { echo "::error::summary.bytes.total exceeds XBE size ($XBE_SIZE)"; exit 1; }
+
       - name: Update README Badge Data
         run: |
           PERCENT=$("$VENV_PYTHON" -c "import json; d=json.load(open('artifacts/progress/report.json')); print('%.1f' % d['summary']['functions']['percent'])")

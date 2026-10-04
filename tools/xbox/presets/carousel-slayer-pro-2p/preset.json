@@ -1,0 +1,131 @@
+{
+  "format": "Halo Xbox debug 2276 visual comparison preset",
+  "captured_at_utc": "2026-10-03T10:32:47.479035+00:00",
+  "reference_host": "10.0.0.24",
+  "reference_xbe": {
+    "code": 202,
+    "message": " multiline response follows",
+    "ok": true,
+    "lines": [
+      "timestamp=0x3bc77815 checksum=0x00000000",
+      "name=\"E:\\GAMES\\halo-patched\\cachebeta.xbe\""
+    ],
+    "text": "timestamp=0x3bc77815 checksum=0x00000000\nname=\"E:\\GAMES\\halo-patched\\cachebeta.xbe\""
+  },
+  "map": "levels\\test\\carousel\\carousel",
+  "local_player_count": 2,
+  "variant": {
+    "name": "Slayer Pro",
+    "size_bytes": 104,
+    "hex": "53006c0061007900650072002000500072006f000000000002000000000000002300000000000000000000000000000000000000c2010000000000000000803f19000000000000000200000001010000000000000000000000000000000000000000000001010000",
+    "sha256": "77a9cc559a0dc4e9f10e6833d5a263d541e830a5dbee2cc7f259843c5bdd81ce",
+    "engine_type": 2,
+    "team_play": 0,
+    "score_limit": 25,
+    "flags_20": "0x23",
+    "copies_match": {
+      "requested": true,
+      "ui": true,
+      "playlist": true
+    }
+  },
+  "required_starting_weapons": [
+    "weapons\\assault rifle\\assault rifle",
+    "weapons\\pistol\\pistol"
+  ],
+  "pose_mapping": "Apply targets to the first and second local viewports; resolve live units and controller slots each run.",
+  "comparison_targets_from_previous_debug_run": [
+    {
+      "viewport": 0,
+      "position": [
+        -4.661903381347656,
+        -11.369110107421875,
+        -0.8562036156654358
+      ],
+      "yaw_radians": 1.1448506116867065,
+      "pitch_radians": 0.0
+    },
+    {
+      "viewport": 1,
+      "position": [
+        5.810912609100342,
+        3.6055307388305664,
+        -2.723989963531494
+      ],
+      "yaw_radians": 0.7155909538269043,
+      "pitch_radians": 0.0
+    }
+  ],
+  "current_host_player_sample": [
+    {
+      "slot": 1,
+      "handle": "0xec700000",
+      "unit": "0xe2a40035",
+      "object": "0x800c5e20",
+      "position": [
+        3.4063313007354736,
+        -5.901509761810303,
+        -2.7040345668792725
+      ],
+      "position_50": [
+        3.4063313007354736,
+        -5.901509761810303,
+        -2.3440346717834473
+      ],
+      "yaw_pitch": [
+        5.397417068481445,
+        0.0
+      ],
+      "weapon_handles": [
+        "0xe2a50036",
+        "0xe2a60037",
+        "0xffffffff",
+        "0xffffffff"
+      ],
+      "weapons": [
+        "weapons\\assault rifle\\assault rifle",
+        "weapons\\pistol\\pistol"
+      ]
+    },
+    {
+      "slot": 2,
+      "handle": "0xec710001",
+      "unit": "0xe2a70038",
+      "object": "0x800c7504",
+      "position": [
+        -5.61919641494751,
+        -10.83891487121582,
+        -3.35787034034729
+      ],
+      "position_50": [
+        -5.61919641494751,
+        -10.83891487121582,
+        -2.997870445251465
+      ],
+      "yaw_pitch": [
+        0.7420380711555481,
+        0.0
+      ],
+      "weapon_handles": [
+        "0xe2a80039",
+        "0xe2a9003a",
+        "0xffffffff",
+        "0xffffffff"
+      ],
+      "weapons": [
+        "weapons\\assault rifle\\assault rifle",
+        "weapons\\pistol\\pistol"
+      ]
+    }
+  ],
+  "player_sample_tick": 1272,
+  "normal_session_present": true,
+  "guest_memory_writes": false,
+  "automatic_restore_implemented": false,
+  "restore_requirements": [
+    "Load the full variant before spawning through a verified loading path; native game_variant slayer is a different preset.",
+    "Initialize the normal local multiplayer session when pause menus are required.",
+    "Match or explicitly restore position and facing for corresponding viewports; the variant alone does not determine spawn selection.",
+    "Capture paired frames after the cameras have settled; game ticks and animation phases need separate alignment."
+  ]
+}

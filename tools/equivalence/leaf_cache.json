@@ -14523,14 +14523,20 @@
     "call_count": 14
   },
   "0x1c4850": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 10,
-    "call_count": 13
+    "call_count": 13,
+    "confidence": "moderate",
+    "coverage_pct": 50.6,
+    "oracle": "xbe"
   },
   "0x1c4990": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 25,
-    "call_count": 38
+    "call_count": 38,
+    "confidence": "weak",
+    "coverage_pct": 19.9,
+    "oracle": "xbe"
   },
   "0x1c4c0": {
     "class": "non_leaf",
@@ -14566,9 +14572,12 @@
     "call_count": 14
   },
   "0x1c5560": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 18,
-    "call_count": 32
+    "call_count": 32,
+    "confidence": "moderate",
+    "coverage_pct": 57.0,
+    "oracle": "xbe"
   },
   "0x1c58f0": {
     "class": "stubbable",
@@ -21755,9 +21764,12 @@
     "oracle": "xbe"
   },
   "0x2f470": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 9,
-    "call_count": 2
+    "call_count": 2,
+    "confidence": "high",
+    "coverage_pct": 90.2,
+    "oracle": "xbe"
   },
   "0x2f5b0": {
     "class": "leaf",
@@ -21842,9 +21854,12 @@
     "oracle": "xbe"
   },
   "0x302b0": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 4,
-    "call_count": 3
+    "call_count": 3,
+    "confidence": "moderate",
+    "coverage_pct": 57.1,
+    "oracle": "xbe"
   },
   "0x303f0": {
     "class": "non_leaf",
@@ -21904,9 +21919,12 @@
     "call_count": 8
   },
   "0x31850": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 12,
-    "call_count": 6
+    "call_count": 6,
+    "confidence": "high",
+    "coverage_pct": 72.1,
+    "oracle": "xbe"
   },
   "0x31a90": {
     "class": "non_leaf",
@@ -21932,9 +21950,12 @@
     "call_count": 8
   },
   "0x32380": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 20,
-    "call_count": 30
+    "call_count": 30,
+    "confidence": "none",
+    "coverage_pct": 3.2,
+    "oracle": "xbe"
   },
   "0x32940": {
     "class": "stubbable",
@@ -21978,9 +21999,12 @@
     "oracle": "xbe"
   },
   "0x33440": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 47,
-    "call_count": 44
+    "call_count": 44,
+    "confidence": "none",
+    "coverage_pct": 1.3,
+    "oracle": "xbe"
   },
   "0x342a0": {
     "class": "stubbable",
@@ -26605,9 +26629,12 @@
     "call_count": 1
   },
   "0x803d0": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 1,
-    "call_count": 2
+    "call_count": 2,
+    "confidence": "high",
+    "coverage_pct": 61.9,
+    "oracle": "xbe"
   },
   "0x80470": {
     "class": "stubbable",
@@ -26647,8 +26674,8 @@
     "class": "non_leaf",
     "dir32_count": 4,
     "call_count": 6,
-    "confidence": "none",
-    "coverage_pct": 69.4,
+    "confidence": "high",
+    "coverage_pct": 76.0,
     "oracle": "xbe"
   },
   "0x80a40": {
@@ -26675,9 +26702,12 @@
     "class": "leaf"
   },
   "0x80d50": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 6,
-    "call_count": 6
+    "call_count": 6,
+    "confidence": "high",
+    "coverage_pct": 88.2,
+    "oracle": "xbe"
   },
   "0x80eb0": {
     "class": "stubbable",
@@ -36569,9 +36599,12 @@
     "oracle": "xbe"
   },
   "0xe5de0": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 15,
-    "call_count": 27
+    "call_count": 27,
+    "confidence": "weak",
+    "coverage_pct": 12.3,
+    "oracle": "xbe"
   },
   "0xe6140": {
     "class": "stubbable",
@@ -36612,14 +36645,20 @@
     "call_count": 14
   },
   "0xe6cb0": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 11,
-    "call_count": 15
+    "call_count": 15,
+    "confidence": "weak",
+    "coverage_pct": 14.7,
+    "oracle": "xbe"
   },
   "0xe6ed0": {
-    "class": "stubbable",
+    "class": "non_leaf",
     "dir32_count": 27,
-    "call_count": 29
+    "call_count": 29,
+    "confidence": "moderate",
+    "coverage_pct": 58.9,
+    "oracle": "xbe"
   },
   "0xe73c0": {
     "class": "stubbable",

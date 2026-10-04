@@ -1052,17 +1052,21 @@ char hs_unit_can_see_object(int param_1, int param_2, float param_3)
  * mechanical. */
 unsigned char hs_objects_can_see_object(int arg0, int arg1, float arg2)
 {
-  int child;
-  int iter_state;
+  int unit_index;
+  int reference_index;
+  unsigned char result;
 
-  child = FUN_000ce450(arg0, &iter_state);
-  while (child != -1) {
-    if (object_try_and_get_and_verify_type(child, 3) != NULL &&
-        hs_unit_can_see_object(child, arg1, arg2) != 0)
-      return 1;
-    child = FUN_000ce320(arg0, &iter_state);
+  result = 0;
+  unit_index = FUN_000ce450(arg0, &reference_index);
+  while (unit_index != -1) {
+    if (object_try_and_get_and_verify_type(unit_index, 3) != NULL &&
+        hs_unit_can_see_object(unit_index, arg1, arg2) != 0) {
+      result = 1;
+      break;
+    }
+    unit_index = FUN_000ce320(arg0, &reference_index);
   }
-  return 0;
+  return result;
 }
 
 /* 0xc97f0 — Report whether unit arg0 can see cutscene flag flag_index within
@@ -1383,17 +1387,16 @@ void hs_object_destroy_all(void)
 {
   {
     data_iter_t player_iter;
-    char *player;
-    int unit_handle;
+    player_data_t *player;
 
     data_iterator_new(&player_iter, *(data_t **)0x5aa6d4);
-    player = (char *)data_iterator_next(&player_iter);
+    player = (player_data_t *)data_iterator_next(&player_iter);
     while (player != NULL) {
-      unit_handle = *(int *)(player + 0x34);
-      if (unit_handle != -1 &&
-          object_get_root_parent(unit_handle) != unit_handle)
-        unit_exit_seat_end(unit_handle);
-      player = (char *)data_iterator_next(&player_iter);
+      if (player->unit_handle != -1 &&
+          object_get_root_parent(player->unit_handle) !=
+              player->unit_handle)
+        unit_exit_seat_end(player->unit_handle);
+      player = (player_data_t *)data_iterator_next(&player_iter);
     }
   }
 
@@ -1608,37 +1611,38 @@ void hs_object_set_shield(int object_handle, float fraction)
 void hs_object_set_permutation(int object_handle, int region_name,
                                int permutation_name)
 {
-  char *object_tag;
-  char *model_tag;
-  char *regions;
+  char *object_definition;
+  char *model;
   int model_index;
+  short desired_region_index;
   short region_index;
-  short i;
+  char *region;
 
   if (object_handle == -1)
     return;
 
-  object_tag = (char *)tag_get(
+  object_definition = (char *)tag_get(
     0x6f626a65 /* 'obje' */,
     (int)((object_data_t *)object_get_and_verify_type(object_handle, -1))
       ->tag_index);
-  region_index = -1;
+  desired_region_index = -1;
   if (csstrcmp((const char *)region_name, "") != 0) {
-    model_index = *(int *)(object_tag + 0x34);
+    model_index = *(int *)(object_definition + 0x34);
     if (model_index != -1) {
-      model_tag = (char *)tag_get(0x6d6f6465 /* 'mode' */, model_index);
-      regions = model_tag + 0xc4;
-      for (i = 0; i < *(int *)regions; i++) {
-        if (crt_stricmp((const char *)tag_block_get_element(regions, i, 0x4c),
-                        (const char *)region_name) == 0) {
-          region_index = i;
+      model = (char *)tag_get(0x6d6f6465 /* 'mode' */, model_index);
+      for (region_index = 0; region_index < *(int *)(model + 0xc4);
+           region_index++) {
+        region = (char *)tag_block_get_element(model + 0xc4, region_index,
+                                               0x4c);
+        if (crt_stricmp(region, (const char *)region_name) == 0) {
+          desired_region_index = region_index;
           break;
         }
       }
     }
   }
   object_permute_region(object_handle, (const char *)permutation_name,
-                        region_index, 1);
+                        desired_region_index, 1);
 }
 
 /* 0xc9d40 — Walk an HS object list and hand every member handle to
@@ -1962,11 +1966,6 @@ void hs_sound_set_gain(const char *sound_name, real value)
   }
 }
 
-void FUN_000ca030(int param_1, float param_2)
-{
-  hs_sound_set_gain((const char *)param_1, param_2);
-}
-
 /* 0xca050 — Walk an HS object list and require the FUN_0018ef00 predicate to
  * hold for EVERY member; commit the resulting boolean into the same 256-bit
  * vector at 0x5aa6a0 that 0xc9650 writes, at bit `bit_index`.
@@ -2119,11 +2118,6 @@ void hs_object_create_anew_containing(const char *substring)
   hs_object_iterate_names_containing(hs_object_create_anew, substring);
 }
 
-void FUN_000ca140(const char *substring)
-{
-  hs_object_create_anew_containing(substring);
-}
-
 /* 0xca160 — Object script execution context dispatcher / cutscene flag teleporter.
  *
  * Binary evidence (0xca160..0xca3ea, regparm object_handle@<ebx>, 3 stack args):
@@ -2136,15 +2130,13 @@ void hs_object_orient(int object_handle, int flag_index, char dismount_unit, cha
 {
   char *object;
   char *flag;
-  vector3_t *flag_pos;
   vector3_t forward;
   vector3_t transformed_forward;
-  float local_matrix[16];
+  real_matrix4x3 local_matrix;
   char *unit;
   int player_index;
   char *player;
   vector3_t *forward_ptr;
-  vector3_t *pos_ptr;
 
   if (object_handle == -1) {
     return;
@@ -2152,14 +2144,14 @@ void hs_object_orient(int object_handle, int flag_index, char dismount_unit, cha
 
   object = (char *)object_get_and_verify_type(object_handle, -1);
   flag = (char *)tag_block_get_element((char *)global_scenario_get() + 0x4e4, (int16_t)flag_index, 0x5c);
-  flag_pos = (vector3_t *)(flag + 0x24);
   player = NULL;
 
-  if (!valid_real_point3d((float *)flag_pos)) {
+  if (!valid_real_point3d((float *)(flag + 0x24))) {
     display_assert(
       csprintf((char *)0x5ab100, "%s: assert_valid_real_point3d(%f, %f, %f)",
-               "&flag->position", (double)flag_pos->x, (double)flag_pos->y,
-               (double)flag_pos->z),
+               "&flag->position", (double)((vector3_t *)(flag + 0x24))->x,
+               (double)((vector3_t *)(flag + 0x24))->y,
+               (double)((vector3_t *)(flag + 0x24))->z),
       "c:\\halo\\SOURCE\\hs\\hs_library_external.c", 0x1cc, true);
     system_exit(-1);
   }
@@ -2187,10 +2179,9 @@ void hs_object_orient(int object_handle, int flag_index, char dismount_unit, cha
   if (unit != NULL) {
     player_index = player_index_from_unit_index(object_handle);
     if (*(int *)(unit + 0xcc) != -1) {
-      void *node_mat;
-      node_mat = object_get_node_matrix(*(int *)(unit + 0xcc), (int16_t)*(int8_t *)(unit + 0xd0));
-      matrix_inverse((float *)node_mat, local_matrix);
-      matrix_transform_vector(local_matrix, (float *)&forward, (float *)&transformed_forward);
+      matrix_inverse((float *)object_get_node_matrix(*(int *)(unit + 0xcc), (int16_t)*(int8_t *)(unit + 0xd0)),
+                     (float *)&local_matrix);
+      matrix_transform_vector((float *)&local_matrix, (float *)&forward, (float *)&transformed_forward);
     } else {
       transformed_forward = forward;
     }
@@ -2204,7 +2195,7 @@ void hs_object_orient(int object_handle, int flag_index, char dismount_unit, cha
     if (player_index != -1) {
       player = (char *)datum_get(*(data_t **)0x5aa6d4, player_index);
       if (dismount_unit) {
-        player_teleport(player_index, -1, flag_pos);
+        player_teleport(player_index, -1, (vector3_t *)(flag + 0x24));
       }
       if (set_camera && *(int16_t *)(player + 2) != -1) {
         player_control_set_facing(*(int16_t *)(player + 2), (float *)&transformed_forward);
@@ -2212,22 +2203,13 @@ void hs_object_orient(int object_handle, int flag_index, char dismount_unit, cha
     }
   }
 
-  forward_ptr = NULL;
-  if (set_camera && player == NULL) {
-    forward_ptr = &forward;
-  }
+  forward_ptr = (set_camera && player == NULL) ? &forward : NULL;
 
-  pos_ptr = NULL;
   if (dismount_unit && player == NULL) {
-    pos_ptr = flag_pos;
+    object_set_position(object_handle, (float *)(flag + 0x24), (float *)forward_ptr, NULL);
+  } else {
+    object_set_position(object_handle, NULL, (float *)forward_ptr, NULL);
   }
-
-  object_set_position(object_handle, (float *)pos_ptr, (float *)forward_ptr, NULL);
-}
-
-void FUN_000ca160(int object_handle, int flag_index, char dismount_unit, char set_camera)
-{
-  hs_object_orient(object_handle, flag_index, dismount_unit, set_camera);
 }
 
 /* 0xca3f0 — Two-argument forwarder onto 0xca160 with both trailing byte
@@ -2256,28 +2238,6 @@ void FUN_000ca160(int object_handle, int flag_index, char dismount_unit, char se
 void hs_object_teleport(int a, int b)
 {
   hs_object_orient(a, b, 1, 1);
-}
-
-/* 0xca410 — Two-argument forwarder onto 0xca160, sibling of 0xca3f0 with
- * the trailing byte flags pinned to (0, 1).
- *
- * Binary evidence (0xca410..0xca429, cdecl, EBP frame, EBX saved):
- *
- *   PUSH EBP / MOV EBP,ESP
- *   MOV EAX,dword ptr [EBP+0xc]   ; second parameter, forwarded as a dword
- *   PUSH EBX
- *   MOV EBX,dword ptr [EBP+0x8]   ; first parameter -> @<ebx> register arg
- *                                 ;   of 0xca160 (kb.json decl)
- *   PUSH 0x1 / PUSH 0x0 / PUSH EAX / CALL 0xca160 / ADD ESP,0xc
- *                                 ; cdecl: first PUSH is the LAST argument,
- *                                 ;   so the stack args are ([EBP+0xc], 0, 1)
- *   POP EBX / POP EBP / RET
- *
- * No branch, no local, no other side effect. Parameter meanings and the
- * meaning of 0xca160 are unproven, so the names stay mechanical. */
-void FUN_000ca410(int a, int b)
-{
-  FUN_000ca160(a, b, 0, 1);
 }
 
 /* 0xca430 — Walk every player datum; for each player whose unit handle at
@@ -2330,15 +2290,15 @@ void FUN_000ca410(int a, int b)
 void hs_teleport_players_not_in_trigger_volume(int cluster_index, int param_2)
 {
   int player_index;
-  char *player;
+  player_data_t *player;
 
-  for (player_index = data_next_index(*(data_t **)0x5aa6d4, -1);
+  for (player_index = data_next_index(player_data, -1);
        player_index != -1;
-       player_index = data_next_index(*(data_t **)0x5aa6d4, player_index)) {
-    player = (char *)datum_get(*(data_t **)0x5aa6d4, player_index);
-    if (*(int *)(player + 0x34) != -1 &&
-        FUN_0018ef00(cluster_index, *(int *)(player + 0x34)) == 0) {
-      hs_object_orient(*(int *)(player + 0x34), param_2, 1, 1);
+       player_index = data_next_index(player_data, player_index)) {
+    player = (player_data_t *)datum_get(player_data, player_index);
+    if (player->unit_handle != -1 &&
+        FUN_0018ef00(cluster_index, player->unit_handle) == 0) {
+      hs_object_orient(player->unit_handle, param_2, 1, 1);
     }
   }
 }
@@ -2851,29 +2811,30 @@ void hs_thread_delete(int thread_handle)
 char *hs_get_thread_script_name(int thread_index)
 {
   char *thread;
-  uint8_t type;
+  char *name;
 
+  name = NULL;
   thread = (char *)datum_get(*(data_t **)0x5aa6c4, thread_index);
-  type = *(uint8_t *)(thread + 0x2);
-
-  switch (type) {
+  switch (*(uint8_t *)(thread + 0x2)) {
   case 0:
-    return (char *)tag_block_get_element(
+    name = (char *)tag_block_get_element(
       (char *)global_scenario_get() + 0x49c,
       *(int32_t *)((char *)datum_get(*(data_t **)0x5aa6c4, thread_index) + 0x4),
       0x5c);
-
+    break;
   case 1:
-    return "[global initialize]";
-
+    name = "[global initialize]";
+    break;
   case 2:
-    return "[console command]";
-
+    name = "[console command]";
+    break;
   default:
     display_assert(NULL, "c:\\halo\\SOURCE\\hs\\hs_runtime.c", 0x2a9, true);
     system_exit(-1);
-    return NULL;
+    break;
   }
+
+  return name;
 }
 
 /* 0xcab00 — Push a new frame onto the HaloScript thread's stack.
@@ -3063,10 +3024,6 @@ void hs_wake(int thread_handle)
   }
 }
 
-void FUN_000cacf0(int thread_handle)
-{
-  hs_wake(thread_handle);
-}
 
 /* 0xcada0 — Find an HS thread whose script index (at +4) matches the given
  * index. Iterates hs_thread_data; returns the matching datum handle or -1. */

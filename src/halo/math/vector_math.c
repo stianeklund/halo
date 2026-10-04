@@ -94,12 +94,13 @@ void FUN_00012110(int actor_handle)
  * Confirmed: arg1=a [EBP+0x8], arg2=b [EBP+0xc], arg3=result [EBP+0x10].
  * Confirmed: FLD [ECX] / FSUB [EDX] / FSTP [EAX] where ECX=b, EDX=a,
  * EAX=result. */
-float * FUN_00012140(float *a, float *b, float *result)
+float *FUN_00012140(float *a, float *b, float *result)
 {
   result[0] = b[0] - a[0];
   result[1] = b[1] - a[1];
   result[2] = b[2] - a[2];
-return result; }
+  return result;
+}
 
 /* 0x12170 — FUN_00012170: squared magnitude of a 3D vector.
  *
@@ -195,14 +196,15 @@ void action_alert_update(int actor_handle)
     return;
   }
 
-  distance_sq = distance_squared3d((const float *)(actor + 0x12c),
-                                   (const float *)(actor + 0xa8));
+  distance_sq =
+    distance_squared3d((const float *)&((actor_t *)actor)->body_position,
+                       (const float *)(actor + 0xa8));
 
   assert_halt_msg_at("!actor->meta.swarm",
                      "c:\\halo\\SOURCE\\ai\\action_alert.c", 0xae,
                      *(char *)(actor + 0x6) == 0);
 
-  if (actor_path_at_destination(actor_handle) != 0 ||
+  if ((char)actor_path_at_destination(actor_handle) != '\0' ||
       distance_sq < *(float *)0x25337c) {
     initiative = *(short *)(actor + 0x9e);
     if (initiative > 0) {
@@ -215,11 +217,13 @@ void action_alert_update(int actor_handle)
                                         command_index, 0x3c);
         animation = *(int *)((char *)command + 0x2c);
         if (animation == -1) {
-          object = (int *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+          object = (int *)object_get_and_verify_type(
+            ((actor_t *)actor)->meta_unit_index, 3);
           definition = (unsigned char *)tag_get(0x756e6974, *object);
           animation = *(int *)(definition + 0x44);
         }
-        FUN_001ac180(*(int *)(actor + 0x18), animation, command, 1);
+        FUN_001ac180(((actor_t *)actor)->meta_unit_index, animation, command,
+                     1);
       }
       *(unsigned char *)(actor + 0xa6) = 0;
     }
@@ -281,8 +285,8 @@ short action_alert_next_position(int actor_handle, short param_2, short param_3,
     squad = tag_block_get_element((char *)squad + 0x80,
                                   *(short *)(actor + 0x3a), 0xe8);
     if (*(char *)(actor + 6) != 0) {
-      display_assert("!actor->meta.swarm", "c:\\halo\\SOURCE\\ai\\action_alert.c",
-                     0x113, 1);
+      display_assert("!actor->meta.swarm",
+                     "c:\\halo\\SOURCE\\ai\\action_alert.c", 0x113, 1);
       system_exit(-1);
     }
     if ((short)param_2 == 1 && (short)param_3 != -1) {
@@ -335,9 +339,9 @@ short action_alert_next_position(int actor_handle, short param_2, short param_3,
         result = -1;
       } else {
         if ((short)param_2 == 5) {
-          result = choose_random_array_element(*(void **)((char *)squad + 0xc8),
-                                               0x50, (short)*positions, 0x10,
-                                               used_flags);
+          result =
+            choose_random_array_element(*(void **)((char *)squad + 0xc8), 0x50,
+                                        (short)*positions, 0x10, used_flags);
         } else {
           next = (short)param_3;
           if (next < 0 || next >= *positions) {
@@ -458,18 +462,19 @@ bool action_alert_perform(int actor_handle)
     }
     if (*(short *)(actor + 0xa2) != -1 &&
         actor_path_has_path(actor_handle) != '\0') {
-      dist2 = distance_squared3d((const float *)(actor + 0x12c),
-                                 (const float *)(actor + 0xa8));
+      dist2 =
+        distance_squared3d((const float *)&((actor_t *)actor)->body_position,
+                           (const float *)(actor + 0xa8));
       tolerance = actor_destination_tolerance(actor_handle);
-      if (tolerance <= *(float *)0x253398) {
+      if (!(tolerance > *(float *)0x253398)) {
         tolerance = *(float *)0x253398;
       }
-      if (tolerance * tolerance < dist2) {
+      if (dist2 > tolerance * tolerance) {
         goto update_command;
       }
     }
     if (*(short *)(actor + 0x9e) <= 0 && *(char *)(actor + 0xa6) == '\0') {
-      unit = object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+      unit = object_get_and_verify_type(((actor_t *)actor)->meta_unit_index, 3);
       if (*(char *)((char *)unit + 0x253) != 0x1c) {
         *(short *)(actor + 0xa4) = action_alert_next_position(
           actor_handle, *(unsigned short *)(actor + 0x9c),
@@ -666,6 +671,45 @@ void FUN_00012a80(int actor_handle)
   }
 }
 
+/* 0x12ad0 — charge range for an actor: action_type is compared as a 16-bit
+ * value (CMP SI); 0x2533c0 is 0.0f. */
+float FUN_00012ad0(int actor_handle, int action_type, void *charge_state)
+{
+  char *actor;
+  char *definition;
+  float range;
+  float limit;
+
+  actor = (char *)datum_get(*(data_t **)0x6325a4, actor_handle);
+  range = 0.0f;
+  if ((short)action_type == 2 || (short)action_type == 3) {
+    definition = (char *)tag_get(0x61637472, *(int *)(actor + 0x58));
+    if ((short)action_type == 3 && !(0.0f > *(float *)(definition + 0x388))) {
+      range = *(float *)(definition + 0x388);
+    }
+    if (*(char *)((char *)charge_state + 0x30) != '\0') {
+      if (!(range > *(float *)(definition + 0x37c))) {
+        range = *(float *)(definition + 0x37c);
+      }
+      return range;
+    }
+    limit = *(float *)(definition + 0x37c) +
+            *(float *)((char *)charge_state + 0x34);
+    if (!(range > limit)) {
+      range = limit;
+    }
+    return range;
+  }
+  if ((short)action_type == 4 || (short)action_type == 0) {
+    if (actor_has_ranged_weapon(actor_handle) &&
+        *(short *)(actor + 0x268) >= 7 &&
+        !(0.0f > *(float *)(actor + 0x608))) {
+      range = *(float *)(actor + 0x608);
+    }
+  }
+  return range;
+}
+
 /* 0x12be0 — FUN_00012be0: bump the short counter at actor+0xaa when the actor
  * is in state 3 (same state constant guarded by FUN_00012e50) and three gate
  * bytes agree.
@@ -831,11 +875,12 @@ float FUN_00012ea0(float x)
 }
 
 /* 0x12eb0 — Scale a 2D vector: out = scale * in. */
-float * FUN_00012eb0(float *in, float scale, float *out)
+float *FUN_00012eb0(float *in, float scale, float *out)
 {
   out[0] = scale * in[0];
   out[1] = scale * in[1];
-return out; }
+  return out;
+}
 
 /* 0x12ed0 — Squared magnitude of a 2D vector. */
 float FUN_00012ed0(float *v)
@@ -885,12 +930,13 @@ float *vector3d_scale_add(float *base, float *direction, float scale,
 }
 
 /* 0x12fb0 — Scale a 3D vector: out = scale * in. */
-float * FUN_00012fb0(float *in, float scale, float *out)
+float *FUN_00012fb0(float *in, float scale, float *out)
 {
   out[0] = scale * in[0];
   out[1] = scale * in[1];
   out[2] = scale * in[2];
-return out; }
+  return out;
+}
 
 /* 0x12fe0 — Magnitude of a 3D vector. */
 float FUN_00012fe0(float *v)
@@ -951,12 +997,13 @@ float FUN_00013070(float *a, float *b)
 }
 
 /* 0x13090 — Subtract two 3D vectors: out = a - b. */
-float * FUN_00013090(float *a, float *b, float *out)
+float *FUN_00013090(float *a, float *b, float *out)
 {
   out[0] = a[0] - b[0];
   out[1] = a[1] - b[1];
   out[2] = a[2] - b[2];
-return out; }
+  return out;
+}
 
 /* 0x130d0 — Ray-cast between two points. Computes the direction vector
  * (point_b - point_a) and delegates to FUN_0014df70 for the actual
@@ -1037,15 +1084,14 @@ bool action_charge_perform(int actor_index)
         check_range = 0;
       } else if (*(char *)(actor + 0x378) ||
                  !actor_has_ranged_weapon(actor_index)) {
-        abort_range = berserk_ranges
-                        ? *(float *)(variant_definition + 0x174)
-                        : *(float *)(variant_definition + 0x164);
+        abort_range = berserk_ranges ? *(float *)(variant_definition + 0x174) :
+                                       *(float *)(variant_definition + 0x164);
       }
 
       if (*(char *)(actor + 0x1cb)) {
         float maximum_abort_range =
-          (0.0f > *(float *)&definition[0xdf] ? 0.0f
-                                              : *(float *)&definition[0xdf]) +
+          (0.0f > *(float *)&definition[0xdf] ? 0.0f :
+                                                *(float *)&definition[0xdf]) +
           0.8f;
 
         abort_range =
@@ -1063,8 +1109,7 @@ bool action_charge_perform(int actor_index)
             if (*(float *)&definition[0xe2] == 0.0f ||
                 *(float *)&definition[0xe4] == 0.0f) {
               *(char *)(state + 0xa) = 0;
-            } else if (*(char *)(prop + 0x130) ||
-                       *(short *)(prop + 0x9c) > 0) {
+            } else if (*(char *)(prop + 0x130) || *(short *)(prop + 0x9c) > 0) {
               *(char *)(state + 0xa) = 1;
             }
 
@@ -1124,9 +1169,9 @@ bool action_charge_perform(int actor_index)
 
         weapon = actor_get_weapon_definition(actor_index);
         if (weapon && *(float *)(weapon + 0x40c) > 0.0f) {
-          minimum_range = minimum_range > *(float *)(weapon + 0x40c)
-                            ? minimum_range
-                            : *(float *)(weapon + 0x40c);
+          minimum_range = minimum_range > *(float *)(weapon + 0x40c) ?
+                            minimum_range :
+                            *(float *)(weapon + 0x40c);
         }
 
         if (*(char *)(state + 0x28)) {
@@ -1190,11 +1235,11 @@ bool action_charge_perform(int actor_index)
       lead_fraction = 0.0f;
       speed = FUN_00012fe0((float *)(prop + 0xd4));
       if (speed > 0.0f) {
-        lead_fraction = (FUN_00013070((float *)(prop + 0xd4),
-                                      (float *)(prop + 0xe0)) /
-                           speed +
-                         1.0f) *
-                        0.5f;
+        lead_fraction =
+          (FUN_00013070((float *)(prop + 0xd4), (float *)(prop + 0xe0)) /
+             speed +
+           1.0f) *
+          0.5f;
       }
 
       vector3d_scale_add((float *)(prop + 0xbc), (float *)(prop + 0xd4),
@@ -1356,9 +1401,8 @@ bool action_charge_perform(int actor_index)
       if (!*(char *)(state + 6) && !*(char *)(state + 0xb) &&
           !*(char *)(state + 0xc) && *(char *)(state + 0x28)) {
         float minimum_move_range = *(short *)(state + 4) == 3 ? 4.0f : 1.5f;
-        float move_range = minimum_move_range > target_range
-                             ? minimum_move_range
-                             : target_range;
+        float move_range =
+          minimum_move_range > target_range ? minimum_move_range : target_range;
 
         if (actor_move_to_prop(actor_index, *(int *)(actor + 0x270),
                                move_range)) {
@@ -1405,8 +1449,8 @@ bool action_charge_perform(int actor_index)
   }
 
   if (*(short *)(state + 4) == 2 || *(short *)(state + 4) == 3) {
-    result = *(char *)(state + 8) || *(char *)(state + 7) ||
-             *(char *)(state + 0x29);
+    result =
+      *(char *)(state + 8) || *(char *)(state + 7) || *(char *)(state + 0x29);
   } else if (*(short *)(state + 4) == 4 || *(short *)(state + 4) == 5) {
     result = *(char *)(state + 0x29);
   }
@@ -1453,12 +1497,13 @@ float FUN_000213a0(float *a, float *b)
 }
 
 /* 0x213c0 — Compute out = a + b (3-component). */
-float * vector3d_add(float *a, float *b, float *out)
+float *vector3d_add(float *a, float *b, float *out)
 {
   out[0] = a[0] + b[0];
   out[1] = a[1] + b[1];
   out[2] = a[2] + b[2];
-return out; }
+  return out;
+}
 
 /* 0x21410 — Check if a float is valid (not NaN/Inf). */
 int FUN_00021410(uint32_t bits)

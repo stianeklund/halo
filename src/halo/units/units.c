@@ -1852,41 +1852,41 @@ void units_scripting_set_maximum_vitality(int parent_handle, float param_2, floa
 /* unit_scripting_set_current_vitality (0x1a7b50)
  * Computes and stores body/shield vitality ratios. Triggers events when
  * vitality transitions from nonzero to zero. */
-void unit_scripting_set_current_vitality(int datum_handle, float body_damage, float shield_damage)
+void unit_scripting_set_current_vitality(int datum_handle, float body_vitality, float shield_vitality)
 {
-  float shield_ratio;
-  char *obj;
-  volatile float body_ratio;
+  object_datum_t *obj;
+  float new_shield_vitality;
+  float new_body_vitality;
 
-  if (datum_handle == -1) {
-    return;
+  if (datum_handle != -1) {
+    obj = (object_datum_t *)object_get_and_verify_type(datum_handle, -1);
+    if ((obj->damage_flags & 4) == 0) {
+      if (obj->vitality[OBJECT_VITALITY_MAXIMUM_SHIELD] <= 0.0f) {
+        new_shield_vitality = 0.0f;
+      } else if (shield_vitality >= obj->vitality[OBJECT_VITALITY_MAXIMUM_SHIELD]) {
+        new_shield_vitality = 1.0f;
+      } else {
+        new_shield_vitality = shield_vitality / obj->vitality[OBJECT_VITALITY_MAXIMUM_SHIELD];
+      }
+      if (obj->vitality[OBJECT_VITALITY_MAXIMUM_BODY] <= 0.0f) {
+        new_body_vitality = 0.0f;
+      } else if (body_vitality >= obj->vitality[OBJECT_VITALITY_MAXIMUM_BODY]) {
+        new_body_vitality = 1.0f;
+      } else {
+        new_body_vitality = body_vitality / obj->vitality[OBJECT_VITALITY_MAXIMUM_BODY];
+      }
+      if (obj->vitality[OBJECT_VITALITY_SHIELD] > 0.0f &&
+          new_shield_vitality <= 0.0f) {
+        object_deplete_shield(datum_handle);
+      }
+      obj->vitality[OBJECT_VITALITY_SHIELD] = new_shield_vitality;
+      if (obj->vitality[OBJECT_VITALITY_BODY] > 0.0f &&
+          new_body_vitality <= 0.0f) {
+        object_deplete_body(datum_handle);
+      }
+      obj->vitality[OBJECT_VITALITY_BODY] = new_body_vitality;
+    }
   }
-  obj = (char *)object_get_and_verify_type(datum_handle, -1);
-  if ((*(uint8_t *)(obj + 0xb6) & 4) != 0) {
-    return;
-  }
-  if (*(float *)(obj + 0x8c) <= 0.0f) {
-    body_ratio = 0.0f;
-  } else if (shield_damage < *(float *)(obj + 0x8c)) {
-    body_ratio = shield_damage / *(float *)(obj + 0x8c);
-  } else {
-    body_ratio = 1.0f;
-  }
-  if (*(float *)(obj + 0x88) <= 0.0f) {
-    shield_ratio = 0.0f;
-  } else if (body_damage < *(float *)(obj + 0x88)) {
-    shield_ratio = body_damage / *(float *)(obj + 0x88);
-  } else {
-    shield_ratio = 1.0f;
-  }
-  if (0.0f < *(float *)(obj + 0x94) && body_ratio <= 0.0f) {
-    object_deplete_shield(datum_handle);
-  }
-  *(float *)(obj + 0x94) = body_ratio;
-  if (0.0f < *(float *)(obj + 0x90) && shield_ratio <= 0.0f) {
-    object_deplete_body(datum_handle);
-  }
-  *(float *)(obj + 0x90) = shield_ratio;
 }
 
 /* units_scripting_set_current_vitality (0x1a7c70)

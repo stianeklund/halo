@@ -84,9 +84,10 @@ void data_decode_new(data_encoding_state_t *state, void *buffer, int buffer_size
  * Source: data_encoding.c line 0xde. */
 int data_decode_structures(data_encoding_state_t *state, short count, void *bs_definition)
 {
-  short total_size;
-  int result;
+  short memory_size;
+  char *structures;
 
+  structures = NULL;
   if (!(state != NULL && state->buffer != NULL && state->offset >= 0 &&
         state->offset <= state->buffer_size)) {
     display_assert("state && state->buffer && state->offset>=0 && "
@@ -104,17 +105,17 @@ int data_decode_structures(data_encoding_state_t *state, short count, void *bs_d
                    0xe0, 1);
     system_exit(-1);
   }
-  total_size = *(short *)((char *)bs_definition + 4) * count;
-  if (((int)total_size + state->offset <= state->buffer_size) && (state->overflow == '\0')) {
-    result = (int)state->buffer + state->offset;
-    if (total_size != 0) {
-      byte_swap_structures(bs_definition, (void *)result, (int)count);
-      state->offset = state->offset + (int)total_size;
+  memory_size = *(short *)((char *)bs_definition + 4) * count;
+  if (((int)memory_size + state->offset <= state->buffer_size) && (state->overflow == '\0')) {
+    structures = (char *)state->buffer + state->offset;
+    if (memory_size != 0) {
+      byte_swap_structures(bs_definition, (void *)structures, (int)count);
+      state->offset = state->offset + (int)memory_size;
     }
-    return result;
+  } else {
+    state->overflow = 1;
   }
-  state->overflow = 1;
-  return 0;
+  return (int)structures;
 }
 
 /* decode_raw_data — byte-swap raw elements in the buffer (0x11a430).
@@ -250,11 +251,11 @@ int64_t data_decode_int64(data_encoding_state_t *state)
 {
   int64_t *ptr;
 
-  ptr = (int64_t *)data_decode_memory(state, 1, -8);
-  if (ptr != NULL) {
-    return *ptr;
-  }
-  return 0;
+  /* Single-expression form: the null check and the 8-byte load share the
+   * returned pointer register. */
+  return (ptr = (int64_t *)data_decode_memory(state, 1, -8))
+           ? *ptr
+           : 0;
 }
 
 /* decode_value — width-adaptive read based on maximum_value (0x11a700).
@@ -277,11 +278,11 @@ __declspec(noinline) unsigned int data_decode_integer(data_encoding_state_t *sta
 
 /* decode_element_array — read count + structures from buffer (0x11a770).
  * Source: data_encoding.c line 0x15c. */
-void *data_decode_array(data_encoding_state_t *state, int element_size_type,
-                   unsigned int *element_count_ref, int maximum_element_count,
+void *data_decode_array(data_encoding_state_t *state, int element_size,
+                   unsigned int *element_count_reference, int maximum_element_count,
                    void *bs_definition)
 {
-  int count;
+  int element_count;
 
   if (state == NULL || state->buffer == NULL || state->offset < 0 ||
       state->offset >= state->buffer_size) {
@@ -290,7 +291,7 @@ void *data_decode_array(data_encoding_state_t *state, int element_size_type,
                    "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x15c, 1);
     system_exit(-1);
   }
-  if (element_count_ref == NULL) {
+  if (element_count_reference == NULL) {
     display_assert("element_count_reference",
                    "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x15d, 1);
     system_exit(-1);
@@ -305,28 +306,27 @@ void *data_decode_array(data_encoding_state_t *state, int element_size_type,
                    0x15f, 1);
     system_exit(-1);
   }
-  switch (element_size_type) {
+  switch (element_size) {
   case 1:
-    count = (int)(unsigned char)data_decode_byte(state);
+    element_count = (int)(unsigned char)data_decode_byte(state);
     break;
   case -2:
-    count = (int)(short)data_decode_short(state);
+    element_count = (int)(short)data_decode_short(state);
     break;
   case -4:
-    count = data_decode_long(state);
+    element_count = data_decode_long(state);
     break;
   case -8:
-    count = (int)data_decode_int64(state);
+    element_count = (int)data_decode_int64(state);
     break;
   default:
     display_assert(NULL, "c:\\halo\\SOURCE\\memory\\data_encoding.c", 0x172, 1);
     system_exit(-1);
-    count = (int)*element_count_ref;
     break;
   }
-  if (state->overflow == '\0' && count >= 0 && count <= maximum_element_count) {
-    *element_count_ref = (unsigned int)count;
-    return (void *)data_decode_structures(state, (short)count, bs_definition);
+  if (state->overflow == '\0' && element_count >= 0 && element_count <= maximum_element_count) {
+    *element_count_reference = (unsigned int)element_count;
+    return (void *)data_decode_structures(state, (short)element_count, bs_definition);
   }
   return NULL;
 }
@@ -411,8 +411,8 @@ bool data_packet_group_decode_packet(int group, void *decoded_packet, char *enco
                    "c:\\halo\\SOURCE\\memory\\data_packet_groups.c", 0x4b, 1);
     system_exit(-1);
   }
-  if (expected_packet_class < 0 ||
-      *(short *)(group + 6) <= expected_packet_class) {
+  if (!(expected_packet_class >= 0 &&
+        expected_packet_class < ((group_definition *)group)->packet_class_count)) {
     display_assert("expected_packet_class>=0 && "
                    "expected_packet_class<group_definition->packet_class_count",
                    "c:\\halo\\SOURCE\\memory\\data_packet_groups.c", 0x4d, 1);
@@ -423,12 +423,12 @@ bool data_packet_group_decode_packet(int group, void *decoded_packet, char *enco
     byte_swap_structures(packet_header_bs_def, header_ptr, 1);
     packet_type_byte = *header_ptr;
     if (packet_type_byte >= 0 &&
-        (short)packet_type_byte < *(short *)(group + 4)) {
-      packets_array = *(int *)(group + 0x10);
-      if (*(short *)(packets_array + (int)packet_type_byte * 8) ==
+        (short)packet_type_byte < ((group_definition *)group)->packet_count) {
+      packets_array = (int)((group_definition *)group)->packets;
+      if (((packet_entry *)packets_array)[(int)packet_type_byte].packet_class ==
           expected_packet_class) {
         *encoded_packet_size = *encoded_packet_size - 1;
-        definition = *(int *)(packets_array + (int)packet_type_byte * 8 + 4);
+        definition = (int)((packet_entry *)packets_array)[(int)packet_type_byte].definition;
         if (definition == 0 ||
             data_packet_decode(definition, (int)encoded_packet,
                                *encoded_packet_size, (int)decoded_packet,
@@ -464,8 +464,6 @@ void _data_packet_decode(int definition, data_encoding_state_t *decode_state, un
   unsigned short *cur_output;
   int raw_ptr;
   unsigned int var_count;
-  short local_c[2];
-  short local_8[2];
   unsigned int loop_count;
 
   cur_field = field_defs;
@@ -524,11 +522,13 @@ void _data_packet_decode(int definition, data_encoding_state_t *decode_state, un
       case 7: {
         unsigned short nested_count;
         unsigned short *nested_output;
+        short element_size;
+        short element_field_count;
 
         nested_count =
           (unsigned short)data_decode_integer(decode_state, (int)cur_field[1]);
         compute_packet_field_sizes((packet_definition *)definition, 0,
-                                   cur_field + 5, local_c);
+                                   cur_field + 5, &element_field_count);
         if ((short)nested_count < 0 || (short)nested_count > cur_field[1]) {
           nested_count = 0;
         }
@@ -538,13 +538,13 @@ void _data_packet_decode(int definition, data_encoding_state_t *decode_state, un
           loop_count = (unsigned int)nested_count;
           do {
             _data_packet_decode(definition, decode_state, version, nested_output,
-                         local_8, cur_field + 5, 0);
+                         &element_size, cur_field + 5, 0);
             nested_output =
-              (unsigned short *)((int)nested_output + (int)local_8[0]);
+              (unsigned short *)((int)nested_output + (int)element_size);
             loop_count = loop_count - 1;
           } while (loop_count != 0);
         }
-        cur_field = cur_field + (int)local_c[0] * 5;
+        cur_field = cur_field + (int)element_field_count * 5;
         break;
       }
       }

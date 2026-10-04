@@ -912,6 +912,50 @@ void FUN_00131a00(void)
   }
 }
 
+/*
+ * FUN_00131a20 (0x131a20) -- fill a param_5 x param_5 square of interior
+ * flag cells at (param_3, param_4). param_3..param_6 are read as int16_t.
+ */
+void FUN_00131a20(void *definition, void *flag, int param_3, int param_4,
+                  int param_5, int param_6)
+{
+  int16_t x_start;
+  int x;
+  int y;
+  int16_t x_offset;
+  int16_t y_offset;
+  int16_t *cell;
+
+  x_start = (int16_t)param_3;
+  for (; (int16_t)param_3 < x_start + (int16_t)param_5; param_3++) {
+    x = (int16_t)param_3;
+    for (y = param_4; (int16_t)y < (int16_t)param_4 + (int16_t)param_5;
+         y++) {
+      if ((int16_t)param_3 >= 0 && (int16_t)y >= 0 &&
+          x < *(int16_t *)((char *)definition + 0xc) - 1 &&
+          (int16_t)y < *(int16_t *)((char *)definition + 0xe) - 1) {
+        if ((int16_t)param_6 == 4 || (int16_t)param_6 == 5) {
+          x_offset = x - x_start;
+        } else {
+          x_offset = (int16_t)param_5 - x + x_start - 1;
+        }
+        if ((int16_t)param_6 == 4 || (int16_t)param_6 == 2) {
+          y_offset = (int16_t)y - (int16_t)param_4;
+        } else {
+          y_offset = (int16_t)param_5 - (int16_t)y + (int16_t)param_4 - 1;
+        }
+        cell = telnet_console_print(flag, definition, (int16_t)param_3,
+                                    (int16_t)y);
+        if (x_offset == y_offset) {
+          *cell = (int16_t)param_6;
+        } else {
+          *cell = x_offset <= y_offset;
+        }
+      }
+    }
+  }
+}
+
 /* FUN_00131b40 (0x131b40) -- delete an antenna debug-data datum. */
 void FUN_00131b40(int datum_handle)
 {

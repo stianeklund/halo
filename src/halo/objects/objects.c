@@ -6283,50 +6283,50 @@ void *object_header_block_reference_get(int object_handle, void *reference)
  * Confirmed: csmemset(header->object + old_data_size, 0, size).
  * Confirmed: asserts at objects.c lines 0x99b, 0x99c, 0x99e, 0x99f.
  */
-int object_header_block_allocate(int object_handle, int offset, int size)
+int object_header_block_allocate(int object_index, int block_reference_offset, int size)
 {
-  object_header_data_t *header;
-  short ssize;
-  short soffset;
-  short old_data_size;
+  object_header_data_t *object_header;
+  short size16;
+  short offset16;
+  short original_size;
   char *obj_base;
-  short *block_ref;
+  short *block;
 
-  header =
-    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_handle);
-  ssize = (short)size;
-  if (ssize < 0) {
+  object_header =
+    (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, object_index);
+  size16 = (short)size;
+  if (size16 < 0) {
     display_assert("size>=0", "c:\\halo\\SOURCE\\objects\\objects.c", 0x99b, 1);
     system_exit(-1);
   }
-  if (0x7fff < (int)(short)header->data_size + (int)ssize) {
+  if (0x7fff < (int)(short)object_header->data_size + (int)size16) {
     display_assert("object_header->data_size+size<=SHORT_MAX",
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0x99c, 1);
     system_exit(-1);
   }
-  soffset = (short)offset;
-  if (soffset < 0) {
+  offset16 = (short)block_reference_offset;
+  if (offset16 < 0) {
     display_assert("block_reference_offset>=0",
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0x99e, 1);
     system_exit(-1);
   }
-  if ((unsigned int)(int)(short)header->data_size <
-      (unsigned int)((int)soffset + 4)) {
+  if (!((unsigned int)((int)offset16 + 4) <=
+         (unsigned int)(int)(short)object_header->data_size)) {
     display_assert("block_reference_offset+sizeof(struct "
                    "object_header_block_reference)<=object_header->data_size",
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0x99f, 1);
     system_exit(-1);
   }
 
-  if (memory_pool_block_resize(*(void **)0x46f080, (void **)&header->object,
-                               (int)(short)header->data_size + (int)ssize)) {
-    old_data_size = (short)header->data_size;
-    header->data_size = (uint16_t)(old_data_size + ssize);
-    obj_base = (char *)object_get_and_verify_type(object_handle, -1);
-    block_ref = (short *)(obj_base + soffset);
-    block_ref[1] = old_data_size;
-    block_ref[0] = ssize;
-    csmemset((char *)header->object + (int)old_data_size, 0, (int)ssize);
+  if (memory_pool_block_resize(*(void **)0x46f080, (void **)&object_header->object,
+                               (int)(short)object_header->data_size + (int)size16)) {
+    original_size = (short)object_header->data_size;
+    object_header->data_size = (uint16_t)(original_size + size16);
+    obj_base = (char *)object_get_and_verify_type(object_index, -1);
+    block = (short *)(obj_base + offset16);
+    block[1] = original_size;
+    block[0] = size16;
+    csmemset((char *)object_header->object + (int)original_size, 0, (int)size16);
     return 1;
   }
   return 0;
@@ -7926,12 +7926,12 @@ void objects_dispose(void)
 
   if (!game_in_editor()) {
     /* Not in editor: just null the pointer, do not free */
-    data_t **obj_data_ptr = (data_t **)0x5a8d50;
-    if (*obj_data_ptr != 0) {
-      *obj_data_ptr = 0;
+    /* object header table pointer */
+    if (object_header_data != 0) {
+      object_header_data = 0;
     }
   } else {
-    data_t *obj_data = *(data_t **)0x5a8d50;
+    data_t *obj_data = object_header_data;
     data_dispose(obj_data);
   }
 
@@ -7940,8 +7940,8 @@ void objects_dispose(void)
   }
 
   /* Zero out cluster partition structs (3 data_t* fields each) */
-  cluster_partition_null_references((int *)0x5a8d40);
-  cluster_partition_null_references((int *)0x5a8d30);
+  cluster_partition_null_references(collideable_object_cluster_partition);
+  cluster_partition_null_references(noncollideable_object_cluster_partition);
 }
 
 /*

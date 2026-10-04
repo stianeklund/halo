@@ -264,6 +264,43 @@ float effect_scale_factor(float param_1, float param_2)
   return (*(float *)0x002533c8 - param_1) * param_2 + param_1;
 }
 
+/* 0xa2ab0 / player_effects.obj.  The descriptor arrives in EBX; the first
+ * stack argument (a local player index) is never read.  `scale` is converted
+ * to ticks and narrowed back into its own argument slot (FSTP [EBP+0x14]). */
+void player_effect_update_screen_flash(int local_player_index, char *effect,
+                                       float intensity, float scale,
+                                       void *descriptor /* @<ebx> */)
+{
+  double duration;
+
+  (void)local_player_index;
+
+  scale = scale * TICKS_PER_SECOND;
+  HALO_FLT_ROUNDTRIP(scale);
+  if (!(*(int16_t *)(effect + 0x1a) > ((int16_t *)descriptor)[1] &&
+        (float)*(int16_t *)(effect + 0xde) >
+          scale * *(float *)((char *)descriptor + 0x10)) &&
+      ((int16_t *)0x2ef7e0)[*(int16_t *)descriptor] != 0) {
+    memcpy(effect + 0x18, descriptor, 0x38);
+    /* FST keeps the unnarrowed product in ST0 for _ftol2; a float*float
+     * product is exact in double. */
+    duration = (double)scale * *(float *)(effect + 0x28);
+    *(float *)(effect + 0x28) = (float)duration;
+    *(int16_t *)(effect + 0xde) = (int16_t)(int64_t)duration;
+    *(float *)(effect + 0x3c) =
+      effect_scale_factor(*(float *)((char *)descriptor + 0x24), intensity) <
+          *(float *)0x002533c0
+        ? *(float *)0x002533c0
+        : (effect_scale_factor(*(float *)((char *)descriptor + 0x24),
+                               intensity) >
+               *(float *)((char *)descriptor + 0x20)
+             ? *(float *)((char *)descriptor + 0x20)
+             : effect_scale_factor(*(float *)((char *)descriptor + 0x24),
+                                   intensity));
+    *(uint8_t *)(effect + 0xe8) |= 1;
+  }
+}
+
 /* effect_scale_value -- evaluates a transition function at
  * t = 1.0f - param_2 / param_3 and scales the result by param_1.
  *
@@ -364,61 +401,6 @@ void scripted_player_effect_stop(int param_1)
   *(uint32_t *)(globals + 0x3e4) |= 2;
 }
 
-/* player_effect_set_from_descriptor -- apply an effect descriptor to a player's
- * effect state. Internal helper at 0xa2ab0.
- *
- * The original binary passes the descriptor in EBX as a register arg;
- * we pass it explicitly since all callers are in this TU.
- *
- * Confirmed: copies 56 bytes (14 dwords) from descriptor to effect+0x18.
- * Confirmed: scales effect+0x28 by intensity_scale.
- * Confirmed: sets effect+0xde to (short)(intensity_scale * effect->field_28).
- * Confirmed: clamps effect+0x3c to [0.0f, max] where max comes from descriptor.
- * Confirmed: sets bit 0 at effect+0xe8.
- */
-static void player_effect_set_from_descriptor(int player_index, char *effect,
-                                              float intensity,
-                                              float intensity_scale,
-                                              void *descriptor)
-{
-  int16_t desc_type = *(int16_t *)descriptor;
-  int16_t desc_priority = *((int16_t *)descriptor + 1);
-  float desc_duration = *(float *)((char *)descriptor + 0x10);
-  float desc_max = *(float *)((char *)descriptor + 0x20);
-  float desc_min = *(float *)((char *)descriptor + 0x24);
-  int16_t effect_priority = *(int16_t *)(effect + 0x1a);
-  int16_t effect_timer = *(int16_t *)(effect + 0xde);
-  int16_t *enabled_array = (int16_t *)0x2ef7e0;
-  float scaled_duration;
-  float clamped_value;
-
-  (void)
-    player_index; /* original binary receives this in ESI but never uses it */
-
-  scaled_duration = intensity_scale * desc_duration;
-
-  if (((effect_priority <= desc_priority) ||
-       ((float)effect_timer <= scaled_duration)) &&
-      (enabled_array[desc_type] != 0)) {
-    csmemcpy(effect + 0x18, descriptor, 0x38);
-
-    *(float *)(effect + 0x28) = intensity_scale * *(float *)(effect + 0x28);
-
-    *(int16_t *)(effect + 0xde) = (int16_t)(*(float *)(effect + 0x28));
-
-    clamped_value = 0.0f;
-    if (0.0f <= ((1.0f - desc_min) * intensity + desc_min)) {
-      if (((1.0f - desc_min) * intensity + desc_min) <= desc_max) {
-        clamped_value = (1.0f - desc_min) * intensity + desc_min;
-      } else {
-        clamped_value = desc_max;
-      }
-    }
-    *(float *)(effect + 0x3c) = clamped_value;
-    *(uint8_t *)(effect + 0xe8) |= 1;
-  }
-}
-
 void player_effect_screen_flash(int player_handle, void *effect_descriptor,
                                 float intensity)
 {
@@ -436,8 +418,8 @@ void player_effect_screen_flash(int player_handle, void *effect_descriptor,
     return;
 
   effect = player_effect_get(unit_index);
-  player_effect_set_from_descriptor(unit_index, effect, intensity,
-                                    intensity * 30.0f, effect_descriptor);
+  player_effect_update_screen_flash(unit_index, effect, intensity, 1.0f,
+                                    effect_descriptor /* @<ebx> */);
 }
 
 /* player_telefrag_effect_start -- start the white full-screen flash and
@@ -445,7 +427,7 @@ void player_effect_screen_flash(int player_handle, void *effect_descriptor,
  *
  * The function builds a synthetic player-effect descriptor on the stack
  * instead of reading one out of a jpt! tag, then runs it through the same two
- * helpers the damage path uses (player_effect_set_from_descriptor at 0xa2ab0
+ * helpers the damage path uses (player_effect_update_screen_flash at 0xa2ab0
  * and player_effect_update_camera_shake).
  *
  * Confirmed (0xa2ed0..0xa2fbc, 237 bytes):
@@ -467,7 +449,7 @@ void player_effect_screen_flash(int player_handle, void *effect_descriptor,
  *     the local-player index is sign-extended to 32 bits before CMP ESI,-1,
  *     so the C local is `int`, exactly as in player_telefrag_effect_stop.
  *   - Descriptor stores (offsets from EBP-0x3c; field meanings come from
- *     player_effect_set_from_descriptor, which csmemcpy's all 0x38 bytes into
+ *     player_effect_update_screen_flash, which copies all 0x38 bytes into
  *     effect+0x18):
  *       +0x00 word 1     effect type
  *       +0x02 word 2     priority
@@ -533,8 +515,8 @@ void player_telefrag_effect_start(int player_handle, float intensity)
 
     rumble_player_continuous((short)local_player_index, *(int *)&intensity,
                              *(int *)&intensity);
-    player_effect_set_from_descriptor(local_player_index, effect, intensity,
-                                      1.0f, descriptor);
+    player_effect_update_screen_flash(local_player_index, effect, intensity,
+                                      1.0f, descriptor /* @<ebx> */);
     player_effect_update_camera_shake(local_player_index, intensity, 1.0f,
                                       effect_data /* @<eax> */,
                                       (void *)effect /* @<ebx> */);
@@ -607,16 +589,16 @@ void player_effect_get_screen_flash(int16_t player_index, void *screen_flash)
           5,
           (float)(game_time_get() - *(int *)(player_effect_globals + 0x3bc)) /
                 *(int16_t *)(player_effect_globals + 0x3c0) <
-              0.0f
-            ? 0.0f
-            : ((float)(game_time_get() -
+              0.0f ?
+            0.0f :
+            ((float)(game_time_get() -
+                     *(int *)(player_effect_globals + 0x3bc)) /
+                   *(int16_t *)(player_effect_globals + 0x3c0) >
+                 1.0f ?
+               1.0f :
+               (float)(game_time_get() -
                        *(int *)(player_effect_globals + 0x3bc)) /
-                     *(int16_t *)(player_effect_globals + 0x3c0) >
-                   1.0f
-                 ? 1.0f
-                 : (float)(game_time_get() -
-                           *(int *)(player_effect_globals + 0x3bc)) /
-                     *(int16_t *)(player_effect_globals + 0x3c0)));
+                 *(int16_t *)(player_effect_globals + 0x3c0)));
       } else {
         value = 1.0f;
       }
@@ -926,7 +908,7 @@ void player_effect_get_camera_effect_matrix(int16_t local_player_index,
  * Confirmed: assert_halt on direction != NULL.
  * Confirmed: lock_random_seed / unlock_random_seed bracket the entire function.
  * Confirmed: tag_get('jpt!', *damage_params) for tag lookup.
- * Confirmed: player_effect_set_from_descriptor(sVar1, effect, param_4, 1.0f,
+ * Confirmed: player_effect_update_screen_flash(sVar1, effect, param_4, 1.0f,
  * jpt+0x24). Confirmed: *(unsigned int*)(player+0x1c8) & 0x100 checks vehicle
  * driver flag. Confirmed: Global floats: 0x2533c0=0.0f, 0x2533c8=1.0f,
  * 0x25fea8=~0.0, 0x254a58=~0.7854 (PI/4), 0x26af48=~2.3562 (3*PI/4),
@@ -966,8 +948,8 @@ void player_effect_start(int player_handle, void *damage_params,
     jpt_tag = (char *)tag_get(0x6a707421, *(int *)damage_params);
     effect = player_effect_get(unit_index);
 
-    player_effect_set_from_descriptor(unit_index, effect, damage_amount, 1.0f,
-                                      (void *)(jpt_tag + 0x24));
+    player_effect_update_screen_flash(unit_index, effect, damage_amount, 1.0f,
+                                      (void *)(jpt_tag + 0x24) /* @<ebx> */);
     player_effect_update_camera_impulse(unit_index, (float *)(jpt_tag + 0x98),
                                         direction, damage_amount, 1.0f,
                                         (float *)effect /* @<eax> */);

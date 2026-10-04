@@ -1561,13 +1561,6 @@
     "since": "2026-08-27"
   },
   {
-    "addr": "0xe6cb0",
-    "name": "ui_widget_list_prev_item",
-    "object": "ui_widget.obj",
-    "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
-    "since": "2026-08-27"
-  },
-  {
     "addr": "0xe6ed0",
     "name": "ui_widget_handle_event_handler",
     "object": "ui_widget.obj",

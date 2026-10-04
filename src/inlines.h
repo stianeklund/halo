@@ -153,6 +153,13 @@ static inline float xbox_sqrtf(float x)
   return r;
 }
 
+static inline double xbox_sqrt(double x)
+{
+  double r;
+  asm volatile ("fsqrt" : "=t"(r) : "0"(x));
+  return r;
+}
+
 static inline float xbox_fabsf(float x)
 {
   return __builtin_fabsf(x);
@@ -277,6 +284,7 @@ static inline size_t xbox_strlen(const char *s)
   #define sin     xbox_sin
   #define cos     xbox_cos
   #define sqrtf   xbox_sqrtf
+  #define sqrt    xbox_sqrt
   #define fabsf   xbox_fabsf
   #define acosf   xbox_acosf
   #define asin    xbox_asin
