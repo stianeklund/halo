@@ -1212,7 +1212,6 @@ bool string_has_icons_to_draw(const wchar_t *text)
 bool should_flip_sticks_for_local_player(int16_t local_player_index)
 {
   uint8_t preferences[0x18];
-  int16_t control_scheme;
 
   if (local_player_index == -1) {
     local_player_index = local_player_get_next(-1);
@@ -1225,9 +1224,12 @@ bool should_flip_sticks_for_local_player(int16_t local_player_index)
                                                    preferences);
   }
 
-  control_scheme = *(int16_t *)(preferences + 0x14);
-
-  return (control_scheme == 1) || (control_scheme == 3);
+  switch (*(int16_t *)(preferences + 0x14)) {
+  case 1:
+  case 3:
+    return true;
+  }
+  return false;
 }
 
 /* remap_sticks_for_local_player (0xe4da0) — jump table on icon_type - 0x10
@@ -1959,14 +1961,13 @@ void ui_widgets_close_all_for_local_player(int16_t local_player_index)
     if (root != 0 && *(int16_t *)(root + 8) == local_player_index) {
       ui_widget_delete((void *)root);
 
-      widget = *list_heads;
-      if (widget != 0) {
-        while (widget != 0) {
+      if (*list_heads != 0) {
+        while (*list_heads != 0) {
+          widget = *list_heads;
           pool = widget_memory_pool;
           next = *(int *)(widget + 0xc);
           *list_heads = next;
           stack_memory_pool_deallocate(pool, (void *)widget);
-          widget = *list_heads;
         }
       }
     }
@@ -3629,18 +3630,17 @@ void render_ui_widgets_postgame(__int16 local_player_index, __int16 *bounds)
   };
   viewport_bounds_t local_bounds;
   int widget;
-  int16_t widget_player;
   int i;
 
   if (virtual_keyboard_active()) {
     return;
   }
 
-  if (local_player_index < 0) {
-    local_player_index = 0;
-  } else if (local_player_index > 3) {
-    local_player_index = 3;
-  }
+  local_player_index =
+    local_player_index < 0
+      ? 0
+      : (local_player_index > 3 ? 3
+                                : local_player_index);
 
   for (i = 0; i < 4; i++) {
     widget = widget_globals_field_00[i];
@@ -3648,14 +3648,14 @@ void render_ui_widgets_postgame(__int16 local_player_index, __int16 *bounds)
       continue;
 
     if (((widget_instance_t *)widget)->field_11 != 1) {
-      widget_player = *(int16_t *)(widget + 0x8);
       if (((widget_instance_t *)widget)->field_15 == 1) {
-        if (widget_player != local_player_index && widget_player != -1 &&
-            local_player_index != -1 && byte_46CC88 == 0)
+        if (*(int16_t *)(widget + 0x8) != local_player_index &&
+            *(int16_t *)(widget + 0x8) != -1 && local_player_index != -1 &&
+            byte_46CC88 == 0)
           continue;
       } else {
-        if (!(widget_player == -1 && i == 0) &&
-            widget_player != local_player_index)
+        if (!(*(int16_t *)(widget + 0x8) == -1 && i == 0) &&
+            *(int16_t *)(widget + 0x8) != local_player_index)
           continue;
       }
     }

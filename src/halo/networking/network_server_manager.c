@@ -1903,11 +1903,11 @@ __declspec(noinline) bool network_game_server_remove_client_machine_from_game(vo
                                                     server_data->client_machines[i].connection))
           network_event("server failed to close a client's connection");
       }
-      server_data->client_machines[i].last_received_update_sequence_number = 0;
       server_data->client_machines[i].connection = 0;
+      server_data->client_machines[i].last_received_update_sequence_number = 0;
       server_data->client_machines[i].stall_start_time = 0;
-      server_data->client_machines[i].flags = 0;
       server_data->client_machines[i].machine_index = -1;
+      server_data->client_machines[i].flags = 0;
       success = true;
       break;
     }

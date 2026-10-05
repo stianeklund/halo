@@ -857,7 +857,7 @@ char *FUN_0019d3c0(int index, short param_2)
  * The low bit of the byte size is discarded by the original SHR before the
  * final word store.  The fallback is the original wide-string address.
  */
-int FUN_0019d420(int tag_index, int string_index)
+int FUN_0019d420(int tag_index, int16_t string_index)
 {
   int *list;
   int *entry;
@@ -866,9 +866,8 @@ int FUN_0019d420(int tag_index, int string_index)
 
   if (tag_index != NONE) {
     list = (int *)tag_get(0x75737472, tag_index);
-    if ((int16_t)string_index >= 0 && (int)(int16_t)string_index < *list) {
-      entry =
-        (int *)tag_block_get_element(list, (int)(int16_t)string_index, 0x14);
+    if (string_index >= 0 && (int)string_index < *list) {
+      entry = (int *)tag_block_get_element(list, (int)string_index, 0x14);
       size = *entry;
       if (size > 0) {
         data = (uint16_t *)entry[3];

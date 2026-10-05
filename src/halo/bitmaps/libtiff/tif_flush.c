@@ -2114,6 +2114,43 @@ bad:
   return a0 >= npels;
 }
 
+/* putspan code tables, loaded into EBX at 0x69bba/0x69c16 (after the
+ * sp->field_1c scan) and 0x69be9 (after the sp->field_20 scan). */
+#define TIFF_FAX_SPAN_TABLE_2CA250 ((void *)0x2ca250)
+#define TIFF_FAX_SPAN_TABLE_2CA4E0 ((void *)0x2ca4e0)
+
+/**
+ * Encode one row as alternating 1D run lengths.
+ *
+ * ABI (0x69b90): tif and bp on the stack, bits in EDI. Each scan passes
+ * bs in ECX, bits in EDX, the run table in EBX and &bp on the stack; the
+ * span then goes to putspan in EAX with tif in ECX. Always returns 1.
+ */
+int Fax3Encode1DRow(void *tif_, unsigned char *bp, int bits /* @<edi> */)
+{
+  tiff_t *tif;
+  tiff_codec_bits_t *sp;
+  int span;
+  int bs;
+
+  tif = (tiff_t *)tif_;
+  sp = tif->tif_data;
+  bs = 0;
+  for (;;) {
+    span = FUN_00069600(bs, bits, sp->field_1c, &bp);
+    putspan(span, tif, TIFF_FAX_SPAN_TABLE_2CA250);
+    bs += span;
+    if (bs >= bits)
+      break;
+    span = FUN_00069600(bs, bits, sp->field_20, &bp);
+    putspan(span, tif, TIFF_FAX_SPAN_TABLE_2CA4E0);
+    bs += span;
+    if (bs >= bits)
+      break;
+  }
+  return 1;
+}
+
 /**
  * Encode `cc` bytes of CCITT Group 3 rows, one row at a time.
  *

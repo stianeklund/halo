@@ -477,7 +477,6 @@ void ai_index_actor_iterator_new(unsigned int combined_index, void *iter_arg)
   int *iter;
   void *ai_globals;
   int profile_index;
-  unsigned int selector;
 
   iter = (int *)iter_arg;
   ai_globals = FUN_0018e3b0();
@@ -501,19 +500,18 @@ void ai_index_actor_iterator_new(unsigned int combined_index, void *iter_arg)
   tag_block_get_element((char *)global_scenario_get() + 0x42c,
                         profile_index & 0xffff, 0xb0);
 
-  selector = combined_index >> 0x1e;
   iter[2] = -1;
   iter[1] = -1;
 
-  switch (selector) {
+  switch (combined_index >> 0x1e) {
   case 0:
     /* both filters wildcard */
     break;
   case 1:
-    iter[2] = (unsigned char)(combined_index >> 16);
+    iter[2] = *((unsigned char *)&combined_index + 2);
     break;
   case 2:
-    iter[1] = (unsigned char)(combined_index >> 16);
+    iter[1] = *((unsigned char *)&combined_index + 2);
     break;
   default:
     iter[0] = -1;
@@ -629,7 +627,6 @@ void ai_scripting_attach_unit(int unit_handle, unsigned int ai_ref)
   void *actv;
   int *actr_tag;
   int profile_index;
-  int selector;
   int sub_index;
   int i;
 
@@ -654,32 +651,24 @@ void ai_scripting_attach_unit(int unit_handle, unsigned int ai_ref)
 
   element = tag_block_get_element((char *)global_scenario_get() + 0x42c,
                                   profile_index & 0xffff, 0xb0);
-  selector = ai_ref >> 0x1e;
   sub_index = 0;
 
-  if (selector == 2) {
+  if ((ai_ref >> 0x1e) == 2) {
     sub_index = *(unsigned char *)((char *)&ai_ref + 2);
-    if (sub_index < 0)
-      goto bad_squad;
-  } else if (selector == 1) {
-    i = 0;
-    if (((encounter_definition *)element)->squads.count > 0) {
-      do {
-        void *sq = tag_block_get_element(
-          (char *)&((encounter_definition *)element)->squads, i, 0xe8);
-        if (*(short *)((char *)sq + 0x22) ==
-            *(unsigned char *)((char *)&ai_ref + 2)) {
-          sub_index = i;
-          if (sub_index < 0)
-            goto bad_squad;
-          break;
-        }
-        i++;
-      } while (i < ((encounter_definition *)element)->squads.count);
+  } else if ((ai_ref >> 0x1e) == 1) {
+    for (i = 0; i < ((encounter_definition *)element)->squads.count; i++) {
+      void *sq = tag_block_get_element(
+        (char *)&((encounter_definition *)element)->squads, i, 0xe8);
+      if (*(short *)((char *)sq + 0x22) ==
+          *(unsigned char *)((char *)&ai_ref + 2)) {
+        sub_index = i;
+        break;
+      }
     }
   }
 
-  if (sub_index < ((encounter_definition *)element)->squads.count) {
+  if (sub_index >= 0 &&
+      sub_index < ((encounter_definition *)element)->squads.count) {
     squad = tag_block_get_element(
       (char *)&((encounter_definition *)element)->squads, sub_index, 0xe8);
     if (*(short *)((char *)squad + 0x20) != -1) {
@@ -694,7 +683,7 @@ void ai_scripting_attach_unit(int unit_handle, unsigned int ai_ref)
             *(int *)((char *)variant + 0xc), profile_index, sub_index, 0, -1,
             (char)((((encounter_definition *)element)->flags >> 4) & 0x101),
             (short)*(unsigned short *)((char *)squad + 0x24),
-            (short)*(unsigned short *)((char *)squad + 0x26), 0xffff, 0);
+            (short)*(unsigned short *)((char *)squad + 0x26), NONE, 0);
           encounters_update_dirty_status();
           return;
         }
@@ -702,11 +691,9 @@ void ai_scripting_attach_unit(int unit_handle, unsigned int ai_ref)
     }
 
     error(2, (const char *)0x25c408, element, squad);
-    return;
+  } else {
+    error(2, (const char *)0x25c3c0, element);
   }
-
-bad_squad:
-  error(2, (const char *)0x25c3c0, element);
 }
 
 /* ai_scripting_attach_units (ai_scripting_attach_units) — ai_attach
@@ -917,13 +904,16 @@ void ai_scripting_deselect(void)
  * *(0x632574)+1 (AI enabled). 0xd90 obj / 0x54e40 XBE. */
 void ai_scripting_select(int encounter_ref)
 {
+  int encounter_index;
+
   if (*(char *)((char *)*(void **)0x632574 + 1) == 0)
     return;
 
   if (encounter_ref == -1)
-    ai_debug_select_encounter(-1);
+    encounter_index = -1;
   else
-    ai_debug_select_encounter(encounter_ref & 0xffff);
+    encounter_index = encounter_ref & 0xffff;
+  ai_debug_select_encounter(encounter_index);
 }
 
 /* ai_scripting_spawn_actor — ai_spawn_actor: spawn the actor(s) named by ai_ref. For a
@@ -1008,7 +998,7 @@ void ai_scripting_set_respawn(unsigned int combined_index, char flag)
   if (*(char *)0x5aca59) {
     ai_index_to_string(combined_index, global_scenario_get(), name, 0x100);
     error(2, (const char *)0x25c510, hs_runtime_get_executing_thread_name(),
-          name, flag ? (const char *)0x25c530 : (const char *)0x25c52c);
+          name, flag ? "on" : "off");
   }
   if (combined_index != 0xffffffff) {
     encounter_set_respawn(combined_index & 0xffff, flag);
@@ -1747,10 +1737,6 @@ void ai_scripting_migrate_internal(int encounter_handle /* @<eax> */, int dest_e
   short
     target_squad_indices[MAXIMUM_SQUADS_PER_ENCOUNTER]; /* [ebp-0xc8], 0x80
                                                            bytes, init 0xffff */
-  int squad_iter[5]; /* [ebp-0x34], Layout A (ai_index_squad_iterator_new) */
-  int actor_iter[3]; /* [ebp-0x2c], encounter_actor_iterator_new
-                        (iter[1]=handle) */
-  char enc_iter[0x1c]; /* [ebp-0x3c], actor_iterator_new */
   void *scenario; /* [ebp-0x40] */
   void *src_datum; /* [ebp-0xc]  source encounter datum */
   void *dst_datum; /* [ebp-0x1c] dest encounter datum   */
@@ -1759,14 +1745,6 @@ void ai_scripting_migrate_internal(int encounter_handle /* @<eax> */, int dest_e
   int src_index; /* [ebp-0x10] / [ebp-0x18] */
   int dst_index; /* [ebp-0x14] */
   char match_flag; /* [ebp-0x4]  */
-  void *squad; /* loop-1 squad pointer (esi) */
-  int src_squad; /* [ebp-0x2c] iter cursor (ebx) */
-  void *sub_element; /* [ebp-0x48] */
-  int actr_tag; /* [ebp-0x20] */
-  void *actv_tag; /* esi in loop 1 */
-  void *actv_element;
-  void *actor; /* loop-2/4 actor record */
-  char *record; /* loop-3 pending record (ebx) */
   short cur_squad; /* si */
   short mapped; /* target_squad_indices[cur_squad] */
 
@@ -1787,10 +1765,19 @@ void ai_scripting_migrate_internal(int encounter_handle /* @<eax> */, int dest_e
                                       src_index & 0xffff, 0xb0);
   dst_element = tag_block_get_element((char *)global_scenario_get() + 0x42c,
                                       dst_index & 0xffff, 0xb0);
-  csmemset(target_squad_indices, -1, 0x80);
   match_flag = (char)(src_index == dst_index);
+  csmemset(target_squad_indices, -1, 0x80);
 
   /* --- Loop 1: build the source-squad -> dest-squad map ----------------- */
+  {
+  int squad_iter[5]; /* Layout A (ai_index_squad_iterator_new) */
+  void *squad;
+  int src_squad;
+  void *sub_element;
+  int actr_tag;
+  void *actv_tag;
+  void *actv_element;
+
   ai_index_squad_iterator_new((unsigned int)encounter_handle, squad_iter);
   squad = (void *)ai_index_squad_iterator_next(squad_iter);
   while (squad != 0) {
@@ -1838,8 +1825,13 @@ void ai_scripting_migrate_internal(int encounter_handle /* @<eax> */, int dest_e
 
     squad = (void *)ai_index_squad_iterator_next(squad_iter);
   }
+  }
 
   /* --- Loop 2: re-attach live actors of the source encounter ------------ */
+  {
+  int actor_iter[3]; /* encounter_actor_iterator_new (iter[1]=handle) */
+  void *actor;
+
   encounter_actor_iterator_new(actor_iter, src_index);
   actor = (void *)encounter_actor_iterator_next(actor_iter);
   while (actor != 0) {
@@ -1866,9 +1858,13 @@ void ai_scripting_migrate_internal(int encounter_handle /* @<eax> */, int dest_e
     }
     actor = (void *)encounter_actor_iterator_next(actor_iter);
   }
+  }
 
   /* --- Loop 3: rewrite pending records (only if source is active) ------- */
   if (*(char *)((char *)src_datum + 0x1e) != 0) {
+    char enc_iter[0x1c]; /* actor_iterator_new */
+    char *record;
+
     actor_iterator_new(enc_iter, 0);
     record = (char *)actor_iterator_next(enc_iter);
     while (record != 0) {
@@ -1907,6 +1903,10 @@ void ai_scripting_migrate_internal(int encounter_handle /* @<eax> */, int dest_e
   }
 
   /* --- Loop 4: BSP-resident actors across all encounters ---------------- */
+  {
+  int actor_iter[3];
+  void *actor;
+
   encounter_actor_iterator_new(actor_iter, -1);
   actor = (void *)encounter_actor_iterator_next(actor_iter);
   while (actor != 0) {
@@ -1941,6 +1941,7 @@ void ai_scripting_migrate_internal(int encounter_handle /* @<eax> */, int dest_e
       }
     }
     actor = (void *)encounter_actor_iterator_next(actor_iter);
+  }
   }
 
   /* --- Tail: refresh team status + dirty flags -------------------------- */

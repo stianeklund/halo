@@ -2256,7 +2256,7 @@ char actor_action_handle_vehicle_entry(int actor_handle)
       dist2 = distance_squared3d((float *)&pos, (float *)(actor + 0x12c));
       if (dist2 < best_dist2 &&
           (*(unsigned int *)(entry + 4) == 0x7f7fffff ||
-           dist2 <= *(float *)(entry + 4) * *(float *)(entry + 4)) &&
+           !(dist2 > *(float *)(entry + 4) * *(float *)(entry + 4))) &&
           (*(short *)(entry + 8) <= 0 ||
            (((actor_t *)actor)->field_03e != -1 &&
             ((int)*(short *)(entry + 8) &
@@ -2281,15 +2281,15 @@ char actor_action_handle_vehicle_entry(int actor_handle)
                 switch ((unsigned int)identifier >> 0x1e) {
                 case 1:
                   matched =
-                    (char)(*(unsigned short *)(actor + 0x3c) ==
-                           (unsigned short)(((unsigned int)identifier >> 0x10) &
-                                            0xff));
+                    (char)((int)*(short *)(actor + 0x3c) ==
+                           (int)(((unsigned int)identifier >> 0x10) &
+                                 0xff));
                   break;
                 case 2:
                   matched =
-                    (char)(*(unsigned short *)(actor + 0x3a) ==
-                           (unsigned short)(((unsigned int)identifier >> 0x10) &
-                                            0xff));
+                    (char)((int)*(short *)(actor + 0x3a) ==
+                           (int)(((unsigned int)identifier >> 0x10) &
+                                 0xff));
                   break;
                 }
                 if (matched != 0) {
@@ -2520,7 +2520,7 @@ char actor_action_handle_combat_selection(int actor_handle)
         }
         last_fire = ((actor_t *)actor)->field_380;
         if (last_fire != -1 &&
-            (float)now <= delay * TICKS_PER_SECOND + (float)last_fire)
+            delay * TICKS_PER_SECOND + (float)last_fire >= (float)now)
           goto handle_vehicle_charge;
         /* result discarded in the original */
         actor_has_ranged_weapon(actor_handle);
@@ -2582,111 +2582,111 @@ decide_charge:
           *(char *)(actor + 0xa4) == '\0' &&
           ((actor_t *)actor)->field_0c5 == '\0') {
         want_charge = 1;
-        goto maybe_start_charge;
+      } else {
+        force_charge = 1;
       }
-      goto force_charge_transition;
-    }
-    if (((actor_t *)actor)->field_1cb != '\0') {
+    } else if (((actor_t *)actor)->field_1cb != '\0') {
       want_charge = 0;
-      goto try_fight;
+      force_charge = 1;
+    } else if (state == 4 || state == 5) {
+      if (((actor_t *)actor)->field_0c5 != '\0' ||
+          ((actor_t *)actor)->field_15e <= 1) {
+        force_charge = 1;
+      } else {
+        want_charge = 1;
+        if (state == 4) {
+          veh_object = (int *)object_get_and_verify_type(
+            ((actor_t *)actor)->field_158, 2);
+          vehi_tag = (int)tag_get(0x76656869, *veh_object);
+          if (((actor_t *)actor)->field_484 != '\0' &&
+              ((actor_t *)actor)->field_46c == 5 &&
+              *(int *)(actor + 0x470) ==
+                ((actor_t *)actor)->target_target_prop_index) {
+            want_charge = 0;
+          } else if (distance < *(float *)(vehi_tag + 0x394)) {
+            want_charge = 0;
+          } else if (*(float *)(vehi_tag + 0x394) +
+                         *(float *)(vehi_tag + 0x394) >
+                       distance &&
+                     FUN_00013070((float *)(actor + 0x174),
+                                  (float *)(prop + 0xe0)) <
+                       *(float *)0x253398) {
+            want_charge = 0;
+          }
+        }
+      }
     }
-    if (state != 4 && state != 5)
-      goto check_charge_flags;
-    if (((actor_t *)actor)->field_0c5 != '\0')
-      goto force_charge_transition;
-    if (((actor_t *)actor)->field_15e <= 1)
-      goto force_charge_transition;
-    want_charge = 1;
-    if (state != 4)
-      goto maybe_start_charge;
-    veh_object =
-      (int *)object_get_and_verify_type(((actor_t *)actor)->field_158, 2);
-    vehi_tag = (int)tag_get(0x76656869, *veh_object);
-    if (((actor_t *)actor)->field_484 != '\0' &&
-        ((actor_t *)actor)->field_46c == 5 &&
-        *(int *)(actor + 0x470) ==
-          ((actor_t *)actor)->target_target_prop_index) {
+  }
+  if (want_charge != '\0' &&
+      (force_charge != '\0' ||
+       ((actor_t *)actor)->state_action != _actor_action_charge)) {
+    if (action_charge_setup(actor_handle, 0, action_buf) != '\0') {
+      actor_action_change(actor_handle, 10, (int)action_buf);
+      result = 1;
+    } else {
       want_charge = 0;
-      goto try_fight;
     }
-    if (distance < *(float *)(vehi_tag + 0x394)) {
-      want_charge = 0;
-      goto try_fight;
-    }
-    if (!(*(float *)(vehi_tag + 0x394) + *(float *)(vehi_tag + 0x394) >
-          distance))
-      goto maybe_start_charge;
-    if (!(FUN_00013070((float *)(actor + 0x174), (float *)(prop + 0xe0)) <
-          *(float *)0x253398))
-      goto maybe_start_charge;
-  abandon_charge:
-    want_charge = 0;
-    goto try_fight;
-  force_charge_transition:
-    force_charge = 1;
   }
-check_charge_flags:
-  if (want_charge == '\0')
-    goto try_fight;
-  if (force_charge == '\0') {
-  maybe_start_charge:
-    if (((actor_t *)actor)->state_action == _actor_action_charge)
-      goto charge_started;
-  }
-  if (action_charge_setup(actor_handle, 0, action_buf) == '\0')
-    goto abandon_charge;
-  actor_action_change(actor_handle, 10, (int)action_buf);
-  result = 1;
-charge_started:
-  if (want_charge != '\0') {
-    if (result != '\0')
-      return result;
-    goto verify_action_state;
-  }
-  if (result != '\0')
-    return result;
-try_fight:
-  if (((actor_t *)actor)->state_action != _actor_action_fight) {
+  if (want_charge == '\0' && result == '\0' &&
+      ((actor_t *)actor)->state_action != _actor_action_fight) {
     if (action_fight_setup(actor_handle, action_buf) == '\0') {
       display_assert("success", "c:\\halo\\SOURCE\\ai\\actions.c", 0x87b, 1);
       system_exit(-1);
     }
     actor_action_change(actor_handle, 3, (int)action_buf);
     result = 1;
-    return result;
+  } else if (result == '\0') {
+    if (want_charge != '\0') {
+      if (((actor_t *)actor)->state_action != _actor_action_charge) {
+        display_assert("actor->state.action == _actor_action_charge",
+                       "c:\\halo\\SOURCE\\ai\\actions.c", 0x886, 1);
+        system_exit(-1);
+      }
+      state = *(short *)(actor + 0xa0);
+      if (state == 2 || state == 3) {
+        if (((actor_t *)actor)->field_0a3 != '\0' ||
+            *(char *)(actor + 0xa4) != '\0' ||
+            ((actor_t *)actor)->field_0c5 != '\0') {
+          display_assert(
+            "!actor->state.action_data.charge.finished_melee_attack "
+            "&& !actor->state.action_data.charge.aborted_melee_attack"
+            " && !actor->state.action_data.charge.unable_to_advance",
+            "c:\\halo\\SOURCE\\ai\\actions.c", 0x889, 1);
+          system_exit(-1);
+        }
+      } else if (state == 4 || state == 5) {
+        if (((actor_t *)actor)->field_0c5 != '\0') {
+          display_assert("!actor->state.action_data.charge.unable_to_advance",
+                         "c:\\halo\\SOURCE\\ai\\actions.c", 0x88d, 1);
+          system_exit(-1);
+        }
+      }
+    } else {
+      if (((actor_t *)actor)->state_action != _actor_action_fight) {
+        display_assert("actor->state.action == _actor_action_fight",
+                       "c:\\halo\\SOURCE\\ai\\actions.c", 0x892, 1);
+        system_exit(-1);
+      }
+    }
   }
-verify_action_state:
-  if (want_charge != '\0') {
-    if (((actor_t *)actor)->state_action != _actor_action_charge) {
-      display_assert("actor->state.action == _actor_action_charge",
-                     "c:\\halo\\SOURCE\\ai\\actions.c", 0x886, 1);
-      system_exit(-1);
-    }
-    state = *(short *)(actor + 0xa0);
-    if (state == 2 || state == 3) {
-      if (((actor_t *)actor)->field_0a3 == '\0' &&
-          *(char *)(actor + 0xa4) == '\0' &&
-          ((actor_t *)actor)->field_0c5 == '\0')
-        return result;
-      display_assert("!actor->state.action_data.charge.finished_melee_attack "
-                     "&& !actor->state.action_data.charge.aborted_melee_attack"
-                     " && !actor->state.action_data.charge.unable_to_advance",
-                     "c:\\halo\\SOURCE\\ai\\actions.c", 0x889, 1);
-      system_exit(-1);
-    } else if (state == 4 || state == 5) {
-      if (((actor_t *)actor)->field_0c5 == '\0')
-        return result;
-      display_assert("!actor->state.action_data.charge.unable_to_advance",
-                     "c:\\halo\\SOURCE\\ai\\actions.c", 0x88d, 1);
-      system_exit(-1);
-    }
-  } else {
-    if (((actor_t *)actor)->state_action != _actor_action_fight) {
-      display_assert("actor->state.action == _actor_action_fight",
-                     "c:\\halo\\SOURCE\\ai\\actions.c", 0x892, 1);
-      system_exit(-1);
-    }
-  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   return result;
 }
 
@@ -3254,39 +3254,39 @@ char actor_action_try_to_throw_grenade(int actor_handle, char flag)
   char *object;
   char *encounter;
   float delta[2];
-
+  char result;
   actor = (char *)datum_get(actor_data, actor_handle);
   object = (char *)object_get_and_verify_type(((actor_t *)actor)->field_018, 3);
-  if (unit_is_busy(((actor_t *)actor)->field_018) == 0) {
-    if (*(float *)(object + 0x9c) <= *(float *)0x2533c0) {
-      if (flag == '\0') {
-        if (actor_action_test_grenade(actor_handle) == '\0') {
-          ((actor_t *)actor)->field_6a0 = 0;
+  result = 0;
+  if (unit_is_busy(((actor_t *)actor)->field_018) == 0 &&
+      !(*(float *)(object + 0x9c) > *(float *)0x2533c0)) {
+    if (flag == '\0' && actor_action_test_grenade(actor_handle) == '\0') {
+      ((actor_t *)actor)->field_6a0 = 0;
+    }
+    if (((actor_t *)actor)->field_6a0 != '\0') {
+      delta[0] =
+        ((actor_t *)actor)->field_6a8 - ((actor_t *)actor)->field_12c;
+      delta[1] =
+        ((actor_t *)actor)->field_6ac - ((actor_t *)actor)->field_130;
+      if (normalize2d(delta) > *(float *)0x2533c0 &&
+          !(delta[0] * ((actor_t *)actor)->input_facing_vector[0] +
+              delta[1] * ((actor_t *)actor)->input_facing_vector[1] <
+            *(float *)0x2533dc)) {
+        ((actor_t *)actor)->field_45c = 1;
+        ((actor_t *)actor)->field_6a0 = 0;
+        if (*(int *)(actor + 0x34) != -1) {
+          encounter =
+            (char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34));
+          *(int *)(encounter + 0x5c) = game_time_get();
         }
-      }
-      if (((actor_t *)actor)->field_6a0 != '\0') {
-        delta[0] =
-          ((actor_t *)actor)->field_6a8 - ((actor_t *)actor)->field_12c;
-        delta[1] =
-          ((actor_t *)actor)->field_6ac - ((actor_t *)actor)->field_130;
-        if (*(float *)0x2533c0 < normalize2d(delta)) {
-          if (*(float *)0x2533dc <=
-              delta[0] * ((actor_t *)actor)->input_facing_vector[0] +
-                delta[1] * ((actor_t *)actor)->input_facing_vector[1]) {
-            ((actor_t *)actor)->field_45c = 1;
-            ((actor_t *)actor)->field_6a0 = 0;
-            if (*(int *)(actor + 0x34) != -1) {
-              encounter =
-                (char *)datum_get(*(data_t **)0x5ab270, *(int *)(actor + 0x34));
-              *(int *)(encounter + 0x5c) = game_time_get();
-            }
-            return 1;
-          }
-        }
+        result = 1;
       }
     }
   }
-  return 0;
+
+
+
+  return result;
 }
 
 /* actor_action_consider_grenade (0x1fb80) — Probabilistically decides whether

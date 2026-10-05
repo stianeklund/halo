@@ -7565,12 +7565,12 @@ void objects_dump_memory(void)
     dumps_by_type[object_type].definition_index = -1;
   }
 
+  data_verify(*(data_t **)0x5a8d50);
+  dump_iter.cookie = 0x86868686;
   dump_iter.type_mask = -1;
   dump_iter.flags = 0;
   dump_iter.current_index = 0;
   dump_iter.last_handle = NONE;
-  dump_iter.cookie = 0x86868686;
-
   while ((object = (object_data_t *)object_iterator_next(&dump_iter)) != NULL) {
     int16_t index = -1;
 
@@ -7594,11 +7594,11 @@ void objects_dump_memory(void)
 
     header = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50,
                                                dump_iter.last_handle);
-
     if (index != -1) {
       object_add_to_dump(dump_iter.last_handle, &dumps[index]);
     }
 
+    assert_halt_msg_at("(header->type >= 0) && (header->type < NUMBER_OF_OBJECT_TYPES)", __FILE__, 4905, header->type >= 0 && header->type < 12);
     object_add_to_dump(dump_iter.last_handle, &dumps_by_type[header->type]);
   }
 

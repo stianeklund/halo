@@ -8022,7 +8022,7 @@ int actor_create_for_unit(char flags, int unit_index, int actv_tag_index,
                           int encounter_index, int squad_index, char param6,
                           int exclude_actor_handle, char encounter_flag,
                           short starting_location_index,
-                          short squad_position_index, unsigned short param11,
+                          short squad_position_index, short param11,
                           char param12)
 {
   char *actor;
@@ -8113,7 +8113,7 @@ int actor_create_for_unit(char flags, int unit_index, int actv_tag_index,
   actor_is_swarm = ((actor_t *)actor)->field_006;
   ((actor_t *)actor)->field_08e = 0;
   ((actor_t *)actor)->field_092 = 2;
-  ((actor_t *)actor)->field_090 = (short)param11;
+  ((actor_t *)actor)->field_090 = param11;
   ((actor_t *)actor)->field_068 = param12;
 
   /* Validate swarm flag matches actor type. */

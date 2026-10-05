@@ -1956,6 +1956,7 @@ void action_guard_update(int actor_handle)
 {
   char *actor;
   short decval;
+  char finished;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if ((((actor_t *)actor)->field_013 == '\0') &&
@@ -1991,20 +1992,15 @@ void action_guard_update(int actor_handle)
   }
   if (((actor_t *)actor)->field_0a6 != '\0') {
     ((actor_t *)actor)->field_0a6 = (char)(((actor_t *)actor)->field_3a8 > 0);
-    if (((actor_t *)actor)->field_0a6 != '\0') {
-      return;
-    }
-    goto wake;
+    finished = (char)(((actor_t *)actor)->field_0a6 == '\0');
+  } else if (((actor_t *)actor)->field_0a8 > 0) {
+    decval = ((actor_t *)actor)->field_0a8 - 1;
+    ((actor_t *)actor)->field_0a8 = decval;
+    finished = (char)(decval == 0);
+  } else {
+    finished = 0;
   }
-  if (((actor_t *)actor)->field_0a8 <= 0) {
-    return;
-  }
-  decval = ((actor_t *)actor)->field_0a8 - 1;
-  ((actor_t *)actor)->field_0a8 = decval;
-  if (decval != 0) {
-    return;
-  }
-wake:
+  if (finished) {
   actor_set_dormant(actor_handle, 0);
   *(char *)(actor + 0xa4) = 0;
   ((actor_t *)actor)->field_0a5 = 0;
@@ -2025,6 +2021,7 @@ wake:
   }
   ((actor_t *)actor)->field_0c0 = 0;
   ((actor_t *)actor)->field_0aa = 1;
+  }
 }
 
 /* action_guard_flush_position_indices (0x15eb0)
@@ -3276,7 +3273,7 @@ return result; }
  *
  * Ref: z computed first, then y, then x; all three FPU results held on the
  * x87 stack before the first FSTP (aliasing safe when b==out). */
-void cross_product3d(float *a, float *b, float *out)
+float *cross_product3d(float *a, float *b, float *out)
 {
   float z = a[0] * b[1] - a[1] * b[0];
   float y = a[2] * b[0] - a[0] * b[2];
@@ -3284,6 +3281,7 @@ void cross_product3d(float *a, float *b, float *out)
   out[0] = x;
   out[1] = y;
   out[2] = z;
+  return out;
 }
 
 /* negate_vector3d (0x17910)
@@ -3436,7 +3434,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx,
   short i;
   short seat_count;
   unsigned short umode;
-  int atom_seq;
+  short atom_seq;
   int fp_index;
   int prop_handle;
   int object_index;
@@ -3475,7 +3473,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx,
   }
   atom = (short *)tag_block_get_element(cmd_list + 0x30,
                                         (int)(unsigned char)*state_data, 0x20);
-  atom_seq = (int)(unsigned char)*state_data + 1;
+  atom_seq = (short)((unsigned char)*state_data + 1);
   cmd_type = *atom;
 
   switch (cmd_type) {
@@ -3652,8 +3650,8 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx,
       }
     } else {
     LAB_move_angle:
-      if (*(float *)(atom + 4) < *(float *)0x2533c0 ||
-          *(float *)0x253d50 <= *(float *)(atom + 4)) {
+      if (!(*(float *)(atom + 4) >= *(float *)0x2533c0 &&
+            *(float *)(atom + 4) < *(float *)0x253d50)) {
         break;
       }
       vector3d_from_angle((float *)(state_data + 0xc),
@@ -6975,9 +6973,7 @@ short actor_select_firing_position(int actor_handle, void *eval_ctx,
 
   *(int *)(ctx + 0x50) = 0;
   if (((actor_t *)actor)->field_3d8 != '\0') {
-    *(int *)(ctx + 0x58) = ((actor_t *)actor)->field_3dc;
-    *(int *)(ctx + 0x5c) = ((actor_t *)actor)->field_3e0;
-    *(int *)(ctx + 0x60) = ((actor_t *)actor)->field_3e4;
+    *(real_point3d *)(ctx + 0x58) = ((actor_t *)actor)->field_3dc;
     *(int *)(ctx + (*(int *)(ctx + 0x50) << 4) + 0x54) =
       *(int *)(actor_tag + 0x3c8);
     *(int *)(ctx + 0x50) = *(int *)(ctx + 0x50) + 1;
@@ -7658,7 +7654,7 @@ short actor_change_firing_position(int actor_handle, short param_2,
       ((actor_t *)actor)->field_3bb = 0;
       cancel = (char)actor_move_to_firing_position(
         actor_handle, param_2,
-        (void *)(-(unsigned int)(param_6 != '\0') & param_5));
+        param_6 != '\0' ? (void *)param_5 : (void *)0);
       if (cancel != '\0') {
         goto done;
       }

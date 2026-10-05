@@ -4369,7 +4369,14 @@
     },
     "0x69b90": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "The bytes at 0x69300 (movzx eax,[ecx]; movzx ecx,[ecx+2]; push ecx; call 0x69200; pop ecx; ret) form an unlisted 15-byte helper shaped like upstream putcode, with te in ECX and tif in EDI; it is not in kb.json and blocks proving a static_in_tu flag on FUN_00069200."
+      ],
+      "uncertain": [
+        "VC7.1 reproduces bits in EDI when this function is compiled file-static, but the verifier still models the putspan and FUN_00069600 calls as cdecl pushes, so the 78.7 percent score is capped by those call sites rather than by the body.",
+        "Equivalence ran with weak coverage (41.8 percent, 66 errors in 100 seeds), so the loop has VC71 and disassembly evidence but limited behavioral evidence."
+      ]
     },
     "0x69c40": {
       "kind": "function",
@@ -20501,6 +20508,35 @@
     "0x145540": {
       "kind": "function",
       "status": "ported"
+    },
+    "0x145660": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "arg4 is a signed 16-bit frame index (MOV CX,word [EBP+0x10]; TEST CX,CX), so the decl types it int16_t; the 4-argument wrapper keeps int because its caller at 0xbedb0 is already ported."
+      ],
+      "uncertain": [
+        "The meanings of obj+0x1a4 bit 0, of clearing obj+0x4 bit 0x80, and of animation+0x22 (treated as frame count) are not proven by any string or assert."
+      ]
+    },
+    "0x1457b0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "scenery_animation_start",
+      "name_confidence": "high"
+    },
+    "0x1457d0": {
+      "kind": "function",
+      "status": "ported",
+      "name": "scenery_animation_start_at_frame",
+      "name_confidence": "high",
+      "inferred": [
+        "The only caller is scenery_animation_start_at_frame_evaluate (0xbedb0), which forwards the four hs arguments unchanged, which is the T2 evidence for the name.",
+        "arg4 is a 16-bit starting frame index: the caller zero-extends a word from its argument block and FUN_00145660 reads only the low word, signed."
+      ],
+      "uncertain": [
+        "This function, scenery_animation_start and FUN_00145660 probably belong to scenery.obj, not breakable_surfaces.obj; they were left in place."
+      ]
     },
     "0x1457f0": {
       "kind": "function",

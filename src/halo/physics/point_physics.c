@@ -785,7 +785,7 @@ void physics_compute_new(
                                 &mass_point->radius);
     cross_product3d_inline(&object->angular_velocity, &mass_point->radius,
                            &mass_point->velocity);
-    add_vectors3d_inline(&object->translational_velocity, &mass_point->velocity,
+    add_vectors3d_inline(&mass_point->velocity, &object->translational_velocity,
                          &mass_point->velocity); /* dup-args-ok: in-place */
 
     compute_ground_plane(instance->object_index, (void *)mass_point_definition,
@@ -1497,8 +1497,9 @@ void rotate_vectors3d_by_angular_velocity(float *forward, float *up,
     matrix_scale_transform_vector((float *)&rotation, up, rotated_up);
     normalize3d(rotated_forward);
 
-    dot = -dot_product3d_inline((const real_vector3d *)rotated_up,
-                                (const real_vector3d *)rotated_forward);
+    dot = rotated_up[2] * rotated_forward[2];
+    dot += rotated_up[0] * rotated_forward[0];
+    dot = -(dot + rotated_up[1] * rotated_forward[1]);
     rotated_up[0] += dot * rotated_forward[0];
     rotated_up[1] += dot * rotated_forward[1];
     rotated_up[2] += dot * rotated_forward[2];
@@ -1708,16 +1709,25 @@ void physics_update_new(
       } else {
         const real_vector3d *normal =
           (const real_vector3d *)best_collision.plane.normal;
-        /* (j + k) + i dot of the sweep against the hit normal @152b3e. */
-        real approach = dot_product3d_inline(&best_sweep, normal);
+        real approach;
+        real backoff;
+        real fraction;
+        real normal_velocity;
+
+        /* (k + j) + i dot of the sweep against the hit normal @152b3e. */
+        approach = best_sweep.k * normal->k;
+        approach += best_sweep.j * normal->j;
+        approach += best_sweep.i * normal->i;
         /* pull-back distance: 1/128 world unit along the sweep, or a flat
          * 1/32 when the sweep grazes the plane (doubles 0x29d870/0x29d588). */
-        real backoff =
+        backoff =
           (real)(approach != 0.0f ? 0.0078125 / fabs(approach) : 0.03125);
-        real fraction = best_collision.t - backoff > 0.0f
-                          ? best_collision.t - backoff
-                          : 0.0f;
-        real normal_velocity = dot_product3d_inline(normal, &linear_velocity);
+        fraction = best_collision.t - backoff > 0.0f
+                     ? best_collision.t - backoff
+                     : 0.0f;
+        normal_velocity = normal->j * linear_velocity.j;
+        normal_velocity += normal->k * linear_velocity.k;
+        normal_velocity += normal->i * linear_velocity.i;
 
         if (normal_velocity < 0.0f) {
           /* cancel the into-surface velocity beyond the escape fraction
@@ -2859,7 +2869,7 @@ int point_physics_update(int flags, int physics_tag_data,
 
     /* 0x32512c global_gravity; 30.0f is TICKS_PER_SECOND. */
     velocity[2] =
-      *(float *)0x32512c * 30.0f * 30.0f * buoyancy_scale * delta_time +
+      buoyancy_scale * (30.0f * (*(float *)0x32512c * 30.0f)) * delta_time +
       velocity[2];
 
     if (mass == 0.0f) {

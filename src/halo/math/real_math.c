@@ -1808,10 +1808,12 @@ void quaternion_transform_point(float *q, float *v, float *out)
 {
   float ww = q[3] * q[3];
   float ww2_minus_1 = (ww + ww) - 1.0f;
-  float dot2 = q[0] * v[0] + q[2] * v[2] + q[1] * v[1];
+  float dot2 = q[0] * v[0];
   float w2;
   float cross0, cross1, cross2;
 
+  dot2 += q[2] * v[2];
+  dot2 += q[1] * v[1];
   dot2 = dot2 + dot2;
   w2 = q[3] + q[3];
   cross1 = q[2] * v[0] - v[2] * q[0];
@@ -2332,24 +2334,23 @@ int point_in_pill2d(float *p1, float *p2, float *p3, float r)
  * Returns dot(closest - point, closest - point). */
 float point_to_line_distance_squared3d(float *p1, float *p2, float *p3)
 {
-  volatile float t_unclamped = ((p1[2] - p2[2]) * p3[2] + (p1[1] - p2[1]) * p3[1] +
-                       (p1[0] - p2[0]) * p3[0]) /
-                      (p3[0] * p3[0] + p3[1] * p3[1] + p3[2] * p3[2]);
+  float v[3];
   float t;
-  float dx, dy, dz;
+  float distance_squared;
 
-  if (t_unclamped < 0.0f) {
-    t = 0.0f;
-  } else if (t_unclamped > 1.0f) {
-    t = 1.0f;
-  } else {
-    t = t_unclamped;
-  }
-  t = -t;
-  dx = t * p3[0] + (p1[0] - p2[0]);
-  dy = t * p3[1] + (p1[1] - p2[1]);
-  dz = t * p3[2] + (p1[2] - p2[2]);
-  return dz * dz + dx * dx + dy * dy;
+  v[0] = p1[0] - p2[0];
+  v[1] = p1[1] - p2[1];
+  v[2] = p1[2] - p2[2];
+  t = (v[2] * p3[2] + v[1] * p3[1] + v[0] * p3[0]) /
+      (p3[0] * p3[0] + p3[1] * p3[1] + p3[2] * p3[2]);
+  t = -(t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t));
+  v[0] = t * p3[0] + v[0];
+  v[1] = t * p3[1] + v[1];
+  v[2] = t * p3[2] + v[2];
+  distance_squared = v[2] * v[2];
+  distance_squared += v[0] * v[0];
+  distance_squared += v[1] * v[1];
+  return distance_squared;
 }
 
 /* 0x10ce10 — squared distance between two 3D line segments.
@@ -2504,35 +2505,35 @@ __declspec(noinline) char sphere_test_vector3d(float *p1, float p2, float *p3,
                                        float *p4, float *out_t,
                                        float *out_normal)
 {
-  float dx, dy, dz;
+  float offset[3];
   float dot;
   float dist_sq, c;
   float a, disc;
-  void (*normalize3d_in_place)(float *) = (void (*)(float *))FUN_0010c2e0;
 
-  dx = p3[0] - p1[0];
-  dy = p3[1] - p1[1];
-  dz = p3[2] - p1[2];
-  dot = dz * p4[2] + dy * p4[1] + dx * p4[0];
+  offset[0] = p3[0] - p1[0];
+  offset[1] = p3[1] - p1[1];
+  offset[2] = p3[2] - p1[2];
+  dot = offset[2] * p4[2] + offset[1] * p4[1] + offset[0] * p4[0];
   if (dot < 0.0f) {
-    dist_sq = dz * dz + dx * dx + dy * dy;
+    dist_sq = offset[2] * offset[2];
+    dist_sq += offset[0] * offset[0];
+    dist_sq += offset[1] * offset[1];
     c = dist_sq - p2 * p2;
     if (c <= 0.0f) {
       *out_t = 0.0f;
       a = 1.0f / sqrtf(dist_sq);
-      out_normal[0] = dx * a;
-      out_normal[1] = dy * a;
-      out_normal[2] = dz * a;
+      out_normal[0] = offset[0] * a;
+      out_normal[1] = offset[1] * a;
+      out_normal[2] = offset[2] * a;
       return 1;
     }
-    a = p4[2] * p4[2] + p4[1] * p4[1] + p4[0] * p4[0];
+    a = p4[0] * p4[0] + p4[1] * p4[1] + p4[2] * p4[2];
     disc = dot * dot - a * c;
-    if (0.0f <= disc) {
+    if (disc >= 0.0f) {
       dot = -(sqrtf(disc) + dot);
-      if (dot < a) {
+      if (dot <= a) {
         *out_t = dot / a;
-        vector3d_scale_add(&dx, p4, dot / a, out_normal);
-        normalize3d_in_place(out_normal);
+        FUN_0010c2e0(vector3d_scale_add(offset, p4, *out_t, out_normal));
         return 1;
       }
     }
@@ -2822,7 +2823,8 @@ __declspec(noinline) char point_in_sector2d(float *p1, float *p2, float *p3,
   }
   dx = p1[0] - p2[0];
   dy = p1[1] - p2[1];
-  dist_sq = dx * dx + dy * dy;
+  dist_sq = dx * dx;
+  dist_sq += dy * dy;
   radius_sq = cone_radius * cone_radius;
   if (dist_sq <= radius_sq) {
     dot = dx * p3[0] + dy * p3[1];
@@ -2852,7 +2854,9 @@ __declspec(noinline) char point_in_sector3d(float *p1, float *p2, float *p3,
   dx = p1[0] - p2[0];
   dy = p1[1] - p2[1];
   dz = p1[2] - p2[2];
-  dist_sq = dz * dz + dx * dx + dy * dy;
+  dist_sq = dz * dz;
+  dist_sq += dx * dx;
+  dist_sq += dy * dy;
   radius_sq = cone_radius * cone_radius;
   if (dist_sq <= radius_sq) {
     dot = dx * p3[0] + dy * p3[1] + dz * p3[2];
@@ -3639,12 +3643,11 @@ int pill_intersects_triangle3d(float *pill_start, float *pill_dir,
   float t;
   float closest_t;
   float plane_distance;
-  char outside;
+  char outside = 0;
 
   edge01[0] = v1[0] - v0[0];
   edge01[1] = v1[1] - v0[1];
   edge01[2] = v1[2] - v0[2];
-  outside = 0;
 
   edge12[0] = v2[0] - v1[0];
   edge12[1] = v2[1] - v1[1];

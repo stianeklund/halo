@@ -376,7 +376,7 @@ void biped_update_dead(int unit_handle, char *state_out)
   }
 
   /* Check dying-airborne state */
-  if (*(int8_t *)(biped + 0x459) > 2 &&
+  if (*(int8_t *)(biped + 0x459) >= 3 &&
       (*(uint32_t *)(biped_tag + 0x2f4) & 0x400) == 0) {
     if (*(uint8_t *)(biped + 0x253) == 0x18) {
       FUN_001a2160(unit_handle);
@@ -8418,9 +8418,8 @@ int16_t unit_weapon_next_index(int unit_handle, int16_t current_index, int16_t d
   char can_use;
   char usable;
   char readied;
-  int best_index;
+  int16_t best_index;
   volatile int16_t current;
-  int16_t best_si;
 
   unit = (char *)object_get_and_verify_type(unit_handle, 3);
   best_index = -1;
@@ -8452,26 +8451,16 @@ int16_t unit_weapon_next_index(int unit_handle, int16_t current_index, int16_t d
         usable =
           (char)game_engine_allow_weapon_pick_up(unit_handle, weapon_handle);
         if (usable != 0) {
-          best_si = (int16_t)best_index;
-          if (direction != 0) {
-            best_si = current;
-            best_index = best_si;
-          } else {
-            if ((int16_t)best_index == (int16_t)-1 ||
-                *(int *)(unit + 0x2b8 + (int)(int16_t)best_index * 4) <
-                  *(int *)(unit + 0x2b8 + iter_index * 4)) {
-              best_si = current;
-              best_index = best_si;
-            }
+          if (direction != 0 || best_index == (int16_t)-1 ||
+              *(int *)(unit + 0x2b8 + best_index * 4) <
+                *(int *)(unit + 0x2b8 + iter_index * 4)) {
+            best_index = current;
           }
 
           readied = (char)weapon_must_be_readied(
             *(int *)(unit + 0x2a8 + iter_index * 4));
-          if (readied != 0)
-            return best_si;
-
-          if ((int16_t)current != current_index)
-            return (int16_t)best_index;
+          if (readied != 0 || current_index != current)
+            break;
         }
       }
     }
@@ -8489,7 +8478,7 @@ int16_t unit_weapon_next_index(int unit_handle, int16_t current_index, int16_t d
     }
   } while ((int16_t)current != current_index);
 
-  return (int16_t)best_index;
+  return best_index;
 }
 
 /* unit_next_weapon_index (0x1ae490)
@@ -12487,13 +12476,13 @@ void unit_exit_seat_end(int unit_handle)
   char *seat_element;
   char *node_matrix;
   float exit_offset[3];
-  char marker_buf[56];
-  char transform_buf[40];
+  object_marker marker;
+  vector3_t transform_out;
   float exit_position[3];
-  char matrix_out[48];
+  real_matrix4x3 matrix_out;
   int seat_handle;
   int seat_rotation_offset;
-  float model_node_pos[3];
+  vector3_t model_node_pos;
 
   unit = (char *)object_get_and_verify_type(unit_handle, 3);
   seat_handle = *(int *)(unit + 0xcc);
@@ -12511,22 +12500,19 @@ void unit_exit_seat_end(int unit_handle)
 
   /* Get marker position from seat */
   object_get_marker_by_name(seat_handle, (void *)(seat_element + 0x24),
-                                  marker_buf, 1);
+                                  &marker, 1);
 
   /* Compute exit offset: node_matrix.position - marker_position */
   exit_offset[0] =
-    *(float *)(node_matrix + 0x28) - *(float *)(marker_buf + 0x60);
+    *(float *)(node_matrix + 0x28) - marker.matrix.position.x;
   exit_offset[1] =
-    *(float *)(node_matrix + 0x2c) - *(float *)(marker_buf + 0x64);
+    *(float *)(node_matrix + 0x2c) - marker.matrix.position.y;
   exit_offset[2] =
-    *(float *)(node_matrix + 0x30) - *(float *)(marker_buf + 0x68);
+    *(float *)(node_matrix + 0x30) - marker.matrix.position.z;
 
   /* Transform exit offset through marker rotation (result unused) */
-  {
-    float transform_out[3];
-    real_matrix3x3_transform_vector(transform_buf, (vector3_t *)exit_offset,
-                                    (vector3_t *)transform_out);
-  }
+  real_matrix3x3_transform_vector(&marker.matrix, (vector3_t *)exit_offset,
+                                  &transform_out);
 
   /* Get the unit's own model node 0 data for default position */
   {
@@ -12539,9 +12525,7 @@ void unit_exit_seat_end(int unit_handle)
     node_data = (char *)tag_block_get_element(own_model_tag + 0xb8, 0, 0x9c);
 
     seat_rotation_offset = (int)(node_data + 0x68);
-    model_node_pos[0] = *(float *)(node_data + 0x28);
-    model_node_pos[1] = *(float *)(node_data + 0x2c);
-    model_node_pos[2] = *(float *)(node_data + 0x30);
+    model_node_pos = *(vector3_t *)(node_data + 0x28);
   }
 
   /* Notify parent driver if this unit was the driver */
@@ -12569,7 +12553,7 @@ void unit_exit_seat_end(int unit_handle)
   exit_position[0] = exit_offset[0] + *(float *)(unit + 0x0c);
   exit_position[1] = exit_offset[1] + *(float *)(unit + 0x10);
   exit_position[2] =
-    exit_offset[2] + *(float *)(unit + 0x14) - model_node_pos[2];
+    exit_offset[2] + *(float *)(unit + 0x14) - model_node_pos.z;
 
   object_set_position(unit_handle, exit_position, 0, 0);
 
@@ -12579,15 +12563,10 @@ void unit_exit_seat_end(int unit_handle)
 
     node_matrix2 = (char *)object_get_node_matrix(unit_handle, 0);
     matrix4x3_multiply((float *)node_matrix2, (float *)seat_rotation_offset,
-                       (float *)matrix_out);
+                       (float *)&matrix_out);
 
-    /* Copy forward (offset 0x04) and up (offset 0x1C) from result */
-    *(int *)(unit + 0x24) = *(int *)(matrix_out + 0x04);
-    *(int *)(unit + 0x28) = *(int *)(matrix_out + 0x08);
-    *(int *)(unit + 0x2c) = *(int *)(matrix_out + 0x0c);
-    *(int *)(unit + 0x30) = *(int *)(matrix_out + 0x1c);
-    *(int *)(unit + 0x34) = *(int *)(matrix_out + 0x20);
-    *(int *)(unit + 0x38) = *(int *)(matrix_out + 0x24);
+    *(vector3_t *)(unit + 0x24) = matrix_out.forward;
+    *(vector3_t *)(unit + 0x30) = matrix_out.up;
   }
 
   /* Set object as garbage (for cleanup) */
@@ -12623,9 +12602,7 @@ void unit_exit_seat_end(int unit_handle)
     block_ref =
       (char *)object_header_block_reference_get(unit_handle, unit + 0x198);
 
-    *(float *)(block_ref + 0x10) = model_node_pos[0];
-    *(float *)(block_ref + 0x14) = model_node_pos[1];
-    *(float *)(block_ref + 0x18) = model_node_pos[2];
+    *(vector3_t *)(block_ref + 0x10) = model_node_pos;
   }
 
   /* Biped-specific exit handling */

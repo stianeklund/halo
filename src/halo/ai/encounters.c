@@ -2668,7 +2668,7 @@ void ai_scripting_go_to_vehicle_internal(unsigned int ai_index,
           dy = vehicle_position.y - *(float *)(actor + 0x130);
           dz = vehicle_position.z - *(float *)(actor + 0x134);
           candidates[(short)candidate_count].distance_squared =
-            dx * dx + dy * dy + dz * dz;
+            dy * dy + (dx * dx + dz * dz);
           candidates[(short)candidate_count].is_type9 =
             (char)(*(short *)(actor + 0x6c) == 9);
           candidate_count = candidate_count + 1;
@@ -2861,7 +2861,7 @@ void encounter_compute_activation_cluster_bit_vector(int encounter_handle,
     system_exit(-1);
   }
   csmemset(out_cluster_bv, 0,
-           ((*(int *)(structure_bsp + 0x134) + 0x1f) >> 5) << 2);
+           ((*(int *)(structure_bsp + 0x134) + 0x1f) >> 5) * sizeof(uint32_t));
 
   actor_index = *(int *)(encounter + 0x14);
   while (actor_index != -1) {
@@ -2889,10 +2889,10 @@ void encounter_compute_activation_cluster_bit_vector(int encounter_handle,
         object_index = *(int *)(object + 0x1ac);
       }
     } else {
-      /* validation-only call; result intentionally discarded */
-      object_get_and_verify_type(*(int *)(actor + 0x18), 3);
-      root = (char *)object_get_and_verify_type(
-        object_get_root_parent(*(int *)(actor + 0x18)), -1);
+      /* validation-only call; result intentionally unused */
+      object = (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
+      root_handle = object_get_root_parent(*(int *)(actor + 0x18));
+      root = (char *)object_get_and_verify_type(root_handle, -1);
       cluster_index = *(int16_t *)(root + 0x4c);
       if (cluster_index != -1) {
         if (cluster_index < 0 || (int)cluster_index >= bit_vector_size) {
@@ -2944,8 +2944,8 @@ void encounter_compute_activation_cluster_bit_vector(int encounter_handle,
 
     if (flag != '\0') {
       squad = encounter_get_squad(encounter, *(int16_t *)(actor + 0x3a));
-      *(char *)(actor + 0x12) =
-        (*(char *)(squad + 0x14) != '\0') ? '\0' : visible;
+      if (*(char *)(squad + 0x14) != '\0') visible = 0;
+      *(char *)(actor + 0x12) = visible;
     }
     actor_index = *(int *)(actor + 0x2c);
   }
@@ -3930,8 +3930,8 @@ void encounter_new(short *squad_counter /* @<eax> */, void *encounter_def,
   char *squad_def;
   char *platoon_record;
   char *platoon_def;
-  short squad_count;
-  short platoon_count;
+
+
   int i;
   short sVar;
   void *platoon_block;
@@ -3971,10 +3971,10 @@ void encounter_new(short *squad_counter /* @<eax> */, void *encounter_def,
     system_exit(-1);
   }
 
-  squad_count = *(short *)((char *)encounter_def + 0x80);
-  *(short *)(encounter + 0x6) = squad_count;
+  *(short *)(encounter + 0x6) =
+    *(short *)((char *)encounter_def + 0x80);
   *(short *)(encounter + 0x4) = *squad_counter;
-  *squad_counter = *squad_counter + squad_count;
+  *squad_counter += *(short *)(encounter + 0x6);
 
   if (*squad_counter > 0x400) {
     display_assert(csprintf((char *)0x5ab100,
@@ -3991,11 +3991,11 @@ void encounter_new(short *squad_counter /* @<eax> */, void *encounter_def,
         (char *)&((encounter_definition *)encounter_def)->squads, (int)(short)i,
         0xe8);
       *(char *)(squad_record + 0x11) = 0;
-      if ((*(unsigned char *)(squad_def + 0x28) & 8) == 0) {
+      if ((*(unsigned char *)(squad_def + 0x28) & 8) != 0) {
+        *(short *)(squad_record + 0x12) = 999;
+      } else {
         *(short *)(squad_record + 0x12) =
           (short)(*(float *)(squad_def + 0x50) * 30.0f);
-      } else {
-        *(short *)(squad_record + 0x12) = 999;
       }
       *(unsigned char *)(squad_record + 0x10) =
         (unsigned char)((*(unsigned int *)(squad_def + 0x28) >> 5) & 1);
@@ -4003,11 +4003,11 @@ void encounter_new(short *squad_counter /* @<eax> */, void *encounter_def,
                                      encounter_handle /* @<ecx> */);
       if (*(short *)(squad_def + 0x86) > 0 ||
           *(short *)(squad_def + 0x84) > 0) {
-        sVar = 999;
-        if (*(short *)(squad_def + 0x88) != 0) {
-          sVar = *(short *)(squad_def + 0x88);
-        }
-        *(short *)(squad_record + 0xc) = sVar;
+        sVar = *(short *)(squad_def + 0x88);
+        *(short *)(squad_record + 0xc) =
+          sVar == 0 ?
+          999 :
+          sVar;
       }
       i = i + 1;
     } while ((short)i < *(short *)(encounter + 0x6));
@@ -4020,10 +4020,10 @@ void encounter_new(short *squad_counter /* @<eax> */, void *encounter_def,
     system_exit(-1);
   }
 
-  platoon_count = *(short *)((char *)encounter_def + 0x8c);
-  *(short *)(encounter + 0xa) = platoon_count;
+  *(short *)(encounter + 0xa) =
+    *(short *)((char *)encounter_def + 0x8c);
   *(short *)(encounter + 0x8) = *platoon_counter;
-  *platoon_counter = *platoon_counter + platoon_count;
+  *platoon_counter += *(short *)(encounter + 0xa);
 
   if (*platoon_counter > 0x100) {
     display_assert(csprintf((char *)0x5ab100,

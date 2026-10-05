@@ -1477,6 +1477,36 @@ void ColorToRGB(unsigned char *color, unsigned short *out)
                           (unsigned short)(color[0] >> 3));
 }
 
+typedef struct s3tc_color_s {
+  unsigned char rgba[4];
+} s3tc_color_t;
+
+/* 0x705b0 -- expand a 16-bit 5:6:5 word into a 4-byte color, replicating
+ * each channel's high bits into its low bits; byte 3 is zero. rgb arrives
+ * in EAX; color is the only stack arg. */
+void RGBToColor(unsigned short *rgb, unsigned char *color)
+{
+  unsigned short value;
+  unsigned char c;
+  s3tc_color_t result;
+
+  value = *rgb;
+  c = (unsigned char)(value << 3);
+  c |= c >> 5;
+  result.rgba[0] = c;
+  value >>= 5;
+  c = (unsigned char)(value << 2);
+  c |= c >> 6;
+  result.rgba[1] = c;
+  value >>= 6;
+  c = (unsigned char)(value << 3);
+  c |= c >> 5;
+  result.rgba[2] = c;
+  result.rgba[3] = 0;
+  *(s3tc_color_t *)color = result;
+}
+
+
 /* 0x70a00 -- fill a 4x4 color block whose pixels share one color. pixels
  * (16 dwords) arrives in EDX, block in ESI, mask in DI (read at entry,
  * 0x70a06-0x70a39). Stores dword 0 at block+4, then the 5:6:5 packing of
@@ -1925,7 +1955,6 @@ void EncodeBlockAlpha3(unsigned char *pixels, unsigned char *out)
     }
     p += 0x14;
   }
-  key = 0;
   if (hi == 0xff && lo == 0) {
     p = pixels + 7;
     for (i = 2; i != 0; i--) {
@@ -1992,21 +2021,17 @@ void EncodeBlockAlpha3(unsigned char *pixels, unsigned char *out)
     } else {
       hi = 0xff;
       lo = 0;
+      key = 0;
     }
+  } else {
+    key = 0;
   }
   out[0] = hi;
   out[1] = lo;
-  if (hi == lo) {
-    out[7] = 0;
-    out[6] = 0;
-    out[5] = 0;
-    out[4] = 0;
-    out[3] = 0;
-    out[2] = 0;
-  } else {
+  if (hi != lo) {
     range = (int)hi - (int)lo;
     half = range >> 1;
-    steps = (key == 0) * 2 + 5;
+    steps = key ? 5 : 7;
     for (i = 15; i >= 0; i--) {
       bits <<= 3;
       if (key != 0 && pixels[i * 4 + 3] == 0) {
@@ -2024,16 +2049,21 @@ void EncodeBlockAlpha3(unsigned char *pixels, unsigned char *out)
       if ((i & 7) == 0) {
         if (i == 8) {
           out[5] = (unsigned char)bits;
-          out[6] = (unsigned char)(bits >> 8);
-          out[7] = (unsigned char)(bits >> 16);
+          bits >>= 8;
+          out[6] = (unsigned char)bits;
+          bits >>= 8;
+          out[7] = (unsigned char)bits;
         } else {
           out[2] = (unsigned char)bits;
-          out[3] = (unsigned char)(bits >> 8);
-          out[4] = (unsigned char)(bits >> 16);
+          bits >>= 8;
+          out[3] = (unsigned char)bits;
+          bits >>= 8;
+          out[4] = (unsigned char)bits;
         }
-        bits >>= 16;
       }
     }
+  } else {
+    out[2] = out[3] = out[4] = out[5] = out[6] = out[7] = 0;
   }
   EncodeBlockRGBColorKey(pixels, out + 8, 0);
 }
@@ -2076,25 +2106,25 @@ bool bitmap_step_line(short *line, short mode)
 {
   short adx2;
   short ady2;
-  short error;
-  bool done;
+
+  bool done = 0;
 
   adx2 = line[0];
   ady2 = line[1];
-  done = 0;
+
   if (adx2 > ady2) {
     if (line[7] == line[9]) {
       done = 1;
     } else {
       switch (mode) {
       case 0:
-        error = line[6];
-        if (error >= 0) {
+
+        if (line[6] >= 0) {
           line[8] += line[3];
-          line[6] = (short)(error - adx2);
+          line[6] -= adx2;
         }
-        line[6] += ady2;
         line[7] = (short)(line[2] + line[7]);
+        line[6] += ady2;
         break;
       case 2:
         while (line[6] < 0 && line[7] != line[9]) {
@@ -2110,13 +2140,13 @@ bool bitmap_step_line(short *line, short mode)
     } else {
       switch (mode) {
       case 0:
-        error = line[6];
-        if (error >= 0) {
+
+        if (line[6] >= 0) {
           line[7] += line[2];
-          line[6] = (short)(error - ady2);
+          line[6] -= ady2;
         }
-        line[6] += adx2;
         line[8] = (short)(line[3] + line[8]);
+        line[6] += adx2;
         break;
       case 1:
         while (line[6] < 0 && line[8] != line[10]) {

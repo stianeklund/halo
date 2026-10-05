@@ -89,6 +89,7 @@ void decal_sprite_get_bounds(float *sprite_bounds, void *definition,
   float ratio;
   float x_scale;
   float y_scale;
+  float registration;
 
   ratio = 1.0f;
   if (definition == NULL) {
@@ -119,12 +120,9 @@ void decal_sprite_get_bounds(float *sprite_bounds, void *definition,
   bitmap =
     (char *)tag_block_get_element(bitmap_tag + 0x60, (int)sprite[0], 0x30);
 
-  sprite_bounds[0] = *(float *)(sprite + 4);
-  sprite_bounds[1] = *(float *)(sprite + 6);
-  sprite_bounds[2] = *(float *)(sprite + 8);
-  sprite_bounds[3] = *(float *)(sprite + 10);
+  *(real_rectangle2d *)sprite_bounds = *(real_rectangle2d *)(sprite + 4);
 
-  if ((definition_data[1] & 1) != 0) {
+  if ((*(uint16_t *)definition_data & 0x100) != 0) {
     ratio = ((float)(int)*(int16_t *)(bitmap + 6) /
              (float)(int)*(int16_t *)(bitmap + 4)) *
             ((*(float *)(sprite + 6) - *(float *)(sprite + 4)) /
@@ -133,13 +131,15 @@ void decal_sprite_get_bounds(float *sprite_bounds, void *definition,
 
   extent = extent / *(float *)(definition_data + 0xfc);
   x_scale = (float)(int)*(int16_t *)(bitmap + 4) * extent;
-  y_scale = (float)(int)*(int16_t *)(bitmap + 6) * extent * ratio;
+  y_scale = ratio * ((float)(int)*(int16_t *)(bitmap + 6) * extent);
 
-  out_extent[0] = -*(float *)(sprite + 0xc) * x_scale;
+  registration = -*(float *)(sprite + 0xc);
+  out_extent[0] = registration * x_scale;
   out_extent[1] = ((*(float *)(sprite + 6) - *(float *)(sprite + 0xc)) -
                    *(float *)(sprite + 4)) *
                   x_scale;
-  out_extent[2] = -*(float *)(sprite + 0xe) * y_scale;
+  registration = -*(float *)(sprite + 0xe);
+  out_extent[2] = registration * y_scale;
   out_extent[3] = ((*(float *)(sprite + 10) - *(float *)(sprite + 0xe)) -
                    *(float *)(sprite + 8)) *
                   y_scale;
@@ -591,7 +591,6 @@ void decal_update(int decal_index)
   int16_t flags;
   float age;
   float f;
-  int locked_count;
 
   decal = (char *)datum_get(global_decal_data, decal_index);
   age = (float)(game_time_get() - *(int *)(decal + 0x14)) * 0.033333335f;
@@ -621,13 +620,13 @@ void decal_update(int decal_index)
       }
     } else {
       if ((flags & 1) != 0) {
-        *(int16_t *)(decal + 2) = (int16_t)(flags & 0xfffe);
-        locked_count = decal_globals->locked_count - 1;
-        decal_globals->locked_count = locked_count;
-        if (locked_count < 0 && *(uint8_t *)0x4557dc == 0) {
+        decal_globals_t *globals = decal_globals;
+
+        *(uint16_t *)(decal + 2) = (uint16_t)(flags & 0xfffe);
+        if (--globals->locked_count < 0 && *(uint8_t *)0x4557dc == 0) {
           error(
             2, "### ERROR decals: locked count is invalid (#%d) -- tell Bernie!!",
-            locked_count);
+            globals->locked_count);
           *(uint8_t *)0x4557dc = 1;
         }
       }
@@ -693,13 +692,15 @@ int decal_insert(int new_index_hint, int16_t cluster_index, int16_t layer,
     char *new_decal = (char *)datum_get(global_decal_data, decal_index);
 
     if (randomize) {
-      *(int16_t *)(new_decal + 2) = 2;
-      decal_globals->permanent_count++;
-    } else if (100 * random_seed_step(random_math_get_local_seed_address()) < 655350) {
-      *(int16_t *)(new_decal + 2) = 1;
-      decal_globals->locked_count++;
+      decal_globals_t *globals = decal_globals;
 
-      if (decal_globals->locked_count > 512) {
+      *(int16_t *)(new_decal + 2) = 2;
+      globals->permanent_count++;
+    } else if (100 * random_seed_step(random_math_get_local_seed_address()) < 655350) {
+      decal_globals_t *globals = decal_globals;
+
+      *(int16_t *)(new_decal + 2) = 1;
+      if (++globals->locked_count > 512) {
         int16_t restart_count = 0;
 
         data_iterator_new(&iter, global_decal_data);

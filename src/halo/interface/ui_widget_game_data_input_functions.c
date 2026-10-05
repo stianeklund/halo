@@ -826,11 +826,12 @@ void network_pregame_status_screen_update(void *widget)
         unicode_sprintf(*(wchar_t **)(countdown_text + 0x3c), 0xf, L"0:%02d",
                         (int)seconds);
       } else if (seconds < 3600) {
+        minutes = seconds / 60;
         unicode_sprintf(*(wchar_t **)(countdown_text + 0x3c), 0xf, L"%02d:%02d",
-                        seconds / 60, seconds % 60);
+                        minutes, seconds - minutes * 60);
       } else {
         hours = seconds / 3600;
-        minutes = (seconds % 3600) / 60;
+        minutes = (seconds - hours * 3600) / 60;
         unicode_sprintf(*(wchar_t **)(countdown_text + 0x3c), 0xf,
                         L"%d:%02d:%02d", hours, minutes,
                         seconds - (hours * 60 + minutes) * 60);
@@ -854,6 +855,8 @@ void network_pregame_status_screen_update(void *widget)
   {
     char *local_widgets[4];
 
+    flag = 0;
+    local_name = L"?";
     local_name_container = *(char **)(status_widget + 0x34);
     local_status = *(char **)(local_name_container + 0x2c);
     local_widgets[0] = *(char **)(local_status + 0x2c);
@@ -861,8 +864,6 @@ void network_pregame_status_screen_update(void *widget)
     local_widgets[2] = *(char **)(local_widgets[1] + 0x2c);
     local_widgets[3] = *(char **)(local_widgets[2] + 0x2c);
 
-    flag = 0;
-    local_name = L"?";
     for (i = 0; i < 4; i++) {
       machine = game + 0x114 + i * 0x44;
       if (machine != NULL && *(char *)(machine + 0x40) >= 0 &&
@@ -882,9 +883,9 @@ void network_pregame_status_screen_update(void *widget)
     for (i = 0; i < 0x10; i++) {
       player = game + 0x226 + i * 0x20;
       if (network_player_is_valid(player) &&
-          (short)*(char *)(player + 0x1c) == machine_index) {
+          (short)*(char *)(game + 0x226 + i * 0x20 + 0x1c) == machine_index) {
         count++;
-        player_indices[(int)*(char *)(player + 0x1d)] = i;
+        player_indices[(int)*(char *)(game + 0x226 + i * 0x20 + 0x1d)] = i;
         if (count == 4) {
           break;
         }
@@ -1172,8 +1173,9 @@ void splitscreen_pregame_status_screen_update(void *widget)
         unicode_sprintf(*(wchar_t **)(countdown_text + 0x3c), 0xf, L"0:%02d",
                         (int)seconds);
       } else if (seconds < 3600) {
+        minutes = seconds / 60;
         unicode_sprintf(*(wchar_t **)(countdown_text + 0x3c), 0xf, L"%02d:%02d",
-                        seconds / 60, seconds % 60);
+                        minutes, seconds - minutes * 60);
       } else {
         hours = seconds / 3600;
         minutes = (seconds - hours * 3600) / 60;
@@ -1197,6 +1199,8 @@ void splitscreen_pregame_status_screen_update(void *widget)
     system_exit(-1);
   }
 
+  flag = 0;
+  local_name = L"?";
   local_name_container = *(char **)(status_widget + 0x34);
   local_status = *(char **)(local_name_container + 0x2c);
   local_widgets[0] = *(char **)(local_status + 0x2c);
@@ -1204,8 +1208,6 @@ void splitscreen_pregame_status_screen_update(void *widget)
   local_widgets[2] = *(char **)(local_widgets[1] + 0x2c);
   local_widgets[3] = *(char **)(local_widgets[2] + 0x2c);
 
-  flag = 0;
-  local_name = L"?";
   for (i = 0; i < 4; i++) {
     machine = game + 0x114 + i * 0x44;
     if (machine != NULL && *(char *)(machine + 0x40) >= 0 &&
@@ -1226,9 +1228,9 @@ void splitscreen_pregame_status_screen_update(void *widget)
   for (i = 0; i < 0x10; i++) {
     player = game + 0x226 + i * 0x20;
     if (network_player_is_valid(player) &&
-        (short)*(char *)(player + 0x1c) == machine_index) {
+        (short)*(char *)(game + 0x226 + i * 0x20 + 0x1c) == machine_index) {
       count++;
-      player_indices[(int)*(char *)(player + 0x1d)] = i;
+      player_indices[(int)*(char *)(game + 0x226 + i * 0x20 + 0x1d)] = i;
       if (count == 4) {
         break;
       }
@@ -1711,7 +1713,7 @@ void get_active_player_profile_display_name(void *widget)
   *(wchar_t **)((char *)widget + 0x3c) = new_buf;
   if (new_buf != NULL) {
     ustrncpy(new_buf, (wchar_t *)profile, 0xb);
-    *(unsigned short *)((char *)new_buf + 0x16) = 0;
+    (*(wchar_t **)((char *)widget + 0x3c))[0xb] = 0;
   }
 }
 
@@ -2211,8 +2213,7 @@ void solo_game_objective_text(void *widget)
       return;
     }
     found = crt_strstr(map_name, "longest");
-    *(unsigned short *)((char *)widget + 0x50) =
-      (unsigned short)(0xd - (found != NULL));
+    *(unsigned short *)((char *)widget + 0x50) = found != NULL ? 12 : 13;
   } else {
     error(2, "no network game");
   }
@@ -3657,15 +3658,14 @@ void player_profile_1wide_list_update(int *widget)
               *(short *)(widget[0x13] + 0x16) = 0;
             }
 
-            if (*(short *)((char *)rec_name + 0x18) < 0) {
-              clamped = 0;
-            } else {
-              clamped = *(short *)((char *)rec_name + 0x18);
-              if (clamped > (int)FUN_001c0ed0() - 1) {
-                clamped = (int)FUN_001c0ed0() - 1;
-              }
-            }
-            *(short *)(child + 0x50) = (short)clamped;
+            *(short *)(child + 0x50) =
+              (short)(*(short *)((char *)rec_name + 0x18) < 0
+                        ? 0
+                        : (*(short *)((char *)rec_name + 0x18) >
+                               (int)FUN_001c0ed0() - 1
+                             ? (int)FUN_001c0ed0() - 1
+                             : *(short *)((char *)rec_name + 0x18)));
+
 
             desc_buf =
               (wchar_t *)ui_widget_realloc(*(int *)(sibling + 0x3c), 0x200,
@@ -3762,13 +3762,13 @@ void player_profile_1wide_list_update(int *widget)
     list_index = *(short *)((char *)widget + 0x3c);
     *(unsigned short *)((char *)widget + 0x44) = (unsigned short)used;
     if (list_index < 0) {
-      *(short *)((char *)widget + 0x3c) = 0;
+      clamped = 0;
     } else {
       clamped = (int)(unsigned short)used - 1;
       if ((int)list_index <= clamped) {
         clamped = list_index;
       }
-      *(short *)((char *)widget + 0x3c) = (short)clamped;
     }
+    *(short *)((char *)widget + 0x3c) = (short)clamped;
   }
 }

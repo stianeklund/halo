@@ -126,9 +126,8 @@ Parse from $ARGUMENTS (all optional):
 
    `tokens_spent` comes from the run's result JSON; `wall_s` is your own
    launch→completion timestamps (workflow scripts cannot read the clock).
-   The ledger lives under gitignored `artifacts/` — force-track it once with
-   `rtk git add -f artifacts/campaigns/campaigns.jsonl` and include it in the
-   between-run or final chore commit (same precedent as the parked records).
+   The ledger lives under gitignored `artifacts/` and stays untracked local
+   state — do not `git add -f` it or commit it.
    Compare later with e.g.
    `rtk jq -s 'group_by(.campaign) | map({c: .[0].campaign, fns: map(.functions_committed) | add, tokens: map(.tokens_spent) | add})' artifacts/campaigns/campaigns.jsonl`.
 

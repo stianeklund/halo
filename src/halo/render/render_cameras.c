@@ -668,29 +668,31 @@ int16_t render_frustum_build_point_flags(void *plane_ctx, void *point)
   const vector3_t *p = (const vector3_t *)point;
   /* Hand-summed: the x87 code adds the y and z products first, x last. */
   const real_plane3d *plane = f->field_78;
-  int16_t flags =
-    p->x * plane[0].normal[0] +
-          (p->y * plane[0].normal[1] + p->z * plane[0].normal[2]) - plane[0].d >
-        0.0f ?
-      FLAG(_render_frustum_point_flags_left_bit) :
-      0;
+  real distance;
+  int16_t flags;
 
-  flags |= p->x * plane[1].normal[0] +
-                 (p->y * plane[1].normal[1] + p->z * plane[1].normal[2]) -
-                 plane[1].d >
-               0.0f ?
+  distance = p->y * plane[0].normal[1];
+  distance += p->z * plane[0].normal[2];
+  distance += p->x * plane[0].normal[0];
+  flags = distance - plane[0].d > 0.0f ?
+            FLAG(_render_frustum_point_flags_left_bit) :
+            0;
+  distance = p->y * plane[1].normal[1];
+  distance += p->z * plane[1].normal[2];
+  distance += p->x * plane[1].normal[0];
+  flags |= distance - plane[1].d > 0.0f ?
              FLAG(_render_frustum_point_flags_right_bit) :
              0;
-  flags |= p->x * plane[2].normal[0] +
-                 (p->y * plane[2].normal[1] + p->z * plane[2].normal[2]) -
-                 plane[2].d >
-               0.0f ?
+  distance = p->y * plane[2].normal[1];
+  distance += p->z * plane[2].normal[2];
+  distance += p->x * plane[2].normal[0];
+  flags |= distance - plane[2].d > 0.0f ?
              FLAG(_render_frustum_point_flags_bottom_bit) :
              0;
-  flags |= p->x * plane[3].normal[0] +
-                 (p->y * plane[3].normal[1] + p->z * plane[3].normal[2]) -
-                 plane[3].d >
-               0.0f ?
+  distance = p->y * plane[3].normal[1];
+  distance += p->z * plane[3].normal[2];
+  distance += p->x * plane[3].normal[0];
+  flags |= distance - plane[3].d > 0.0f ?
              FLAG(_render_frustum_point_flags_top_bit) :
              0;
   return flags;
@@ -779,26 +781,31 @@ int16_t render_frustum_cube_visible(void *frustum, float *bounds,
       const vector3_t *vertex = &cube_vertices[vertex_index];
       /* Per-plane x87 sum order: x,y,z; x,z,y; z,y,x; z,y,x. */
       const real_plane3d *plane = f->field_78;
-      uint16_t flags = vertex->x * plane[0].normal[0] +
-                             vertex->y * plane[0].normal[1] +
-                             plane[0].normal[2] * vertex->z - plane[0].d >
-                           0.0f ?
-                         FLAG(_render_frustum_point_flags_left_bit) :
-                         0;
+      real distance;
+      uint16_t flags;
 
-      flags |= plane[1].normal[0] * vertex->x + plane[1].normal[2] * vertex->z +
-                     vertex->y * plane[1].normal[1] - plane[1].d >
-                   0.0f ?
+      distance = vertex->x * plane[0].normal[0];
+      distance += vertex->y * plane[0].normal[1];
+      distance += plane[0].normal[2] * vertex->z;
+      flags = distance - plane[0].d > 0.0f ?
+                FLAG(_render_frustum_point_flags_left_bit) :
+                0;
+      distance = plane[1].normal[0] * vertex->x;
+      distance += plane[1].normal[2] * vertex->z;
+      distance += vertex->y * plane[1].normal[1];
+      flags |= distance - plane[1].d > 0.0f ?
                  FLAG(_render_frustum_point_flags_right_bit) :
                  0;
-      flags |= plane[2].normal[2] * vertex->z + vertex->y * plane[2].normal[1] +
-                     plane[2].normal[0] * vertex->x - plane[2].d >
-                   0.0f ?
+      distance = plane[2].normal[2] * vertex->z;
+      distance += vertex->y * plane[2].normal[1];
+      distance += plane[2].normal[0] * vertex->x;
+      flags |= distance - plane[2].d > 0.0f ?
                  FLAG(_render_frustum_point_flags_bottom_bit) :
                  0;
-      flags |= plane[3].normal[2] * vertex->z + vertex->y * plane[3].normal[1] +
-                     plane[3].normal[0] * vertex->x - plane[3].d >
-                   0.0f ?
+      distance = plane[3].normal[2] * vertex->z;
+      distance += vertex->y * plane[3].normal[1];
+      distance += plane[3].normal[0] * vertex->x;
+      flags |= distance - plane[3].d > 0.0f ?
                  FLAG(_render_frustum_point_flags_top_bit) :
                  0;
 

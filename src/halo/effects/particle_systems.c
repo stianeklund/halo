@@ -653,18 +653,18 @@ void randomize_particle_variables(void *sys_def_arg, short state_index, void *ou
   range[0] = *(float *)(state_def + 0x50);
   output[1] = random_real_range((int *)random_math_get_local_seed_address(),
                                 range[0], range[1]);
-  range[1] = *(float *)(state_def + 0x5c);
-  range[0] = *(float *)(state_def + 0x58);
+  range[0] = *(float *)(state_def + 0x5c);
+  range[1] = *(float *)(state_def + 0x58);
   output[2] = random_real_range((int *)random_math_get_local_seed_address(),
-                                range[0], range[1]);
-  range[1] = *(float *)(state_def + 0x4c);
-  range[0] = *(float *)(state_def + 0x48);
+                                range[1], range[0]);
+  range[0] = *(float *)(state_def + 0x4c);
+  range[1] = *(float *)(state_def + 0x48);
   output[0] = random_real_range((int *)random_math_get_local_seed_address(),
-                                range[0], range[1]);
-  range[1] = *(float *)(state_def + 0x70);
-  range[0] = *(float *)(state_def + 0x60);
+                                range[1], range[0]);
+  range[0] = *(float *)(state_def + 0x70);
+  range[1] = *(float *)(state_def + 0x60);
   output[3] = random_real_range((int *)random_math_get_local_seed_address(),
-                                range[0], range[1]);
+                                range[1], range[0]);
 
   /* Fill output with linear interpolations */
   output[4] =
@@ -1099,11 +1099,8 @@ void particle_system_render(int particle_system_handle)
   int sprite_index;       /* EBP-0x0c */
   float radius;           /* EBP-0x10 */
   char *type_def;         /* EBP-0x14 */
-  float tint_b;           /* EBP-0x18 */
-  float tint_g;           /* EBP-0x1c */
-  float tint_r;           /* EBP-0x20 */
-  float tint_a;           /* EBP-0x24 */
-  char *ps_datum;         /* EBP-0x28 */
+  real_argb_color tint;   /* EBP-0x24 */
+  char *ps_datum;        /* EBP-0x28 */
   char *particle_state_b; /* EBP-0x2c */
   short i;                /* EBP-0x30 */
   char *shader_b;         /* EBP-0x34 */
@@ -1111,7 +1108,6 @@ void particle_system_render(int particle_system_handle)
   float color_b[4];       /* EBP-0x48 */
   float color_a[4];       /* EBP-0x58 */
   float origin[3];        /* EBP-0x64 */
-  int *type_block;        /* EBP-0x68 */
   float direction[3];     /* EBP-0x74 */
   char record[0xa4];      /* EBP-0x118 render_sprite build record */
   int type_index;
@@ -1123,16 +1119,16 @@ void particle_system_render(int particle_system_handle)
   char *bitmap_tag;
   char *bitmap_sequence;
   unsigned int sprite_flags;
+  char *definition;
 
-  ps_datum =
-    (char *)datum_get(particle_system_header_data, particle_system_handle);
-  type_block =
-    (int *)((char *)tag_get(0x7063746c, *(int *)(ps_datum + 8)) + 0x5c);
+  ps_datum = (char *)datum_get(particle_system_header_data, particle_system_handle);
+  definition = (char *)tag_get(0x7063746c, *(int *)(ps_datum + 8));
   i = 0;
   type_index = 0;
-  if (*type_block > 0) {
+  if (*(int *)(definition + 0x5c) > 0) {
     do {
-      type_def = (char *)tag_block_get_element(type_block, type_index, 0x80);
+      type_def =
+        (char *)tag_block_get_element(definition + 0x5c, type_index, 0x80);
       type_state = ps_datum + 0x58 + type_index * 0x40;
       if (*(short *)type_state != NONE &&
           (*(unsigned int *)(type_def + 0x20) & 0x100) == 0) {
@@ -1153,13 +1149,13 @@ void particle_system_render(int particle_system_handle)
               particle_state_b = NULL;
               radius = *(float *)(particle + 0x48) *
                        *(float *)(type_state + 0x0c);
-              tint_a = *(float *)(particle + 0x54) *
+              tint.alpha = *(float *)(particle + 0x54) *
                        *(float *)(type_state + 0x18);
-              tint_r = *(float *)(particle + 0x58) *
+              tint.red = *(float *)(particle + 0x58) *
                        *(float *)(type_state + 0x1c);
-              tint_g = *(float *)(particle + 0x5c) *
+              tint.green = *(float *)(particle + 0x5c) *
                        *(float *)(type_state + 0x20);
-              tint_b = *(float *)(particle + 0x60) *
+              tint.blue = *(float *)(particle + 0x60) *
                        *(float *)(type_state + 0x24);
             } else {
               particle_state_b = (char *)tag_block_get_element(
@@ -1176,16 +1172,16 @@ void particle_system_render(int particle_system_handle)
               radius = (intensity_b * *(float *)(particle + 0x64) +
                         intensity_a * *(float *)(particle + 0x48)) *
                        *(float *)(type_state + 0x0c);
-              tint_a = (intensity_b * *(float *)(particle + 0x70) +
+              tint.alpha = (intensity_b * *(float *)(particle + 0x70) +
                         intensity_a * *(float *)(particle + 0x54)) *
                        *(float *)(type_state + 0x18);
-              tint_r = (intensity_b * *(float *)(particle + 0x74) +
+              tint.red = (intensity_b * *(float *)(particle + 0x74) +
                         intensity_a * *(float *)(particle + 0x58)) *
                        *(float *)(type_state + 0x1c);
-              tint_g = (intensity_b * *(float *)(particle + 0x78) +
+              tint.green = (intensity_b * *(float *)(particle + 0x78) +
                         intensity_a * *(float *)(particle + 0x5c)) *
                        *(float *)(type_state + 0x20);
-              tint_b = (intensity_b * *(float *)(particle + 0x7c) +
+              tint.blue = (intensity_b * *(float *)(particle + 0x7c) +
                         intensity_a * *(float *)(particle + 0x60)) *
                        *(float *)(type_state + 0x24);
               /* The original materializes state_a's shader base into a
@@ -1207,9 +1203,10 @@ void particle_system_render(int particle_system_handle)
           have_blend:
             bitmap_tag = (char *)tag_get(
               0x6269746d, *(int *)(particle_state_a + 0x3c));
-            sequence_index = *(short *)(particle_state_a + 0x40);
             if (*(short *)(type_def + 0x28) == 1) {
-              sequence_index = sequence_index + 1;
+              sequence_index = *(short *)(particle_state_a + 0x40) + 1;
+            } else {
+              sequence_index = *(short *)(particle_state_a + 0x40);
             }
             bitmap_sequence = (char *)tag_block_get_element(
               bitmap_tag + 0x54, (int)sequence_index, 0x40);
@@ -1236,10 +1233,10 @@ void particle_system_render(int particle_system_handle)
             }
 
             if (intensity_a > 0.01f) {
-              color_a[0] = tint_a;
-              color_a[1] = tint_r;
-              color_a[2] = tint_g;
-              color_a[3] = tint_b;
+              color_a[0] = tint.alpha;
+              color_a[1] = tint.red;
+              color_a[2] = tint.green;
+              color_a[3] = tint.blue;
               if (*(short *)(particle_state_a + 0xe2) == 0) {
                 color_a[1] = color_a[1] * *(float *)(ps_datum + 0x48);
                 color_a[2] = color_a[2] * *(float *)(ps_datum + 0x4c);
@@ -1271,10 +1268,10 @@ void particle_system_render(int particle_system_handle)
             }
 
             if (intensity_b > 0.01f) {
-              color_b[0] = tint_a;
-              color_b[1] = tint_r;
-              color_b[2] = tint_g;
-              color_b[3] = tint_b;
+              color_b[0] = tint.alpha;
+              color_b[1] = tint.red;
+              color_b[2] = tint.green;
+              color_b[3] = tint.blue;
               if (*(short *)(particle_state_a + 0xe2) == 0) {
                 color_b[1] = color_b[1] * *(float *)(ps_datum + 0x48);
                 color_b[2] = color_b[2] * *(float *)(ps_datum + 0x4c);
@@ -1311,7 +1308,7 @@ void particle_system_render(int particle_system_handle)
       }
       i = i + 1;
       type_index = (int)i;
-    } while (type_index < *type_block);
+    } while (type_index < *(int *)(definition + 0x5c));
   }
 }
 
@@ -1568,8 +1565,10 @@ void particle_systems_update(float dt)
 {
   int particle_system_index;
 
-  assert_halt(particle_system_header_data &&
-              particle_system_header_data->valid);
+  assert_halt_msg_at("particle_systems && particle_systems->valid",
+                     "c:\\halo\\SOURCE\\effects\\particle_systems.c", 0x232,
+                     particle_system_header_data &&
+                       particle_system_header_data->valid);
   for (particle_system_index =
          data_next_index(particle_system_header_data, NONE);
        particle_system_index != NONE;

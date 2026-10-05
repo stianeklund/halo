@@ -9435,7 +9435,7 @@
       "score": 96.2,
       "source": "src/halo/physics/breakable_surfaces.c"
     },
-    "FUN_001457b0": {
+    "scenery_animation_start": {
       "addr": "0x1457b0",
       "end": "0x1457ca",
       "kind": "auto",

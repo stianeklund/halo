@@ -570,7 +570,7 @@ bool actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
       param_5[0] = p0;
       param_5[1] = p1;
       param_5[2] = p2;
-      magnitude = sqrtf(param_5[0] * param_5[0] + p1 * p1 + p2 * p2);
+      magnitude = x87_sqrt(param_5[0] * param_5[0] + p1 * p1 + p2 * p2);
       if (cVar3 == 0) {
         if (magnitude > param_4) {
           FUN_00012fb0(param_5, param_4 / magnitude,
@@ -1388,7 +1388,7 @@ void actor_move_calculate_free(char use_3d /* @<al> */,
       system_exit(-1);
     }
     biped_build_flying_axes(facing_direction, (float *)&left, (float *)&up);
-    throttle->i = movement->i * facing->i + (movement->j * facing->j + movement->k * facing->k);
+    throttle->i = dot_product3d(movement, facing);
     throttle->j = (left.j * movement->j + left.k * movement->k) + left.i * movement->i;
     throttle->k = (up.j * movement->j + up.k * movement->k) + up.i * movement->i;
     normalize3d(out);

@@ -2706,9 +2706,8 @@ typedef struct {
   char field_3d8;                                    /* +0x3d8  accessed 1x, meaning unproven */
   char field_3d9;                                    /* +0x3d9  latched copy of the ring's param_3 flag */
   char pad_3da[0x2];
-  int32_t field_3dc;                                 /* +0x3dc  accessed 1x, meaning unproven */
-  int32_t field_3e0;                                 /* +0x3e0  accessed 1x, meaning unproven */
-  int32_t field_3e4;                                 /* +0x3e4  accessed 1x, meaning unproven */
+  real_point3d field_3dc;                            /* +0x3dc  12-byte struct copy of the discarded firing position's */
+                                                     /*         float point (fld [elt+0/4/8] @0x2666c); meaning unproven */
   int16_t field_3e8;                                 /* +0x3e8  accessed 30x, meaning unproven */
   char pad_3ea[0x2];
   int16_t field_3ec;                                 /* +0x3ec  accessed 21x, meaning unproven */
@@ -3068,6 +3067,7 @@ co(actor_t, danger_zone_noticed_danger,                    0x287);
 co(actor_t, stimuli_panic_type,                            0x308);
 co(actor_t, stimuli_panic_prop_index,                      0x30c);
 co(actor_t, firing_positions_current_position_index,       0x3b8);
+co(actor_t, field_3dc,                                     0x3dc);
 co(actor_t, control_path_destination_orders_ignore_target_object_index, 0x480);
 co(actor_t, field_4a0,                                         0x4a0);
 co(actor_t, control_moving_forced_aim_direction,           0x524);

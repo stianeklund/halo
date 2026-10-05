@@ -603,46 +603,45 @@ void first_person_weapon_center_flashlight(int object_handle, float *out_positio
 {
   int16_t local_player_index;
   char *fp;
-  char marker_buf[0x6c];
-  float *marker_forward;
-  float *marker_position;
-  float *marker_up;
+  object_marker marker;
+
+
+
 
   local_player_index = first_person_weapon_index_from_unit_index(object_handle);
   if (local_player_index == -1) {
     return;
   }
 
-  if (local_player_index < 0 || local_player_index >= 4) {
-    display_assert(0, "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x599, 1);
-    system_exit(-1);
-  }
+  assert_halt_msg_at("local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS", "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x599, local_player_index >= 0 &&
+              local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+
+
 
   fp = (char *)*(int *)0x46bea8 + (int)local_player_index * 0x1ea0;
   if (!*(uint8_t *)fp) {
     return;
   }
 
-  if (first_person_weapon_get_marker_by_name(*(int *)(fp + 8), (void *)"flashlight", marker_buf, 1) <= 0) {
+  if (first_person_weapon_get_marker_by_name(*(int *)(fp + 8), (void *)"flashlight", &marker, 1) <= 0) {
     return;
   }
 
-  marker_forward = (float *)(marker_buf + 0x3c);
-  marker_up = (float *)(marker_buf + 0x54);
-  marker_position = (float *)(marker_buf + 0x60);
 
-  out_position[0] = marker_position[0] - marker_forward[0] * 0.5f;
-  out_position[1] = marker_position[1] - marker_forward[1] * 0.5f;
-  out_position[2] = marker_position[2] - marker_forward[2] * 0.5f;
 
-  out_forward[0] = marker_forward[0];
-  out_forward[1] = marker_forward[1];
-  out_forward[2] = marker_forward[2];
+
+  out_position[0] = marker.matrix.position.x - marker.matrix.forward.x * 0.5f;
+  out_position[1] = marker.matrix.position.y - marker.matrix.forward.y * 0.5f;
+  out_position[2] = marker.matrix.position.z - marker.matrix.forward.z * 0.5f;
+
+  *(vector3_t *)out_forward = marker.matrix.forward;
+
+
 
   /* 0xdd31b-0xdd32f: out_up is written unconditionally (no NULL test). */
-  ((float *)out_up)[0] = marker_up[0];
-  ((float *)out_up)[1] = marker_up[1];
-  ((float *)out_up)[2] = marker_up[2];
+  *(vector3_t *)out_up = marker.matrix.up;
+
+
 }
 
 /* Fetch the first-person marker of a weapon held by the unit of the local
@@ -711,7 +710,7 @@ void *first_person_weapon_get_node_matrix(int16_t local_player_index,
   weapon_tag = (char *)tag_get(0x77656170, *weapon_obj);
   antr_tag = (char *)tag_get(0x616e7472, *(int *)(weapon_tag + 0x478));
 
-  assert_halt(node_index >= 0 && (int)node_index < *(int *)(antr_tag + 0x68));
+  assert_halt_msg_at("node_index>=0 && node_index<animation_graph->nodes.count", "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x2ce, node_index >= 0 && (int)node_index < *(int *)(antr_tag + 0x68));
 
   return (void *)((int)node_index * 0x34 + 0x108c + (int)fp);
 }
@@ -976,9 +975,9 @@ int16_t first_person_weapon_get_marker_by_name_render(int object_handle,
  * animation index via first_person_animation_type_from_weapon_state and the
  * animation graph to validate the transition. If param_3 is nonzero, stops any
  * pending sound. */
-void first_person_weapon_set_state(int param_1, int param_2, int param_3)
+void first_person_weapon_set_state(int16_t local_player_index, int param_2,
+                                   int param_3)
 {
-  int16_t local_player_index = (int16_t)param_1;
   int16_t state = (int16_t)param_2;
   char *fp;
   int weapon_handle;
@@ -1260,7 +1259,7 @@ void first_person_weapon_new_unit(int local_player_index, int param_2)
 {
   char *fp;
 
-  assert_halt((int16_t)local_player_index >= 0 &&
+  assert_halt_msg_at("local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS", "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x599, (int16_t)local_player_index >= 0 &&
               (int16_t)local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
   fp = (char *)(*(int *)0x46bea8 + (int)(int16_t)local_player_index * 0x1ea0);
@@ -1534,6 +1533,7 @@ void first_person_weapon_update(int16_t local_player_index)
   float turning_i; /* name: PAL 2342 first_person_weapons.c:1828 */
   float turning_j; /* name: PAL 2342 first_person_weapons.c:1831 */
   uint8_t moving;
+  int16_t animation_update_result;
 #if defined(_MSC_VER) && !defined(__clang__)
   double __cdecl fmod(double, double);
 #endif
@@ -1565,15 +1565,16 @@ void first_person_weapon_update(int16_t local_player_index)
       }
     }
 
-    switch ((int16_t)animation_update_internal(0, *(int *)(weapon_tag + 0x478),
-                                               (short *)(fp + 0x16),
-                                               &triggered_sound_index)) {
-    case 1:
-      break;
-    case 2:
+    animation_update_result = (int16_t)animation_update_internal(
+      0, *(int *)(weapon_tag + 0x478), (short *)(fp + 0x16),
+      &triggered_sound_index);
+    if (animation_update_result != 1 &&
+        animation_update_result == 2) {
       first_person_weapon_next_state(local_player_index);
-      break;
     }
+
+
+
 
     if (triggered_sound_index != NONE &&
         director_get_perspective(local_player_index) == 0) {

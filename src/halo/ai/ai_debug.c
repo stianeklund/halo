@@ -1092,7 +1092,6 @@ char *ai_debug_describe_actor(int actor_handle, int object_handle,
   char variant_text[256];
   const char *type_name;
   char *actor;
-  void *scenario;
   void *encounter;
   void *squad;
   void *platoon;
@@ -1100,6 +1099,7 @@ char *ai_debug_describe_actor(int actor_handle, int object_handle,
   void *definition;
   void *variant;
   int encounter_index;
+  int16_t name_index;
 
   csstrcpy(encounter_text, "");
   if (with_actor != 0 && actor_handle != -1) {
@@ -1109,15 +1109,17 @@ char *ai_debug_describe_actor(int actor_handle, int object_handle,
       csstrcpy(encounter_text, "encounterless ");
     } else {
       encounter_index = (int)(*(uint32_t *)(actor + 0x34) & 0xffff);
-      scenario = global_scenario_get();
-      encounter = tag_block_get_element((void *)((char *)scenario + 0x42c),
-                                        encounter_index, 0xb0);
+      encounter =
+        tag_block_get_element((void *)((char *)global_scenario_get() + 0x42c),
+                              encounter_index, 0xb0);
       squad = tag_block_get_element((void *)((char *)encounter + 0x80),
                                     (int)*(int16_t *)(actor + 0x3a), 0xe8);
-      if (*(int16_t *)(actor + 0x3c) == -1 ||
-          (platoon = tag_block_get_element((void *)((char *)encounter + 0x8c),
-                                           (int)*(int16_t *)(actor + 0x3c),
-                                           0xac)) == NULL) {
+      platoon = NULL;
+      if (*(int16_t *)(actor + 0x3c) != -1) {
+        platoon = tag_block_get_element((void *)((char *)encounter + 0x8c),
+                                        (int)*(int16_t *)(actor + 0x3c), 0xac);
+      }
+      if (platoon == NULL) {
         crt_sprintf(encounter_text, "%s/%s ", (char *)encounter, (char *)squad);
       } else {
         crt_sprintf(encounter_text, "%s/(%s) %s ", (char *)encounter,
@@ -1132,11 +1134,11 @@ char *ai_debug_describe_actor(int actor_handle, int object_handle,
     definition = tag_get(0x756e6974 /* 'unit' */, *(int32_t *)object);
     type_name =
       tag_name_strip_path(*(const char **)((char *)definition + 0x2c));
-    if (*(int16_t *)((char *)object + 0x6a) != -1) {
-      scenario = global_scenario_get();
+    name_index = *(int16_t *)((char *)object + 0x6a);
+    if (name_index != -1) {
       variant =
-        tag_block_get_element((void *)((char *)scenario + 0x204),
-                              (int)*(int16_t *)((char *)object + 0x6a), 0x24);
+        tag_block_get_element((void *)((char *)global_scenario_get() + 0x204),
+                              (int)name_index, 0x24);
       crt_sprintf(variant_text, " (%s)", (char *)variant);
     }
   }
@@ -1771,39 +1773,30 @@ void ai_debug_speak_list(const char *list_name)
     };
     struct ai_speak_list_entry *entry;
     void *actor;
-    int16_t index;
-    uint8_t flag;
 
     actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)0x5ac9f8);
 
-    entry = speak_lists;
-    while (entry->name != NULL) {
+    for (entry = speak_lists; entry->name != NULL; entry++) {
       if (crt_stricmp(entry->name, list_name) == 0)
         break;
-      entry++;
     }
 
-    if (entry->name != NULL) {
-      if (*(int32_t *)((char *)actor + 0x18) != -1) {
-        index = entry->index;
-        if (index != -1) {
-          flag = entry->flag;
-          *(uint8_t *)0x5aca89 = 1;
-          *(uint8_t *)0x6324e0 = 1;
-          *(int16_t *)0x6324e8 = 0;
-          *(uint8_t *)0x6324e1 = 1;
-          *(uint8_t *)0x6324e2 = flag;
-          *(int32_t *)0x6324e4 = *(int32_t *)((char *)actor + 0x18);
-          *(int16_t *)0x6324ea = index;
-        }
-      }
-    } else {
+    if (entry->name == NULL) {
       console_printf(0,
                      "ai_speak_list: couldn't find the list '%s'... here are "
                      "the known lists:",
                      list_name);
       for (entry = speak_lists; entry->name != NULL; entry++)
         console_printf(0, "    %s", entry->name);
+    } else if (*(int32_t *)((char *)actor + 0x18) != -1 &&
+               entry->index != -1) {
+      *(uint8_t *)0x5aca89 = 1;
+      *(uint8_t *)0x6324e0 = 1;
+      *(int16_t *)0x6324e8 = 0;
+      *(uint8_t *)0x6324e1 = 1;
+      *(uint8_t *)0x6324e2 = entry->flag;
+      *(int32_t *)0x6324e4 = *(int32_t *)((char *)actor + 0x18);
+      *(int16_t *)0x6324ea = entry->index;
     }
   }
 }
@@ -2650,11 +2643,11 @@ void ai_debug_change_selected_encounter(int next)
   char description[256];
   char bsp_text[256];
 
-  if ((char)next == 0) {
-    index = data_prev_index(*(data_t **)0x5ab270, *(int32_t *)0x5ac9f4);
-  } else {
+  if ((char)next != 0) {
     index =
       (unsigned int)data_next_index(*(data_t **)0x5ab270, *(int32_t *)0x5ac9f4);
+  } else {
+    index = data_prev_index(*(data_t **)0x5ab270, *(int32_t *)0x5ac9f4);
   }
   datum =
     (char *)datum_absolute_index_to_index(*(data_t **)0x5ab270, (int)index);
@@ -2665,7 +2658,9 @@ void ai_debug_change_selected_encounter(int next)
   }
   encounter = tag_block_get_element((char *)global_scenario_get() + 0x42c,
                                     (int)(index & 0xffff), 0xb0);
-  if ((*((uint8_t *)encounter + 0x20) & 0x20) == 0) {
+  if ((*((uint8_t *)encounter + 0x20) & 0x20) != 0) {
+    csstrcpy(description, "3d-positions");
+  } else {
     if (*(int16_t *)((char *)encounter + 0x7e) == -1) {
       csstrcpy(bsp_text, "NONE");
     } else {
@@ -2673,8 +2668,6 @@ void ai_debug_change_selected_encounter(int next)
     }
     text = (*((uint8_t *)encounter + 0x20) & 0x40) ? "manual" : "auto";
     crt_sprintf(description, "%s-bsp %s", text, bsp_text);
-  } else {
-    csstrcpy(description, "3d-positions");
   }
   text = (datum[0xd] != 0) ? "active" : "inactive";
   console_printf(0, "encounter %s [%s %s] (%d actors)", encounter, text,
@@ -3191,12 +3184,12 @@ void ai_debug_change_selected_actor(int param)
       more = encounter_actor_iterator_next(iter);
     }
   }
-  if ((char)param == 0) {
-    actor = encounter_actor_iterator_prev(iter);
-    idx--;
-  } else {
+  if ((char)param != 0) {
     actor = (void *)encounter_actor_iterator_next(iter);
     idx++;
+  } else {
+    actor = encounter_actor_iterator_prev(iter);
+    idx--;
   }
   if (actor != NULL) {
     ai_debug_describe_actor(iter[1], -1, 1, (char *)0x5ab100, 0x100);
@@ -3303,7 +3296,7 @@ void ai_debug_render_path_storage(void *entry /* @<esi> */)
       FUN_00189450(1, (float *)(path + 0x28), (float *)(path + 0x64),
                    *(void **)0x2ee6e8, 0.1f);
       FUN_00189150(1, (float *)(path + 0x64), 0.3f, *(void **)0x2ee6d4);
-      if (*(float *)0x2533c0 < *(float *)(path + 0x74)) {
+      if (*(float *)(path + 0x74) > *(float *)0x2533c0) {
         FUN_00189540(1, path + 0x64, *(float *)(path + 0x74),
                      *(void **)0x2ee6d4);
       }

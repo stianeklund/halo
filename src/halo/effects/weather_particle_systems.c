@@ -45,7 +45,10 @@ void weather_particle_systems_initialize_for_new_map(void)
   i = 0;
   entry = (int *)0x4557f4;
   do {
-    assert_halt(i >= 0 && i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+    assert_halt_msg_at("local_player_index>=0 && "
+                       "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
+                       "c:\\halo\\SOURCE\\effects\\weather_particle_systems.c",
+                       0x5b, i >= 0 && i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
     *entry = NONE;
     i++;
     entry = (int *)((char *)entry + 0x9c);
@@ -115,8 +118,9 @@ void weather_particle_system_new(int16_t local_player_index, int particle_system
   void *type_definition;
   void *type_element;
   char *particle_type;
+  float lower_bound;
+  float upper_bound;
   int16_t type_index;
-  int type_index_int;
 
   assert_halt_msg_at("local_player_index>=0 && "
                      "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
@@ -139,7 +143,6 @@ void weather_particle_system_new(int16_t local_player_index, int particle_system
   weather_particle_system_count++;
 
   type_index = 0;
-  type_index_int = 0;
 
   if (*(int *)((char *)definition + 0x24) > 0) {
     do {
@@ -148,24 +151,24 @@ void weather_particle_system_new(int16_t local_player_index, int particle_system
         "type_index>=0 && type_index<definition->particle_types.count",
         "c:\\halo\\SOURCE\\effects\\weather_particle_systems.c", 0x66,
         type_index >= 0 &&
-          type_index_int < *(int *)((char *)type_definition + 0x24));
+          type_index < *(int *)((char *)type_definition + 0x24));
 
-      particle_type = weather_particle_system + type_index_int * 0x10 + 0x1c;
+      particle_type = weather_particle_system + type_index * 0x10 + 0x1c;
       type_element = tag_block_get_element((void *)((char *)definition + 0x24),
-                                           type_index_int, 0x25c);
+                                           type_index, 0x25c);
 
       *(int *)(particle_type + 0xc) = -1;
       *(int16_t *)(particle_type + 8) = 0;
 
+      upper_bound = *(float *)((char *)type_element + 0xa8);
+      lower_bound = *(float *)((char *)type_element + 0xa4);
       *(float *)particle_type =
         random_real_range((int *)random_math_get_local_seed_address(),
-                          *(float *)((char *)type_element + 0xa4),
-                          *(float *)((char *)type_element + 0xa8));
+                          lower_bound, upper_bound);
 
       type_index = type_index + 1;
-      type_index_int = (int)type_index;
       *(float *)(particle_type + 4) = *(float *)((char *)type_element + 0x30);
-    } while (type_index_int < *(int *)((char *)definition + 0x24));
+    } while (type_index < *(int *)((char *)definition + 0x24));
   }
 }
 
@@ -177,7 +180,6 @@ void weather_particle_system_delete(int16_t local_player_index)
   char *particle_type;
   void *particle;
   int16_t type_index;
-  int type_index_int;
   int next_particle_handle;
 
   assert_halt_msg_at("local_player_index>=0 && "
@@ -190,7 +192,6 @@ void weather_particle_system_delete(int16_t local_player_index)
   weather_particle_system = (char *)0x4557f4 + (int)local_player_index * 0x9c;
   definition = tag_get(0x7261696e, *(int *)weather_particle_system);
   type_index = 0;
-  type_index_int = 0;
 
   if (*(int *)((char *)definition + 0x24) > 0) {
     do {
@@ -199,9 +200,9 @@ void weather_particle_system_delete(int16_t local_player_index)
         "type_index>=0 && type_index<definition->particle_types.count",
         "c:\\halo\\SOURCE\\effects\\weather_particle_systems.c", 0x66,
         type_index >= 0 &&
-          type_index_int < *(int *)((char *)type_definition + 0x24));
+          type_index < *(int *)((char *)type_definition + 0x24));
 
-      particle_type = weather_particle_system + type_index_int * 0x10 + 0x1c;
+      particle_type = weather_particle_system + type_index * 0x10 + 0x1c;
       while (*(int *)(particle_type + 0xc) != -1) {
         particle = datum_get(weather_particle_system_data,
                              *(int *)(particle_type + 0xc));
@@ -213,8 +214,7 @@ void weather_particle_system_delete(int16_t local_player_index)
       }
 
       type_index = type_index + 1;
-      type_index_int = (int)type_index;
-    } while (type_index_int < *(int *)((char *)definition + 0x24));
+    } while (type_index < *(int *)((char *)definition + 0x24));
   }
 
   --weather_particle_system_count;
@@ -575,9 +575,6 @@ void weather_particle_system_update_particle_count(int16_t local_player_index, i
   float type_field_04;
   float target_f;
   int target_count;
-  int16_t current_count;
-  int16_t *count_field;
-  int particle_handle;
   int next_particle_handle;
 
   assert_halt_msg_at("local_player_index>=0 && "
@@ -611,24 +608,19 @@ void weather_particle_system_update_particle_count(int16_t local_player_index, i
   if (target_count < 0)
     target_count = 0;
 
-  current_count = *(int16_t *)(particle_type + 8);
-  while (current_count < target_count) {
-    particle_handle = weather_particle_system_new_particle(type_index, local_player_index);
-    if (particle_handle == -1)
+  while (*(int16_t *)(particle_type + 8) < target_count) {
+    if (weather_particle_system_new_particle(type_index, local_player_index) ==
+        -1)
       break;
-    current_count = *(int16_t *)(particle_type + 8);
   }
 
-  count_field = (int16_t *)(particle_type + 8);
-  current_count = *count_field;
-  while (current_count > target_count) {
+  while (*(int16_t *)(particle_type + 8) > target_count) {
     particle =
       datum_get(weather_particle_system_data, *(int *)(particle_type + 0xc));
     next_particle_handle = *(int *)((char *)particle + 0x50);
     datum_delete(weather_particle_system_data, *(int *)(particle_type + 0xc));
-    --*count_field;
+    --*(int16_t *)(particle_type + 8);
     *(int *)(particle_type + 0xc) = next_particle_handle;
-    current_count = *count_field;
   }
 }
 
@@ -651,9 +643,9 @@ void weather_particle_system_update(int16_t local_player_index)
   float camera_height;
   float near_fade;
   float far_fade;
-  float sequence_position;
+  float scale;
+  double sequence_position;
   int16_t type_index;
-  int type_index_int;
   int particle_handle;
   int spin;
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -676,7 +668,6 @@ void weather_particle_system_update(int16_t local_player_index)
     *(float *)(weather_particle_system + 4);
 
   type_index = 0;
-  type_index_int = 0;
   particle_types = (void *)((char *)definition + 0x24);
 
   if (*(int *)particle_types > 0) {
@@ -686,16 +677,17 @@ void weather_particle_system_update(int16_t local_player_index)
         "type_index>=0 && type_index<definition->particle_types.count",
         "c:\\halo\\SOURCE\\effects\\weather_particle_systems.c", 0x66,
         type_index >= 0 &&
-          type_index_int < *(int *)((char *)type_definition + 0x24));
+          type_index < *(int *)((char *)type_definition + 0x24));
 
-      particle_type = weather_particle_system + (type_index_int << 4) + 0x1c;
+      particle_type = weather_particle_system + ((int)type_index << 4) + 0x1c;
       type_element =
-        tag_block_get_element(particle_types, type_index_int, 0x25c);
+        tag_block_get_element(particle_types, type_index, 0x25c);
       bitmap =
         (char *)tag_get(0x6269746d, *(int *)((char *)type_element + 0x1a0));
 
       camera_height = *(float *)0x506558;
 
+      scale = *(float *)(weather_particle_system + 0xc);
       near_fade = (camera_height - *(float *)((char *)type_element + 0x34)) /
                   (*(float *)((char *)type_element + 0x38) -
                    *(float *)((char *)type_element + 0x34));
@@ -703,6 +695,7 @@ void weather_particle_system_update(int16_t local_player_index)
         near_fade = 0.0f;
       else if (near_fade > 1.0f)
         near_fade = 1.0f;
+      scale *= near_fade;
 
       far_fade = (camera_height - *(float *)((char *)type_element + 0x3c)) /
                  (*(float *)((char *)type_element + 0x40) -
@@ -713,30 +706,27 @@ void weather_particle_system_update(int16_t local_player_index)
         far_fade = 1.0f;
 
       weather_particle_system_update_particle_count(local_player_index, type_index,
-                   (1.0f - far_fade) *
-                     (*(float *)(weather_particle_system + 0xc) * near_fade));
+                   (1.0f - far_fade) * scale);
 
       particle_handle = *(int *)(particle_type + 0xc);
       if (particle_handle != NONE) {
-        bitmap = bitmap + 0x54;
         do {
           particle =
             (char *)datum_get(weather_particle_system_data, particle_handle);
 
-          sequence_position = *(float *)(particle + 0x4c) *
-                                *(float *)(weather_particle_system + 8) +
-                              *(float *)(particle + 0x2c);
-          *(float *)(particle + 0x2c) = sequence_position;
+          sequence_position = *(float *)(particle + 0x2c) +=
+            *(float *)(particle + 0x4c) *
+            *(float *)(weather_particle_system + 8);
 
           sequence_element = tag_block_get_element(
-            (void *)bitmap, (int)*(int16_t *)(particle + 0x28), 0x40);
+            (void *)(bitmap + 0x54), (int)*(int16_t *)(particle + 0x28), 0x40);
 #if defined(_MSC_VER) && !defined(__clang__)
           *(float *)(particle + 0x2c) =
-            (float)fmod((double)sequence_position,
+            (float)fmod(sequence_position,
                         (double)*(int *)((char *)sequence_element + 0x34));
 #else
           *(float *)(particle + 0x2c) =
-            x87_fmod(sequence_position,
+            x87_fmod((float)sequence_position,
                      (double)*(int *)((char *)sequence_element + 0x34));
 #endif
 
@@ -754,8 +744,7 @@ void weather_particle_system_update(int16_t local_player_index)
       }
 
       type_index = type_index + 1;
-      type_index_int = (int)type_index;
-    } while (type_index_int < *(int *)particle_types);
+    } while (type_index < *(int *)particle_types);
   }
 }
 

@@ -183,6 +183,60 @@ bool FUN_00145610(int object_handle)
   return 1;
 }
 
+/* FUN_00145660 (0x145660)
+ *
+ * Shared body of scenery_animation_start / scenery_animation_start_at_frame (its only callers). Looks up an
+ * animation by name in an 'antr' graph and installs it at obj+0x7c/+0x80 with
+ * a starting frame at obj+0x82, clamped to [0, frame_count - 1].
+ *
+ * Confirmed: CMP EAX,-0x1 before any push -> object_handle arrives in EAX.
+ * Confirmed: the format string at 0x29c71c is
+ *   "the animation '%s' doesn't exist in the graph '%s'"; push order is
+ *   tag_get_name(graph), animation_name, format.
+ * Confirmed: MOV CX,word [EBP+0x10]; TEST CX,CX; JGE -> arg4 is read as a
+ *   signed 16-bit value; CMP ECX,EAX; JG keeps the smaller of arg4 and
+ *   animation+0x22 - 1.
+ */
+void FUN_00145660(int object_handle, int animation_graph_tag,
+                  char *animation_name, int16_t arg4)
+{
+  char *obj;
+  char *antr_tag;
+  char *animation;
+  int16_t animation_index;
+  int16_t frame_index;
+  int last_frame;
+
+  if (object_handle == -1)
+    return;
+  if (animation_graph_tag == -1)
+    return;
+  obj = (char *)object_get_and_verify_type(object_handle, 0x40);
+  antr_tag = (char *)tag_get(0x616e7472, animation_graph_tag);
+  animation_index =
+    animation_graph_get_animation_by_name(animation_graph_tag, animation_name);
+  if (animation_index != -1) {
+    animation = (char *)tag_block_get_element(antr_tag + 0x74,
+                                              (int)animation_index, 0xb4);
+    *(uint32_t *)(obj + 0x1a4) |= 1;
+    *(uint32_t *)(obj + 0x4) &= ~0x80;
+    *(int16_t *)(obj + 0x80) = animation_index;
+    if ((int16_t)arg4 < 0) {
+      frame_index = 0;
+    } else {
+      last_frame = (int)*(int16_t *)(animation + 0x22) - 1;
+      frame_index =
+        (int16_t)((int)(int16_t)arg4 > last_frame ? last_frame :
+                                                    (int)(int16_t)arg4);
+    }
+    *(int16_t *)(obj + 0x82) = frame_index;
+    *(int *)(obj + 0x7c) = animation_graph_tag;
+  } else {
+    console_warning("the animation '%s' doesn't exist in the graph '%s'",
+                    animation_name, tag_get_name(animation_graph_tag));
+  }
+}
+
 /* FUN_00145740 (0x145740)
  *
  * Third member of the same object-type table family as FUN_00145580 /
@@ -239,7 +293,7 @@ int16_t FUN_00145740(int object_handle)
 
 /* 0x1457b0 — Thin cdecl forwarder onto the animation-state setter at
  * 0x00145660; the 3-argument (frame-index-zero) variant of the 4-argument
- * sibling FUN_001457d0.
+ * sibling scenery_animation_start_at_frame.
  *
  * Confirmed frame (PUSH EBP; MOV EBP,ESP; no callee-saved pushes):
  *   object_handle        [EBP+0x08]
@@ -265,12 +319,21 @@ int16_t FUN_00145740(int object_handle)
  * only the low 16 bits of the pushed dword are used.
  * Unknown: the semantic role of the 4th argument (it is clamped against a
  * 16-bit field and stored at obj+0x82); no string or assert evidence names it,
- * so it stays arg4 here and in the FUN_001457d0 decl.
+ * so it stays arg4 here and in the scenery_animation_start_at_frame decl.
  */
-void FUN_001457b0(int object_handle, int animation_graph_tag,
+void scenery_animation_start(int object_handle, int animation_graph_tag,
                   char *animation_name)
 {
   FUN_00145660(object_handle, animation_graph_tag, animation_name, 0);
+}
+
+/* 0x1457d0 — 4-argument sibling of scenery_animation_start: forwards all four of its
+ * arguments to FUN_00145660, object_handle in EAX (reloaded after the first
+ * push), the other three pushed. arg4 is forwarded as a full dword. */
+void scenery_animation_start_at_frame(int object_handle, int animation_graph_tag,
+                  char *animation_name, int arg4)
+{
+  FUN_00145660(object_handle, animation_graph_tag, animation_name, arg4);
 }
 
 /* 0x1457f0 — Returns a pointer to the health float for a breakable surface,

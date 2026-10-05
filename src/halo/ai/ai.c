@@ -1603,7 +1603,7 @@ void ai_disconnect_from_structure_bsp(void)
                         1, unit, ((actor_t *)actor)->field_05c,
                         ((actor_t *)actor)->field_034,
                         (unsigned short)((actor_t *)actor)->field_03a, 0,
-                        actor_iter[1], 0, 2, 0, 0xffff, 0) == -1) {
+                        actor_iter[1], 0, 2, 0, NONE, 0) == -1) {
                     object_delete(unit);
                   } else {
                     reattached++;

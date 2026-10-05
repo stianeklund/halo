@@ -8800,7 +8800,7 @@
    }
   },
   {
-   "name": "halo/FUN_001457b0",
+   "name": "halo/scenery_animation_start",
    "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/breakable_surfaces.c.obj",
    "base_path": "delinked/functions/001457b0.obj",
    "metadata": {
@@ -9109,6 +9109,22 @@
    "base_path": "delinked/rasterizer_xbox_models_FUN_0016b2b0.obj",
    "metadata": {
     "source_path": "halo/rasterizer/xbox/rasterizer_xbox_models.c"
+   }
+  },
+  {
+   "name": "halo/scenery_animation_start_at_frame",
+   "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/breakable_surfaces.c.obj",
+   "base_path": "delinked/functions/001457d0.obj",
+   "metadata": {
+    "source_path": "src/halo/physics/breakable_surfaces.c"
+   }
+  },
+  {
+   "name": "halo/FUN_00145660",
+   "target_path": "build/CMakeFiles/halo.dir/src/halo/physics/breakable_surfaces.c.obj",
+   "base_path": "delinked/functions/00145660.obj",
+   "metadata": {
+    "source_path": "src/halo/physics/breakable_surfaces.c"
    }
   }
  ]

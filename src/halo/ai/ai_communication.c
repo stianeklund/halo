@@ -842,7 +842,7 @@ short ai_communication_consider_speech(int *sound_definition_index_reference,
     }
     if ((int)elapsed < (int)threshold + 60) {
       *weight =
-        (float)((int)elapsed - (int)threshold) * *weight * *(float *)0x25634c;
+        *(float *)0x25634c * ((float)((int)elapsed - (int)threshold) * *weight);
     }
   }
 
@@ -932,7 +932,7 @@ void ai_communication_look_secondary_at_unit(int prop_handle, int actor_handle,
 
   if (actor_handle == -1)
     return;
-  if (priority < 1)
+  if (priority <= 0)
     return;
   if (object_handle == -1)
     return;
@@ -1975,13 +1975,12 @@ void ai_communication_update_speech_timers(int unit_handle, int16_t param_2,
     actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)(unit + 0x1a4));
     communication_flags =
       actor_type_get_race((int16_t) * (uint16_t *)((char *)actor + 4));
-    if ((communication_flags & 2) == 0) {
-      if ((communication_flags & 4) == 0) {
-        return;
-      }
+    if ((communication_flags & 2) != 0) {
+      team_index = 0;
+    } else if ((communication_flags & 4) != 0) {
       team_index = 1;
     } else {
-      team_index = 0;
+      return;
     }
     if (param_2 <= 5) {
       ai_globals = *(char **)0x632574;
@@ -2491,6 +2490,7 @@ char ai_conversation_find_participant(int16_t participant_index,
   char use_ai_iterator;
   char first_participant;
   char found_variant;
+  char selection_valid;
   real best_score;
   real best_distance;
   real candidate_score;
@@ -2560,6 +2560,7 @@ char ai_conversation_find_participant(int16_t participant_index,
     candidate_score = 0.0f;
     candidate_distance = 3.402823466e38f;
     player_unit = NULL;
+    selection_valid = 1;
     if (use_object) {
       unit = (unit_data_t *)object_try_and_get_and_verify_type(object_index, 3);
       actor = NULL;
@@ -2618,8 +2619,7 @@ char ai_conversation_find_participant(int16_t participant_index,
       if (player_unit != NULL &&
           game_allegiance_get_team_is_friendly(
             actor->meta_team_index, player_unit->object.owner_team_index)) {
-        rejection_counts[4]++;
-        continue;
+        selection_valid = 0;
       }
       break;
     case 2:
@@ -2627,18 +2627,15 @@ char ai_conversation_find_participant(int16_t participant_index,
           player_unit->object.parent_object_index.value == -1 ||
           actor->vehicle_index !=
             player_unit->object.parent_object_index.value) {
-        rejection_counts[4]++;
-        continue;
-      }
-      if (actor->field_161) {
+        selection_valid = 0;
+      } else if (actor->field_161) {
         candidate_score += 1.0f;
         HALO_FLT_ROUNDTRIP(candidate_score);
       }
       break;
     case 3:
       if (actor->vehicle_index != -1) {
-        rejection_counts[4]++;
-        continue;
+        selection_valid = 0;
       }
       break;
     case 4:
@@ -2648,6 +2645,10 @@ char ai_conversation_find_participant(int16_t participant_index,
         HALO_FLT_ROUNDTRIP(candidate_score);
       }
       break;
+    }
+    if (!selection_valid) {
+      rejection_counts[4]++;
+      continue;
     }
     if (first_participant && !radio_selection && player_rating < 2.0f &&
         definition->run_to_player_distance == 0.0f) {
@@ -2776,7 +2777,7 @@ char ai_conversation_find_participant(int16_t participant_index,
 
 finalize:
   if (assigned) {
-    conversation->participant_mask |= 1u << (participant_index & 31);
+    conversation->participant_mask |= 1u << participant_index;
     conversation->actor_indices[participant_index] = selected_actor_index;
     conversation->dialogue_indices[participant_index] = selected_variant_index;
     if (found_actor != NULL && selected_actor_index != -1) {
@@ -2991,8 +2992,10 @@ void ai_communication_notify(int unit_handle, uint16_t priority, uint16_t type,
 
       if (actor->meta_unit_index != unit_handle &&
           !game_allegiance_get_team_is_friendly(actor->field_03e, team) &&
-          !(magnitude_squared3d(vector_from_points3d(
-              &actor->head_position, &speaker_head, &vector)) > 900.0f)) {
+          (vector_from_points3d(&actor->head_position, &speaker_head,
+                                &vector),
+           !(vector.j * vector.j + vector.i * vector.i +
+               vector.k * vector.k > 900.0f))) {
         prop_handle =
           prop_get_base_by_unit_index(actors.index, unit_handle, 1, 1);
         if (prop_handle != -1) {
@@ -4300,15 +4303,15 @@ void ai_conversation_update(void)
          *(int16_t *)(conversation + 0x48) < *(int32_t *)(definition + 0x5c));
       for (;;) {
         if (line_ready != '\0') {
+          char *line_conversation;
+
           if (!ai_conversation_line_perform((int)iter.datum_handle)) {
             goto line_pending;
           }
-          tag_block_get_element(
-            (char *)global_scenario_get() + 0x468,
-            *(int16_t *)((char *)datum_get(*(data_t **)0x6324ec,
-                                           (int)iter.datum_handle) +
-                         2),
-            0x74);
+          line_conversation =
+            (char *)datum_get(*(data_t **)0x6324ec, (int)iter.datum_handle);
+          tag_block_get_element((char *)global_scenario_get() + 0x468,
+                                *(int16_t *)(line_conversation + 2), 0x74);
         }
         *(int16_t *)(conversation + 0x48) =
           *(int16_t *)(conversation + 0x48) + 1;

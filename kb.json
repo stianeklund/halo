@@ -3622,7 +3622,7 @@
     },
     {
      "addr": "0x3edc0",
-     "decl": "int actor_create_for_unit(char flags, int unit_index, int actv_tag_index, int encounter_index, int squad_index, char param6, int exclude_actor_handle, char encounter_flag, short starting_location_index, short squad_position_index, unsigned short param11, char param12);",
+     "decl": "int actor_create_for_unit(char flags, int unit_index, int actv_tag_index, int encounter_index, int squad_index, char param6, int exclude_actor_handle, char encounter_flag, short starting_location_index, short squad_position_index, short param11, char param12);",
      "ported": true
     },
     {
@@ -4066,7 +4066,7 @@
     },
     {
      "addr": "0x178d0",
-     "decl": "void cross_product3d(float *a, float *b, float *out);",
+     "decl": "float *cross_product3d(float *a, float *b, float *out);",
      "ported": true
     },
     {
@@ -5320,7 +5320,9 @@
     },
     {
      "addr": "0x145660",
-     "decl": "void FUN_00145660(int object_handle@<eax>, int animation_graph_tag, char *animation_name, int arg4);"
+     "decl": "void FUN_00145660(int object_handle@<eax>, int animation_graph_tag, char *animation_name, int16_t arg4);",
+     "ported": true,
+     "static_in_tu": true
     },
     {
      "addr": "0x145740",
@@ -5329,12 +5331,15 @@
     },
     {
      "addr": "0x1457b0",
-     "decl": "void FUN_001457b0(int object_handle, int animation_graph_tag, char *animation_name);",
-     "ported": true
+     "decl": "void scenery_animation_start(int object_handle, int animation_graph_tag, char *animation_name);",
+     "ported": true,
+     "comment": "[NAME: scenery_animation_start \u2014 method=sole_callee_of_hs_handler tier=T2] Only caller is scenery_animation_start_evaluate (0xbed70), which forwards its three script arguments unchanged."
     },
     {
      "addr": "0x1457d0",
-     "decl": "void FUN_001457d0(int object_handle, int animation_graph_tag, char *animation_name, int arg4);"
+     "decl": "void scenery_animation_start_at_frame(int object_handle, int animation_graph_tag, char *animation_name, int arg4);",
+     "ported": true,
+     "comment": "[NAME: scenery_animation_start_at_frame \u2014 method=sole_callee_of_hs_handler tier=T2] Only caller is scenery_animation_start_at_frame_evaluate (0xbedb0), which forwards its four script arguments unchanged."
     },
     {
      "addr": "0x145990",
@@ -8745,7 +8750,7 @@
     },
     {
      "addr": "0xddbd0",
-     "decl": "void first_person_weapon_set_state(int local_player_index, int state, int param_3);",
+     "decl": "void first_person_weapon_set_state(int16_t local_player_index, int state, int param_3);",
      "ported": true,
      "name": "first_person_weapon_set_state"
     },
@@ -37074,7 +37079,7 @@
     },
     {
      "addr": "0x19d420",
-     "decl": "int FUN_0019d420(int param_1, int param_2);",
+     "decl": "int FUN_0019d420(int param_1, int16_t param_2);",
      "ported": true
     },
     {
@@ -40875,7 +40880,8 @@
     {
      "addr": "0x69b90",
      "decl": "int Fax3Encode1DRow(void *tif, unsigned char *bp, int bits @<edi>);",
-     "comment": "[NAME: Fax3Encode1DRow \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "comment": "[NAME: Fax3Encode1DRow \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x69c40",
@@ -41549,7 +41555,8 @@
      "addr": "0x705b0",
      "decl": "void RGBToColor(unsigned short *rgb@<eax>, unsigned char *color);",
      "comment": "[NAME: RGBToColor \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
-     "ported": false
+     "ported": true,
+     "static_in_tu": true
     },
     {
      "addr": "0x70610",

@@ -197,7 +197,6 @@ void pre_evaluator_combatmove(int actor_handle, char *eval_state,
 {
   char *definition;
   char *firing_position;
-  char *aim_record;
   float weight;
   float evaluation;
   float blockage_score;
@@ -212,7 +211,7 @@ void pre_evaluator_combatmove(int actor_handle, char *eval_state,
 
   weight = 8.0f;
   if ((*(char *)(eval_state + 0x5fc) == '\0' ||
-       (*(float *)(eval_state + 0x600) <= *(float *)(definition + 0x74) &&
+       (!(*(float *)(eval_state + 0x600) > *(float *)(definition + 0x74)) &&
         (weight = (1.0f - *(float *)(eval_state + 0x600) /
                             *(float *)(definition + 0x74)) *
                   8.0f) > 0.0f)) &&
@@ -235,19 +234,19 @@ void pre_evaluator_combatmove(int actor_handle, char *eval_state,
   if (*(short *)(eval_state + 0x256) > 0 && firing_position_count > 0) {
     firing_position = firing_positions;
     for (i = 0; i < firing_position_count; i++) {
+      worst_kind0 = 0;
+      worst_kind1 = 0;
       if (firing_position[0x30] != '\0') {
-        worst_kind0 = 0;
-        worst_kind1 = 0;
         for (j = 0; j < *(short *)(eval_state + 0x254); j++) {
-          aim_record = eval_state + j * 0x1c;
-          if (*(short *)(aim_record + 0x25c) == 0 ||
-              *(short *)(aim_record + 0x25c) == 1) {
+          if (*(short *)(eval_state + j * 0x1c + 0x25c) == 0 ||
+              *(short *)(eval_state + j * 0x1c + 0x25c) == 1) {
             blockage = actor_perception_aiming_vector_test_blockage(
-              (float *)(aim_record + 0x260), (float *)(aim_record + 0x26c),
+              (float *)(eval_state + j * 0x1c + 0x260),
+              (float *)(eval_state + j * 0x1c + 0x26c),
               (int)*(float **)firing_position, 0);
-            if (*(short *)(aim_record + 0x25c) == 0)
+            if (*(short *)(eval_state + j * 0x1c + 0x25c) == 0)
               worst_kind0 = MAX(worst_kind0, blockage);
-            else if (*(short *)(aim_record + 0x25c) == 1)
+            else if (*(short *)(eval_state + j * 0x1c + 0x25c) == 1)
               worst_kind1 = MAX(worst_kind1, blockage);
           }
         }
@@ -408,57 +407,60 @@ int post_evaluator_pursuit(int actor_handle, char *eval_state,
   short examined_count;
   bool unexamined;
   float score;
+  int result;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   now = game_time_get();
   last_examined = -1;
   examined_count = 0;
-  if (firing_position == (char *)0)
-    return 0;
+  result = 0;
+  if (firing_position != (char *)0) {
+    unexamined = 1;
+    if (*(short *)(firing_position + 6) == 0 &&
+        *(float *)(firing_position + 8) < 6.0f) {
+      encounter_mark_examined_pursuit_position(
+        *(int *)(actor + 0x34), actor_handle, *(short *)(firing_position + 4),
+        *(int *)(eval_state + 0xc));
+      last_examined = now;
+      examined_count = 7;
+      unexamined = 0;
+    } else if (encounter_pursuit_position_already_examined(
+                 *(int *)(actor + 0x34), actor_handle,
+                 *(short *)(firing_position + 4), *(int *)(eval_state + 0xc),
+                 &examined_count, &last_examined)) {
+      unexamined = 0;
+    }
 
-  unexamined = 1;
-  if (*(short *)(firing_position + 6) == 0 &&
-      *(float *)(firing_position + 8) < 6.0f) {
-    encounter_mark_examined_pursuit_position(
-      *(int *)(actor + 0x34), actor_handle, *(short *)(firing_position + 4),
-      *(int *)(eval_state + 0xc));
-    last_examined = now;
-    examined_count = 7;
-    unexamined = 0;
-  } else if (encounter_pursuit_position_already_examined(
-               *(int *)(actor + 0x34), actor_handle,
-               *(short *)(firing_position + 4), *(int *)(eval_state + 0xc),
-               &examined_count, &last_examined)) {
-    unexamined = 0;
-  }
+    if (*(char *)(eval_state + 0x10) != '\0') {
+      if (unexamined)
+        firing_position_store_evaluation_debug(eval_state, 15.0f, 7,
+                                               firing_position);
+    } else if (!unexamined) {
+      *(char *)(firing_position + 0x31) = 1;
+      if (*(char *)(eval_state + 0x14) == '\0')
+        *(char *)(firing_position + 0x30) = '\0';
+    }
 
-  if (*(char *)(eval_state + 0x10) != '\0') {
-    if (unexamined)
-      firing_position_store_evaluation_debug(eval_state, 15.0f, 7,
+    if (*(char *)(firing_position + 0x30) != '\0') {
+      score = 0.0f;
+      if (last_examined == -1 || last_examined + 300 < now)
+        score = 10.0f;
+      else if (last_examined < now)
+        score = (float)(now - last_examined) * 0.033333335f;
+      firing_position_store_evaluation_debug(eval_state, score, 5,
                                              firing_position);
-  } else if (!unexamined) {
-    *(char *)(firing_position + 0x31) = 1;
-    if (*(char *)(eval_state + 0x14) == '\0')
-      *(char *)(firing_position + 0x30) = '\0';
+
+      score = 0.0f;
+      if (examined_count < 4)
+        score = (float)(4 - examined_count) * 5.0f;
+      firing_position_store_evaluation_debug(eval_state, score, 6,
+                                             firing_position);
+    }
+
+    result = *(unsigned char *)(firing_position + 0x30);
   }
 
-  if (*(char *)(firing_position + 0x30) != '\0') {
-    score = 0.0f;
-    if (last_examined == -1 || last_examined + 300 < now)
-      score = 10.0f;
-    else if (last_examined < now)
-      score = (float)(now - last_examined) * 0.033333335f;
-    firing_position_store_evaluation_debug(eval_state, score, 5,
-                                           firing_position);
-
-    score = 0.0f;
-    if (examined_count < 4)
-      score = (float)(4 - examined_count) * 5.0f;
-    firing_position_store_evaluation_debug(eval_state, score, 6,
-                                           firing_position);
-  }
-
-  return *(unsigned char *)(firing_position + 0x30);
+  return result;
 }
 
 /* post_evaluator_hide (0x245d0) — the hide evaluator: score a candidate
@@ -662,28 +664,27 @@ int post_evaluator_uncover(int actor_handle, char *eval_state,
   if (*(char *)(eval_state + 0x5fc) != '\0') {
     if (firing_position == (char *)0) {
       *(float *)(eval_state + 0x660) += 20.0f;
-      return 1;
-    }
-
-    score = 0.0f;
-    switch (*(short *)(firing_position + 6)) {
-    case 0:
-      score = 20.0f;
-      break;
-    case 1:
-      score = 10.0f;
-      break;
-    default:
-      dist = *(float *)(eval_state + 0x600) - 7.5f;
-      if (dist < 0.0f || dist * dist < *(float *)(firing_position + 0x2c)) {
-        *(char *)(firing_position + 0x31) = 1;
-        if (*(char *)(eval_state + 0x14) == '\0')
-          *(char *)(firing_position + 0x30) = '\0';
+    } else {
+      score = 0.0f;
+      switch (*(short *)(firing_position + 6)) {
+      case 0:
+        score = 20.0f;
+        break;
+      case 1:
+        score = 10.0f;
+        break;
+      default:
+        dist = *(float *)(eval_state + 0x600) - 7.5f;
+        if (dist < 0.0f || *(float *)(firing_position + 0x2c) > dist * dist) {
+          *(char *)(firing_position + 0x31) = 1;
+          if (*(char *)(eval_state + 0x14) == '\0')
+            *(char *)(firing_position + 0x30) = '\0';
+        }
+        break;
       }
-      break;
+      firing_position_store_evaluation_debug(eval_state, score, 0x14,
+                                             firing_position);
     }
-    firing_position_store_evaluation_debug(eval_state, score, 0x14,
-                                           firing_position);
   }
 
   if (firing_position == (char *)0)
@@ -1164,8 +1165,6 @@ void actor_discard_firing_position(int actor_handle, short param_2,
 
     actor->field_3d9 = param_3;
     actor->field_3d8 = 1;
-    actor->field_3dc = firing_position[0];
-    actor->field_3e0 = firing_position[1];
-    actor->field_3e4 = firing_position[2];
+    actor->field_3dc = *(real_point3d *)firing_position;
   }
 }

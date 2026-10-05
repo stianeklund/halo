@@ -75,7 +75,7 @@ void *datum_get(data_t *data, int datum_handle)
   display_assert(csprintf(error_string_buffer,
                           "%s index #%d (0x%x) is unused or changed",
                           data->name, datum_handle & 0xffff, datum_handle),
-                 __FILE__, __LINE__, true);
+                 "c:\\halo\\SOURCE\\memory\\data.c", 0x19c, true);
   system_exit(-1);
   return NULL;
 }

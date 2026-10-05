@@ -5709,7 +5709,7 @@ void scenery_get_animation_time_evaluate(int16_t function_index, int thread_datu
  * hs_macro_function_evaluate(function_index, thread_datum, init); while that
  * returns NULL the evaluation is still pending and nothing is committed. Once a
  * non-NULL evaluation record is returned, its first three dwords are forwarded
- * to FUN_001457b0 (a cdecl helper that sets an object's animation state), then
+ * to scenery_animation_start (a cdecl helper that sets an object's animation state), then
  * the calling thread is completed with hs_return(thread_datum, 0).
  *
  * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ESI for thread_datum):
@@ -5720,14 +5720,14 @@ void scenery_get_animation_time_evaluate(int16_t function_index, int thread_datu
  *
  * hs_macro_function_evaluate returns the record pointer in EAX. On non-NULL the
  * original pushes the record's first three dwords in reverse
- * (PUSH [EAX+8]; PUSH [EAX+4]; PUSH [EAX]) and CALLs FUN_001457b0 with three
+ * (PUSH [EAX+8]; PUSH [EAX+4]; PUSH [EAX]) and CALLs scenery_animation_start with three
  * cdecl args = (record[0], record[1], record[2]); record[2] is an animation
  * name pointer (char *). The combined ADD ESP,0x14 after the two trailing calls
- * folds FUN_001457b0's 3-dword cleanup with hs_return's 2-dword cleanup
+ * folds scenery_animation_start's 3-dword cleanup with hs_return's 2-dword cleanup
  * (3 + 2 = 5 dwords = 0x14), confirming both are cdecl. Ghidra modeled this
  * void(void); the three cdecl params were unmodeled (in_stack_*) and
- * FUN_001457b0's arguments were mis-declared void(void) (kb decl was previously
- * void(void) for both this function and FUN_001457b0). */
+ * scenery_animation_start's arguments were mis-declared void(void) (kb decl was previously
+ * void(void) for both this function and scenery_animation_start). */
 void scenery_animation_start_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *result;
@@ -5735,7 +5735,7 @@ void scenery_animation_start_evaluate(int16_t function_index, int thread_datum, 
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_001457b0(result[0], result[1], (char *)result[2]);
+    scenery_animation_start(result[0], result[1], (char *)result[2]);
     hs_return(thread_datum, 0);
   }
 }
@@ -5747,7 +5747,7 @@ void scenery_animation_start_evaluate(int16_t function_index, int thread_datum, 
  * hs_macro_function_evaluate(function_index, thread_datum, init); while that
  * returns NULL the evaluation is still pending and nothing is committed. Once a
  * non-NULL evaluation record is returned, its fields are forwarded to the
- * animation-state helper FUN_001457d0, then the calling thread is completed
+ * animation-state helper scenery_animation_start_at_frame, then the calling thread is completed
  * with hs_return(thread_datum, 0).
  *
  * cdecl frame (PUSH EBP; MOV EBP,ESP; PUSH ESI for thread_datum):
@@ -5757,18 +5757,18 @@ void scenery_animation_start_evaluate(int16_t function_index, int thread_datum, 
  *   init            char     [EBP+0x10]  -> arg3
  *
  * hs_macro_function_evaluate returns the record pointer in EAX. On non-NULL the
- * original forwards four cdecl args to FUN_001457d0 in reverse push order:
+ * original forwards four cdecl args to scenery_animation_start_at_frame in reverse push order:
  *   PUSH movzx(WORD [EAX+0xc])   -> arg4 = zero-extended 16-bit field @ +0xc
  *   PUSH [EAX+8]                 -> arg3 = record[2] (char *, animation name)
  *   PUSH [EAX+4]                 -> arg2 = record[1]
  *   PUSH [EAX]                   -> arg1 = record[0]
- * This is FUN_001457b0's 3-arg animation-state signature plus a trailing 16-bit
+ * This is scenery_animation_start's 3-arg animation-state signature plus a trailing 16-bit
  * argument; the arg4 load is `XOR EDX,EDX; MOV DX, WORD PTR [EAX+0xc]` (an
  * unsigned-short widening, hence the [LOADW] shape). The combined ADD ESP,0x18
- * after the two trailing calls folds FUN_001457d0's 4-dword cleanup (0x10) with
+ * after the two trailing calls folds scenery_animation_start_at_frame's 4-dword cleanup (0x10) with
  * hs_return's 2-dword cleanup (0x08), confirming both are cdecl. Ghidra modeled
  * this void(void): the three cdecl params were unmodeled (in_stack_*) and
- * FUN_001457d0's arguments were hidden because its kb decl was void(void). */
+ * scenery_animation_start_at_frame's arguments were hidden because its kb decl was void(void). */
 void scenery_animation_start_at_frame_evaluate(int16_t function_index, int thread_datum, char init)
 {
   int *record;
@@ -5776,7 +5776,7 @@ void scenery_animation_start_at_frame_evaluate(int16_t function_index, int threa
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    FUN_001457d0(record[0], record[1], (char *)record[2],
+    scenery_animation_start_at_frame(record[0], record[1], (char *)record[2],
                  *(unsigned short *)(record + 3));
     hs_return(thread_datum, 0);
   }

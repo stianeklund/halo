@@ -1055,56 +1055,56 @@ void player_control_action_test_check_reset_input_blob(char *input_state)
     *(uint32_t *)(input_state + 0x18) &= 0xffffffbf;
   }
 
-  if (*(char *)0x2f0292 != 0) {
+  if (*(char *)0x2f0292 == 0) {
     if ((fields[1] & 4) == 0) {
       if ((fields[2] & 4) == 0) {
-        goto latch_1c;
+        goto latch_1c_alt;
       }
-      if ((*(uint32_t *)(input_state + 0x18) & 2) != 0) {
+      if ((*(uint32_t *)(input_state + 0x18) & 0x40) != 0) {
         fields[2] |= 4;
       } else {
         fields[2] &= 0xfffffffb;
       }
     }
-    *(uint32_t *)(input_state + 0x18) &= 0xfffffffd;
-  latch_1c:
+    *(uint32_t *)(input_state + 0x18) &= 0xffffffbf;
+  latch_1c_alt:
     if ((fields[1] & 8) == 0) {
-      if ((fields[2] & 4) == 0) {
+      if ((fields[2] & 8) == 0) {
         return;
       }
-      if ((*(uint32_t *)(input_state + 0x1c) & 2) != 0) {
-        fields[2] |= 4;
+      if ((*(uint32_t *)(input_state + 0x1c) & 1) != 0) {
+        fields[2] |= 8;
       } else {
-        fields[2] &= 0xfffffffb;
+        fields[2] &= 0xfffffff7;
       }
     }
-    *(uint32_t *)(input_state + 0x1c) &= 0xfffffffd;
+    *(uint32_t *)(input_state + 0x1c) &= 0xfffffffe;
     return;
   }
 
   if ((fields[1] & 4) == 0) {
     if ((fields[2] & 4) == 0) {
-      goto latch_1c_alt;
+      goto latch_1c;
     }
-    if ((*(uint32_t *)(input_state + 0x18) & 0x40) != 0) {
+    if ((*(uint32_t *)(input_state + 0x18) & 2) != 0) {
       fields[2] |= 4;
     } else {
       fields[2] &= 0xfffffffb;
     }
   }
-  *(uint32_t *)(input_state + 0x18) &= 0xffffffbf;
-latch_1c_alt:
+  *(uint32_t *)(input_state + 0x18) &= 0xfffffffd;
+latch_1c:
   if ((fields[1] & 8) == 0) {
-    if ((fields[2] & 8) == 0) {
+    if ((fields[2] & 4) == 0) {
       return;
     }
-    if ((*(uint32_t *)(input_state + 0x1c) & 1) != 0) {
-      fields[2] |= 8;
+    if ((*(uint32_t *)(input_state + 0x1c) & 2) != 0) {
+      fields[2] |= 4;
     } else {
-      fields[2] &= 0xfffffff7;
+      fields[2] &= 0xfffffffb;
     }
   }
-  *(uint32_t *)(input_state + 0x1c) &= 0xfffffffe;
+  *(uint32_t *)(input_state + 0x1c) &= 0xfffffffd;
 }
 
 /* Signed angular difference `param_2 - param_1`, wrapped into (-pi, pi).

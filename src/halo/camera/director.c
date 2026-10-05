@@ -499,15 +499,15 @@ void director_save_camera(void)
  *             (0x853c0), 3 = other
  * Base = 0x3352b0 + local_player_index * 0xf8.
  *
- * Mirrors the disassembly's three separate return points exactly: the
- * first-person branch only refreshes and returns the cache when the timer
+ * Single return of the cached word (the compiler duplicates it per arm): the
+ * first-person branch only refreshes the cache when the timer
  * equals 0.0f (constant at 0x2533c0, confirmed 0.0f elsewhere in-tree),
  * otherwise it falls through and returns the stale cached value unchanged.
  */
 int16_t director_get_perspective(int16_t local_player_index)
 {
-  char *base;
-  void *camera_fn;
+  camera_director_t *director;
+
 
   if (local_player_index < 0 ||
       local_player_index >= MAXIMUM_NUMBER_OF_LOCAL_PLAYERS) {
@@ -517,22 +517,22 @@ int16_t director_get_perspective(int16_t local_player_index)
     system_exit(-1);
   }
 
-  base = (char *)0x3352b0 + (int)local_player_index * 0xf8;
-  camera_fn = *(void **)(base + 0x8);
+  director = (camera_director_t *)((char *)0x3352b0 + local_player_index * 0xf8);
 
-  if (camera_fn == (void *)0x89270) {
-    if (*(float *)(base + 0x4) == 0.0f) {
-      *(int16_t *)(base + 0x56) = 0;
-      return *(int16_t *)(base + 0x56);
+
+  if (director->camera_proc == FIRST_PERSON_CAMERA_UPDATE_ENTRY) {
+    if (director->camera_change_pause == 0.0f) {
+      director->perspective = 0;
+
     }
-  } else if (camera_fn == (void *)0x89cd0) {
-    *(int16_t *)(base + 0x56) = 1;
-    return *(int16_t *)(base + 0x56);
+  } else if (director->camera_proc == FOLLOWING_CAMERA_UPDATE_ENTRY) {
+    director->perspective = 1;
+
   } else {
-    *(int16_t *)(base + 0x56) = (int16_t)((camera_fn != (void *)0x853c0) + 2);
+    director->perspective = (int16_t)((director->camera_proc != SCRIPTED_CAMERA_UPDATE_ENTRY) + 2);
   }
 
-  return *(int16_t *)(base + 0x56);
+  return director->perspective;
 }
 
 /*
@@ -1880,9 +1880,9 @@ void editor_camera_update(int param_1, unsigned short *param_2,
 
     camera_data = *(uint32_t **)0x3356b0;
     globals = *(char **)0x2ee670;
-    camera_data[0] = *(uint32_t *)(globals + 0x10);
-    camera_data[1] = *(uint32_t *)(globals + 0x14);
-    camera_data[2] = *(uint32_t *)(globals + 0x18);
+    *(real_point3d *)camera_data = *(real_point3d *)(globals + 0x10);
+
+
     vector_to_angles((float *)(camera_data + 3),
                      (float *)(*(char **)0x2ee670 + 0x1c));
     FUN_00087eb0(*(void **)0x2ee66c);
@@ -1951,7 +1951,7 @@ void editor_camera_set_scripted(unsigned char enable)
 {
   float local_angles[2];
   char *globals;
-  uint32_t *src;
+
   uint32_t *camera_data;
   const char *message;
   char previous;
@@ -1994,11 +1994,11 @@ void editor_camera_set_scripted(unsigned char enable)
   } else {
     /* ADD EAX,0x10 / MOV ECX,EAX at 0x8813a: globals + 0x10 is held in one
      * register and the three dwords are read through it. */
-    src = (uint32_t *)(*(char **)0x2ee670 + 0x10);
     camera_data = *(uint32_t **)0x3356b0;
-    camera_data[0] = src[0];
-    camera_data[1] = src[1];
-    camera_data[2] = src[2];
+    *(real_point3d *)camera_data =
+      *(real_point3d *)(*(char **)0x2ee670 + 0x10);
+
+
     vector_to_angles((float *)(camera_data + 3),
                      (float *)(*(char **)0x2ee670 + 0x1c));
     FUN_00087eb0(*(void **)0x2ee66c);

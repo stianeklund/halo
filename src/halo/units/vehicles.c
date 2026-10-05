@@ -370,7 +370,6 @@ void vehicle_preprocess_node_orientations(int vehicle_handle, void *node_data)
   char *elem;
   char *anim;
   char *entry;
-  short *indices;
   short i;
   unsigned char scale_byte;
   float t;
@@ -391,18 +390,16 @@ void vehicle_preprocess_node_orientations(int vehicle_handle, void *node_data)
   }
 
   if (*(int *)(elem + 0x5c) > 0) {
-    indices = *(short **)(elem + 0x60);
-    if (indices[0] != -1) {
+    if ((*(short **)(elem + 0x60))[0] != -1) {
       aiming_screen_apply(
-        (int)tag_block_get_element(antr + 0x74, indices[0], 0xb4),
+        (int)tag_block_get_element(antr + 0x74, (*(short **)(elem + 0x60))[0], 0xb4),
         (float *)elem, *(float *)(object + 0x434), 0.0f, (int)node_data);
     }
   }
 
   if (*(int *)(elem + 0x5c) > 1) {
-    indices = *(short **)(elem + 0x60);
-    if (indices[1] != -1) {
-      anim = (char *)tag_block_get_element(antr + 0x74, indices[1], 0xb4);
+    if ((*(short **)(elem + 0x60))[1] != -1) {
+      anim = (char *)tag_block_get_element(antr + 0x74, (*(short **)(elem + 0x60))[1], 0xb4);
       t = (triple_product3d((float *)(object + 0x30), (float *)(object + 0x24),
                             (float *)(object + 0x18)) /
              *(float *)(vehi + 0x2f8) +
@@ -418,9 +415,8 @@ void vehicle_preprocess_node_orientations(int vehicle_handle, void *node_data)
   }
 
   if (*(int *)(elem + 0x5c) > 2) {
-    indices = *(short **)(elem + 0x60);
-    if (indices[2] != -1) {
-      anim = (char *)tag_block_get_element(antr + 0x74, indices[2], 0xb4);
+    if ((*(short **)(elem + 0x60))[2] != -1) {
+      anim = (char *)tag_block_get_element(antr + 0x74, (*(short **)(elem + 0x60))[2], 0xb4);
       v = *(float *)(object + 0x42c);
       if (v < 0.0f) {
         t = 0.5f - v / *(float *)(vehi + 0x2fc) * 0.5f;
@@ -432,9 +428,8 @@ void vehicle_preprocess_node_orientations(int vehicle_handle, void *node_data)
   }
 
   if (*(int *)(elem + 0x5c) > 3) {
-    indices = *(short **)(elem + 0x60);
-    if (indices[3] != -1) {
-      anim = (char *)tag_block_get_element(antr + 0x74, indices[3], 0xb4);
+    if ((*(short **)(elem + 0x60))[3] != -1) {
+      anim = (char *)tag_block_get_element(antr + 0x74, (*(short **)(elem + 0x60))[3], 0xb4);
       t = *(float *)(object + 0x20) * *(float *)(object + 0x2c) +
           *(float *)(object + 0x1c) * *(float *)(object + 0x28) +
           *(float *)(object + 0x18) * *(float *)(object + 0x24);
@@ -454,16 +449,14 @@ void vehicle_preprocess_node_orientations(int vehicle_handle, void *node_data)
   }
 
   if (*(int *)(elem + 0x5c) > 4) {
-    indices = *(short **)(elem + 0x60);
-    if (indices[4] != -1) {
-      tag_block_get_element(antr + 0x74, indices[4], 0xb4);
+    if ((*(short **)(elem + 0x60))[4] != -1) {
+      tag_block_get_element(antr + 0x74, (*(short **)(elem + 0x60))[4], 0xb4);
     }
   }
 
   if (*(int *)(elem + 0x5c) > 5) {
-    indices = *(short **)(elem + 0x60);
-    if (indices[5] != -1) {
-      anim = (char *)tag_block_get_element(antr + 0x74, indices[5], 0xb4);
+    if ((*(short **)(elem + 0x60))[5] != -1) {
+      anim = (char *)tag_block_get_element(antr + 0x74, (*(short **)(elem + 0x60))[5], 0xb4);
       if (*(float *)(vehi + 0x310) > 0.0f) {
         t = *(float *)(object + 0x438) / *(float *)(vehi + 0x310);
       } else {
@@ -479,10 +472,10 @@ void vehicle_preprocess_node_orientations(int vehicle_handle, void *node_data)
       anim =
         (char *)tag_block_get_element(antr + 0x74, *(short *)(entry + 2), 0xb4);
       scale_byte = *(unsigned char *)(object + 0x44c + i);
-      if (scale_byte != 0xff) {
-        t = (float)scale_byte * *(float *)0x261518;
-      } else {
+      if (scale_byte == 0xff) {
         t = 1.0f;
+      } else {
+        t = (float)scale_byte * *(float *)0x261518;
       }
       overlay_animation_apply_continuous(anim, (float)(*(short *)(anim + 0x22) - 1) * t, node_data);
     }
@@ -602,12 +595,7 @@ void vehicle_accelerate(int handle, float *velocity)
     object_velocity->j = object_velocity->j + acceleration->j;
     object_velocity->k = object_velocity->k + acceleration->k;
 
-    torque.i = acceleration->k * GLOBAL_UP3D->j -
-               acceleration->j * GLOBAL_UP3D->k;
-    torque.j = GLOBAL_UP3D->k * acceleration->i -
-               acceleration->k * GLOBAL_UP3D->i;
-    torque.k = acceleration->j * GLOBAL_UP3D->i -
-               acceleration->i * GLOBAL_UP3D->j;
+    vehicle_cross_product3d_in_place(GLOBAL_UP3D, acceleration, &torque);
 
     magnitude = normalize3d(&torque.i);
     if (magnitude > 0.0f) {
@@ -1810,13 +1798,12 @@ void create_ghost_effect(int vehicle_index)
 
       if (FUN_0014df70(0x61, (float *)&marker->matrix.position, &vector.i,
                        vehicle_index, (int16_t *)&collision)) {
-        scale = -marker->matrix.forward.z * (1.0f - collision.t) *
-                vehicle->unit.seat_power[0];
-        if (scale < 0.0f) {
-          scale = 0.0f;
-        } else if (scale > 1.0f) {
-          scale = 1.0f;
-        }
+#define GHOST_WASH_SCALE \
+  (-marker->matrix.forward.z * (1.0f - collision.t) * vehicle->unit.seat_power[0])
+        scale = GHOST_WASH_SCALE < 0.0f   ? 0.0f
+                : GHOST_WASH_SCALE > 1.0f ? 1.0f
+                                          : GHOST_WASH_SCALE;
+#undef GHOST_WASH_SCALE
 
         if (scale > 0.0f) {
           midpoint.x = (collision.point.x + marker->matrix.position.x) * 0.5f;
@@ -2245,22 +2232,16 @@ void vehicle_export_function_values(int vehicle_handle)
         }
         break;
       case 17:
-        value = (float)(fabs(*(float *)(vehicle + 0x18) *
-                               *(float *)(vehicle + 0x24) +
-                             *(float *)(vehicle + 0x1c) *
-                               *(float *)(vehicle + 0x28) +
-                             *(float *)(vehicle + 0x20) *
-                               *(float *)(vehicle + 0x2c)) /
+        value = (float)(fabs(vehicle_dot_product3d(
+                               (const real_vector3d *)(vehicle + 0x18),
+                               (const real_vector3d *)(vehicle + 0x24))) /
                         speed_max);
         break;
       case 18:
       case 19:
-        value = (float)(fabs(*(float *)(vehicle + 0x18) *
-                               *(float *)(vehicle + 0x30) +
-                             *(float *)(vehicle + 0x1c) *
-                               *(float *)(vehicle + 0x34) +
-                             *(float *)(vehicle + 0x20) *
-                               *(float *)(vehicle + 0x38)) /
+        value = (float)(fabs(vehicle_dot_product3d(
+                               (const real_vector3d *)(vehicle + 0x18),
+                               (const real_vector3d *)(vehicle + 0x30))) /
                         speed_max);
         break;
       case 20:
@@ -2298,12 +2279,9 @@ void vehicle_export_function_values(int vehicle_handle)
         value = *(float *)(vehicle + 0x444);
         break;
       case 35:
-        velocity_value = (float)(fabs(*(float *)(vehicle + 0x18) *
-                                        *(float *)(vehicle + 0x24) +
-                                      *(float *)(vehicle + 0x1c) *
-                                        *(float *)(vehicle + 0x28) +
-                                      *(float *)(vehicle + 0x20) *
-                                        *(float *)(vehicle + 0x2c)) /
+        velocity_value = (float)(fabs(vehicle_dot_product3d(
+                                        (const real_vector3d *)(vehicle + 0x18),
+                                        (const real_vector3d *)(vehicle + 0x24))) /
                                  speed_max);
         speed_value =
           (float)(fabs(*(float *)(vehicle + 0x42c)) / speed_forward);
@@ -2666,7 +2644,7 @@ void update_human_plane_physics(int vehicle_index, void *powered_mass_points,
       }
 
       yaw = (velocity.j * desired_forward.i - velocity.i * desired_forward.j) *
-            (3.14159265f / 2) / x87_fabs(definition->field_2f8[0]);
+            (3.14159265f / 2) / (real)fabs(definition->field_2f8[0]);
 
       yaw_vectors(&desired_up.i, &desired_forward.i, x87_fsin(yaw),
                   x87_fcos(yaw));
