@@ -21,6 +21,13 @@ inside a macro argument), the original literal is kept through
 `assert_halt_msg_at`.  A source assert with no text match is left alone and
 reported: pairing by position alone would be a guess.
 
+`--positional` pairs the remaining sites of one function by order, using the
+original `__LINE__` immediates as the original source order.  It only acts
+when every display_assert call in the function decoded, the leftover source
+and binary counts are equal, and the complete pairing (text matches included)
+has binary lines rising in our source order.  Those sites always take the
+original literal through `assert_halt_msg_at`.
+
 Replacements never add or remove lines, so `__LINE__` at the remaining
 implicit sites does not move.
 
@@ -30,6 +37,7 @@ Usage:
   python3 tools/audit/recover_assert_sites.py --verbose    # list unmatched sites
   python3 tools/audit/recover_assert_sites.py --path src/halo/game/game_time.c
   python3 tools/audit/recover_assert_sites.py --check      # exit 1 if any site is rewritable
+  python3 tools/audit/recover_assert_sites.py --positional --apply --path <file.c>
 """
 
 import argparse
@@ -75,7 +83,7 @@ class Edit(NamedTuple):
     start: int
     end: int
     text: str
-    kind: str         # exact | spacing
+    kind: str         # exact | spacing | positional
 
 
 def stringize(text: str) -> str:
@@ -189,10 +197,26 @@ def _expected_text(site: SourceSite) -> Optional[str]:
     return decode_c_literal(site.msg)
 
 
-def plan_edits(sites: List[SourceSite], binary: List[BinarySite]) -> Tuple[List[Edit], List[Tuple[SourceSite, str]]]:
-    """Match source sites to original sites by assert text and build rewrites."""
-    unused = sorted(binary, key=lambda b: b.line)
-    edits, unmatched = [], []
+def _rewrite(site: SourceSite, chosen: BinarySite, kind: str) -> Edit:
+    file_literal = c_string_literal(chosen.file)
+    line = "0x%x" % chosen.line
+    if site.macro == "assert_halt" and kind == "exact":
+        text = _keep_line_count(["assert_halt_at", file_literal, line, site.cond], site)
+    else:
+        msg = site.msg if kind == "exact" else c_string_literal(chosen.text)
+        text = _keep_line_count(["assert_halt_msg_at", msg, file_literal, line, site.cond],
+                                site)
+    return Edit(site.start, site.end, text, kind)
+
+
+def plan_edits(sites: List[SourceSite], binary: List[BinarySite], positional: bool = False,
+               undecoded: int = 0) -> Tuple[List[Edit], List[Tuple[SourceSite, str]]]:
+    """Match source sites to original sites by assert text and build rewrites.
+
+    With `positional`, pair the sites left over by text matching in original
+    line order, under the guards described in the module docstring."""
+    unused = sorted(binary, key=lambda b: (b.line, b.call_va))
+    edits, unmatched, pairs = [], [], []
     for site in sites:
         expected = _expected_text(site)
         if expected is None:
@@ -213,15 +237,15 @@ def plan_edits(sites: List[SourceSite], binary: List[BinarySite]) -> Tuple[List[
             unmatched.append((site, "no original assert has this text"))
             continue
         unused.remove(chosen)
-        file_literal = c_string_literal(chosen.file)
-        line = "0x%x" % chosen.line
-        if site.macro == "assert_halt" and kind == "exact":
-            text = _keep_line_count(["assert_halt_at", file_literal, line, site.cond], site)
-        else:
-            msg = site.msg if kind == "exact" else c_string_literal(chosen.text)
-            text = _keep_line_count(["assert_halt_msg_at", msg, file_literal, line, site.cond],
-                                    site)
-        edits.append(Edit(site.start, site.end, text, kind))
+        pairs.append((site, chosen))
+        edits.append(_rewrite(site, chosen, kind))
+    if positional and unmatched and undecoded == 0 and len(unmatched) == len(unused):
+        extra = list(zip([site for site, _ in unmatched], unused))
+        combined = sorted(pairs + extra, key=lambda pair: pair[0].start)
+        lines = [chosen.line for _, chosen in combined]
+        if all(a < b for a, b in zip(lines, lines[1:])):
+            edits.extend(_rewrite(site, chosen, "positional") for site, chosen in extra)
+            unmatched = []
     return edits, unmatched
 
 
@@ -248,8 +272,9 @@ def _c_string_at(va: int) -> Optional[str]:
     return data[:end].decode("latin-1")
 
 
-def binary_sites(address: int) -> Optional[List[BinarySite]]:
-    """Decode fatal display_assert call sites with four immediate arguments."""
+def binary_sites(address: int) -> Optional[Tuple[List[BinarySite], int]]:
+    """Decode fatal display_assert call sites with four immediate arguments.
+    Returns (sites, number of display_assert calls that did not decode)."""
     import xbe_reference
     from capstone import CS_ARCH_X86, CS_MODE_32, Cs
     from capstone import x86 as X
@@ -259,12 +284,15 @@ def binary_sites(address: int) -> Optional[List[BinarySite]]:
     decoder = Cs(CS_ARCH_X86, CS_MODE_32)
     decoder.detail = True
     insns = list(decoder.disasm(code, address))
-    sites = []
+    sites, calls = [], 0
     for k, insn in enumerate(insns):
-        if insn.mnemonic != "call" or k < 4:
+        if insn.mnemonic != "call":
             continue
         ops = insn.operands
         if len(ops) != 1 or ops[0].type != X.X86_OP_IMM or ops[0].imm != DISPLAY_ASSERT_VA:
+            continue
+        calls += 1
+        if k < 4:
             continue
         pushed = []
         for prior in insns[k - 4:k][::-1]:
@@ -279,7 +307,7 @@ def binary_sites(address: int) -> Optional[List[BinarySite]]:
         if text is None or path is None:
             continue
         sites.append(BinarySite(text, path, line, insn.address))
-    return sites
+    return sites, calls - len(sites)
 
 
 # ---------------------------------------------------------------- driver
@@ -318,11 +346,12 @@ def _definition_span(blanked: str, name: str) -> Optional[Tuple[int, int]]:
     return spans[0] if len(spans) == 1 else None
 
 
-def run(paths: Optional[List[Path]], apply: bool, verbose: bool) -> dict:
+def run(paths: Optional[List[Path]], apply: bool, verbose: bool,
+        positional: bool = False) -> dict:
     functions = _kb_functions()
     files = paths or sorted((REPO_ROOT / "src").rglob("*.c"))
     stats = {"files_scanned": 0, "implicit_sites": 0, "rewritten_exact": 0,
-             "rewritten_spacing": 0, "unmatched": 0, "outside_known_function": 0,
+             "rewritten_spacing": 0, "rewritten_positional": 0, "unmatched": 0, "outside_known_function": 0,
              "files_changed": 0, "unmatched_detail": []}
     for path in files:
         # newline="" keeps CRLF files CRLF; offsets then include the \r bytes.
@@ -348,15 +377,16 @@ def run(paths: Optional[List[Path]], apply: bool, verbose: bool) -> dict:
             if not sites:
                 continue
             covered += len(sites)
-            original = binary_sites(address)
-            if original is None:
+            decoded = binary_sites(address)
+            if decoded is None:
                 for site in sites:
                     stats["unmatched"] += 1
                     stats["unmatched_detail"].append(
                         (str(path.relative_to(REPO_ROOT)), name, stringize(site.cond),
                          "original has no bounds"))
                 continue
-            planned, unmatched = plan_edits(sites, original)
+            original, undecoded = decoded
+            planned, unmatched = plan_edits(sites, original, positional, undecoded)
             edits.extend(planned)
             for site, reason in unmatched:
                 stats["unmatched"] += 1
@@ -381,16 +411,19 @@ def main() -> int:
     ap.add_argument("--check", action="store_true", help="exit 1 if any site is rewritable")
     ap.add_argument("--verbose", action="store_true", help="list unmatched sites")
     ap.add_argument("--path", action="append", type=Path, help="limit to these .c files")
+    ap.add_argument("--positional", action="store_true",
+                    help="pair leftover sites by original line order (guarded)")
     args = ap.parse_args()
     paths = [p if p.is_absolute() else REPO_ROOT / p for p in args.path] if args.path else None
-    stats = run(paths, args.apply, args.verbose)
+    stats = run(paths, args.apply, args.verbose, args.positional)
     detail = stats.pop("unmatched_detail")
     for key, value in stats.items():
         print("%-24s %d" % (key, value))
     if args.verbose:
         for path, name, cond, reason in detail:
             print("  UNMATCHED %s %s: %s (%s)" % (path, name, cond[:80], reason))
-    rewritable = stats["rewritten_exact"] + stats["rewritten_spacing"]
+    rewritable = (stats["rewritten_exact"] + stats["rewritten_spacing"]
+                  + stats["rewritten_positional"])
     return 1 if args.check and rewritable else 0
 
 

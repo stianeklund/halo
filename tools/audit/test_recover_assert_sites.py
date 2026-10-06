@@ -17,8 +17,8 @@ def sites_of(text):
     return r.source_sites(text, blanked, start, len(text))
 
 
-def apply(text, binary):
-    edits, unmatched = r.plan_edits(sites_of(text), binary)
+def apply(text, binary, positional=False, undecoded=0):
+    edits, unmatched = r.plan_edits(sites_of(text), binary, positional, undecoded)
     for edit in sorted(edits, key=lambda e: e.start, reverse=True):
         text = text[:edit.start] + edit.text + text[edit.end:]
     return text, edits, unmatched
@@ -77,6 +77,40 @@ class RecoverAssertSitesTest(unittest.TestCase):
     def test_rewritten_forms_are_not_matched_again(self):
         self.assertEqual(sites_of('void f(void)\n{\n  assert_halt_at("x", 1, a);\n'
                                   '  assert_halt_msg_at("m", "x", 1, a);\n}\n'), [])
+
+    def test_positional_pairs_leftovers_in_line_order(self):
+        source = "void f(void)\n{\n  assert_halt(p1);\n  assert_halt(x);\n  assert_halt(p2);\n}\n"
+        binary = [r.BinarySite("b", FILE, 0x52, 2), r.BinarySite("x", FILE, 0x51, 1),
+                  r.BinarySite("a", FILE, 0x50, 0)]
+        text, edits, unmatched = apply(source, binary, positional=True)
+        self.assertEqual(unmatched, [])
+        self.assertEqual(sorted(e.kind for e in edits), ["exact", "positional", "positional"])
+        self.assertIn('assert_halt_msg_at("a", "c:\\\\halo\\\\SOURCE\\\\game\\\\game_time.c", 0x50, p1);', text)
+        self.assertIn('assert_halt_msg_at("b", "c:\\\\halo\\\\SOURCE\\\\game\\\\game_time.c", 0x52, p2);', text)
+
+    def test_positional_is_off_by_default(self):
+        source = "void f(void)\n{\n  assert_halt(ours);\n}\n"
+        text, edits, _ = apply(source, [r.BinarySite("theirs", FILE, 0x20, 0)])
+        self.assertEqual((text, edits), (source, []))
+
+    def test_positional_skips_when_text_matches_disagree_with_order(self):
+        source = "void f(void)\n{\n  assert_halt(y);\n  assert_halt(ours);\n  assert_halt(x);\n}\n"
+        binary = [r.BinarySite("x", FILE, 0x10, 0), r.BinarySite("theirs", FILE, 0x11, 1),
+                  r.BinarySite("y", FILE, 0x12, 2)]
+        _, edits, unmatched = apply(source, binary, positional=True)
+        self.assertNotIn("positional", [e.kind for e in edits])
+        self.assertEqual(len(unmatched), 1)
+
+    def test_positional_skips_when_a_call_did_not_decode(self):
+        source = "void f(void)\n{\n  assert_halt(ours);\n}\n"
+        text, edits, _ = apply(source, [r.BinarySite("theirs", FILE, 0x20, 0)],
+                               positional=True, undecoded=1)
+        self.assertEqual((text, edits), (source, []))
+
+    def test_positional_skips_on_count_mismatch(self):
+        source = "void f(void)\n{\n  assert_halt(a1);\n  assert_halt(a2);\n}\n"
+        _, edits, _ = apply(source, [r.BinarySite("theirs", FILE, 0x20, 0)], positional=True)
+        self.assertEqual(edits, [])
 
 
 if __name__ == "__main__":
