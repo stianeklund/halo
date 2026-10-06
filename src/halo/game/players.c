@@ -1926,7 +1926,7 @@ void player_handle_powerup_minor(int player_handle, int16_t respawn_type,
   player = (char *)datum_get(player_data, player_handle);
 
   /* powerup_type (respawn_type in kb.json) must be 0 or 1 */
-  assert_halt(respawn_type >= 0 && respawn_type < 2);
+  assert_halt_msg_at("powerup_type>=0 && powerup_type<NUMBER_OF_PLAYER_POWERUPS", "c:\\halo\\SOURCE\\game\\players.c", 0xb15, respawn_type >= 0 && respawn_type < 2);
 
   powerup_idx = (int)respawn_type;
 

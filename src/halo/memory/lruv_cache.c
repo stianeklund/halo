@@ -1204,7 +1204,7 @@ void lruv_block_delete(void *cache, int block_index)
       (lruv_cache_block_t *)datum_get(c->blocks, block->previous_block_index);
     prev->next_block_index = block->next_block_index;
   } else {
-    assert_halt(c->first_block_index == block_index);
+    assert_halt_msg_at("cache->first_block_index==block_index", "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x1e8, c->first_block_index == block_index);
     c->first_block_index = block->next_block_index;
   }
 
@@ -1214,7 +1214,7 @@ void lruv_block_delete(void *cache, int block_index)
       (lruv_cache_block_t *)datum_get(c->blocks, block->next_block_index);
     next->previous_block_index = block->previous_block_index;
   } else {
-    assert_halt(c->last_block_index == block_index);
+    assert_halt_msg_at("cache->last_block_index==block_index", "c:\\halo\\SOURCE\\memory\\lruv_cache.c", 0x1f5, c->last_block_index == block_index);
     c->last_block_index = block->previous_block_index;
   }
 

@@ -425,10 +425,10 @@ char FUN_0010ae80(short param_1, unsigned int param_2, unsigned int *param_3)
   short *fill_p;
   unsigned short fill_n;
 
-  assert_halt(param_1 > 0);
+  assert_halt_msg_at("base>0", "c:\\halo\\SOURCE\\math\\probability.c", 0x4d, param_1 > 0);
   sVar6 = (short)param_2;
-  assert_halt(sVar6 > 0);
-  assert_halt((int)param_3);
+  assert_halt_msg_at("count>0", "c:\\halo\\SOURCE\\math\\probability.c", 0x4e, sVar6 > 0);
+  assert_halt_msg_at("indices", "c:\\halo\\SOURCE\\math\\probability.c", 0x4f, (int)param_3);
   sVar5 = 0;
   if (0 < sVar6) {
     do {
@@ -531,7 +531,7 @@ void lock_global_random_seed(void)
 
 void unlock_global_random_seed(void)
 {
-  assert_halt(*(int *)0x46e3f0 > 0);
+  assert_halt_msg_at("unmatched call to unlock_random_seed() somewhere", "c:\\halo\\SOURCE\\math\\random_math.c", 0x29, *(int *)0x46e3f0 > 0);
   *(int *)0x46e3f0 = *(int *)0x46e3f0 - 1;
 }
 
@@ -696,8 +696,8 @@ float *random_direction_table_get_element(int16_t index, float *result)
 {
   float *element = (float *)(*(int *)0x46e3e8 + (int)index * 12);
 
-  assert_halt(*(int *)0x46e3e8);
-  assert_halt(index >= 0 && index < *(int16_t *)0x46e3ec);
+  assert_halt_msg_at("random_math_globals.random_direction_table", "c:\\halo\\SOURCE\\math\\random_math.c", 0xfa, *(int *)0x46e3e8);
+  assert_halt_msg_at("index>=0 && index<random_math_globals.random_direction_table_size", "c:\\halo\\SOURCE\\math\\random_math.c", 0xfb, index >= 0 && index < *(int16_t *)0x46e3ec);
 
   result[0] = element[0];
   result[1] = element[1];

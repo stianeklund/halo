@@ -12,7 +12,7 @@ void *FUN_001c8d90(int permutation_block_ptr, short tick_index)
 
   block = (char *)permutation_block_ptr;
 
-  assert_halt((int16_t)tick_index >= 0 &&
+  assert_halt_msg_at("tick_index>=0 && tick_index<permutation->mouth_data.size", "c:\\halo\\SOURCE\\sound\\sound_definitions.c", 0x320, (int16_t)tick_index >= 0 &&
               (int)(int16_t)tick_index < *(int *)(block + 0x54));
 
   base = *(int *)(block + 0x60);

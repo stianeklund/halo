@@ -980,7 +980,7 @@ void player_effect_start(int player_handle, void *damage_params,
   unit_index = *(int16_t *)(player + 2);
 
   if ((int)direction == 0) {
-    assert_halt(0);
+    assert_halt_msg_at("direction", "c:\\halo\\SOURCE\\effects\\player_effects.c", 0x156, 0);
   }
 
   lock_global_random_seed();

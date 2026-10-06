@@ -4455,7 +4455,7 @@ void main_screen_shell_load(void)
   int widget;
 
   play_main_menu = true;
-  assert_halt(widget_globals_initialized);
+  assert_halt_msg_at("widget_globals.initialized", "c:\\halo\\SOURCE\\interface\\ui_widget.c", 0x496, widget_globals_initialized);
 
   widget_globals_field_65 = 0;
 

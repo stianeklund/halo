@@ -259,7 +259,7 @@ void model_remap_node_matrices_to_match_animation_graph(int mode_tag_index,
   i = 0;
   do {
     remap_idx = node_remap[(int)i];
-    assert_halt(remap_idx >= 0 && (int)remap_idx < *(int *)(antr_tag + 0x68));
+    assert_halt_msg_at("animation_graph_node_index>=0 && animation_graph_node_index<animation_graph->nodes.count", "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x633, remap_idx >= 0 && (int)remap_idx < *(int *)(antr_tag + 0x68));
     src_off = (int)remap_idx * 0x34;
     dst_off = (int)i * 0x34;
     src = (unsigned int *)(anim_nodes + src_off);
@@ -1283,7 +1283,7 @@ void first_person_weapon_message(int param_1, int param_2)
   if ((int16_t)param_1 == -1)
     return;
 
-  assert_halt((int16_t)param_1 >= 0 &&
+  assert_halt_msg_at("local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS", "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x599, (int16_t)param_1 >= 0 &&
               (int16_t)param_1 < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
   fp = (char *)(*(int *)0x46bea8 + (int)(int16_t)param_1 * 0x1ea0);

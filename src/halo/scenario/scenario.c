@@ -2570,7 +2570,7 @@ void scenario_frame_update(float delta_time)
 
 void scenario_unload(void)
 {
-  assert_halt(!((bool (*)())0x1c5940)());
+  assert_halt_msg_at("!bink_playback_active()", "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xa4, !((bool (*)())0x1c5940)());
   ((void (*)())0x1b9890)();
   *(int *)0x326a08 = NONE;
   *(int16_t *)0x326a0c = NONE;
@@ -2584,7 +2584,7 @@ void scenario_unload(void)
 
 scenario_t *global_scenario_get(void)
 {
-  assert_halt(*(void **)0x5064e4);
+  assert_halt_msg_at("global_scenario", "c:\\halo\\SOURCE\\scenario\\scenario.c", 0xb7, *(void **)0x5064e4);
   return *(scenario_t **)0x5064e4;
 }
 
@@ -3062,7 +3062,7 @@ bool scenario_switch_structure_bsp(__int16 bsp_index)
   bsp_ref =
     (char *)tag_block_get_element(scenario_tag + 0x5a4, (int)bsp_index, 0x20);
 
-  assert_halt(*(char **)0x5064e4);
+  assert_halt_msg_at("global_scenario", "c:\\halo\\SOURCE\\scenario\\scenario.c", 0x2b7, *(char **)0x5064e4);
 
   /* stop rendering during BSP switch */
   ((void (*)(void))0x101c90)();

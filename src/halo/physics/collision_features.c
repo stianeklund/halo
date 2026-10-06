@@ -271,7 +271,7 @@ void FUN_0014b220(int point_count, void *points, float *plane, float param_4,
   int table_row;
   int component;
 
-  assert_halt((short)point_count <= 8);
+  assert_halt_msg_at("point_count<=MAXIMUM_POINTS_PER_COLLISION_PRISM", "c:\\halo\\SOURCE\\physics\\collision_features.c", 0xf1, (short)point_count <= 8);
 
   sVar6 = *(short *)((char *)features + 4);
   if (sVar6 >= 0x100)
@@ -329,7 +329,7 @@ void FUN_0014b220(int point_count, void *points, float *plane, float param_4,
       sVar6 = g_projection3d_mappings[table_row][1];
       component = (int)(unsigned short)(sVar6 == 2);
 
-      assert_halt(g_projection3d_mappings[table_row][component] == 2);
+      assert_halt_msg_at("global_projection3d_mappings[prism->projection_axis][prism->projection_sign][component]==_z", "c:\\halo\\SOURCE\\physics\\collision_features.c", 0x11b, g_projection3d_mappings[table_row][component] == 2);
 
       sVar6 = 0;
       if (0 < *(int *)(prism + 0x24)) {
@@ -524,9 +524,9 @@ void collision_features_add(int param_1, int *collision_results, int param_3,
   short *counts = (short *)features;
   int i;
 
-  assert_halt(counts[0] >= 0 && counts[0] <= 0x100);
-  assert_halt(counts[1] >= 0 && counts[1] <= 0x100);
-  assert_halt(counts[2] >= 0 && counts[2] <= 0x100);
+  assert_halt_msg_at("features->count[_collision_feature_sphere]>=0 && features->count[_collision_feature_sphere]<=MAXIMUM_COLLISION_FEATURES_PER_TEST", "c:\\halo\\SOURCE\\physics\\collision_features.c", 0x1ad, counts[0] >= 0 && counts[0] <= 0x100);
+  assert_halt_msg_at("features->count[_collision_feature_cylinder]>=0 && features->count[_collision_feature_cylinder]<=MAXIMUM_COLLISION_FEATURES_PER_TEST", "c:\\halo\\SOURCE\\physics\\collision_features.c", 0x1ae, counts[1] >= 0 && counts[1] <= 0x100);
+  assert_halt_msg_at("features->count[_collision_feature_prism]>=0 && features->count[_collision_feature_prism]<=MAXIMUM_COLLISION_FEATURES_PER_TEST", "c:\\halo\\SOURCE\\physics\\collision_features.c", 0x1af, counts[2] >= 0 && counts[2] <= 0x100);
 
   for (i = 0; i < collision_results[0x202]; i++)
     collision_features_from_vertex(param_1, collision_results[0x203 + i],

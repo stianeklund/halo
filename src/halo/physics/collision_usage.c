@@ -593,7 +593,7 @@ int FUN_0014cfe0(int param_1, int param_2)
 void collision_log_initialize(void)
 {
   csmemset((void *)0x5a5e40, 0, 0x2298);
-  assert_halt(*(int16_t *)0x4761d8 < 0x20);
+  assert_halt_msg_at("global_current_collision_user_depth < MAXIMUM_COLLISION_USER_STACK_DEPTH", "c:\\halo\\SOURCE\\physics\\collision_usage.c", 0x96, *(int16_t *)0x4761d8 < 0x20);
   *(int16_t *)(0x5a8c80 + *(int16_t *)0x4761d8 * 2) = 0;
   *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 + 1;
 }
@@ -894,11 +894,11 @@ short FUN_0014d840(short collision_function /* @<edi> */)
 {
   short user;
 
-  assert_halt(*(int16_t *)0x4761d8 > 0);
+  assert_halt_msg_at("global_current_collision_user_depth > 0", "c:\\halo\\SOURCE\\physics\\collision_usage.c", 0x193, *(int16_t *)0x4761d8 > 0);
 
   user = *(int16_t *)(0x5a8c7e + *(int16_t *)0x4761d8 * 2);
-  assert_halt(user >= 0 && user < 0x16);
-  assert_halt(collision_function >= 0 && collision_function < 8);
+  assert_halt_msg_at("(user >= 0) && (user < NUMBER_OF_COLLISION_USER_TYPES)", "c:\\halo\\SOURCE\\physics\\collision_usage.c", 0x196, user >= 0 && user < 0x16);
+  assert_halt_msg_at("(collision_function >= 0) && (collision_function < NUMBER_OF_COLLISION_FUNCTION_TYPES)", "c:\\halo\\SOURCE\\physics\\collision_usage.c", 0x197, collision_function >= 0 && collision_function < 8);
 
   if (!game_in_progress())
     return -1;
@@ -909,7 +909,7 @@ short FUN_0014d840(short collision_function /* @<edi> */)
   if (*(int16_t *)0x325058 == -1)
     return -1;
 
-  assert_halt(*(int16_t *)0x325058 >= 0 && *(int16_t *)0x325058 < 3);
+  assert_halt_msg_at("(collision_usage_current_period >= 0) && (collision_usage_current_period < NUMBER_OF_COLLISION_TIME_PERIODS)", "c:\\halo\\SOURCE\\physics\\collision_usage.c", 0x1a8, *(int16_t *)0x325058 >= 0 && *(int16_t *)0x325058 < 3);
 
   return user;
 }

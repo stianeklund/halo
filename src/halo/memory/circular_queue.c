@@ -3357,7 +3357,7 @@ bool FUN_00118ec0(int queue, void *data, int data_size)
   int remaining;
 
   FUN_00118d70(queue);
-  assert_halt(data && data_size > 0 && data_size < *(int *)(queue + 0x10));
+  assert_halt_msg_at("data && data_size>0 && data_size<queue->buffer_size", "c:\\halo\\SOURCE\\memory\\circular_queue.c", 0x74, data && data_size > 0 && data_size < *(int *)(queue + 0x10));
 
   FUN_00118d70(queue);
 
@@ -3383,7 +3383,7 @@ bool FUN_00118ec0(int queue, void *data, int data_size)
       *(int *)(queue + 0x0c) = *(int *)(queue + 0x0c) + data_size;
     }
 
-    assert_halt(*(int *)(queue + 0x0c) >= 0 &&
+    assert_halt_msg_at("queue->write_offset>=0 && queue->write_offset<queue->buffer_size", "c:\\halo\\SOURCE\\memory\\circular_queue.c", 0x88, *(int *)(queue + 0x0c) >= 0 &&
                 *(int *)(queue + 0x0c) < *(int *)(queue + 0x10));
     return 1;
   }
@@ -3401,7 +3401,7 @@ bool circular_queue_try_read(int queue, void *data, int data_size, char advance)
   int remaining;
 
   FUN_00118d70(queue);
-  assert_halt(data && data_size > 0 && data_size < *(int *)(queue + 0x10));
+  assert_halt_msg_at("data && data_size>0 && data_size<queue->buffer_size", "c:\\halo\\SOURCE\\memory\\circular_queue.c", 0x99, data && data_size > 0 && data_size < *(int *)(queue + 0x10));
 
   FUN_00118d70(queue);
 
@@ -3428,7 +3428,7 @@ bool circular_queue_try_read(int queue, void *data, int data_size, char advance)
     read_offset = read_offset + data_size;
   }
 
-  assert_halt(read_offset >= 0 && read_offset < *(int *)(queue + 0x10));
+  assert_halt_msg_at("read_offset>=0 && read_offset<queue->buffer_size", "c:\\halo\\SOURCE\\memory\\circular_queue.c", 0xae, read_offset >= 0 && read_offset < *(int *)(queue + 0x10));
 
   if (advance != 0) {
     *(int *)(queue + 0x8) = read_offset;

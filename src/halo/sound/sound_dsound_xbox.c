@@ -281,7 +281,7 @@ bool sound_dsound_channel_stop_check(short channel_index)
 
   channel = sound_dsound_channel_get(channel_index);
 
-  assert_halt(*(char *)((char *)channel + 0x6) != 0);
+  assert_halt_msg_at("channel->stopping", "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x4b8, *(char *)((char *)channel + 0x6) != 0);
 
   stream = *(void **)((char *)channel + 0x70);
   active = dsound_stream_is_active(stream);

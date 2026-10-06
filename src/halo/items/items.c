@@ -478,13 +478,13 @@ bool virtual_keyboard_launch(wchar_t *text_buffer, unsigned short buffer_size,
 {
   int len;
 
-  assert_halt_msg(text_buffer && buffer_size && !(buffer_size & 1) &&
-                    !*(uint8_t *)0x46cef0,
-                  "text_buffer && buffer_size && !(buffer_size&1) && "
-                  "!virtual_keyboard_globals.active");
-  assert_halt_msg((caption_index >= 8) && (caption_index < 0xb),
-                  "(caption_index>=FIRST_VIRTUAL_KEYBOARD_CAPTION_STRING_INDEX)"
-                  " && (caption_index<NUMBER_OF_VIRTUAL_KEYBOARD_STRINGS)");
+  assert_halt_msg_at("text_buffer && buffer_size && !(buffer_size&1) && !virtual_keyboard_globals.active", "c:\\halo\\SOURCE\\interface\\virtual_keyboard.c",
+      0x1a1,
+      text_buffer && buffer_size && !(buffer_size & 1) &&
+                    !*(uint8_t *)0x46cef0);
+  assert_halt_msg_at("(caption_index>=FIRST_VIRTUAL_KEYBOARD_CAPTION_STRING_INDEX) && (caption_index<NUMBER_OF_VIRTUAL_KEYBOARD_STRINGS)", "c:\\halo\\SOURCE\\interface\\virtual_keyboard.c",
+      0x1a2,
+      (caption_index >= 8) && (caption_index < 0xb));
 
   if (*(uint8_t *)0x46cef0 != 0 || *(uint32_t *)0x46cef4 == 0)
     return false;

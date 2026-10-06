@@ -1148,7 +1148,7 @@ void player_ui_initialize(void)
   csmemset(player_ui_globals, 0, 0x230);
   for (i = 0; i < 4; i++) {
     profile = player_ui_globals + i * 0x38;
-    assert_halt(profile != NULL);
+    assert_halt_msg_at("profile", "c:\\halo\\SOURCE\\interface\\player_ui.c", 0x365, profile != NULL);
     csmemset(profile, 0, 0x30);
     *(int16_t *)(profile + 0x18) = -1;
     *(char *)(profile + 0x28) = 0;

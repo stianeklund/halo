@@ -692,7 +692,7 @@ void *network_connection_create_client_from_endpoint(int endpoint)
 {
   network_connection *connection;
 
-  assert_halt(endpoint);
+  assert_halt_msg_at("reliable_endpoint", "c:\\halo\\SOURCE\\networking\\network_connection.c", 0x345, endpoint);
 
   connection = (network_connection *)debug_malloc(
     0x38, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0x347);
@@ -904,11 +904,11 @@ int network_connection_new(unsigned int flags, unsigned short well_known_port)
   int unreliable_size;
   int address[6];
 
-  assert_halt_msg((flags & FLAG(_connection_create_server_bit)) != 0 ||
+  assert_halt_msg_at("(flags&FLAG(_connection_create_server_bit))|| (flags&FLAG(_connection_create_clientside_client_bit))", "c:\\halo\\SOURCE\\networking\\network_connection.c",
+      0x9d,
+      (flags & FLAG(_connection_create_server_bit)) != 0 ||
                     (flags & FLAG(_connection_create_clientside_client_bit)) !=
-                      0,
-                  "(flags&FLAG(_connection_create_server_bit))|| "
-                  "(flags&FLAG(_connection_create_clientside_client_bit))");
+                      0);
 
   if ((flags & FLAG(_connection_create_server_bit)) == 0) {
     connection = (int)debug_malloc(
@@ -919,8 +919,8 @@ int network_connection_new(unsigned int flags, unsigned short well_known_port)
     reliable_size = 0x8000;
     unreliable_size = 0x640;
   } else {
-    assert_halt_msg(well_known_port > MAXIMUM_RESERVED_NETWORK_PORT,
-                    "well_known_port > MAXIMUM_RESERVED_NETWORK_PORT");
+    assert_halt_msg_at("well_known_port > MAXIMUM_RESERVED_NETWORK_PORT", "c:\\halo\\SOURCE\\networking\\network_connection.c", 0xa3,
+        well_known_port > MAXIMUM_RESERVED_NETWORK_PORT);
     connection = (int)debug_malloc(
       0x50, 1, "c:\\halo\\SOURCE\\networking\\network_connection.c", 0xa5);
     if (connection == 0) {
@@ -1231,9 +1231,9 @@ bool network_connection_read(int connection, void *buffer, int *size, void *addr
 
   if ((conn->flags & (FLAG(_connection_create_clientside_client_bit) |
                       FLAG(_connection_create_serverside_client_bit))) == 0) {
-    assert_halt_msg(
-      0, "connection->flags&FLAG(_connection_create_clientside_client_bit) || "
-         "connection->flags&FLAG(_connection_create_serverside_client_bit)");
+    assert_halt_msg_at("connection->flags&FLAG(_connection_create_clientside_client_bit) || connection->flags&FLAG(_connection_create_serverside_client_bit)", "c:\\halo\\SOURCE\\networking\\network_connection.c",
+        0x1e0,
+        0);
   }
 
   result = network_client_reliable_connection_read(connection, buffer, size, addr);

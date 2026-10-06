@@ -510,10 +510,10 @@ __declspec(noinline) void *weapon_trigger_get(void *weapon_obj,
 {
   int *tag_data = (int *)tag_get(0x77656170, *(int *)weapon_obj);
 
-  assert_halt_msg(trigger_index >= 0 &&
-                    trigger_index < *(int *)((char *)tag_data + 0x4fc),
-                  "trigger_index>=0 && "
-                  "trigger_index<weapon_definition->weapon.triggers.count");
+  assert_halt_msg_at("trigger_index>=0 && trigger_index<weapon_definition->weapon.triggers.count", "c:\\halo\\SOURCE\\items\\weapons.c",
+      0x667,
+      trigger_index >= 0 &&
+                    trigger_index < *(int *)((char *)tag_data + 0x4fc));
 
   return (void *)((char *)weapon_obj + 0x210 + trigger_index * 36);
 }
@@ -522,7 +522,7 @@ void *weapon_magazine_get(void *weapon_obj, int16_t magazine_index)
 {
   int *tag_data = (int *)tag_get(0x77656170, *(int *)weapon_obj);
 
-  assert_halt(magazine_index >= 0 &&
+  assert_halt_msg_at("magazine_index>=0 && magazine_index<weapon_definition->weapon.magazines.count", "c:\\halo\\SOURCE\\items\\weapons.c", 0x672, magazine_index >= 0 &&
               magazine_index < *(int *)((char *)tag_data + 0x4f0));
 
   return (void *)((char *)weapon_obj + (magazine_index + 50) * 12);

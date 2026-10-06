@@ -67,7 +67,7 @@ typedef void (*crc_begin_fn)(uint32_t *checksum);
  */
 void xbox_game_state_dispose_buffer(void)
 {
-  assert_halt(*(char *)0x4ea9b0);
+  assert_halt_msg_at("xbox_game_state_globals.buffer_allocated", "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x4b, *(char *)0x4ea9b0);
   MmFreeContiguousMemory(*(void **)0x4ea9b4);
   *(char *)0x4ea9b0 = 0;
 }
@@ -113,7 +113,7 @@ void game_state_create_or_open_file(void)
  */
 void xbox_game_state_close_file(void)
 {
-  assert_halt(*(char *)0x4ea9bc);
+  assert_halt_msg_at("xbox_game_state_globals.file_open", "c:\\halo\\SOURCE\\saved games\\game_state_xbox.c", 0x6a, *(char *)0x4ea9bc);
   XCloseHandle(*(int *)0x4ea9c0);
   *(char *)0x4ea9bc = 0;
 }

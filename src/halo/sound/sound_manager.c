@@ -647,10 +647,10 @@ void *sound_class_get_definition(short class_index)
   int idx = (int)class_index;
   void *definition = (void *)(0x32ed08 + idx * 0x2c);
 
-  assert_halt(class_index >= 0 && class_index < 0x33);
-  assert_halt(((const char **)0x32f5d0)[idx][0]);
-  assert_halt(*(short *)definition <= 0x10);
-  assert_halt(*(short *)((char *)definition + 2) <= 0x10);
+  assert_halt_msg_at("class_index>=0 && class_index<NUMBER_OF_SOUND_CLASSES", "c:\\halo\\source\\sound\\sound_classes.h", 0x83, class_index >= 0 && class_index < 0x33);
+  assert_halt_msg_at("sound_class_names[class_index][0]", "c:\\halo\\source\\sound\\sound_classes.h", 0x84, ((const char **)0x32f5d0)[idx][0]);
+  assert_halt_msg_at("definition->maximum_number_per_definition<=MAXIMUM_SOUND_INSTANCES_PER_DEFINITION", "c:\\halo\\source\\sound\\sound_classes.h", 0x85, *(short *)definition <= 0x10);
+  assert_halt_msg_at("definition->maximum_number_per_object<=MAXIMUM_SOUND_INSTANCES_PER_OBJECT_PER_DEFINITION", "c:\\halo\\source\\sound\\sound_classes.h", 0x86, *(short *)((char *)definition + 2) <= 0x10);
 
   return definition;
 }
@@ -1223,7 +1223,7 @@ bool sound_can_play(int sound_tag_index /* @<eax> */)
  * [0, channel_count). */
 void *sound_channel_get(short channel_index /* @<si> */)
 {
-  assert_halt(channel_index >= 0 && channel_index < *(short *)0x4eb0b4);
+  assert_halt_msg_at("index>=0 && index<sound_manager_globals.channel_count", "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x428, channel_index >= 0 && channel_index < *(short *)0x4eb0b4);
 
   return (void *)(0x4fc3a0 + (int)channel_index * 0x18);
 }

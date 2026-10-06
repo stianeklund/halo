@@ -8,14 +8,14 @@ void rasterizer_initialize_for_new_map(void)
   int rasterizer_data;
 
   globals = (char *)game_globals_get();
-  assert_halt(globals);
+  assert_halt_msg_at("game_globals", "c:\\halo\\SOURCE\\rasterizer\\common\\rasterizer_common.c", 0x18, globals);
   if (*(int *)(globals + 0x134) != 0) {
     rasterizer_data = (int)tag_block_get_element(globals + 0x134, 0, 0x1ac);
   } else {
     rasterizer_data = 0;
   }
   *(int *)0x476204 = rasterizer_data;
-  assert_halt(rasterizer_data);
+  assert_halt_msg_at("global_rasterizer_data", "c:\\halo\\SOURCE\\rasterizer\\common\\rasterizer_common.c", 0x1a, rasterizer_data);
 
   FUN_00181150();
   rasterizer_text_cache_flush();

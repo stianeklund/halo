@@ -1092,7 +1092,7 @@ bool bitmap_verify(void *bitmap, int check_hardware)
   int16_t type, format, width, height, depth, mipmap_count;
   int max_dim;
 
-  assert_halt(bitmap != NULL);
+  assert_halt_msg_at("bitmap", "c:\\halo\\SOURCE\\bitmaps\\bitmaps.c", 0x40f, bitmap != NULL);
 
   if (*(int *)b != 0x6269746d)
     goto invalid;

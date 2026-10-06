@@ -1853,7 +1853,7 @@ bool event_manager_get_next_event(void *event_data, int16_t player_index)
   int16_t pi;
   int16_t *slot;
 
-  assert_halt(event_data &&
+  assert_halt_msg_at("event && ((local_player_index>=0 && local_player_index<MAXIMUM_GAMEPADS) || local_player_index==NONE)", "c:\\halo\\SOURCE\\interface\\event_manager.c", 0xd3, event_data &&
               ((player_index >= 0 && player_index < MAXIMUM_GAMEPADS) ||
                player_index == NONE));
 

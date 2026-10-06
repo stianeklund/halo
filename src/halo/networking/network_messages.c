@@ -368,11 +368,11 @@ void data_packet_group_initialize(group_definition *group)
     packet_entry *entry = &group->packets[i];
 
     if (entry->definition != NULL) {
-      assert_halt(entry->packet_class >= 0 &&
+      assert_halt_msg_at("packet->packet_class>=0 && packet->packet_class<group_definition->packet_class_count", "c:\\halo\\SOURCE\\memory\\data_packet_groups.c", 0x28, entry->packet_class >= 0 &&
                   entry->packet_class < group->packet_class_count);
-      assert_halt(entry->definition->size <=
+      assert_halt_msg_at("packet->definition->size<=group_definition->maximum_decoded_packet_size", "c:\\halo\\SOURCE\\memory\\data_packet_groups.c", 0x29, entry->definition->size <=
                   group->maximum_decoded_packet_size);
-      assert_halt((uint32_t)(entry->definition->size + sizeof(packet_header)) <=
+      assert_halt_msg_at("packet->definition->size + sizeof(struct packet_header)<=group_definition->maximum_encoded_packet_size", "c:\\halo\\SOURCE\\memory\\data_packet_groups.c", 0x2a, (uint32_t)(entry->definition->size + sizeof(packet_header)) <=
                   (uint32_t)group->maximum_encoded_packet_size);
       data_packet_verify(entry->definition);
     }

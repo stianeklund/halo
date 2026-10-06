@@ -72,7 +72,7 @@ void actor_combat_get_weapon_vector(int actor_handle /* @<eax> */,
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
   int handle = ((actor_t *)actor)->field_018;
 
-  assert_halt(weapon_vector != NULL);
+  assert_halt_msg_at("weapon_vector", "c:\\halo\\SOURCE\\ai\\actor_combat.c", 0x48e, weapon_vector != NULL);
 
   if (((actor_t *)actor)->field_161 != 0) {
     int *vehicle_obj =
@@ -125,7 +125,7 @@ void actor_combat_get_burst_parameters(int actor_handle /* @<eax> */,
   else if (((actor_t *)actor)->field_601 != 0)
     firing = tag + 0x118;
 
-  assert_halt(burst_ref != NULL && firing_ref != NULL);
+  assert_halt_msg_at("burst_geometry_reference && firing_pattern_reference", "c:\\halo\\SOURCE\\ai\\actor_combat.c", 0x68d, burst_ref != NULL && firing_ref != NULL);
   *burst_ref = burst;
   *firing_ref = firing;
 }

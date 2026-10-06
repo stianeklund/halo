@@ -507,7 +507,7 @@ void observer_initialize_for_new_map(void)
   char *entry = (char *)0x33571c;
 
   for (i = 0; i < 4; i++) {
-    assert_halt(i >= 0 && i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+    assert_halt_msg_at("local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS", "c:\\halo\\SOURCE\\camera\\observer.c", 0x72, i >= 0 && i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
     observer_result_initialize(entry);
     entry += 0x29c;
   }

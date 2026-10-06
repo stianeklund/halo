@@ -48,7 +48,7 @@ char action_vehicle_setup_specific(int actor_handle, int vehicle_handle, int16_t
 
   actor = (char *)datum_get(actor_data, actor_handle);
   ok = 0;
-  assert_halt(state_data != 0);
+  assert_halt_msg_at("state_data", "c:\\halo\\SOURCE\\ai\\action_vehicle.c", 0x68, state_data != 0);
   csmemset(state_data, 0, 0x4c);
   if (((actor_t *)actor)->field_158 == -1 && *(char *)(actor + 6) == 0) {
     (void)datum_get(actor_data, actor_handle);

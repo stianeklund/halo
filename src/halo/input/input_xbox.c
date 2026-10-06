@@ -634,7 +634,7 @@ bool input_key_is_down(uint16_t key_code)
     b = *input_stick_axis_key_pos_ry();
     return a <= b ? b : a;
   default:
-    assert_halt(key >= 0 && key < INPUT_KEY_COUNT);
+    assert_halt_msg_at("key_code>=0 && key_code<NUMBER_OF_KEYS", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x13a, key >= 0 && key < INPUT_KEY_COUNT);
     return input_digital_button_states()[key];
   }
 }
@@ -655,7 +655,7 @@ bool input_get_buffered_key(void *out_keystroke)
   if (word_46BC08 >= word_46BC0A)
     return false;
 
-  assert_halt(word_46BC08 >= 0 && word_46BC08 < 0x40);
+  assert_halt_msg_at("input_globals.buffered_key_read_index>=0 && input_globals.buffered_key_read_index<MAXIMUM_BUFFERED_KEYSTROKES", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x14e, word_46BC08 >= 0 && word_46BC08 < 0x40);
 
   read_idx = word_46BC08;
   *(int *)out_keystroke = dword_46BC0C[read_idx];
@@ -683,7 +683,7 @@ void *input_get_gamepad_state(int16_t gamepad_index)
 
   result = NULL;
   index = gamepad_index;
-  assert_halt(index >= 0 && index < MAXIMUM_GAMEPADS);
+  assert_halt_msg_at("gamepad_index>=0 && gamepad_index<MAXIMUM_GAMEPADS", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x17b, index >= 0 && index < MAXIMUM_GAMEPADS);
   if (input_gamepad_handles()[index] != 0) {
     if (*input_suppressed())
       result = suppressed_gamepad_state();

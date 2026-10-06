@@ -204,7 +204,7 @@ void game_precache_new_map(char *map_name, bool a2)
     error(2, "shouldn't be here... map '%s' doesn't exist", map_name);
     if (a2) {
       display_assert("read the last error message for which map failed to load",
-                     __FILE__, __LINE__, true);
+                     "c:\\halo\\SOURCE\\game\\game.c", 0xf9, true);
       system_exit(-1);
     }
   }
@@ -490,7 +490,7 @@ void game_set_game_engine_index(void)
 {
   display_assert(
     "!\"this is broken and should get updated for the variants, ask michael\"",
-    __FILE__, __LINE__, true);
+    "c:\\halo\\SOURCE\\game\\game.c", 0x311, true);
   system_exit(-1);
 }
 
@@ -1857,7 +1857,7 @@ __declspec(noinline) float game_globals_difficulty_scale(int16_t value_type,
   int16_t clamped;
   int idx;
 
-  assert_halt(value_type >= 0 && value_type < 0x23);
+  assert_halt_msg_at("(value_type >= 0) && (value_type < NUMBER_OF_GAME_DIFFICULTY_VALUES)", "c:\\halo\\SOURCE\\game\\game_globals.c", 0x39a, value_type >= 0 && value_type < 0x23);
 
   globals = game_globals_get();
   if (!globals)
@@ -1935,7 +1935,7 @@ float FUN_000b55b0(short value_type, int team)
   if (game_allegiance_get_team_is_friendly(1, team)) {
     return game_globals_difficulty_scale(value_type, difficulty);
   }
-  assert_halt(value_type >= 0 && value_type < 0x23);
+  assert_halt_msg_at("(value_type >= 0) && (value_type < NUMBER_OF_GAME_DIFFICULTY_VALUES)", "c:\\halo\\SOURCE\\game\\game_globals.c", 0x3bd, value_type >= 0 && value_type < 0x23);
   {
     int16_t override = *(int16_t *)(0x26ddc8 + (int)value_type * 2);
     if (override == (int16_t)0xffff) {

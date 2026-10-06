@@ -418,7 +418,7 @@ void director_inhibit_facing(int16_t local_player_index)
  * Writes 1 to the per-player director state byte at struct offset +0x4e. */
 void director_set_local_player_context(int16_t player_index)
 {
-  assert_halt(player_index >= 0 &&
+  assert_halt_msg_at("local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS", "c:\\halo\\SOURCE\\camera\\director.c", 0xb3, player_index >= 0 &&
               player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
   ((char *)0x335302)[(int)player_index * 0xf8] = 1;
 }
@@ -738,7 +738,7 @@ void director_dispose_from_old_map(void)
   char *entry = (char *)0x335374;
 
   for (i = 0; i < 4; i++) {
-    assert_halt(i >= 0 && i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+    assert_halt_msg_at("local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS", "c:\\halo\\SOURCE\\camera\\director.c", 0xb3, i >= 0 && i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
     *(int *)(entry - 0xbc) = 0;
     *(float *)entry = 1.0f;
     *(uint8_t *)(entry - 4) = 0;
@@ -1151,7 +1151,7 @@ bool director_compute_camera_input(short *out_buf, int local_player_index)
   void *current_camera;
   char *base;
 
-  assert_halt(player16 >= 0 && player16 < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+  assert_halt_msg_at("local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS", "c:\\halo\\SOURCE\\camera\\director.c", 0xb3, player16 >= 0 && player16 < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
   csmemset(out_buf, 0, 0x24);
   *out_buf = player16;
@@ -1328,7 +1328,7 @@ void director_initialize_for_new_map(void)
   /* p points into the per-player array at offset 0x48 from the struct base */
   p = (char *)0x3352fc;
   for (i = 0; i < 4; i++) {
-    assert_halt(i >= 0 && i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
+    assert_halt_msg_at("local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS", "c:\\halo\\SOURCE\\camera\\director.c", 0xb3, i >= 0 && i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
     /* zero offset-0x48 field (dword), offset-0x4c field (byte), and the
      * timer at offset-0x00 (= p - 0x48) */
@@ -1379,7 +1379,7 @@ void director_update(float delta_time)
 
   do {
     if (local_player_get_player_index((int16_t)i) != -1) {
-      assert_halt((int16_t)i >= 0 &&
+      assert_halt_msg_at("local_player_index>=0 && local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS", "c:\\halo\\SOURCE\\camera\\director.c", 0xb3, (int16_t)i >= 0 &&
                   (int16_t)i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
       ps[0x4d] = 0;

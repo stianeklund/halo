@@ -38,7 +38,7 @@ int interface_get_tag_index(int interface_tag_index)
   char *element;
   int16_t index = (int16_t)interface_tag_index;
 
-  assert_halt(index >= 0 && index < NUMBER_OF_INTERFACE_TAGS);
+  assert_halt_msg_at("interface_tag_index>=0 && interface_tag_index<NUMBER_OF_INTERFACE_TAGS", "c:\\halo\\SOURCE\\interface\\interface.c", 0x6d, index >= 0 && index < NUMBER_OF_INTERFACE_TAGS);
 
   globals = (char *)game_globals_get();
   if (*(int *)(globals + 0x140) != 0) {

@@ -798,8 +798,8 @@ short remove_endpoint_from_set(int *endpoint, uint32_t *endpoint_set)
   uint32_t j;
   uint32_t *fds;
 
-  assert_halt(endpoint && endpoint_set);
-  assert_halt(*(uint8_t *)0x335090);
+  assert_halt_msg_at("ep && set", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c", 0x255, endpoint && endpoint_set);
+  assert_halt_msg_at("transport_initialized", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_set_winsock.c", 0x256, *(uint8_t *)0x335090);
 
   if ((int)endpoint_set[0x43] >= 0) {
     ep_array = (uint32_t **)endpoint_set[0x41];
@@ -1296,8 +1296,8 @@ int recv_endpoint(int *ep, void *buffer, int maxlen)
   int result;
   int error_code;
 
-  assert_halt(ep && buffer && (maxlen > 0));
-  assert_halt(*(uint8_t *)0x335090);
+  assert_halt_msg_at("ep && buffer && (length > 0)", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0x322, ep && buffer && (maxlen > 0));
+  assert_halt_msg_at("transport_initialized", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0x323, *(uint8_t *)0x335090);
 
   result = xnet_recv(ep[0], buffer, maxlen, 0);
   if (result == -1) {
@@ -1355,8 +1355,8 @@ int send_endpoint(int *ep, const char *buf, int len)
   int result;
   int error_code;
 
-  assert_halt(ep && buf && (len > 0));
-  assert_halt(*(uint8_t *)0x335090);
+  assert_halt_msg_at("ep && buffer && (length > 0)", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0x350, ep && buf && (len > 0));
+  assert_halt_msg_at("transport_initialized", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0x351, *(uint8_t *)0x335090);
 
   result = xnet_send(ep[0], buf, len, 0);
   if (result != -1)
@@ -1537,7 +1537,7 @@ bool transport_server_initialize(int *ep, unsigned short timeout_msec)
  */
 bool FUN_000831a0(int endpoint)
 {
-  assert_halt(endpoint);
+  assert_halt_msg_at("ep", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0x426, endpoint);
   return *(uint8_t *)(endpoint + 4) & 1;
 }
 
@@ -2113,8 +2113,8 @@ short FUN_00083a60(int *ep, void *addr)
 
   sa_len = 0x10;
 
-  assert_halt(ep && addr);
-  assert_halt(*(uint8_t *)0x335090);
+  assert_halt_msg_at("ep && address", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0xf7, ep && addr);
+  assert_halt_msg_at("transport_initialized", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0xf8, *(uint8_t *)0x335090);
 
   if (*ep != -1) {
     result = xnet_getsockname(*ep, sa_buf, &sa_len);
@@ -2241,8 +2241,8 @@ short FUN_00083ce0(int *ep, void *addr)
 
   status = 0;
 
-  assert_halt(ep && addr);
-  assert_halt(*(uint8_t *)0x335090);
+  assert_halt_msg_at("ep && address", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0x16c, ep && addr);
+  assert_halt_msg_at("transport_initialized", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0x16d, *(uint8_t *)0x335090);
 
   if (*ep == -1) {
     if (*(uint8_t *)((char *)ep + 5) == 0x12) {
@@ -2414,8 +2414,8 @@ void close_endpoint(int *ep)
   int result;
   int err;
 
-  assert_halt(ep != NULL);
-  assert_halt(*(uint8_t *)0x335090);
+  assert_halt_msg_at("ep", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0x221, ep != NULL);
+  assert_halt_msg_at("transport_initialized", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0x222, *(uint8_t *)0x335090);
 
   if (*ep != -1) {
     result = xnet_closesocket(*ep);
@@ -2990,8 +2990,8 @@ int FUN_00084740(transport_endpoint *ep, const void *buffer, int length,
  */
 void destroy_endpoint(int *ep)
 {
-  assert_halt(ep != NULL);
-  assert_halt(*(uint8_t *)0x335090);
+  assert_halt_msg_at("ep", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0xe4, ep != NULL);
+  assert_halt_msg_at("transport_initialized", "c:\\halo\\SOURCE\\bungie_net\\network\\transport_endpoint_winsock.c", 0xe5, *(uint8_t *)0x335090);
 
   /* Close the underlying socket and clear handle/flags. */
   close_endpoint(ep);

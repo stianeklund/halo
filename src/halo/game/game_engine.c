@@ -3184,7 +3184,7 @@ bool game_engine_teams_still_playing(void)
       }
     }
 
-    assert_halt(*(int *)(player + 0x20) != NONE);
+    assert_halt_msg_at("player->team_index != NONE", "c:\\halo\\SOURCE\\game\\game_engine.c", 0x1bd, *(int *)(player + 0x20) != NONE);
     if (*(int *)(player + 0x20) != first_team) {
       if (first_team != NONE)
         return true;

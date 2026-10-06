@@ -872,10 +872,10 @@ void unicode_sprintf(wchar_t *buffer, int buffer_size, const wchar_t *format,
 {
   va_list args;
 
-  assert_halt(buffer);
-  assert_halt((unsigned int)buffer_size > 0 &&
+  assert_halt_msg_at("string", "c:\\halo\\SOURCE\\text\\unicode.c", 0x2cf, buffer);
+  assert_halt_msg_at("(size > 0) && (size <= MAXIMUM_STRING_SIZE)", "c:\\halo\\SOURCE\\text\\unicode.c", 0x2d0, (unsigned int)buffer_size > 0 &&
               (unsigned int)buffer_size <= 0x8000);
-  assert_halt(_wcslen(format) < 0x8000);
+  assert_halt_msg_at("wcslen(format) < MAXIMUM_STRING_SIZE", "c:\\halo\\SOURCE\\text\\unicode.c", 0x2d1, _wcslen(format) < 0x8000);
 
   va_start(args, format);
   _vsnwprintf(buffer, buffer_size, format, (char *)args);

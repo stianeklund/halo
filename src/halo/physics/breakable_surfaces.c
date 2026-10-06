@@ -341,10 +341,10 @@ void scenery_animation_start_at_frame(int object_handle, int animation_graph_tag
  * buffer starting at offset 0x204. */
 float *breakable_surface_get(short surface_index)
 {
-  assert_halt(breakable_surface_globals);
-  assert_halt(global_structure_bsp_index >= 0 &&
+  assert_halt_msg_at("globals", "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x3d, breakable_surface_globals);
+  assert_halt_msg_at("global_structure_bsp_index>=0 && global_structure_bsp_index<MAXIMUM_STRUCTURE_BSPS_PER_SCENARIO", "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x3e, global_structure_bsp_index >= 0 &&
               global_structure_bsp_index < 16);
-  assert_halt(surface_index >= 0 && surface_index < 256);
+  assert_halt_msg_at("breakable_surface_index>=0 && breakable_surface_index<MAXIMUM_BREAKABLE_SURFACES_PER_MAP", "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x3f, surface_index >= 0 && surface_index < 256);
   return (
     float *)(breakable_surface_globals + 0x204 +
              ((int)global_structure_bsp_index * 256 + (int)surface_index) * 4);
@@ -352,7 +352,7 @@ float *breakable_surface_get(short surface_index)
 
 void breakable_surfaces_initialize(void)
 {
-  assert_halt(!breakable_surface_globals);
+  assert_halt_msg_at("!globals", "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x49, !breakable_surface_globals);
   breakable_surface_globals =
     (char *)game_state_malloc("breakable surface globals", 0, 0x4204);
 }
@@ -416,8 +416,8 @@ void breakable_surfaces_enable(char active)
  */
 __declspec(noinline) char *breakable_surfaces_get_bsp_surface_data(void)
 {
-  assert_halt(breakable_surface_globals);
-  assert_halt(global_structure_bsp_index >= 0 &&
+  assert_halt_msg_at("globals", "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x8a, breakable_surface_globals);
+  assert_halt_msg_at("global_structure_bsp_index>=0 && global_structure_bsp_index<MAXIMUM_STRUCTURE_BSPS_PER_SCENARIO", "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0x8b, global_structure_bsp_index >= 0 &&
               global_structure_bsp_index < 16);
   return breakable_surface_globals + 1 + (int)global_structure_bsp_index * 32;
 }
@@ -1223,7 +1223,7 @@ void FUN_00146a90(int surface_id, void *damage_params, int unknown)
   uint32_t *word_ptr;
   int material_type;
 
-  assert_halt(breakable_surface_globals);
+  assert_halt_msg_at("globals", "c:\\halo\\SOURCE\\physics\\breakable_surfaces.c", 0xa3, breakable_surface_globals);
   if (*breakable_surface_globals == 0)
     return;
   if ((short)surface_id == -1)
