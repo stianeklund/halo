@@ -1,0 +1,1018 @@
+{
+ "TIFFComputeTile": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "no_gain",
+  "before": 0.967,
+  "after": 0.967,
+  "dependency_fingerprint": "fe63848497970bfa82af78dff0ec66bf33a3cac6963bc4ce64828917900bd779"
+ },
+ "TIFFIsTiled": {
+  "after": 85.0,
+  "before": 85.0,
+  "dependency_fingerprint": "7deb9191a24d61fb9241f850c5a9f02179a4e6daa05b4fb3c37bea5cebc18444",
+  "result": "no_gain",
+  "run": "20261004-r6",
+  "ts": 1791119124
+ },
+ "TIFFPrintDirectory": {
+  "after": 99.5,
+  "before": 99.44,
+  "dependency_fingerprint": "7deb9191a24d61fb9241f850c5a9f02179a4e6daa05b4fb3c37bea5cebc18444",
+  "result": "improved",
+  "run": "20261004-r6",
+  "ts": 1791119124
+ },
+ "TIFFReadRawTile1": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.753,
+  "after": 0.753,
+  "dependency_fingerprint": "fe63848497970bfa82af78dff0ec66bf33a3cac6963bc4ce64828917900bd779"
+ },
+ "TIFFStartStrip": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.817,
+  "after": 0.817,
+  "dependency_fingerprint": "fe63848497970bfa82af78dff0ec66bf33a3cac6963bc4ce64828917900bd779"
+ },
+ "action_alert_next_position": {
+  "after": 89.79,
+  "before": 89.79,
+  "dependency_fingerprint": "585ab70bd8a61f74115eb6ed3958ec3749b4cc7ba1e46879b75935a906d50e7e",
+  "result": "reverted",
+  "run": "20261004-r2",
+  "ts": 1791112718
+ },
+ "action_alert_perform": {
+  "after": 100.0,
+  "before": 97.47,
+  "dependency_fingerprint": "585ab70bd8a61f74115eb6ed3958ec3749b4cc7ba1e46879b75935a906d50e7e",
+  "result": "improved",
+  "run": "20261004-r2",
+  "ts": 1791112718
+ },
+ "action_alert_update": {
+  "after": 100.0,
+  "before": 99.64,
+  "dependency_fingerprint": "585ab70bd8a61f74115eb6ed3958ec3749b4cc7ba1e46879b75935a906d50e7e",
+  "result": "improved",
+  "run": "20261004-r2",
+  "ts": 1791112718
+ },
+ "data_decode_array": {
+  "after": 100.0,
+  "before": 90.91,
+  "dependency_fingerprint": "d82a85db70f3a9b693420bd499c732461a7e676fe9222c1b9cdcba5966cfabd2",
+  "result": "improved",
+  "run": "20261004-r4",
+  "ts": 1791115874
+ },
+ "data_decode_structures": {
+  "ts": 1791125183,
+  "run": "20261004-r8",
+  "result": "improved",
+  "before": 96.5,
+  "after": 100.0,
+  "dependency_fingerprint": "665b0ac36ed3e2d8ce5f3e737da4054087ca2215513242140c7007701f746b4e"
+ },
+ "data_packet_group_decode_packet": {
+  "ts": 1791125183,
+  "run": "20261004-r8",
+  "result": "improved",
+  "before": 99.3,
+  "after": 100.0,
+  "dependency_fingerprint": "665b0ac36ed3e2d8ce5f3e737da4054087ca2215513242140c7007701f746b4e"
+ },
+ "decode_network_game_message": {
+  "after": 100.0,
+  "before": 96.58,
+  "dependency_fingerprint": "92124469ef961f3b375765128a9eabefb0bf942a86c1dfbc27a23cba5da7e199",
+  "result": "improved",
+  "run": "20261004-r1",
+  "ts": 1791109759
+ },
+ "default_hash_function": {
+  "ts": 1791152007,
+  "run": "20261005-r1",
+  "result": "reverted",
+  "before": 77.0,
+  "after": 77.0,
+  "dependency_fingerprint": "47e9e8cf576dededc91c042a488f15d31fae73de662118ac45147e838683c542"
+ },
+ "dialogue_get_vocalization_name": {
+  "after": 76.7,
+  "before": 76.7,
+  "dependency_fingerprint": "a54880e1ae30bf01be503dae41cad2852c81ddd2f42d0061216bf34984983e86",
+  "result": "no_gain",
+  "run": "20261004-r1",
+  "ts": 1791109759
+ },
+ "dump_network_game_data": {
+  "after": 95.7,
+  "before": 89.8,
+  "dependency_fingerprint": "aa6cfbe1b030258be53e662b1ab6bf65008627a1286bd247a6440145af8b8ca9",
+  "result": "improved",
+  "run": "20261004-r6",
+  "ts": 1791119124
+ },
+ "extract_mipmaps_to_bitmap": {
+  "ts": 1791123114,
+  "run": "20261004-r7",
+  "result": "improved",
+  "before": 81.78,
+  "after": 87.6,
+  "dependency_fingerprint": "8f82790b4c8b442af3750be2cbbf23bfbc746206a3d97ee96c61aaf892258cd1"
+ },
+ "extract_pixels_from_mipmap": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.751,
+  "after": 0.751,
+  "dependency_fingerprint": "fe63848497970bfa82af78dff0ec66bf33a3cac6963bc4ce64828917900bd779"
+ },
+ "extract_pixels_to_mipmap": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.9716,
+  "after": 0.9716,
+  "dependency_fingerprint": "fe63848497970bfa82af78dff0ec66bf33a3cac6963bc4ce64828917900bd779"
+ },
+ "extract_plateless_cube_map": {
+  "ts": 1791125183,
+  "run": "20261004-r8",
+  "result": "improved",
+  "before": 97.4,
+  "after": 100.0,
+  "dependency_fingerprint": "f3f8ebe3a983a187181b2ccb64cbd415bbeca6f374ac8ce957fc5080aa2bf5bc"
+ },
+ "following_camera_update": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 87.56,
+  "after": 87.56,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "hashtable_get": {
+  "ts": 1791152007,
+  "run": "20261005-r1",
+  "result": "regarg_ceiling",
+  "before": 97.9,
+  "after": 97.9,
+  "dependency_fingerprint": "47e9e8cf576dededc91c042a488f15d31fae73de662118ac45147e838683c542"
+ },
+ "hashtable_put": {
+  "ts": 1791152007,
+  "run": "20261005-r1",
+  "result": "regarg_ceiling",
+  "before": 98.1,
+  "after": 98.1,
+  "dependency_fingerprint": "47e9e8cf576dededc91c042a488f15d31fae73de662118ac45147e838683c542"
+ },
+ "hs_object_destroy_all": {
+  "after": 100.0,
+  "before": 79.73,
+  "dependency_fingerprint": "f4c520518734033d23189bd87061e81798a958f78281b8fc1ebcf1b0f80d1f8a",
+  "result": "improved",
+  "run": "20261004-r2",
+  "ts": 1791112718
+ },
+ "hs_object_set_facing": {
+  "ts": 1791125183,
+  "run": "20261004-r8",
+  "result": "regarg_ceiling",
+  "before": 78.3,
+  "after": 78.3,
+  "dependency_fingerprint": "3ce743d211b665647c96a23199a7cd24d6656e308a501479dfc155388f5c3d60"
+ },
+ "hs_object_set_permutation": {
+  "ts": 1791125183,
+  "run": "20261004-r8",
+  "result": "improved",
+  "before": 94.5,
+  "after": 100.0,
+  "dependency_fingerprint": "3ce743d211b665647c96a23199a7cd24d6656e308a501479dfc155388f5c3d60"
+ },
+ "hs_object_teleport": {
+  "ts": 1791125183,
+  "run": "20261004-r8",
+  "result": "regarg_ceiling",
+  "before": 78.3,
+  "after": 78.3,
+  "dependency_fingerprint": "3ce743d211b665647c96a23199a7cd24d6656e308a501479dfc155388f5c3d60"
+ },
+ "hs_objects_can_see_object": {
+  "after": 100.0,
+  "before": 87.88,
+  "dependency_fingerprint": "f4c520518734033d23189bd87061e81798a958f78281b8fc1ebcf1b0f80d1f8a",
+  "result": "improved",
+  "run": "20261004-r2",
+  "ts": 1791112718
+ },
+ "hs_sound_get_gain": {
+  "ts": 1791125183,
+  "run": "20261004-r8",
+  "result": "regarg_ceiling",
+  "before": 75.9,
+  "after": 75.9,
+  "dependency_fingerprint": "3ce743d211b665647c96a23199a7cd24d6656e308a501479dfc155388f5c3d60"
+ },
+ "hs_teleport_players_not_in_trigger_volume": {
+  "ts": 1791125183,
+  "run": "20261004-r8",
+  "result": "regarg_ceiling",
+  "before": 84.9,
+  "after": 84.9,
+  "dependency_fingerprint": "3ce743d211b665647c96a23199a7cd24d6656e308a501479dfc155388f5c3d60"
+ },
+ "hs_trigger_volume_test_objects": {
+  "ts": 1791125183,
+  "run": "20261004-r8",
+  "result": "no_gain",
+  "before": 91.2,
+  "after": 91.2,
+  "dependency_fingerprint": "3ce743d211b665647c96a23199a7cd24d6656e308a501479dfc155388f5c3d60"
+ },
+ "lra_dispose": {
+  "ts": 1791152007,
+  "run": "20261005-r1",
+  "result": "regarg_ceiling",
+  "before": 89.6,
+  "after": 89.6,
+  "dependency_fingerprint": "47e9e8cf576dededc91c042a488f15d31fae73de662118ac45147e838683c542"
+ },
+ "network_game_client_game_out_of_sync": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 90.8,
+  "after": 90.8,
+  "dependency_fingerprint": "1dd7e0794d0942e56e362be70d9990e16d892f069d503da3e54c2359826bea51"
+ },
+ "network_game_client_get_state": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "no_gain",
+  "before": 0.9231,
+  "after": 0.9231,
+  "dependency_fingerprint": "40b9324f4f5bfde9d86a9be4269d9af01ff077d6c12d7bc9c135ecf97068badf"
+ },
+ "network_game_client_handle_message_server_game_advertise": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.9028,
+  "after": 0.9028,
+  "dependency_fingerprint": "40b9324f4f5bfde9d86a9be4269d9af01ff077d6c12d7bc9c135ecf97068badf"
+ },
+ "network_game_client_handle_message_server_game_settings_update": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.8584,
+  "after": 0.8584,
+  "dependency_fingerprint": "40b9324f4f5bfde9d86a9be4269d9af01ff077d6c12d7bc9c135ecf97068badf"
+ },
+ "network_game_client_handle_message_server_machine_accepted": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.8551,
+  "after": 0.8551,
+  "dependency_fingerprint": "40b9324f4f5bfde9d86a9be4269d9af01ff077d6c12d7bc9c135ecf97068badf"
+ },
+ "network_game_client_handle_message_server_machine_rejected": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.8551,
+  "after": 0.8551,
+  "dependency_fingerprint": "40b9324f4f5bfde9d86a9be4269d9af01ff077d6c12d7bc9c135ecf97068badf"
+ },
+ "network_game_client_handle_message_server_pong": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.8889,
+  "after": 0.8889,
+  "dependency_fingerprint": "40b9324f4f5bfde9d86a9be4269d9af01ff077d6c12d7bc9c135ecf97068badf"
+ },
+ "network_game_client_handle_message_server_pregame_countdown": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.7839,
+  "after": 0.7839,
+  "dependency_fingerprint": "40b9324f4f5bfde9d86a9be4269d9af01ff077d6c12d7bc9c135ecf97068badf"
+ },
+ "network_game_client_handle_message_server_pregame_keep_alive": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.8545,
+  "after": 0.8545,
+  "dependency_fingerprint": "40b9324f4f5bfde9d86a9be4269d9af01ff077d6c12d7bc9c135ecf97068badf"
+ },
+ "network_game_client_idle": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 82.8,
+  "after": 82.8,
+  "dependency_fingerprint": "1dd7e0794d0942e56e362be70d9990e16d892f069d503da3e54c2359826bea51"
+ },
+ "network_game_client_idle_ingame": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 83.7,
+  "after": 83.7,
+  "dependency_fingerprint": "1dd7e0794d0942e56e362be70d9990e16d892f069d503da3e54c2359826bea51"
+ },
+ "network_game_client_idle_joining": {
+  "after": 98.4,
+  "before": 84.69,
+  "dependency_fingerprint": "e4e1d6b61937256cb4f705ae064a3c8f3ba4ea68a66aa0db8480b8b3b1c86894",
+  "result": "improved",
+  "run": "20261004-r4",
+  "ts": 1791115874
+ },
+ "network_game_client_idle_pregame": {
+  "after": 93.3,
+  "before": 80.65,
+  "dependency_fingerprint": "e4e1d6b61937256cb4f705ae064a3c8f3ba4ea68a66aa0db8480b8b3b1c86894",
+  "result": "improved",
+  "run": "20261004-r4",
+  "ts": 1791115874
+ },
+ "network_game_client_new_advertised_game": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 95.8,
+  "after": 95.8,
+  "dependency_fingerprint": "1dd7e0794d0942e56e362be70d9990e16d892f069d503da3e54c2359826bea51"
+ },
+ "network_game_client_reset": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 94.5,
+  "after": 94.5,
+  "dependency_fingerprint": "1dd7e0794d0942e56e362be70d9990e16d892f069d503da3e54c2359826bea51"
+ },
+ "network_game_server_accept_client_machine_into_game": {
+  "after": 100.0,
+  "before": 92.57,
+  "dependency_fingerprint": "2561067fe2d5b5e95b0ec4569fcd1c756ba0d027d7271a37d957439efe9cb87b",
+  "result": "improved",
+  "run": "20261004-r4",
+  "ts": 1791115874
+ },
+ "network_game_server_add_new_client": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 97.79,
+  "after": 97.79,
+  "dependency_fingerprint": "d7052074d18f62b4291b931f65b0f2b75eee7763687aa4774861da464d94640d"
+ },
+ "network_game_server_create": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.9237,
+  "after": 1.0,
+  "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
+ },
+ "network_game_server_dispose": {
+  "ts": 1791189675,
+  "run": "20261005-r2",
+  "result": "improved",
+  "before": 0.9894,
+  "after": 1.0,
+  "dependency_fingerprint": "ffcb852f64dc5f803bf9250e94504964cfe4e260e875683bbc509d662a5da5f6"
+ },
+ "network_game_server_dump": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 89.29,
+  "after": 89.29,
+  "dependency_fingerprint": "d7052074d18f62b4291b931f65b0f2b75eee7763687aa4774861da464d94640d"
+ },
+ "network_game_server_get_oldest_client_update_received": {
+  "after": 100.0,
+  "before": 99.24,
+  "dependency_fingerprint": "92124469ef961f3b375765128a9eabefb0bf942a86c1dfbc27a23cba5da7e199",
+  "result": "improved",
+  "run": "20261004-r1",
+  "ts": 1791109759
+ },
+ "network_game_server_handle_client_machines": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 94.41,
+  "after": 94.41,
+  "dependency_fingerprint": "d7052074d18f62b4291b931f65b0f2b75eee7763687aa4774861da464d94640d"
+ },
+ "network_game_server_handle_client_update_packet": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "no_gain",
+  "before": 0.975,
+  "after": 0.975,
+  "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
+ },
+ "network_game_server_idle": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "improved",
+  "before": 92.86,
+  "after": 93.11,
+  "dependency_fingerprint": "d7052074d18f62b4291b931f65b0f2b75eee7763687aa4774861da464d94640d"
+ },
+ "network_game_server_idle_pregame_tasks": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 97.48,
+  "after": 97.48,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "network_game_server_send_rejection_message": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 83.18,
+  "after": 83.18,
+  "dependency_fingerprint": "d7052074d18f62b4291b931f65b0f2b75eee7763687aa4774861da464d94640d"
+ },
+ "network_game_server_stalled_on_client": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 98.42,
+  "after": 98.42,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "network_game_server_switch_machine_from_postgame_to_pregame": {
+  "ts": 1791189675,
+  "run": "20261005-r2",
+  "result": "improved",
+  "before": 0.8372,
+  "after": 0.95,
+  "dependency_fingerprint": "ffcb852f64dc5f803bf9250e94504964cfe4e260e875683bbc509d662a5da5f6"
+ },
+ "network_game_server_update_countdown": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.9793,
+  "after": 1.0,
+  "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
+ },
+ "object_compute_function_values": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 96.09,
+  "after": 96.09,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "object_delete_recursive": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 92.24,
+  "after": 92.24,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "object_determine_variant_number": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 89.5,
+  "after": 89.5,
+  "dependency_fingerprint": "b54422487e841185c833ccaf61b55d8b88f6c111d5f254a2d1759880828acb6a"
+ },
+ "object_find_region_permutations_available_with_variant": {
+  "ts": 1791123114,
+  "run": "20261004-r7",
+  "result": "regarg_ceiling",
+  "before": 88.2,
+  "after": 88.2,
+  "dependency_fingerprint": "791c8d26a00e32451e40a8e5c16f88bc98849bb6d666e8ce17bc6eb1a8f15ae5"
+ },
+ "object_header_block_allocate": {
+  "after": 95.7,
+  "before": 95.1,
+  "dependency_fingerprint": "c99fdfeb9e2589adf880fa8f29b81cbcd9c6701f3757b3efd137f1d9be562993",
+  "result": "improved",
+  "run": "20261004-r6",
+  "ts": 1791119124
+ },
+ "object_inverse_kinematics": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 96.85,
+  "after": 96.85,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "object_new_from_scenario": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "regarg_ceiling",
+  "before": 94.79,
+  "after": 94.79,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "object_types_place_all": {
+  "after": 80.0,
+  "before": 80.0,
+  "dependency_fingerprint": "c99fdfeb9e2589adf880fa8f29b81cbcd9c6701f3757b3efd137f1d9be562993",
+  "result": "no_gain",
+  "run": "20261004-r6",
+  "ts": 1791119124
+ },
+ "object_update": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 96.5,
+  "after": 96.5,
+  "dependency_fingerprint": "b54422487e841185c833ccaf61b55d8b88f6c111d5f254a2d1759880828acb6a"
+ },
+ "objects_dispose": {
+  "after": 100.0,
+  "before": 79.1,
+  "dependency_fingerprint": "b1d8732e94ab63d996204d75e80551ebbbf50a103fc04ac4e97e578cf91ca25b",
+  "result": "improved",
+  "run": "20261004-r1",
+  "ts": 1791109759
+ },
+ "objects_dispose_from_old_map": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 83.55,
+  "after": 83.55,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "objects_get_activating_cluster_index": {
+  "after": 93.3,
+  "before": 93.3,
+  "dependency_fingerprint": "c99fdfeb9e2589adf880fa8f29b81cbcd9c6701f3757b3efd137f1d9be562993",
+  "result": "no_gain",
+  "run": "20261004-r6",
+  "ts": 1791119124
+ },
+ "orbiting_camera_update": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 96.51,
+  "after": 96.51,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "rasterizer_frame_begin": {
+  "after": 79.1,
+  "before": 79.1,
+  "dependency_fingerprint": "a90e54c15dcd841eae864c598da1842509281788bf5caa555ed6038a2b7d92b2",
+  "result": "no_gain",
+  "run": "20261004-r3",
+  "ts": 1791114889
+ },
+ "rasterizer_widget_submit_occlusion_test": {
+  "after": 85.47,
+  "before": 81.3,
+  "dependency_fingerprint": "a90e54c15dcd841eae864c598da1842509281788bf5caa555ed6038a2b7d92b2",
+  "result": "improved",
+  "run": "20261004-r3",
+  "ts": 1791114889
+ },
+ "rumble_player_impulse": {
+  "after": 99.44,
+  "before": 93.1,
+  "dependency_fingerprint": "98e760a314be27f69e3e308e5d46d3d3aea5f68944fc71b2cd1de23d92edc082",
+  "result": "improved",
+  "run": "20261004-r5",
+  "ts": 1791116454
+ },
+ "rumble_update": {
+  "after": 98.5,
+  "before": 98.5,
+  "dependency_fingerprint": "98e760a314be27f69e3e308e5d46d3d3aea5f68944fc71b2cd1de23d92edc082",
+  "result": "no_gain",
+  "run": "20261004-r5",
+  "ts": 1791116454
+ },
+ "scripted_camera_set": {
+  "after": 80.0,
+  "before": 80.0,
+  "dependency_fingerprint": "c99fdfeb9e2589adf880fa8f29b81cbcd9c6701f3757b3efd137f1d9be562993",
+  "result": "no_gain",
+  "run": "20261004-r6",
+  "ts": 1791119124
+ },
+ "scripted_camera_set_camera_point_relative": {
+  "after": 79.6,
+  "before": 79.6,
+  "dependency_fingerprint": "c99fdfeb9e2589adf880fa8f29b81cbcd9c6701f3757b3efd137f1d9be562993",
+  "result": "no_gain",
+  "run": "20261004-r6",
+  "ts": 1791119124
+ },
+ "sound_class_get": {
+  "after": 88.31,
+  "before": 88.31,
+  "dependency_fingerprint": "c48cf0ef47c2fb9c5287b054d8e1ee9299eb04d67c8d2e458c3e229fc030e7a8",
+  "result": "no_gain",
+  "run": "20261004-r3",
+  "ts": 1791114889
+ },
+ "sound_classes_initialize_for_new_map": {
+  "after": 100.0,
+  "before": 84.5,
+  "dependency_fingerprint": "c48cf0ef47c2fb9c5287b054d8e1ee9299eb04d67c8d2e458c3e229fc030e7a8",
+  "result": "improved",
+  "run": "20261004-r3",
+  "ts": 1791114889
+ },
+ "texture_page_new": {
+  "after": 95.43,
+  "before": 76.05,
+  "dependency_fingerprint": "81a2dbf1722277edcfb59f7b62a3557001fe7404c9a80e4f6a20c9219cc592a0",
+  "result": "improved",
+  "run": "20261004-r2",
+  "ts": 1791112718
+ },
+ "unit_camera_get": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "regarg_ceiling",
+  "before": 88.68,
+  "after": 88.68,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "unit_definition_get_seat_active_hud_index": {
+  "after": 87.9,
+  "before": 87.9,
+  "dependency_fingerprint": "a54880e1ae30bf01be503dae41cad2852c81ddd2f42d0061216bf34984983e86",
+  "result": "no_gain",
+  "run": "20261004-r1",
+  "ts": 1791109759
+ },
+ "unit_scripting_get_grenade_count": {
+  "after": 87.0,
+  "before": 87.0,
+  "dependency_fingerprint": "a54880e1ae30bf01be503dae41cad2852c81ddd2f42d0061216bf34984983e86",
+  "result": "no_gain",
+  "run": "20261004-r1",
+  "ts": 1791109759
+ },
+ "unit_scripting_set_current_vitality": {
+  "after": 100.0,
+  "before": 76.9,
+  "dependency_fingerprint": "a54880e1ae30bf01be503dae41cad2852c81ddd2f42d0061216bf34984983e86",
+  "result": "improved",
+  "run": "20261004-r1",
+  "ts": 1791109759
+ },
+ "unit_scripting_start_user_animation_list": {
+  "after": 95.9,
+  "before": 95.9,
+  "dependency_fingerprint": "a54880e1ae30bf01be503dae41cad2852c81ddd2f42d0061216bf34984983e86",
+  "result": "no_gain",
+  "run": "20261004-r1",
+  "ts": 1791109759
+ },
+ "ustrncpy": {
+  "after": 100.0,
+  "before": 89.4,
+  "dependency_fingerprint": "bfd8bcffffa1eedd2ec0aec434b0b09fefc42790e6dee183d5085b5cd3cc15df",
+  "result": "improved",
+  "run": "20261004-r3",
+  "ts": 1791114889
+ },
+ "ustrnlen": {
+  "after": 100.0,
+  "before": 91.5,
+  "dependency_fingerprint": "bfd8bcffffa1eedd2ec0aec434b0b09fefc42790e6dee183d5085b5cd3cc15df",
+  "result": "improved",
+  "run": "20261004-r3",
+  "ts": 1791114889
+ },
+ "ustrnlwr": {
+  "after": 95.0,
+  "before": 95.0,
+  "dependency_fingerprint": "bfd8bcffffa1eedd2ec0aec434b0b09fefc42790e6dee183d5085b5cd3cc15df",
+  "result": "no_gain",
+  "run": "20261004-r3",
+  "ts": 1791114889
+ },
+ "ustrnupr": {
+  "after": 95.0,
+  "before": 95.0,
+  "dependency_fingerprint": "bfd8bcffffa1eedd2ec0aec434b0b09fefc42790e6dee183d5085b5cd3cc15df",
+  "result": "no_gain",
+  "run": "20261004-r3",
+  "ts": 1791114889
+ },
+ "verify_lra_cache": {
+  "ts": 1791152007,
+  "run": "20261005-r1",
+  "result": "regarg_ceiling",
+  "before": 75.0,
+  "after": 75.0,
+  "dependency_fingerprint": "47e9e8cf576dededc91c042a488f15d31fae73de662118ac45147e838683c542"
+ },
+ "wide_to_ascii": {
+  "after": 100.0,
+  "before": 93.9,
+  "dependency_fingerprint": "bfd8bcffffa1eedd2ec0aec434b0b09fefc42790e6dee183d5085b5cd3cc15df",
+  "result": "improved",
+  "run": "20261004-r3",
+  "ts": 1791114889
+ },
+ "TIFFStartTile": {
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "regarg_ceiling",
+  "before": 0.892,
+  "after": 0.892,
+  "dependency_fingerprint": "fe63848497970bfa82af78dff0ec66bf33a3cac6963bc4ce64828917900bd779"
+ },
+ "encode_network_game_message": {
+  "ts": 1791152007,
+  "run": "20261005-r1",
+  "result": "regarg_ceiling",
+  "before": 75.7,
+  "after": 75.7,
+  "dependency_fingerprint": "47e9e8cf576dededc91c042a488f15d31fae73de662118ac45147e838683c542"
+ },
+ "actor_emotion_update": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "reverted",
+  "before": 92.2,
+  "after": 92.2,
+  "dependency_fingerprint": "ab9f5e128cebc2f462f777c926478d8981ff89ed09d3527602402f95a8888353"
+ },
+ "actor_berserk": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "improved",
+  "before": 92.9,
+  "after": 100.0,
+  "dependency_fingerprint": "ab9f5e128cebc2f462f777c926478d8981ff89ed09d3527602402f95a8888353"
+ },
+ "actor_situation_update": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 81.6,
+  "after": 81.6,
+  "dependency_fingerprint": "ab9f5e128cebc2f462f777c926478d8981ff89ed09d3527602402f95a8888353"
+ },
+ "actor_emotion_unopposable_retreat": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 82.7,
+  "after": 82.7,
+  "dependency_fingerprint": "ab9f5e128cebc2f462f777c926478d8981ff89ed09d3527602402f95a8888353"
+ },
+ "actor_perception_refresh": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 91.5,
+  "after": 91.5,
+  "dependency_fingerprint": "ab9f5e128cebc2f462f777c926478d8981ff89ed09d3527602402f95a8888353"
+ },
+ "actor_compute_prop_target_weight": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 96.7,
+  "after": 96.7,
+  "dependency_fingerprint": "ab9f5e128cebc2f462f777c926478d8981ff89ed09d3527602402f95a8888353"
+ },
+ "actor_perception_become_acknowledged": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 95.9,
+  "after": 95.9,
+  "dependency_fingerprint": "ab9f5e128cebc2f462f777c926478d8981ff89ed09d3527602402f95a8888353"
+ },
+ "actor_perception_find_recent_damaging_prop_index": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 96.0,
+  "after": 96.0,
+  "dependency_fingerprint": "ab9f5e128cebc2f462f777c926478d8981ff89ed09d3527602402f95a8888353"
+ },
+ "light_volume_submit": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 82.6,
+  "after": 82.6,
+  "dependency_fingerprint": "b54422487e841185c833ccaf61b55d8b88f6c111d5f254a2d1759880828acb6a"
+ },
+ "glow_trailing_particle_update_color": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 78.0,
+  "after": 78.0,
+  "dependency_fingerprint": "b54422487e841185c833ccaf61b55d8b88f6c111d5f254a2d1759880828acb6a"
+ },
+ "glow_submit": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "no_gain",
+  "before": 95.5,
+  "after": 95.5,
+  "dependency_fingerprint": "b54422487e841185c833ccaf61b55d8b88f6c111d5f254a2d1759880828acb6a"
+ },
+ "network_game_server_handle_message_client_loaded": {
+  "ts": 1791149486,
+  "run": "20261004-r9",
+  "result": "improved",
+  "before": 82.88,
+  "after": 91.1,
+  "dependency_fingerprint": "d7052074d18f62b4291b931f65b0f2b75eee7763687aa4774861da464d94640d"
+ },
+ "_data_packet_decode": {
+  "ts": 1791152007,
+  "run": "20261005-r1",
+  "result": "improved",
+  "before": 97.0,
+  "after": 100.0,
+  "dependency_fingerprint": "47e9e8cf576dededc91c042a488f15d31fae73de662118ac45147e838683c542"
+ },
+ "data_decode_int64": {
+  "ts": 1791152007,
+  "run": "20261005-r1",
+  "result": "improved",
+  "before": 77.8,
+  "after": 100.0,
+  "dependency_fingerprint": "47e9e8cf576dededc91c042a488f15d31fae73de662118ac45147e838683c542"
+ },
+ "TIFFSetupShortPair": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.8627,
+  "after": 1.0,
+  "dependency_fingerprint": "39642b6885d772c40fb472cc30bf15ce9660d3f42a5054039a23bbc67495badc"
+ },
+ "TIFFWriteDirectory": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 81.5,
+  "after": 81.5,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "TIFFLinkDirectory": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 89.6,
+  "after": 89.6,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "TIFFWriteRational": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 80.2,
+  "after": 80.2,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "objects_dump_memory": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "improved",
+  "before": 82.6,
+  "after": 100.0,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "object_disconnect_from_map": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 83.1,
+  "after": 83.1,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "object_set_garbage": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 75.0,
+  "after": 75.0,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "network_game_server_idle_postgame_tasks": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.8966,
+  "after": 1.0,
+  "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
+ },
+ "network_game_server_remove_client_machine_from_game": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 98.36,
+  "after": 98.36,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "network_game_server_reset_to_pregame": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 75.53,
+  "after": 75.53,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ },
+ "network_game_client_handle_message": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.8695,
+  "after": 0.8792,
+  "dependency_fingerprint": "aec8d05a1fa546e48a227ba148708ebe756ac39e897a3092c16c5403df826f23"
+ },
+ "network_game_client_handle_message_server_game_update": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.8039,
+  "after": 1.0,
+  "dependency_fingerprint": "aec8d05a1fa546e48a227ba148708ebe756ac39e897a3092c16c5403df826f23"
+ },
+ "network_game_client_handle_message_server_add_player_ingame": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.7949,
+  "after": 1.0,
+  "dependency_fingerprint": "aec8d05a1fa546e48a227ba148708ebe756ac39e897a3092c16c5403df826f23"
+ },
+ "network_game_client_handle_message_server_remove_player_ingame": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.799,
+  "after": 1.0,
+  "dependency_fingerprint": "aec8d05a1fa546e48a227ba148708ebe756ac39e897a3092c16c5403df826f23"
+ },
+ "network_game_client_handle_message_server_begin_game": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.9948,
+  "after": 1.0,
+  "dependency_fingerprint": "aec8d05a1fa546e48a227ba148708ebe756ac39e897a3092c16c5403df826f23"
+ },
+ "network_game_client_handle_message_server_switch_to_pregame": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.9948,
+  "after": 1.0,
+  "dependency_fingerprint": "aec8d05a1fa546e48a227ba148708ebe756ac39e897a3092c16c5403df826f23"
+ },
+ "network_game_client_handle_message_server_postgame_keep_alive": {
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "no_gain",
+  "before": 0.9774,
+  "after": 0.9774,
+  "dependency_fingerprint": "aec8d05a1fa546e48a227ba148708ebe756ac39e897a3092c16c5403df826f23"
+ },
+ "network_game_server_add_player_to_game": {
+  "ts": "2026-10-05T17:23:34Z",
+  "run": "run1",
+  "result": "no_gain",
+  "before": 96.4,
+  "after": 96.4,
+  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+ }
+}
