@@ -1,24 +1,45 @@
 {
-  "generated": "2026-10-05T02:53:26.181212+00:00",
+  "generated": "2026-10-06T03:43:53.239999+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-10-05T02:51:40Z",
+    "last_run_time": "2026-10-06T03:42:09Z",
     "last_commit": "8c5597d0",
     "workflows": [
       {
         "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-10-05T02:51:40Z",
+        "created_at": "2026-10-06T03:42:09Z",
         "head_sha": "8c5597d0",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37257043725"
+        "url": "https://github.com/stianeklund/halo/actions/runs/37410218812"
       },
       {
         "name": "Equivalence Tests",
         "conclusion": "failure",
-        "created_at": "2026-10-05T02:47:41Z",
+        "created_at": "2026-10-06T03:38:31Z",
         "head_sha": "8c5597d0",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37256788105"
+        "url": "https://github.com/stianeklund/halo/actions/runs/37409937571"
+      },
+      {
+        "name": "Runtime Oracle Tests",
+        "conclusion": "success",
+        "created_at": "2026-10-05T11:05:39Z",
+        "head_sha": "8c5597d0",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37300713672"
+      },
+      {
+        "name": "Audit Gates",
+        "conclusion": "success",
+        "created_at": "2026-10-05T09:55:13Z",
+        "head_sha": "8c5597d0",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37293189392"
+      },
+      {
+        "name": "pages-build-deployment",
+        "conclusion": "success",
+        "created_at": "2026-10-05T02:54:26Z",
+        "head_sha": "4d495e59",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37257230174"
       },
       {
         "name": "Compiler Profile Calibration",
@@ -26,27 +47,6 @@
         "created_at": "2026-10-04T11:34:52Z",
         "head_sha": "8c5597d0",
         "url": "https://github.com/stianeklund/halo/actions/runs/37199224275"
-      },
-      {
-        "name": "Runtime Oracle Tests",
-        "conclusion": "success",
-        "created_at": "2026-10-04T10:21:36Z",
-        "head_sha": "8c5597d0",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37195109142"
-      },
-      {
-        "name": "Audit Gates",
-        "conclusion": "success",
-        "created_at": "2026-10-04T09:15:16Z",
-        "head_sha": "8c5597d0",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37191556617"
-      },
-      {
-        "name": "pages-build-deployment",
-        "conclusion": "success",
-        "created_at": "2026-10-04T03:19:48Z",
-        "head_sha": "880324a9",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37173758733"
       },
       {
         "name": "Provenance Artifact Guard",
@@ -72,12 +72,12 @@
     ]
   },
   "equivalence": {
-    "tested": 839,
-    "classified": 8031,
-    "high_confidence": 305,
-    "moderate_confidence": 271,
-    "weak_coverage": 151,
-    "avg_coverage": 58.4
+    "tested": 983,
+    "classified": 8036,
+    "high_confidence": 346,
+    "moderate_confidence": 343,
+    "weak_coverage": 173,
+    "avg_coverage": 59.9
   },
   "snapshot": {
     "total": 20,
