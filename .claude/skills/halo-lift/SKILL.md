@@ -116,7 +116,7 @@ All edits target **that path**, not a hardcoded checkout path.
      `&g->players[i]` and `(char *)g + i*0x40 + 0x10` compile identically, so
      the recovered spelling is free. If no struct exists for the base and the
      function touches 3+ distinct offsets off it, define or extend one now
-     (`struct-recovery`), with `field_<hex>` for offsets you see accessed and
+     (`type-recovery`), with `field_<hex>` for offsets you see accessed and
      `pad_<hex>[n]` for the gaps. Partial is fine and expected: it grows as more
      of the object is lifted.
    - **Type the producer, not the site.** A raw offset is usually not a missing

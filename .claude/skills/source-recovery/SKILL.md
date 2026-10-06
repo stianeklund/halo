@@ -57,7 +57,8 @@ wins on spelling, and the byte gate wins on everything.
 5. **Typed accessors.** Define one `light_get(h)` /
    `light_definition_get(i)`-style macro per datum or tag type, wrapping
    `datum_get` / `tag_get`. Use it instead of casting at every call site.
-   Assign the result to a typed local once, then use fields.
+    Type the result at each existing call site, then use fields. Preserve call
+    count and placement; do not merge repeated calls or cache their results.
 6. **Flags and enums.** Where a bit's meaning is proven, use
    `TEST_FLAG`/`SET_FLAG` with `_<thing>_<name>_bit` members. Use
    `_<enum>_<member>` constants in switch tables. Leave unproven bits as
@@ -133,10 +134,10 @@ rtk python3 $R report  $M
 | 1 | `comments` | `re-comment-capture` | none | (a) byte-identical |
 | 2 | `local-renames` | `name-cleanup` | none | (a) byte-identical |
 | 3 | `symbol-names` | `naming-confidence` | none | (a) byte-identical (`--rename-map` for reloc targets) |
-| 4 | `global-names` | `naming-confidence` | none | (a) byte-identical |
+| 4 | `global-names` | `type-recovery` | none | (a) byte-identical |
 | 5 | `const-enum` | `name-cleanup` | near-zero | (b) + no new `[IMM-WARN]` |
-| 6 | `struct-define` | `struct-recovery` → `struct-recovery` (Phase 2) | none (defs only) | (a) + build passes (cs/co) |
-| 7 | `offset-to-field` | `offset-to-struct` | low | (b) + hazard scan |
+| 6 | `struct-define` | `type-recovery` (layout evidence and definitions) | none (defs only) | (a) + build passes (cs/co) |
+| 7 | `offset-to-field` | `type-recovery` (access and pointer/local types) | low | (b) + hazard scan |
 | 8 | `expr-simplify` | `expr-simplify` | medium | (c) — **opt-in** |
 | 9 | `control-flow` | `control-flow-cleanup` | high | (c) — **opt-in** |
 
@@ -348,11 +349,17 @@ wrong offset, a nonexistent field, and a build error. Run it after touching
 it never invokes a compiler.
 
 The conflict list from `split` is the **ranked RE worklist** — offsets ordered
-by how many call sites they unblock. Resolve them with `struct-recovery`
+by how many call sites they unblock. Resolve them with `type-recovery`
 (disassembly widths), then re-run `split`; each answer converts its sites from
 refused to mechanical.
 
 ## Gates
+
+For globals, struct definitions, aggregate fields, and access/pointer/local type
+rewrites, `type-recovery` owns the complete evidence and preservation contract.
+Its strict before/after VC71 byte-and-relocation comparison is mandatory; an
+unchanged similarity score or a Clang-only byte comparison is insufficient.
+Keep the categories separate, but do not load the legacy struct/offset skills.
 
 - **(a) Neutral** — comments, local renames, symbol names, struct definitions,
   header moves. Gate on **byte-identical `.text`** via the COFF neutrality guard:

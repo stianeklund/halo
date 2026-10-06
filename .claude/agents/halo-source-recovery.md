@@ -63,8 +63,8 @@ renames before rewrites keep diffs reviewable):
 | 2 | `local-renames` | `name-cleanup` | (a) byte-identical |
 | 3 | `symbol-names` | `naming-confidence` | (a) byte-identical |
 | 4 | `const-enum` | `name-cleanup` | (b) + no new `[IMM-WARN]` |
-| 5 | `struct-define` | **`structize.py split`**, then `struct-recovery` → `struct-recovery` for refusals | (a) + build passes |
-| 6 | `offset-to-field` | **`structize.py converge`** | (b) + hazard scan |
+| 5 | `struct-define` | `type-recovery`, using **`structize.py split`** and evidence for refusals | (a) + build passes |
+| 6 | `offset-to-field` | `type-recovery`, using **`structize.py converge`** | (b) + hazard scan |
 | 7 | `expr-simplify` (opt-in) | `expr-simplify` | (c) |
 | 8 | `control-flow` (opt-in) | `control-flow-cleanup` | (c) |
 
@@ -109,7 +109,7 @@ rest byte-identical. It restores the file untouched if it cannot converge.
 
 Your judgement goes into the **refusals**, not the rewrites. `split` emits a
 conflict list — offsets read at disagreeing widths or signedness — ranked by how
-many call sites each unblocks. Those are real `struct-recovery` questions
+many call sites each unblocks. Those are real `type-recovery` questions
 (MOVSX vs MOVZX, union, sub-struct boundary). Answer one from disassembly,
 re-run `split`, and its sites convert automatically.
 

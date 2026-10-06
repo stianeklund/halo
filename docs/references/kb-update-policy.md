@@ -48,7 +48,7 @@ Rules:
   bug class (`docs/lift-learnings.md` §24) at global scope.
 - **Prefer an opaque block over a speculative struct.** `char foo[0x230]` with a proven
   size is honest; a half-invented `foo_globals_t` is a wrong type contract that every
-  caller inherits. Promote it to a real struct once `struct-recovery` has evidence.
+  caller inherits. Promote it to a real struct once `type-recovery` has evidence.
 - **Name unknowns by role, not by address.** We deliberately do **not** use upstream's
   `byte_`/`word_`/`dword_<addr>` scheme. An address-derived name asserts a *width* while
   the `decl` asserts a *type*, and the two then drift: upstream's own gotcha list has to

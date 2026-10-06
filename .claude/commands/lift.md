@@ -90,7 +90,7 @@ Steps:
    identically, so the recovered spelling is free; `p->field` is the faithful
    lift and `*(int *)(p + 0x1b8)` is the un-recovered one. Where the base has
    no struct and the function touches 3+ distinct offsets off it, define or
-   extend one now (`struct-recovery`, `field_<hex>` / `pad_<hex>[n]`). If the
+   extend one now (`type-recovery`, `field_<hex>` / `pad_<hex>[n]`). If the
    base came from a producer whose kb.json return is `void *`/`char *`, the
    type was lost at that decl — check
    `tools/audit/check_readability.py --untyped-producer` and fix it there so

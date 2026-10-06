@@ -126,10 +126,16 @@ CATALOG: dict[str, tuple[str, list[str]]] = {
         "tooling gap", "gap audit", "missing detector", "missing tooling",
         "no detector", "tooling audit",
     ]),
-    "struct-recovery": ("agent", [
+    "struct-recovery": ("agent", []),  # compatibility alias, no independent routing
+    "type-recovery": ("agent", [
+        "type recovery", "recover types", "struct reconstruction",
+        "byte-preserving decompiler type recovery", "byte-accurate struct recovery",
         "struct recovery", "recover struct", "identify struct", "tag block",
-        "pool stride", "object stride", "packed layout", "array of structs",
-        "union layout",
+        "pool stride", "object stride", "packed layout", "array of structs", "union layout",
+        "offsetof", "static_assert", "sizeof check", "define struct", "struct definition",
+        "new struct", "struct assert", "raw offset", "raw offsets", "pointer arithmetic", "offset replacement",
+        "replace offsets", "struct field access", "field access rewrite", "typed field access", "typed field accesses",
+        "retype pointer", "retype local", "named globals", "pointer indirection",
     ]),
     "struct-assert": ("agent", [
         "offsetof", "static_assert", "sizeof check", "define struct",
@@ -139,10 +145,7 @@ CATALOG: dict[str, tuple[str, list[str]]] = {
         "rename field", "rename function", "rename type", "rename global",
         "naming confidence", "evidence strength", "confidence tier", "name fields",
     ]),
-    "offset-to-struct": ("agent", [
-        "raw offset", "pointer arithmetic", "offset replacement", "replace offsets",
-        "struct field access", "field access rewrite",
-    ]),
+    "offset-to-struct": ("agent", []),  # compatibility alias, no independent routing
     "local-var-cleanup": ("agent", [
         "rename locals", "local variable cleanup", "local cleanup", "uvar", "ivar",
         "fvar", "decompiler locals", "mechanical names",

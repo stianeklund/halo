@@ -164,6 +164,6 @@ silently as part of a header move.)
 "commit 4 = encounters.h" and skim it. Never mix a header move with a lift, a
 rename, or an offset→field rewrite — those are `/lift` and the `source-recovery` ladder.
 
-Related: [`struct-recovery` (Phase 2)](../struct-recovery/SKILL.md) (defines the struct and its
-asserts), [`struct-recovery`](../struct-recovery/SKILL.md) (produces the evidence
-table), [`naming-confidence`](../naming-confidence/SKILL.md) (what may be named).
+Related: [`type-recovery`](../type-recovery/SKILL.md) (layout evidence, struct
+definitions/asserts, typed accesses, globals, and strict VC71 byte preservation),
+[`naming-confidence`](../naming-confidence/SKILL.md) (cross-cutting naming rules).
