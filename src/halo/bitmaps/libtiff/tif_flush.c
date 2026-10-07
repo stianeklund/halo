@@ -5133,3 +5133,111 @@ int gtStripSeparate(void *tif, unsigned long *raster, void *img,
   debug_free(buf, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c", 0x205);
   return (1);
 }
+
+#define TIFFTAG_MINSAMPLEVALUE 280 /* 0x118, pushed at 0x6c090 */
+#define TIFFTAG_MAXSAMPLEVALUE 281 /* 0x119, pushed at 0x6c09f */
+#define TIFFTAG_PLANARCONFIG 284 /* 0x11c, pushed at 0x6c331 */
+#define TIFFTAG_COLORMAP 320 /* 0x140, pushed at 0x6c201 */
+#define TIFFTAG_YCBCRCOEFFICIENTS 529 /* 0x211, pushed at 0x6c0ce */
+#define TIFFTAG_YCBCRSUBSAMPLING 530 /* 0x212, pushed at 0x6c0e3 */
+#define TIFFTAG_REFERENCEBLACKWHITE 532 /* 0x214, pushed at 0x6c0f3 */
+#define PLANARCONFIG_SEPARATE 2 /* cmp word [ebp-0xc],2 at 0x6c33f */
+
+/* Colormap statics filled by the TIFFTAG_COLORMAP query at 0x6c1f2-0x6c207
+ * (pushed in order 0x3340ec, 0x3340e8, 0x3340e4) and read as word arrays. */
+#define redcmap (*(unsigned short **)0x3340ec)
+#define greencmap (*(unsigned short **)0x3340e8)
+#define bluecmap (*(unsigned short **)0x3340e4)
+/* Only the addresses are observed (pushed as out-pointers); pointee types are
+ * unproven. */
+#define ycbcr_coefficients (*(void **)0x3340d0)
+#define reference_black_white (*(void **)0x3340cc)
+
+int gt(void *tif, unsigned long rwidth, unsigned long height,
+       unsigned long *raster)
+{
+  unsigned short minsamplevalue;
+  unsigned short maxsamplevalue;
+  unsigned short planarconfig;
+  unsigned char *map;
+  int e;
+
+  TIFFGetFieldDefaulted(tif, TIFFTAG_MINSAMPLEVALUE, &minsamplevalue);
+  TIFFGetFieldDefaulted(tif, TIFFTAG_MAXSAMPLEVALUE, &maxsamplevalue);
+  map = 0;
+  switch (photometric) {
+  case PHOTOMETRIC_YCBCR:
+    TIFFGetFieldDefaulted(tif, TIFFTAG_YCBCRCOEFFICIENTS, &ycbcr_coefficients);
+    TIFFGetFieldDefaulted(tif, TIFFTAG_YCBCRSUBSAMPLING, &ycbcr_horiz_sampling,
+                          &ycbcr_vert_sampling);
+    TIFFGetFieldDefaulted(tif, TIFFTAG_REFERENCEBLACKWHITE,
+                          &reference_black_white);
+    TIFFFlushData();
+    /* fall through */
+  case PHOTOMETRIC_RGB:
+    if (minsamplevalue == 0 && maxsamplevalue == 255)
+      break;
+    /* fall through */
+  case PHOTOMETRIC_MINISWHITE:
+  case PHOTOMETRIC_MINISBLACK: {
+    int x;
+    int range;
+
+    range = maxsamplevalue - minsamplevalue;
+    map = (unsigned char *)debug_malloc(
+      range + 1, 0, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c", 0xb5);
+    if (map == 0) {
+      FUN_00068a30(filename, "No space for photometric conversion table");
+      return (0);
+    }
+    if (photometric == PHOTOMETRIC_MINISWHITE) {
+      for (x = 0; x <= range; x++)
+        map[x] = (unsigned char)(((range - x) * 255) / range);
+    } else {
+      for (x = 0; x <= range; x++)
+        map[x] = (unsigned char)((x * 255) / range);
+    }
+    if (photometric != PHOTOMETRIC_RGB && bitspersample <= 8) {
+      if (!FUN_0006a3b0(map))
+        return (0);
+      debug_free(map, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c",
+                 0xca);
+      map = 0;
+    }
+    break;
+  }
+  case PHOTOMETRIC_PALETTE:
+    if (!TIFFGetField((int)tif, TIFFTAG_COLORMAP, &redcmap, &greencmap,
+                      &bluecmap)) {
+      FUN_00068a30(filename, "Missing required \"Colormap\" tag");
+      return (0);
+    }
+    if (FUN_0006a2a0(1 << bitspersample, redcmap, greencmap, bluecmap) == 16) {
+      int i;
+
+      /* signed divide by 65535 (magic 0x80008001 at 0x6c290) */
+      for (i = (1 << bitspersample) - 1; i > 0; i--) {
+        redcmap[i] = (unsigned short)((redcmap[i] * 255) / 65535L);
+        greencmap[i] = (unsigned short)((greencmap[i] * 255) / 65535L);
+        bluecmap[i] = (unsigned short)((bluecmap[i] * 255) / 65535L);
+      }
+    }
+    if (bitspersample <= 8) {
+      if (!FUN_0006a5d0((unsigned char *)redcmap, (unsigned char *)greencmap,
+                        (unsigned char *)bluecmap))
+        return (0);
+    }
+    break;
+  }
+  TIFFGetField((int)tif, TIFFTAG_PLANARCONFIG, &planarconfig);
+  if (planarconfig == PLANARCONFIG_SEPARATE && samplesperpixel > 1) {
+    e = TIFFIsTiled(tif) ? FUN_0006ba70(tif, raster, map, rwidth, height) :
+                           gtStripSeparate(tif, raster, map, height, rwidth);
+  } else {
+    e = TIFFIsTiled(tif) ? FUN_0006b8e0(tif, raster, map, rwidth, height) :
+                           gtStripContig(tif, raster, map, rwidth, height);
+  }
+  if (map)
+    debug_free(map, "c:\\halo\\SOURCE\\bitmaps\\libtiff\\tif_getimage.c", 0xf8);
+  return (e);
+}

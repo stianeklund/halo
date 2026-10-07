@@ -152,12 +152,12 @@
   "dependency_fingerprint": "f3f8ebe3a983a187181b2ccb64cbd415bbeca6f374ac8ce957fc5080aa2bf5bc"
  },
  "following_camera_update": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
-  "result": "no_gain",
-  "before": 87.56,
-  "after": 87.56,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "ts": 1791214500,
+  "run": "20261005-r4",
+  "result": "reverted",
+  "before": 0.8756,
+  "after": 0.8756,
+  "dependency_fingerprint": "7fff9e947ec6e3e26486d6f5cbab3f47d9c40933ea80d7136ec5649557df3a03"
  },
  "hashtable_get": {
   "ts": 1791152007,
@@ -440,12 +440,12 @@
   "dependency_fingerprint": "d7052074d18f62b4291b931f65b0f2b75eee7763687aa4774861da464d94640d"
  },
  "network_game_server_idle_pregame_tasks": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214022,
+  "run": "20261005-r3",
   "result": "no_gain",
-  "before": 97.48,
-  "after": 97.48,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.9748,
+  "after": 0.9748,
+  "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
  },
  "network_game_server_send_rejection_message": {
   "ts": 1791149486,
@@ -456,12 +456,12 @@
   "dependency_fingerprint": "d7052074d18f62b4291b931f65b0f2b75eee7763687aa4774861da464d94640d"
  },
  "network_game_server_stalled_on_client": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214022,
+  "run": "20261005-r3",
   "result": "no_gain",
-  "before": 98.42,
-  "after": 98.42,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.9842,
+  "after": 0.9842,
+  "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
  },
  "network_game_server_switch_machine_from_postgame_to_pregame": {
   "ts": 1791189675,
@@ -480,20 +480,20 @@
   "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
  },
  "object_compute_function_values": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214022,
+  "run": "20261005-r3",
   "result": "no_gain",
-  "before": 96.09,
-  "after": 96.09,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.9609,
+  "after": 0.9609,
+  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
  },
  "object_delete_recursive": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214022,
+  "run": "20261005-r3",
   "result": "no_gain",
-  "before": 92.24,
-  "after": 92.24,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.9224,
+  "after": 0.9224,
+  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
  },
  "object_determine_variant_number": {
   "ts": 1791149486,
@@ -520,20 +520,20 @@
   "ts": 1791119124
  },
  "object_inverse_kinematics": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214022,
+  "run": "20261005-r3",
   "result": "no_gain",
-  "before": 96.85,
-  "after": 96.85,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.9685,
+  "after": 0.9685,
+  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
  },
  "object_new_from_scenario": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
-  "result": "regarg_ceiling",
-  "before": 94.79,
-  "after": 94.79,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "no_gain",
+  "before": 0.9479,
+  "after": 0.9479,
+  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
  },
  "object_types_place_all": {
   "after": 80.0,
@@ -560,12 +560,12 @@
   "ts": 1791109759
  },
  "objects_dispose_from_old_map": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214022,
+  "run": "20261005-r3",
   "result": "no_gain",
-  "before": 83.55,
-  "after": 83.55,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.8355,
+  "after": 0.8355,
+  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
  },
  "objects_get_activating_cluster_index": {
   "after": 93.3,
@@ -576,12 +576,12 @@
   "ts": 1791119124
  },
  "orbiting_camera_update": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214500,
+  "run": "20261005-r4",
   "result": "no_gain",
-  "before": 96.51,
-  "after": 96.51,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.9651,
+  "after": 0.9651,
+  "dependency_fingerprint": "7fff9e947ec6e3e26486d6f5cbab3f47d9c40933ea80d7136ec5649557df3a03"
  },
  "rasterizer_frame_begin": {
   "after": 79.1,
@@ -656,12 +656,12 @@
   "ts": 1791112718
  },
  "unit_camera_get": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214500,
+  "run": "20261005-r4",
   "result": "regarg_ceiling",
-  "before": 88.68,
-  "after": 88.68,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.8868,
+  "after": 0.8868,
+  "dependency_fingerprint": "7fff9e947ec6e3e26486d6f5cbab3f47d9c40933ea80d7136ec5649557df3a03"
  },
  "unit_definition_get_seat_active_hud_index": {
   "after": 87.9,
@@ -880,52 +880,52 @@
   "dependency_fingerprint": "39642b6885d772c40fb472cc30bf15ce9660d3f42a5054039a23bbc67495badc"
  },
  "TIFFWriteDirectory": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
-  "result": "no_gain",
-  "before": 81.5,
-  "after": 81.5,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.8047,
+  "after": 0.8336,
+  "dependency_fingerprint": "39642b6885d772c40fb472cc30bf15ce9660d3f42a5054039a23bbc67495badc"
  },
  "TIFFLinkDirectory": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214022,
+  "run": "20261005-r3",
   "result": "no_gain",
-  "before": 89.6,
-  "after": 89.6,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.8963,
+  "after": 0.8963,
+  "dependency_fingerprint": "39642b6885d772c40fb472cc30bf15ce9660d3f42a5054039a23bbc67495badc"
  },
  "TIFFWriteRational": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214022,
+  "run": "20261005-r3",
   "result": "no_gain",
-  "before": 80.2,
-  "after": 80.2,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.8018,
+  "after": 0.8018,
+  "dependency_fingerprint": "39642b6885d772c40fb472cc30bf15ce9660d3f42a5054039a23bbc67495badc"
  },
  "objects_dump_memory": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
-  "result": "improved",
-  "before": 82.6,
-  "after": 100.0,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "reverted",
+  "before": 0.8609,
+  "after": 0.9535,
+  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
  },
  "object_disconnect_from_map": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214022,
+  "run": "20261005-r3",
   "result": "no_gain",
-  "before": 83.1,
-  "after": 83.1,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.831,
+  "after": 0.831,
+  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
  },
  "object_set_garbage": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214022,
+  "run": "20261005-r3",
   "result": "no_gain",
-  "before": 75.0,
-  "after": 75.0,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.75,
+  "after": 0.75,
+  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
  },
  "network_game_server_idle_postgame_tasks": {
   "ts": 1791214022,
@@ -936,20 +936,20 @@
   "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
  },
  "network_game_server_remove_client_machine_from_game": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
-  "result": "no_gain",
-  "before": 98.36,
-  "after": 98.36,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "ts": 1791214022,
+  "run": "20261005-r3",
+  "result": "improved",
+  "before": 0.9595,
+  "after": 0.99,
+  "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
  },
  "network_game_server_reset_to_pregame": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791214022,
+  "run": "20261005-r3",
   "result": "no_gain",
-  "before": 75.53,
-  "after": 75.53,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "before": 0.7553,
+  "after": 0.7553,
+  "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
  },
  "network_game_client_handle_message": {
   "ts": 1791214022,

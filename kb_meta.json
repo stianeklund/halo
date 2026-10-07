@@ -4077,6 +4077,16 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x65af0": {
+      "kind": "function",
+      "status": "ported",
+      "inferred": [
+        "The ECX argument is the directory base at tiff handle offset 0x14, so the C recovers the handle with offsetof(tiff_t, td_fieldsset); all three callers pass &tif->td_fieldsset."
+      ],
+      "uncertain": [
+        "Equivalence ran with weak coverage (12.1 percent, 5 errors in 100 seeds), so most switch arms have only VC71 and raw-byte evidence, not behavioral evidence."
+      ]
+    },
     "0x65e90": {
       "kind": "function",
       "status": "ported"
@@ -4090,7 +4100,10 @@
     },
     "0x65f70": {
       "kind": "function",
-      "status": "ported"
+      "status": "ported",
+      "inferred": [
+        "The return type is void because EAX is never set before the tail-JMP and TIFFGetField1 is void, and all callers discard the result."
+      ]
     },
     "0x65f90": {
       "kind": "function",

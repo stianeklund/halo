@@ -77,6 +77,22 @@
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 
+/* firing_position_store_evaluation_debug (0x24000) — position arrives in ESI
+ * (FADD/FSTP [ESI+0x38]); ctx and type are never read. The add is FLD score;
+ * FADD [ESI+0x38], so score is the left operand. */
+void firing_position_store_evaluation_debug(void *ctx, float score, int type,
+                                            void *position /* @<esi> */)
+{
+  (void)ctx;
+  (void)type;
+
+  assert_halt_msg_at("(evaluation >= 0.0f) && (evaluation < 1e+03f)",
+                     "c:\\halo\\SOURCE\\ai\\actor_firing_position.c", 0x81,
+                     (score >= 0.0f) && (score < 1e+03f));
+  *(float *)((char *)position + 0x38) =
+    score + *(float *)((char *)position + 0x38);
+}
+
 /* pre_evaluator_guard (0x24060) — the "close is good" distance ramp over a
  * whole candidate firing-position array.
  *

@@ -64,6 +64,13 @@
 #define TIFFTAG_IMAGEDEPTH 32997 /* 0x80e5, DEC EBX at 0x64e38 */
 #define TIFFTAG_TILEDEPTH 32998 /* 0x80e6, DEC EBX at 0x64e3b */
 
+/* Strip/tile array tags; TIFFGetField1 (0x65af0) shares one handler per pair
+ * (byte table at 0x65e34). */
+#define TIFFTAG_STRIPOFFSETS 273 /* 0x111 */
+#define TIFFTAG_STRIPBYTECOUNTS 279 /* 0x117 */
+#define TIFFTAG_TILEOFFSETS 324 /* 0x144 */
+#define TIFFTAG_TILEBYTECOUNTS 325 /* 0x145 */
+
 /* Tags only _TIFFVSetField (0x652f0) handles. Every value below is proven by
  * the byte index table at 0x65964 (0x56 entries, biased by 0xfe) feeding the
  * jump table at 0x658bc, decoded entry by entry against the handler bodies. */
@@ -1010,6 +1017,176 @@ int TIFFVSetField(void *tif_, int tag, va_list ap)
   return _TIFFVSetField(tif_, tag, ap);
 }
 
+/* 0x65af0: register-only callee (EAX = ap, ECX = the directory base, which
+ * every caller derives as &tif->td_fieldsset, EDX = tag). Offsets in the
+ * disassembly are relative to that base, i.e. handle offset - 0x14. The tag
+ * compares are signed (JG at 0x65af7). `ap` is consumed in place: a second
+ * va_arg is `ADD EAX,0x4` on the incoming register (0x65c63), and its only
+ * callers are in this file, so the compiler chose the register convention. */
+void TIFFGetField1(va_list ap, void *field_table, unsigned int tag)
+{
+  tiff_t *tif =
+    (tiff_t *)((char *)field_table - offsetof(tiff_t, td_fieldsset));
+
+  switch ((int)tag) {
+  case TIFFTAG_SUBFILETYPE:
+    *va_arg(ap, unsigned long *) = tif->td_subfiletype;
+    break;
+  case TIFFTAG_IMAGEWIDTH:
+    *va_arg(ap, unsigned long *) = tif->td_imagewidth;
+    break;
+  case TIFFTAG_IMAGELENGTH:
+    *va_arg(ap, unsigned long *) = tif->td_imagelength;
+    break;
+  case TIFFTAG_BITSPERSAMPLE:
+    *va_arg(ap, unsigned short *) = tif->td_bitspersample;
+    break;
+  case TIFFTAG_COMPRESSION:
+    *va_arg(ap, unsigned short *) = tif->td_compression;
+    break;
+  case TIFFTAG_PHOTOMETRIC:
+    *va_arg(ap, unsigned short *) = tif->td_photometric;
+    break;
+  case TIFFTAG_THRESHHOLDING:
+    *va_arg(ap, unsigned short *) = tif->td_threshholding;
+    break;
+  case TIFFTAG_FILLORDER:
+    *va_arg(ap, unsigned short *) = tif->td_fillorder;
+    break;
+  case TIFFTAG_DOCUMENTNAME:
+    *va_arg(ap, char **) = tif->td_documentname;
+    break;
+  case TIFFTAG_ARTIST:
+    *va_arg(ap, char **) = tif->td_artist;
+    break;
+  case TIFFTAG_DATETIME:
+    *va_arg(ap, char **) = tif->td_datetime;
+    break;
+  case TIFFTAG_HOSTCOMPUTER:
+    *va_arg(ap, char **) = tif->td_hostcomputer;
+    break;
+  case TIFFTAG_IMAGEDESCRIPTION:
+    *va_arg(ap, char **) = tif->td_imagedescription;
+    break;
+  case TIFFTAG_MAKE:
+    *va_arg(ap, char **) = tif->td_make;
+    break;
+  case TIFFTAG_MODEL:
+    *va_arg(ap, char **) = tif->td_model;
+    break;
+  case TIFFTAG_SOFTWARE:
+    *va_arg(ap, char **) = tif->td_software;
+    break;
+  case TIFFTAG_ORIENTATION:
+    *va_arg(ap, unsigned short *) = tif->td_orientation;
+    break;
+  case TIFFTAG_SAMPLESPERPIXEL:
+    *va_arg(ap, unsigned short *) = tif->td_samplesperpixel;
+    break;
+  case TIFFTAG_ROWSPERSTRIP:
+    *va_arg(ap, unsigned long *) = tif->td_rowsperstrip;
+    break;
+  case TIFFTAG_MINSAMPLEVALUE:
+    *va_arg(ap, unsigned short *) = (unsigned short)tif->td_minsamplevalue;
+    break;
+  case TIFFTAG_MAXSAMPLEVALUE:
+    *va_arg(ap, unsigned short *) = (unsigned short)tif->td_maxsamplevalue;
+    break;
+  case TIFFTAG_XRESOLUTION:
+    *va_arg(ap, float *) = tif->td_xresolution;
+    break;
+  case TIFFTAG_YRESOLUTION:
+    *va_arg(ap, float *) = tif->td_yresolution;
+    break;
+  case TIFFTAG_PLANARCONFIG:
+    *va_arg(ap, unsigned short *) = tif->td_planarconfig;
+    break;
+  case TIFFTAG_XPOSITION:
+    *va_arg(ap, float *) = tif->td_xposition;
+    break;
+  case TIFFTAG_YPOSITION:
+    *va_arg(ap, float *) = tif->td_yposition;
+    break;
+  case TIFFTAG_PAGENAME:
+    *va_arg(ap, char **) = tif->td_pagename;
+    break;
+  case TIFFTAG_GROUP3OPTIONS:
+    *va_arg(ap, unsigned long *) = tif->td_group3options;
+    break;
+  case TIFFTAG_GROUP4OPTIONS:
+    *va_arg(ap, unsigned long *) = tif->td_group4options;
+    break;
+  case TIFFTAG_RESOLUTIONUNIT:
+    *va_arg(ap, unsigned short *) = tif->td_resolutionunit;
+    break;
+  case TIFFTAG_PAGENUMBER:
+    *va_arg(ap, unsigned short *) = tif->td_pagenumber[0];
+    *va_arg(ap, unsigned short *) = tif->td_pagenumber[1];
+    break;
+  case TIFFTAG_HALFTONEHINTS:
+    *va_arg(ap, unsigned short *) = tif->td_halftonehints[0];
+    *va_arg(ap, unsigned short *) = tif->td_halftonehints[1];
+    break;
+  case TIFFTAG_COLORMAP:
+    *va_arg(ap, unsigned short **) = tif->td_colormap[0];
+    *va_arg(ap, unsigned short **) = tif->td_colormap[1];
+    *va_arg(ap, unsigned short **) = tif->td_colormap[2];
+    break;
+  case TIFFTAG_PREDICTOR:
+    *va_arg(ap, unsigned short *) = tif->td_predictor;
+    break;
+  case TIFFTAG_STRIPOFFSETS:
+  case TIFFTAG_TILEOFFSETS:
+    *va_arg(ap, unsigned long **) = tif->td_stripoffset;
+    break;
+  case TIFFTAG_STRIPBYTECOUNTS:
+  case TIFFTAG_TILEBYTECOUNTS:
+    *va_arg(ap, unsigned long **) = tif->td_stripbytecount;
+    break;
+  case TIFFTAG_MATTEING:
+    *va_arg(ap, unsigned short *) = tif->td_matteing;
+    break;
+  case TIFFTAG_EXTRASAMPLES:
+    *va_arg(ap, unsigned short *) = tif->td_matteing;
+    *va_arg(ap, unsigned short **) = &tif->td_matteing;
+    break;
+  case TIFFTAG_BADFAXLINES:
+    *va_arg(ap, unsigned long *) = tif->td_badfaxlines;
+    break;
+  case TIFFTAG_CLEANFAXDATA:
+    *va_arg(ap, unsigned short *) = tif->td_cleanfaxdata;
+    break;
+  case TIFFTAG_CONSECUTIVEBADFAXLINES:
+    *va_arg(ap, unsigned long *) = tif->td_consecutivebadfaxlines;
+    break;
+  case TIFFTAG_TILEWIDTH:
+    *va_arg(ap, unsigned long *) = tif->td_tilewidth;
+    break;
+  case TIFFTAG_TILELENGTH:
+    *va_arg(ap, unsigned long *) = tif->td_tilelength;
+    break;
+  case TIFFTAG_TILEDEPTH:
+    *va_arg(ap, unsigned long *) = tif->td_tiledepth;
+    break;
+  case TIFFTAG_DATATYPE:
+    *va_arg(ap, unsigned short *) =
+      (tif->td_sampleformat == SAMPLEFORMAT_VOID ? 0 : tif->td_sampleformat);
+    break;
+  case TIFFTAG_SAMPLEFORMAT:
+    *va_arg(ap, unsigned short *) = tif->td_sampleformat;
+    break;
+  case TIFFTAG_IMAGEDEPTH:
+    *va_arg(ap, unsigned long *) = tif->td_imagedepth;
+    break;
+  default:
+    /* 0x65d36-0x65d4f. */
+    FUN_00068a30(
+      "TIFFGetField1", "Internal error, no value returned for tag \"%s\"",
+      ((tiff_field_info_t *)FUN_00066380((unsigned short)tag))->field_name);
+    break;
+  }
+}
+
 /* ---------------------------------------------------------------------------
  * TIFFGetField (0x65e90) -- upstream libtiff tif_dir.c, with TIFFVGetField
  * inlined into it.
@@ -1031,7 +1208,7 @@ int TIFFVSetField(void *tif_, int tag, va_list ap)
  *   - `tag` is read into ESI at 0x65e94 and is the ONLY value passed to both
  *     TIFFFindFieldInfo (0x65e99) and TIFFGetField1 (EDX at 0x65ed1).
  *   - The delegate is a three-register-argument function, already declared in
- *     kb.json as TIFFGetField1(void **out@<eax>, void *field_table@<ecx>,
+ *     kb.json as TIFFGetField1(char *ap@<eax>, void *field_table@<ecx>,
  *     unsigned int tag@<edx>). EAX is `LEA EAX,[EBP+0x10]` (0x65ece), the
  *     address of the first vararg slot -- that is the va_list VALUE, not its
  *     address, so `ap` is forwarded directly. ECX is `ADD ECX,0x14` (0x65ecb)
@@ -1073,7 +1250,7 @@ int TIFFGetField(int file, int field, ...)
     bit = fip->field_bit;
     if (bit != FIELD_IGNORE && TIFFFieldSet(tif, bit)) {
       /* 0x65ecb-0x65edf. */
-      TIFFGetField1((void **)ap, (void *)tif->td_fieldsset, tag);
+      TIFFGetField1(ap, (void *)tif->td_fieldsset, tag);
       va_end(ap);
       return 1;
     }
@@ -1135,7 +1312,7 @@ int TIFFVGetField(void *tif_, unsigned int tag, char *ap)
     bit = fip->field_bit;
     if (bit != FIELD_IGNORE && TIFFFieldSet(tif, bit)) {
       /* 0x65f3b-0x65f48. */
-      TIFFGetField1((void **)ap, (void *)tif->td_fieldsset, tag);
+      TIFFGetField1(ap, (void *)tif->td_fieldsset, tag);
       return 1;
     }
   } else {
@@ -1148,6 +1325,18 @@ int TIFFVGetField(void *tif_, unsigned int tag, char *ap)
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma inline_depth()
 #endif
+
+/* 0x65f70: EDX = tag, ECX = td, EAX = LEA [EBP+0x10] (the va_list value), then
+ * tail-JMP to TIFFGetField1. EAX is never set to a result, so the declared
+ * return is void. */
+void _TIFFgetfield(void *td, int tag, ...)
+{
+  va_list ap;
+
+  va_start(ap, tag);
+  TIFFGetField1(ap, td, (unsigned int)tag);
+  va_end(ap);
+}
 
 /* ---------------------------------------------------------------------------
  * TIFFFreeDirectory (0x65f90) -- upstream libtiff tif_dir.c.
@@ -1740,6 +1929,31 @@ long TIFFFetchString(void *tif_, void *dp_, char *cp)
   }
   /* 0x66684-0x66685. */
   return TIFFFetchData(tif, (void *)dp, cp);
+}
+
+/* 0x666a0
+ *
+ * ABI: EDX is the directory entry (`MOV AX,word ptr [EDX]` at 0x666af,
+ * `CMP word ptr [EDX+0x2],0x5` at 0x666d7) (@<edx>); ESI is the result
+ * pointer (`FSTP float ptr [ESI]` at 0x66705/0x66714) (@<esi>). */
+long cvtRational(void *tif, void *dir, unsigned long num, unsigned long denom,
+                 float *rv)
+{
+  const tiff_dir_entry_t *dp = (const tiff_dir_entry_t *)dir;
+
+  if (denom == 0) {
+    FUN_00068a30(((tiff_t *)tif)->tif_name,
+                 "%s: Rational with zero denominator (num = %lu)",
+                 ((tiff_field_info_t *)FUN_00066380(dp->tdir_tag))->field_name,
+                 num);
+    return 0;
+  }
+  if (dp->tdir_type == TIFF_RATIONAL) {
+    *rv = (float)num / (float)denom;
+  } else {
+    *rv = (float)(long)num / (float)(long)denom;
+  }
+  return 1;
 }
 
 /* 0x66720

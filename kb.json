@@ -27332,7 +27332,8 @@
     {
      "addr": "0x1c9670",
      "decl": "bool dsound_channel_queue_packet(short channel_index@<eax>);",
-     "comment": "[NAME: dsound_channel_queue_packet \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "comment": "[NAME: dsound_channel_queue_packet \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x1c9bf0",
@@ -40567,8 +40568,10 @@
     },
     {
      "addr": "0x65af0",
-     "decl": "void TIFFGetField1(void **out@<eax>, void *field_table@<ecx>, unsigned int tag@<edx>);",
-     "comment": "[NAME: TIFFGetField1 \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "decl": "void TIFFGetField1(char *ap@<eax>, void *field_table@<ecx>, unsigned int tag@<edx>);",
+     "comment": "[NAME: TIFFGetField1 \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true,
+     "static_in_tu": true
     },
     {
      "addr": "0x65e90",
@@ -40582,7 +40585,8 @@
     },
     {
      "addr": "0x65f70",
-     "decl": "int _TIFFgetfield(void *td, int tag, ...);"
+     "decl": "void _TIFFgetfield(void *td, int tag, ...);",
+     "ported": true
     },
     {
      "addr": "0x65f90",
@@ -40640,7 +40644,8 @@
     {
      "addr": "0x666a0",
      "decl": "long cvtRational(void *tif, void *dir@<edx>, unsigned long num, unsigned long denom, float *rv@<esi>);",
-     "comment": "[NAME: cvtRational \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "comment": "[NAME: cvtRational \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x66720",
@@ -41047,7 +41052,8 @@
     {
      "addr": "0x6c080",
      "decl": "int gt(void *tif, unsigned long rwidth, unsigned long height, unsigned long *raster);",
-     "comment": "[NAME: gt \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "comment": "[NAME: gt \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     }
    ],
    "name": "tif_flush.obj",
@@ -42825,7 +42831,8 @@
      "addr": "0x24000",
      "decl": "void firing_position_store_evaluation_debug(void *ctx, float score, int type, void *position @<esi>);",
      "comment": "[NAME: firing_position_store_evaluation_debug \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
-     "name": "firing_position_store_evaluation_debug"
+     "name": "firing_position_store_evaluation_debug",
+     "ported": true
     },
     {
      "addr": "0x24060",
@@ -43153,7 +43160,8 @@
     },
     {
      "addr": "0x138f30",
-     "decl": "void shade_vector2d(void);",
+     "decl": "void shade_vector2d(float *output@<eax>, float *vertex_c@<ecx>, float *vertex_d@<edx>, float *base@<esi>, float u, float v);",
+     "ported": true,
      "comment": "[NAME: shade_vector2d \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
     },
     {

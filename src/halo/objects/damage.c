@@ -829,7 +829,7 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
 
   if ((1 << (*(unsigned char *)((char *)obj + 0x64) & 0x1f)) & 3) {
     unit_damage_aftermath(object_handle, damage_data, flags, body_vitality,
-                 shield_vitality, param_4, param_5);
+                          shield_vitality, param_4, param_5);
   }
 }
 
@@ -2406,9 +2406,12 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
       int i;
       char all_second_casts_blocked;
 
-      delta[0] = *(float *)(obj + 0x50) - *(float *)((char *)damage_params + 0x28);
-      delta[1] = *(float *)(obj + 0x54) - *(float *)((char *)damage_params + 0x2c);
-      delta[2] = *(float *)(obj + 0x58) - *(float *)((char *)damage_params + 0x30);
+      delta[0] =
+        *(float *)(obj + 0x50) - *(float *)((char *)damage_params + 0x28);
+      delta[1] =
+        *(float *)(obj + 0x54) - *(float *)((char *)damage_params + 0x2c);
+      delta[2] =
+        *(float *)(obj + 0x58) - *(float *)((char *)damage_params + 0x30);
       all_second_casts_blocked = 1;
 
       perpendicular3d(delta, axis_a);
@@ -2459,8 +2462,8 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
         dir2[0] = *(float *)(obj + 0x50) - collision[0];
         dir2[1] = *(float *)(obj + 0x54) - collision[1];
         dir2[2] = *(float *)(obj + 0x58) - collision[2];
-        if (FUN_0014df70(0xc221, collision, dir2, root_parent,
-                         cast_result) == 0)
+        if (FUN_0014df70(0xc221, collision, dir2, root_parent, cast_result) ==
+            0)
           all_second_casts_blocked = 0;
       }
       if (all_second_casts_blocked != 0)
@@ -2470,9 +2473,12 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
       float dir[3];
 
       root_parent = object_get_root_parent(object_handle);
-      dir[0] = *(float *)(obj + 0x50) - *(float *)((char *)damage_params + 0x28);
-      dir[1] = *(float *)(obj + 0x54) - *(float *)((char *)damage_params + 0x2c);
-      dir[2] = *(float *)(obj + 0x58) - *(float *)((char *)damage_params + 0x30);
+      dir[0] =
+        *(float *)(obj + 0x50) - *(float *)((char *)damage_params + 0x28);
+      dir[1] =
+        *(float *)(obj + 0x54) - *(float *)((char *)damage_params + 0x2c);
+      dir[2] =
+        *(float *)(obj + 0x58) - *(float *)((char *)damage_params + 0x30);
       if (FUN_0014df70(0xc221, (float *)((char *)damage_params + 0x28), dir,
                        root_parent, cast_result) != 0)
         may_apply_damage = 0;
@@ -2672,6 +2678,22 @@ float FUN_00138f10(float base, float a, float b, float t1, float t2)
   return base + (a - base) * t1 + (b - base) * t2;
 }
 
+/* 0x138f30 - shade_vector2d
+ *
+ * 2D form of FUN_00138f70. ABI: EAX output, ECX vertex_c, EDX vertex_d,
+ * ESI base, [EBP+8] u, [EBP+0xc] v; plain RET (caller cleans).
+ */
+void shade_vector2d(float *output, float *vertex_c, float *vertex_d,
+                    float *base, float u, float v)
+{
+  float origin;
+
+  origin = base[0];
+  output[0] = (vertex_d[0] - origin) * u + (vertex_c[0] - origin) * v + origin;
+  origin = base[1];
+  output[1] = (vertex_d[1] - origin) * u + (vertex_c[1] - origin) * v + origin;
+}
+
 /* 0x138f70 - FUN_00138f70
  *
  * Barycentric point: output[i] = ((vertex_d[i] - base[i]) * u +
@@ -2686,14 +2708,11 @@ void FUN_00138f70(float *output, float *vertex_c, float *vertex_d, float *base,
   float origin;
 
   origin = base[0];
-  output[0] =
-    (vertex_d[0] - origin) * u + (vertex_c[0] - origin) * v + origin;
+  output[0] = (vertex_d[0] - origin) * u + (vertex_c[0] - origin) * v + origin;
   origin = base[1];
-  output[1] =
-    (vertex_d[1] - origin) * u + (vertex_c[1] - origin) * v + origin;
+  output[1] = (vertex_d[1] - origin) * u + (vertex_c[1] - origin) * v + origin;
   origin = base[2];
-  output[2] =
-    (vertex_d[2] - origin) * u + (vertex_c[2] - origin) * v + origin;
+  output[2] = (vertex_d[2] - origin) * u + (vertex_c[2] - origin) * v + origin;
 }
 
 /* FUN_00138fd0 (0x138fd0) — Sample a material lightmap at an interpolated

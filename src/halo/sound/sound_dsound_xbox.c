@@ -281,7 +281,9 @@ bool sound_dsound_channel_stop_check(short channel_index)
 
   channel = sound_dsound_channel_get(channel_index);
 
-  assert_halt_msg_at("channel->stopping", "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x4b8, *(char *)((char *)channel + 0x6) != 0);
+  assert_halt_msg_at("channel->stopping",
+                     "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x4b8,
+                     *(char *)((char *)channel + 0x6) != 0);
 
   stream = *(void **)((char *)channel + 0x70);
   active = dsound_stream_is_active(stream);
@@ -295,6 +297,123 @@ bool sound_dsound_channel_stop_check(short channel_index)
   }
 
   return released;
+}
+
+/* dsound_channel_queue_packet (0x1c9670)
+ *
+ * Submit the next packet of the channel's sound (dword at channel+0x68)
+ * to its stream through vtable slot 4 (byte offset 0x10; this, &packet,
+ * NULL pushed, no ADD ESP).  channel_index arrives in EAX. */
+bool dsound_channel_queue_packet(short channel_index)
+{
+  struct {
+    void *buffer;
+    unsigned int max_size;
+    unsigned int *completed_size;
+    unsigned int *status;
+    void *context;
+    void *timestamp;
+  } packet;
+  char *channel;
+  char *sound;
+  void *stream;
+  unsigned short flags;
+  unsigned short wide_samples;
+  unsigned short stereo;
+  int offset;
+  int remaining;
+  int size;
+  int block_size;
+  int hresult;
+  bool queued;
+
+  channel = (char *)sound_dsound_channel_get(channel_index);
+  queued = false;
+  if (*(char **)(channel + 0x68) != NULL) {
+    if (*(int *)(*(char **)(channel + 0x68) + 0x30) != 0) {
+      if (*(unsigned int *)(*(char **)(channel + 0x68) + 0x30) >=
+            (unsigned int)FUN_001bdd70() &&
+          *(unsigned int *)(*(char **)(channel + 0x68) + 0x40) +
+              *(unsigned int *)(*(char **)(channel + 0x68) + 0x30) <=
+            (unsigned int)FUN_001bdd70() + 0x400000) {
+        sound = *(char **)(channel + 0x68);
+        offset = *(int *)(channel + 0x64);
+        remaining = *(int *)(sound + 0x40) - offset;
+        *(short *)(channel + 0x8) += 1;
+        packet.buffer = *(char **)(sound + 0x30) + offset;
+        packet.completed_size = NULL;
+        packet.status = NULL;
+        packet.timestamp = NULL;
+        packet.context = sound;
+        flags = *(unsigned short *)(channel + 0x38);
+        wide_samples = flags & 0x4;
+        stereo = flags & 0x2;
+        if ((float)((flags & 0x8) ? 0x900 : 0x2000) * (wide_samples ? 2.0f : 1.0f) *
+                (stereo ? 2.0f : 1.0f) >=
+            (float)remaining) {
+          if (offset != 0) {
+            *(int *)(channel + 0x68) = *(int *)(channel + 0x6c);
+            size = remaining;
+            *(int *)(channel + 0x6c) = 0;
+            *(int *)(channel + 0x64) = 0;
+            if (*(short *)channel == 2) {
+              *(short *)channel = 1;
+            }
+          } else {
+            block_size = ((stereo != 0) + 1) * 0x24;
+            size = remaining / block_size / 2;
+            if (size <= 1) {
+              size = 1;
+            }
+            size *= block_size;
+            *(int *)(channel + 0x64) = size;
+          }
+        } else {
+          size = (int)((float)((flags & 0x8) ? 0x900 : 0x2000) *
+                       (wide_samples ? 2.0f : 1.0f) *
+                       (stereo ? 2.0f : 1.0f));
+          *(int *)(channel + 0x64) = offset + size;
+        }
+        packet.max_size = size;
+        if (size != 0) {
+          stream = *(void **)(channel + 0x70);
+          hresult = ((int(__stdcall *)(void *, void *, void *))(
+            *(void ***)stream)[4])(stream, &packet, NULL);
+          if (hresult >= 0) {
+            FUN_001be100((int)sound);
+            queued = true;
+          } else {
+            sound_dsound_set_last_error(&hresult,
+                                        "couldn't queue sound packet.");
+          }
+        }
+      } else {
+        crt_sprintf((char *)0x5ab100,
+                    "trying to queue sound %s but it's outside the valid "
+                    "range. (%ld)",
+                    *(char **)(channel + 0x68),
+                    *(unsigned int *)(*(char **)(channel + 0x68) + 0x30));
+        if ((unsigned int)(csstrlen(SOUND_DSOUND_ERROR_REASON) +
+                           csstrlen((char *)0x5ab100)) < 0x100) {
+          crt_sprintf(SOUND_DSOUND_ERROR_REASON +
+                        csstrlen(SOUND_DSOUND_ERROR_REASON),
+                      (char *)0x5ab100);
+        }
+      }
+    } else if ((unsigned int)(csstrlen(SOUND_DSOUND_ERROR_REASON) +
+                              csstrlen("trying to queue sound but samples "
+                                       "is null.")) < 0x100) {
+      crt_sprintf(SOUND_DSOUND_ERROR_REASON +
+                    csstrlen(SOUND_DSOUND_ERROR_REASON),
+                  "trying to queue sound but samples is null.");
+    }
+  } else if ((unsigned int)(csstrlen(SOUND_DSOUND_ERROR_REASON) +
+                            csstrlen("trying to queue sound but sound is "
+                                     "null.")) < 0x100) {
+    crt_sprintf(SOUND_DSOUND_ERROR_REASON + csstrlen(SOUND_DSOUND_ERROR_REASON),
+                "trying to queue sound but sound is null.");
+  }
+  return queued;
 }
 
 /* sound_dsound_log_error (0x1c98f0)
@@ -1622,204 +1741,6 @@ void FUN_001cb0c0(short channel_index, void *sound)
   }
 }
 
-/* 0x20f069 -- XDK DirectSound stream inline (stdcall, RET 4).
- * Loads the object pointer at stream+0x24 and tests its dword at +0x8
- * against mask 0x10000002; NEG/SBB/NEG materializes 0/1 in EAX.
- * The meaning of the individual status bits is unconfirmed.
- *
- * The status dword is written asynchronously by the DirectSound runtime,
- * and the stop-wait loops in FUN_001ca130/FUN_001caab0 poll it until it
- * clears.  It must be read through a volatile lvalue: with a plain load
- * clang inlines this body into those loops, hoists the read, and emits
- * `jmp $` (save-and-quit freeze, see b0b676c1e).  One volatile load is
- * the same single MOV the original performs. */
-__declspec(noinline) bool __stdcall dsound_stream_is_active(void *stream)
-{
-  return (*(volatile unsigned int *)(*(char **)((char *)stream + 0x24) + 0x8) &
-          0x10000002) != 0;
-}
-
-/* 0x20f081 -- XDK DirectSound stream inline (stdcall, RET 4).
- * MOV EAX,[ESP+4]; MOV ECX,[EAX+0x24]; MOV EAX,[ECX]; PUSH 0; PUSH 0;
- * CALL [EAX+0x10]: a thiscall through vtable slot 4 (+0x10) of the object
- * at stream+0x24, with ECX = that object and two zero stack args (callee
- * cleans).  C89/VC71 cannot spell an explicit __thiscall pointer, so the
- * call is expressed as __fastcall with an unused EDX slot: ECX = object,
- * identical stack args and callee cleanup.  The method's meaning is
- * unconfirmed. */
-typedef void(__fastcall *dsound_stream_object_method4_t)(void *object,
-                                                         int unused_edx,
-                                                         int arg0, int arg1);
-
-__declspec(noinline) void __stdcall FUN_0020f081(void *stream)
-{
-  void *object;
-
-  object = *(void **)((char *)stream + 0x24);
-  ((dsound_stream_object_method4_t)(*(void ***)object)[4])(object, 0, 0, 0);
-}
-
-/* dsound_initialize_channel (0x1cb210)
- *
- * Creates the DirectSound stream for one actual channel.  type_flags
- * arrives in AX (the caller loads it from the per-type table at 0x32fcf8)
- * and is stored as the channel's type flags at +0x38; channel_index is the
- * only stack argument.  Bits used here: 0 = 3D channel, 1 = stereo,
- * 2 = sample-rate index, 3 = compressed (Xbox ADPCM, format tag 0x69).
- *
- *   1. Reset the channel record (sound_dsound_channel_get): +0x02 = NONE,
- *      +0x06 = 0, the dwords at +0x68/+0x6c = 0.
- *   2. Fill the stream format: PCM at the rate in 0x2bcc1c, 16-bit stereo,
- *      or ADPCM 4-bit with 1/2 channels, block align 36 * channels,
- *      64 samples per block.
- *   3. IDirectSound_CreateSoundStream with a 0x18-byte stream description
- *      (flags 0x10 when 3D, 4 packets, the format, callback FUN_001ca970
- *      and channel_index as context) into the stream slot at +0x70.
- *      Failure logs and returns FALSE.
- *   4. 3D channels get an initial location (zero position/velocity, the
- *      global forward vector from *0x31fc3c) via
- *      dsound_channel_set_location.  Other channels get mix bins picked by
- *      the speaker config (bit 0x10000) and the stereo bit, with volumes
- *      from sound_dsound_gain_to_volume; stereo without bit 0x10000 sets
- *      nothing (the original jumps past the single SetMixBins call site,
- *      so the goto keeps that shape).
- *   5. Push properties {1.0, 1.0, 0...} through
- *      sound_dsound_update_channel_properties and return TRUE.
- *
- * The channel record has no struct yet; offsets are the ones touched
- * here and in this TU. */
-boolean dsound_initialize_channel(short type_flags, short channel_index)
-{
-  /* Stream properties block for sound_dsound_update_channel_properties. */
-  float properties[8];
-  /* XDK DSSTREAMDESC (0x18 bytes). */
-  struct {
-    unsigned int flags;
-    unsigned int max_attached_packets;
-    void *format;
-    void (*callback)(void);
-    int context;
-    unsigned int field_14;
-  } desc;
-  /* XDK XBOXADPCMWAVEFORMAT / WAVEFORMATEX (0x14 bytes). */
-  struct {
-    unsigned short format_tag;
-    unsigned short channels;
-    unsigned int samples_per_sec;
-    unsigned int avg_bytes_per_sec;
-    unsigned short block_align;
-    unsigned short bits_per_sample;
-    unsigned short cb_size;
-    unsigned short samples_per_block;
-  } format;
-  unsigned int speaker_config;
-  char *channel;
-  unsigned int mix_bins;
-  int hr;
-  boolean success;
-
-  channel = (char *)sound_dsound_channel_get(channel_index);
-  *(short *)(channel + 0x38) = type_flags;
-  *(short *)(channel + 0x2) = -1;
-  *(char *)(channel + 0x6) = 0;
-  *(int *)(channel + 0x68) = 0;
-  *(int *)(channel + 0x6c) = 0;
-
-  if (!(type_flags & 8)) {
-    format.samples_per_sec = *(unsigned int *)0x2bcc1c;
-    format.format_tag = 1;
-    format.bits_per_sample = 16;
-    format.channels = 2;
-    format.block_align = 4;
-    format.avg_bytes_per_sec = format.samples_per_sec * format.block_align;
-  } else {
-    format.format_tag = 0x69;
-    format.channels = (type_flags & 2) ? 2 : 1;
-    format.bits_per_sample = 4;
-    format.block_align = format.channels * 36;
-    format.samples_per_sec =
-      sound_dsound_get_sample_rate((short)((type_flags >> 2) & 1));
-    format.avg_bytes_per_sec = format.samples_per_sec / 64 * format.block_align;
-    format.cb_size = 2;
-    format.samples_per_block = 64;
-  }
-
-  csmemset(&desc, 0, sizeof(desc));
-  desc.flags = 0;
-  desc.max_attached_packets = 4;
-  desc.format = &format;
-  desc.callback = (void (*)(void))FUN_001ca970;
-  desc.context = channel_index;
-  if (type_flags & 1) {
-    desc.flags = 0x10;
-  }
-
-  hr = IDirectSound_CreateSoundStream(*(void **)0x50545c, &desc,
-                                      (void **)(channel + 0x70), NULL);
-  if (hr >= 0) {
-    if (type_flags & 1) {
-      /* dsound_channel_set_location location block (0x2c bytes). */
-      struct {
-        float position[3];
-        float forward[3];
-        float velocity[3];
-        char pad_24[8];
-      } location;
-      const float *forward;
-
-      csmemset(&location, 0, sizeof(location));
-      forward = *(const float **)0x31fc3c;
-      location.forward[0] = forward[0];
-      location.forward[1] = forward[1];
-      location.forward[2] = forward[2];
-      dsound_channel_set_location(channel_index, 0, (float *)&location, 0.0f,
-                                  0.0f, 0);
-    } else {
-      int volumes[6];
-
-      IDirectSound_GetSpeakerConfig(*(void **)0x50545c, &speaker_config);
-      if (speaker_config & 0x10000) {
-        if (!(type_flags & 2)) {
-          mix_bins = 7;
-          volumes[0] = sound_dsound_gain_to_volume(0.5f, 0);
-          volumes[1] = sound_dsound_gain_to_volume(0.5f, 0);
-          volumes[2] = sound_dsound_gain_to_volume(0.5f, 0);
-        } else {
-          mix_bins = 0x1833;
-          volumes[0] = sound_dsound_gain_to_volume(1.0f, 0);
-          volumes[1] = sound_dsound_gain_to_volume(1.0f, 0);
-          volumes[2] = sound_dsound_gain_to_volume(0.5f, 0);
-          volumes[3] = sound_dsound_gain_to_volume(0.5f, 0);
-          volumes[4] = sound_dsound_gain_to_volume(0.5f, 0);
-          volumes[5] = sound_dsound_gain_to_volume(0.5f, 0);
-        }
-      } else {
-        if (type_flags & 2) {
-          goto mix_bins_done;
-        }
-        mix_bins = 3;
-        volumes[0] = sound_dsound_gain_to_volume(0.5f, 0);
-        volumes[1] = sound_dsound_gain_to_volume(0.5f, 0);
-      }
-      IDirectSoundStream_SetMixBins(*(void **)(channel + 0x70), mix_bins);
-      IDirectSoundStream_SetMixBinVolumes_12(*(void **)(channel + 0x70),
-                                             mix_bins, volumes);
-    mix_bins_done:;
-    }
-
-    success = true;
-    csmemset(properties, 0, sizeof(properties));
-    properties[0] = 1.0f;
-    properties[1] = 1.0f;
-    sound_dsound_update_channel_properties(properties, channel_index, 0);
-  } else {
-    sound_dsound_log_error(hr, "couldn't create sound stream.");
-    success = false;
-  }
-
-  return success;
-}
-
 /* dsound_initialize (0x1cb4c0)
  *
  * Binary: [EBP+8] is a pointer asserted non-NULL as "preferences"
@@ -1947,4 +1868,41 @@ boolean dsound_initialize(short *preferences)
     FUN_001c93f0();
   }
   return success;
+}
+
+/* 0x20f069 -- XDK DirectSound stream inline (stdcall, RET 4).
+ * Loads the object pointer at stream+0x24 and tests its dword at +0x8
+ * against mask 0x10000002; NEG/SBB/NEG materializes 0/1 in EAX.
+ * The meaning of the individual status bits is unconfirmed.
+ *
+ * The status dword is written asynchronously by the DirectSound runtime,
+ * and the stop-wait loops in FUN_001ca130/FUN_001caab0 poll it until it
+ * clears.  It must be read through a volatile lvalue: with a plain load
+ * clang inlines this body into those loops, hoists the read, and emits
+ * `jmp $` (save-and-quit freeze, see b0b676c1e).  One volatile load is
+ * the same single MOV the original performs. */
+__declspec(noinline) bool __stdcall dsound_stream_is_active(void *stream)
+{
+  return (*(volatile unsigned int *)(*(char **)((char *)stream + 0x24) + 0x8) &
+          0x10000002) != 0;
+}
+
+/* 0x20f081 -- XDK DirectSound stream inline (stdcall, RET 4).
+ * MOV EAX,[ESP+4]; MOV ECX,[EAX+0x24]; MOV EAX,[ECX]; PUSH 0; PUSH 0;
+ * CALL [EAX+0x10]: a thiscall through vtable slot 4 (+0x10) of the object
+ * at stream+0x24, with ECX = that object and two zero stack args (callee
+ * cleans).  C89/VC71 cannot spell an explicit __thiscall pointer, so the
+ * call is expressed as __fastcall with an unused EDX slot: ECX = object,
+ * identical stack args and callee cleanup.  The method's meaning is
+ * unconfirmed. */
+typedef void(__fastcall *dsound_stream_object_method4_t)(void *object,
+                                                         int unused_edx,
+                                                         int arg0, int arg1);
+
+__declspec(noinline) void __stdcall FUN_0020f081(void *stream)
+{
+  void *object;
+
+  object = *(void **)((char *)stream + 0x24);
+  ((dsound_stream_object_method4_t)(*(void ***)object)[4])(object, 0, 0, 0);
 }
