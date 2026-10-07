@@ -144,6 +144,79 @@ int16_t path_add_step(void *path, float *point, float z, int16_t param_3,
 }
 
 /*
+ * 0x00060ea0 -- initializes an avoidance record and adds its start step.
+ *
+ * ABI (disassembly): avoidance_record in ECX (copied to EDI), end_point in
+ * EAX (copied to ESI); nine cdecl stack args; plain RET.
+ *
+ * param_7 is forwarded as a raw dword (MOV EDX,[EBP+0x1c] / PUSH EDX) into
+ * path_add_step's float z slot, so it is reinterpreted, not converted.
+ * +0x24 receives the bit pattern 0x7f7fffff.
+ */
+void FUN_00060ea0(void *avoidance_record, float *end_point, void *param_2,
+                  void *scenario, unsigned char param_4, float radius,
+                  float *start_point, int param_7, float param_8,
+                  unsigned char param_9, unsigned char param_10)
+{
+  float v;
+  char *record;
+  int16_t disc_index;
+  int16_t disc_value;
+
+  record = (char *)avoidance_record;
+  v = radius;
+  if ((*(uint32_t *)&v & 0x7f800000) == 0x7f800000) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "%s: assert_valid_real(0x%08X %f)", "radius",
+                            *(uint32_t *)&v, (double)radius),
+                   "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x1b8, 1);
+    system_exit(-1);
+  }
+  v = start_point[0];
+  if ((*(uint32_t *)&v & 0x7f800000) == 0x7f800000 ||
+      (v = start_point[1], (*(uint32_t *)&v & 0x7f800000) == 0x7f800000)) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "%s: assert_valid_real_point2d(%f, %f)", "start",
+                            (double)start_point[0], (double)start_point[1]),
+                   "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x1b9, 1);
+    system_exit(-1);
+  }
+  v = end_point[0];
+  if ((*(uint32_t *)&v & 0x7f800000) == 0x7f800000 ||
+      (v = end_point[1], (*(uint32_t *)&v & 0x7f800000) == 0x7f800000)) {
+    display_assert(csprintf((char *)0x5ab100,
+                            "%s: assert_valid_real_point2d(%f, %f)", "goal",
+                            (double)end_point[0], (double)end_point[1]),
+                   "c:\\halo\\SOURCE\\ai\\path_obstacle_avoidance.c", 0x1ba, 1);
+    system_exit(-1);
+  }
+  *(float *)(record + 0x00) = radius;
+  *(void **)(record + 0x0c) = scenario;
+  *(unsigned char *)(record + 0x04) = param_4;
+  *(void **)(record + 0x08) = param_2;
+  *(unsigned char *)(record + 0x28) = 0;
+  *(float *)(record + 0x10) = end_point[0];
+  *(float *)(record + 0x14) = end_point[1];
+  *(float *)(record + 0x18) = param_8;
+  disc_index = FUN_00062410(param_2, -1, end_point, radius);
+  if (disc_index == -1) {
+    disc_value = -1;
+  } else {
+    disc_value = *(int16_t *)((char *)FUN_00060070(param_2, disc_index) + 2);
+  }
+  *(int16_t *)(record + 0x1c) = disc_value;
+  *(unsigned char *)(record + 0x29) = param_9;
+  *(int16_t *)(record + 0x1e) = -1;
+  *(uint32_t *)(record + 0x24) = 0x7f7fffff;
+  *(int16_t *)(record + 0x20) = -1;
+  *(unsigned char *)(record + 0x2a) = param_10;
+  *(int16_t *)(record + 0x2c) = 0;
+  *(int16_t *)(record + 0x1430) = 0;
+  path_add_step(avoidance_record, start_point, *(float *)&param_7, -1, 0, 0.0f,
+                -1);
+}
+
+/*
  * 0x00061280 -- path_add_steps (name: CEA PDB line containment).
  *
  * ABI (disassembly): seed_disc_index arrives in AX (MOV BX,AX before any
