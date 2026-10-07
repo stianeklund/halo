@@ -30,6 +30,12 @@ if _VENV_SP.exists() and str(_VENV_SP) not in sys.path:
 MODEL_NAME = "jinaai/jina-embeddings-v2-base-code"
 EMBED_DIM = 768
 
+# Hard cap on characters as a fast pre-filter; the tokenizer enforces the real
+# token limit so dense single-char inputs can't exceed MAX_TOKENS regardless of
+# character count.
+MAX_CHARS = 6_000
+MAX_TOKENS = 1024  # attention is O(n²): 1024 tokens ≈ 50 MB/layer
+
 _log = logging.getLogger("retrieval.embed")
 
 
@@ -57,12 +63,21 @@ class Embedder:
     def embed_one(self, text: Optional[str]) -> Optional[list[float]]:
         if not text:
             return None
-        vec = self.model.encode(
-            text,
-            convert_to_numpy=True,
-            normalize_embeddings=True,  # so cosine == dot product
-            show_progress_bar=False,
-        )
+        # Same caps as embed_batch (the index side). Uncapped, the model's 8192
+        # token default makes one large decompile spike past 8 GB of RSS.
+        old_max = getattr(self.model, "max_seq_length", None)
+        if old_max is None or old_max > MAX_TOKENS:
+            self.model.max_seq_length = MAX_TOKENS
+        try:
+            vec = self.model.encode(
+                text[:MAX_CHARS],
+                convert_to_numpy=True,
+                normalize_embeddings=True,  # so cosine == dot product
+                show_progress_bar=False,
+            )
+        finally:
+            if old_max is not None:
+                self.model.max_seq_length = old_max
         return [float(x) for x in vec.tolist()]
 
     def embed_batch(
@@ -72,11 +87,6 @@ class Embedder:
         batch_size: int = 4,
     ) -> list[Optional[list[float]]]:
         """Embed a list of texts; preserves None entries."""
-        # Hard cap on characters as a fast pre-filter; the tokenizer enforces
-        # the real token limit below so dense single-char inputs can't exceed
-        # MAX_TOKENS regardless of character count.
-        MAX_CHARS = 6_000
-        MAX_TOKENS = 1024  # attention is O(n²): 1024 tokens ≈ 50 MB/layer
         idx_text = [(i, t[:MAX_CHARS]) for i, t in enumerate(texts) if t]
         if not idx_text:
             return [None] * len(texts)
