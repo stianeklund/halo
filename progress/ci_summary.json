@@ -1,24 +1,59 @@
 {
-  "generated": "2026-10-08T03:27:19.401228+00:00",
+  "generated": "2026-10-08T08:58:43.344179+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-10-08T03:25:35Z",
-    "last_commit": "8c5597d0",
+    "last_run_time": "2026-10-08T08:52:13Z",
+    "last_commit": "2957700b",
     "workflows": [
+      {
+        "name": "Provenance Artifact Guard",
+        "conclusion": "success",
+        "created_at": "2026-10-08T08:52:13Z",
+        "head_sha": "2957700b",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37752720044"
+      },
+      {
+        "name": "Audit Gates",
+        "conclusion": "failure",
+        "created_at": "2026-10-08T08:52:13Z",
+        "head_sha": "2957700b",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37752719758"
+      },
+      {
+        "name": "Snapshot Verification",
+        "conclusion": "",
+        "created_at": "2026-10-08T08:52:13Z",
+        "head_sha": "2957700b",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37752719756"
+      },
       {
         "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-10-08T03:25:35Z",
-        "head_sha": "8c5597d0",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37722660141"
+        "created_at": "2026-10-08T08:52:13Z",
+        "head_sha": "2957700b",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37752719710"
+      },
+      {
+        "name": ".github/workflows/main.yml",
+        "conclusion": "failure",
+        "created_at": "2026-10-08T08:52:13Z",
+        "head_sha": "2957700b",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37752719706"
       },
       {
         "name": "Equivalence Tests",
-        "conclusion": "failure",
-        "created_at": "2026-10-08T03:21:08Z",
-        "head_sha": "8c5597d0",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37722304583"
+        "conclusion": "",
+        "created_at": "2026-10-08T08:52:13Z",
+        "head_sha": "2957700b",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37752719649"
+      },
+      {
+        "name": "pages-build-deployment",
+        "conclusion": "success",
+        "created_at": "2026-10-08T03:28:21Z",
+        "head_sha": "363be0b3",
+        "url": "https://github.com/stianeklund/halo/actions/runs/37722874903"
       },
       {
         "name": "Runtime Oracle Tests",
@@ -28,56 +63,21 @@
         "url": "https://github.com/stianeklund/halo/actions/runs/37609704190"
       },
       {
-        "name": "Audit Gates",
-        "conclusion": "success",
-        "created_at": "2026-10-07T09:40:00Z",
-        "head_sha": "8c5597d0",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37602182525"
-      },
-      {
-        "name": "pages-build-deployment",
-        "conclusion": "success",
-        "created_at": "2026-10-07T03:11:13Z",
-        "head_sha": "a50b5987",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37565569612"
-      },
-      {
         "name": "Compiler Profile Calibration",
         "conclusion": "failure",
         "created_at": "2026-10-04T11:34:52Z",
         "head_sha": "8c5597d0",
         "url": "https://github.com/stianeklund/halo/actions/runs/37199224275"
-      },
-      {
-        "name": "Provenance Artifact Guard",
-        "conclusion": "success",
-        "created_at": "2026-10-03T22:23:30Z",
-        "head_sha": "8c5597d0",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37158280943"
-      },
-      {
-        "name": ".github/workflows/main.yml",
-        "conclusion": "failure",
-        "created_at": "2026-10-03T22:23:30Z",
-        "head_sha": "8c5597d0",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37158280851"
-      },
-      {
-        "name": "Snapshot Verification",
-        "conclusion": "success",
-        "created_at": "2026-10-03T22:23:30Z",
-        "head_sha": "8c5597d0",
-        "url": "https://github.com/stianeklund/halo/actions/runs/37158280849"
       }
     ]
   },
   "equivalence": {
-    "tested": 1122,
-    "classified": 8039,
-    "high_confidence": 413,
-    "moderate_confidence": 393,
-    "weak_coverage": 190,
-    "avg_coverage": 61.4
+    "tested": 573,
+    "classified": 8031,
+    "high_confidence": 193,
+    "moderate_confidence": 180,
+    "weak_coverage": 113,
+    "avg_coverage": 55.8
   },
   "snapshot": {
     "total": 20,
