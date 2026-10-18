@@ -1419,8 +1419,8 @@ void physics_compute_unit_collisions(int unit_index)
     return;
   }
 
-  remaining = (unsigned int)(unsigned short)found_count;
   cursor = found;
+  remaining = (unsigned int)(unsigned short)found_count;
 
   do {
     other_index = (unsigned int)*cursor;

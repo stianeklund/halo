@@ -1120,6 +1120,18 @@ void decal_delete(int decal_index)
   datum_delete(global_decal_data, decal_index);
 }
 
+static __inline void decal_vector_from_points2d(const float *a, const float *b,
+                                               float *out)
+{
+  out[0] = b[0] - a[0];
+  out[1] = b[1] - a[1];
+}
+
+static __inline float decal_cross_product2d(const float *a, const float *b)
+{
+  return a[0] * b[1] - a[1] * b[0];
+}
+
 void decal_projection_create(float *bounds, float *projection, float *basis)
 {
   typedef struct { float v[4]; } decal_extent_copy_t;
@@ -1148,7 +1160,7 @@ void decal_projection_create(float *bounds, float *projection, float *basis)
   *(decal_vector_copy_t *)(projection + 0x11) =
       *(decal_vector_copy_t *)(basis + 7);
   plane = projection + 0x11;
-  plane[3] = plane[2] * basis[12] + plane[1] * basis[11] + plane[0] * basis[10];
+  plane[3] = plane[0] * basis[10] + (plane[2] * basis[12] + plane[1] * basis[11]);
 
   abs_i = x87_fabs(plane[0]);
   abs_j = x87_fabs(plane[1]);
@@ -1189,13 +1201,12 @@ void decal_projection_create(float *bounds, float *projection, float *basis)
   FUN_00061df0(projected, *(int16_t *)((char *)projection + 0x54),
                *(uint8_t *)((char *)projection + 0x56), projection + 0x1c);
 
-  projection[0x1e] = projection[0x18] - projection[0x16];
-  projection[0x1f] = projection[0x19] - projection[0x17];
-  projection[0x20] = projection[0x1c] - projection[0x16];
-  projection[0x21] = projection[0x1d] - projection[0x17];
+  decal_vector_from_points2d(projection + 0x16, projection + 0x18,
+                             projection + 0x1e);
+  decal_vector_from_points2d(projection + 0x16, projection + 0x1c,
+                             projection + 0x20);
   projection[0x22] = *(float *)0x2533c8 /
-                     (projection[0x21] * projection[0x1e] -
-                      projection[0x1f] * projection[0x20]);
+                     decal_cross_product2d(projection + 0x1e, projection + 0x20);
 }
 
 void decal_clip_to_surface(void *geometry, float *projection, int surface_index,

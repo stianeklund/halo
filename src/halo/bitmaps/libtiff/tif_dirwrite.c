@@ -765,8 +765,8 @@ int TIFFWriteDirectory(void *tif_)
   if (dataoff & 1)
     dataoff++;
   (void)__lseek(tif->tif_fd, dataoff, L_SET);
-  tif->tif_curdir++;
   dir = (tiff_dir_entry_t *)data;
+  tif->tif_curdir++;
   /*
    * Setup external form of directory
    * entries and write data items.
