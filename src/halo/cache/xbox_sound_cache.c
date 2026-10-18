@@ -103,6 +103,170 @@ void sound_cache_sound_delete(sound_cache_sound *sound)
   sound->cache_base_address = NULL;
 }
 
+/* sound_cache_sound_finished (0x1be090)
+ *
+ * Decrements the software_reference_count on a cache-sound entry when a
+ * sound permutation finishes playing. Takes the permutation tag pointer,
+ * reads the cache handle from offset +0x2c, and looks up the corresponding
+ * cache-sound datum from the sound cache table at 0x4e9368.
+ *
+ * If the debug trace flag at 0x5054ec is set, logs the current reference
+ * count and name before decrementing.
+ *
+ * Asserts that software_reference_count is nonzero before decrementing
+ * (source: c:\halo\SOURCE\cache\xbox_sound_cache.c, line 263). */
+void sound_cache_sound_finished(int permutation_ptr)
+{
+  char *cache_sound;
+  int cache_handle;
+
+  cache_handle = *(int *)(permutation_ptr + 0x2c);
+  cache_sound = (char *)datum_get(*(data_t **)0x4e9368, cache_handle);
+
+  if (*(uint8_t *)0x5054ec != 0) {
+    error(2, "--- finish %d %s", (int)*(uint8_t *)(cache_sound + 4),
+          *(char **)(cache_sound + 8));
+  }
+
+  if (*(uint8_t *)(cache_sound + 4) == 0) {
+    display_assert("cache_sound->software_reference_count",
+                   "c:\\halo\\SOURCE\\cache\\xbox_sound_cache.c", 0x107, 1);
+    system_exit(-1);
+  }
+
+  *(uint8_t *)(cache_sound + 4) -= 1;
+}
+
+/* FUN_001be1b0 (0x1be1b0)
+ *
+ * LRU-V block-delete callback for the Xbox sound cache: sound_cache_new hands
+ * this function to lruv_new as the first callback (cast at
+ * cache/xbox_sound_cache.c:122), so the stack argument is a cache block index
+ * -- which in this cache is also the cache-sound datum index (FUN_001be2b0
+ * asserts new_cache_sound_index==cache_block_index).  The kb decl was
+ * void(void); the reference reads MOV EDI,dword ptr [EBP+0x8] at 0x1be1ba and
+ * cleanup is caller-side (plain RET), so it is a single cdecl int parameter.
+ *
+ * Refuses to evict a block that is still referenced: +0x04 is the software
+ * reference count and +0x05 the hardware reference count (same fields
+ * FUN_001be170 tests), and a non-zero count reports
+ * "tried to delete sound %s(%s) from the cache while it was playing."
+ * (xbox_sound_cache.c line 0x141) and halts.
+ *
+ * Otherwise it asserts cache_sound->sound->cache_block_index==block_index
+ * (line 0x144), clears the owning record's cache-block index (+0x2c = -1) and
+ * cache page address (+0x30 = 0), then frees the datum.  +0x08 is the owning
+ * sound-permutation record FUN_001be2b0 stored there, and +0x3c on that record
+ * is the tag index handed to tag_get_name.
+ *
+ * The reference re-loads [ESI+0x8] before each of the three uses
+ * (0x1be216 / 0x1be23e / 0x1be248), so the loads are left uncached here.
+ *
+ * The second %s consumes the record pointer itself (PUSH EAX at 0x1be1e9,
+ * offset 0), so offset 0 of that record is most likely an embedded name
+ * string -- UNPROVEN from this function, hence the raw pointer. */
+void FUN_001be1b0(int block_index)
+{
+  char *cache_sound;
+
+  cache_sound = (char *)datum_get(*(data_t **)0x4e9368, block_index);
+
+  if (*(uint8_t *)(cache_sound + 4) != 0 ||
+      *(uint8_t *)(cache_sound + 5) != 0) {
+    display_assert(
+      csprintf((char *)0x5ab100,
+               "tried to delete sound %s(%s) from the cache while it was "
+               "playing.",
+               tag_get_name(*(int *)(*(char **)(cache_sound + 8) + 0x3c)),
+               *(char **)(cache_sound + 8)),
+      "c:\\halo\\SOURCE\\cache\\xbox_sound_cache.c", 0x141, 1);
+    system_exit(-1);
+  }
+
+  if (*(int *)(*(char **)(cache_sound + 8) + 0x2c) != block_index) {
+    display_assert("cache_sound->sound->cache_block_index==block_index",
+                   "c:\\halo\\SOURCE\\cache\\xbox_sound_cache.c", 0x144, 1);
+    system_exit(-1);
+  }
+
+  *(int *)(*(char **)(cache_sound + 8) + 0x2c) = -1;
+  *(int *)(*(char **)(cache_sound + 8) + 0x30) = 0;
+  datum_delete(*(data_t **)0x4e9368, block_index);
+}
+
+/* FUN_001be2b0 (0x1be2b0)
+ *
+ * Sound-cache counterpart of xbox_texture_cache_request: reserves an LRU
+ * cache block for a pending sound-permutation request (record passed in ESI)
+ * and starts the asynchronous read into that block.
+ *
+ * Request record offsets (confirmed from the disassembly at 0x1be2b6 ff.):
+ *   +0x2c  cache block index   (written on success)
+ *   +0x30  cache page address  (written on success)
+ *   +0x34  cache file index    -> cache_file_read param_1
+ *   +0x40  requested size      -> lruv allocation size and read size
+ *   +0x48  file offset         -> cache_file_read offset
+ *
+ * On allocation failure it reports "SOUND CACHE BLOWN" and dumps the LRU
+ * state to d:\stabbed.txt, at most once per 10 seconds (last-report
+ * timestamp at 0x4e9374); the cache-sound datum is left untouched.
+ *
+ * Asserts new_cache_sound_index==cache_block_index
+ * (c:\halo\SOURCE\cache\xbox_sound_cache.c line 0x170).
+ *
+ * The cache_file_read return value is genuinely discarded here (unlike the
+ * texture path, which stores it at entry+2); entry+2 is instead handed to
+ * cache_file_read as the completion flag. */
+void FUN_001be2b0(char *request /* @<esi> */)
+{
+  int cache_block_index;
+  int cache_page_index;
+  int new_cache_sound_index;
+  char *cache_sound;
+
+  cache_block_index =
+    FUN_0011de10(*(void **)0x4e9370, *(unsigned int *)(request + 0x40));
+  if (cache_block_index != -1) {
+    cache_page_index =
+      lruv_block_get_address(*(void **)0x4e9370, cache_block_index) +
+      *(int *)0x4e936c;
+    new_cache_sound_index =
+      data_new_datum(*(data_t **)0x4e9368, cache_block_index);
+    cache_sound = (char *)datum_get(*(data_t **)0x4e9368, cache_block_index);
+
+    if (new_cache_sound_index != cache_block_index) {
+      display_assert("new_cache_sound_index==cache_block_index",
+                     "c:\\halo\\SOURCE\\cache\\xbox_sound_cache.c", 0x170, 1);
+      system_exit(-1);
+    }
+
+    *(int *)(request + 0x2c) = cache_block_index;
+    *(int *)(request + 0x30) = cache_page_index;
+    *(char **)(cache_sound + 8) = request;
+    cache_file_read(*(int *)(request + 0x34), *(int *)(request + 0x48),
+                    *(unsigned int *)(request + 0x40), cache_page_index,
+                    cache_sound + 2, 0);
+    return;
+  }
+
+  /* Cold path: MSVC lays the cache-blown reporting out after the RET. */
+  if (system_milliseconds() - *(unsigned int *)0x4e9374 > 10000u) {
+    terminal_printf(
+      *(void **)0x2ee6f4,
+      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
+      NULL);
+    error(2, "SOUND CACHE BLOWN!!!! double-click \"GETSTABBED.BAT\" on your "
+             "PC now!!!");
+    terminal_printf(
+      *(void **)0x2ee6f4,
+      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
+      NULL);
+    FUN_0011db90("d:\\stabbed.txt", request, *(int *)(request + 0x40),
+                 *(void **)0x4e9370, (void *)0x18ef30, (void *)0x1be270);
+    *(unsigned int *)0x4e9374 = system_milliseconds();
+  }
+}
+
 /* Bring up the Xbox sound cache: the datum table that tracks per-sound cache
  * records, the LRU-V cache itself (0x400 pages of 2^0xc bytes, up to 0x200
  * blocks, with the TU's own block-delete and block-query callbacks), and the
@@ -284,166 +448,53 @@ bool sound_cache_request_sound(void *sound_ptr, bool block, bool load,
   return result;
 }
 
-/* sound_cache_sound_finished (0x1be090)
- *
- * Decrements the software_reference_count on a cache-sound entry when a
- * sound permutation finishes playing. Takes the permutation tag pointer,
- * reads the cache handle from offset +0x2c, and looks up the corresponding
- * cache-sound datum from the sound cache table at 0x4e9368.
- *
- * If the debug trace flag at 0x5054ec is set, logs the current reference
- * count and name before decrementing.
- *
- * Asserts that software_reference_count is nonzero before decrementing
- * (source: c:\halo\SOURCE\cache\xbox_sound_cache.c, line 263). */
-void sound_cache_sound_finished(int permutation_ptr)
+/* Debug draw of sound-cache page usage: one bit per page, 640 pages per
+ * 4-row band, each set bit drawn as a 10-unit vertical line projected
+ * through the camera.  0x50658c is an unrecovered render_globals_t field. */
+void FUN_001be7b0(void)
 {
-  char *cache_sound;
-  int cache_handle;
+  unsigned char usage[1024];
+  float points[2][3];
+  float screen_points[2][2];
+  void *colors[4];
+  unsigned char *usage_byte;
+  float direction[3];
+  int page_index;
+  int bit_index;
+  float distance;
+  float scale;
+  int y;
+  int i;
 
-  cache_handle = *(int *)(permutation_ptr + 0x2c);
-  cache_sound = (char *)datum_get(*(data_t **)0x4e9368, cache_handle);
-
-  if (*(uint8_t *)0x5054ec != 0) {
-    error(2, "--- finish %d %s", (int)*(uint8_t *)(cache_sound + 4),
-          *(char **)(cache_sound + 8));
-  }
-
-  if (*(uint8_t *)(cache_sound + 4) == 0) {
-    display_assert("cache_sound->software_reference_count",
-                   "c:\\halo\\SOURCE\\cache\\xbox_sound_cache.c", 0x107, 1);
-    system_exit(-1);
-  }
-
-  *(uint8_t *)(cache_sound + 4) -= 1;
-}
-
-/* FUN_001be1b0 (0x1be1b0)
- *
- * LRU-V block-delete callback for the Xbox sound cache: sound_cache_new hands
- * this function to lruv_new as the first callback (cast at
- * cache/xbox_sound_cache.c:122), so the stack argument is a cache block index
- * -- which in this cache is also the cache-sound datum index (FUN_001be2b0
- * asserts new_cache_sound_index==cache_block_index).  The kb decl was
- * void(void); the reference reads MOV EDI,dword ptr [EBP+0x8] at 0x1be1ba and
- * cleanup is caller-side (plain RET), so it is a single cdecl int parameter.
- *
- * Refuses to evict a block that is still referenced: +0x04 is the software
- * reference count and +0x05 the hardware reference count (same fields
- * FUN_001be170 tests), and a non-zero count reports
- * "tried to delete sound %s(%s) from the cache while it was playing."
- * (xbox_sound_cache.c line 0x141) and halts.
- *
- * Otherwise it asserts cache_sound->sound->cache_block_index==block_index
- * (line 0x144), clears the owning record's cache-block index (+0x2c = -1) and
- * cache page address (+0x30 = 0), then frees the datum.  +0x08 is the owning
- * sound-permutation record FUN_001be2b0 stored there, and +0x3c on that record
- * is the tag index handed to tag_get_name.
- *
- * The reference re-loads [ESI+0x8] before each of the three uses
- * (0x1be216 / 0x1be23e / 0x1be248), so the loads are left uncached here.
- *
- * The second %s consumes the record pointer itself (PUSH EAX at 0x1be1e9,
- * offset 0), so offset 0 of that record is most likely an embedded name
- * string -- UNPROVEN from this function, hence the raw pointer. */
-void FUN_001be1b0(int block_index)
-{
-  char *cache_sound;
-
-  cache_sound = (char *)datum_get(*(data_t **)0x4e9368, block_index);
-
-  if (*(uint8_t *)(cache_sound + 4) != 0 ||
-      *(uint8_t *)(cache_sound + 5) != 0) {
-    display_assert(
-      csprintf((char *)0x5ab100,
-               "tried to delete sound %s(%s) from the cache while it was "
-               "playing.",
-               tag_get_name(*(int *)(*(char **)(cache_sound + 8) + 0x3c)),
-               *(char **)(cache_sound + 8)),
-      "c:\\halo\\SOURCE\\cache\\xbox_sound_cache.c", 0x141, 1);
-    system_exit(-1);
-  }
-
-  if (*(int *)(*(char **)(cache_sound + 8) + 0x2c) != block_index) {
-    display_assert("cache_sound->sound->cache_block_index==block_index",
-                   "c:\\halo\\SOURCE\\cache\\xbox_sound_cache.c", 0x144, 1);
-    system_exit(-1);
-  }
-
-  *(int *)(*(char **)(cache_sound + 8) + 0x2c) = -1;
-  *(int *)(*(char **)(cache_sound + 8) + 0x30) = 0;
-  datum_delete(*(data_t **)0x4e9368, block_index);
-}
-
-/* FUN_001be2b0 (0x1be2b0)
- *
- * Sound-cache counterpart of xbox_texture_cache_request: reserves an LRU
- * cache block for a pending sound-permutation request (record passed in ESI)
- * and starts the asynchronous read into that block.
- *
- * Request record offsets (confirmed from the disassembly at 0x1be2b6 ff.):
- *   +0x2c  cache block index   (written on success)
- *   +0x30  cache page address  (written on success)
- *   +0x34  cache file index    -> cache_file_read param_1
- *   +0x40  requested size      -> lruv allocation size and read size
- *   +0x48  file offset         -> cache_file_read offset
- *
- * On allocation failure it reports "SOUND CACHE BLOWN" and dumps the LRU
- * state to d:\stabbed.txt, at most once per 10 seconds (last-report
- * timestamp at 0x4e9374); the cache-sound datum is left untouched.
- *
- * Asserts new_cache_sound_index==cache_block_index
- * (c:\halo\SOURCE\cache\xbox_sound_cache.c line 0x170).
- *
- * The cache_file_read return value is genuinely discarded here (unlike the
- * texture path, which stores it at entry+2); entry+2 is instead handed to
- * cache_file_read as the completion flag. */
-void FUN_001be2b0(char *request /* @<esi> */)
-{
-  int cache_block_index;
-  int cache_page_index;
-  int new_cache_sound_index;
-  char *cache_sound;
-
-  cache_block_index =
-    FUN_0011de10(*(void **)0x4e9370, *(unsigned int *)(request + 0x40));
-  if (cache_block_index != -1) {
-    cache_page_index =
-      lruv_block_get_address(*(void **)0x4e9370, cache_block_index) +
-      *(int *)0x4e936c;
-    new_cache_sound_index =
-      data_new_datum(*(data_t **)0x4e9368, cache_block_index);
-    cache_sound = (char *)datum_get(*(data_t **)0x4e9368, cache_block_index);
-
-    if (new_cache_sound_index != cache_block_index) {
-      display_assert("new_cache_sound_index==cache_block_index",
-                     "c:\\halo\\SOURCE\\cache\\xbox_sound_cache.c", 0x170, 1);
-      system_exit(-1);
+  if (*(uint8_t *)0x5054e9) {
+    colors[0] = *(void **)0x2ee6d0;
+    colors[1] = *(void **)0x2ee6d4;
+    colors[2] = *(void **)0x2ee6d8;
+    colors[3] = *(void **)0x2ee6e0;
+    lruv_cache_get_page_usage(xbox_sound_cache, usage);
+    for (page_index = 0; page_index < 640; page_index++) {
+      usage_byte = usage + (short)page_index;
+      for (bit_index = 0; bit_index < 4; bit_index++) {
+        if (*usage_byte & (1 << bit_index)) {
+          y = (bit_index + page_index / 640 * 4) * 10;
+          screen_points[0][0] = (float)(page_index % 640);
+          screen_points[0][1] = (float)y;
+          screen_points[1][0] = screen_points[0][0];
+          screen_points[1][1] = (float)(y + 10);
+          distance = *(float *)0x50658c + 0.001f; /* hazard-ok: FLD [0x50658c]; FADD [0x255ef8] */
+          for (i = 0; i < 2; i++) {
+            render_inverse_transform_screen_point_0(screen_points[i], points[i],
+                                                    direction);
+            scale = distance / (render.camera.forward.i * direction[0] +
+                                (render.camera.forward.j * direction[1] +
+                                 direction[2] * render.camera.forward.k));
+            points[i][0] = direction[0] * scale + points[i][0];
+            points[i][1] = direction[1] * scale + points[i][1];
+            points[i][2] = direction[2] * scale + points[i][2];
+          }
+          FUN_00189270(1, points[0], points[1], colors[bit_index]);
+        }
+      }
     }
-
-    *(int *)(request + 0x2c) = cache_block_index;
-    *(int *)(request + 0x30) = cache_page_index;
-    *(char **)(cache_sound + 8) = request;
-    cache_file_read(*(int *)(request + 0x34), *(int *)(request + 0x48),
-                    *(unsigned int *)(request + 0x40), cache_page_index,
-                    cache_sound + 2, 0);
-    return;
-  }
-
-  /* Cold path: MSVC lays the cache-blown reporting out after the RET. */
-  if (system_milliseconds() - *(unsigned int *)0x4e9374 > 10000u) {
-    terminal_printf(
-      *(void **)0x2ee6f4,
-      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
-      NULL);
-    error(2, "SOUND CACHE BLOWN!!!! double-click \"GETSTABBED.BAT\" on your "
-             "PC now!!!");
-    terminal_printf(
-      *(void **)0x2ee6f4,
-      "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
-      NULL);
-    FUN_0011db90("d:\\stabbed.txt", request, *(int *)(request + 0x40),
-                 *(void **)0x4e9370, (void *)0x18ef30, (void *)0x1be270);
-    *(unsigned int *)0x4e9374 = system_milliseconds();
   }
 }

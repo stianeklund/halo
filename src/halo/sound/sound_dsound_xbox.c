@@ -1,3 +1,5 @@
+#include "sound_dsound_xbox_types.h"
+
 #if defined(__clang__)
 #ifndef fabs
 #define fabs __builtin_fabs
@@ -18,6 +20,9 @@ extern double __cdecl fabs(double);
  * Return the sample rate for the given codec index.  Index 0 yields
  * 22050 Hz, index 1 yields 44100 Hz.  Asserts codec_index is in the
  * range [0, NUMBER_OF_SOUND_SAMPLE_RATES=2). */
+#if defined(__clang__) || defined(__GNUC__)
+__attribute__((noinline))
+#endif
 int sound_dsound_get_sample_rate(short sample_rate)
 {
   if (sample_rate < 0 || sample_rate >= 2) {
@@ -130,6 +135,9 @@ int dsound_obstruction_from_obstruction(float obstruction)
  * Return a pointer to the actual dsound channel struct at the given
  * index.  Asserts index is in [0, dsound_globals.actual_channel_count)
  * and less than MAXIMUM_SOUND_CHANNELS (256).  Element size is 0x74. */
+#if defined(__clang__) || defined(__GNUC__)
+__attribute__((noinline))
+#endif
 void *sound_dsound_channel_get(short index)
 {
   if (index < 0 || index >= *(short *)0x4fdfc4) {
@@ -421,6 +429,9 @@ bool dsound_channel_queue_packet(short channel_index)
  * Log a DirectSound error.  Formats the caller's message with
  * vsprintf, maps the HRESULT to a symbolic name, and emits a level-2
  * error via error().  HRESULT is passed in ESI. */
+#if defined(__clang__) || defined(__GNUC__)
+__attribute__((noinline))
+#endif
 void sound_dsound_log_error(int hresult, const char *message, ...)
 {
   char buffer[0x1000];
@@ -1739,6 +1750,126 @@ void FUN_001cb0c0(short channel_index, void *sound)
     system_exit(-1);
     break;
   }
+}
+
+/* dsound_initialize_channel (0x1cb210)
+ *
+ * Binary: type_flags arrives in AX (copied to EBX), channel_index at
+ * [EBP+8] goes to sound_dsound_channel_get in SI.  Builds a wave format (PCM
+ * when bit 3 is clear, Xbox ADPCM otherwise) and a stream descriptor, then
+ * creates the stream into channel->stream.  Bit 0 selects the
+ * dsound_channel_set_location path (location block filled from
+ * *global_forward_vector_ptr); otherwise the mix-bin mask/volume count depends
+ * on speaker-config bit 0x10000 and type bit 1.  Flag bit meanings beyond
+ * these tests are UNKNOWN.  The two mix-bin bits above the named speaker bins
+ * in the 0x1833 mask (bits 11 and 12) are unnamed in the XDK headers here. */
+boolean dsound_initialize_channel(short type_flags /* @<ax> */,
+                                  short channel_index)
+{
+  dsound_channel *channel;
+  dsound_stream_wave_format wave_format;
+  dsound_stream_desc stream_desc;
+  float properties[8];
+  unsigned int speaker_config;
+  unsigned int mix_bin_mask;
+  int volumes[6];
+  dsound_channel_location location;
+  int result;
+  boolean success;
+
+  channel = (dsound_channel *)sound_dsound_channel_get(channel_index);
+  channel->type_flags = type_flags;
+  channel->field_02 = -1;
+  channel->field_06 = 0;
+  channel->field_68 = 0;
+  channel->field_6c = 0;
+
+  if ((type_flags & 0x8) == 0) {
+    wave_format.samples_per_second = dsound_pcm_sample_rate;
+    wave_format.format_tag = WAVE_FORMAT_PCM;
+    wave_format.bits_per_sample = 0x10;
+    wave_format.channel_count = 2;
+    wave_format.block_align = 4;
+    wave_format.average_bytes_per_second = dsound_pcm_sample_rate << 2;
+  } else {
+    wave_format.format_tag = WAVE_FORMAT_XBOADPCM;
+    wave_format.bits_per_sample = 4;
+    wave_format.channel_count = (uint16_t)(((type_flags & 0x2) != 0) + 1);
+    wave_format.block_align = (uint16_t)(wave_format.channel_count * 0x24);
+    wave_format.samples_per_second = (unsigned int)sound_dsound_get_sample_rate(
+      (short)((type_flags >> 2) & 1));
+    wave_format.average_bytes_per_second =
+      (wave_format.samples_per_second >> 6) * wave_format.block_align;
+    wave_format.extra_size = 2;
+    wave_format.samples_per_block = 0x40;
+  }
+
+  csmemset(&stream_desc, 0, sizeof(stream_desc));
+  stream_desc.max_attached_packets = 4;
+  stream_desc.wave_format = &wave_format;
+  stream_desc.flags = 0;
+  stream_desc.callback = (dsound_stream_callback)FUN_001ca970;
+  stream_desc.context = (void *)(int)channel_index;
+  if ((type_flags & 0x1) != 0) {
+    stream_desc.flags = 0x10;
+  }
+
+  result = IDirectSound_CreateSoundStream(direct_sound_object, &stream_desc,
+                                          &channel->stream, NULL);
+  if (result >= 0) {
+    if ((type_flags & 0x1) != 0) {
+      csmemset(&location, 0, sizeof(location));
+      location.field_0c.i = global_forward_vector_ptr[0];
+      location.field_0c.j = global_forward_vector_ptr[1];
+      location.field_0c.k = global_forward_vector_ptr[2];
+      dsound_channel_set_location(channel_index, 0, (float *)&location, 0.0f,
+                                  0.0f, 0);
+    } else {
+      IDirectSound_GetSpeakerConfig(direct_sound_object, &speaker_config);
+      if ((speaker_config & 0x10000) != 0) {
+        if ((type_flags & 0x2) == 0) {
+          mix_bin_mask = (1 << XDSMIXBIN_FRONT_LEFT) |
+                         (1 << XDSMIXBIN_FRONT_RIGHT) |
+                         (1 << XDSMIXBIN_FRONT_CENTER);
+          volumes[0] = sound_dsound_gain_to_volume(0.5f, 0);
+          volumes[1] = sound_dsound_gain_to_volume(0.5f, 0);
+          volumes[2] = sound_dsound_gain_to_volume(0.5f, 0);
+        } else {
+          mix_bin_mask =
+            (1 << XDSMIXBIN_FRONT_LEFT) | (1 << XDSMIXBIN_FRONT_RIGHT) |
+            (1 << XDSMIXBIN_BACK_LEFT) | (1 << XDSMIXBIN_BACK_RIGHT) | 0x1800;
+          volumes[0] = sound_dsound_gain_to_volume(1.0f, 0);
+          volumes[1] = sound_dsound_gain_to_volume(1.0f, 0);
+          volumes[2] = sound_dsound_gain_to_volume(0.5f, 0);
+          volumes[3] = sound_dsound_gain_to_volume(0.5f, 0);
+          volumes[4] = sound_dsound_gain_to_volume(0.5f, 0);
+          volumes[5] = sound_dsound_gain_to_volume(0.5f, 0);
+        }
+      } else {
+        if ((type_flags & 0x2) != 0) {
+          goto update_properties;
+        }
+        mix_bin_mask =
+          (1 << XDSMIXBIN_FRONT_LEFT) | (1 << XDSMIXBIN_FRONT_RIGHT);
+        volumes[0] = sound_dsound_gain_to_volume(0.5f, 0);
+        volumes[1] = sound_dsound_gain_to_volume(0.5f, 0);
+      }
+      IDirectSoundStream_SetMixBins(channel->stream, mix_bin_mask);
+      IDirectSoundStream_SetMixBinVolumes_12(channel->stream, mix_bin_mask,
+                                             volumes);
+    }
+  update_properties:
+    success = true;
+    csmemset(properties, 0, sizeof(properties));
+    properties[0] = 1.0f;
+    properties[1] = 1.0f;
+    sound_dsound_update_channel_properties(properties, channel_index, 0);
+  } else {
+    sound_dsound_log_error(result, "couldn't create sound stream.");
+    success = false;
+  }
+
+  return success;
 }
 
 /* dsound_initialize (0x1cb4c0)

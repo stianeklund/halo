@@ -27423,6 +27423,12 @@
      "comment": "Added from Ghidra function list (missing from kb.json; found by standalone bring-up 2026-09-27). Stack pops 0 bytes (original ret N)."
     },
     {
+     "addr": "0x1cb210",
+     "decl": "boolean dsound_initialize_channel(short type_flags@<ax>, short channel_index);",
+     "comment": "[NAME: dsound_initialize_channel \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
+    },
+    {
      "addr": "0x1cb4c0",
      "decl": "boolean dsound_initialize(short *preferences);",
      "comment": "[NAME: dsound_initialize \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
@@ -27430,7 +27436,19 @@
     }
    ],
    "name": "sound_dsound_xbox.obj",
-   "source": "sound/sound_dsound_xbox.c"
+   "source": "sound/sound_dsound_xbox.c",
+   "data": [
+    {
+     "addr": "0x2bcc1c",
+     "decl": "unsigned int dsound_pcm_sample_rate;",
+     "comment": "Holds 44100 (0xac44). Read by dsound_initialize_channel as the PCM stream sample rate when type_flags bit 3 (compressed) is clear. Name from use, not from a symbol."
+    },
+    {
+     "addr": "0x50545c",
+     "decl": "void *direct_sound_object;",
+     "comment": "The DirectSound object: written by DirectSoundCreate in dsound_initialize and passed as the object argument of every IDirectSound_* call in sound_dsound_xbox.c."
+    }
+   ]
   },
   {
    "functions": [
@@ -27768,12 +27786,6 @@
      "decl": "void dsound_virtual_set_location(int channel_index, char flag_0c, float *location, float value_10, float value_14, char flag_18);",
      "comment": "[NAME: dsound_virtual_set_location \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
      "ported": true
-    },
-    {
-     "addr": "0x1cb210",
-     "decl": "boolean dsound_initialize_channel(short type_flags@<ax>, short channel_index);",
-     "comment": "[NAME: dsound_initialize_channel \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
-     "ported": false
     },
     {
      "addr": "0x1cb820",
@@ -43657,12 +43669,13 @@
     },
     {
      "addr": "0x1be6b0",
-     "decl": "void render_inverse_transform_screen_point_0(void);",
+     "decl": "void render_inverse_transform_screen_point_0(float *screen_point @<edx>, float *point @<eax>, float *direction @<ecx>);",
      "comment": "[NAME: render_inverse_transform_screen_point_0 \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
     },
     {
      "addr": "0x1be7b0",
-     "decl": "void FUN_001be7b0(void);"
+     "decl": "void FUN_001be7b0(void);",
+     "ported": true
     },
     {
      "addr": "0x1be090",
