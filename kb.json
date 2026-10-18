@@ -22186,7 +22186,8 @@
      "reg_args": {
       "ring_entry": "eax",
       "out_buf": "esi"
-     }
+     },
+     "ported": true
     },
     {
      "addr": "0x90170",
@@ -23129,7 +23130,8 @@
     },
     {
      "addr": "0x170c90",
-     "decl": "void FUN_00170c90(void *effect);"
+     "decl": "void FUN_00170c90(void *effect);",
+     "ported": true
     },
     {
      "addr": "0x172520",
@@ -28256,12 +28258,14 @@
     },
     {
      "addr": "0x192bb0",
-     "decl": "void normalize_three_dee(void);",
-     "comment": "[NAME: normalize_three_dee \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "decl": "float normalize_three_dee(float *vector@<eax>);",
+     "comment": "[NAME: normalize_three_dee \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x192c30",
-     "decl": "int16_t intersect_planes3d(float *plane@<esi>, float *other_plane, float *line);"
+     "decl": "int16_t intersect_planes3d(float *plane@<esi>, float *other_plane, float *line);",
+     "ported": true
     },
     {
      "addr": "0x192da0",
@@ -41774,8 +41778,9 @@
     },
     {
      "addr": "0x74a30",
-     "decl": "void FUN_00074a30(void);",
-     "comment": "[NAME: TIFFWriteTile \u2014 CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]"
+     "decl": "void *FUN_00074a30(void *bitmap, bool param_2, bool param_3, bool param_4);",
+     "comment": "[NAME: TIFFWriteTile \u2014 CEA PDB line-containment (high_confidence), cea-deferred 2026-09-03]",
+     "ported": true
     }
    ],
    "name": "tif_write.obj",
@@ -44367,7 +44372,8 @@
     },
     {
      "addr": "0x5f550",
-     "decl": "char path_state_estimated_distance(void *path_state, void *fp_element, int surface_index, float *result, float *opt_min_clearance, float *opt_out_vec);"
+     "decl": "char path_state_estimated_distance(void *path_state, void *fp_element, int surface_index, float *result, float *opt_min_clearance, float *opt_out_vec);",
+     "ported": true
     },
     {
      "addr": "0x5f740",
@@ -44541,7 +44547,8 @@
     {
      "addr": "0x61080",
      "decl": "char path_test_pill2d(float *point@<edi>, float *direction@<ebx>, void *structure_bsp, unsigned char ignore_breakable, void *obstacles, int16_t disc_index, int surface_index, float radius, float max_distance, unsigned char param_8, unsigned char param_9, unsigned char param_10, void *result);",
-     "comment": "[NAME: path_test_pill2d \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "comment": "[NAME: path_test_pill2d \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x61280",
@@ -44560,7 +44567,8 @@
     },
     {
      "addr": "0x61750",
-     "decl": "char FUN_00061750(unsigned int param_1, int param_2, void *param_3, int *param_4, void *param_5, char *param_6);"
+     "decl": "char FUN_00061750(unsigned int param_1, int param_2, void *param_3, int *param_4, void *param_5, char *param_6);",
+     "ported": true
     }
    ],
    "name": "path_obstacle_avoidance.obj",

@@ -21,17 +21,17 @@ with the same long-term goals and binary-faithful methodology. Differences from 
 Game Code Progress
 ------------------
 <!-- GAME_CODE_PROGRESS_START -->
-[![Decompilation Progress](https://img.shields.io/badge/decompilation-96.04%25-brightgreen.svg)](https://stianeklund.github.io/halo/)
-[![Ported Functions](https://img.shields.io/badge/functions-6,745%2F7,023-blue.svg)](https://stianeklund.github.io/halo/)
+[![Decompilation Progress](https://img.shields.io/badge/decompilation-96.16%25-brightgreen.svg)](https://stianeklund.github.io/halo/)
+[![Ported Functions](https://img.shields.io/badge/functions-6,753%2F7,023-blue.svg)](https://stianeklund.github.io/halo/)
 
 Progress breakdown from the [Decompilation Progress Dashboard](https://stianeklund.github.io/halo/):
 
-* **Ported Functions:** `6,745 / 7,023` (`96.04%`)
-  `[██████████████████████████████████████░░] 96.04%`
-* **Ported Code Bytes:** `1,513,462 / 1,729,914` (`87.49%`)
-  `[███████████████████████████████████░░░░░] 87.49%`
+* **Ported Functions:** `6,753 / 7,023` (`96.16%`)
+  `[██████████████████████████████████████░░] 96.16%`
+* **Ported Code Bytes:** `1,523,098 / 1,729,914` (`88.04%`)
+  `[███████████████████████████████████░░░░░] 88.04%`
 * **Average VC71 Mnemonic Match:** `95.50%` (`6,715` scored functions, size-weighted: `92.10%`; structural signal, not raw-byte accuracy)
-* **Equivalence Tests:** `5,738` functions tested (`2,072` high confidence)
+* **Equivalence Tests:** `5,736` functions tested (`2,072` high confidence)
 * **Translation Units:** `194` source units (`39` platform/SDK buckets tracked separately)
 
 > Explore the interactive call graph and unit breakdown: **[Decompilation Progress Dashboard](https://stianeklund.github.io/halo/)** (or locally at [`artifacts/progress/index.html`](artifacts/progress/index.html))

@@ -104,8 +104,8 @@ double pow(double x, double y);
  *  - 0016df55 PUSH EBX(=1) / PUSH 0 / PUSH ESI: last push is the first
  *    argument, so xbox_texture_cache_get_hardware_format(bitmap, 0, 1).
  *  - 0016df7d PUSH 0 / PUSH EBX / PUSH 0 / PUSH 0 / PUSH 4 =>
- *    rasterizer_set_target(4, 0, 0, 1, 0); the shared ADD ESP,0x1c at 0016df99 also
- *    retires rasterizer_set_texture_bitmap_data's two pushes (cdecl group).
+ *    rasterizer_set_target(4, 0, 0, 1, 0); the shared ADD ESP,0x1c at 0016df99
+ * also retires rasterizer_set_texture_bitmap_data's two pushes (cdecl group).
  *  - 0016e077 PUSH 0 / PUSH 8 / PUSH 4 => FUN_00178b40(4, 8, 0).
  *  - vs_const is the EBP-0x50..EBP-0x4 dword block (20 dwords) uploaded by
  *    D3DDevice_SetVertexShaderConstant(-0x44, &vs_const, 5).
@@ -218,34 +218,35 @@ void _rasterizer_hud_motion_sensor_blip_draw(float *position, float intensity,
   blip_bitmap = FUN_00076ff0(interface_get_tag_index(0xc), 0);
   large_blip_bitmap = FUN_00076ff0(interface_get_tag_index(0xd), 0);
   if (*(int *)0x476ab0 == 0) {
-    display_assert("global_d3d_device",
-                   "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_motion_sensor.c",
-                   0x6d, 1);
+    display_assert(
+      "global_d3d_device",
+      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_motion_sensor.c",
+      0x6d, 1);
     system_exit(-1);
   }
 
-  rasterizer_set_texture_bitmap_data(0,
-                                     large_blip ? large_blip_bitmap : blip_bitmap);
+  rasterizer_set_texture_bitmap_data(0, large_blip ? large_blip_bitmap :
+                                                     blip_bitmap);
   if (*(uint8_t *)0x3256db != 0 && *(uint8_t *)0x47e007 != 0) {
     radius = size * 0.0625f;
     scaled_position[0] = position[0] * -0.03125f;
     scaled_position[1] = position[1] * -0.03125f;
 
     D3DDevice_Begin(7);
-    D3DDevice_SetVertexData4f(9, color[0] * intensity,
-                             color[1] * intensity, color[2] * intensity, 1.0f);
+    D3DDevice_SetVertexData4f(9, color[0] * intensity, color[1] * intensity,
+                              color[2] * intensity, 1.0f);
     D3DDevice_SetVertexData2s(4, 0, 0);
     D3DDevice_SetVertexData2f(0, scaled_position[0] - radius,
-                             scaled_position[1] + radius);
+                              scaled_position[1] + radius);
     D3DDevice_SetVertexData2s(4, 1, 0);
     D3DDevice_SetVertexData2f(0, scaled_position[0] + radius,
-                             scaled_position[1] + radius);
+                              scaled_position[1] + radius);
     D3DDevice_SetVertexData2s(4, 1, 1);
     D3DDevice_SetVertexData2f(0, scaled_position[0] + radius,
-                             scaled_position[1] - radius);
+                              scaled_position[1] - radius);
     D3DDevice_SetVertexData2s(4, 0, 1);
     D3DDevice_SetVertexData2f(0, scaled_position[0] - radius,
-                             scaled_position[1] - radius);
+                              scaled_position[1] - radius);
     D3DDevice_End();
   }
 }
@@ -1454,6 +1455,609 @@ int FUN_001703f0(void *device, uint32_t reg, float a, float b)
   return 0;
 }
 
+#include "d3d8_states.h"
+#include "halo/bitmaps/bitmap_data.h"
+
+#define RASTERIZER_SCREEN_EFFECT_FILE \
+  "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox_screen_effect.c"
+#define RASTERIZER_MAXIMUM_COMBINER_STAGES 8
+#define NUMBER_OF_RASTERIZER_SCREEN_EFFECT_VIDEO_OVERBRIGHT_MODES 3
+#define D3DPT_TRIANGLEFAN 7
+#define VSDE_VERTEX 0
+#define VSDE_TEXCOORD0 4
+#ifndef D3DBLEND_INVSRCALPHA
+#define D3DBLEND_INVSRCALPHA 0x303
+#endif
+
+/* Screen-effect parameter block returned by
+ * rasterizer_screen_effect_get_cinematic_parameters. Only
+ * video_overbright_mode is named by a binary string; every other field is an
+ * observed access whose meaning is not proven. */
+typedef struct {
+  int16_t field_00; ///< offset=0x00
+  int16_t field_02; ///< offset=0x02
+  float field_04; ///< offset=0x04
+  void *field_08; ///< offset=0x08
+  float field_0c; ///< offset=0x0c
+  float field_10; ///< offset=0x10
+  float field_14[3]; ///< offset=0x14
+  char field_20; ///< offset=0x20
+  char field_21; ///< offset=0x21
+  char field_22; ///< offset=0x22
+  char field_23; ///< offset=0x23
+  int16_t video_overbright_mode; ///< offset=0x24
+  byte pad_26[2]; ///< offset=0x26
+  void *field_28; ///< offset=0x28
+  float field_2c; ///< offset=0x2c
+  byte pad_30[4]; ///< offset=0x30
+  bitmap_data *field_34; ///< offset=0x34
+} rasterizer_screen_effect_parameters;
+co(rasterizer_screen_effect_parameters, field_02, 0x02);
+co(rasterizer_screen_effect_parameters, field_08, 0x08);
+co(rasterizer_screen_effect_parameters, field_14, 0x14);
+co(rasterizer_screen_effect_parameters, field_23, 0x23);
+co(rasterizer_screen_effect_parameters, video_overbright_mode, 0x24);
+co(rasterizer_screen_effect_parameters, field_28, 0x28);
+co(rasterizer_screen_effect_parameters, field_2c, 0x2c);
+co(rasterizer_screen_effect_parameters, field_34, 0x34);
+
+/* The 0xf0-byte pixel-shader definition handed to rasterizer_set_pixel_shader,
+ * in the stock XDK D3DPIXELSHADERDEF field order (see rasterizer_xbox.c). */
+typedef struct {
+  uint32_t alpha_inputs[8]; ///< offset=0x00
+  uint32_t final_combiner_inputs_abcd; ///< offset=0x20
+  uint32_t final_combiner_inputs_efg; ///< offset=0x24
+  uint32_t constant0[8]; ///< offset=0x28
+  uint32_t constant1[8]; ///< offset=0x48
+  uint32_t alpha_outputs[8]; ///< offset=0x68
+  uint32_t rgb_inputs[8]; ///< offset=0x88
+  uint32_t compare_mode; ///< offset=0xa8
+  uint32_t final_combiner_constant0; ///< offset=0xac
+  uint32_t final_combiner_constant1; ///< offset=0xb0
+  uint32_t rgb_outputs[8]; ///< offset=0xb4
+  uint32_t combiner_count; ///< offset=0xd4
+  uint32_t texture_modes; ///< offset=0xd8
+  uint32_t dot_mapping; ///< offset=0xdc
+  uint32_t input_texture; ///< offset=0xe0
+  uint32_t c0_mapping; ///< offset=0xe4
+  uint32_t c1_mapping; ///< offset=0xe8
+  uint32_t final_combiner_constants; ///< offset=0xec
+} rasterizer_pixel_shader_definition;
+cs(rasterizer_pixel_shader_definition, 0xf0);
+co(rasterizer_pixel_shader_definition, final_combiner_constant0, 0xac);
+co(rasterizer_pixel_shader_definition, rgb_outputs, 0xb4);
+co(rasterizer_pixel_shader_definition, texture_modes, 0xd8);
+
+#define global_screen_effect_pixel_shader \
+  (*(rasterizer_pixel_shader_definition *)0x5a5ac0)
+#define global_screen_effect_window_parameters \
+  (*(rasterizer_window_begin_parameters *)0x5a5bc0)
+
+/* Reports a failed D3D call; the device calls here return S_OK, so the flag
+ * only carries an earlier failure forward. */
+#define SCREEN_EFFECT_VERIFY_D3D_CALL(call_text) \
+  do {                                           \
+    if (success) {                               \
+      success = 1;                            \
+    } else {                                     \
+      success = 0;                           \
+      rasterizer_error(0, (call_text));          \
+    }                                            \
+  } while (0)
+
+/* 0x170c90 -- rasterizer_xbox_screen_effect.c (assert __FILE__ 0x2a3e80).
+ *
+ * - The single call-site ARG_COUNT hazard at 0x170ccf is a false positive:
+ *   ADD ESP,8 at 0x170cd6 retires both the FUN_0016f910 push and the effect
+ *   push.
+ * - Overbright clamp (0x1712c7): TEST AH,5/JP then TEST AH,0x41/JNZ, i.e.
+ *   x < 0 -> 0, x > 1 -> 1, otherwise (including NaN) x.
+ * - The last-pass test is repeated at 0x171746 (two sequential ifs).
+ * - SetVertexData2s width is the 16-bit right-left; height is the 32-bit
+ *   difference of the viewport dwords at 0x5a5bf8/0x5a5bf4.
+ * - 0x2a41b8/0x2a41b4 are the x/y pixel-to-clip scale constants and
+ *   0x325700 is an unnamed enable byte; all three are read in place. */
+void FUN_00170c90(void *effect)
+{
+  rasterizer_screen_effect_parameters *parameters;
+  float vertex_bounds_x0;
+  float vertex_bounds_x1;
+  float vertex_bounds_y0;
+  float vertex_bounds_y1;
+  float gray[3];
+  int overbright_shifts
+    [NUMBER_OF_RASTERIZER_SCREEN_EFFECT_VIDEO_OVERBRIGHT_MODES];
+  float video_scale;
+  int viewport_width;
+  int viewport_height;
+  int alpha_input_a;
+  int alpha_input_b;
+  int last_pass;
+  short pass_count;
+  short pass;
+  short stage;
+  short combiner_count;
+  short source_target;
+  short destination_target;
+  char success;
+
+  success = 1;
+  if (*(int *)0x476ab0 == 0) {
+    display_assert("global_d3d_device", RASTERIZER_SCREEN_EFFECT_FILE, 0xfb, 1);
+    system_exit(-1);
+  }
+
+  FUN_0016f910(0x1a);
+  parameters = (rasterizer_screen_effect_parameters *)
+    rasterizer_screen_effect_get_cinematic_parameters(effect);
+  if (parameters != NULL &&
+      (parameters->field_02 != 0 || parameters->field_08 != NULL ||
+       parameters->field_0c > 0.0f || parameters->field_10 > 0.0f ||
+       parameters->field_23 != 0) &&
+      *(char *)0x325700 != 0 &&
+      global_screen_effect_window_parameters.rasterizer_target ==
+        _rasterizer_target_render_primary) {
+    pass_count = (short)((parameters->field_00 + 1) * 2);
+
+    if (parameters->field_23 != 0) {
+      if (parameters->field_28 == NULL) {
+        display_assert("video effect must specify scanline map",
+                       RASTERIZER_SCREEN_EFFECT_FILE, 0x114, 1);
+        system_exit(-1);
+      }
+      if (parameters->field_34 == NULL) {
+        display_assert("video effect must specify noise map",
+                       RASTERIZER_SCREEN_EFFECT_FILE, 0x115, 1);
+        system_exit(-1);
+      }
+      if (parameters->field_00 != 0) {
+        display_assert("video effect cannot specify extra convolution passes",
+                       RASTERIZER_SCREEN_EFFECT_FILE, 0x116, 1);
+        system_exit(-1);
+      }
+      if (parameters->field_02 != 0) {
+        display_assert("video effect cannot specify convolution type",
+                       RASTERIZER_SCREEN_EFFECT_FILE, 0x117, 1);
+        system_exit(-1);
+      }
+      if (parameters->field_04 != 0.0f) {
+        display_assert("video effect cannot specify nonzero convolution radius",
+                       RASTERIZER_SCREEN_EFFECT_FILE, 0x118, 1);
+        system_exit(-1);
+      }
+      if (parameters->field_08 != NULL) {
+        display_assert("video effect cannot specify convolution mask",
+                       RASTERIZER_SCREEN_EFFECT_FILE, 0x119, 1);
+        system_exit(-1);
+      }
+    }
+    if (parameters->field_02 == 1 && parameters->field_08 != NULL) {
+      display_assert("blur effect cannot specify convolution mask",
+                     RASTERIZER_SCREEN_EFFECT_FILE, 0x11e, 1);
+      system_exit(-1);
+    }
+
+    FUN_00178b40(0x26, 8, 0);
+
+    for (pass = 0; pass < pass_count; pass++) {
+      if (pass_count == 1) {
+        if (pass != 0) {
+          display_assert("pass==0", RASTERIZER_SCREEN_EFFECT_FILE, 0x139, 1);
+          system_exit(-1);
+        }
+        source_target = NONE;
+        destination_target = NONE;
+      } else if ((pass & 1) == 0) {
+        source_target = _rasterizer_target_render_primary;
+        destination_target = _rasterizer_target_render_primary_copy;
+      } else {
+        source_target = _rasterizer_target_render_primary_copy;
+        destination_target = _rasterizer_target_render_primary;
+      }
+
+      if ((pass & 1) != 0 && parameters->field_23 != 0) {
+        if (pass != 1) {
+          display_assert("pass==1", RASTERIZER_SCREEN_EFFECT_FILE, 0x14e, 1);
+          system_exit(-1);
+        }
+        FUN_001584f0(0, source_target, 0);
+        D3DDevice_SetTextureStageState(0, D3DTSS_ADDRESSU, D3DTADDRESS_CLAMP);
+        D3DDevice_SetTextureStageState(0, D3DTSS_ADDRESSV, D3DTADDRESS_CLAMP);
+        D3DDevice_SetTextureStageState(0, D3DTSS_MAGFILTER, D3DTEXF_POINT);
+        D3DDevice_SetTextureStageState(0, D3DTSS_MINFILTER, D3DTEXF_POINT);
+        D3DDevice_SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_POINT);
+        rasterizer_set_texture_bitmap_data(1, parameters->field_28);
+        D3DDevice_SetTextureStageState(1, D3DTSS_ADDRESSU, D3DTADDRESS_CLAMP);
+        D3DDevice_SetTextureStageState(1, D3DTSS_ADDRESSV, D3DTADDRESS_CLAMP);
+        D3DDevice_SetTextureStageState(1, D3DTSS_MAGFILTER, D3DTEXF_POINT);
+        D3DDevice_SetTextureStageState(1, D3DTSS_MINFILTER, D3DTEXF_POINT);
+        D3DDevice_SetTextureStageState(1, D3DTSS_MIPFILTER, D3DTEXF_POINT);
+        if ((parameters->field_34->flags & FLAG(_bitmap_linear_bit)) != 0) {
+          display_assert("video effect noise map cannot be in linear format",
+                         RASTERIZER_SCREEN_EFFECT_FILE, 0x15f, 1);
+          system_exit(-1);
+        }
+        rasterizer_set_texture_bitmap_data(2, parameters->field_34);
+        D3DDevice_SetTextureStageState(2, D3DTSS_ADDRESSU, D3DTADDRESS_WRAP);
+        D3DDevice_SetTextureStageState(2, D3DTSS_ADDRESSV, D3DTADDRESS_WRAP);
+        D3DDevice_SetTextureStageState(2, D3DTSS_MAGFILTER, D3DTEXF_LINEAR);
+        D3DDevice_SetTextureStageState(2, D3DTSS_MINFILTER, D3DTEXF_LINEAR);
+        D3DDevice_SetTextureStageState(2, D3DTSS_MIPFILTER, D3DTEXF_POINT);
+      } else {
+        for (stage = 0; stage < 4; stage++) {
+          if (parameters->field_02 == 0) {
+            if (pass_count == 1) {
+              if (pass != 0) {
+                display_assert("pass==0", RASTERIZER_SCREEN_EFFECT_FILE, 0x173,
+                               1);
+                system_exit(-1);
+              }
+              if (stage != 0) {
+                continue;
+              }
+              rasterizer_set_texture_bitmap_data(0, parameters->field_08);
+            } else if (pass == 0) {
+              if (stage != 0) {
+                continue;
+              }
+              FUN_001584f0(0, source_target, 0);
+            } else {
+              if (pass != 1) {
+                display_assert("### ERROR non-convolution effect tried to "
+                               "render more than 2 passes",
+                               RASTERIZER_SCREEN_EFFECT_FILE, 0x18e, 1);
+                system_exit(-1);
+              }
+              if (parameters->field_08 == NULL) {
+                if (stage != 0) {
+                  continue;
+                }
+                FUN_001584f0(0, source_target, 0);
+              } else if (stage == 0) {
+                rasterizer_set_texture_bitmap_data(0, parameters->field_08);
+              } else if (stage == 1) {
+                FUN_001584f0(1, source_target, 0);
+              } else {
+                continue;
+              }
+            }
+          } else if (stage == 0) {
+            if (parameters->field_08 != NULL) {
+              rasterizer_set_texture_bitmap_data(0, parameters->field_08);
+            } else {
+              FUN_001584f0(0, source_target, 0);
+            }
+          } else {
+            switch (stage) {
+            case 1:
+              FUN_001584f0(1, source_target, 0);
+              break;
+            case 2:
+              FUN_001584f0(2, source_target, 0);
+              break;
+            case 3:
+              FUN_001584f0(3, source_target, 0);
+              break;
+            default:
+              continue;
+            }
+          }
+          D3DDevice_SetTextureStageState(stage, D3DTSS_ADDRESSU,
+                                         D3DTADDRESS_CLAMP);
+          D3DDevice_SetTextureStageState(stage, D3DTSS_ADDRESSV,
+                                         D3DTADDRESS_CLAMP);
+          D3DDevice_SetTextureStageState(stage, D3DTSS_MAGFILTER,
+                                         D3DTEXF_LINEAR);
+          D3DDevice_SetTextureStageState(stage, D3DTSS_MINFILTER,
+                                         D3DTEXF_LINEAR);
+          D3DDevice_SetTextureStageState(stage, D3DTSS_MIPFILTER,
+                                         D3DTEXF_POINT);
+        }
+      }
+
+      D3DDevice_SetRenderState_CullMode(D3DCULL_NONE);
+      D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,
+                                      NV097_COLOR_MASK_RGB);
+      *(unsigned long *)0x1fb7a4 = NV097_COLOR_MASK_RGB;
+      D3DDevice_SetRenderState_Simple(NV097_SET_BLEND_ENABLE_CMD, 0);
+      *(unsigned long *)0x1fb784 = 0;
+      D3DDevice_SetRenderState_Simple(NV097_SET_ALPHA_TEST_ENABLE_CMD, 0);
+      *(unsigned long *)0x1fb788 = 0;
+      D3DDevice_SetRenderState_ZEnable(0);
+      D3DDevice_SetRenderState_ZBias(0);
+      FUN_00170440(parameters, pass, pass_count);
+      if (destination_target != NONE) {
+        rasterizer_set_target(destination_target, 0, 0, 0, 0);
+      }
+
+      if (parameters->field_23 != 0) {
+        csmemset(&global_screen_effect_pixel_shader, 0,
+                 sizeof(rasterizer_pixel_shader_definition));
+        if (pass == 0) {
+          global_screen_effect_pixel_shader.texture_modes = 1;
+          global_screen_effect_pixel_shader.combiner_count = 1;
+          global_screen_effect_pixel_shader.final_combiner_inputs_abcd = 8;
+          rasterizer_set_pixel_shader(&global_screen_effect_pixel_shader);
+        } else if (pass == 1) {
+          global_screen_effect_pixel_shader.texture_modes = 0x421;
+          global_screen_effect_pixel_shader.combiner_count = 4;
+          overbright_shifts[0] = 0;
+          overbright_shifts[1] = 0x10;
+          overbright_shifts[2] = 0x20;
+          if (parameters->field_2c < 0.0f) {
+            video_scale = 0.0f;
+          } else if (parameters->field_2c > 1.0f) {
+            video_scale = 1.0f;
+          } else {
+            video_scale = parameters->field_2c;
+          }
+          global_screen_effect_pixel_shader.constant0[0] =
+            FUN_00159070(video_scale);
+          global_screen_effect_pixel_shader.alpha_inputs[0] = 0x3120111a;
+          global_screen_effect_pixel_shader.alpha_outputs[0] = 0xc00;
+          global_screen_effect_pixel_shader.rgb_inputs[0] = 0x3120110a;
+          global_screen_effect_pixel_shader.rgb_outputs[0] = 0xc00;
+          global_screen_effect_pixel_shader.rgb_inputs[1] = 0xc091c19;
+          global_screen_effect_pixel_shader.rgb_outputs[1] = 0xc4;
+          global_screen_effect_pixel_shader.rgb_inputs[2] = 0x8080000;
+          global_screen_effect_pixel_shader.rgb_outputs[2] = 0xd0;
+          if (parameters->video_overbright_mode < 0 ||
+              parameters->video_overbright_mode >=
+                NUMBER_OF_RASTERIZER_SCREEN_EFFECT_VIDEO_OVERBRIGHT_MODES) {
+            display_assert("parameters->video_overbright_mode>=0 && "
+                           "parameters->video_overbright_mode<NUMBER_OF_"
+                           "RASTERIZER_SCREEN_EFFECT_VIDEO_OVERBRIGHT_MODES",
+                           RASTERIZER_SCREEN_EFFECT_FILE, 0x1f1, 1);
+            system_exit(-1);
+          }
+          global_screen_effect_pixel_shader.rgb_inputs[3] = 0xd0d0820;
+          global_screen_effect_pixel_shader.rgb_outputs[3] =
+            overbright_shifts[parameters->video_overbright_mode] << 12 | 0xd8;
+          global_screen_effect_pixel_shader.final_combiner_inputs_abcd =
+            0x2c0d0800;
+          global_screen_effect_pixel_shader.final_combiner_inputs_efg = 0x400;
+          D3DDevice_SetRenderState_Simple(NV097_SET_BLEND_ENABLE_CMD, 1);
+          *(unsigned long *)0x1fb784 = 1;
+          D3DDevice_SetRenderState_Simple(NV097_SET_BLEND_FUNC_SFACTOR_CMD,
+                                          D3DBLEND_INVSRCALPHA);
+          *(unsigned long *)0x1fb790 = D3DBLEND_INVSRCALPHA;
+          D3DDevice_SetRenderState_Simple(NV097_SET_BLEND_FUNC_DFACTOR_CMD,
+                                          D3DBLEND_ZERO);
+          *(unsigned long *)0x1fb794 = D3DBLEND_ZERO;
+          D3DDevice_SetRenderState_Simple(NV097_SET_BLEND_EQUATION_CMD,
+                                          D3DBLENDOP_ADD);
+          *(unsigned long *)0x1fb7c0 = D3DBLENDOP_ADD;
+          rasterizer_set_pixel_shader(&global_screen_effect_pixel_shader);
+        } else {
+          display_assert(
+            "### ERROR video effect tried to render more than 2 passes",
+            RASTERIZER_SCREEN_EFFECT_FILE, 0x201, 1);
+          system_exit(-1);
+        }
+      } else {
+        csmemset(&global_screen_effect_pixel_shader, 0,
+                 sizeof(rasterizer_pixel_shader_definition));
+        combiner_count = 0;
+        if (parameters->field_02 == 0) {
+          if (pass_count == 1) {
+            if (pass != 0) {
+              display_assert("pass==0", RASTERIZER_SCREEN_EFFECT_FILE, 0x211,
+                             1);
+              system_exit(-1);
+            }
+            global_screen_effect_pixel_shader.texture_modes = 1;
+            global_screen_effect_pixel_shader.rgb_inputs[0] = 0x8200000;
+            global_screen_effect_pixel_shader.rgb_outputs[0] = 0xc0;
+            combiner_count = 1;
+            global_screen_effect_pixel_shader.final_combiner_inputs_efg = 0x800;
+          } else if (pass == 0) {
+            global_screen_effect_pixel_shader.texture_modes = 1;
+            global_screen_effect_pixel_shader.rgb_inputs[0] = 0x8200000;
+            global_screen_effect_pixel_shader.rgb_outputs[0] = 0xc0;
+            combiner_count = 1;
+            global_screen_effect_pixel_shader.final_combiner_inputs_efg = 0;
+          } else if (pass == 1) {
+            combiner_count = 1;
+            global_screen_effect_pixel_shader.rgb_outputs[0] = 0xc0;
+            global_screen_effect_pixel_shader.texture_modes = 0x21;
+            if (parameters->field_08 != NULL) {
+              global_screen_effect_pixel_shader.rgb_inputs[0] = 0x9200000;
+              global_screen_effect_pixel_shader.final_combiner_inputs_efg =
+                0x800;
+            } else {
+              global_screen_effect_pixel_shader.rgb_inputs[0] = 0x8200000;
+              global_screen_effect_pixel_shader.final_combiner_inputs_efg = 0;
+            }
+          } else {
+            display_assert("### ERROR non-convolution effect tried to render "
+                           "more than 2 passes",
+                           RASTERIZER_SCREEN_EFFECT_FILE, 0x248, 1);
+            system_exit(-1);
+          }
+        } else {
+          global_screen_effect_pixel_shader.texture_modes = 0x8421;
+          if (parameters->field_08 != NULL) {
+            global_screen_effect_pixel_shader.rgb_inputs[0] = 0x89208a20;
+            global_screen_effect_pixel_shader.rgb_outputs[0] = 0xc00;
+            global_screen_effect_pixel_shader.constant0[1] =
+              FUN_00159070(0.33333334f);
+            global_screen_effect_pixel_shader.rgb_inputs[1] = 0xcc118b11;
+            global_screen_effect_pixel_shader.rgb_outputs[1] = 0xc00;
+            global_screen_effect_pixel_shader.rgb_inputs[2] = 0xcc20a020;
+            global_screen_effect_pixel_shader.rgb_outputs[2] = 0xc00;
+            global_screen_effect_pixel_shader.rgb_inputs[3] = 0x3809180c;
+            global_screen_effect_pixel_shader.rgb_outputs[3] = 0xc00;
+            combiner_count = 4;
+            global_screen_effect_pixel_shader.final_combiner_inputs_efg = 0x800;
+          } else {
+            global_screen_effect_pixel_shader.rgb_inputs[0] = 0x88208920;
+            global_screen_effect_pixel_shader.rgb_outputs[0] = 0x30c00;
+            global_screen_effect_pixel_shader.rgb_inputs[1] = 0x8a208b20;
+            global_screen_effect_pixel_shader.rgb_outputs[1] = 0x30d00;
+            global_screen_effect_pixel_shader.rgb_inputs[2] = 0xcc20cd20;
+            global_screen_effect_pixel_shader.rgb_outputs[2] = 0x30c00;
+            global_screen_effect_pixel_shader.rgb_inputs[3] = 0xcc20a020;
+            global_screen_effect_pixel_shader.rgb_outputs[3] = 0xc00;
+            combiner_count = 4;
+            global_screen_effect_pixel_shader.final_combiner_inputs_efg = 0;
+          }
+        }
+        global_screen_effect_pixel_shader.final_combiner_inputs_abcd = 0xc;
+
+        alpha_input_a = parameters->field_21 != 0 ? 0x68 : 0x20;
+        alpha_input_b = parameters->field_22 != 0 ? 0x68 : 0x20;
+        global_screen_effect_pixel_shader.constant0[combiner_count] =
+          FUN_00159070(parameters->field_0c);
+        global_screen_effect_pixel_shader.constant1[combiner_count] =
+          FUN_00159070(parameters->field_10);
+        global_screen_effect_pixel_shader.alpha_inputs[combiner_count] =
+          (alpha_input_a << 16) | alpha_input_b | 0x11001200;
+        global_screen_effect_pixel_shader.alpha_outputs[combiner_count] = 0xcd;
+        last_pass = pass_count - 1;
+        if (pass == last_pass && parameters->field_0c > 0.0f) {
+          global_screen_effect_pixel_shader.rgb_inputs[combiner_count] =
+            0x2c2c0000;
+          global_screen_effect_pixel_shader.rgb_outputs[combiner_count] = 0xd00;
+          combiner_count++;
+          global_screen_effect_pixel_shader.rgb_inputs[combiner_count] =
+            0xd0d0000;
+          global_screen_effect_pixel_shader.rgb_outputs[combiner_count] = 0xd00;
+          global_screen_effect_pixel_shader.final_combiner_inputs_abcd =
+            0x3c0c2d00;
+          combiner_count++;
+          global_screen_effect_pixel_shader.final_combiner_inputs_efg =
+            (parameters->field_08 != NULL ? 8 : 0) << 8;
+        }
+        if (pass == last_pass && parameters->field_10 > 0.0f) {
+          gray[0] = 0.33333334f;
+          gray[1] = 0.33333334f;
+          gray[2] = 0.33333334f;
+          if (parameters->field_0c > 0.0f) {
+            global_screen_effect_pixel_shader.constant0[combiner_count] =
+              FUN_00159070(parameters->field_0c);
+            global_screen_effect_pixel_shader.rgb_inputs[combiner_count] =
+              0x3c0c1c2d;
+            global_screen_effect_pixel_shader.rgb_outputs[combiner_count] =
+              0xc00;
+            combiner_count++;
+          }
+          global_screen_effect_pixel_shader.constant0[combiner_count] =
+            real_rgb_color_to_pixel32(gray);
+          global_screen_effect_pixel_shader.rgb_inputs[combiner_count] =
+            0xc010000;
+          global_screen_effect_pixel_shader.rgb_outputs[combiner_count] =
+            0x20d0;
+          combiner_count++;
+          if (parameters->field_20 != 0) {
+            global_screen_effect_pixel_shader.final_combiner_constant0 =
+              real_rgb_color_to_pixel32(parameters->field_14);
+            global_screen_effect_pixel_shader.final_combiner_inputs_abcd =
+              0x1d0f000c;
+            global_screen_effect_pixel_shader.final_combiner_inputs_efg =
+              ((parameters->field_08 != NULL ? 8 : 0) | 0x10d00) << 8;
+          } else {
+            global_screen_effect_pixel_shader.final_combiner_constant0 =
+              real_rgb_color_to_pixel32(parameters->field_14);
+            global_screen_effect_pixel_shader.final_combiner_inputs_abcd =
+              0x1d0f0c00;
+            global_screen_effect_pixel_shader.final_combiner_inputs_efg =
+              ((parameters->field_08 != NULL ? 8 : 0) | 0x10d00) << 8;
+          }
+        }
+        if (combiner_count > RASTERIZER_MAXIMUM_COMBINER_STAGES) {
+          display_assert("combiner_count<=RASTERIZER_MAXIMUM_COMBINER_STAGES",
+                         RASTERIZER_SCREEN_EFFECT_FILE, 0x2c1, 1);
+          system_exit(-1);
+        }
+        global_screen_effect_pixel_shader.combiner_count =
+          (int)combiner_count | 0x11000;
+        rasterizer_set_pixel_shader(&global_screen_effect_pixel_shader);
+        if (pass_count == 1) {
+          D3DDevice_SetRenderState_Simple(NV097_SET_BLEND_ENABLE_CMD, 1);
+          *(unsigned long *)0x1fb784 = 1;
+          D3DDevice_SetRenderState_Simple(NV097_SET_BLEND_FUNC_SFACTOR_CMD,
+                                          D3DBLEND_ZERO);
+          *(unsigned long *)0x1fb790 = D3DBLEND_ZERO;
+          SetRenderStateSmart(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+          SetRenderStateSmart(D3DRS_BLENDOP, D3DBLENDOP_ADD);
+        } else if (pass == last_pass) {
+          SetRenderStateSmart(D3DRS_ALPHABLENDENABLE, 1);
+          SetRenderStateSmart(D3DRS_SRCBLEND, D3DBLEND_INVSRCALPHA);
+          SetRenderStateSmart(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+          SetRenderStateSmart(D3DRS_BLENDOP, D3DBLENDOP_ADD);
+        }
+      }
+
+      /* viewport bounds rectangle2d {top, left, bottom, right} at 0x5a5bf4 */
+      viewport_width =
+        (unsigned short)(*(short *)0x5a5bfa - *(short *)0x5a5bf6);
+      viewport_height = *(int *)0x5a5bf8 - *(int *)0x5a5bf4;
+      if (pass == 0 && (short)main_get_window_count() > 1 && pass_count != 1) {
+        vertex_bounds_x0 =
+          (float)(*(short *)0x5a5bf6 * 2) * *(const float *)0x2a41b8 - 1.0f;
+        vertex_bounds_x1 =
+          (float)(*(short *)0x5a5bfa * 2) * *(const float *)0x2a41b8 - 1.0f;
+        vertex_bounds_y0 =
+          (float)(-*(short *)0x5a5bf4 * 2) * *(const float *)0x2a41b4 + 1.0f;
+        vertex_bounds_y1 =
+          (float)(-*(short *)0x5a5bf8 * 2) * *(const float *)0x2a41b4 + 1.0f;
+      } else {
+        vertex_bounds_y1 = -1.0f;
+        vertex_bounds_x0 = -1.0f;
+        vertex_bounds_y0 = 1.0f;
+        vertex_bounds_x1 = 1.0f;
+      }
+
+      D3DDevice_Begin(D3DPT_TRIANGLEFAN);
+      SCREEN_EFFECT_VERIFY_D3D_CALL(
+        "IDirect3DDevice8_Begin(global_d3d_device, D3DPT_TRIANGLEFAN)");
+      D3DDevice_SetVertexData2s(VSDE_TEXCOORD0, 0, viewport_height);
+      SCREEN_EFFECT_VERIFY_D3D_CALL("IDirect3DDevice8_SetVertexData2s(global_"
+                                    "d3d_device, 4, 0, viewport_height)");
+      D3DDevice_SetVertexData2f(VSDE_VERTEX, vertex_bounds_x0,
+                                vertex_bounds_y1);
+      SCREEN_EFFECT_VERIFY_D3D_CALL(
+        "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
+        "vertex_bounds.x0, vertex_bounds.y1)");
+      D3DDevice_SetVertexData2s(VSDE_TEXCOORD0, viewport_width,
+                                viewport_height);
+      SCREEN_EFFECT_VERIFY_D3D_CALL(
+        "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, "
+        "viewport_width, viewport_height)");
+      D3DDevice_SetVertexData2f(VSDE_VERTEX, vertex_bounds_x1,
+                                vertex_bounds_y1);
+      SCREEN_EFFECT_VERIFY_D3D_CALL(
+        "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
+        "vertex_bounds.x1, vertex_bounds.y1)");
+      D3DDevice_SetVertexData2s(VSDE_TEXCOORD0, viewport_width, 0);
+      SCREEN_EFFECT_VERIFY_D3D_CALL("IDirect3DDevice8_SetVertexData2s(global_"
+                                    "d3d_device, 4, viewport_width, 0)");
+      D3DDevice_SetVertexData2f(VSDE_VERTEX, vertex_bounds_x1,
+                                vertex_bounds_y0);
+      SCREEN_EFFECT_VERIFY_D3D_CALL(
+        "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
+        "vertex_bounds.x1, vertex_bounds.y0)");
+      D3DDevice_SetVertexData2s(VSDE_TEXCOORD0, 0, 0);
+      SCREEN_EFFECT_VERIFY_D3D_CALL(
+        "IDirect3DDevice8_SetVertexData2s(global_d3d_device, 4, 0, 0)");
+      D3DDevice_SetVertexData2f(VSDE_VERTEX, vertex_bounds_x0,
+                                vertex_bounds_y0);
+      SCREEN_EFFECT_VERIFY_D3D_CALL(
+        "IDirect3DDevice8_SetVertexData2f(global_d3d_device, VSDE_VERTEX, "
+        "vertex_bounds.x0, vertex_bounds.y0)");
+      D3DDevice_End();
+      SCREEN_EFFECT_VERIFY_D3D_CALL("IDirect3DDevice8_End(global_d3d_device)");
+    }
+    rasterizer_set_target(
+      (unsigned short)global_screen_effect_window_parameters.rasterizer_target,
+      0, 0, 0, 1);
+  }
+  FUN_0016fa40(0x1a);
+  if (!success) {
+    error(2, "### ERROR rasterizer_screen_effect failed");
+  }
+}
+
 void FUN_00172520(void)
 {
   FUN_0016f910(4);
@@ -1886,28 +2490,29 @@ void FUN_001741d0(float *quad)
         success = 1;
       } else {
         success = 0;
-        rasterizer_error(0,
-                     "IDirect3DDevice8_SetVertexDataColor(global_d3d_device, "
-                     "9, vertices[vertex_index].color)");
+        rasterizer_error(
+          0, "IDirect3DDevice8_SetVertexDataColor(global_d3d_device, "
+             "9, vertices[vertex_index].color)");
       }
       D3DDevice_SetVertexData2f(4, v[-1], v[0]);
       if (success != 0) {
         success = 1;
       } else {
         success = 0;
-        rasterizer_error(0,
-                     "IDirect3DDevice8_SetVertexData2f(global_d3d_device, 4, "
-                     "vertices[vertex_index].texcoord.u, "
-                     "vertices[vertex_index].texcoord.v)");
+        rasterizer_error(
+          0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, 4, "
+             "vertices[vertex_index].texcoord.u, "
+             "vertices[vertex_index].texcoord.v)");
       }
       D3DDevice_SetVertexData2f(0, v[-3], v[-2]);
       if (success != 0) {
         success = 1;
       } else {
         success = 0;
-        rasterizer_error(0, "IDirect3DDevice8_SetVertexData2f(global_d3d_device, "
-                        "VSDE_VERTEX, vertices[vertex_index].position.x, "
-                        "vertices[vertex_index].position.y)");
+        rasterizer_error(0,
+                         "IDirect3DDevice8_SetVertexData2f(global_d3d_device, "
+                         "VSDE_VERTEX, vertices[vertex_index].position.x, "
+                         "vertices[vertex_index].position.y)");
       }
       v = v + 5;
       remaining = remaining - 1;
@@ -2020,11 +2625,13 @@ void FUN_00174510(void *group, int has_lightmap)
      * block and places the 0x15e0f0 block out of line at LAB_00174582, so the
      * test emits `je` rather than `jne`. */
     if (*(int *)(g + 0x58) != 0) {
-      rasterizer_draw_static_triangles_static_vertices(*(void **)(g + 0x48), *(int *)(g + 0x4c), *(int *)(g + 0x50),
-                   *(void **)(g + 0x58));
+      rasterizer_draw_static_triangles_static_vertices(
+        *(void **)(g + 0x48), *(int *)(g + 0x4c), *(int *)(g + 0x50),
+        *(void **)(g + 0x58));
     } else {
-      rasterizer_draw_static_triangles_dynamic_vertices(*(void **)(g + 0x48), *(int *)(g + 0x4c), *(int *)(g + 0x50),
-                   *(int *)(g + 0x54));
+      rasterizer_draw_static_triangles_dynamic_vertices(
+        *(void **)(g + 0x48), *(int *)(g + 0x4c), *(int *)(g + 0x50),
+        *(int *)(g + 0x54));
     }
     return;
   }
@@ -2034,11 +2641,14 @@ void FUN_00174510(void *group, int has_lightmap)
   vertex_buffer = *(char **)(g + 0x58);
   if (vertex_buffer != 0) {
     if ((char)has_lightmap != 0) {
-      rasterizer_draw_dynamic_triangles_static_vertices2(*(int *)(g + 0x44), *(int *)(g + 0x4c), *(int *)(g + 0x50),
-                   (const struct vertex_buffer *)vertex_buffer, (const struct vertex_buffer *)(vertex_buffer + 0x14));
+      rasterizer_draw_dynamic_triangles_static_vertices2(
+        *(int *)(g + 0x44), *(int *)(g + 0x4c), *(int *)(g + 0x50),
+        (const struct vertex_buffer *)vertex_buffer,
+        (const struct vertex_buffer *)(vertex_buffer + 0x14));
     } else {
-      rasterizer_draw_dynamic_triangles_static_vertices(*(int *)(g + 0x44), *(int *)(g + 0x4c), *(int *)(g + 0x50),
-                   (const struct vertex_buffer *)vertex_buffer);
+      rasterizer_draw_dynamic_triangles_static_vertices(
+        *(int *)(g + 0x44), *(int *)(g + 0x4c), *(int *)(g + 0x50),
+        (const struct vertex_buffer *)vertex_buffer);
     }
     return;
   }
@@ -2052,8 +2662,9 @@ void FUN_00174510(void *group, int has_lightmap)
   }
 
   if (*(int *)(g + 0x44) >= 0) {
-    rasterizer_draw_dynamic_triangles_dynamic_vertices(*(int *)(g + 0x44), *(int *)(g + 0x4c), *(int *)(g + 0x50),
-                 *(int *)(g + 0x54));
+    rasterizer_draw_dynamic_triangles_dynamic_vertices(
+      *(int *)(g + 0x44), *(int *)(g + 0x4c), *(int *)(g + 0x50),
+      *(int *)(g + 0x54));
     return;
   }
 
@@ -2075,6 +2686,151 @@ void FUN_00174510(void *group, int has_lightmap)
   }
   rasterizer_draw_dynamic_vertices(0, primitive_count, *(int *)(g + 0x54),
                                    vertices_per_primitive);
+}
+
+/* 0x174690 — per-TU instantiation of the D3D8 SetRenderState dispatcher
+ * (same chain as SetRenderStateSmart 0xe2220 in progress_bar.c).
+ *
+ * ABI evidence from the pristine disassembly:
+ *  - ESI (state) and EDI (value) are read before any write: implicit
+ *    register inputs @<esi>/@<edi>. Compares are JGE, i.e. signed state.
+ *  - RET 0x4 => __stdcall with one stack arg that is never read; it stays in
+ *    the signature so the callee-cleans immediate is preserved.
+ *  - Every exit is XOR EAX,EAX: returns 0 in EAX.
+ *
+ * state < 0x52: register token from the table at 0x282b90 goes to
+ * D3DDevice_SetRenderState_Simple(@<ecx>, value@<edx>), then value is stored
+ * at [state*4+0x1fb698]. [0x52,0x74) goes to
+ * D3DDevice_SetRenderState_Deferred(state@<ecx>, value@<edx>). The rest is a
+ * CMP/JNZ chain pushing value as the single __stdcall arg; the 0x7f-before-
+ * 0x7e order is verbatim from the binary. 0x8f falls through to the shared
+ * epilogue.
+ */
+/* 0x174690 */
+int FUN_00174690(void *a0, int state, uint32_t value)
+{
+  (void)a0;
+  if (state < 0x52) {
+    D3DDevice_SetRenderState_Simple(((const uint32_t *)0x282b90)[state], value);
+    ((uint32_t *)0x1fb698)[state] = value;
+    return 0;
+  }
+  if (state < 0x74) {
+    D3DDevice_SetRenderState_Deferred(state, value);
+    return 0;
+  }
+  if (state == 0x74) {
+    D3DDevice_SetRenderState_PSTextureModes(value);
+    return 0;
+  }
+  if (state == 0x75) {
+    D3DDevice_SetRenderState_VertexBlend(value);
+    return 0;
+  }
+  if (state == 0x76) {
+    D3DDevice_SetRenderState_FogColor(value);
+    return 0;
+  }
+  if (state == 0x77) {
+    D3DDevice_SetRenderState_FillMode(value);
+    return 0;
+  }
+  if (state == 0x78) {
+    D3DDevice_SetRenderState_BackFillMode(value);
+    return 0;
+  }
+  if (state == 0x79) {
+    D3DDevice_SetRenderState_TwoSidedLighting(value);
+    return 0;
+  }
+  if (state == 0x7a) {
+    D3DDevice_SetRenderState_NormalizeNormals(value);
+    return 0;
+  }
+  if (state == 0x7b) {
+    D3DDevice_SetRenderState_ZEnable(value);
+    return 0;
+  }
+  if (state == 0x7c) {
+    D3DDevice_SetRenderState_StencilEnable(value);
+    return 0;
+  }
+  if (state == 0x7d) {
+    D3DDevice_SetRenderState_StencilFail(value);
+    return 0;
+  }
+  if (state == 0x7f) {
+    D3DDevice_SetRenderState_CullMode(value);
+    return 0;
+  }
+  if (state == 0x7e) {
+    D3DDevice_SetRenderState_FrontFace(value);
+    return 0;
+  }
+  if (state == 0x80) {
+    D3DDevice_SetRenderState_TextureFactor(value);
+    return 0;
+  }
+  if (state == 0x81) {
+    D3DDevice_SetRenderState_ZBias(value);
+    return 0;
+  }
+  if (state == 0x82) {
+    D3DDevice_SetRenderState_LogicOp(value);
+    return 0;
+  }
+  if (state == 0x83) {
+    D3DDevice_SetRenderState_EdgeAntiAlias(value);
+    return 0;
+  }
+  if (state == 0x84) {
+    D3DDevice_SetRenderState_MultiSampleAntiAlias(value);
+    return 0;
+  }
+  if (state == 0x85) {
+    D3DDevice_SetRenderState_MultiSampleMask(value);
+    return 0;
+  }
+  if (state == 0x86) {
+    D3DDevice_SetRenderState_MultiSampleType(value);
+    return 0;
+  }
+  if (state == 0x87) {
+    D3DDevice_SetRenderState_ShadowFunc(value);
+    return 0;
+  }
+  if (state == 0x88) {
+    D3DDevice_SetRenderState_LineWidth(value);
+    return 0;
+  }
+  if (state == 0x89) {
+    D3DDevice_SetRenderState_Dxt1NoiseEnable(value);
+    return 0;
+  }
+  if (state == 0x8a) {
+    D3DDevice_SetRenderState_YuvEnable(value);
+    return 0;
+  }
+  if (state == 0x8b) {
+    D3DDevice_SetRenderState_OcclusionCullEnable(value);
+    return 0;
+  }
+  if (state == 0x8c) {
+    D3DDevice_SetRenderState_StencilCullEnable(value);
+    return 0;
+  }
+  if (state == 0x8d) {
+    D3DDevice_SetRenderState_RopZCmpAlwaysRead(value);
+    return 0;
+  }
+  if (state == 0x8e) {
+    D3DDevice_SetRenderState_RopZRead(value);
+    return 0;
+  }
+  if (state == 0x8f) {
+    D3DDevice_SetRenderState_DoNotCullUncompressed(value);
+  }
+  return 0;
 }
 
 /* 0x174980 — dead register-convention adapter for
@@ -2237,151 +2993,6 @@ void FUN_001749b0(void)
   }
 }
 
-/* 0x174690 — per-TU instantiation of the D3D8 SetRenderState dispatcher
- * (same chain as SetRenderStateSmart 0xe2220 in progress_bar.c).
- *
- * ABI evidence from the pristine disassembly:
- *  - ESI (state) and EDI (value) are read before any write: implicit
- *    register inputs @<esi>/@<edi>. Compares are JGE, i.e. signed state.
- *  - RET 0x4 => __stdcall with one stack arg that is never read; it stays in
- *    the signature so the callee-cleans immediate is preserved.
- *  - Every exit is XOR EAX,EAX: returns 0 in EAX.
- *
- * state < 0x52: register token from the table at 0x282b90 goes to
- * D3DDevice_SetRenderState_Simple(@<ecx>, value@<edx>), then value is stored
- * at [state*4+0x1fb698]. [0x52,0x74) goes to
- * D3DDevice_SetRenderState_Deferred(state@<ecx>, value@<edx>). The rest is a
- * CMP/JNZ chain pushing value as the single __stdcall arg; the 0x7f-before-
- * 0x7e order is verbatim from the binary. 0x8f falls through to the shared
- * epilogue.
- */
-/* 0x174690 */
-int FUN_00174690(void *a0, int state, uint32_t value)
-{
-  (void)a0;
-  if (state < 0x52) {
-    D3DDevice_SetRenderState_Simple(((const uint32_t *)0x282b90)[state], value);
-    ((uint32_t *)0x1fb698)[state] = value;
-    return 0;
-  }
-  if (state < 0x74) {
-    D3DDevice_SetRenderState_Deferred(state, value);
-    return 0;
-  }
-  if (state == 0x74) {
-    D3DDevice_SetRenderState_PSTextureModes(value);
-    return 0;
-  }
-  if (state == 0x75) {
-    D3DDevice_SetRenderState_VertexBlend(value);
-    return 0;
-  }
-  if (state == 0x76) {
-    D3DDevice_SetRenderState_FogColor(value);
-    return 0;
-  }
-  if (state == 0x77) {
-    D3DDevice_SetRenderState_FillMode(value);
-    return 0;
-  }
-  if (state == 0x78) {
-    D3DDevice_SetRenderState_BackFillMode(value);
-    return 0;
-  }
-  if (state == 0x79) {
-    D3DDevice_SetRenderState_TwoSidedLighting(value);
-    return 0;
-  }
-  if (state == 0x7a) {
-    D3DDevice_SetRenderState_NormalizeNormals(value);
-    return 0;
-  }
-  if (state == 0x7b) {
-    D3DDevice_SetRenderState_ZEnable(value);
-    return 0;
-  }
-  if (state == 0x7c) {
-    D3DDevice_SetRenderState_StencilEnable(value);
-    return 0;
-  }
-  if (state == 0x7d) {
-    D3DDevice_SetRenderState_StencilFail(value);
-    return 0;
-  }
-  if (state == 0x7f) {
-    D3DDevice_SetRenderState_CullMode(value);
-    return 0;
-  }
-  if (state == 0x7e) {
-    D3DDevice_SetRenderState_FrontFace(value);
-    return 0;
-  }
-  if (state == 0x80) {
-    D3DDevice_SetRenderState_TextureFactor(value);
-    return 0;
-  }
-  if (state == 0x81) {
-    D3DDevice_SetRenderState_ZBias(value);
-    return 0;
-  }
-  if (state == 0x82) {
-    D3DDevice_SetRenderState_LogicOp(value);
-    return 0;
-  }
-  if (state == 0x83) {
-    D3DDevice_SetRenderState_EdgeAntiAlias(value);
-    return 0;
-  }
-  if (state == 0x84) {
-    D3DDevice_SetRenderState_MultiSampleAntiAlias(value);
-    return 0;
-  }
-  if (state == 0x85) {
-    D3DDevice_SetRenderState_MultiSampleMask(value);
-    return 0;
-  }
-  if (state == 0x86) {
-    D3DDevice_SetRenderState_MultiSampleType(value);
-    return 0;
-  }
-  if (state == 0x87) {
-    D3DDevice_SetRenderState_ShadowFunc(value);
-    return 0;
-  }
-  if (state == 0x88) {
-    D3DDevice_SetRenderState_LineWidth(value);
-    return 0;
-  }
-  if (state == 0x89) {
-    D3DDevice_SetRenderState_Dxt1NoiseEnable(value);
-    return 0;
-  }
-  if (state == 0x8a) {
-    D3DDevice_SetRenderState_YuvEnable(value);
-    return 0;
-  }
-  if (state == 0x8b) {
-    D3DDevice_SetRenderState_OcclusionCullEnable(value);
-    return 0;
-  }
-  if (state == 0x8c) {
-    D3DDevice_SetRenderState_StencilCullEnable(value);
-    return 0;
-  }
-  if (state == 0x8d) {
-    D3DDevice_SetRenderState_RopZCmpAlwaysRead(value);
-    return 0;
-  }
-  if (state == 0x8e) {
-    D3DDevice_SetRenderState_RopZRead(value);
-    return 0;
-  }
-  if (state == 0x8f) {
-    D3DDevice_SetRenderState_DoNotCullUncompressed(value);
-  }
-  return 0;
-}
-
 /* FUN_00174b60: componentwise 4-float subtract, out = a - b (0x174b60).
  * Four FLD/FSUB m32/FSTP triples at offsets 0/4/8/0xc — the FLD is from
  * param1 and the FSUB against param2, so the direction is a - b (not
@@ -2390,13 +3001,14 @@ int FUN_00174690(void *a0, int state, uint32_t value)
  * Each lane is read immediately before being stored, so out may alias a
  * or b; keep the statement order as written. No naming evidence in the
  * binary for a semantic name, so the mechanical name is retained. */
-float * FUN_00174b60(float *a, float *b, float *out)
+float *FUN_00174b60(float *a, float *b, float *out)
 {
   out[0] = a[0] - b[0];
   out[1] = a[1] - b[1];
   out[2] = a[2] - b[2];
   out[3] = a[3] - b[3];
-return out; }
+  return out;
+}
 
 /* FUN_00174b90: componentwise 4-float scale-and-add, out = a + t * b
  * (0x174b90). The 4-component twin of the subtract helper at 0x174b60 above,
@@ -2421,13 +3033,14 @@ return out; }
  * operand-direction hazard. Pure leaf: no CALLs, no branches, no globals. No
  * naming evidence in the binary for a semantic name, so the mechanical name
  * is retained. */
-float * FUN_00174b90(float *a, float *b, float t, float *out)
+float *FUN_00174b90(float *a, float *b, float t, float *out)
 {
   out[0] = t * b[0] + a[0];
   out[1] = t * b[1] + a[1];
   out[2] = t * b[2] + a[2];
   out[3] = t * b[3] + a[3];
-return out; }
+  return out;
+}
 
 /* 0x174bd0 — allocate and prime the transparent-geometry texcoord stream.
  *
@@ -3090,10 +3703,10 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        rasterizer_error(0,
-                     "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
-                     "device, VSH_CONSTANTS__INVERSE_OFFSET, "
-                     "vsh_constants__inverse, VSH_CONSTANTS__INVERSE_COUNT)");
+        rasterizer_error(
+          0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
+             "device, VSH_CONSTANTS__INVERSE_OFFSET, "
+             "vsh_constants__inverse, VSH_CONSTANTS__INVERSE_COUNT)");
       }
       D3DDevice_SetVertexShaderConstant(-0x51, texanim1, 4);
       if (success != 0) {
@@ -3129,10 +3742,10 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          rasterizer_error(0,
-                       "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
-                       "device, VSH_CONSTANTS__ZSPRITE_OFFSET, "
-                       "vsh_constants__zsprite, VSH_CONSTANTS__ZSPRITE_COUNT)");
+          rasterizer_error(
+            0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
+               "device, VSH_CONSTANTS__ZSPRITE_OFFSET, "
+               "vsh_constants__zsprite, VSH_CONSTANTS__ZSPRITE_COUNT)");
         }
       }
       csmemset((void *)0x5a5ac0, 0, 0xf0);
@@ -3178,10 +3791,10 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         } else {
           success = 0;
-          rasterizer_error(0,
-                       "IDirect3DDevice8_SetStreamSource(global_d3d_device, 1, "
-                       "rasterizer_xbox_transparent_geometry_texcoord_stream, "
-                       "2*sizeof(byte))");
+          rasterizer_error(
+            0, "IDirect3DDevice8_SetStreamSource(global_d3d_device, 1, "
+               "rasterizer_xbox_transparent_geometry_texcoord_stream, "
+               "2*sizeof(byte))");
         }
         rasterizer_set_texture(1, 0, 0, *(int *)(env + 0x58),
                                *(unsigned short *)(grp + 0x10));
@@ -3468,10 +4081,10 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           success = 1;
         }
       } else {
-        rasterizer_error(0,
-                     "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
-                     "device, VSH_CONSTANTS__TEXANIM_OFFSET, "
-                     "vsh_constants__texanim, VSH_CONSTANTS__TEXANIM_COUNT)");
+        rasterizer_error(
+          0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
+             "device, VSH_CONSTANTS__TEXANIM_OFFSET, "
+             "vsh_constants__texanim, VSH_CONSTANTS__TEXANIM_COUNT)");
         success = 0;
       }
       if (*(char *)0x3256d4 == 0) {
@@ -3529,10 +4142,10 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        rasterizer_error(0,
-                     "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
-                     "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
-                     "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
+        rasterizer_error(
+          0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
+             "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
+             "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
       }
       if (*(short *)(gen + 0x2e) == 0) {
         fade_mode_value = 0x14;
@@ -3898,10 +4511,10 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       } while ((short)m2 < 4);
       D3DDevice_SetVertexShaderConstant(-0x51, anim_out2, 8);
       if (success == 0) {
-        rasterizer_error(0,
-                     "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
-                     "device, VSH_CONSTANTS__TEXANIM_OFFSET, "
-                     "vsh_constants__texanim, VSH_CONSTANTS__TEXANIM_COUNT)");
+        rasterizer_error(
+          0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
+             "device, VSH_CONSTANTS__TEXANIM_OFFSET, "
+             "vsh_constants__texanim, VSH_CONSTANTS__TEXANIM_COUNT)");
         success = 0;
       } else {
         ok2 = FUN_0017bca0(*(void **)(grp + 0xc), (void *)0x5a5ac0);
@@ -3962,10 +4575,10 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        rasterizer_error(0,
-                     "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
-                     "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
-                     "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
+        rasterizer_error(
+          0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
+             "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
+             "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
       }
       if (*(short *)(chi + 0x2e) == 0) {
         fade_mode_value2 = 0x14;
@@ -4099,7 +4712,8 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         csmemset((void *)0x5a5ac0, 0, 0xf0);
         *(uint32_t *)0x5a5b98 = 1;
         *(uint32_t *)0x5a5b94 = 1;
-        *(uint32_t *)0x5a5ae8 = real_rgb_color_to_pixel32((float *)(gls + 0x54));
+        *(uint32_t *)0x5a5ae8 =
+          real_rgb_color_to_pixel32((float *)(gls + 0x54));
         *(uint32_t *)0x5a5b48 = 0x8010000;
         *(uint32_t *)0x5a5b74 = 0xc0;
         if (*(short *)(grp + 0x14) == 1) {
@@ -4255,8 +4869,10 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         }
         *(uint32_t *)0x5a5b50 = 0xc0c0d0d;
         *(uint32_t *)0x5a5b7c = 0xd;
-        *(uint32_t *)0x5a5af4 = real_argb_color_to_pixel32((float *)(gls + 0x8c));
-        *(uint32_t *)0x5a5b14 = real_argb_color_to_pixel32((float *)(gls + 0x9c));
+        *(uint32_t *)0x5a5af4 =
+          real_argb_color_to_pixel32((float *)(gls + 0x8c));
+        *(uint32_t *)0x5a5b14 =
+          real_argb_color_to_pixel32((float *)(gls + 0x9c));
         *(uint32_t *)0x5a5b34 = 0xc00;
         *(uint32_t *)0x5a5b80 = 0xc00;
         *(uint32_t *)0x5a5b84 = 0xc00;
@@ -4518,10 +5134,10 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         success = 1;
       } else {
         success = 0;
-        rasterizer_error(0,
-                     "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
-                     "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
-                     "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
+        rasterizer_error(
+          0, "IDirect3DDevice8_SetVertexShaderConstant(global_d3d_"
+             "device, VSH_CONSTANTS__TEXSCALE_OFFSET, "
+             "vsh_constants__texscale, VSH_CONSTANTS__TEXSCALE_COUNT)");
       }
       csmemset((void *)0x5a5ac0, 0, 0xf0);
       SetTextureStageStateSmart(0, 0x15, 4);
@@ -4851,14 +5467,14 @@ static __inline int water_alpha_to_pixel32(float alpha_in)
 
 /* Each D3D call in the draw loop is followed by a check that folds into a
  * running success flag and reports the literal call text on failure. */
-#define VERIFY_D3D_CALL(call_text)  \
-  do {                              \
-    if (success) {                  \
-      success = 1;                  \
-    } else {                        \
+#define VERIFY_D3D_CALL(call_text)      \
+  do {                                  \
+    if (success) {                      \
+      success = 1;                      \
+    } else {                            \
       rasterizer_error(0, (call_text)); \
-      success = 0;                  \
-    }                               \
+      success = 0;                      \
+    }                                   \
   } while (0)
 
 /* 0x1795c0
@@ -5554,7 +6170,8 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
  *  - The two float arguments are forwarded as raw dwords through EAX/ECX with
  *    no FLD/FSTP anywhere, i.e. a pure bit passthrough. Typing them `float`
  *    matches the callee's kb.json declaration and avoids the FILD/int
- *    conversion that an int-typed passthrough would emit (units_scripting_set_current_vitality class).
+ *    conversion that an int-typed passthrough would emit
+ * (units_scripting_set_current_vitality class).
  *  - XOR EAX,EAX before the RET is a real `return 0` (S_OK), not a dead
  *    write; lifting this as void would be the §16 void-EAX hazard.
  *
@@ -6678,8 +7295,8 @@ void rasterizer_hud_motion_sensor_blip_begin(float *p0, float *p1,
 /* 0x17ca20: PUSH EBP / MOV EBP,ESP / POP EBP / JMP 0x15a8f0 -- a frame-less
  * trampoline to the debug triangle draw (six pointer slots).  No callers and
  * no data references in the XBE. */
-void FUN_0017ca20(float *p0, float *p1, float *p2, float *color0,
-                  float *color1, float *color2)
+void FUN_0017ca20(float *p0, float *p1, float *p2, float *color0, float *color1,
+                  float *color2)
 {
   FUN_0015a8f0(p0, p1, p2, color0, color1, color2);
 }

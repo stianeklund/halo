@@ -17,6 +17,7 @@
  */
 
 #include "../../common.h"
+#include "../../x87_math.h"
 
 /* All callees (csmemset, csmemcpy, scenario_get,
  * global_structure_bsp_index_get) declared via decl.h / generated header */
@@ -1341,6 +1342,101 @@ float path_attractor_weight(void *attractor, float *segment_start,
   }
   *distance_reference = distance;
   return weight;
+}
+
+/* 0x005f550 — path_state_estimated_distance
+ * Node fields are offset-addressed like the rest of this file (no path node
+ * struct recovered): +0x00 short previous (rewritten here), +0x02 short next,
+ * +0x0c point[3], +0x18 float segment length, +0x1c float clearance cap,
+ * +0x20 float cost. path_state +0x14 point[3] is the start point, +0x24 the
+ * attractor flag and +0x28 the attractor point (path_input_set_attractor).
+ */
+char path_state_estimated_distance(void *path_state, void *fp_element,
+                                   int surface_index, float *result,
+                                   float *opt_min_clearance, float *opt_out_vec)
+{
+  short node_index;
+  short previous_index;
+  char success;
+  char *node;
+  float *point;
+  float *target;
+  float closest_point[3];
+  float distance;
+  float clearance;
+  float path_distance;
+  float dx;
+  float dy;
+  float dz;
+
+  node_index = path_node_from_hash_table((char *)path_state, surface_index);
+  if (!result) {
+    display_assert("distance_reference", "c:\\halo\\SOURCE\\ai\\path.c", 0x14e,
+                   1);
+    system_exit(-1);
+  }
+  if (node_index != NONE) {
+    node = path_get_node((char *)path_state, node_index);
+    point = (float *)fp_element;
+    dx = point[0] - *(float *)(node + 0xc);
+    dy = point[1] - *(float *)(node + 0x10);
+    dz = point[2] - *(float *)(node + 0x14);
+    distance = sqrtf(dz * dz + dx * dx + dy * dy) + *(float *)(node + 0x20);
+    if (*((char *)path_state + 0x24)) {
+      closest_point_to_attractor((float *)(node + 0xc), point,
+                                 (float *)((char *)path_state + 0x28),
+                                 closest_point);
+      dx = closest_point[0] - *(float *)((char *)path_state + 0x28);
+      dy = closest_point[1] - *(float *)((char *)path_state + 0x2c);
+      dz = closest_point[2] - *(float *)((char *)path_state + 0x30);
+      clearance = sqrtf(dz * dz + dy * dy + dx * dx);
+      if (clearance > *(float *)(node + 0x1c)) {
+        clearance = *(float *)(node + 0x1c);
+      }
+    } else {
+      clearance = 0.0f;
+    }
+    if (opt_min_clearance) {
+      *opt_min_clearance = clearance;
+    }
+    *result = distance;
+    success = 1;
+    if (opt_out_vec) {
+      previous_index = NONE;
+      path_distance = 0.0f;
+      do {
+        node = path_get_node((char *)path_state, node_index);
+        *(short *)node = previous_index;
+        previous_index = node_index;
+        node_index = *(short *)(node + 0x2);
+      } while (node_index != NONE);
+      node_index = previous_index;
+      while (node_index != NONE && path_distance < 0.8f) {
+        node = path_get_node((char *)path_state, node_index);
+        path_distance += *(float *)(node + 0x18);
+        node_index = *(short *)node;
+      }
+      target = point;
+      if (node_index != NONE) {
+        target = (float *)(node + 0xc);
+      }
+      opt_out_vec[0] = target[0] - *(float *)((char *)path_state + 0x14);
+      opt_out_vec[1] = target[1] - *(float *)((char *)path_state + 0x18);
+      opt_out_vec[2] = target[2] - *(float *)((char *)path_state + 0x1c);
+      normalize3d(opt_out_vec);
+    }
+  } else {
+    if (opt_min_clearance) {
+      *opt_min_clearance = 3.4028235e+38f;
+    }
+    if (opt_out_vec) {
+      *(real_vector3d *)opt_out_vec =
+          *(real_vector3d *)halo_global_zero_vector_ptr;
+    }
+    *result = 3.4028235e+38f;
+    success = 0;
+  }
+  return success;
 }
 
 /* 0x005ff70 — path traverse and debug snapshot

@@ -221,6 +221,115 @@ void profile_exit_private(void *section)
   }
 }
 
+/* FUN_0008fb60 (0x8fb60) -- format one profile ring entry into out_buf.
+ * buf_size is read as a word (MOVSX [EBP+8]). Ring-entry fields are
+ * unnamed offsets; +0x8 is printed with %I64d. */
+void FUN_0008fb60(void *ring_entry /* @<eax> */, char *out_buf /* @<esi> */,
+                  int buf_size)
+{
+  char *entry = (char *)ring_entry;
+  int16_t max_size = (int16_t)buf_size;
+  int16_t game_count;
+  int16_t render_count;
+  int16_t i;
+
+  csstrcpy(out_buf, "");
+  snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+           "frame %5d vbl %5I64d tot%6.2f", *(int32_t *)(entry + 0x4),
+           *(int64_t *)(entry + 0x8), (double)*(float *)(entry + 0x28));
+
+  if (*(int16_t *)(entry + 0xf04) > 0) {
+    if (*(uint8_t *)0x31fa96 != 0) {
+      snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+               "(lost%3d)", (int)*(int16_t *)(entry + 0xf04));
+    } else {
+      snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+               "(free%3d)", (int)*(int16_t *)(entry + 0xf04));
+    }
+  } else if (*(int32_t *)(entry + 0xf08) > 0) {
+    if (*(uint8_t *)0x31fa96 != 0) {
+      snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+               "(l.%3dms)", *(int32_t *)(entry + 0xf08));
+    } else {
+      snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+               "(f.%3dms)", *(int32_t *)(entry + 0xf08));
+    }
+  } else if (*(uint8_t *)(entry + 0xf0c) != 0) {
+    snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+             "(slowed) ");
+  } else {
+    snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+             "(synced) ");
+  }
+
+  if (*(float *)(entry + 0xefc) > REAL_ZERO_POOL) {
+    snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+             "idle%6.2f ", (double)*(float *)(entry + 0xefc));
+  } else {
+    snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+             "           ", (double)*(float *)(entry + 0xefc));
+  }
+
+  game_count = *(int16_t *)(entry + 0x10);
+  if (game_count <= 8) {
+    game_count = 8;
+  }
+  snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+           "game%2d ", (int)*(int16_t *)(entry + 0x10));
+  snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf), " (");
+  for (i = 0; i < game_count; i++) {
+    if (i < *(int16_t *)(entry + 0x10)) {
+      snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+               "%6.2f%s", (double)*(float *)(entry + 0x44 + i * 0x18),
+               (i < game_count - 1) ? " " : "");
+    } else {
+      snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+               "      %s", (i < game_count - 1) ? " " : "");
+    }
+  }
+  snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf), ")");
+
+  render_count = (*(int16_t *)(entry + 0x12) > local_player_count() + 1) ?
+                   *(int16_t *)(entry + 0x12) :
+                   local_player_count() + 1;
+  snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+           " render%6.2f", (double)*(float *)(entry + 0xeb0));
+  snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf), " (");
+  for (i = 0; i < render_count; i++) {
+    if (i < *(int16_t *)(entry + 0x12)) {
+      snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+               "%s%6.2f%s", (*(uint8_t *)(entry + 0x14 + i) != 0) ? "p" : "n",
+               (double)*(float *)(entry + 0xe54 + i * 0x18),
+               (i < render_count - 1) ? " " : "");
+    } else {
+      snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+               "       %s", (i < render_count - 1) ? " " : "");
+    }
+  }
+  snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf), ")");
+
+  if (*(float *)(entry + 0xecc) > REAL_ZERO_POOL) {
+    snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+             "stall%6.2f ", (double)*(float *)(entry + 0xecc));
+  } else {
+    snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+             "            ", (double)*(float *)(entry + 0xecc));
+  }
+  if (*(float *)(entry + 0xee4) > REAL_ZERO_POOL) {
+    snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+             "tex%6.2f ", (double)*(float *)(entry + 0xee4));
+  } else {
+    snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+             "          ", (double)*(float *)(entry + 0xee4));
+  }
+  snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+           "r-misc %6.2f ", (double)*(float *)(entry + 0xeb4));
+  snprintf(out_buf + csstrlen(out_buf), max_size - csstrlen(out_buf),
+           "f-misc %6.2f ", (double)*(float *)(entry + 0x2c));
+  csstrncat(out_buf + csstrlen(out_buf), entry + 0xf0d,
+            max_size - csstrlen(out_buf));
+}
+
 /* FUN_00090170 (0x90170) — store a pair of dwords at offsets 0x0/0x4 of a
  * caller-supplied destination. dest arrives in EAX (not a stack arg);
  * value0/value1 are ordinary cdecl stack args copied verbatim, no further

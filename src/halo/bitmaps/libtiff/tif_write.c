@@ -3581,3 +3581,195 @@ void FUN_000747d0(int *out_pages, short *out_page_count, int page_dimension,
   crt_fflush((void *)0x331050);
   *out_page_count = page_count;
 }
+
+void *FUN_00074a30(void *bitmap, bool param_2, bool param_3, bool param_4)
+{
+  bitmap_data *source = (bitmap_data *)bitmap;
+  bitmap_data *copy = NULL;
+  bitmap_data *plate = NULL;
+  bitmap_data *mipmap;
+  bitmap_data *slice;
+  uint32_t *pixels;
+  void *source_pixels;
+  void *destination_pixels;
+  int pixel_count;
+  int pixel_index;
+  int size;
+  short mipmap_index;
+  short face_index;
+  short face_count;
+  short width;
+  short height;
+  short depth;
+  short plate_width;
+  short plate_height;
+  short x;
+  short y;
+  short border_x;
+  short border_y;
+  short point[2];
+
+  switch (source->type) {
+  case 0:
+    copy =
+      bitmap_2d_new(source->width, source->height, source->mipmap_count, 0xb);
+    break;
+  case 1:
+    copy = bitmap_3d_new(source->width, source->height, source->depth,
+                         source->mipmap_count, 0xb);
+    break;
+  case 2:
+    copy = bitmap_cube_map_new(source->width, source->mipmap_count, 0xb);
+    break;
+  default:
+    display_assert("### ERROR unsupported bitmap type",
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x518, 1);
+    system_exit(-1);
+  }
+
+  if (copy == NULL || copy->base_address == NULL) {
+    error(2, "### ERROR failed to allocate debug bitmap");
+  } else {
+    for (mipmap_index = 0; mipmap_index <= source->mipmap_count;
+         mipmap_index++) {
+      width =
+        (source->width >> mipmap_index) < 1 ? 1 : source->width >> mipmap_index;
+      height = (source->height >> mipmap_index) < 1 ?
+                 1 :
+                 source->height >> mipmap_index;
+      depth =
+        (source->depth >> mipmap_index) < 1 ? 1 : source->depth >> mipmap_index;
+      switch (source->type) {
+      case 0:
+        mipmap = bitmap_2d_new(width, height, 0, 0xb);
+        break;
+      case 1:
+        mipmap = bitmap_3d_new(width, height, depth, 0, 0xb);
+        break;
+      case 2:
+        mipmap = bitmap_cube_map_new(width, 0, 0xb);
+        break;
+      default:
+        display_assert("### ERROR unsupported bitmap type",
+                       "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x542, 1);
+        system_exit(-1);
+      }
+      if (mipmap != NULL && mipmap->base_address != NULL) {
+        extract_pixels_from_mipmap(mipmap_index, mipmap, source);
+        extract_pixels_to_mipmap(mipmap_index, mipmap, copy);
+      }
+      bitmap_delete(mipmap);
+    }
+
+    switch (copy->type) {
+    case 0:
+      face_count = 1;
+      break;
+    case 1:
+      face_count = copy->depth;
+      break;
+    case 2:
+      face_count = 6;
+      break;
+    default:
+      display_assert("### ERROR unsupported bitmap type",
+                     "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x567, 1);
+      system_exit(-1);
+    }
+
+    if (param_4) {
+      plate_width = (copy->width + 3) * face_count + 3;
+      plate_height = copy->height + 8;
+    } else {
+      plate_width = copy->width * face_count;
+      plate_height = copy->height;
+    }
+    if (param_3) {
+      for (mipmap_index = 1; mipmap_index <= copy->mipmap_count;
+           mipmap_index++) {
+        plate_height += (copy->height >> mipmap_index) + (param_4 ? 4 : 0);
+      }
+    }
+
+    plate = bitmap_2d_new(plate_width, plate_height, 0, 0xb);
+    if (plate == NULL || plate->base_address == NULL) {
+      error(2, "### ERROR failed to allocate debug plate bitmap");
+    } else {
+      border_y = param_4 ? 4 : 0;
+      y = border_y;
+      pixels = (uint32_t *)bitmap_mipmap_address(plate, 0);
+      pixel_count = bitmap_get_pixel_count(plate);
+      for (pixel_index = 0; pixel_index < pixel_count; pixel_index++) {
+        pixels[pixel_index] = 0xff;
+      }
+
+      for (mipmap_index = 0; mipmap_index <= (param_3 ? copy->mipmap_count : 0);
+           mipmap_index++) {
+        border_x = param_4 ? 3 : 0;
+        x = border_x;
+        height =
+          (copy->height >> mipmap_index) < 1 ? 1 : copy->height >> mipmap_index;
+        width =
+          (copy->width >> mipmap_index) < 1 ? 1 : copy->width >> mipmap_index;
+        slice = bitmap_2d_new(width, height, 0, 0xb);
+        if (slice == NULL || slice->base_address == NULL) {
+          error(2, "### ERROR failed to allocate debug slice bitmap");
+        } else {
+          switch (copy->type) {
+          case 0:
+            face_count = 1;
+            break;
+          case 1:
+            face_count = (copy->depth >> mipmap_index) < 1 ?
+                           1 :
+                           copy->depth >> mipmap_index;
+            break;
+          case 2:
+            face_count = 6;
+            break;
+          default:
+            display_assert("### ERROR unsupported bitmap type",
+                           "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x5ac,
+                           1);
+            system_exit(-1);
+          }
+          for (face_index = 0; face_index < face_count; face_index++) {
+            switch (copy->type) {
+            case 0:
+              size = bitmap_get_pixel_data_size(slice);
+              source_pixels = bitmap_mipmap_address(copy, mipmap_index);
+              break;
+            case 1:
+              size = bitmap_get_pixel_data_size(slice);
+              source_pixels =
+                bitmap_3d_address(copy, 0, 0, face_index, mipmap_index);
+              break;
+            case 2:
+              size = bitmap_get_pixel_data_size(slice);
+              source_pixels =
+                bitmap_cube_map_address(copy, 0, 0, face_index, mipmap_index);
+              break;
+            default:
+              display_assert("### ERROR unsupported bitmap type",
+                             "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c",
+                             0x5c8, 1);
+              system_exit(-1);
+            }
+            destination_pixels = bitmap_mipmap_address(slice, 0);
+            csmemcpy(destination_pixels, source_pixels, size);
+            set_point2d(point, x, y);
+            FUN_00072490(plate, point, 0, slice, 0, -1, 0);
+            x += (copy->width >> mipmap_index) + border_x;
+          }
+        }
+        bitmap_delete(slice);
+        y += (copy->height >> mipmap_index) + border_y;
+      }
+    }
+    if (plate != NULL && plate->base_address != NULL && param_2) {
+      FUN_00077540(plate);
+    }
+  }
+  bitmap_delete(copy);
+  return plate;
+}

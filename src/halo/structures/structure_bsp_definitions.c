@@ -78,6 +78,86 @@ void render_debug_leaf_faces(int *leaf_map, int leaf_index)
   }
 }
 
+/* 0x192bb0 */
+float normalize_three_dee(float *vector)
+{
+  float length;
+  float inverse_length;
+  float inverse_bits;
+
+  length = sqrtf(vector[0] * vector[0] + vector[1] * vector[1] +
+                 vector[2] * vector[2]);
+  inverse_length = 1.0f / length;
+  inverse_bits = inverse_length;
+  if ((*(uint32_t *)&inverse_bits & 0x7f800000) != 0x7f800000) {
+    vector[0] *= inverse_length;
+    vector[1] *= inverse_length;
+    vector[2] *= inverse_length;
+    if (valid_real_normal3d(vector)) {
+      return length;
+    }
+  }
+  return REAL_ZERO_POOL;
+}
+
+/* 0x192c30 -- Intersect two planes into a 2D line on the reference plane's
+ * projection, written to result. Returns 1 when a line is produced, 0 when
+ * the planes are parallel and other_plane's offset is positive, else 2. */
+int16_t intersect_planes3d(float *plane, float *other_plane, float *result)
+{
+  float abs_x;
+  float abs_y;
+  float abs_z;
+  int16_t projection;
+  float scale;
+  float direction[4];
+  float length;
+
+  abs_x = (float)fabs(plane[0]);
+  abs_y = (float)fabs(plane[1]);
+  abs_z = (float)fabs(plane[2]);
+  if (abs_z >= abs_y && abs_z >= abs_x) {
+    projection = 2;
+  } else if (abs_y >= abs_x) {
+    projection = 1;
+  } else {
+    projection = 0;
+  }
+  if (plane[projection] == 0.0f) {
+    display_assert("reference_plane->n.n[projection]!=0.f",
+                   "c:\\halo\\SOURCE\\structures\\leaf_map.c", 299, 1);
+    system_exit(-1);
+  }
+  if (result == NULL) {
+    display_assert("result", "c:\\halo\\SOURCE\\structures\\leaf_map.c", 300,
+                   1);
+    system_exit(-1);
+  }
+  if (other_plane[projection] == 0.0f) {
+    direction[0] = other_plane[0];
+    direction[1] = other_plane[1];
+    direction[2] = other_plane[2];
+    direction[3] = other_plane[3];
+  } else {
+    scale = other_plane[projection] / plane[projection];
+    direction[0] = other_plane[0] - scale * plane[0];
+    direction[1] = other_plane[1] - scale * plane[1];
+    direction[2] = other_plane[2] - scale * plane[2];
+    direction[3] = other_plane[3] - scale * plane[3];
+  }
+  length = normalize_three_dee(direction);
+  if (length != 0.0f) {
+    FUN_00061df0(direction, projection,
+                 (uint8_t)FUN_00099270(plane, projection), result);
+    result[2] = direction[3] / length;
+    return 1;
+  }
+  if (direction[3] > 0.0f) {
+    return 0;
+  }
+  return 2;
+}
+
 /* 0x192da0 -- Recurse down a leaf-map node's children building portals
  * between the given leaf and every other leaf reached. */
 void leaf_map_build_portals_from_leaf(int *leaf_map, int ancestor_node_index,
