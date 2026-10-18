@@ -9126,6 +9126,14 @@
    "metadata": {
     "source_path": "src/halo/physics/breakable_surfaces.c"
    }
+  },
+  {
+   "name": "halo/random_math_10c440",
+   "target_path": "build/CMakeFiles/halo.dir/src/halo/math/random_math.c.obj",
+   "base_path": "delinked/random_math_10c440.obj",
+   "metadata": {
+    "source_path": "src/halo/math/random_math.c"
+   }
   }
  ]
 }

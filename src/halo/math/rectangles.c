@@ -1,3 +1,310 @@
+/* Fold points[point_index] into a 3D convex hull (0x107520). Raw record
+ * offsets as accessed here: vertex stride 0xc (+0 extant, +2 int16
+ * point_index, +4 int32 edge_index); edge stride 0x20 (+0 extant, +4/+8 int32
+ * vertex_indices, +0xc/+0x10 int32 edge_indices, +0x14/+0x18 int32
+ * surface_indices); surface stride 0x1c (+0 extant, +4..+0x10 plane i,j,k,d,
+ * +0x14 int32 edge_index). x87 addend order per loop follows the binary. */
+bool convex_hull3d_expand(int16_t point_count, float *points,
+                          int16_t vertices_capacity, char *vertices,
+                          int16_t edges_capacity, char *edges,
+                          int16_t surfaces_capacity, char *surfaces,
+                          int16_t point_index)
+{
+  float *new_point;
+  bool already_contained;
+  int16_t first_boundary_edge_index;
+  int16_t surface_index;
+  int16_t edge_index;
+  int16_t vertex_index;
+  int16_t new_vertex_index;
+  int16_t previous_new_edge_index;
+  int16_t first_new_edge_index;
+  char *surface;
+  char *edge;
+  char *vertex;
+
+  already_contained = 1;
+  if (points == (float *)0) {
+    display_assert("points", "c:\\halo\\SOURCE\\math\\geometry.c", 0x7b5, 1);
+    system_exit(-1);
+  }
+  if (vertices == (char *)0) {
+    display_assert("vertices", "c:\\halo\\SOURCE\\math\\geometry.c", 0x7b6, 1);
+    system_exit(-1);
+  }
+  if (edges == (char *)0) {
+    display_assert("edges", "c:\\halo\\SOURCE\\math\\geometry.c", 0x7b7, 1);
+    system_exit(-1);
+  }
+  if (surfaces == (char *)0) {
+    display_assert("surfaces", "c:\\halo\\SOURCE\\math\\geometry.c", 0x7b8, 1);
+    system_exit(-1);
+  }
+
+  if (point_index < 0 || point_index >= point_count) {
+    return 0;
+  }
+
+  new_point = points + point_index * 3;
+  first_boundary_edge_index = -1;
+  for (surface_index = 0; surface_index < surfaces_capacity; surface_index++) {
+    surface = surfaces + surface_index * 0x1c;
+    if (*surface != 0 && (*(float *)(surface + 0xc) * new_point[2] +
+                          *(float *)(surface + 8) * new_point[1] +
+                          new_point[0] * *(float *)(surface + 4)) -
+                             *(float *)(surface + 0x10) >
+                           *(float *)0x31fb3c) {
+      already_contained = 0;
+      break;
+    }
+  }
+  if (already_contained) {
+    return 1;
+  }
+
+  for (surface_index = 0; surface_index < surfaces_capacity; surface_index++) {
+    surface = surfaces + surface_index * 0x1c;
+    if (*surface != 0) {
+      float distance = (*(float *)(surface + 4) * new_point[0] +
+                        *(float *)(surface + 0xc) * new_point[2] +
+                        *(float *)(surface + 8) * new_point[1]) -
+                       *(float *)(surface + 0x10);
+      *surface = !(distance > -*(float *)0x31fb40);
+    }
+  }
+
+  for (edge_index = 0; edge_index < edges_capacity; edge_index++) {
+    edge = edges + edge_index * 0x20;
+    if (*edge != 0) {
+      char *surface0;
+      char *surface1;
+
+      if (*(int32_t *)(edge + 0x14) < 0 ||
+          *(int32_t *)(edge + 0x14) >= surfaces_capacity ||
+          *(int32_t *)(edge + 0x18) < 0 ||
+          *(int32_t *)(edge + 0x18) >= surfaces_capacity) {
+        return 0;
+      }
+      surface0 = surfaces + *(int32_t *)(edge + 0x14) * 0x1c;
+      surface1 = surfaces + *(int32_t *)(edge + 0x18) * 0x1c;
+
+      *edge = *surface0 != 0 || *surface1 != 0;
+      if (*edge != 0 && *surface0 != *surface1) {
+        if (*surface0 == 0) {
+          *(int32_t *)(edge + 0x14) = -1;
+        } else {
+          *(int32_t *)(edge + 0x18) = -1;
+        }
+        if (first_boundary_edge_index == -1) {
+          first_boundary_edge_index = edge_index;
+        }
+      }
+    }
+  }
+  if (first_boundary_edge_index == -1) {
+    display_assert("first_boundary_edge_index!=NONE",
+                   "c:\\halo\\SOURCE\\math\\geometry.c", 0x81c, 1);
+    system_exit(-1);
+  }
+
+  for (vertex_index = 0; vertex_index < vertices_capacity; vertex_index++) {
+    vertex = vertices + vertex_index * 0xc;
+    if (*vertex != 0) {
+      int16_t first_edge_index = -1;
+      int16_t previous_edge_index = -1;
+      int16_t vertex_edge_index = (int16_t) * (int32_t *)(vertex + 4);
+      char *previous_edge;
+
+      do {
+        if (vertex_edge_index < 0 || vertex_edge_index >= edges_capacity) {
+          display_assert("edge_index>=0 && edge_index<edge_count",
+                         "c:\\halo\\SOURCE\\math\\geometry.c", 0x832, 1);
+          system_exit(-1);
+        }
+        edge = edges + vertex_edge_index * 0x20;
+        if (*(int32_t *)(edge + 4) != vertex_index &&
+            *(int32_t *)(edge + 8) != vertex_index) {
+          display_assert("edge->vertex_indices[0]==vertex_index || "
+                         "edge->vertex_indices[1]==vertex_index",
+                         "c:\\halo\\SOURCE\\math\\geometry.c", 0x833, 1);
+          system_exit(-1);
+        }
+
+        if (*edge != 0) {
+          if (previous_edge_index == -1) {
+            first_edge_index = vertex_edge_index;
+          } else {
+            previous_edge = edges + previous_edge_index * 0x20;
+            *(int32_t *)(previous_edge + 0xc +
+                         (*(int32_t *)(previous_edge + 4) == vertex_index) *
+                           4) = vertex_edge_index;
+          }
+          previous_edge_index = vertex_edge_index;
+        }
+        vertex_edge_index =
+          (int16_t) * (int32_t *)(edge + 0xc +
+                                  (*(int32_t *)(edge + 4) == vertex_index) * 4);
+      } while (vertex_edge_index != *(int32_t *)(vertex + 4));
+
+      if (previous_edge_index == -1) {
+        *vertex = 0;
+      } else {
+        previous_edge = edges + previous_edge_index * 0x20;
+        *(int32_t *)(vertex + 4) = first_edge_index;
+        *(int32_t *)(previous_edge + 0xc +
+                     (*(int32_t *)(previous_edge + 4) == vertex_index) * 4) =
+          first_edge_index;
+      }
+    }
+  }
+
+  new_vertex_index = 0;
+  first_new_edge_index = -1;
+  previous_new_edge_index = -1;
+  edge_index = first_boundary_edge_index;
+  while (new_vertex_index < vertices_capacity &&
+         *(vertices + new_vertex_index * 0xc) != 0) {
+    new_vertex_index++;
+  }
+  if (new_vertex_index >= vertices_capacity) {
+    return 0;
+  }
+
+  for (;;) {
+    char *vertex1;
+    char *vertex2;
+    char *new_surface;
+    char *new_edge;
+    int16_t new_surface_index;
+    int16_t new_edge_index;
+
+    if (edge_index < 0 || edge_index >= edges_capacity) {
+      display_assert("edge_index>=0 && edge_index<edge_count",
+                     "c:\\halo\\SOURCE\\math\\geometry.c", 0x877, 1);
+      system_exit(-1);
+    }
+    edge = edges + edge_index * 0x20;
+    if (*edge == 0) {
+      display_assert("edge->extant", "c:\\halo\\SOURCE\\math\\geometry.c",
+                     0x878, 1);
+      system_exit(-1);
+    }
+    if (*(int32_t *)(edge + 4) < 0 ||
+        *(int32_t *)(edge + 4) >= vertices_capacity) {
+      display_assert(
+        "edge->vertex_indices[0]>=0 && edge->vertex_indices[0]<vertex_count",
+        "c:\\halo\\SOURCE\\math\\geometry.c", 0x879, 1);
+      system_exit(-1);
+    }
+    if (*(int32_t *)(edge + 8) < 0 ||
+        *(int32_t *)(edge + 8) >= vertices_capacity) {
+      display_assert(
+        "edge->vertex_indices[1]>=0 && edge->vertex_indices[1]<vertex_count",
+        "c:\\halo\\SOURCE\\math\\geometry.c", 0x87a, 1);
+      system_exit(-1);
+    }
+    if ((*(int32_t *)(edge + 0x14) == -1) ==
+        (*(int32_t *)(edge + 0x18) == -1)) {
+      display_assert(
+        "(edge->surface_indices[0]==NONE)!=(edge->surface_indices[1]==NONE)",
+        "c:\\halo\\SOURCE\\math\\geometry.c", 0x87b, 1);
+      system_exit(-1);
+    }
+
+    for (new_surface_index = 0; new_surface_index < surfaces_capacity &&
+                                *(surfaces + new_surface_index * 0x1c) != 0;
+         new_surface_index++) {
+    }
+    if (new_surface_index >= surfaces_capacity) {
+      break;
+    }
+
+    for (new_edge_index = 0; new_edge_index < edges_capacity &&
+                             *(edges + new_edge_index * 0x20) != 0;
+         new_edge_index++) {
+    }
+    if (new_edge_index >= edges_capacity) {
+      break;
+    }
+
+    new_surface = surfaces + new_surface_index * 0x1c;
+    vertex1 =
+      vertices +
+      *(int32_t *)(edge + 4 + (*(int32_t *)(edge + 0x14) != -1) * 4) * 0xc;
+    vertex2 =
+      vertices +
+      *(int32_t *)(edge + 4 + (*(int32_t *)(edge + 0x18) != -1) * 4) * 0xc;
+
+    if (*vertex1 == 0) {
+      display_assert("vertex1->extant", "c:\\halo\\SOURCE\\math\\geometry.c",
+                     0x89e, 1);
+      system_exit(-1);
+    }
+    if (*(int16_t *)(vertex1 + 2) < 0 ||
+        *(int16_t *)(vertex1 + 2) >= point_count) {
+      display_assert(
+        "vertex1->point_index>=0 && vertex1->point_index<point_count",
+        "c:\\halo\\SOURCE\\math\\geometry.c", 0x89f, 1);
+      system_exit(-1);
+    }
+    if (*vertex2 == 0) {
+      display_assert("vertex2->extant", "c:\\halo\\SOURCE\\math\\geometry.c",
+                     0x8a1, 1);
+      system_exit(-1);
+    }
+    if (*(int16_t *)(vertex2 + 2) < 0 ||
+        *(int16_t *)(vertex2 + 2) >= point_count) {
+      display_assert(
+        "vertex2->point_index>=0 && vertex2->point_index<point_count",
+        "c:\\halo\\SOURCE\\math\\geometry.c", 0x8a2, 1);
+      system_exit(-1);
+    }
+
+    *new_surface = 1;
+    FUN_001037b0((float *)(new_surface + 4), new_point,
+                 points + *(int16_t *)(vertex1 + 2) * 3,
+                 points + *(int16_t *)(vertex2 + 2) * 3);
+    *(int32_t *)(new_surface + 0x14) = edge_index;
+
+    new_edge = edges + new_edge_index * 0x20;
+    *new_edge = 1;
+    *(int32_t *)(new_edge + 4) =
+      *(int32_t *)(edge + 4 + (*(int32_t *)(edge + 0x18) != -1) * 4);
+    *(int32_t *)(new_edge + 8) = new_vertex_index;
+    *(int32_t *)(new_edge + 0xc) = previous_new_edge_index;
+    *(int32_t *)(new_edge + 0x10) =
+      *(int32_t *)(edge + 0xc + (*(int32_t *)(edge + 0x14) != -1) * 4);
+    *(int32_t *)(new_edge + 0x14) = new_surface_index;
+    *(int32_t *)(new_edge + 0x18) = -1;
+
+    *(int32_t *)(edge + 0xc + (*(int32_t *)(edge + 0x14) != -1) * 4) =
+      new_edge_index;
+    *(int32_t *)(edge + 0x14 + (*(int32_t *)(edge + 0x14) != -1) * 4) =
+      new_surface_index;
+    if (previous_new_edge_index == -1) {
+      first_new_edge_index = new_edge_index;
+    } else {
+      *(int32_t *)(edges + previous_new_edge_index * 0x20 + 0x18) =
+        new_surface_index;
+    }
+    previous_new_edge_index = new_edge_index;
+
+    edge_index = (int16_t) * (int32_t *)(new_edge + 0x10);
+    if (edge_index == first_boundary_edge_index) {
+      vertex = vertices + new_vertex_index * 0xc;
+      *(int16_t *)(vertex + 2) = point_index;
+      *(int32_t *)(vertex + 4) = first_new_edge_index;
+      *vertex = 1;
+      edge = edges + first_new_edge_index * 0x20;
+      *(int32_t *)(edge + 0xc) = new_edge_index;
+      *(int32_t *)(new_edge + 0x18) = *(int32_t *)(edge + 0x14);
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 /* Build a 3D convex hull from a point cloud (0x107c30).
  * Validates the four output-array pointers (null asserts + system_exit(-1),
  * matching FUN_00106f50's own idiom at geometry.c), then calls FUN_00106f50
@@ -114,6 +421,78 @@ convex_hull3d_test_point(uint32_t unused_param_1, uint32_t unused_param_2,
     }
   }
 
+  return 1;
+}
+
+/* Clip the ray point + t*vector against the hull surfaces (0x107db0). Same
+ * six unused leading dwords and 0x1c-byte surface stride as
+ * convex_hull3d_test_point. Returns false as soon as the [t_min, t_max]
+ * interval empties, or when the ray is parallel (|denom| < double at
+ * 0x2533d0) and the point lies outside a surface by more than 0x31fb40.
+ * The original stores denom into the surface_count stack slot (count is
+ * kept in BX). */
+boolean
+convex_hull3d_test_vector(uint32_t unused_param_1, uint32_t unused_param_2,
+                          uint32_t unused_param_3, uint32_t unused_param_4,
+                          uint32_t unused_param_5, uint32_t unused_param_6,
+                          int16_t surface_count, char *surfaces, real *point,
+                          real *vector, real *t_min_out, real *t_max_out)
+{
+  int16_t i;
+  char *surface;
+  real numerator;
+  real denom;
+  real t;
+  real t_min;
+  real t_max;
+
+  (void)unused_param_1;
+  (void)unused_param_2;
+  (void)unused_param_3;
+  (void)unused_param_4;
+  (void)unused_param_5;
+  (void)unused_param_6;
+
+  t_min = -3.4028235e38f; /* -FLT_MAX */
+  t_max = 3.4028235e38f; /* +FLT_MAX */
+  for (i = 0; i < surface_count; i++) {
+    surface = surfaces + i * 0x1c;
+    if (*surface != 0) {
+      numerator = ((*(real *)(surface + 0xc) * point[2] +
+                    *(real *)(surface + 8) * point[1]) +
+                   *(real *)(surface + 4) * point[0]) -
+                  *(real *)(surface + 0x10);
+      denom = (*(real *)(surface + 0xc) * vector[2] +
+               *(real *)(surface + 8) * vector[1]) +
+              *(real *)(surface + 4) * vector[0];
+      if (fabs(denom) < *(double *)0x2533d0) {
+        if (numerator > *(float *)0x31fb40) {
+          return 0;
+        }
+      } else {
+        t = -(numerator / denom);
+        if (denom > *(float *)0x2533c0) {
+          if (t_min < t) {
+            t_min = t;
+          }
+        } else {
+          if (t_max > t) {
+            t_max = t;
+          }
+        }
+        if (t_min > t_max) {
+          return 0;
+        }
+      }
+    }
+  }
+
+  if (t_min_out != (real *)0) {
+    *t_min_out = t_min;
+  }
+  if (t_max_out != (real *)0) {
+    *t_max_out = t_max;
+  }
   return 1;
 }
 

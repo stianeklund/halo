@@ -990,6 +990,72 @@ float FUN_0010c390(float param_1, float param_2, uint8_t param_3)
   return fraction * (param_2 - param_1) + param_1;
 }
 
+/* Signed angle (radians) from a to b in the xy plane: acos of the clamped dot
+ * product, negated when the 2D cross product is negative.  Inputs are expected
+ * to be unit length.
+ *
+ * 0x10c3c0 / random_math.obj
+ */
+float signed_angle_between_vectors2d(float *a, float *b)
+{
+#if defined(_MSC_VER) && !defined(__clang__)
+  double acos(double x);
+#endif
+  float dot;
+  float cross;
+  float angle;
+
+  dot = a[0] * b[0] + b[1] * a[1];
+  dot = CLAMP(dot, -1.0f, 1.0f);
+
+#if defined(_MSC_VER) && !defined(__clang__)
+  angle = (float)acos((double)dot);
+#else
+  angle = acosf(dot);
+#endif
+
+  cross = b[1] * a[0] - b[0] * a[1];
+  if (cross < 0.0f)
+    angle = -angle;
+  return angle;
+}
+
+/* Compute the angle (radians) between two 2D vectors a and b, in [0, pi].
+ * Returns 0.0f if either vector is zero-length.
+ *
+ * 2D counterpart of FUN_0010c510: uses cos(2*theta) = 2*dot^2 / (|a|^2*|b|^2) - 1
+ * so no sqrt is needed, clamps it to [-1, 1], and halves the acos.  A negative
+ * dot reflects the half angle across pi.
+ *
+ * 0x10c440 / random_math.obj
+ */
+float FUN_0010c440(float *a, float *b)
+{
+#if defined(_MSC_VER) && !defined(__clang__)
+  double acos(double x);
+#endif
+  float angle = 0.0f;
+  float product = (a[0] * a[0] + a[1] * a[1]) * (b[0] * b[0] + b[1] * b[1]);
+  float dot;
+  float cos2theta;
+
+  if (product != 0.0f) {
+    dot = a[0] * b[0] + a[1] * b[1];
+    cos2theta = CLAMP((dot / product * dot) + (dot / product * dot) - 1.0f,
+                      -1.0f, 1.0f);
+
+#if defined(_MSC_VER) && !defined(__clang__)
+    angle = (float)acos((double)cos2theta) * 0.5f;
+#else
+    angle = acosf(cos2theta) * 0.5f;
+#endif
+
+    if (dot < 0.0f)
+      angle = 3.1415927f - angle;
+  }
+  return angle;
+}
+
 /* Compute the angle (radians) between two 3D vectors v1 and v2.
  *
  * Returns acos(dot(v1,v2) / (|v1| * |v2|)), the geometric angle between

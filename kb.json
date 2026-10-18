@@ -22986,12 +22986,14 @@
     {
      "addr": "0x10c3c0",
      "decl": "float signed_angle_between_vectors2d(float *a, float *b);",
-     "comment": "[NAME: signed_angle_between_vectors2d \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "comment": "[NAME: signed_angle_between_vectors2d \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x10c440",
      "decl": "float FUN_0010c440(float *param_1, float *param_2);",
-     "name": "FUN_0010c440"
+     "name": "FUN_0010c440",
+     "ported": true
     },
     {
      "addr": "0x10c780",
@@ -34946,7 +34948,8 @@
     {
      "addr": "0x107520",
      "decl": "bool convex_hull3d_expand(int16_t point_count, float *points, int16_t vertices_capacity, char *vertices, int16_t edges_capacity, char *edges, int16_t surfaces_capacity, char *surfaces, int16_t point_index);",
-     "comment": "[NAME: convex_hull3d_expand \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "comment": "[NAME: convex_hull3d_expand \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x107c30",
@@ -34962,8 +34965,9 @@
     },
     {
      "addr": "0x107db0",
-     "decl": "void convex_hull3d_test_vector(void);",
-     "comment": "[NAME: convex_hull3d_test_vector \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "decl": "boolean convex_hull3d_test_vector(uint32_t unused_param_1, uint32_t unused_param_2, uint32_t unused_param_3, uint32_t unused_param_4, uint32_t unused_param_5, uint32_t unused_param_6, int16_t surface_count, char *surfaces, real *point, real *vector, real *t_min_out, real *t_max_out);",
+     "comment": "[NAME: convex_hull3d_test_vector \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x107ec0",

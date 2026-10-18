@@ -17173,6 +17173,10 @@
       "kind": "function",
       "status": "ported"
     },
+    "0x10c3c0": {
+      "kind": "function",
+      "status": "ported"
+    },
     "0x10c7d0": {
       "kind": "function",
       "status": "ported"
