@@ -1,3 +1,5 @@
+#include "x87_math.h"
+
 void first_person_weapons_dispose(void);
 void FUN_000dc7f0(void);
 /* UI/HUD interface subsystem init/dispose. */
@@ -38,7 +40,10 @@ int interface_get_tag_index(int interface_tag_index)
   char *element;
   int16_t index = (int16_t)interface_tag_index;
 
-  assert_halt_msg_at("interface_tag_index>=0 && interface_tag_index<NUMBER_OF_INTERFACE_TAGS", "c:\\halo\\SOURCE\\interface\\interface.c", 0x6d, index >= 0 && index < NUMBER_OF_INTERFACE_TAGS);
+  assert_halt_msg_at(
+    "interface_tag_index>=0 && interface_tag_index<NUMBER_OF_INTERFACE_TAGS",
+    "c:\\halo\\SOURCE\\interface\\interface.c", 0x6d,
+    index >= 0 && index < NUMBER_OF_INTERFACE_TAGS);
 
   globals = (char *)game_globals_get();
   if (*(int *)(globals + 0x140) != 0) {
@@ -57,7 +62,7 @@ int interface_get_tag_index(int interface_tag_index)
  * The color_index is taken modulo the block count (as a short).
  * Returns out_color. */
 void *interface_get_real_argb_color(int interface_tag_index, short color_index,
-                          void *out_color)
+                                    void *out_color)
 {
   int tag_idx;
   int *color_tag;
@@ -93,8 +98,9 @@ void *interface_get_real_argb_color(int interface_tag_index, short color_index,
  * Resolves font_index to a tag_index, looks up an ARGB color from the
  * interface color table (indexed by color_tag_index / color_index), then
  * configures the draw_string subsystem with those parameters. */
-void interface_set_bitmap_text_draw_mode(int font_index, int style, int justify, int flags,
-                         int color_tag_index, short color_index)
+void interface_set_bitmap_text_draw_mode(int font_index, int style, int justify,
+                                         int flags, int color_tag_index,
+                                         short color_index)
 {
   float color[4];
   int tag_index;
@@ -132,8 +138,8 @@ int FUN_000dedf0(int32_t *out_value)
     if (*(char **)0x46bd10 != 0 && **(char **)0x46bd10 != 0 &&
         perspective != 3 && perspective != 2 && *(int *)(player + 0x34) != -1) {
       unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
-      weapon_handle =
-        unit_inventory_get_weapon(*(int *)(player + 0x34), *(int16_t *)(unit + 0x2a2));
+      weapon_handle = unit_inventory_get_weapon(*(int *)(player + 0x34),
+                                                *(int16_t *)(unit + 0x2a2));
       if (weapon_handle != -1) {
         object = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
         value = *(int32_t *)(object + 0x2f8);
@@ -148,8 +154,8 @@ int FUN_000dedf0(int32_t *out_value)
         if ((*element & 8) == 0)
           goto done;
         object = (char *)object_get_and_verify_type(*(int *)(unit + 0xcc), 3);
-        weapon_handle =
-          unit_inventory_get_weapon(*(int *)(unit + 0xcc), *(int16_t *)(object + 0x2a2));
+        weapon_handle = unit_inventory_get_weapon(*(int *)(unit + 0xcc),
+                                                  *(int16_t *)(object + 0x2a2));
       }
       if (weapon_handle != -1) {
         object = (char *)object_get_and_verify_type(weapon_handle, 4);
@@ -285,12 +291,12 @@ void interface_draw_screen(void)
       }
       scale = pinned * scale;
     }
-    if (FUN_0017d9d0((int16_t)*(uint16_t *)(element + 0x6e)) < 0.0f) {
+    if (FUN_0017d9d0((int16_t) * (uint16_t *)(element + 0x6e)) < 0.0f) {
       pinned = 0.0f;
-    } else if (FUN_0017d9d0((int16_t)*(uint16_t *)(element + 0x6e)) > 1.0f) {
+    } else if (FUN_0017d9d0((int16_t) * (uint16_t *)(element + 0x6e)) > 1.0f) {
       pinned = 1.0f;
     } else {
-      pinned = FUN_0017d9d0((int16_t)*(uint16_t *)(element + 0x6e));
+      pinned = FUN_0017d9d0((int16_t) * (uint16_t *)(element + 0x6e));
     }
     value = pinned * scale;
     if (value > 0.0f) {
@@ -310,12 +316,12 @@ void interface_draw_screen(void)
       }
       scale = pinned * scale;
     }
-    if (FUN_0017d9d0((int16_t)*(uint16_t *)(element + 0x8e)) < 0.0f) {
+    if (FUN_0017d9d0((int16_t) * (uint16_t *)(element + 0x8e)) < 0.0f) {
       pinned = 0.0f;
-    } else if (FUN_0017d9d0((int16_t)*(uint16_t *)(element + 0x8e)) > 1.0f) {
+    } else if (FUN_0017d9d0((int16_t) * (uint16_t *)(element + 0x8e)) > 1.0f) {
       pinned = 1.0f;
     } else {
-      pinned = FUN_0017d9d0((int16_t)*(uint16_t *)(element + 0x8e));
+      pinned = FUN_0017d9d0((int16_t) * (uint16_t *)(element + 0x8e));
     }
     value = pinned * scale;
     if (value > 0.0f) {
@@ -353,6 +359,66 @@ void profile_graph_toggle(const char *value_name)
     }
     ++index;
   }
+}
+
+/* 0xdf3d0 */
+void render_debug_profile_stall_tick(float *bounds, float *offset, short type,
+                                     float x, float scale)
+{
+  real_argb_color *color;
+  float p0[3];
+  float p1[3];
+  float next;
+
+  switch (type) {
+  case 1:
+    color = *(real_argb_color **)0x2ee6d8;
+    break;
+  case 2:
+  case 3:
+  case 4:
+  case 5:
+  case 6:
+  case 7:
+  case 8:
+  case 9:
+  case 10:
+  case 11:
+  case 12:
+  case 13:
+  case 14:
+  case 15:
+  case 16:
+  case 17:
+  case 18:
+  case 19:
+    color = *(real_argb_color **)0x2ee6e0;
+    break;
+  case 21:
+    color = *(real_argb_color **)0x2ee6d4;
+    break;
+  case 26:
+    color = *(real_argb_color **)0x2ee6e8;
+    break;
+  default:
+    color = *(real_argb_color **)0x2ee6c4;
+    break;
+  }
+
+  p0[0] = x * scale;
+  p0[1] = (bounds[2] - (bounds[3] - bounds[2]) * *offset) * scale;
+  p0[2] = -scale;
+  next = *offset + 0.03f;
+  HALO_FLT_ROUNDTRIP(next);
+  *offset = next;
+  p1[0] = p0[0];
+  p1[1] = (bounds[2] - (bounds[3] - bounds[2]) * next) * scale;
+  p1[2] = p0[2];
+  *offset = next + 0.01f;
+
+  matrix_transform_point((float *)0x5065e8, p0, p0);
+  matrix_transform_point((float *)0x5065e8, p1, p1);
+  rasterizer_hud_motion_sensor_blip_begin(p0, p1, &color->red, NULL);
 }
 
 /* Draw black divider bars between split-screen viewports.

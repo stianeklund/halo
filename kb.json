@@ -15247,9 +15247,10 @@
     },
     {
      "addr": "0xdf3d0",
-     "decl": "void render_debug_profile_stall_tick(void);",
+     "decl": "void render_debug_profile_stall_tick(float *bounds@<eax>, float *offset@<ecx>, short type@<edx>, float x, float scale);",
      "comment": "[NAME: render_debug_profile_stall_tick \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
-     "name": "render_debug_profile_stall_tick"
+     "name": "render_debug_profile_stall_tick",
+     "ported": true
     },
     {
      "addr": "0xdf4e0",
@@ -22212,7 +22213,8 @@
     },
     {
      "addr": "0x902f0",
-     "decl": "void profile_dump(const char *substring, int flag, int unk1, int buffer_size, char *buffer);"
+     "decl": "void profile_dump(const char *substring, int16_t sort_mode, int16_t format_mode, int16_t maximum_section_count, char *buffer);",
+     "ported": true
     },
     {
      "addr": "0x90650",

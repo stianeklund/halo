@@ -3079,7 +3079,6 @@
   "0xdedf0": "void FUN_000dedf0(void);",
   "0xdefb0": "void interface_draw_screen(void);",
   "0xdf350": "void profile_graph_toggle(const char *value_name);",
-  "0xdf3d0": "void FUN_000df3d0(void);",
   "0xdf4e0": "void FUN_000df4e0(void);",
   "0xdfdc0": "void interface_draw_splitscreen_dividers(void);",
   "0xdff00": "void interface_get_rgb_color(void);",
@@ -10241,7 +10240,8 @@
     "0x22e2d0": "void inittimer(BINK *bink@<esi>);",
     "0x22e360": "unsigned long high1secrate(unsigned long frames, unsigned long runtime_frames, unsigned long *highest_frame, unsigned long *all_keyframes, unsigned long *frameoffsets@<ebx>);",
     "0x22f180": "void endframe(BINK *bink@<eax>, unsigned long now@<ecx>);",
-    "0x2302d0": "void GotoFrame(BINK *bink@<esi>, unsigned long frame@<eax>);"
+    "0x2302d0": "void GotoFrame(BINK *bink@<esi>, unsigned long frame@<eax>);",
+    "0xdf3d0": "void render_debug_profile_stall_tick(float *bounds@<eax>, float *offset@<ecx>, short type@<edx>, float x, float scale);"
   },
   "0x57330": "short ai_scripting_command_list_status_internal(int16_t scenario_index@<eax>, void *record@<esi>, int field_1a8_val, int child_handle, int reserved);",
   "0x1631d0": "void FUN_001631d0(int light_index@<eax>);",
