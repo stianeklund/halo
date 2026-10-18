@@ -26,7 +26,7 @@ enum network_client_machine_flag_bit {
 /* Layout evidence: recovery/evidence/countdown_timer.json. */
 typedef struct countdown_timer {
   int32_t time_remaining; /* 0x00: 2276 assert names this field */
-  uint32_t field_04;      /* 0x04: PAL calls this last_update_time */
+  uint32_t field_04;      /* 0x04 */
 } countdown_timer;
 cs(countdown_timer, 0x08);
 co(countdown_timer, time_remaining, 0x00);
@@ -282,7 +282,7 @@ int network_game_server_get_game_name(int param_1)
 /* network_game_server_get_state — 0x12c020
  * Returns server->state (short at server+4). If param_2 is non-NULL,
  * zeroes *param_2 before returning. */
-short network_game_server_get_state(int param_1, short *param_2)
+__declspec(noinline) short network_game_server_get_state(int param_1, short *param_2)
 {
   if (param_1 == 0) {
     display_assert("server",
@@ -354,7 +354,7 @@ bool network_game_server_game_is_open(void *server)
 
 /* Check if the server's game is valid (0x12c160).
  * Returns bit 1 of the flags byte at server+6. */
-bool network_game_server_game_is_valid(void *server)
+__declspec(noinline) bool network_game_server_game_is_valid(void *server)
 {
   bool game_is_valid;
 
@@ -909,8 +909,9 @@ void network_game_server_client_machine_game_loading_complete(void *server,
 }
 
 /* network_game_server_client_machine_is_precached — 0x12cbe0 */
-void network_game_server_client_machine_is_precached(int param_1, int param_2,
-                                                     int param_3)
+__declspec(noinline) void
+network_game_server_client_machine_is_precached(int param_1, int param_2,
+                                                int param_3)
 {
   char *map_name;
   int iVar2;
@@ -1025,7 +1026,7 @@ void network_game_server_update_ticks(int server, unsigned short tick_count)
 {
   char input_buf[516]; /* [count:2][pad:2][data:512] contiguous */
   char upkt[0x210];
-  int update_number; /* name: PAL 2342 network_server_manager.c:1715 */
+  int update_number;
   int i;
   short tick_index;
   int16_t target_idx;
@@ -1316,7 +1317,7 @@ int network_game_server_get_client_machine(int server, int machine, int *out)
 /* Return the connection object from the server (server[0]).
  * 0x12d380 / network_server_manager.obj
  */
-int network_game_server_get_connection(void *server)
+__declspec(noinline) int network_game_server_get_connection(void *server)
 {
   if (!server) {
     display_assert("server", "c:\\halo\\SOURCE\\networking\\network_server_manager.c", 0x712, 1);
@@ -2445,11 +2446,6 @@ after_notify:
  * Verifies network connectivity, validates the game, accepts new client
  * connections, handles the public endpoint, processes client machines,
  * and dispatches based on server state (pregame/ingame/postgame). */
-#if defined(_MSC_VER) && !defined(__clang__)
-/* The reference CALLs network_game_server_game_is_valid (`push esi; call`);
- * cl.exe /Ob2 inlines it here instead (`testb $0x2, 0x6(%esi)`). */
-#pragma inline_depth(0)
-#endif
 bool network_game_server_idle(void *server)
 {
   network_game_server *server_data = (network_game_server *)server;
@@ -2512,9 +2508,6 @@ bool network_game_server_idle(void *server)
 
   return success;
 }
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth()
-#endif
 
 /* Reset server to pregame state (0x12eca0).
  * If already in postgame, sends pregame reset message, toggles client
@@ -2522,30 +2515,29 @@ bool network_game_server_idle(void *server)
  * and attempts to start a new game cycle. */
 bool network_game_server_reset_to_pregame(void *server)
 {
+  network_game_server *server_data = (network_game_server *)server;
   char *s;
-  volatile bool result;
+  int data = 0;
+  bool result = false;
   int i;
   char *flags_ptr;
   void *msg;
-  int data;
 
   s = (char *)server;
-  result = false;
-  data = 0;
   if (!server) {
     display_assert("server",
                    "c:\\halo\\SOURCE\\networking\\network_server_manager.c",
                    0x324, 1);
     system_exit(-1);
   }
-  csmemset(s + 0x488, 0, 0x10);
-  *(int *)(s + 0x47c) = 0;
-  *(int *)(s + 0x484) = 0;
-  *(char *)(s + 0x4b9) = 0;
-  *(char *)(s + 0x4b8) = 0;
-  *(int *)(s + 0x434) = *(int *)(s + 0x434) + 1;
+  csmemset(&server_data->countdown_state, 0, sizeof(server_data->countdown_state));
+  server_data->next_update_number = 0;
+  server_data->time_of_first_client_loading_completion = 0;
+  server_data->sent_start_game_message = 0;
+  server_data->queued_player_valid = 0;
+  ((network_game_blob_t *)&server_data->game)->number_of_games_played++;
 
-  if (*(int16_t *)(s + 4) == 2) {
+  if (server_data->state == NETWORK_GAME_SERVER_STATE_POSTGAME) {
     /* Postgame -> pregame transition */
     msg = create_network_game_message(0x1e, &data, 4);
     if (msg && network_game_server_send_message_to_all_machines(s, msg)) {
@@ -2576,20 +2568,20 @@ bool network_game_server_reset_to_pregame(void *server)
         flags_ptr += 0x10;
       }
 
-      network_game_reset_for_next_round(s + 8, 0);
+      network_game_reset_for_next_round(&server_data->game, false);
 
       if (network_game_server_setup_game_from_playlist((int)s)) {
-        char game_settings[0x434]; /* name: PAL 2342 network_server_manager.c:3371 */
+        network_game_blob_t game_settings;
 
-        csmemcpy(game_settings, s + 8, 0x434);
-        msg = create_network_game_message(6, game_settings, 0x434);
+        csmemcpy(&game_settings, &server_data->game, sizeof(game_settings));
+        msg = create_network_game_message(6, &game_settings, sizeof(game_settings));
         if (msg && network_game_server_send_message_to_all_machines(s, msg)) {
-          *(int16_t *)(s + 4) = 0;
+          server_data->state = NETWORK_GAME_SERVER_STATE_PREGAME;
           result = true;
         }
       } else {
         /* Playlist ended -- send graceful exit */
-        int shutdown_message = 0; /* name: PAL 2342 network_server_manager.c:3386 */
+        int shutdown_message = 0;
 
         msg = create_network_game_message(9, &shutdown_message, 4);
         if (msg && network_game_server_send_message_to_all_machines(s, msg) &&
@@ -2604,19 +2596,20 @@ bool network_game_server_reset_to_pregame(void *server)
       network_event(
         "failed to signal all client machines to switch to pregame");
     }
-  } else {
-    result = network_game_server_setup_game_from_playlist((int)s);
-    if (*(char *)(s + 0xc8) != 0) {
-      for (i = 0; i < 0x10; i++) {
-        if (network_player_is_valid(s + 0x22e + i * 0x20)) {
-          switch (*(char *)(s + 0x24c + i * 0x20)) {
-          case 0:
-            *(char *)(s + 0x24c + i * 0x20) = 1;
-            break;
-          case 1:
-            *(char *)(s + 0x24c + i * 0x20) = 0;
-            break;
-          }
+    return result;
+  }
+
+  result = network_game_server_setup_game_from_playlist((int)s);
+  if (*(char *)(s + 0xc8) != 0) {
+    for (i = 0; i < 0x10; i++) {
+      if (network_player_is_valid(s + 0x22e + i * 0x20)) {
+        switch (*(char *)(s + 0x24c + i * 0x20)) {
+        case 0:
+          *(char *)(s + 0x24c + i * 0x20) = 1;
+          break;
+        case 1:
+          *(char *)(s + 0x24c + i * 0x20) = 0;
+          break;
         }
       }
     }
@@ -2675,9 +2668,6 @@ void *network_game_server_create(void)
   return server;
 }
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth(0)
-#endif
 bool network_game_server_handle_message_client_game_start_request(int server, int machine, void *message_data, int message_size)
 {
   int packet_type;
@@ -2703,18 +2693,8 @@ bool network_game_server_handle_message_client_game_start_request(int server, in
     "server is not in pregame");
   return true;
 }
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth()
-#endif
 
 /* Handle map-precached notification from client (0x12f0d0). */
-#if defined(_MSC_VER) && !defined(__clang__)
-/* The reference makes real CALLs to network_game_server_get_state and
- * network_game_server_client_machine_is_precached; cl.exe /Ob2 inlines both
- * here (16 surplus instructions). Scoped inline_depth(0) matches the
- * original's call shape. */
-#pragma inline_depth(0)
-#endif
 bool network_game_server_handle_message_client_map_is_precached_pregame(int server, int machine, void *message_data, int message_size)
 {
   /* The reference stores both packet header fields as DWORDs
@@ -2745,13 +2725,7 @@ bool network_game_server_handle_message_client_map_is_precached_pregame(int serv
     "because the server is not in pregame");
   return true;
 }
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth()
-#endif
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth(0)
-#endif
 bool network_game_server_handle_message_client_loaded(int server, int client_machine, void *message, int message_size)
 {
   bool result = true;
@@ -2780,16 +2754,8 @@ bool network_game_server_handle_message_client_loaded(int server, int client_mac
   }
   return result;
 }
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth()
-#endif
 
 /* Handle add-player request ingame (0x12f200). */
-#if defined(_MSC_VER) && !defined(__clang__)
-/* The reference calls network_game_server_get_state and compares AX; keep
- * VC71 from inlining its server+4 field load into this handler. */
-#pragma inline_depth(0)
-#endif
 bool network_game_server_handle_message_client_add_player_request_ingame(int server, int machine, void *message_data, int message_size)
 {
   network_player_record_t player;
@@ -2815,17 +2781,8 @@ bool network_game_server_handle_message_client_add_player_request_ingame(int ser
     "the server is not in game");
   return true;
 }
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth()
-#endif
 
-/* Handle remove-player request postgame (0x12f290).
- * The reference makes a real CALL to network_game_server_get_state;
- * cl.exe /Ob2 inlines it here. Scoped inline_depth(0) matches the
- * original's call shape. */
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth(0)
-#endif
+/* Handle remove-player request postgame (0x12f290). */
 bool network_game_server_handle_message_client_remove_player_request_postgame(int server, int machine, void *message_data, int message_size)
 {
   network_player_record_t player;
@@ -2853,14 +2810,8 @@ bool network_game_server_handle_message_client_remove_player_request_postgame(in
     "because the server is not in post-game");
   return true;
 }
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth()
-#endif
 
 /* Handle client switch-to-pregame request (0x12f330). */
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth(0)
-#endif
 char network_game_server_handle_message_client_switch_to_pregame(int server, int machine, void *message_data, int message_size)
 {
   char decoded_buf[4];
@@ -2899,9 +2850,6 @@ char network_game_server_handle_message_client_switch_to_pregame(int server, int
   }
   return result;
 }
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth()
-#endif
 
 /* Fastcall wrapper: write message via network_connection_write (0x12f3d0).
  * dest_address @<ecx>, size @<edx>, reliable @<eax>, stack: connection,
@@ -3064,7 +3012,7 @@ bool network_game_server_send_game_data_pregame(void *server)
 
 /* Handle client broadcast game search (0x12f690).
  * client_message @<ecx>, source_address @<eax>, server on stack. */
-/* 2276 game-advertise payload. PAL 2342 names these same fields; the 2276
+/* 2276 game-advertise payload. The 2276
  * stores at +0x34, +0x3a, +0x74, +0xf8..+0x104 establish their offsets. */
 typedef struct {
   uint8_t client_nonce[8];
@@ -3193,10 +3141,7 @@ char handle_message_client_broadcast_game_search(int server, void *client_messag
   return true;
 }
 
-/* Handle a ping message from a client - send pong response (0x12f8d0).
- * The reference calls network_game_server_get_connection() out of line
- * (call count 7); cl.exe /Ob2 inlines its trivial NULL-guard here, which
- * duplicates a nested display_assert call (our count 8). */
+/* Handle a ping message from a client - send pong response (0x12f8d0). */
 typedef struct {
   uint32_t timestamp;
   uint16_t port;
@@ -3205,9 +3150,6 @@ typedef struct {
 cs(message_client_ping_t, 8);
 co(message_client_ping_t, port, 4);
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth(0)
-#endif
 char handle_message_client_ping(int server, void *decoded_msg, void *client_message)
 {
   unsigned int pong_timestamp;
@@ -3242,18 +3184,9 @@ char handle_message_client_ping(int server, void *decoded_msg, void *client_mess
   }
   return result;
 }
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth()
-#endif
 
 /* Handle client join-game request (0x12f990).
  * server=stack, machine=ESI(thunk-provided), message/size=stack. */
-#if defined(_MSC_VER) && !defined(__clang__)
-/* The reference CALLs network_game_server_get_state and two other same-TU
- * helpers (call count 46 vs our 43); cl.exe /Ob2 inlines them here
- * (`cmpw $0x0, 0x4(%edi)`). */
-#pragma inline_depth(0)
-#endif
 char network_game_server_handle_message_client_join_game_request(int server, void *machine, void *message, int message_size)
 {
   char decode_buf[0x50]; /* [0x40]=name(wchar), [0x40..0x4f]=client_token */
@@ -3402,6 +3335,3 @@ char network_game_server_handle_message_client_join_game_request(int server, voi
   }
   return result;
 }
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma inline_depth()
-#endif
