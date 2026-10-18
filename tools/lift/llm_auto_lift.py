@@ -229,6 +229,18 @@ def _is_confirmed_cap(state: dict) -> bool:
     return status in {"capped_confirmed", "confirmed_cap"}
 
 
+# Keep in sync with CRT_LO/CRT_HI/XAPI_LO in .claude/workflows/goal-lift.js.
+_PRESCREEN_SKIP_RANGES = ((0x1CF900, 0x1D0000), (0x1D0000, 0x1DE000))
+
+
+def _is_prescreen_skipped_addr(addr: str) -> bool:
+    try:
+        a = int(str(addr), 16)
+    except ValueError:
+        return False
+    return any(lo <= a < hi for lo, hi in _PRESCREEN_SKIP_RANGES)
+
+
 def _is_review_blocked(state: dict) -> bool:
     """A reviewer rejected the lift over a callee's kb.json decl (park.py
     blocked_review); re-lifting cannot pass until reconcile releases it."""
@@ -1397,6 +1409,14 @@ def _select_targets(
             # separate parked from promoted targets.
             total_score -= 15
             reasons.append("parked_subbar=-15")
+
+        # Mirror of the goal-lift.js code pre-screen (skip_nt_import): the XAPILIB
+        # thread/handle exports and the CRT/SEH region are never auto-lifted, so
+        # rank them last instead of letting them crowd out real candidates. Penalty
+        # only, no lane change: an explicit --addrs pin must still find them.
+        if _is_prescreen_skipped_addr(target.addr):
+            total_score -= 50
+            reasons.append("nt_import_region=-50(goal-lift pre-screen skips)")
 
         rejected = _check_rejected_branch(target.name)
         if rejected:

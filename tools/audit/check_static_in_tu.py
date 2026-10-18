@@ -165,7 +165,8 @@ def evaluate(kb, entries, sources_cache=None):
     refs = binary_refs(sections, [int(fn["addr"], 16) for _o, fn in entries])
     texts = sources_cache if sources_cache is not None else {
         p: p.read_text(errors="replace")
-        for p in (REPO_ROOT / "src").rglob("*") if p.suffix in (".c", ".h")}
+        for p in (REPO_ROOT / "src").rglob("*")
+        if p.suffix in (".c", ".h") and not p.name.startswith(".permuter_")}
     results = []
     for obj, fn in entries:
         addr = int(fn["addr"], 16)

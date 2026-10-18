@@ -165,7 +165,7 @@ def parse_decl(decl: str) -> dict:
         ret_bits = 64
     elif ret_st0 or ret_void:
         ret_bits = 0
-    elif re.search(r'\b(bool|char|int8_t|uint8_t)\b', ret_type_str):
+    elif re.search(r'\b(bool|boolean|char|int8_t|uint8_t)\b', ret_type_str):
         ret_bits = 8
     elif re.search(r'\b(short|int16_t|uint16_t)\b', ret_type_str):
         ret_bits = 16

@@ -508,7 +508,8 @@ def header_noise_filter(root, base, head):
     to unrelated prototypes in the generated decl.h, or reshaping an unrelated
     struct in src/types.h, can reshuffle registers and scheduling in functions
     that use none of them. A loss counts as that noise only when the
-    base-to-head input change is kb.json, src/types.h and .c files, the
+    base-to-head input change is kb.json, src/types.h, .c files and newly added
+    src/ headers, the
     function's own source is unchanged, and neither the function nor any symbol
     its candidate object relocates against changed in kb.json. When src/types.h
     changed, the function's own source must also mention no identifier on a
@@ -516,8 +517,13 @@ def header_noise_filter(root, base, head):
     Returns None when classification is not possible for this revision pair.
     """
     changed = git(root, "diff", "--name-only", base, head, "--", *INPUT_PATHS).splitlines()
+    # A header added under src/ cannot move a function whose own source file is
+    # unchanged (compared in ``is_noise``): only a changed .c can include it.
+    added = set(git(root, "diff", "--name-only", "--diff-filter=A", base, head,
+                    "--", "src").splitlines())
     if any(path not in ("kb.json", "src/types.h") and
-           not (path.startswith("src/") and path.endswith(".c"))
+           not (path.startswith("src/") and path.endswith(".c")) and
+           not (path in added and path.startswith("src/") and path.endswith(".h"))
            for path in changed):
         return None
     names = changed_kb_names(root, base, head) if "kb.json" in changed else set()

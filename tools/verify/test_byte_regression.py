@@ -292,6 +292,17 @@ class HeaderNoise(unittest.TestCase):
             with self.subTest(changed=changed):
                 self.assertIsNone(self.classifier(changed=changed))
 
+    def test_added_src_header_keeps_classification_but_edited_one_does_not(self):
+        header = "src/halo/new_types.h"
+        for added, expect_none in ((header, False), ("", True)):
+            with self.subTest(added=added), \
+                    patch.object(gate, "changed_kb_names", return_value=set()), \
+                    patch.object(gate, "git", side_effect=lambda *a, added=added: added
+                                 if "--diff-filter=A" in a else "kb.json\nsrc/other.c\n" + header), \
+                    patch.dict("sys.modules", {"raw_xbe_structural": SimpleNamespace()}):
+                result = gate.header_noise_filter(Path("/unused"), "base", "head")
+                self.assertEqual(result is None, expect_none)
+
     def test_unrelated_function_is_noise_when_types_header_changed(self):
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "src/example.c"

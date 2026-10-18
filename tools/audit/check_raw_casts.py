@@ -32,7 +32,9 @@ def count_raw_casts():
     total = 0
     for dirpath, _, filenames in os.walk(SRC_DIR):
         for fname in filenames:
-            if not fname.endswith('.c'):
+            # Dotfiles are tool scratch (e.g. leaked .permuter_fast_* TU copies),
+            # never build sources.
+            if not fname.endswith('.c') or fname.startswith('.'):
                 continue
             fpath = os.path.join(dirpath, fname)
             with open(fpath, 'r', errors='replace') as f:
