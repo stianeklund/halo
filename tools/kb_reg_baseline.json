@@ -3718,7 +3718,7 @@
   "0xa2ca0": "void player_effect_update(void);",
   "0xa2e80": "void player_effect_apply(int player_handle, void *effect_descriptor, float intensity);",
   "0xa3b80": "void FUN_000a3b80(int player_index, void *damage_params, void *position, float damage_amount, float scale);",
-  "0xa27a0": "void player_effect_add_continuous_effect(void);",
+  "0xa27a0": "void player_effect_add_continuous_effect(int16_t local_player_index, int definition_index, float distance);",
   "0xa28e0": "void scripted_player_effect_set_rotation(int param_1, float param_2, float param_3);",
   "0xa2920": "void scripted_player_effect_set_rumble(float left_motor, float right_motor);",
   "0xa2930": "void player_telefrag_effect_stop(int player_handle);",

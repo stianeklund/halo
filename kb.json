@@ -19813,7 +19813,8 @@
     },
     {
      "addr": "0xa27a0",
-     "decl": "void player_effect_add_continuous_effect(void);"
+     "decl": "void player_effect_add_continuous_effect(int16_t local_player_index, int definition_index, float distance);",
+     "ported": true
     },
     {
      "addr": "0xa28e0",
@@ -19874,7 +19875,8 @@
     },
     {
      "addr": "0xa2d30",
-     "decl": "void player_effect_continuous_refresh(int definition_index, float *position);"
+     "decl": "void player_effect_continuous_refresh(int definition_index, float *position);",
+     "ported": true
     },
     {
      "addr": "0xa2dc0",
