@@ -4800,7 +4800,7 @@ void unit_detach_from_parent(int object_handle)
   *(float *)(unit + 0x1c) += dir[1];
   *(float *)(unit + 0x20) += dir[2];
 
-  object_set_garbage(object_handle, 1);
+  object_set_visibility(object_handle, 1);
   object_compute_node_matrices(object_handle);
 }
 
@@ -5115,7 +5115,7 @@ bool unit_pickup_equipment(int unit_handle, int equipment_handle, short flag)
   if (*(int *)(unit_obj + 0x2c8) == NONE) {
     /* detach equipment from map and hide it */
     object_disconnect_from_map(equipment_handle);
-    object_set_garbage(equipment_handle, 0);
+    object_set_visibility(equipment_handle, 0);
 
     /* if the unit has a controlling player, trigger the pickup sound */
     player_handle = player_index_from_unit_index(unit_handle);
@@ -5970,7 +5970,7 @@ void unit_detach_weapon(int unit_handle, int weapon_handle)
   if (parent == -1) {
     /* Weapon has no parent — connect to map and attach at marker */
     object_connect_to_map(weapon_handle, 0);
-    object_set_garbage(weapon_handle, 1);
+    object_set_visibility(weapon_handle, 1);
     object_attach_to_marker(unit_handle, (void *)0x2b6d2c, weapon_handle,
                             (void *)0x25386f);
   } else if (parent != unit_handle) {
@@ -10704,7 +10704,7 @@ short unit_update_animation(int unit_handle, char *anim_state)
         vehicle_tag = (int)tag_get(0x756e6974, *vehicle_unit);
         seat_element = (unsigned char *)tag_block_get_element(
           (void *)(vehicle_tag + 0x2e4), (int)*(short *)(unit + 0xa8), 0x11c);
-        object_set_garbage(unit_handle, (~*seat_element) & 1);
+        object_set_visibility(unit_handle, (~*seat_element) & 1);
         if (vehicle_unit[0xb5] == (unsigned int)unit_handle) {
           unit_close((int)unit[0x33]);
         }
@@ -11541,7 +11541,7 @@ bool unit_enter_seat(int unit_handle, int seat_object_handle, int16_t flag)
     return false;
 
   object_disconnect_from_map(seat_object_handle);
-  object_set_garbage(seat_object_handle, 0);
+  object_set_visibility(seat_object_handle, 0);
   item_in_unit_inventory(seat_object_handle, unit_handle);
 
   unit->unk_680[(int16_t)seat_index].value = seat_object_handle;
@@ -11588,7 +11588,7 @@ bool unit_enter_seat(int unit_handle, int seat_object_handle, int16_t flag)
  * Confirmed: XOR EDX,EDX; MOV DX,[EAX+0x2a2] — unk_674.
  * Confirmed: weapon_put_away at 0xfd360, object_detach_from_parent at
  * 0x1411c0. Confirmed: object_disconnect_from_map at 0x13fd00, FUN_0x13fb30 at
- * 0x13fb30. Confirmed: object_set_garbage at 0x13ffc0, item_in_unit_inventory at
+ * 0x13fb30. Confirmed: object_set_visibility at 0x13ffc0, item_in_unit_inventory at
  * 0xf69c0. Confirmed: weapon_get_label at 0xfae80, unit_get_seat_label at
  * 0x1ae290. Confirmed: unit_try_animation_state at 0x1acd70. Confirmed:
  * object_connect_to_map at 0x140ce0, object_attach_to_marker at 0x144860.
@@ -11631,7 +11631,7 @@ void unit_update_weapon_readiness(int unit_handle, int flag)
       object_detach_from_parent(cur_weapon_handle);
       object_disconnect_from_map(cur_weapon_handle);
       object_activate(cur_weapon_handle);
-      object_set_garbage(cur_weapon_handle, 0);
+      object_set_visibility(cur_weapon_handle, 0);
       item_in_unit_inventory(cur_weapon_handle, unit_handle);
       *(uint16_t *)(unit + 0x2a2) = (uint16_t)-1;
     }
@@ -11653,7 +11653,7 @@ void unit_update_weapon_readiness(int unit_handle, int flag)
 
       /* Connect weapon to map and attach at markers */
       object_connect_to_map(next_weapon_handle, 0);
-      object_set_garbage(next_weapon_handle, 1);
+      object_set_visibility(next_weapon_handle, 1);
       object_attach_to_marker(unit_handle, sub_anim + 0x40, next_weapon_handle,
                               sub_anim + 0x20);
 
@@ -12570,7 +12570,7 @@ void unit_exit_seat_end(int unit_handle)
   }
 
   /* Set object as garbage (for cleanup) */
-  object_set_garbage(unit_handle, 1);
+  object_set_visibility(unit_handle, 1);
 
   /* Reset seat index and set exit-state */
   *(int16_t *)(unit + 0x2a0) = -1;
@@ -12654,7 +12654,7 @@ void unit_died(int unit_handle, char param_2)
   } else {
     /* Real death */
     *(int16_t *)(unit + 0x3d0) = 0;
-    object_set_garbage_flag(unit_handle, 1);
+    object_set_garbage(unit_handle, 1);
 
     /* Release player reference */
     if (*(int *)(unit + 0x1c8) != -1) {
@@ -13007,7 +13007,7 @@ char unit_try_and_exit_seat(int unit_handle)
   unit_set_animation(unit_handle, anim_graph_tag_index, animation_index);
 
   /* Mark unit as garbage and set exit animation state */
-  object_set_garbage(unit_handle, 1);
+  object_set_visibility(unit_handle, 1);
   *(uint8_t *)(unit + 0x253) = 0x1b;
 
   /* Notify AI subsystem of vehicle exit */

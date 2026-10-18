@@ -1682,7 +1682,7 @@ bool garbage_new(int item_handle)
   unsigned int flags;
 
   item_obj = (char *)object_get_and_verify_type(item_handle, 0x10);
-  object_set_garbage_flag(item_handle, 1);
+  object_set_garbage(item_handle, 1);
   flags = *(unsigned int *)(item_obj + 0x4);
   *(unsigned int *)(item_obj + 0x4) = flags | 0xc0000;
   seed = (unsigned int *)get_global_random_seed_address();
@@ -1784,7 +1784,7 @@ void item_in_unit_inventory(int item_handle, int unit_handle)
     }
     *(uint32_t *)(item_obj + 0x1a4) = flags;
     *(int *)(item_obj + 0x70) = *(int *)(unit_obj + 0x1c8);
-    object_set_garbage_flag(item_handle, 0);
+    object_set_garbage(item_handle, 0);
     *(uint32_t *)(item_obj + 0x1a4) = *(uint32_t *)(item_obj + 0x1a4) & ~0x28u;
     *(int *)(item_obj + 0x48) = NONE;
     *(int16_t *)(item_obj + 0x4c) = (int16_t)NONE;
@@ -2003,7 +2003,7 @@ char valid_real_matrix4x3(float *mat)
  * [-pi/4, pi/4]. Confirmed: CALL 0x213c0 (vector3d_add) for angular velocity
  * accumulation. Confirmed: CALL 0xf6b80
  * (item_adjust_for_angular_velocity_change) with item_handle in EAX. Confirmed:
- * CALL 0x13d920 (object_set_garbage_flag) with (handle, 0). Confirmed: global
+ * CALL 0x13d920 (object_set_garbage) with (handle, 0). Confirmed: global
  * collision depth at 0x4761d8 (int16_t). Confirmed: collision user stack at
  * 0x5a8c80. Confirmed: global up vector pointer at 0x31fc44 → {0, 0, 1}.
  * Confirmed: epsilon constant at 0x253f44 = ~0.0001f.
@@ -2166,7 +2166,7 @@ void item_accelerate(int item_handle, float *position, int flag)
 
     /* Update item velocity/angular state and clear garbage flag */
     item_adjust_for_angular_velocity_change(item_handle);
-    object_set_garbage_flag(item_handle, 0);
+    object_set_garbage(item_handle, 0);
   }
 
   /* Collision depth unguard */
@@ -2467,7 +2467,7 @@ bool item_update(int item_handle)
             (float *)(item_obj + 0x3c));
 
           if (!game_engine_running() && *(int *)(item_obj + 0x70) == NONE)
-            object_set_garbage_flag(item_handle, 1);
+            object_set_garbage(item_handle, 1);
 
           *(uint32_t *)(item_obj + 0x4) = *(uint32_t *)(item_obj + 0x4) | 0x20;
 

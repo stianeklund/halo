@@ -1986,11 +1986,11 @@ short tag_group_to_widget_type(int group_tag)
  *   0x13aed0  light_reconnect_to_map (object_lights.c)
  *   0x13d640  object_try_and_get_and_verify_type
  *   0x13d680  object_get_and_verify_type
- *   0x13d920  object_set_garbage_flag
+ *   0x13d920  object_set_garbage
  *   0x13dfc0  object_header_block_reference_get
  *   0x13e510  object_child_list_remove
  *   0x13eb70  object_reset_markers
- *   0x13ee60  object_propagate_flag_to_children
+ *   0x13ee60  object_connect_lights
  *   0x13eff0  object_remove_from_name_list
  *   0x13f060  objects_place
  *   0x13f810  objects_initialize
@@ -2003,7 +2003,7 @@ short tag_group_to_widget_type(int group_tag)
  *   0x13fd00  object_disconnect_from_map
  *   0x13fef0  object_has_node
  *   0x13ff50  object_set_automatic_deactivation (object set/clear hidden)
- *   0x13ffc0  object_set_garbage
+ *   0x13ffc0  object_set_visibility
  *   0x140160  object_set_region_count
  *   0x140230  object_adjust_interpolation_position
  *   0x140420  object_find_in_cluster
@@ -5648,7 +5648,7 @@ void *object_iterator_next(void *iter)
 }
 
 /*
- * object_set_garbage_flag — add or remove an object from the garbage
+ * object_set_garbage — add or remove an object from the garbage
  * collection linked list.
  *
  * The garbage list is a singly-linked list threaded through
@@ -5795,7 +5795,7 @@ void objects_fix_for_deleted_object(int object_handle)
   }
 }
 
-void object_set_garbage_flag(int object_handle, int is_garbage)
+void object_set_garbage(int object_handle, int is_garbage)
 {
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
@@ -7160,11 +7160,11 @@ void attachments_new(int object_handle)
   }
 }
 
-/* Propagate flags to all children of an object. For each child slot where
- * the "created" flag at obj+0xf4+i is clear and the child handle is valid,
- * optionally calls light_disconnect_from_map (param_1) and/or light_reconnect_to_map (param_2).
+/* Connect/disconnect an object's attached lights. Gated on obj flag 0x100 (set
+ * by attachment creation when light_new succeeds); for each attachment slot of
+ * type 0 (light) with a valid handle, optionally calls light_disconnect_from_map (param_1) and/or light_reconnect_to_map (param_2).
  * object_handle in EAX (register arg). */
-void object_propagate_flag_to_children(int object_handle /* @<eax> */,
+void object_connect_lights(int object_handle /* @<eax> */,
                                        int param_1, int param_2)
 {
   int *obj;
@@ -8140,7 +8140,7 @@ void object_disconnect_from_map(int object_handle)
      * and EBX = object_handle to unlink. */
     object_data_t *parent_obj = (object_data_t *)object_get_and_verify_type(
       obj->parent_object_index.value, -1);
-    object_child_list_remove((void *)((char *)parent_obj + 0xc8),
+    object_child_list_remove((void *)&parent_obj->unk_200,
                              object_handle);
   } else {
     /* No parent: remove from cluster partition. */
@@ -8153,7 +8153,7 @@ void object_disconnect_from_map(int object_handle)
       partition = (void *)0x5a8d30;
 
     cluster_partition_remove_object(partition, object_handle,
-                                    (void *)((char *)obj + 0xbc));
+                                    (void *)&obj->unk_188);
 
     /* If header bit 0x40 is set, re-fetch header and clear bit 0x1 */
     if (header->unk_2 & 0x40) {
@@ -8337,8 +8337,8 @@ void object_set_automatic_deactivation(int object_handle, char param_2)
 }
 
 /*
- * object_set_garbage (0x13ffc0) - despite its kb name, this function sets
- * object visibility: flag == 0 hides the object, flag != 0 shows it.
+ * object_set_visibility (0x13ffc0) - sets object visibility: flag == 0 hides
+ * the object, flag != 0 shows it.
  *
  * tag_def + 0x34 is the 'obje' definition's model tag index (the
  * tag_reference at +0x28 ends with its index dword at +0x34); NONE means the
@@ -8346,7 +8346,7 @@ void object_set_automatic_deactivation(int object_handle, char param_2)
  * (model index != NONE) as flag.
  *
  * obj->flags bit 0 is the hidden bit. When a model exists and that bit
- * disagrees with the request, object_propagate_flag_to_children (0x13ee60,
+ * disagrees with the request, object_connect_lights (0x13ee60,
  * object_handle @<eax>) is called with (0,1) when showing and (1,0) when
  * hiding.
  *
@@ -8399,7 +8399,7 @@ void object_set_automatic_deactivation(int object_handle, char param_2)
  *
  *
  */
-void object_set_garbage(int object_handle, int flag)
+void object_set_visibility(int object_handle, int flag)
 {
   object_data_t *obj;
   object_header_data_t *hdr;
@@ -8411,9 +8411,9 @@ void object_set_garbage(int object_handle, int flag)
   /* Definition has a render model (model tag index at +0x34). */
   if (*(int *)((char *)tag_def + 0x34) != NONE) {
     if ((obj->flags & 1) != 0 && (char)flag != 0)
-      object_propagate_flag_to_children(object_handle, 0, 1);
+      object_connect_lights(object_handle, 0, 1);
     else if ((obj->flags & 1) == 0 && (char)flag == 0)
-      object_propagate_flag_to_children(object_handle, 1, 0);
+      object_connect_lights(object_handle, 1, 0);
   }
 
   if ((char)flag == 0 || *(int *)((char *)tag_def + 0x34) != NONE) {
@@ -9211,9 +9211,9 @@ void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3)
  *      asserts that it is not a flag (CTF flag weapon).
  *   2. Recursively deletes children and optionally siblings.
  *   3. Sets datum header bit 0x08 (pending deletion).
- *   4. If the object's tag definition has a children block (tag+0x34 != -1)
- *      and obj->flags bit 0 is clear, propagates deletion to attached
- *      children via object_propagate_flag_to_children (EAX=handle, args 1,0).
+ *   4. If the object's tag definition has a model (tag+0x34 != -1)
+ *      and obj->flags bit 0 (hidden) is clear, disconnects attached
+ *      lights via object_connect_lights (EAX=handle, args 1,0).
  *   5. Sets obj->flags bit 0 (deleted/inactive).
  *   6. Clears datum header bit 0x02 (active).
  *   7. Removes the object from the name list via object_remove_from_name_list
@@ -9230,7 +9230,7 @@ void objects_scripting_set_scale(int param_1, int param_2, int16_t param_3)
  * Confirmed: [ESI+0xC4] — sibling object handle (conditional on
  * delete_sibling). Confirmed: OR AL,0x8 / MOV [EBX+0x2],AL — sets datum header
  * bit 0x08. Confirmed: MOV EAX,EDI before CALL 0x0013ee60 — EAX register arg =
- * handle. Confirmed: PUSH 0x0 / PUSH 0x1 — object_propagate_flag_to_children
+ * handle. Confirmed: PUSH 0x0 / PUSH 0x1 — object_connect_lights
  * stack args (1, 0). Confirmed: TEST byte ptr [ESI+0x4],0x1 — checks obj->flags
  * bit 0. Confirmed: OR dword ptr [ESI+0x4],0x1 — sets obj->flags bit 0.
  * Confirmed: AND CL,0xfd / MOV [EAX+0x2],CL — clears datum header bit 0x02.
@@ -9274,7 +9274,7 @@ void object_delete_internal(int object_handle, int delete_sibling)
     void *tag_def = tag_get(0x6f626a65, (int)obj->tag_index);
     if (*(int *)((char *)tag_def + 0x34) != -1 && (obj->flags & 1) == 0) {
       /* Propagate deletion to attached children. */
-      object_propagate_flag_to_children(object_handle, 1, 0);
+      object_connect_lights(object_handle, 1, 0);
     }
   }
 
@@ -11869,7 +11869,7 @@ int object_new(void *placement)
   }
 
   /* --- Set garbage flag (1 if model tag exists, 0 if not) --- */
-  object_set_garbage(object_handle, (uint8_t)(*(int *)(tag_data + 0x34) != -1));
+  object_set_visibility(object_handle, (uint8_t)(*(int *)(tag_data + 0x34) != -1));
 
   /* --- Copy remaining placement fields --- */
   *(int16_t *)(obj + 0x68) = *(int16_t *)(p + 0x14);
@@ -12281,7 +12281,7 @@ bool object_update(int object_handle)
       if ((obj->flags & 1) == 0 ||
           *(int *)((char *)tag_get(0x6f626a65, (int)obj->tag_index) + 0x34) ==
             -1) {
-        object_propagate_flag_to_children(object_handle, 1, 1);
+        object_connect_lights(object_handle, 1, 1);
       }
     }
 
@@ -12555,7 +12555,7 @@ void object_new_by_name(short param_1)
  *
  * Steps:
  *   1. If object has flag 0x10000, clear garbage flag via
- * object_set_garbage_flag.
+ * object_set_garbage.
  *   2. Call deletion callbacks via FUN_00138eb0 (dispatch through function
  * table).
  *   3. Recursively deactivate child object (obj+0xC8).
@@ -12594,7 +12594,7 @@ void object_delete_recursive(int object_handle, int delete_sibling)
 
   /* If object has flag 0x10000, clear the garbage flag. */
   if (obj->flags & 0x10000) {
-    object_set_garbage_flag(object_handle, 0);
+    object_set_garbage(object_handle, 0);
   }
 
   /* Dispatch deletion callbacks. */
@@ -12877,7 +12877,7 @@ pop_next:
     }
     if (hdr->unk_2 & 1)
       (*(int16_t *)((char *)object_globals + 4))--;
-    object_set_garbage_flag(handle, 0);
+    object_set_garbage(handle, 0);
     object_delete_internal(handle, 0);
     object_delete_recursive(handle, 0);
   }

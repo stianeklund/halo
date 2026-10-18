@@ -4058,7 +4058,7 @@ void game_engine_periodic_equipment_spawn(void)
           if (object_handle != -1) {
             int object_data =
               (int)object_get_and_verify_type(object_handle, 0x1c);
-            object_set_garbage_flag(object_handle, 0);
+            object_set_garbage(object_handle, 0);
             if ((*entry & 1) != 0) {
               *(unsigned int *)(object_data + 4) |= 0x20;
             }

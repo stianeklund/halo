@@ -101,33 +101,33 @@ void flying_camera_update(void *camera_data, void *control_data,
       (!valid_real_normal3d_perpendicular((float *)&result->forward,
                                           (float *)&result->up) ||
        (*(uint32_t *)&result->position.x & 0x7f800000) == 0x7f800000 ||
-       !(result->position.x >= *(float *)0x266e98) ||
-       !(result->position.x <= *(float *)0x266e94) ||
+       !(result->position.x >= REAL_NEG_5000_POOL) ||
+       !(result->position.x <= REAL_5000_POOL) ||
        (*(uint32_t *)&result->position.y & 0x7f800000) == 0x7f800000 ||
-       !(result->position.y >= *(float *)0x266e98) ||
-       !(result->position.y <= *(float *)0x266e94) ||
+       !(result->position.y >= REAL_NEG_5000_POOL) ||
+       !(result->position.y <= REAL_5000_POOL) ||
        (*(uint32_t *)&result->position.z & 0x7f800000) == 0x7f800000 ||
-       !(result->position.z >= *(float *)0x266e98) ||
-       !(result->position.z <= *(float *)0x266e94) ||
+       !(result->position.z >= REAL_NEG_5000_POOL) ||
+       !(result->position.z <= REAL_5000_POOL) ||
        (*(uint32_t *)&result->offset.i & 0x7f800000) == 0x7f800000 ||
-       !(result->offset.i >= *(float *)0x266e98) ||
-       !(result->offset.i <= *(float *)0x266e94) ||
+       !(result->offset.i >= REAL_NEG_5000_POOL) ||
+       !(result->offset.i <= REAL_5000_POOL) ||
        (*(uint32_t *)&result->offset.j & 0x7f800000) == 0x7f800000 ||
-       !(result->offset.j >= *(float *)0x266e98) ||
-       !(result->offset.j <= *(float *)0x266e94) ||
+       !(result->offset.j >= REAL_NEG_5000_POOL) ||
+       !(result->offset.j <= REAL_5000_POOL) ||
        (*(uint32_t *)&result->offset.k & 0x7f800000) == 0x7f800000 ||
-       !(result->offset.k >= *(float *)0x266e98) ||
-       !(result->offset.k <= *(float *)0x266e94) ||
+       !(result->offset.k >= REAL_NEG_5000_POOL) ||
+       !(result->offset.k <= REAL_5000_POOL) ||
        !real_vector3d_valid((float *)&result->velocity) ||
        (*(uint32_t *)&result->depth & 0x7f800000) == 0x7f800000 ||
-       !(result->depth >= *(float *)0x2533c0) ||
-       !(result->depth <= *(float *)0x266e94) ||
+       !(result->depth >= REAL_ZERO_POOL) ||
+       !(result->depth <= REAL_5000_POOL) ||
        (*(uint32_t *)&result->field_of_view & 0x7f800000) == 0x7f800000 ||
-       !(result->field_of_view >= *(float *)0x255ef8) ||
-       !(result->field_of_view <= *(float *)0x2568bc) ||
+       !(result->field_of_view >= REAL_0_001_POOL) ||
+       !(result->field_of_view <= REAL_HALF_PI_POOL) ||
        (*(uint32_t *)&result->timer & 0x7f800000) == 0x7f800000 ||
-       !(result->timer >= *(float *)0x2533c0) ||
-       !(result->timer <= *(float *)0x266e90))) {
+       !(result->timer >= REAL_ZERO_POOL) ||
+       !(result->timer <= REAL_3600_POOL))) {
     char *msg = csprintf((char *)0x5ab100,
                          "Invalid camera command.\n"
                          "F: (%f, %f, %f) U: (%f, %f, %f)\n"
@@ -235,7 +235,7 @@ float uniform_cubic_spline(float f0, float f1, float f2, float f3, float t0,
                            float h, float t)
 {
   assert_halt_msg_at("h > 0.0f", "..\\math\\real_math.h", 0x5e4,
-                     h > *(float *)0x2533c0);
+                     h > REAL_ZERO_POOL);
   assert_halt_msg_at("t >= t0 && t <= t0 + 3.0f*h", "..\\math\\real_math.h",
                      0x5e5, t >= t0 && t <= t0 + 3.0f * h);
 

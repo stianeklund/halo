@@ -295,7 +295,7 @@
   },
   {
     "addr": "0x13d920",
-    "name": "object_set_garbage_flag",
+    "name": "object_set_garbage",
     "object": "objects.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"
@@ -386,7 +386,7 @@
   },
   {
     "addr": "0x13ee60",
-    "name": "object_propagate_flag_to_children",
+    "name": "object_connect_lights",
     "object": "objects.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"
@@ -526,7 +526,7 @@
   },
   {
     "addr": "0x13ffc0",
-    "name": "object_set_garbage",
+    "name": "object_set_visibility",
     "object": "objects.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"

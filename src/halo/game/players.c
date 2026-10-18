@@ -448,9 +448,9 @@ void player_pseudo_kill(int player_index, int param_2)
       unit_inventory_get_weapon(object_handle, *(int16_t *)(object2 + 0x2a2));
     *(int *)(object + 0x1c8) = NONE;
     object_deactivate(object_handle);
-    object_set_garbage(object_handle, 0);
+    object_set_visibility(object_handle, 0);
     if (weapon_handle != NONE)
-      object_set_garbage(weapon_handle, 0);
+      object_set_visibility(weapon_handle, 0);
     if (param_2 != NONE)
       *(int *)(player + 0x38) = param_2;
     *((char *)players_globals + 0x28) = 0;
@@ -1562,11 +1562,11 @@ void player_spawn(int player_handle)
       system_exit(-1);
     }
     ((void (*)(int))0x13fb30)(saved_unit);
-    object_set_garbage(saved_unit, 1);
+    object_set_visibility(saved_unit, 1);
     players_set_local_player_unit((uint16_t) * (int16_t *)(player + 2),
                                   saved_unit);
     if (prev_weapon != NONE) {
-      object_set_garbage(prev_weapon, 1);
+      object_set_visibility(prev_weapon, 1);
     }
   } else {
     /* --- Fresh-spawn path. --- */

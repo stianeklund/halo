@@ -18378,7 +18378,7 @@
     },
     {
      "addr": "0x13d920",
-     "decl": "void object_set_garbage_flag(int object_handle, int is_garbage);",
+     "decl": "void object_set_garbage(int object_handle, int is_garbage);",
      "ported": true
     },
     {
@@ -18548,7 +18548,7 @@
     },
     {
      "addr": "0x13ee60",
-     "decl": "void object_propagate_flag_to_children(int object_handle@<eax>, int param_1, int param_2);",
+     "decl": "void object_connect_lights(int object_handle@<eax>, int disconnect, int reconnect);",
      "ported": true,
      "static_in_tu": true
     },
@@ -18689,7 +18689,7 @@
     },
     {
      "addr": "0x13ffc0",
-     "decl": "void object_set_garbage(int object_handle, int flag);",
+     "decl": "void object_set_visibility(int object_handle, int visible);",
      "ported": true
     },
     {

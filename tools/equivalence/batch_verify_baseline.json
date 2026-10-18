@@ -3013,7 +3013,7 @@
       "reason": "divergence"
     },
     {
-      "name": "object_propagate_flag_to_children",
+      "name": "object_connect_lights",
       "status": "fail",
       "reason": "divergence"
     },
@@ -3038,12 +3038,12 @@
       "reason": "divergence"
     },
     {
-      "name": "object_set_garbage",
+      "name": "object_set_visibility",
       "status": "fail",
       "reason": "divergence"
     },
     {
-      "name": "object_set_garbage_flag",
+      "name": "object_set_garbage",
       "status": "fail",
       "reason": "divergence"
     },

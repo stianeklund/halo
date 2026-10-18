@@ -8681,7 +8681,7 @@
       "resolved_in": "2026-09-13"
     },
     "0x13ee60": {
-      "name": "object_propagate_flag_to_children",
+      "name": "object_connect_lights",
       "obj": "objects.obj",
       "addr": "0x13ee60",
       "category": "arg_mismatch",
@@ -8811,7 +8811,7 @@
       "resolved_in": "2026-09-13"
     },
     "0x13ffc0": {
-      "name": "object_set_garbage",
+      "name": "object_set_visibility",
       "obj": "objects.obj",
       "addr": "0x13ffc0",
       "category": "arg_mismatch",
@@ -8833,7 +8833,7 @@
       "resolved_in": "2026-09-13"
     },
     "0x13d920": {
-      "name": "object_set_garbage_flag",
+      "name": "object_set_garbage",
       "obj": "objects.obj",
       "addr": "0x13d920",
       "category": "arg_mismatch",

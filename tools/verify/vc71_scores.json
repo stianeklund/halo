@@ -54150,7 +54150,7 @@
       "score": 98.1,
       "source": "src/halo/objects/objects.c"
     },
-    "object_propagate_flag_to_children": {
+    "object_connect_lights": {
       "addr": "0x13ee60",
       "end": "0x13eef6",
       "kind": "auto",
@@ -54348,7 +54348,7 @@
       "score": 100.0,
       "source": "src/halo/objects/objects.c"
     },
-    "object_set_garbage": {
+    "object_set_visibility": {
       "addr": "0x13ffc0",
       "end": "0x140068",
       "kind": "auto",
@@ -54359,7 +54359,7 @@
       "score": 92.3,
       "source": "src/halo/objects/objects.c"
     },
-    "object_set_garbage_flag": {
+    "object_set_garbage": {
       "addr": "0x13d920",
       "end": "0x13db4b",
       "kind": "auto",

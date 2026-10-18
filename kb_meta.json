@@ -24515,7 +24515,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "Names object_disconnect_from_map (0x13fd00), object_set_garbage (0x13ffc0), object_delete (0x140cc0), item_activate_equipment_effect (0xf67b0), and item_attach_to_unit (0xf69c0) are inferred from context and decompilation, not from assert strings."
+        "Names object_disconnect_from_map (0x13fd00), object_set_visibility (0x13ffc0), object_delete (0x140cc0), item_activate_equipment_effect (0xf67b0), and item_attach_to_unit (0xf69c0) are inferred from context and decompilation, not from assert strings."
       ]
     },
     "0x1aac40": {
