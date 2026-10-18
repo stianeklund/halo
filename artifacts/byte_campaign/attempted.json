@@ -152,12 +152,12 @@
   "dependency_fingerprint": "f3f8ebe3a983a187181b2ccb64cbd415bbeca6f374ac8ce957fc5080aa2bf5bc"
  },
  "following_camera_update": {
-  "ts": 1791214500,
-  "run": "20261005-r4",
+  "ts": 1791464817,
+  "run": "20261008-r1",
   "result": "reverted",
-  "before": 0.8756,
-  "after": 0.8756,
-  "dependency_fingerprint": "7fff9e947ec6e3e26486d6f5cbab3f47d9c40933ea80d7136ec5649557df3a03"
+  "before": 87.6,
+  "after": 87.6,
+  "dependency_fingerprint": "f39509f172bd47792538db251903f4697f4cfc5d2136ac11b580e7a723217988"
  },
  "hashtable_get": {
   "ts": 1791152007,
@@ -440,12 +440,12 @@
   "dependency_fingerprint": "d7052074d18f62b4291b931f65b0f2b75eee7763687aa4774861da464d94640d"
  },
  "network_game_server_idle_pregame_tasks": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
+  "ts": 1791464817,
+  "run": "20261008-r1",
   "result": "no_gain",
-  "before": 0.9748,
-  "after": 0.9748,
-  "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
+  "before": 97.48,
+  "after": 97.48,
+  "dependency_fingerprint": "dcd3335bdd0aed00a6e8a894985fc42341213ed230672e6df336045ab3424652"
  },
  "network_game_server_send_rejection_message": {
   "ts": 1791149486,
@@ -456,12 +456,12 @@
   "dependency_fingerprint": "d7052074d18f62b4291b931f65b0f2b75eee7763687aa4774861da464d94640d"
  },
  "network_game_server_stalled_on_client": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
-  "result": "no_gain",
-  "before": 0.9842,
-  "after": 0.9842,
-  "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
+  "ts": 1791464817,
+  "run": "20261008-r1",
+  "result": "reverted",
+  "before": 98.68,
+  "after": 98.68,
+  "dependency_fingerprint": "dcd3335bdd0aed00a6e8a894985fc42341213ed230672e6df336045ab3424652"
  },
  "network_game_server_switch_machine_from_postgame_to_pregame": {
   "ts": 1791189675,
@@ -480,20 +480,20 @@
   "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
  },
  "object_compute_function_values": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
+  "ts": 1791464817,
+  "run": "20261008-r1",
   "result": "no_gain",
-  "before": 0.9609,
-  "after": 0.9609,
-  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
+  "before": 96.1,
+  "after": 96.1,
+  "dependency_fingerprint": "af20b19cf6d3951642a7bd09cceced18189dc45afe383b3209c9be6f04560b20"
  },
  "object_delete_recursive": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
+  "ts": 1791464817,
+  "run": "20261008-r1",
   "result": "no_gain",
-  "before": 0.9224,
-  "after": 0.9224,
-  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
+  "before": 94.08,
+  "after": 94.08,
+  "dependency_fingerprint": "af20b19cf6d3951642a7bd09cceced18189dc45afe383b3209c9be6f04560b20"
  },
  "object_determine_variant_number": {
   "ts": 1791149486,
@@ -520,20 +520,20 @@
   "ts": 1791119124
  },
  "object_inverse_kinematics": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
+  "ts": 1791464817,
+  "run": "20261008-r1",
   "result": "no_gain",
-  "before": 0.9685,
-  "after": 0.9685,
-  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
+  "before": 96.85,
+  "after": 96.85,
+  "dependency_fingerprint": "af20b19cf6d3951642a7bd09cceced18189dc45afe383b3209c9be6f04560b20"
  },
  "object_new_from_scenario": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
-  "result": "no_gain",
-  "before": 0.9479,
-  "after": 0.9479,
-  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
+  "ts": 1791464817,
+  "run": "20261008-r1",
+  "result": "regarg_ceiling",
+  "before": 94.8,
+  "after": 94.8,
+  "dependency_fingerprint": "af20b19cf6d3951642a7bd09cceced18189dc45afe383b3209c9be6f04560b20"
  },
  "object_types_place_all": {
   "after": 80.0,
@@ -560,12 +560,12 @@
   "ts": 1791109759
  },
  "objects_dispose_from_old_map": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
-  "result": "no_gain",
-  "before": 0.8355,
-  "after": 0.8355,
-  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
+  "ts": 1791464817,
+  "run": "20261008-r1",
+  "result": "reverted",
+  "before": 87.5,
+  "after": 87.5,
+  "dependency_fingerprint": "af20b19cf6d3951642a7bd09cceced18189dc45afe383b3209c9be6f04560b20"
  },
  "objects_get_activating_cluster_index": {
   "after": 93.3,
@@ -576,12 +576,12 @@
   "ts": 1791119124
  },
  "orbiting_camera_update": {
-  "ts": 1791214500,
-  "run": "20261005-r4",
+  "ts": 1791464817,
+  "run": "20261008-r1",
   "result": "no_gain",
-  "before": 0.9651,
-  "after": 0.9651,
-  "dependency_fingerprint": "7fff9e947ec6e3e26486d6f5cbab3f47d9c40933ea80d7136ec5649557df3a03"
+  "before": 96.5,
+  "after": 96.5,
+  "dependency_fingerprint": "f39509f172bd47792538db251903f4697f4cfc5d2136ac11b580e7a723217988"
  },
  "rasterizer_frame_begin": {
   "after": 79.1,
@@ -656,12 +656,12 @@
   "ts": 1791112718
  },
  "unit_camera_get": {
-  "ts": 1791214500,
-  "run": "20261005-r4",
+  "ts": 1791464817,
+  "run": "20261008-r1",
   "result": "regarg_ceiling",
-  "before": 0.8868,
-  "after": 0.8868,
-  "dependency_fingerprint": "7fff9e947ec6e3e26486d6f5cbab3f47d9c40933ea80d7136ec5649557df3a03"
+  "before": 88.7,
+  "after": 88.7,
+  "dependency_fingerprint": "f39509f172bd47792538db251903f4697f4cfc5d2136ac11b580e7a723217988"
  },
  "unit_definition_get_seat_active_hud_index": {
   "after": 87.9,
@@ -880,52 +880,52 @@
   "dependency_fingerprint": "39642b6885d772c40fb472cc30bf15ce9660d3f42a5054039a23bbc67495badc"
  },
  "TIFFWriteDirectory": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
-  "result": "improved",
-  "before": 0.8047,
-  "after": 0.8336,
-  "dependency_fingerprint": "39642b6885d772c40fb472cc30bf15ce9660d3f42a5054039a23bbc67495badc"
+  "ts": 1791464817,
+  "run": "20261008-r1",
+  "result": "no_gain",
+  "before": 81.5,
+  "after": 81.5,
+  "dependency_fingerprint": "2e5ee78fc53af4ac3b12b78df44608f22847269242fe0d6e2ed1eab90d546b06"
  },
  "TIFFLinkDirectory": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
-  "result": "no_gain",
-  "before": 0.8963,
-  "after": 0.8963,
-  "dependency_fingerprint": "39642b6885d772c40fb472cc30bf15ce9660d3f42a5054039a23bbc67495badc"
+  "ts": 1791464817,
+  "run": "20261008-r1",
+  "result": "regarg_ceiling",
+  "before": 89.6,
+  "after": 89.6,
+  "dependency_fingerprint": "2e5ee78fc53af4ac3b12b78df44608f22847269242fe0d6e2ed1eab90d546b06"
  },
  "TIFFWriteRational": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
-  "result": "no_gain",
-  "before": 0.8018,
-  "after": 0.8018,
-  "dependency_fingerprint": "39642b6885d772c40fb472cc30bf15ce9660d3f42a5054039a23bbc67495badc"
+  "ts": 1791464817,
+  "run": "20261008-r1",
+  "result": "regarg_ceiling",
+  "before": 80.2,
+  "after": 80.2,
+  "dependency_fingerprint": "2e5ee78fc53af4ac3b12b78df44608f22847269242fe0d6e2ed1eab90d546b06"
  },
  "objects_dump_memory": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
-  "result": "reverted",
-  "before": 0.8609,
-  "after": 0.9535,
-  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
+  "ts": 1791464817,
+  "run": "20261008-r1",
+  "result": "improved",
+  "before": 95.82,
+  "after": 99.07,
+  "dependency_fingerprint": "af20b19cf6d3951642a7bd09cceced18189dc45afe383b3209c9be6f04560b20"
  },
  "object_disconnect_from_map": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
-  "result": "no_gain",
-  "before": 0.831,
-  "after": 0.831,
-  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
+  "ts": 1791464817,
+  "run": "20261008-r1",
+  "result": "reverted",
+  "before": 85.99,
+  "after": 85.99,
+  "dependency_fingerprint": "af20b19cf6d3951642a7bd09cceced18189dc45afe383b3209c9be6f04560b20"
  },
  "object_set_garbage": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
+  "ts": 1791464817,
+  "run": "20261008-r1",
   "result": "no_gain",
-  "before": 0.75,
-  "after": 0.75,
-  "dependency_fingerprint": "4f014f40040cc84cc0bda2cf83baaf0c500a33f08eaa7eef2fe89e86e68aa429"
+  "before": 75.0,
+  "after": 75.0,
+  "dependency_fingerprint": "af20b19cf6d3951642a7bd09cceced18189dc45afe383b3209c9be6f04560b20"
  },
  "network_game_server_idle_postgame_tasks": {
   "ts": 1791214022,
@@ -944,12 +944,12 @@
   "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
  },
  "network_game_server_reset_to_pregame": {
-  "ts": 1791214022,
-  "run": "20261005-r3",
-  "result": "no_gain",
-  "before": 0.7553,
-  "after": 0.7553,
-  "dependency_fingerprint": "adeee6329e2314593f082277e2cadc01f7898241fcf5c657522283463bd9b319"
+  "ts": 1791464817,
+  "run": "20261008-r1",
+  "result": "regarg_ceiling",
+  "before": 79.61,
+  "after": 79.61,
+  "dependency_fingerprint": "dcd3335bdd0aed00a6e8a894985fc42341213ed230672e6df336045ab3424652"
  },
  "network_game_client_handle_message": {
   "ts": 1791214022,
@@ -1008,11 +1008,11 @@
   "dependency_fingerprint": "aec8d05a1fa546e48a227ba148708ebe756ac39e897a3092c16c5403df826f23"
  },
  "network_game_server_add_player_to_game": {
-  "ts": "2026-10-05T17:23:34Z",
-  "run": "run1",
+  "ts": 1791464817,
+  "run": "20261008-r1",
   "result": "no_gain",
   "before": 96.4,
   "after": 96.4,
-  "dependency_fingerprint": "73c42a2bb88333278d7ace58039ed1b2a3ec79376dc99eceb9cbe0342c62b409"
+  "dependency_fingerprint": "dcd3335bdd0aed00a6e8a894985fc42341213ed230672e6df336045ab3424652"
  }
 }

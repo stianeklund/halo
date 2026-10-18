@@ -7542,12 +7542,11 @@ void objects_dump_memory(void)
 {
   struct dump_datum dumps[1024];
   struct dump_datum dumps_by_type[12];
-  object_iter_t dump_iter;
+  object_iter_t iterator;
   object_header_data_t *header;
   object_data_t *object;
-  void *stream;
+  void *file;
   char *name;
-  struct objects_information info;
   struct dump_datum *dump;
   int16_t object_type;
   int16_t object_num;
@@ -7556,7 +7555,6 @@ void objects_dump_memory(void)
 
   dump_count = 0;
   overflowed_count = 0;
-
   csmemset(dumps, 0, sizeof(dumps));
   csmemset(dumps_by_type, 0, sizeof(dumps_by_type));
 
@@ -7566,12 +7564,12 @@ void objects_dump_memory(void)
   }
 
   data_verify(*(data_t **)0x5a8d50);
-  dump_iter.cookie = 0x86868686;
-  dump_iter.type_mask = -1;
-  dump_iter.flags = 0;
-  dump_iter.current_index = 0;
-  dump_iter.last_handle = NONE;
-  while ((object = (object_data_t *)object_iterator_next(&dump_iter)) != NULL) {
+  iterator.cookie = 0x86868686;
+  iterator.type_mask = -1;
+  iterator.flags = 0;
+  iterator.current_index = 0;
+  iterator.last_handle = NONE;
+  while ((object = (object_data_t *)object_iterator_next(&iterator)) != NULL) {
     int16_t index = -1;
 
     for (object_num = 0; object_num < dump_count; ++object_num) {
@@ -7593,13 +7591,13 @@ void objects_dump_memory(void)
     }
 
     header = (object_header_data_t *)datum_get(*(data_t **)0x5a8d50,
-                                               dump_iter.last_handle);
+                                               iterator.last_handle);
     if (index != -1) {
-      object_add_to_dump(dump_iter.last_handle, &dumps[index]);
+      object_add_to_dump(iterator.last_handle, &dumps[index]);
     }
 
     assert_halt_msg_at("(header->type >= 0) && (header->type < NUMBER_OF_OBJECT_TYPES)", __FILE__, 4905, header->type >= 0 && header->type < 12);
-    object_add_to_dump(dump_iter.last_handle, &dumps_by_type[header->type]);
+    object_add_to_dump(iterator.last_handle, &dumps_by_type[header->type]);
   }
 
   qsort(dumps, (size_t)dump_count, sizeof(struct dump_datum),
@@ -7607,18 +7605,20 @@ void objects_dump_memory(void)
   qsort(dumps_by_type, 12, sizeof(struct dump_datum),
         (int (*)(const void *, const void *))sort_dumps);
 
-  stream = (void *)crt_fopen("d:\\object_memory.txt", "wt");
-  if (stream != NULL) {
-    objects_information_get(&info);
+  file = (void *)crt_fopen("d:\\object_memory.txt", "wt");
+  if (file != NULL) {
+    {
+      struct objects_information info;
 
+      objects_information_get(&info);
+      crt_fprintf(
+        file, "#%d objects (#%d active) using %3.2f%% of available memory\n\n",
+        info.object_count, info.active_object_count,
+        (double)(100.0f * info.used_memory));
+    }
+    crt_fprintf(file, "OBJECTS BY TYPE\n");
     crt_fprintf(
-      stream, "#%d objects (#%d active) using %3.2f%% of available memory\n\n",
-      info.object_count, info.active_object_count,
-      (double)(100.0f * info.used_memory));
-
-    crt_fprintf(stream, "OBJECTS BY TYPE\n");
-    crt_fprintf(
-      stream,
+      file,
       "number (active) [garbage/   dead/outside/at-rest] maxsize totsize\n");
     dump = dumps_by_type;
     for (object_type = 0; object_type < 12; object_type++) {
@@ -7628,7 +7628,7 @@ void objects_dump_memory(void)
       } else if (dump->object_type != -1) {
         name = (char *)object_type_get_name(dump->object_type);
       }
-      crt_fprintf(stream, "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n",
+      crt_fprintf(file, "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n",
                   (int)dump->count, (int)dump->active_count,
                   (int)dump->garbage_count, (int)dump->dead_count,
                   (int)dump->outside_map_count, (int)dump->at_rest_count,
@@ -7636,10 +7636,10 @@ void objects_dump_memory(void)
       dump++;
     }
 
-    crt_fprintf(stream, "\n");
-    crt_fprintf(stream, "OBJECTS BY DEFINITION\n");
+    crt_fprintf(file, "\n");
+    crt_fprintf(file, "OBJECTS BY DEFINITION\n");
     crt_fprintf(
-      stream,
+      file,
       "number (active) [garbage/   dead/outside/at-rest] maxsize totsize\n");
     dump = dumps;
     for (object_num = 0; object_num < dump_count; object_num++) {
@@ -7649,7 +7649,7 @@ void objects_dump_memory(void)
       } else if (dump->object_type != -1) {
         name = (char *)object_type_get_name(dump->object_type);
       }
-      crt_fprintf(stream, "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n",
+      crt_fprintf(file, "% 6d (% 6d) [% 7d/% 7d/% 7d/% 7d] % 7d % 7d %s\r\n",
                   (int)dump->count, (int)dump->active_count,
                   (int)dump->garbage_count, (int)dump->dead_count,
                   (int)dump->outside_map_count, (int)dump->at_rest_count,
@@ -7657,15 +7657,15 @@ void objects_dump_memory(void)
       dump++;
     }
 
-    crt_fprintf(stream, "\n");
+    crt_fprintf(file, "\n");
     if (overflowed_count > 0) {
-      crt_fprintf(stream,
+      crt_fprintf(file,
                   "WARNING: overflowed MAXIMUM_DUMPS (%d), this dump does not "
                   "include %d objects that would not fit!\n",
                   1024, (int)overflowed_count);
     }
-    crt_fprintf(stream, "\n");
-    crt_fclose(stream);
+    crt_fprintf(file, "\n");
+    crt_fclose(file);
   }
 }
 
