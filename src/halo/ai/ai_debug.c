@@ -2173,6 +2173,57 @@ void ai_debug_idle_look_addprop(int index, float value)
   }
 }
 
+/* ai_debug_render_idle_look (0x4a770) — when the idle-look debug block at
+ * 0x6323d4 is valid, draw each recorded prop's score ("%.2f", from 0x632460)
+ * at actor+0x120 offset along *(float **)0x31fc44 by [0x2533e8] and along
+ * prop+0xe0 by [0x2555d0].  Colour is [0x2ee6e0] when actor+0x55c is set,
+ * actor+0x56c == 1 and actor+0x570 equals the prop index, else [0x2ee6c4].
+ * The colour is pushed before csprintf's args, so csprintf is nested as
+ * argument 3 of FUN_00189cb0 (0x4a87a). */
+void ai_debug_render_idle_look(void)
+{
+  char *actor;
+  char *prop;
+  float *up;
+  float position[3];
+  int color;
+  short i;
+
+  if (*(uint8_t *)0x6323d4 != 0) {
+    actor = (char *)datum_absolute_index_to_index(*(data_t **)0x6325a4,
+                                                  *(int32_t *)0x6323d8);
+    if (actor != NULL) {
+      for (i = 0; i < *(int16_t *)0x6323dc; i++) {
+        prop = (char *)datum_absolute_index_to_index(*(data_t **)0x5ab23c,
+                                                     ((int32_t *)0x6323e0)[i]);
+        if (prop != NULL) {
+          up = *(float **)0x31fc44;
+          position[0] = up[0] * *(float *)0x2533e8 + *(float *)(actor + 0x120);
+          position[1] = up[1] * *(float *)0x2533e8 + *(float *)(actor + 0x124);
+          position[2] = up[2] * *(float *)0x2533e8 + *(float *)(actor + 0x128);
+          position[0] =
+            *(float *)(prop + 0xe0) * *(float *)0x2555d0 + position[0];
+          position[1] =
+            *(float *)(prop + 0xe4) * *(float *)0x2555d0 + position[1];
+          position[2] =
+            *(float *)(prop + 0xe8) * *(float *)0x2555d0 + position[2];
+          if (*(uint8_t *)(actor + 0x55c) != 0 &&
+              *(int16_t *)(actor + 0x56c) == 1 &&
+              *(int32_t *)(actor + 0x570) == ((int32_t *)0x6323e0)[i]) {
+            color = *(int *)0x2ee6e0;
+          } else {
+            color = *(int *)0x2ee6c4;
+          }
+          FUN_00189cb0(
+            1, position,
+            csprintf((char *)0x5ab100, "%.2f", (double)((float *)0x632460)[i]),
+            color);
+        }
+      }
+    }
+  }
+}
+
 /* ai_debug_render_spatial_effects (0x4a8c0) — render the AI "communication"
  * debug ring buffer. Walks the 32-entry ring stored in the AI globals block
  * (*(char**)0x632574) from head (+0x130) to tail (+0x132), and for every live
@@ -2820,6 +2871,41 @@ void ai_debug_select_actor(int encounter_idx, int param_2)
   }
 }
 
+/* ai_debug_drawstack_setup (0x4b220): position @<eax> is copied by GPR into
+ * both the previous-position (0x5ac9a0) and cursor (0x5ac9b0) vec3 slots.
+ * Line spacing (0x5ac990) = camera distance * [0x25afc0], or 0.05f with no
+ * camera.  Differences are camera - position, read from the 0x5ac9a0 copy. */
+void ai_debug_drawstack_setup(float *position /* @<eax> */)
+{
+  float *camera;
+  uint32_t x;
+  uint32_t y;
+  uint32_t z;
+  float dx;
+  float dy;
+  float dz;
+
+  camera = (float *)observer_get_camera(0);
+  x = ((uint32_t *)position)[0];
+  *(uint32_t *)0x5ac9a0 = x;
+  y = ((uint32_t *)position)[1];
+  *(uint32_t *)0x5ac9a4 = y;
+  z = ((uint32_t *)position)[2];
+  *(uint32_t *)0x5ac9a8 = z;
+  *(uint32_t *)0x5ac9b8 = z;
+  *(uint32_t *)0x5ac9b0 = x;
+  *(uint32_t *)0x5ac9b4 = y;
+  if (camera != NULL) {
+    dx = camera[0] - *(float *)0x5ac9a0;
+    dy = camera[1] - *(float *)0x5ac9a4;
+    dz = camera[2] - *(float *)0x5ac9a8;
+    *(float *)0x5ac990 =
+      sqrtf(dz * dz + dx * dx + dy * dy) * *(float *)0x25afc0;
+    return;
+  }
+  *(float *)0x5ac990 = 0.05f;
+}
+
 /* ai_debug_drawstack: advance the AI debug text cursor by one line.
  *
  * Saves the current cursor position (vec3 @0x5ac9b0) into the previous-position
@@ -3063,6 +3149,291 @@ void ai_debug_select_this_actor(void)
     ai_debug_select_actor(-1, -1);
   }
   *(uint8_t *)0x5ac9c1 = 0;
+}
+
+/* ai_debug_render_vehicles_enterable (0x4bc70): for each impromptu-vehicle
+ * entry in the ai-globals table (*(char **)0x632574 + 0x3b8, int16 count at
+ * +0x3b6, stride 0x28), draw its distance, team mask, actor-type mask and
+ * actor list as debug text above the vehicle.
+ *
+ * Binary facts:
+ *   - One short index (ESI) is shared by the outer loop and all three inner
+ *     loops: after an inner loop the outer index holds 10, 16 or the actor
+ *     count before the trailing INC.  Preserved.
+ *   - The first text line calls ai_debug_drawstack (0x4b2b0); the next three
+ *     lines carry an inlined copy of its body (GPR copy of 0x5ac9b0..b8 to
+ *     0x5ac9a0..a8, then cursor += 0x5ac990 * up).
+ *   - Entry fields observed: +0x00 vehicle handle, +0x04 float distance,
+ *     +0x08 short team mask, +0x0a short actor-type mask, +0x0c short actor
+ *     count, +0x10 int actor indices.  Meanings come from the strings only. */
+void ai_debug_render_vehicles_enterable(void)
+{
+  char buf[256];
+  char *actor_type_names[16];
+  char *team_names[10];
+  float position[3];
+  char *entry;
+  float *up;
+  uint32_t x;
+  uint32_t y;
+  uint32_t z;
+  int16_t i;
+
+  for (i = 0; i < *(int16_t *)(*(char **)0x632574 + 0x3b6); i++) {
+    entry = *(char **)0x632574 + 0x3b8 + i * 0x28;
+    if (object_try_and_get_and_verify_type(*(int *)entry, 3) != NULL) {
+      object_get_world_position(*(int *)entry, (vector3_t *)position);
+      up = *(float **)0x31fc44;
+      position[0] = up[0] * *(float *)0x253398 + position[0];
+      position[1] = up[1] * *(float *)0x253398 + position[1];
+      position[2] = up[2] * *(float *)0x253398 + position[2];
+      ai_debug_drawstack_setup(position);
+      FUN_00189cb0(1, ai_debug_drawstack(),
+                   csprintf((char *)0x5ab100, "enterable: dist %.1f",
+                            (double)*(float *)(entry + 4)),
+                   *(int *)0x2ee6e8);
+
+      if (*(int16_t *)(entry + 8) != 0) {
+        team_names[0] = "default";
+        team_names[1] = "player";
+        team_names[2] = "human";
+        team_names[3] = "covenant";
+        team_names[4] = "flood";
+        team_names[5] = "sentinel";
+        team_names[6] = "unused6";
+        team_names[7] = "unused7";
+        team_names[8] = "unused8";
+        team_names[9] = "unused9";
+        crt_sprintf((char *)0x5ab100, "teams:");
+        for (i = 0; i < 10; i++) {
+          if (*(int16_t *)(entry + 8) & FLAG(i)) {
+            csstrcat((char *)0x5ab100, " ");
+            csstrcat((char *)0x5ab100, team_names[i]);
+          }
+        }
+        x = *(uint32_t *)0x5ac9b0;
+        y = *(uint32_t *)0x5ac9b4;
+        z = *(uint32_t *)0x5ac9b8;
+        *(uint32_t *)0x5ac9a0 = x;
+        *(uint32_t *)0x5ac9a4 = y;
+        *(uint32_t *)0x5ac9a8 = z;
+        up = *(float **)0x31fc44;
+        *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
+        *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
+        *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
+        FUN_00189cb0(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
+      }
+
+      if (*(int16_t *)(entry + 0xa) != 0) {
+        actor_type_names[0] = "elite";
+        actor_type_names[1] = "jackal";
+        actor_type_names[2] = "grunt";
+        actor_type_names[3] = "hunter";
+        actor_type_names[4] = "engineer";
+        actor_type_names[5] = "assassin";
+        actor_type_names[6] = "player";
+        actor_type_names[7] = "marine";
+        actor_type_names[8] = "crew";
+        actor_type_names[9] = "combat form";
+        actor_type_names[10] = "infection form";
+        actor_type_names[11] = "carrier form";
+        actor_type_names[12] = "monitor";
+        actor_type_names[13] = "sentinel";
+        actor_type_names[14] = "none";
+        actor_type_names[15] = "mounted weapon";
+        crt_sprintf((char *)0x5ab100, "actor types:");
+        for (i = 0; i < 16; i++) {
+          if (*(int16_t *)(entry + 0xa) & FLAG(i)) {
+            csstrcat((char *)0x5ab100, " ");
+            csstrcat((char *)0x5ab100, actor_type_names[i]);
+          }
+        }
+        x = *(uint32_t *)0x5ac9b0;
+        y = *(uint32_t *)0x5ac9b4;
+        z = *(uint32_t *)0x5ac9b8;
+        *(uint32_t *)0x5ac9a0 = x;
+        *(uint32_t *)0x5ac9a4 = y;
+        *(uint32_t *)0x5ac9a8 = z;
+        up = *(float **)0x31fc44;
+        *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
+        *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
+        *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
+        FUN_00189cb0(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
+      }
+
+      if (*(int16_t *)(entry + 0xc) > 0) {
+        crt_sprintf((char *)0x5ab100, "actors:");
+        for (i = 0; i < *(int16_t *)(entry + 0xc); i++) {
+          ai_index_to_string(*(unsigned int *)(entry + 0x10 + i * 4),
+                             global_scenario_get(), buf, 0x100);
+          csstrcat((char *)0x5ab100, " ");
+          csstrcat((char *)0x5ab100, buf);
+        }
+        x = *(uint32_t *)0x5ac9b0;
+        y = *(uint32_t *)0x5ac9b4;
+        z = *(uint32_t *)0x5ac9b8;
+        *(uint32_t *)0x5ac9a0 = x;
+        *(uint32_t *)0x5ac9a4 = y;
+        *(uint32_t *)0x5ac9a8 = z;
+        up = *(float **)0x31fc44;
+        *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
+        *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
+        *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
+        FUN_00189cb0(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
+      }
+    }
+  }
+}
+
+/* ai_debug_render_speech (0x4b810): draws per-unit speech debug text above
+ * each unit's head.  The first three text lines inline the ai_debug_drawstack
+ * cursor step (binary pushes the constant 0x5ac9a0); the last line calls
+ * ai_debug_drawstack (0x4bc24).  ai_debug_drawstack_setup takes the position
+ * in EAX (LEA EAX,[EBP-0x20] at 0x4b875). */
+void ai_debug_render_speech(void)
+{
+  object_iter_t iter;
+  float position[3];
+  float head_position[3];
+  char speech_string[0x200];
+  char *object;
+  int32_t *dialogue_block;
+  char *element;
+  const char *tag_name;
+  const char *vocalization_name;
+  const char *variant_name;
+  float *up;
+  int16_t i;
+  int16_t dialogue_index;
+  int16_t priority;
+  int color;
+
+  object_iterator_new(&iter, 3, 0);
+  object = (char *)object_iterator_next(&iter);
+  while (object != NULL) {
+    unit_get_head_position(iter.last_handle, head_position);
+    up = *(float **)0x31fc44;
+    position[0] = up[0] * *(float *)0x25496c + head_position[0];
+    position[1] = up[1] * *(float *)0x25496c + head_position[1];
+    position[2] = up[2] * *(float *)0x25496c + head_position[2];
+    ai_debug_drawstack_setup(position);
+
+    if (*(uint8_t *)0x5aca93 != 0) {
+      dialogue_block = (int32_t *)((char *)tag_get(0x756e6974 /* 'unit' */,
+                                                   *(int32_t *)object) +
+                                   0x2b4);
+      if (*dialogue_block > 0) {
+        variant_name = "<none>";
+        dialogue_index = -1;
+        for (i = 0; i < *dialogue_block; i++) {
+          element = (char *)tag_block_get_element(dialogue_block, i, 0x18);
+          if (*(int32_t *)(element + 0x14) == *(int32_t *)(object + 0x334)) {
+            dialogue_index = *(int16_t *)element;
+            break;
+          }
+        }
+        if (*(int32_t *)(object + 0x334) != -1) {
+          variant_name =
+            tag_name_strip_path(tag_get_name(*(int32_t *)(object + 0x334)));
+        }
+        *(uint32_t *)0x5ac9a8 = *(uint32_t *)0x5ac9b8;
+        *(uint32_t *)0x5ac9a4 = *(uint32_t *)0x5ac9b4;
+        *(uint32_t *)0x5ac9a0 = *(uint32_t *)0x5ac9b0;
+        up = *(float **)0x31fc44;
+        *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
+        *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
+        *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
+        FUN_00189cb0(1, (void *)0x5ac9a0,
+                     csprintf((char *)0x5ab100, "variant %d dialogue %d %s",
+                              (int)*(int16_t *)(object + 0x6e),
+                              (int)dialogue_index, variant_name),
+                     *(int *)0x2ee6e8);
+      }
+    }
+
+    if (*(uint8_t *)0x5aca89 != 0) {
+      if (*(int16_t *)(object + 0x338) > 0) {
+        if (*(int32_t *)(object + 0x33c) == -1) {
+          tag_name = "NONE";
+        } else {
+          tag_name =
+            tag_name_strip_path(tag_get_name(*(int32_t *)(object + 0x33c)));
+        }
+        if (*(int16_t *)(object + 0x33a) == -1) {
+          vocalization_name = "NONE";
+        } else {
+          vocalization_name =
+            dialogue_get_vocalization_name(*(int16_t *)(object + 0x33a), 0);
+        }
+        *(uint32_t *)0x5ac9a0 = *(uint32_t *)0x5ac9b0;
+        *(uint32_t *)0x5ac9a4 = *(uint32_t *)0x5ac9b4;
+        *(uint32_t *)0x5ac9a8 = *(uint32_t *)0x5ac9b8;
+        up = *(float **)0x31fc44;
+        *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
+        *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
+        *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
+        FUN_00189cb0(
+          1, (void *)0x5ac9a0,
+          csprintf((char *)0x5ab100, "%s %s %s (%d %d)",
+                   unit_get_speech_priority_name(*(int16_t *)(object + 0x338)),
+                   vocalization_name, tag_name,
+                   (int)*(int16_t *)(object + 0x3aa),
+                   (int)*(int16_t *)(object + 0x3ae)),
+          *(int *)0x2ee6c4);
+      }
+      if (*(int16_t *)(object + 0x368) > 0) {
+        if (*(int32_t *)(object + 0x36c) == -1) {
+          tag_name = "NONE";
+        } else {
+          tag_name =
+            tag_name_strip_path(tag_get_name(*(int32_t *)(object + 0x36c)));
+        }
+        if (*(int16_t *)(object + 0x36a) == -1) {
+          vocalization_name = "NONE";
+        } else {
+          vocalization_name =
+            dialogue_get_vocalization_name(*(int16_t *)(object + 0x36a), 0);
+        }
+        *(uint32_t *)0x5ac9a0 = *(uint32_t *)0x5ac9b0;
+        *(uint32_t *)0x5ac9a8 = *(uint32_t *)0x5ac9b8;
+        *(uint32_t *)0x5ac9a4 = *(uint32_t *)0x5ac9b4;
+        up = *(float **)0x31fc44;
+        *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
+        *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
+        *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
+        FUN_00189cb0(
+          1, (void *)0x5ac9a0,
+          csprintf((char *)0x5ab100, "%s %s %s",
+                   unit_get_speech_priority_name(*(int16_t *)(object + 0x368)),
+                   vocalization_name, tag_name),
+          *(int *)0x2ee6e0);
+      }
+    }
+
+    if (*(uint8_t *)0x5aca53 != 0 && *(uint8_t *)0x5aca89 == 0) {
+      priority = *(int16_t *)(object + 0x338);
+      if (priority > 0) {
+        switch (priority) {
+        case 2:
+        case 7:
+        case 10:
+          color = *(int *)0x2ee6d0;
+          break;
+        case 6:
+          color = *(int *)0x2ee6d8;
+          break;
+        default:
+          color = *(int *)0x2ee6c4;
+          break;
+        }
+        FUN_00189cb0(
+          1, ai_debug_drawstack(),
+          unit_describe_speech(iter.last_handle, 0, 0x200, speech_string),
+          color);
+      }
+    }
+    object = (char *)object_iterator_next(&iter);
+  }
 }
 
 /* ai_debug_initialize_for_new_map: look up the encounter named DAT_005ac9d2 in

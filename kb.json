@@ -38890,7 +38890,9 @@
     {
      "addr": "0x4a770",
      "decl": "void ai_debug_render_idle_look(void);",
-     "name": "ai_debug_render_idle_look"
+     "name": "ai_debug_render_idle_look",
+     "ported": true,
+     "src": "src/halo/ai/ai_debug.c"
     },
     {
      "addr": "0x4a8c0",
@@ -38932,7 +38934,10 @@
     },
     {
      "addr": "0x4b220",
-     "decl": "void ai_debug_drawstack_setup(float *position @<eax>);"
+     "decl": "void ai_debug_drawstack_setup(float *position @<eax>);",
+     "name": "ai_debug_drawstack_setup",
+     "ported": true,
+     "src": "src/halo/ai/ai_debug.c"
     },
     {
      "addr": "0x4b2b0",
@@ -38971,12 +38976,16 @@
     {
      "addr": "0x4b810",
      "decl": "void ai_debug_render_speech(void);",
-     "name": "ai_debug_render_speech"
+     "name": "ai_debug_render_speech",
+     "ported": true,
+     "src": "src/halo/ai/ai_debug.c"
     },
     {
      "addr": "0x4bc70",
      "decl": "void ai_debug_render_vehicles_enterable(void);",
-     "name": "ai_debug_render_vehicles_enterable"
+     "name": "ai_debug_render_vehicles_enterable",
+     "ported": true,
+     "src": "src/halo/ai/ai_debug.c"
     },
     {
      "addr": "0x4c0f0",
