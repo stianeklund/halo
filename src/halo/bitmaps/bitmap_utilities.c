@@ -75,13 +75,14 @@ void extract_mipmaps_to_bitmap(void *source_bitmap, void *destination_bitmap)
         *(short *)(destination + 0xc) != 10;
 
       alpha_bias = (int)floor(
-        (*(float *)((char *)unknown_33414c + 0x48) < *(float *)0x255e94
-           ? *(float *)0x255e94
-           : (*(float *)((char *)unknown_33414c + 0x48) > *(float *)0x2533c8
-                ? *(float *)0x2533c8
-                : *(float *)((char *)unknown_33414c + 0x48))) *
+        (*(float *)((char *)unknown_33414c + 0x48) < *(float *)0x255e94 ?
+           *(float *)0x255e94 :
+           (*(float *)((char *)unknown_33414c + 0x48) > *(float *)0x2533c8 ?
+              *(float *)0x2533c8 :
+              *(float *)((char *)unknown_33414c + 0x48))) *
           ((float)mipmap_index / (float)*(short *)(destination + 0x14)) *
-          *(float *)0x2602c8 + *(float *)0x253398);
+          *(float *)0x2602c8 +
+        *(float *)0x253398);
       if ((short)alpha_bias < -0xff || (short)alpha_bias > 0xff) {
         display_assert("alpha_bias>=-255 && alpha_bias<=255",
                        "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x616, 1);
@@ -89,7 +90,7 @@ void extract_mipmaps_to_bitmap(void *source_bitmap, void *destination_bitmap)
       }
 
       mipmap_bitmap = bitmap_shrink(source_bitmap, (short)(1 << mipmap_index),
-                                  alpha_bias, ignore_transparent_pixels);
+                                    alpha_bias, ignore_transparent_pixels);
       if (mipmap_bitmap != 0 && *(int *)((char *)mipmap_bitmap + 0x2c) != 0) {
         bitmap_sharpen(mipmap_bitmap, *(float *)((char *)unknown_33414c + 0xc));
         if (*(short *)((char *)unknown_33414c + 0x4) == 3) {
@@ -109,7 +110,8 @@ void extract_mipmaps_to_bitmap(void *source_bitmap, void *destination_bitmap)
           bitmap_alpha_bleed(mipmap_bitmap, 1);
         }
         if (*(short *)((char *)unknown_33414c + 0x4) == 2) {
-          FUN_0007c5f0(mipmap_bitmap, *(float *)((char *)unknown_33414c + 0x10));
+          FUN_0007c5f0(mipmap_bitmap,
+                       *(float *)((char *)unknown_33414c + 0x10));
         }
         if (*(short *)((char *)unknown_33414c + 0x4) == 5) {
           FUN_0007c6c0(mipmap_bitmap);
@@ -134,7 +136,8 @@ void extract_mipmaps_to_bitmap(void *source_bitmap, void *destination_bitmap)
           }
           FUN_0007f150(mipmap_bitmap, bits_per_channel);
         }
-        extract_pixels_to_mipmap(mipmap_index, mipmap_bitmap, destination_bitmap);
+        extract_pixels_to_mipmap(mipmap_index, mipmap_bitmap,
+                                 destination_bitmap);
         bitmap_delete(mipmap_bitmap);
       } else {
         error(2, "### ERROR extract: failed to allocate temporary bitmap");
@@ -143,8 +146,8 @@ void extract_mipmaps_to_bitmap(void *source_bitmap, void *destination_bitmap)
   }
 
   if (*(int *)0x334154 != 0) {
-    bitmap_delete(
-      ((void *(*)(void *, int, int, int))FUN_00074a30)(destination_bitmap, 0, 1, 1));
+    bitmap_delete(((void *(*)(void *, int, int, int))FUN_00074a30)(
+      destination_bitmap, 0, 1, 1));
   }
 }
 
@@ -714,6 +717,174 @@ char FUN_00075a20(void)
 }
 
 /*
+ * FUN_00075e70 -- bitmap extract: copy one bounded plate region into a new
+ * 32-bit bitmap and register it with the current bitmap element or the
+ * temporary sprite table.  Returns the result in AL.
+ */
+char FUN_00075e70(short *bounds /* @<eax> */)
+{
+  short adjusted_bounds[4];
+  char success;
+  char warned_alpha_overlap;
+  char warned_dxt1_alpha;
+  char *bitmap;
+  unsigned long *destination;
+  short y;
+  short row;
+  short x;
+  unsigned long pixel;
+  unsigned long alpha;
+  short usage;
+  short type;
+  short element_index;
+  char *entry;
+  short *sprite;
+
+  success = 1;
+  warned_dxt1_alpha = 0;
+  warned_alpha_overlap = 0;
+  if (bounds == NULL) {
+    display_assert("bounds", "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c",
+                   0x322, 1);
+    system_exit(-1);
+  }
+
+  if (extract_adjust_bounds(bounds, adjusted_bounds)) {
+  bitmap = (char *)bitmap_2d_new(
+    (unsigned short)(adjusted_bounds[3] - adjusted_bounds[1]),
+    (unsigned short)(adjusted_bounds[2] - adjusted_bounds[0]), 0, 0xb);
+  if (bitmap != NULL) {
+  if (*(unsigned char *)(*(char **)0x33414c + 6) & 8) {
+    *(short *)(bitmap + 0x10) = bounds[3] - adjusted_bounds[1] * 2 + bounds[1];
+    *(short *)(bitmap + 0x12) = bounds[2] - adjusted_bounds[0] * 2 + bounds[0];
+  } else {
+    *(short *)(bitmap + 0x10) =
+      (short)((bounds[1] + bounds[3]) / 2 - adjusted_bounds[1]);
+    *(short *)(bitmap + 0x12) =
+      (short)((bounds[0] + bounds[2]) / 2 - adjusted_bounds[0]);
+  }
+
+  for (y = adjusted_bounds[0], row = 0; y < adjusted_bounds[2]; y++, row++) {
+    destination = (unsigned long *)bitmap_2d_address(bitmap, 0, row, 0);
+    for (x = adjusted_bounds[1]; x < adjusted_bounds[3]; x++) {
+      pixel = *(unsigned long *)bitmap_2d_address(*(void **)0x334150, x, y, 0);
+      if (*(char *)0x334148 != 0 &&
+          ((pixel & 0xffffff) == *(unsigned long *)0x33413c ||
+           (pixel & 0xffffff) == *(unsigned long *)0x334144 ||
+           (pixel & 0xffffff) == *(unsigned long *)0x334140)) {
+        pixel = 0;
+      }
+      if (*(short *)(*(char **)0x33414c + 4) == 0 &&
+          (pixel & 0xff000000) == 0 && (pixel & 0xffffff) != 0 &&
+          !warned_alpha_overlap) {
+        crt_fprintf((void *)0x331050,
+                    "==> !!WARNING!! usage set to alpha; non-zero color "
+                    "overlaps with zero-alpha <==\r\n");
+        crt_fflush((void *)0x331050);
+        warned_alpha_overlap = 1;
+      }
+      if (*(short *)(*(char **)0x33414c + 2) == 0) {
+        alpha = pixel >> 24;
+        if (alpha != 0 && alpha != 0xff && !warned_dxt1_alpha) {
+          crt_fprintf((void *)0x331050,
+                      "==> !!WARNING!! bitmap with greater than 1-bit alpha "
+                      "being compressed as DXT1 <==\r\n");
+          crt_fflush((void *)0x331050);
+          warned_dxt1_alpha = 1;
+        }
+        if (alpha != 0) {
+          pixel |= 0xff000000;
+        } else if ((pixel & 0xffffff) != *(unsigned long *)0x334144 &&
+                   *(char *)0x334148 != 0) {
+          pixel |= 0xff000000;
+        } else {
+          pixel = 0;
+        }
+      }
+      usage = *(short *)(*(char **)0x33414c + 2);
+      if ((usage == 0 || usage == 1 || usage == 2) &&
+          *(short *)*(char **)0x33414c == 4) {
+        error(0, "### ERROR interface/linear bitmap cannot be DXT-compressed");
+      }
+      *destination = pixel;
+      destination++;
+    }
+  }
+
+  type = *(short *)*(char **)0x33414c;
+  if (type != 0 && type != 4) {
+    if (*(char *)0x334148 == 0) {
+      if (type == 2) {
+        extract_plateless_cube_map(bitmap);
+      } else {
+        error(2, "### ERROR extract: tried to extract non-2d textures "
+                 "without a valid place but they weren't cube maps and/or "
+                 "EXTRACT_PLATELESS_CUBE_MAPS aren't allowed");
+        success = 0;
+      }
+      bitmap_delete(bitmap);
+    } else {
+      if (*(short *)0x334138 < 0x400) {
+      entry = *(char **)0x334134 + *(short *)0x334138 * 0x10;
+      (*(short *)0x334138)++;
+      *(char **)entry = bitmap;
+      *(short *)(entry + 4) = *(short *)0x33415c;
+      *(short *)(entry + 6) = -1;
+      *(short *)(entry + 8) = -1;
+      *(long *)(entry + 0xc) = -1;
+      if (*(short *)*(char **)0x33414c == 3) {
+      element_index = tag_block_add_element(*(char **)0x334158 + 0x34);
+      if (element_index != -1) {
+      sprite = (short *)tag_block_get_element(*(char **)0x334158 + 0x34,
+                                              (int)element_index, 0x20);
+      sprite[0] = -1;
+      if (*(unsigned char *)(*(char **)0x33414c + 6) & 8) {
+        *(float *)((char *)sprite + 0x18) =
+          (float)*(short *)(bitmap + 0x10) * *(float *)0x253398;
+        *(float *)((char *)sprite + 0x1c) =
+          (float)*(short *)(bitmap + 0x12) * *(float *)0x253398;
+      } else {
+        *(float *)((char *)sprite + 0x18) = (float)*(short *)(bitmap + 0x10);
+        *(float *)((char *)sprite + 0x1c) = (float)*(short *)(bitmap + 0x12);
+      }
+      *(short *)(entry + 6) = element_index;
+      } else {
+        error(2, "### ERROR extract: failed to add sprite to sequence");
+        return 0;
+      }
+      }
+      } else {
+        error(2,
+              "### ERROR extract: can't handle more than (#%d) temporary "
+              "bitmaps",
+              0x400);
+        return 0;
+      }
+    }
+  } else {
+    element_index = FUN_00075380(bitmap);
+    if (element_index != -1) {
+      if (*(short *)(*(char **)0x334158 + 0x20) == -1) {
+        *(short *)(*(char **)0x334158 + 0x20) = element_index;
+        *(short *)(*(char **)0x334158 + 0x22) = 0;
+      }
+      (*(short *)(*(char **)0x334158 + 0x22))++;
+    }
+    bitmap_delete(bitmap);
+  }
+  } else {
+    error(2, "### ERROR extract: failed to allocate temporary bitmap");
+    return 0;
+  }
+  } else {
+    crt_fprintf((void *)0x331050,
+                "### WARNING skipped a bitmap which contained no data\r\n");
+    crt_fflush((void *)0x331050);
+  }
+  return success;
+}
+
+/*
  * FUN_00076300 -- bitmap extract: the no-sequences path.
  *
  * Allocates a single bitmap element in the group's bitmaps block (+0x54) and
@@ -873,8 +1044,7 @@ char FUN_00076410(int top, short bottom)
           }
         }
       }
-      if (((found_marker || *(char *)0x334149) && !found_other &&
-           state == 1) ||
+      if (((found_marker || *(char *)0x334149) && !found_other && state == 1) ||
           (state == 1 && !found_other))
         state = 2;
     }

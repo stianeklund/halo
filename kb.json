@@ -6123,7 +6123,8 @@
     },
     {
      "addr": "0x150ac0",
-     "decl": "char FUN_00150ac0(int *data, int *point);"
+     "decl": "char FUN_00150ac0(int *data, int *point);",
+     "ported": true
     }
    ],
    "name": "collision_usage.obj",
@@ -28280,7 +28281,8 @@
     },
     {
      "addr": "0x1932d0",
-     "decl": "void FUN_001932d0(int *leaf_map@<ebx>, int node@<edi>);"
+     "decl": "void FUN_001932d0(int *leaf_map@<ebx>, int node@<edi>);",
+     "ported": true
     },
     {
      "addr": "0x193340",
@@ -35913,7 +35915,8 @@
      "decl": "char FUN_00075e70(short *bounds /* @<eax> */);",
      "reg_args": {
       "bounds": "eax"
-     }
+     },
+     "ported": true
     },
     {
      "addr": "0x76300",
@@ -42335,8 +42338,9 @@
     },
     {
      "addr": "0x123990",
-     "decl": "void model_interpolate_node_orientations(void);",
-     "comment": "[NAME: model_interpolate_node_orientations \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "decl": "void model_interpolate_node_orientations(void *model, void *original_node_orientations, void *target_node_orientations, short frame_index, short frame_count);",
+     "comment": "[NAME: model_interpolate_node_orientations \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x123aa0",

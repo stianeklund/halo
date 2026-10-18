@@ -301,6 +301,25 @@ void leaf_map_build_portals(int *leaf_map, int node_index)
   }
 }
 
+/* 0x1932d0 -- Build a face on the leaf for every node on the node stack,
+ * innermost first. */
+void FUN_001932d0(int *leaf_map, int node)
+{
+  int16_t levels_up;
+
+  for (levels_up = 0; levels_up < *(int16_t *)0x4d8e90; levels_up++) {
+    if (levels_up < 0 || levels_up >= *(int16_t *)0x4d8e90) {
+      display_assert(
+        "levels_up>=0 && levels_up<leaf_map_globals.node_stack_count",
+        "c:\\halo\\SOURCE\\structures\\leaf_map.c", 0x3b, 1);
+      system_exit(-1);
+    }
+    leaf_map_build_leaf_face_for_leaf_on_node(
+      leaf_map, node,
+      *(int *)(0x4d8a8c + ((int)*(int16_t *)0x4d8e90 - (int)levels_up) * 4));
+  }
+}
+
 /* Traverse two child nodes from a BSP leaf (0x193340). */
 void FUN_00193340(int *leaf_map, int leaf_index)
 {

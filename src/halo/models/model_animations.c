@@ -3740,3 +3740,36 @@ void animation_get_root_velocity(void *mode_tag, void *animation, int frame_inde
   out_delta[2] =
     *(float *)(frame_data + 0x18) - *(float *)(prev_frame_data + 0x18);
 }
+
+/* model_interpolate_node_orientations (0x123990) -- asserts carry models.c
+ * __FILE__ (lines 0x243/0x244). Node count is read directly from model+0xb8
+ * each iteration; node orientations are 0x20 bytes each. */
+void model_interpolate_node_orientations(void *model,
+                                         void *original_node_orientations,
+                                         void *target_node_orientations,
+                                         short frame_index, short frame_count)
+{
+  real fraction;
+  real inverse_fraction;
+  short node_index;
+
+  fraction = (real)(frame_index + 1) / (real)frame_count;
+  inverse_fraction = *(float *)0x2533c8 - fraction;
+  assert_halt_msg_at("frame_count>0", "c:\\halo\\SOURCE\\models\\models.c",
+                     0x243, frame_count > 0);
+  assert_halt_msg_at("frame_index<frame_count",
+                     "c:\\halo\\SOURCE\\models\\models.c", 0x244,
+                     frame_index < frame_count);
+
+  for (node_index = 0; node_index < *(int *)((char *)model + 0xb8);
+       node_index++) {
+    float *target = (float *)target_node_orientations + node_index * 8;
+    float *original = (float *)original_node_orientations + node_index * 8;
+
+    target[7] = inverse_fraction * original[7] + fraction * target[7];
+    quaternions_interpolate_and_normalize(original, target, fraction, target);
+    target[4] = inverse_fraction * original[4] + fraction * target[4];
+    target[5] = inverse_fraction * original[5] + fraction * target[5];
+    target[6] = inverse_fraction * original[6] + fraction * target[6];
+  }
+}
