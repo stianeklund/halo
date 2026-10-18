@@ -27,6 +27,7 @@ Parse from $ARGUMENTS (all optional):
 - `--no-land` — never attempt to land; commits accumulate on the branch.
 - `--lift-reg-args` — let goal-lift lift `@<reg>` targets instead of dropping
   them at its two pre-screens. The remaining frontier is mostly these.
+- `--no-widen` — disable the widening ladder; stop on the first zero-commit `queue_exhausted` (old behaviour).
 - `--dry-run` — pass through; nothing commits and nothing lands.
 - `--model NAME` — override goal-lift's "reasoning stages" (its own M-table
   grouping: select + lift/review, i.e. EXTRACT_MODEL and REASON_MODEL, default
@@ -70,6 +71,15 @@ Parse from $ARGUMENTS (all optional):
    commit. `artifacts/` is gitignored but the parked records are force-tracked,
    so only already-tracked records stage — that is correct. Commit nothing if
    nothing stages.
+3b. **Recover hook-blocked parks (rung 0, no LLM spend).** Parked lifts whose
+   latest `goal_progress.md` row is a commit-hook block (not a REJECT or
+   NEEDS_RUNTIME verdict) are recoverable mechanically:
+   `rtk python3 tools/lift/park_recover_run.py --min-score 90` with
+   `timeout: 600000` and `run_in_background`; poll its output. It applies only the
+   target function's hunks, builds, commits, and promotes the record; any failure
+   reverts and moves on. Rerun once per campaign start and again whenever a run
+   reports `commit_failed` parks. `needs_manual` / `conflict` rows are left for a
+   human. Details: rows land in `artifacts/campaigns/park_recover.jsonl`.
 4. **Triage main-worktree dirt.** `rtk git -C <main worktree> status --short`
    (tracked only). The land gate absorbs exactly this generated set
    (`_ABSORB_EXACT` / `_ABSORB_PREFIXES` in `auto_reintegrate.py`):
@@ -102,7 +112,7 @@ Parse from $ARGUMENTS (all optional):
    |---|---|
    | `batches_exhausted` | Clean run. Continue. |
    | `completed_with_unlanded` / any `batches_unlanded > 0` | Work is committed, landing was merely blocked. Rerun the gate once (step 8), then continue. |
-   | `queue_exhausted` | Read the run log line `goal-lift committed 0 (reason: …)`. Bare `empty_queue` → frontier dry, **STOP**. `empty_queue_after_filter` / `_after_prescreen` / `_after_liftability` → committable frontier stalled: rotate to the next `--objects` cluster and continue; **STOP** if no rotation list remains. |
+   | `queue_exhausted` | Zero committed. **Do not stop on the first one** — the stock selector only hands goal-lift `lane==auto-lift` targets, and after the code pre-screens (parked, `@<reg>`, CRT/XAPILIB, excluded) a handful survive (observed 2026-10-14: 4 candidates, 1 attempted, 0 committed, twice). Climb the **widening ladder** below, one rung per consecutive zero-commit run. Stop only when the ladder is spent. |
    | `infra_blocked` with `resumable: true` | Resume **once**: `Workflow({ scriptPath: ".claude/workflows/auto-session.js", resumeFromRunId: "<runId>" })`. Succeeded agents replay from cache. If it dies again, do **not** resume twice — salvage with step 8 and continue with a fresh run. |
    | `land_agent_null` | Almost always the gate exceeding the agent's Bash timeout, not a real failure. Rerun the gate (step 8); if it lands, continue. |
    | `parked` | Real signal about this work — merge conflict, failed gate, non-FF. **STOP.** Report `park_reason` + `conflicts` and hand off to `/reintegrate-to-main`. |
@@ -140,11 +150,46 @@ Parse from $ARGUMENTS (all optional):
 9. **Between runs**, re-run `park.py reconcile` — in-run lifts often supersede
    parked records. Commit the `--apply` result as its own chore commit.
 
+## Widening ladder (what to do instead of ending on `queue_exhausted`)
+
+Unless `--no-widen` was passed, a zero-commit `queue_exhausted` (any
+`empty_queue*` variant) advances one rung; a run that commits ≥1 function
+resets to rung 0. Keep a campaign-level set `attempted_zero` = every address in
+the result's `attempted` list from runs that committed 0 — it feeds rung 2 so
+the same stuck target (e.g. one that times out `lift_pipeline`) is not
+re-offered run after run.
+
+0. **Stock selection** (the run just made).
+   (`liftManual: true` is the permanent lane widener: it lets goal-lift take
+   `manual-lift` targets without pinning. Rung 1 enables it together with `liftRegArgs`.)
+1. **`liftManual: true` + `liftRegArgs: true`** — the remaining auto-lift frontier is mostly
+   `@<reg>` targets that the two pre-screens drop. goal-lift's own gates still
+   revert wrong decls. Skip this rung if `--lift-reg-args` was already given.
+2. **Pin-list from the full selector.** The lane gate is what starves the
+   queue (2026-10-14: 46 `manual-lift` + 27 `defer` vs 18 `auto-lift` in the top
+   200), and `addrs` pins bypass it. Build the list:
+   `rtk python3 tools/lift/llm_auto_lift.py -q select --limit 200 --json`, then keep
+   targets with `lane in {auto-lift, manual-lift}`, not `prior_fail`, no
+   `parked_status`, not in `attempted_zero`, not in 0x1cf900–0x1de000 (CRT/XAPILIB),
+   not `xbox_crt.obj`, and `has_reg_args == false` (unless rung 1 is on). Take
+   the top `batchGoal` by `total_score` and pass them as `addrs`. Pinned runs
+   cost far more per function (see memory
+   `reference_pinned_campaign_cost_multiplier`), so use `batches: 1` and note
+   the rung in the ledger row (`"widen_rung": 2`).
+3. **Rotate `--objects`** clusters (the existing rotation list), if any remain.
+4. **Ladder spent** — empty pin-list at rung 2 and no rotation cluster left →
+   run `/byte-campaign --matching-only` once (PAL-guided raw-byte gains on
+   ported functions), then **STOP**: the frontier is genuinely dry for this
+   branch.
+
+Add `"widen_rung": N` to every ledger row. Never widen past a `parked`,
+conflict, or authored-WIP stop; those are not queue problems.
+
 ## Stop conditions
 
 - `--max-runs` reached.
-- Frontier dry (`empty_queue`), or stalled with no rotation cluster left.
-- Two **consecutive** zero-commit runs.
+- Widening ladder spent (or `--no-widen` and a zero-commit `queue_exhausted`).
+- Two **consecutive** zero-commit runs *at the top rung of the ladder* (earlier zero-commit runs climb a rung instead).
 - A real park: `stopped_reason: parked`, a merge conflict, or authored WIP found
   in the main worktree.
 

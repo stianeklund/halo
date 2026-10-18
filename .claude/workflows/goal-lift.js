@@ -190,6 +190,11 @@ const normAddr = a => {
 // (lift-learnings §32), so scores are honest. Proven 2026-07-14 (players.obj
 // 11/13) via a hand-edited copy; this makes it a first-class flag.
 const LIFT_REG_ARGS = !!(args && args.liftRegArgs)
+// --liftManual: also admit lane=="manual-lift" targets. The selector's
+// auto-lift lane is a small slice of the frontier (2026-10-14: 18 of the top
+// 200, vs 46 manual-lift), so without this the queue starves after the
+// pre-screens. The reg-arg / parked / CRT / XAPILIB pre-screens still apply.
+const LIFT_MANUAL = !!(args && args.liftManual)
 // --minCommitScore: floor for the mechanical NEEDS_RUNTIME+equiv acceptance
 // in reviewThenCommit (default 85, the historical lane). Set 88 to enforce
 // "no sub-88 equiv-backed commits" policy.
@@ -1735,7 +1740,7 @@ whose target.addr matches one of these (hex, case-insensitive), REGARDLESS of it
 manual-lift and defer entries included, they are a deliberate operator choice:
   ${[...ADDRS].map(a => '0x' + a.toString(16)).join(', ')}
 Return nothing else. Do NOT apply any lane filter; the code-side pre-screen handles it.`
-    : `Filter: keep lane=="auto-lift" (also allow "cache-context");`}
+    : `Filter: keep lane=="auto-lift" (also allow "cache-context"${LIFT_MANUAL ? ' and "manual-lift"' : ''});`}
 skip xbox_crt.obj (NT-import/CRT wrappers).
 Do NOT drop prior_fail entries yourself — return them with the flag set and let
 the code-side pre-screen decide, so it can keep them when the queue would
@@ -1861,7 +1866,7 @@ targets = targets.filter(t => {
   // burning ~4 slots per batch. Pinned targets still get through (0x1cf97c
   // UnhandledExceptionFilter was lifted deliberately).
   if (!pinned && Number.isFinite(a) && a >= XAPI_LO && a < CRT_LO) { codeSkips.push({ ...t, status: 'skipped', reason: 'skip_nt_import (XAPILIB region 0x1cf900-0x1d0000)' }); return false }
-  if (!pinned && t.lane && t.lane !== 'auto-lift' && t.lane !== 'cache-context') { codeSkips.push({ ...t, status: 'skipped', reason: `lane=${t.lane} (not auto-liftable)` }); return false }
+  if (!pinned && t.lane && t.lane !== 'auto-lift' && t.lane !== 'cache-context' && !(LIFT_MANUAL && t.lane === 'manual-lift')) { codeSkips.push({ ...t, status: 'skipped', reason: `lane=${t.lane} (not auto-liftable)` }); return false }
   return true
 })
 if (codeSkips.length) log(`Code pre-screen dropped ${codeSkips.length} before research (${codeSkips.filter(s => s.reason.startsWith('skip_confirmed_cap')).length} confirmed-cap, ${codeSkips.filter(s => s.reason.startsWith('skip_blocked_review')).length} blocked-review, ${codeSkips.filter(s => s.reason.startsWith('skip_reg_args')).length} reg-args, ${codeSkips.filter(s => s.reason.startsWith('skip_nt_import')).length} CRT/SEH, ${codeSkips.filter(s => s.reason.startsWith('lane=')).length} lane, ${codeSkips.filter(s => s.reason.startsWith('skip_excluded_prior_batch')).length} excluded-prior-batch)`)
@@ -1885,7 +1890,7 @@ phase('Research')
 // bundle hit performs no Ghidra call; a stale/missing entry preflights, rebuilds,
 // and publishes the immutable artifact before any analyst starts.
 
-const RESEARCH_BATCH = 6
+const RESEARCH_BATCH = 2
 
 // ── Just-in-time research ────────────────────────────────────────────────────
 // This used to research EVERY selected target up front (the selector returns

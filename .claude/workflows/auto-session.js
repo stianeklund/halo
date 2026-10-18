@@ -51,6 +51,8 @@ const ADDRS      = (args && args.addrs) || undefined
 // everything. goal-lift's own gates (build / VC71 / audit_reg_abi / reviewer /
 // revert-on-fail) still apply, so a wrong @<reg> decl reverts rather than ships.
 const LIFT_REG_ARGS = !!(args && args.liftRegArgs)
+// Opt-in: also let goal-lift take manual-lift lane targets (see goal-lift LIFT_MANUAL).
+const LIFT_MANUAL = !!(args && args.liftManual)
 // Routine improve pass after the batch loop: drain up to this many parked
 // sub-bar functions via goal-lift's improve mode. 0 (default) skips it --
 // opt-in, since it adds a full nested workflow run after the batch loop.
@@ -249,6 +251,7 @@ for (let i = 1; i <= BATCHES; i++) {
   if (CRITERIA) glArgs.criteria = CRITERIA
   if (ADDRS) glArgs.addrs = ADDRS
   if (LIFT_REG_ARGS) glArgs.liftRegArgs = true
+  if (LIFT_MANUAL) glArgs.liftManual = true
   if (REASON_MODEL) glArgs.reasonModel = REASON_MODEL
   if (EXTRACT_MODEL) glArgs.extractModel = EXTRACT_MODEL
   if (IMPROVE_MODEL) glArgs.improveModel = IMPROVE_MODEL
