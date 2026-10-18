@@ -167,6 +167,154 @@ bool FUN_00062b20(unsigned char *param_1, int surface_index,
   return result;
 }
 
+/* 0x000633b0 — FUN_000633b0  (TU: c:\halo\SOURCE\ai\path_smoothing.c)
+ *
+ * Step records are 0x10 bytes: int surface index at +0x00, point at +0x04.
+ * param_1 fields read: +0x04 byte bsp index, +0x14/+0x18 2D origin,
+ * +0x20 surface index, +0x64 structure handle (meaning otherwise unproven).
+ * steps_finish_path is only ever cleared, never set, by this function.
+ */
+void FUN_000633b0(unsigned int param_1, int raw_step_count, void *raw_steps,
+                  int *smoothed_step_count, void *smoothed_steps,
+                  char *steps_finish_path)
+{
+  unsigned int pill_result[7];
+  float tangents[2][2];
+  float turn_a[2];
+  float turn_b[2];
+  float previous[2];
+  float avoidance[2];
+  float turning_point[2];
+  float origin[2];
+  bool side;
+  int surface_index;
+  int *step;
+  int step_index;
+  int first_index;
+  int count;
+  char finished;
+  int first_surface;
+  bool found;
+  bool ok;
+  int *smoothed;
+  int *last;
+
+  if ((short)raw_step_count <= 0) {
+    display_assert("raw_step_count > 0",
+                   "c:\\halo\\SOURCE\\ai\\path_smoothing.c", 0x21, true);
+    system_exit(-1);
+  }
+  if (raw_steps == NULL) {
+    display_assert("raw_steps", "c:\\halo\\SOURCE\\ai\\path_smoothing.c", 0x22,
+                   true);
+    system_exit(-1);
+  }
+  if (smoothed_step_count == NULL) {
+    display_assert("smoothed_step_count",
+                   "c:\\halo\\SOURCE\\ai\\path_smoothing.c", 0x23, true);
+    system_exit(-1);
+  }
+  if (smoothed_steps == NULL) {
+    display_assert("smoothed_steps", "c:\\halo\\SOURCE\\ai\\path_smoothing.c",
+                   0x24, true);
+    system_exit(-1);
+  }
+  if (steps_finish_path == NULL) {
+    display_assert("steps_finish_path",
+                   "c:\\halo\\SOURCE\\ai\\path_smoothing.c", 0x25, true);
+    system_exit(-1);
+  }
+
+  if ((short)raw_step_count > 1) {
+    origin[0] = *(float *)(param_1 + 0x14);
+    origin[1] = *(float *)(param_1 + 0x18);
+    surface_index = *(int *)(param_1 + 0x20);
+    count = 0;
+    finished = 0;
+    step_index = 1;
+    while (1) {
+      first_surface = -1;
+      found = 0;
+      first_index = -1;
+      step = (int *)((char *)raw_steps + (short)step_index * 0x10);
+      while ((short)step_index < (short)raw_step_count) {
+        if (structure_test_pill2d(
+              *(int *)(param_1 + 0x64), *(unsigned char *)(param_1 + 4), origin,
+              surface_index, (float *)(step + 1), *step, 0.3f, 1, pill_result)) {
+          if (!found) {
+            first_index = step_index;
+            first_surface = (int)pill_result[5];
+            found = 1;
+          }
+        } else if (found) {
+          first_surface = -1;
+          first_index = -1;
+          found = 0;
+        }
+        step_index++;
+        step += 4;
+      }
+      if (!found || first_surface == -1)
+        break;
+
+      ok =
+        find_turning_point(*(int *)(param_1 + 0x64), origin, 0.3f, first_surface,
+                           1, *(unsigned char *)(param_1 + 4), turn_a);
+      if (!find_turning_point(*(int *)(param_1 + 0x64), origin, 0.3f,
+                              first_surface, 0, *(unsigned char *)(param_1 + 4),
+                              turn_b) ||
+          !ok)
+        goto done;
+
+      step = (int *)((char *)raw_steps + (short)first_index * 0x10);
+      side =
+        choose_turning_point(origin, (float *)((char *)step - 0xc),
+                             (float *)(step + 1), turn_a, turn_b, turning_point);
+      find_tangent_point(origin, turning_point, tangents[0], 0.35f, side);
+      find_tangent_point((float *)(step + 1), turning_point, tangents[1], 0.35f,
+                         !side);
+      find_avoidance_point(tangents[0], turning_point, origin, avoidance, 0.35f);
+      previous[0] = origin[0];
+      previous[1] = origin[1];
+      origin[0] = avoidance[0];
+      origin[1] = avoidance[1];
+      surface_index = structure_surface_index_from_point(
+        *(int *)(param_1 + 0x64), *(unsigned char *)(param_1 + 4), previous,
+        surface_index, origin);
+      smoothed = (int *)((char *)smoothed_steps + (short)count * 0x10);
+      count++;
+      collision_surface_project_point2d(
+        (int)tag_block_get_element((void *)(*(int *)(param_1 + 0x64) + 0xb0), 0,
+                                   0x60),
+        surface_index, 2, 1, origin, (float *)(smoothed + 1));
+      *smoothed = surface_index;
+      if ((short)count >= 4)
+        goto done;
+      step_index = first_index;
+    }
+
+    last = (int *)((char *)raw_steps + (short)raw_step_count * 0x10 - 0x10);
+    smoothed = (int *)((char *)smoothed_steps + (short)count * 0x10);
+    smoothed[0] = last[0];
+    smoothed[1] = last[1];
+    smoothed[2] = last[2];
+    count++;
+    smoothed[3] = last[3];
+    finished = 1;
+
+done:
+    *(short *)smoothed_step_count = (short)count;
+    if (!finished)
+      *steps_finish_path = 0;
+  } else {
+    *(short *)smoothed_step_count = 1;
+    ((int *)smoothed_steps)[0] = ((int *)raw_steps)[0];
+    ((int *)smoothed_steps)[1] = ((int *)raw_steps)[1];
+    ((int *)smoothed_steps)[2] = ((int *)raw_steps)[2];
+    ((int *)smoothed_steps)[3] = ((int *)raw_steps)[3];
+  }
+}
+
 /* 0x00063710 — structure_test_ray2d  (TU:
  * c:\halo\SOURCE\ai\path_structure_bsp.c)
  *

@@ -336,6 +336,65 @@ char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
   return 1;
 }
 
+/* 0x218d0 — The binary reads definition_index as a word (MOVSX) and passes
+ * the address of definition_field_190's stack slot to projectile_aim.
+ * param_7 ([EBP+0x18]) is never read. */
+char actor_combat_build_grenade_trajectory(
+  float *position /* @<eax> */, float *out_aim_direction /* @<ebx> */,
+  int definition_index, int definition_field_190, float *point, int param_6,
+  int param_7, float *out_speed, int *out_target, float *out_impact_point,
+  float *out_acceleration)
+{
+  void *element;
+  void *projectile;
+  char zero_acceleration;
+  float speed;
+
+  if (position == (float *)0 || point == (float *)0 ||
+      out_aim_direction == (float *)0 || out_speed == (float *)0) {
+    display_assert(
+      "grenade_origin && desired_impact_point && aim_vector && aim_speed",
+      "c:\\halo\\SOURCE\\ai\\actor_combat.c", 0x6f4, 1);
+    system_exit(-1);
+  }
+
+  element = tag_block_get_element((char *)game_globals_get() + 0x128,
+                                  (short)definition_index, 0x44);
+  if (element == (void *)0 || *(int *)((int)element + 0x40) == -1) {
+    return 0;
+  }
+  projectile = tag_get(0x70726f6a, *(int *)((int)element + 0x40));
+  if (projectile == (void *)0) {
+    return 0;
+  }
+
+  zero_acceleration = 0;
+  if (!projectile_aim((int)projectile, (int)position, (int)point,
+                      &definition_field_190, 0, param_6, 0, 0,
+                      (int)out_aim_direction, (int)out_speed, (int)out_target,
+                      0, &zero_acceleration)) {
+    return 0;
+  }
+
+  if (out_impact_point != (float *)0) {
+    speed = *out_speed;
+    out_impact_point[0] = speed * out_aim_direction[0];
+    out_impact_point[1] = speed * out_aim_direction[1];
+    out_impact_point[2] = speed * out_aim_direction[2];
+  }
+
+  if (out_acceleration != (float *)0) {
+    if (zero_acceleration != 0) {
+      *out_acceleration = *(float *)0x2533c0;
+    } else {
+      *out_acceleration =
+        projectile_get_ballistic_acceleration((int)projectile);
+    }
+  }
+
+  return 1;
+}
+
 /* 0x219e0 — Find a grenade aim target from the actor's current prop.
  *
  * cdecl: actor_handle (EDI) plus three output pointers. When the actor has a

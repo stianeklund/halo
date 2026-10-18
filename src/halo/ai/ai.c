@@ -8,6 +8,101 @@
  */
 #include "../../x87_math.h"
 
+/* Spawns count units from the actv tag next to unit_handle and attaches an
+ * actor to each. Encounter/squad indices are read as words from the owning
+ * actor (+0x34/+0x3a) or, when the unit has none, from unit +0x2e4/+0x2e6.
+ * The squad word is passed as a full dword slot in the original (upper half
+ * left from the spawn_tag argument slot). Returns the number of actors
+ * created (MOV AX,DI). */
+int16_t FUN_0003f350(int unit_handle, int spawn_tag, int16_t count, float radius)
+{
+  char *unit;
+  char *actv;
+  char *actr;
+  char *spawned;
+  int spawned_handle;
+  int actor_handle;
+  int created;
+  int remaining;
+  int16_t encounter_index;
+  int16_t squad_index;
+  float angle;
+  float speed;
+  float vertical_speed;
+  float velocity[3];
+  object_placement_data placement;
+
+  created = 0;
+  if (spawn_tag != NONE && count > 0) {
+    unit = (char *)object_get_and_verify_type(unit_handle, 3);
+    if (*(int *)(unit + 0x1a8) != NONE || *(int *)(unit + 0x1a4) != NONE) {
+      char *actor;
+
+      actor = (char *)datum_get(*(void **)0x6325a4, *(int *)(unit + 0x1a4));
+      encounter_index = *(int16_t *)(actor + 0x34);
+      squad_index = *(int16_t *)(actor + 0x3a);
+    } else {
+      encounter_index = *(int16_t *)(unit + 0x2e4);
+      squad_index = *(int16_t *)(unit + 0x2e6);
+    }
+    if (encounter_index != NONE && squad_index != NONE) {
+      actv = (char *)tag_get(0x61637476, spawn_tag);
+      actr = (char *)tag_get(0x61637472, *(int *)(actv + 0x10));
+      if (count > 0) {
+        remaining = (unsigned short)count;
+        do {
+          angle = random_real_range(get_global_random_seed_address(), 0.0f,
+                                    6.2831855f);
+          object_placement_data_new(&placement, *(int *)(actv + 0x20), NONE);
+          vector3d_from_angle((float *)&placement.forward, angle);
+          object_get_world_position(unit_handle,
+                                    (vector3_t *)&placement.position_x);
+          placement.position_x =
+            placement.forward.x * *(float *)0x2533e4 + placement.position_x;
+          placement.position_y =
+            placement.forward.y * *(float *)0x2533e4 + placement.position_y;
+          placement.position_z = placement.forward.z * *(float *)0x2533e4 +
+                                 (placement.position_z + *(float *)0x2533e4);
+          spawned_handle = object_new(&placement);
+          if (spawned_handle != NONE) {
+            spawned = (char *)object_get_and_verify_type(spawned_handle, 3);
+            if (*(int16_t *)(spawned + 0x64) == 0) {
+              biped_fix_position(spawned_handle, NONE, &placement.position_x,
+                                 NULL, 1.0f, 1, 0, 0);
+            }
+            actor_customize_unit(spawn_tag, spawned_handle);
+            actor_handle =
+              actor_create_for_unit((char)((*(unsigned int *)actr >> 0x1a) & 1),
+                                    spawned_handle, spawn_tag, encounter_index,
+                                    squad_index, 0, NONE, 0, 2, 0, NONE, 0);
+            if (actor_handle == NONE) {
+              error(2, "WARNING: cannot create actor to be spawned from unit");
+              object_delete(spawned_handle);
+            } else {
+              actor_verify_activation(actor_handle);
+              if (radius > REAL_ZERO_POOL) {
+                speed = random_real_range(get_global_random_seed_address(),
+                                          0.5f, 1.0f);
+                vertical_speed = random_real_range(
+                  get_global_random_seed_address(), 0.8f, 1.5f);
+                velocity[0] = placement.forward.x * speed * radius;
+                velocity[1] = placement.forward.y * speed * radius;
+                velocity[2] = vertical_speed * radius;
+                if (*(int16_t *)(spawned + 0x64) == 0) {
+                  FUN_001a4a70(spawned_handle, velocity);
+                }
+              }
+              created++;
+            }
+          }
+          remaining--;
+        } while (remaining != 0);
+      }
+    }
+  }
+  return (int16_t)created;
+}
+
 /* actors_update: per-tick AI actor activation sweep.
  * Called from ai_update on the first-frame/map-load branch.
  * Copies ai_globals[6..7] (int16_t) into ai_globals[4..5], then clears
@@ -1087,8 +1182,8 @@ void ai_handle_bump(int param_1, int param_2, float *velocity_ptr)
  *   PUSH EDX(unit team) => (unit_team, resolved_team); provoke pushes are
  *   reversed => (resolved_team, unit_team).
  * Confirmed: FCOMP + TEST AH,1 + JNZ skip => call when damage >= threshold. */
-void ai_handle_damage(int unit_handle, int param_2, int16_t param_3, float damage,
-                      int param_5, char param_6)
+void ai_handle_damage(int unit_handle, int param_2, int16_t param_3,
+                      float damage, int param_5, char param_6)
 {
   void *unit_obj;
   void *resolved_obj;
@@ -1860,6 +1955,59 @@ void ai_update(void)
   }
 }
 
+/* 0x41250: [0x632574]+0xc is the global major-upgrade error, squad+0x8 the
+ * squad's; [0x5aca49] gates the debug print. 0x2579e4/0x2579e0 are the
+ * success/failure strings; result is returned in AL (MOV AL,BL). */
+bool ai_consider_major_upgrade(int encounter_handle, int16_t squad_index,
+                               float random_chance)
+{
+  char *encounter;
+  char *squad;
+  float global_error;
+  float squad_error;
+  float chance_error;
+  float random_value;
+  float adjusted_chance;
+  bool upgrade_major;
+  float error_delta;
+  char *encounter_definition;
+
+  encounter = (char *)datum_get(*(data_t **)0x5ab270, encounter_handle);
+  squad = encounter_get_squad(encounter, squad_index);
+  global_error = *(float *)(*(char **)0x632574 + 0xc) * *(float *)0x2579e8;
+  squad_error = -*(float *)(squad + 0x8);
+  chance_error = (x87_fabs(global_error) > x87_fabs(squad_error)) ?
+                   global_error :
+                   squad_error;
+  random_value =
+    random_math_real((unsigned int *)get_global_random_seed_address());
+  adjusted_chance = chance_error + random_chance;
+  upgrade_major = random_value < adjusted_chance;
+  error_delta = (float)upgrade_major - random_chance;
+
+  *(float *)(squad + 0x8) += error_delta;
+  *(float *)(*(char **)0x632574 + 0xc) += error_delta;
+
+  if (*(char *)0x5aca49) {
+    encounter_definition = (char *)tag_block_get_element(
+      (char *)global_scenario_get() + 0x42c, encounter_handle & 0xffff, 0xb0);
+    console_printf(
+      0,
+      csprintf((char *)0x5ab100,
+               "%s/%s major upgrade chance %.2f: %s (g %.2f s %.2f -> "
+               "chance %.2f rand %.2f err %.2f)",
+               encounter_definition,
+               (char *)tag_block_get_element(encounter_definition + 0x80,
+                                             squad_index, 0xe8),
+               random_chance,
+               upgrade_major ? (const char *)0x2579e4 : (const char *)0x2579e0,
+               global_error, squad_error, adjusted_chance, random_value,
+               error_delta));
+    error(2, "%s", (char *)0x5ab100);
+  }
+  return upgrade_major;
+}
+
 /* ai_generate_line_of_fire_pill: fill one ai_firing_pos_entry_t in the
  * candidate buffer.
  *
@@ -2222,8 +2370,7 @@ int ai_test_line_of_sight(float *origin, int bsp, float *target, int param_4,
   direction[0] = target[0] - origin[0];
   direction[1] = target[1] - origin[1];
   direction[2] = target[2] - origin[2];
-  if (!FUN_0014df70(flags, origin, direction, param_7,
-                    (int16_t *)&collision)) {
+  if (!FUN_0014df70(flags, origin, direction, param_7, (int16_t *)&collision)) {
     no_hit = 1;
   } else {
     no_hit = 0;
@@ -2273,8 +2420,7 @@ int ai_test_line_of_sight(float *origin, int bsp, float *target, int param_4,
         goto visible;
       }
       ++*(short *)0x5ac5d4;
-      if (FUN_000130d0(flags, side, target, param_7,
-                       (int16_t *)&collision)) {
+      if (FUN_000130d0(flags, side, target, param_7, (int16_t *)&collision)) {
         goto visible;
       }
     } else {
@@ -2283,8 +2429,7 @@ int ai_test_line_of_sight(float *origin, int bsp, float *target, int param_4,
         goto visible;
       }
       ++*(short *)0x5ac5d4;
-      if (!FUN_000130d0(flags, side, target, param_7,
-                        (int16_t *)&collision)) {
+      if (!FUN_000130d0(flags, side, target, param_7, (int16_t *)&collision)) {
         goto visible;
       }
     }

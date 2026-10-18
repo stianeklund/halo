@@ -4618,7 +4618,8 @@
     },
     {
      "addr": "0x3f350",
-     "decl": "int FUN_0003f350(int unit_handle, int spawn_tag, int16_t count, float radius);"
+     "decl": "int16_t FUN_0003f350(int unit_handle, int spawn_tag, int16_t count, float radius);",
+     "ported": true
     },
     {
      "addr": "0x3f770",
@@ -4740,7 +4741,8 @@
     },
     {
      "addr": "0x41250",
-     "decl": "bool ai_consider_major_upgrade(int encounter_handle, int16_t squad_index, float random_chance);"
+     "decl": "bool ai_consider_major_upgrade(int encounter_handle, int16_t squad_index, float random_chance);",
+     "ported": true
     },
     {
      "addr": "0x41ad0",
@@ -37706,7 +37708,8 @@
     },
     {
      "addr": "0x218d0",
-     "decl": "char actor_combat_build_grenade_trajectory(float *position @<eax>, float *out_aim_direction @<ebx>, int definition_index, int definition_field_190, float *point, int param_6, int param_7, float *out_speed, int *out_target, float *out_impact_point, float *out_acceleration);"
+     "decl": "char actor_combat_build_grenade_trajectory(float *position @<eax>, float *out_aim_direction @<ebx>, int definition_index, int definition_field_190, float *point, int param_6, int param_7, float *out_speed, int *out_target, float *out_impact_point, float *out_acceleration);",
+     "ported": true
     },
     {
      "addr": "0x219e0",
@@ -44295,7 +44298,9 @@
     },
     {
      "addr": "0x5ef80",
-     "decl": "char FUN_0005ef80(unsigned int *path_buf @<edi>);"
+     "decl": "char FUN_0005ef80(unsigned int *path_buf @<edi>);",
+     "ported": true,
+     "source_path": "src/halo/ai/path.c"
     },
     {
      "addr": "0x5f1d0",
@@ -44310,11 +44315,12 @@
     },
     {
      "addr": "0x5f3c0",
-     "decl": "void closest_point_to_attractor(void);"
+     "decl": "void closest_point_to_attractor(float *segment_start, float *segment_end, float *point, float *out_point);"
     },
     {
      "addr": "0x5f490",
-     "decl": "void path_attractor_weight(void);"
+     "decl": "float path_attractor_weight(void *attractor, float *segment_start, float *segment_end, float *distance_reference);",
+     "ported": true
     },
     {
      "addr": "0x5f550",
@@ -44426,26 +44432,27 @@
     },
     {
      "addr": "0x62ba0",
-     "decl": "void find_tangent_point(void);",
+     "decl": "void find_tangent_point(float *param_1 @<ecx>, float *param_2 @<esi>, float *param_3 @<edi>, float param_4, bool param_5);",
      "comment": "[NAME: find_tangent_point \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
     },
     {
      "addr": "0x62cf0",
-     "decl": "void find_avoidance_point(void);",
+     "decl": "void find_avoidance_point(float *param_1 @<edx>, float *param_2 @<ecx>, float *param_3 @<edi>, float *param_4 @<esi>, float param_5);",
      "comment": "[NAME: find_avoidance_point \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
     },
     {
      "addr": "0x62e10",
-     "decl": "void choose_turning_point(void);",
+     "decl": "bool choose_turning_point(float *param_1 @<ecx>, float *param_2 @<edx>, float *param_3 @<ebx>, float *param_4 @<esi>, float *param_5 @<edi>, float *param_6);",
      "comment": "[NAME: choose_turning_point \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
     },
     {
      "addr": "0x63030",
-     "decl": "void find_turning_point(void);"
+     "decl": "bool find_turning_point(int param_1 @<eax>, float *param_2, float param_3, int param_4, bool param_5, unsigned char param_6, float *param_7);"
     },
     {
      "addr": "0x633b0",
-     "decl": "void FUN_000633b0(unsigned int param_1, int param_2, void *param_3, int *param_4, void *param_5, char *param_6);"
+     "decl": "void FUN_000633b0(unsigned int param_1, int param_2, void *param_3, int *param_4, void *param_5, char *param_6);",
+     "ported": true
     },
     {
      "addr": "0x63710",
