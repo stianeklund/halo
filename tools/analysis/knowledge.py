@@ -649,6 +649,12 @@ def main():
 	ap.add_argument('--update', action='store_true', help='Re-serialize the KB')
 	args = ap.parse_args()
 
+	# The stamp tells build.py and CMake that ALL generated artifacts match
+	# kb.json; writing it after a header-only regen left a stale .def/thunks
+	# that build.py then skipped refreshing (undefined dllimport for new data).
+	if args.gen_stamp and not (args.gen_header and args.gen_def and args.gen_thunks):
+		ap.error('--gen-stamp requires --gen-header, --gen-def and --gen-thunks')
+
 	logging.basicConfig(level=getattr(logging, os.environ.get('LOG_LEVEL', 'INFO').upper(), logging.INFO))
 	kb = KnowledgeBase.deserialize()
 

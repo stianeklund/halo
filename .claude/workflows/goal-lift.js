@@ -594,6 +594,13 @@ idioms — casts, x87 order, struct-store shape. A neighbor is a bounded style
 example, not binary evidence or a cap/acceptance verdict for this target):
 ${brief.neighbors || '  (control cohort or no current-index neighbor)'}
 
+SOURCE STYLE: write clean, idiomatic Bungie C (docs/agent-instructions/lift-implementation.md,
+Bungie Code Style). No raw addresses (no *(T *)0x... and no address casts to function
+pointers), no hardcoded offsets (use typed -> access; recover the struct or producer type
+first), no magic numbers (use k_..., MAXIMUM_..., FLAG/TEST_FLAG, NONE). Keep a raw form
+only when original codegen cannot be reproduced otherwise: one-line evidence comment, and
+report it as unresolved.
+
 STEPS:
 1. REFERENCE — nothing to do. The VC71 reference is DERIVED: the pristine XBE's
    bytes for this function, bounded by the committed tools/verify/function_bounds.json.

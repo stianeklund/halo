@@ -551,6 +551,15 @@ class RelocationIdentityResolverTest(unittest.TestCase):
         self.assertEqual(result["verdict"], "structural differ")
         self.assertEqual(result["identity_evidence"]["status"], "mismatch")
 
+    def test_data_symbol_absent_from_kb_stays_unresolved(self):
+        with mock.patch.object(raw, "_kb_data_addresses", return_value={}):
+            result = self._compare([relocation(1, raw.IMAGE_REL_I386_DIR32, "_actor_data")])
+        aligned = result["aligned_byte_match"]
+        self.assertEqual(result["verdict"], "not comparable")
+        self.assertEqual(aligned["resolved_relocations"], 0)
+        self.assertEqual(aligned["mismatched_relocations"], 0)
+        self.assertEqual(aligned["unresolved_relocations"], 1)
+
     def test_equal_read_only_literal_resolves(self):
         with mock.patch.object(raw, "_xbe_rdata_bytes",
                                side_effect=lambda va, n: b"hi\0" if va == 0x1020 else None):

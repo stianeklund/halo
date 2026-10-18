@@ -849,8 +849,7 @@ def regen_decl_header(quiet: bool = False) -> bool:
     DECL_H.parent.mkdir(parents=True, exist_ok=True)
     try:
         r = subprocess.run(
-            [sys.executable, str(KNOWLEDGE_PY), "--gen-header", str(DECL_H),
-             "--gen-stamp", str(DECL_H.parent / ".kb.sha256")],
+            [sys.executable, str(KNOWLEDGE_PY), "--gen-header", str(DECL_H)],
             capture_output=True, text=True, cwd=REPO_ROOT)
     except OSError as e:
         print(f"  ⚠ could not regenerate decl.h ({e}); using existing header",

@@ -96,6 +96,11 @@ Steps:
    `tools/audit/check_readability.py --untyped-producer` and fix it there so
    every caller benefits. Generic accessors (`datum_get`, `tag_get`) legitimately
    return `void *`; leave those and say so.
+   Write clean, idiomatic Bungie C: no raw addresses (`*(T *)0x…`, address
+   casts to function pointers) and no hardcoded offsets or magic numbers. Use
+   `kb.json` names, typed `->` access, `FLAG`/`TEST_FLAG`, `NONE`, and `k_…` /
+   `MAXIMUM_…` constants. Keep a raw form only when the original codegen cannot
+   be reproduced otherwise; comment the evidence and report it.
 7. Write the implementation directly to the source file at the correct
    address-ordered position.
 8. If the `kb.json` declaration needs updating, update it conservatively.

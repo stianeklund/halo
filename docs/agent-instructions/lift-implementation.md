@@ -19,6 +19,14 @@ types, structs, or Ghidra work.
 - Do not fake matching with `volatile`, dead/redundant stores, arbitrary
   barriers/pragmas, raw offsets where proven fields exist, representation
   tricks, undefined behavior, or invented source.
+- Write clean, idiomatic Bungie C (see Bungie Code Style). Lifted source has no
+  raw addresses or hardcoded offsets: reach globals, functions, and pools by
+  their `kb.json` names, never `*(T *)0x…` or `((fn_t)0x…)(…)`; reach members
+  with typed `->` access, never `*(T *)((char *)p + 0xNN)`; name sizes, strides,
+  masks, and sentinels (`k_…`, `MAXIMUM_…`, `FLAG(…)`, `NONE`). Recover the
+  struct, field, or producer type first (`field_<hex>` marks an unproven
+  field). Keep a raw form only where the original codegen cannot be reproduced
+  any other way: add a one-line evidence comment and report it as unresolved.
 - Register every new `.c` file in `src/CMakeLists.txt`.
 - Keep logic changes separate from cleanup and formatting.
 
@@ -144,8 +152,10 @@ post-hoc source recovery:
   pristine XBE and `--check` against `param_type_baseline.json`.
 - Recover every touched struct field during the lift. `field_<hex>` marks an
   accessed unknown; `pad_<hex>[n]` marks unobserved bytes.
-- Leave names, comments, magic constants, and expression-form cleanup until the
-  score settles, then use `/recover-source` behind byte-identical gates.
+- Write names, named constants (no magic numbers), and Bungie idioms during the
+  lift. Leave only expression-form cleanup (casts, temporaries, regrouping)
+  until the score settles, then use `/recover-source` behind byte-identical
+  gates.
 
 VC71's mnemonic-only LCS can miss severe type bugs, including float/integer
 parameter mismatches and fields read through the wrong scalar type. Score alone
