@@ -1376,7 +1376,7 @@
     },
     {
      "addr": "0x1da081",
-     "decl": "void _fscanf(void);"
+     "decl": "int _fscanf(void *stream, const char *format, ...);"
     },
     {
      "addr": "0x1da0c1",
@@ -7631,7 +7631,8 @@
     },
     {
      "addr": "0x86900",
-     "decl": "void director_load_camera(void);"
+     "decl": "void director_load_camera(void);",
+     "ported": true
     },
     {
      "addr": "0x86a50",
@@ -7739,7 +7740,8 @@
     },
     {
      "addr": "0x87d00",
-     "decl": "void editor_camera_set_position_and_roll(void);"
+     "decl": "void editor_camera_set_position_and_roll(const uint32_t *point, const float *angles);",
+     "ported": true
     },
     {
      "addr": "0x87eb0",
@@ -7767,8 +7769,9 @@
     },
     {
      "addr": "0x887e0",
-     "decl": "void editor_camera_orbiting_update(void);",
-     "comment": "[NAME: editor_camera_orbiting_update \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "decl": "void editor_camera_orbiting_update(void *camera_data, void *control_data, void *result_data);",
+     "comment": "[NAME: editor_camera_orbiting_update \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     }
    ],
    "name": "director.obj",
@@ -19018,7 +19021,8 @@
     },
     {
      "addr": "0x89c00",
-     "decl": "void FUN_00089c00(int unit_handle, int param_2, int param_3);"
+     "decl": "void FUN_00089c00(int unit_handle, int param_2, int param_3);",
+     "ported": true
     },
     {
      "addr": "0x89cd0",

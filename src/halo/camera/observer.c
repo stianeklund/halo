@@ -341,6 +341,43 @@ have_track:
     (float)index * step, step, t);
 }
 
+/* 0x89c00: unit camera position plus the camera-track offset rotated into the
+ * unit's planar facing. The track parameter is asin(facing.k) (inline CRT
+ * _CIasin at 0x1da0cc). 0x2533d0 is a double threshold, 0x2533c8 a float
+ * numerator for the planar normalize. */
+void FUN_00089c00(int unit_handle, int param_2, int param_3)
+{
+  float *position;
+  float *forward;
+  char *unit;
+  void *camera_track;
+  float offset[3];
+  float i;
+  float j;
+  float length;
+  double asin(double x);
+  double fabs(double x);
+
+  position = (float *)param_2;
+  unit = (char *)object_get_and_verify_type(unit_handle, 3);
+  camera_track = unit_camera_get(unit_handle);
+  unit_get_camera_position(unit_handle, position);
+  forward = (float *)param_3;
+  *(real_vector3d *)forward = *(real_vector3d *)(unit + 0x1ec);
+  camera_track_splut(camera_track, (float)asin((double)forward[2]), offset);
+  i = forward[0];
+  j = forward[1];
+  length = x87_sqrt(i * i + j * j);
+  if (!(fabs(length) < *(double *)0x2533d0)) {
+    length = *(float *)0x2533c8 / length;
+    i = length * i;
+    j = length * j;
+  }
+  position[0] = offset[1] * j + offset[0] * i + position[0];
+  position[1] = offset[0] * j - offset[1] * i + position[1];
+  position[2] = offset[2] + position[2];
+}
+
 /* following_camera_update (0x89cd0): restore the vehicle/following command,
  * including unit/seat transitions and the crouch and look blend channels. */
 void following_camera_update(void *camera_data, void *control_data,
