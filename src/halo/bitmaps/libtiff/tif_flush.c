@@ -4419,6 +4419,34 @@ void FUN_0006b2d0(unsigned long *cp, unsigned short *r, unsigned short *g,
 }
 
 /*
+ * TIFFFlushData -- 0x6b3f0, called once from gt (0x6c101). Reads a float[3]
+ * through the pointer at 0x3340d0 and writes four float statics. The
+ * reciprocal 1.0f/coeffs[1] stays on the x87 stack for both products, and the
+ * last product multiplies by the 0x3340bc result (not 0x3340b8), exactly as
+ * the binary does (0x6b42f-0x6b438). Global roles are unproven.
+ */
+#define float_ptr_003340d0 (*(float **)0x3340d0)
+#define float_003340c0 (*(float *)0x3340c0)
+#define float_003340bc (*(float *)0x3340bc)
+#define float_003340b8 (*(float *)0x3340b8)
+#define float_003340b4 (*(float *)0x3340b4)
+
+void TIFFFlushData(void)
+{
+  float *coeffs;
+  float *ptr_003340c0;
+  float recip;
+
+  coeffs = float_ptr_003340d0;
+  ptr_003340c0 = &float_003340c0;
+  *ptr_003340c0 = REAL_2_0_POOL - (coeffs[0] + coeffs[0]);
+  recip = *(float *)0x2533c8 / coeffs[1]; /* 1.0f */
+  float_003340bc = float_003340c0 * (recip * coeffs[0]);
+  float_003340b8 = REAL_2_0_POOL - (coeffs[2] + coeffs[2]);
+  float_003340b4 = float_003340bc * (recip * coeffs[2]);
+}
+
+/*
  * FUN_0006b610 -- 0x6b610, the packed YCbCr contig writer (upstream
  * putcontig8bitYCbCrtile shape). Selected by FUN_0006b780 at 0x6b858+.
  *

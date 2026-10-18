@@ -28,8 +28,8 @@
  * The public functions are plain cdecl.
  * ======================================================================== */
 
-#include <stdarg.h>
 #include "halo/bitmaps/bitmap_data.h"
+#include <stdarg.h>
 
 #define TIFF_BUFFERSETUP 0x4
 #define TIFF_BEENWRITING 0x8
@@ -763,6 +763,92 @@ void TIFFReverseBits(unsigned char *cp, int n)
   }
   while (n-- > 0)
     *cp = bitrev[*cp], cp++;
+}
+
+#define THUNDER_CODE 0xc0
+#define THUNDER_RUN 0x00
+#define THUNDER_2BITDELTAS 0x40
+#define DELTA2_SKIP 2
+#define THUNDER_3BITDELTAS 0x80
+#define DELTA3_SKIP 4
+#define THUNDER_RAW 0xc0
+
+#define THUNDER_SETPIXEL(op, v)       \
+  {                                   \
+    lastpixel = (v) & 0xf;            \
+    if (npixels++ & 1)                \
+      *op++ |= (char)lastpixel;       \
+    else                              \
+      op[0] = (char)(lastpixel << 4); \
+  }
+
+/* 0x6f320 -- upstream libtiff tif_thunder.c ThunderDecode. Delta tables are
+ * int[4] at 0x2ece3c and int[8] at 0x2ece4c. The run case has no
+ * npixels < maxpixels guard (unconditional rep stos). Error reported through
+ * FUN_00068a30(tif_name, fmt, why, tif_row, npixels, maxpixels): 6 pushes. */
+int ThunderDecode(void *tif_, char *op, int maxpixels)
+{
+  tiff_t *tif = (tiff_t *)tif_;
+  const int *twobitdeltas = (const int *)0x2ece3c;
+  const int *threebitdeltas = (const int *)0x2ece4c;
+  unsigned char *bp;
+  long cc;
+  unsigned int lastpixel;
+  int npixels;
+
+  bp = (unsigned char *)tif->tif_rawcp;
+  cc = tif->tif_rawcc;
+  lastpixel = 0;
+  npixels = 0;
+  while (cc > 0 && npixels < maxpixels) {
+    int n, delta;
+
+    n = *bp++, cc--;
+    switch (n & THUNDER_CODE) {
+    case THUNDER_RUN:
+      if (npixels & 1) {
+        op[0] |= (char)lastpixel;
+        lastpixel = (unsigned char)*op++;
+        npixels++;
+        n--;
+      } else
+        lastpixel |= lastpixel << 4;
+      npixels += n;
+      for (; n > 0; n -= 2)
+        *op++ = (char)lastpixel;
+      if (n == -1)
+        *--op &= 0xf0;
+      lastpixel &= 0xf;
+      break;
+    case THUNDER_2BITDELTAS:
+      if ((delta = ((n >> 4) & 3)) != DELTA2_SKIP)
+        THUNDER_SETPIXEL(op, lastpixel + twobitdeltas[delta]);
+      if ((delta = ((n >> 2) & 3)) != DELTA2_SKIP)
+        THUNDER_SETPIXEL(op, lastpixel + twobitdeltas[delta]);
+      if ((delta = (n & 3)) != DELTA2_SKIP)
+        THUNDER_SETPIXEL(op, lastpixel + twobitdeltas[delta]);
+      break;
+    case THUNDER_3BITDELTAS:
+      if ((delta = ((n >> 3) & 7)) != DELTA3_SKIP)
+        THUNDER_SETPIXEL(op, lastpixel + threebitdeltas[delta]);
+      if ((delta = (n & 7)) != DELTA3_SKIP)
+        THUNDER_SETPIXEL(op, lastpixel + threebitdeltas[delta]);
+      break;
+    case THUNDER_RAW:
+      THUNDER_SETPIXEL(op, n);
+      break;
+    }
+  }
+  tif->tif_rawcp = (char *)bp;
+  tif->tif_rawcc = cc;
+  if (npixels != maxpixels) {
+    FUN_00068a30(tif->tif_name,
+                 "ThunderDecode: %s data at scanline %d (%d != %d)",
+                 npixels < maxpixels ? "Not enough" : "Too much", tif->tif_row,
+                 npixels, maxpixels);
+    return (0);
+  }
+  return (1);
 }
 
 /* 0x6f620 -- upstream libtiff tif_thunder.c ThunderDecodeRow: while occ > 0
@@ -1506,6 +1592,58 @@ void RGBToColor(unsigned short *rgb, unsigned char *color)
   *(s3tc_color_t *)color = result;
 }
 
+/* 0x70610 -- square a symmetric 3x3 matrix (row stride 0xc): only the upper
+ * triangle (in[0,1,2,4,5,8]) is read and only out[0,1,2,4,5,8] is written.
+ * in arrives in EAX, out in ECX; no stack args. */
+void Square3x3(float *in, float *out)
+{
+  out[0] = in[0] * in[0] + in[1] * in[1] + in[2] * in[2];
+  out[1] = (in[4] + in[0]) * in[1] + in[5] * in[2];
+  out[2] = (in[8] + in[0]) * in[2] + in[5] * in[1];
+  out[4] = in[1] * in[1] + in[4] * in[4] + in[5] * in[5];
+  out[5] = (in[8] + in[4]) * in[5] + in[2] * in[1];
+  out[8] = in[2] * in[2] + in[5] * in[5] + in[8] * in[8];
+}
+
+
+/* 0x708c0 -- p0 arrives in EDX, p1 in EDI (read at entry, 0x708c7-0x708d3).
+ * For each of the 3 components, when p0[i] and p1[i] straddle 0.0f, or
+ * straddle the per-component limit at 0x2ed08c, the endpoint on the outside
+ * is moved along p1 - p0 onto that boundary (all three components, written
+ * in order 2, 1, 0). */
+void ClipExtrema(float *p0, float *p1)
+{
+  int i;
+  float t;
+  float *dst;
+
+  for (i = 0; i < 3; i++) {
+    if ((p0[i] < 0.0f) != (p1[i] < 0.0f)) {
+      t = -(p0[i] / (p1[i] - p0[i]));
+      if (p0[i] < 0.0f) {
+        dst = p0;
+      } else {
+        t -= 1.0f;
+        dst = p1;
+      }
+      dst[2] += (p1[2] - p0[2]) * t;
+      dst[1] += (p1[1] - p0[1]) * t;
+      dst[0] += (p1[0] - p0[0]) * t;
+    }
+    if ((p0[i] > ((float *)0x2ed08c)[i]) != (p1[i] > ((float *)0x2ed08c)[i])) {
+      t = (((float *)0x2ed08c)[i] - p0[i]) / (p1[i] - p0[i]);
+      if (p0[i] > ((float *)0x2ed08c)[i]) {
+        dst = p0;
+      } else {
+        t -= 1.0f;
+        dst = p1;
+      }
+      dst[2] += (p1[2] - p0[2]) * t;
+      dst[1] += (p1[1] - p0[1]) * t;
+      dst[0] += (p1[0] - p0[0]) * t;
+    }
+  }
+}
 
 /* 0x70a00 -- fill a 4x4 color block whose pixels share one color. pixels
  * (16 dwords) arrives in EDX, block in ESI, mask in DI (read at entry,
@@ -2464,6 +2602,162 @@ void bitmap_tile_and_bevel_rectangle(void *destination, int bitmap_tag_index,
   } while ((short)i < 9);
 }
 
+/* 0x73390 -- cdecl. clip_rectangle is four int16 {y0, x0, y1, x1}; the
+ * points are float {x, y} pairs, swapped so point0 has the smaller y. The
+ * state record is the one bitmap_initialize_line builds (+0xe current point).
+ * Mode 3 (5:5:5 blend) is unreachable from the format switch. */
+void bitmap_draw_line(void *destination_bitmap, unsigned int color,
+                      short *clip_rectangle, float *point0, float *point1)
+{
+  bitmap_data *destination = (bitmap_data *)destination_bitmap;
+  short x_minimum;
+  short x_maximum;
+  short y_minimum;
+  short y_maximum;
+  short alpha;
+  short inverse_alpha;
+  short mode;
+  long pixel;
+  float *swap;
+  short line_point0[2];
+  short line_point1[2];
+  short state[11];
+  void *address;
+  unsigned short destination_pixel16;
+  unsigned long destination_pixel32;
+
+  x_minimum = 0;
+  x_maximum = destination->width;
+  y_minimum = 0;
+  y_maximum = destination->height;
+  alpha = (short)(color >> 24);
+  inverse_alpha = (short)(0xff - (color >> 24));
+  assert_halt_at("c:\\halo\\SOURCE\\bitmaps\\bitmap_drawing.c", 0x38,
+                 destination->base_address);
+
+  switch (destination->format) {
+  case 0:
+  case 1:
+  case 2:
+    pixel = (long)(color >> 24);
+    mode = 0;
+    break;
+  case 6:
+    pixel =
+      (long)(((((color >> 16) & 0xf8) << 5) | ((color >> 8) & 0xfc)) << 3 |
+             ((color >> 3) & 0x1f));
+    mode = (short)(alpha != 0xff ? 4 : 1);
+    break;
+  case 0xb:
+    pixel = (long)color;
+    mode = (short)(alpha != 0xff ? 5 : 2);
+    break;
+  default:
+    display_assert(csprintf((char *)0x5ab100,
+                            "bitmap @%p has bad encoding #%d for "
+                            "draw_line_software()",
+                            destination, (int)destination->format),
+                   "c:\\halo\\SOURCE\\bitmaps\\bitmap_drawing.c", 0x52, 1);
+    system_exit(-1);
+    break;
+  }
+
+  if (clip_rectangle != NULL) {
+    if (clip_rectangle[1] > x_minimum) {
+      x_minimum = clip_rectangle[1];
+    }
+    if (clip_rectangle[3] < x_maximum) {
+      x_maximum = clip_rectangle[3];
+    }
+    if (clip_rectangle[0] > y_minimum) {
+      y_minimum = clip_rectangle[0];
+    }
+    if (clip_rectangle[2] < y_maximum) {
+      y_maximum = clip_rectangle[2];
+    }
+  }
+
+  if (point0[1] > point1[1]) {
+    swap = point0;
+    point0 = point1;
+    point1 = swap;
+  }
+
+  line_point0[0] = (short)point0[0];
+  line_point0[1] = (short)point0[1];
+  line_point1[0] = (short)point1[0];
+  line_point1[1] = (short)point1[1];
+
+  bitmap_initialize_line(state, line_point0, line_point1);
+
+  do {
+    if (state[7] >= x_minimum && state[7] < x_maximum &&
+        state[8] >= y_minimum && state[8] < y_maximum) {
+      address = bitmap_2d_address(destination, state[7], state[8], 0);
+
+      switch (mode) {
+      case 0:
+        *(unsigned char *)address = (unsigned char)pixel;
+        break;
+      case 1:
+        *(unsigned short *)address = (unsigned short)pixel;
+        break;
+      case 2:
+        *(unsigned long *)address = (unsigned long)pixel;
+        break;
+      case 3:
+        destination_pixel16 = *(unsigned short *)address;
+        *(unsigned short *)address =
+          (unsigned short)(((((destination_pixel16 & 0x3ff) * inverse_alpha +
+                              (pixel & 0x3ff) * alpha) >>
+                             8) &
+                            0x3e0) |
+                           ((((destination_pixel16 & 0x1f) * inverse_alpha +
+                              (pixel & 0x1f) * alpha) >>
+                             8) &
+                            0x1f) |
+                           (((destination_pixel16 * inverse_alpha +
+                              pixel * alpha) >>
+                             8) &
+                            0x7c00));
+        break;
+      case 4:
+        destination_pixel16 = *(unsigned short *)address;
+        *(unsigned short *)address =
+          (unsigned short)(((((destination_pixel16 & 0x7ff) * inverse_alpha +
+                              (pixel & 0x7ff) * alpha) >>
+                             8) &
+                            0x7e0) |
+                           ((((destination_pixel16 & 0x1f) * inverse_alpha +
+                              (pixel & 0x1f) * alpha) >>
+                             8) &
+                            0x1f) |
+                           (((destination_pixel16 * inverse_alpha +
+                              pixel * alpha) >>
+                             8) &
+                            0xf800));
+        break;
+      case 5:
+        destination_pixel32 = *(unsigned long *)address;
+        *(unsigned long *)address =
+          ((((((pixel >> 16) & 0xff) * alpha) >> 8) +
+            ((((destination_pixel32 >> 16) & 0xff) * inverse_alpha) >> 8))
+           << 16) |
+          ((((((pixel >> 8) & 0xff) * alpha) >> 8) +
+            ((((destination_pixel32 >> 8) & 0xff) * inverse_alpha) >> 8))
+           << 8) |
+          ((((pixel & 0xff) * alpha) >> 8) +
+           (((destination_pixel32 & 0xff) * inverse_alpha) >> 8)) |
+          ((unsigned long)alpha > (destination_pixel32 >> 24) ?
+             (unsigned long)alpha :
+             (destination_pixel32 >> 24))
+            << 24;
+        break;
+      }
+    }
+  } while (!bitmap_step_line(state, 0));
+}
+
 /* 0x73770 -- draw the four edges of a float rectangle with bitmap_draw_line
  * (0x73390). cdecl, four stack args: destination ([EBP+8]), color
  * ([EBP+0xc]), rectangle ([EBP+0x10], four floats; [1] and [3] are reduced
@@ -2731,12 +3025,20 @@ bool extract_plateless_cube_map(void *bitmap)
         *(void **)entry = temporary;
         if (temporary != NULL) {
           for (destination_y = 0; destination_y < face_size; destination_y++) {
-            source_x = (short)((unsigned short)(faces[face_index].source_x_block * face_size) +
-                               (unsigned short)(faces[face_index].source_x_edge * (face_size - 1)) +
-                               (unsigned short)(faces[face_index].source_x_row_delta * destination_y));
-            source_y = (short)((unsigned short)(faces[face_index].source_y_block * face_size) +
-                               (unsigned short)(faces[face_index].source_y_edge * (face_size - 1)) +
-                               (unsigned short)(faces[face_index].source_y_row_delta * destination_y));
+            source_x =
+              (short)((unsigned short)(faces[face_index].source_x_block *
+                                       face_size) +
+                      (unsigned short)(faces[face_index].source_x_edge *
+                                       (face_size - 1)) +
+                      (unsigned short)(faces[face_index].source_x_row_delta *
+                                       destination_y));
+            source_y =
+              (short)((unsigned short)(faces[face_index].source_y_block *
+                                       face_size) +
+                      (unsigned short)(faces[face_index].source_y_edge *
+                                       (face_size - 1)) +
+                      (unsigned short)(faces[face_index].source_y_row_delta *
+                                       destination_y));
             for (destination_x = 0; destination_x < face_size;
                  destination_x++) {
               source = bitmap_2d_address(bitmap, source_x, source_y, 0);
@@ -2980,47 +3282,42 @@ void extract_pixels_to_mipmap(short destination_mipmap_index,
   assert_halt_msg_at("bitmap_verify(source_bitmap, TRUE)",
                      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6a6,
                      bitmap_verify(source_bitmap, 1));
-  assert_halt_msg_at("source_bitmap->width ==MAX(1, destination_bitmap->width "
-                     ">>destination_mipmap_index)",
-                     "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6a7,
-                     source->width ==
-                       ((short)(destination->width >>
-                                destination_mipmap_index) < 1 ?
-                          1 :
-                          destination->width >>
-                            destination_mipmap_index));
-  assert_halt_msg_at("source_bitmap->height==MAX(1, "
-                     "destination_bitmap->height>>destination_mipmap_index)",
-                     "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6a8,
-                     source->height ==
-                       ((short)(destination->height >>
-                                destination_mipmap_index) < 1 ?
-                          1 :
-                          destination->height >>
-                            destination_mipmap_index));
-  assert_halt_msg_at("source_bitmap->depth ==MAX(1, destination_bitmap->depth "
-                     ">>destination_mipmap_index)",
-                     "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6a9,
-                     source->depth ==
-                       ((short)(destination->depth >>
-                                destination_mipmap_index) < 1 ?
-                          1 :
-                          destination->depth >>
-                            destination_mipmap_index));
+  assert_halt_msg_at(
+    "source_bitmap->width ==MAX(1, destination_bitmap->width "
+    ">>destination_mipmap_index)",
+    "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6a7,
+    source->width ==
+      ((short)(destination->width >> destination_mipmap_index) < 1 ?
+         1 :
+         destination->width >> destination_mipmap_index));
+  assert_halt_msg_at(
+    "source_bitmap->height==MAX(1, "
+    "destination_bitmap->height>>destination_mipmap_index)",
+    "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6a8,
+    source->height ==
+      ((short)(destination->height >> destination_mipmap_index) < 1 ?
+         1 :
+         destination->height >> destination_mipmap_index));
+  assert_halt_msg_at(
+    "source_bitmap->depth ==MAX(1, destination_bitmap->depth "
+    ">>destination_mipmap_index)",
+    "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6a9,
+    source->depth ==
+      ((short)(destination->depth >> destination_mipmap_index) < 1 ?
+         1 :
+         destination->depth >> destination_mipmap_index));
   assert_halt_msg_at("bitmap_verify(destination_bitmap, FALSE)",
                      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6ab,
                      bitmap_verify(destination_bitmap, 0));
   assert_halt_msg_at("destination_bitmap->type==source_bitmap->type",
                      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6ac,
-                     destination->type ==
-                       source->type);
+                     destination->type == source->type);
   assert_halt_msg_at("destination_mipmap_index>=0 && "
                      "destination_mipmap_index<=destination_bitmap->mipmap_"
                      "count",
                      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6ad,
                      destination_mipmap_index >= 0 &&
-                       destination_mipmap_index <=
-                         destination->mipmap_count);
+                       destination_mipmap_index <= destination->mipmap_count);
   assert_halt_msg_at("!TEST_FLAG(destination_bitmap->flags, "
                      "_bitmap_swizzled_bit)",
                      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6ae,
@@ -3039,17 +3336,15 @@ void extract_pixels_to_mipmap(short destination_mipmap_index,
     pixel = source_pixels[pixel_index];
     switch (destination->format) {
     case 6:
-      ((unsigned short *)destination_pixels)[pixel_index] =
-        (unsigned short)((((((pixel >> 16) & 0xff) >> 3) << 11) |
-                          ((((pixel >> 8) & 0xff) >> 2) << 5) |
-                          ((pixel & 0xff) >> 3)));
+      ((unsigned short *)destination_pixels)[pixel_index] = (unsigned short)((
+        ((((pixel >> 16) & 0xff) >> 3) << 11) |
+        ((((pixel >> 8) & 0xff) >> 2) << 5) | ((pixel & 0xff) >> 3)));
       break;
     case 8:
-      ((unsigned short *)destination_pixels)[pixel_index] =
-        (unsigned short)(((((pixel >> 24) ? 0x80 : 0) << 8) |
-                          ((((pixel >> 16) & 0xff) >> 3) << 10) |
-                          ((((pixel >> 8) & 0xff) >> 3) << 5) |
-                          ((pixel & 0xff) >> 3)));
+      ((unsigned short *)destination_pixels)[pixel_index] = (unsigned short)((
+        (((pixel >> 24) ? 0x80 : 0) << 8) |
+        ((((pixel >> 16) & 0xff) >> 3) << 10) |
+        ((((pixel >> 8) & 0xff) >> 3) << 5) | ((pixel & 0xff) >> 3)));
       break;
     case 9:
       ((unsigned short *)destination_pixels)[pixel_index] =
@@ -3111,46 +3406,38 @@ void extract_pixels_from_mipmap(short source_mipmap_index,
   assert_halt_msg_at("bitmap_verify(destination_bitmap, TRUE)",
                      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6f9,
                      bitmap_verify(destination_bitmap, 1));
-  assert_halt_msg_at(
-    "destination_bitmap->width ==MAX(1, source_bitmap->width "
-    ">>source_mipmap_index)",
-    "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6fa,
-    destination->width ==
-      ((short)(source->width >> source_mipmap_index) <
-           1 ?
-         1 :
-         source->width >> source_mipmap_index));
-  assert_halt_msg_at(
-    "destination_bitmap->height==MAX(1, "
-    "source_bitmap->height>>source_mipmap_index)",
-    "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6fb,
-    destination->height ==
-      ((short)(source->height >> source_mipmap_index) <
-           1 ?
-         1 :
-         source->height >> source_mipmap_index));
-  assert_halt_msg_at(
-    "destination_bitmap->depth ==MAX(1, source_bitmap->depth "
-    ">>source_mipmap_index)",
-    "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6fc,
-    destination->depth ==
-      ((short)(source->depth >> source_mipmap_index) <
-           1 ?
-         1 :
-         source->depth >> source_mipmap_index));
+  assert_halt_msg_at("destination_bitmap->width ==MAX(1, source_bitmap->width "
+                     ">>source_mipmap_index)",
+                     "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6fa,
+                     destination->width ==
+                       ((short)(source->width >> source_mipmap_index) < 1 ?
+                          1 :
+                          source->width >> source_mipmap_index));
+  assert_halt_msg_at("destination_bitmap->height==MAX(1, "
+                     "source_bitmap->height>>source_mipmap_index)",
+                     "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6fb,
+                     destination->height ==
+                       ((short)(source->height >> source_mipmap_index) < 1 ?
+                          1 :
+                          source->height >> source_mipmap_index));
+  assert_halt_msg_at("destination_bitmap->depth ==MAX(1, source_bitmap->depth "
+                     ">>source_mipmap_index)",
+                     "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6fc,
+                     destination->depth ==
+                       ((short)(source->depth >> source_mipmap_index) < 1 ?
+                          1 :
+                          source->depth >> source_mipmap_index));
   assert_halt_msg_at("bitmap_verify(source_bitmap, FALSE)",
                      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6fe,
                      bitmap_verify(source_bitmap, 0));
   assert_halt_msg_at("source_bitmap->type==destination_bitmap->type",
                      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x6ff,
-                     source->type ==
-                       destination->type);
+                     source->type == destination->type);
   assert_halt_msg_at("source_mipmap_index>=0 && "
                      "source_mipmap_index<=source_bitmap->mipmap_count",
                      "c:\\halo\\SOURCE\\bitmaps\\bitmap_extract.c", 0x700,
                      source_mipmap_index >= 0 &&
-                       source_mipmap_index <=
-                         source->mipmap_count);
+                       source_mipmap_index <= source->mipmap_count);
   if ((source->flags & FLAG(_bitmap_compressed_bit)) != 0) {
     bitmap_3d_compress_to_mipmap(source_bitmap, destination_bitmap,
                                  source_mipmap_index);
@@ -3161,8 +3448,8 @@ void extract_pixels_from_mipmap(short source_mipmap_index,
     (uint32_t *)bitmap_mipmap_address(destination_bitmap, 0);
   pixel_count = bitmap_get_pixel_count(destination_bitmap);
   for (i = 0; i < pixel_count; i++) {
-    destination_address[i] = bitmap_format_to_a8r8g8b8(
-      source->format, source_address, i);
+    destination_address[i] =
+      bitmap_format_to_a8r8g8b8(source->format, source_address, i);
   }
 }
 

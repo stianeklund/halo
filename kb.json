@@ -41014,7 +41014,8 @@
     },
     {
      "addr": "0x6b3f0",
-     "decl": "void TIFFFlushData(void);"
+     "decl": "void TIFFFlushData(void);",
+     "ported": true
     },
     {
      "addr": "0x6b440",
@@ -41425,7 +41426,8 @@
     {
      "addr": "0x6f320",
      "decl": "int ThunderDecode(void *tif, char *op, int maxpixels);",
-     "comment": "[NAME: ThunderDecode \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "comment": "[NAME: ThunderDecode \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x6f620",
@@ -41578,8 +41580,9 @@
     },
     {
      "addr": "0x70610",
-     "decl": "void Square3x3(void);",
-     "comment": "[NAME: Square3x3 \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "decl": "void Square3x3(float *in@<eax>, float *out@<ecx>);",
+     "comment": "[NAME: Square3x3 \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x706b0",
@@ -41588,8 +41591,9 @@
     },
     {
      "addr": "0x708c0",
-     "decl": "void ClipExtrema(void);",
-     "comment": "[NAME: ClipExtrema \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "decl": "void ClipExtrema(float *p0@<edx>, float *p1@<edi>);",
+     "comment": "[NAME: ClipExtrema \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x70a00",
@@ -41680,7 +41684,8 @@
     {
      "addr": "0x73390",
      "decl": "void bitmap_draw_line(void *destination, unsigned int color, short *clip_rectangle, float *point0, float *point1);",
-     "comment": "[NAME: bitmap_draw_line \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]"
+     "comment": "[NAME: bitmap_draw_line \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
+     "ported": true
     },
     {
      "addr": "0x73770",
