@@ -151,3 +151,18 @@ Our repository contains **117 partially byte-matched functions** (`structural di
 | `0x000b5210` | `slayer_engine_display_score` | `game` | 386 B | **58.7%** | 96.7% | [`src/halo/game/game.c`](file:///storage/1F34-EBBE/halo/src/halo/game/game.c) |
 | `0x001c31f0` | `FUN_001c31f0` | `saved_game_files` | 86 B | **58.1%** | 84.8% | [`src/halo/saved games/saved_game_files.c`](file:///storage/1F34-EBBE/halo/src/halo/saved%20games/saved_game_files.c) |
 | `0x001c5560` | `create_enumerated_saved_game_file` | `saved_game_files` | 897 B | **53.9%** | 96.3% | [`src/halo/saved games/saved_game_files.c`](file:///storage/1F34-EBBE/halo/src/halo/saved%20games/saved_game_files.c) |
+
+
+---
+
+## Suggested Symbol Names for Unlabeled Functions
+
+The following 5 functions are currently unlabeled (`FUN_...`) in upstream. Based on their disassembly algorithms, companion functions, and Halo debug symbol recovery, the following names are suggested:
+
+| Address | Current Name | Suggested Name | Translation Unit / Source File | Function Signature | Evidence & Rationale |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `0x00138f70` | `FUN_00138f70` | **`shade_vector3d`** | `damage` / `object_lights.c`<br>([damage.c:2703](file:///storage/1F34-EBBE/halo/src/halo/objects/damage.c#L2703)) | `void shade_vector3d(float *output, float *vertex_c, float *vertex_d, float *base, float u, float v)` | 3D barycentric point/vector interpolation across a triangle. Companion to `shade_vector2d` (0x138f20). Confirmed by Halo debug symbol `shade_vector3d`. |
+| `0x001808f0` | `FUN_001808f0` | **`compress_real_vector3d_to_int32`** | `rasterizer_text`<br>([rasterizer_text.c:555](file:///storage/1F34-EBBE/halo/src/halo/rasterizer/rasterizer_text.c#L555)) | `unsigned int compress_real_vector3d_to_int32(float *param_1)` | Packs a 3D float unit normal vector into an 11-11-10 32-bit integer. Pairs with `compress_real_vector3d_to_int32_clamp` (0x180b10). Confirmed by debug symbol `compress_real_vector3d_to_int32`. |
+| `0x00181a90` | `FUN_00181a90` | **`rasterizer_lens_flares_submit_occlusion_tests`** | `rasterizer_text`<br>([rasterizer_text.c:1279](file:///storage/1F34-EBBE/halo/src/halo/rasterizer/rasterizer_text.c#L1279)) | `void rasterizer_lens_flares_submit_occlusion_tests(void)` | Iterates queued lens flare entries and submits hardware occlusion queries via `rasterizer_widget_submit_occlusion_test`. Confirmed by debug symbol `rasterizer_lens_flares_submit_occlusion_tests`. |
+| `0x000b45c0` | `FUN_000b45c0` | **`new_rally_flag`** | `game` / `game_engine_race.c`<br>([game.c:980](file:///storage/1F34-EBBE/halo/src/halo/game/game.c#L980)) | `int new_rally_flag(int current_flag)` | Source TU is `game_engine_race.c`. Counts valid race flags in scenario netgame flags and selects a random new flag index for Rally race mode, excluding `current_flag`. Confirmed by debug symbol `new_rally_flag`. |
+| `0x001c31f0` | `FUN_001c31f0` | **`find_and_create_directory_if_necessary`** | `saved_game_files`<br>([saved_game_files.c:1436](file:///storage/1F34-EBBE/halo/src/halo/saved%20games/saved_game_files.c#L1436)) | `char find_and_create_directory_if_necessary(const char *path)` | Resolves file reference from directory path via `file_reference_create_from_path`, checks `file_exists`, and calls `file_create` if missing. Confirmed by debug symbol `find_and_create_directory_if_necessary`. |
