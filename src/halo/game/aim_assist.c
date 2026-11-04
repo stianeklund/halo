@@ -1052,3 +1052,15 @@ int local_player_aim_assist(short local_player_index, real *autoaim_level,
 
   return NONE;
 }
+
+#ifdef HALO_AIM_ASSIST_DEBUG
+#include "halo/game/aim_assist_debug.h"
+
+/* Diagnostic-only entry: unit_get_aim_assist_parameters is private to this
+ * TU in the original, so the debug rings reach it through here. */
+bool aim_assist_debug_get_parameters(int unit_handle, float *out_params,
+                                     int zoom_level)
+{
+  return unit_get_aim_assist_parameters(unit_handle, out_params, zoom_level);
+}
+#endif

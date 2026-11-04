@@ -1,4 +1,8 @@
 #include "x87_math.h"
+#ifdef HALO_AIM_ASSIST_DEBUG
+#include "halo/game/aim_assist_debug.h"
+#endif
+#line 2
 double pow(double x, double y);
 
 /* 0xfad20 — weapons_initialize */
@@ -2995,7 +2999,15 @@ void trigger_create_projectiles(int weapon_handle, int16_t trigger_index)
         origin[1] = up[1] * offset[2] + y;
         origin[2] = up[2] * offset[2] + origin[2];
 
+#ifdef HALO_AIM_ASSIST_DEBUG
+        aim_assist_debug_note_shot_begin(forward);
+#endif
+#line 2998
         target_object = player_aim_projectile(player_index, origin, forward);
+#ifdef HALO_AIM_ASSIST_DEBUG
+        aim_assist_debug_note_shot(player_index, forward, target_object);
+#endif
+#line 2999
       } else if (actor_index != -1) {
         target_object = actor_aim_projectile(actor_index, origin, forward, &error_angle);
       }

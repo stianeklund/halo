@@ -1,4 +1,8 @@
 /* ---- Stick deadzone constants ---- */
+#ifdef HALO_AIM_ASSIST_DEBUG
+#include "halo/game/aim_assist_debug.h"
+#endif
+#line 2
 /* The Xbox controller thumbstick range is -32768..32767 (int16_t).
    A deadzone of 9000 (~27.5% of full range) eliminates stick drift.
    Values within [-9000, 9000] map to 0. Values above/below are
@@ -825,6 +829,30 @@ void input_get_device_states(void)
               result);
       } else {
         input_state = &state.Gamepad;
+#ifdef HALO_AIM_ASSIST_DEBUG
+        {
+          int16_t script_sticks[4];
+          uint16_t script_buttons;
+
+          if (aim_assist_debug_script_pad(i, script_sticks, &script_buttons)) {
+            input_state->sThumbLX = script_sticks[0];
+            input_state->sThumbLY = script_sticks[1];
+            input_state->sThumbRX = script_sticks[2];
+            input_state->sThumbRY = script_sticks[3];
+            for (j = 0; j < INPUT_ANALOG_BUTTON_COUNT; j++) {
+              input_state->bAnalogButtons[analog_button_index_map[j]] =
+                ((script_buttons >> j) & 1) ? 0xff : 0;
+            }
+            input_state->wButtons = 0;
+            for (j = 0; j < INPUT_DIGITAL_BUTTON_COUNT; j++) {
+              if ((script_buttons >> (INPUT_ANALOG_BUTTON_COUNT + j)) & 1) {
+                input_state->wButtons |= input_digital_button_bitmask_map()[j];
+              }
+            }
+          }
+        }
+#endif
+#line 828
 
         /* analog buttons (8): smoothing with hysteresis */
         for (j = 0; j < INPUT_ANALOG_BUTTON_COUNT; j++) {

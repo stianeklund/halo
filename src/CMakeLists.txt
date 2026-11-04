@@ -67,6 +67,7 @@ halo/ai/actor_firing_position.c
 	halo/hs/hs_compile.c
 	halo/hs/hs_runtime.c
 	halo/game/aim_assist.c
+	halo/game/aim_assist_debug.c
 	halo/game/cheats.c
 	halo/game/editor_stubs.c
 	halo/game/game.c

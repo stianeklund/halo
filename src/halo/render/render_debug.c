@@ -12,6 +12,10 @@
 #include <stdarg.h>
 
 #include "x87_math.h"
+#ifdef HALO_AIM_ASSIST_DEBUG
+#include "halo/game/aim_assist_debug.h"
+#endif
+#line 15
 
 /* Per-frame debug primitive cache record (0x38 bytes, array based at 0x4d1220).
  * The payload is a tagged union keyed by `type`; individual offsets are reused
@@ -1655,6 +1659,10 @@ void FUN_0018ac50(void)
   FUN_0018a370();
   FUN_0018a3e0();
   players_debug_render();
+#ifdef HALO_AIM_ASSIST_DEBUG
+  aim_assist_debug_render();
+#endif
+#line 1658
 
   for (i = 0; i < debug_primitive_count; i++) {
     rec = &debug_primitives[i];

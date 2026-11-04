@@ -11,6 +11,7 @@ Usage:
     python3 tools/build/build.py --target halo      # build specific target
     python3 tools/build/build.py -q --target halo   # warnings/errors only
     python3 tools/build/build.py --rng-trace        # + RNG draw trace
+    python3 tools/build/build.py --aim-assist-debug # + aim-assist rings/telemetry
 """
 
 import argparse
@@ -227,7 +228,8 @@ def _ensure_generated_files(quiet: bool = False) -> None:
 
 
 def build(target: str = "", quiet: bool = False, test_harness: bool = False,
-          retail64: bool | None = None, rng_trace: bool = False) -> int:
+          retail64: bool | None = None, rng_trace: bool = False,
+          aim_assist_debug: bool = False) -> int:
     if not os.path.isdir(BUILD_DIR):
         print(
             f"error: build directory not found: {BUILD_DIR}\n"
@@ -242,6 +244,8 @@ def build(target: str = "", quiet: bool = False, test_harness: bool = False,
     # Always pass both states: a cache that kept ON would silently leave
     # tracing live in a "flag off" build.
     configure_args.append("-DHALO_RNG_TRACE=" + ("ON" if rng_trace else "OFF"))
+    configure_args.append("-DHALO_AIM_ASSIST_DEBUG="
+                          + ("ON" if aim_assist_debug else "OFF"))
     if retail64 is not None:
         configure_args.append("-DHALO_RETAIL64=" + ("ON" if retail64 else "OFF"))
     cfg_result = _run_cmake_configure(extra_args=configure_args, quiet=quiet)
@@ -292,6 +296,12 @@ def main() -> int:
         help="Build with the diagnostic RNG draw trace enabled "
              "(HALO_RNG_TRACE=ON). See docs/rng-trace.md.",
     )
+    parser.add_argument(
+        "--aim-assist-debug",
+        action="store_true",
+        help="Build with the diagnostic aim-assist cone rings and magnetism "
+             "telemetry (HALO_AIM_ASSIST_DEBUG=ON). See docs/aim-assist-debug.md.",
+    )
     retail64_group = parser.add_mutually_exclusive_group()
     retail64_group.add_argument(
         "--retail64",
@@ -308,7 +318,8 @@ def main() -> int:
     )
     args = parser.parse_args()
     return build(target=args.target, quiet=args.quiet, test_harness=args.test,
-                 retail64=args.retail64, rng_trace=args.rng_trace)
+                 retail64=args.retail64, rng_trace=args.rng_trace,
+                 aim_assist_debug=args.aim_assist_debug)
 
 
 if __name__ == "__main__":

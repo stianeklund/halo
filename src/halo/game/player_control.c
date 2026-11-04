@@ -2019,6 +2019,10 @@ void clear_input_blob(void *blob)
 /* 0xb70b0 — get_local_player_input_blob
  * Fills action buffer (0x20 bytes, arrives in EBX) with local player input.
  * c:\halo\SOURCE\game\player_control.c */
+#ifdef HALO_AIM_ASSIST_DEBUG
+#include "halo/game/aim_assist_debug.h"
+#endif
+#line 2022
 void get_local_player_input_blob(void *action, short local_player_index, real delta_time)
 {
   int player_index;
@@ -2170,6 +2174,10 @@ void get_local_player_input_blob(void *action, short local_player_index, real de
       }
 
       control->target_object_index = local_player_aim_assist(local_player_index, &control->autoaim_level, &control->field_0x30, &aim_angles, &aim_velocity);
+#ifdef HALO_AIM_ASSIST_DEBUG
+      aim_assist_debug_note_search(local_player_index, control->target_object_index, control->autoaim_level, control->field_0x30, &aim_angles, &aim_velocity, norm_look_yaw, norm_look_pitch, yaw_delta, pitch_delta, delta_time);
+#endif
+#line 2173
       if (*(uint8_t *)0x2f0291 && control->field_0x30 > 0.0f) {
         if (fabs(norm_look_yaw) > 0.0001f || fabs(norm_look_pitch) > 0.0001f ||
             fabs(input->field_0x00) > 0.0001f || fabs(input->field_0x04) > 0.0001f) {
@@ -2186,6 +2194,10 @@ void get_local_player_input_blob(void *action, short local_player_index, real de
           pitch_velocity = CLAMP(pitch_velocity, -0.05235988f, 0.05235988f);
           yaw_delta = aim_velocity.yaw * magnetism_scale + yaw_delta * input_scale;
           pitch_delta = pitch_velocity * magnetism_scale + pitch_delta * input_scale;
+#ifdef HALO_AIM_ASSIST_DEBUG
+          aim_assist_debug_note_mix(local_player_index, game_speed, input_scale, magnetism_scale, aim_velocity.yaw, pitch_velocity, yaw_delta, pitch_delta);
+#endif
+#line 2189
         }
       }
 

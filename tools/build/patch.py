@@ -40,11 +40,17 @@ log = logging.getLogger(__name__)
 #   halo_probe_cave scratch page that tools/xbox/patch_fork_probes.py fills with
 #                   trampolines for probes inside UNPORTED functions
 #   rng_trace_note  the logger those trampolines call
+#   halo_aim_assist_debug  runtime toggles of --aim-assist-debug, and
+#   halo_aim_assist_trace  its per-tick ring, and
+#   halo_aim_test_script   its scripted pad input; all three used by
+#                   tools/xbox/aim_assist_debug.py
 # Only halo_rng_trace ships in a normal build; the other two come from
 # --rng-trace.  They must be listed unconditionally because patch.py never sees
 # the build flag -- it only sees whichever exports the linker produced.
 DIAGNOSTIC_DATA_EXPORTS = frozenset({
-    'halo_rng_trace', 'halo_probe_cave', 'rng_trace_note'})
+    'halo_rng_trace', 'halo_probe_cave', 'rng_trace_note',
+    'halo_aim_assist_debug', 'halo_aim_assist_trace',
+    'halo_aim_test_script'})
 root_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
 KB_REG_BASELINE_PATH = os.path.join(root_dir, 'tools', 'kb_reg_baseline.json')
 KB_OVERLAY_ENV = 'HALO_KB_OVERLAY'
