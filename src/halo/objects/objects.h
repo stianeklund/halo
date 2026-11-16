@@ -85,32 +85,137 @@ typedef struct {
   char unk_478[0x16];     ///< offset=0x1DE
 } garbage_data_t;
 
+#define NUMBER_OF_INCOMING_OBJECT_FUNCTIONS 4
+#define MAXIMUM_ATTACHMENTS_PER_OBJECT 8
+#define TAG_GROUP_PROJ 0x70726f6a /* 'proj' */
+
 // OBJE -> PROJ
 /// size=0x228
 typedef struct {
-  object_data_t object;   ///< offset=0x000
-  char unk_420[0x38];     ///< offset=0x1A4
-  uint32_t unk_476;       ///< offset=0x1DC .text:000F7CBE                 mov     ecx, [eax+1DCh]
-  uint16_t unk_480;       ///< offset=0x1E0 .text:000F7E4B                 cmp     si, [eax+1E0h]   type of some sort, also see projectile_collision
-  uint16_t unk_482;       ///< offset=0x1E2 .text:000F8D84                 mov     [esi+1E2h], bx
-  datum_handle_t unk_484; ///< offset=0x1E4 .text:000F8D90                 mov     [esi+1E4h], eax
-  datum_handle_t unk_488; ///< offset=0x1E8 .text:000F7D44                 mov     [eax+1E8h], ecx
-  uint32_t unk_492;       ///< offset=0x1EC .text:000F9CAC                 mov     eax, [ebx+1ECh]  index into [ebx+eax*4+0FCh]
-  float unk_496;          ///< offset=0x1F0 .text:000F8A91                 fmul    dword ptr [edi+1F0h]
-  float unk_500;          ///< offset=0x1F4 .text:000F8DEC                 fstp    dword ptr [esi+1F4h]
-  float unk_504;          ///< offset=0x1F8 .text:000F9DBD                 fld     dword ptr [ebx+1F8h]
-  float unk_508;          ///< offset=0x1FC .text:000F8E15                 fstp    dword ptr [esi+1FCh]
-  float unk_512;          ///< offset=0x200 .text:000F7F66                 fld     dword ptr [esi+200h]
-  float unk_516;          ///< offset=0x204 .text:000F8702                 mov     dword ptr [esi+204h], 3F800000h
-  float unk_520;          ///< offset=0x208 .text:000F86AB                 fstp    dword ptr [esi+208h]
-  float unk_524;          ///< offset=0x20C .text:000F8677                 fstp    dword ptr [esi+20Ch]
-  float unk_528;          ///< offset=0x210 .text:000FA304                 fcomp   dword ptr [ebx+210h]
-  float unk_532;          ///< offset=0x214 .text:000F85E7                 fstp    dword ptr [ecx+214h]
-  float unk_536;          ///< offset=0x218 .text:000F85F2                 fstp    dword ptr [ecx+218h]
-  float unk_540;          ///< offset=0x21C .text:000F85FB                 fstp    dword ptr [ecx+21Ch]
-  float unk_544;          ///< offset=0x220 .text:000F8605                 fstp    dword ptr [ecx+220h]
-  float unk_548;          ///< offset=0x224 .text:000F860D                 fstp    dword ptr [ecx+224h]
+  object_data_t object;            ///< offset=0x000
+  char pad_1a4[0x1dc - 0x1a4];     ///< offset=0x1A4  item block; never accessed by projectile code
+  uint32_t flags;                  ///< offset=0x1DC  .text:000F7CBE mov ecx, [eax+1DCh]; bits _projectile_*_bit
+  int16_t action;                  ///< offset=0x1E0  .text:000F7E4B cmp si, [eax+1E0h]; projectile_set_action only raises it
+  int16_t hit_material_type;       ///< offset=0x1E2  .text:000F8D84 mov [esi+1E2h], bx
+  int32_t ignore_object_index;     ///< offset=0x1E4  .text:000F8D90 mov [esi+1E4h], eax
+  int32_t target_object_index;     ///< offset=0x1E8  .text:000F7D44 mov [eax+1E8h], ecx
+  int32_t tracer_attachment_index; ///< offset=0x1EC  .text:000F9CAC index into object.attachment_indices
+  real detonation_timer;           ///< offset=0x1F0  .text:000F8A91 fmul dword ptr [edi+1F0h]
+  real detonation_timer_delta;     ///< offset=0x1F4  .text:000F8DEC fstp dword ptr [esi+1F4h]
+  real arming_time;                ///< offset=0x1F8  .text:000F9DBD fld dword ptr [ebx+1F8h]
+  real arming_time_delta;          ///< offset=0x1FC  .text:000F8E15 1/(definition arming_time * 30), added to arming_time each tick
+  real odometer;          ///< offset=0x200  .text:000F7F66 accumulates per-tick displacement; compared to maximum_range
+  real field_204;                  ///< offset=0x204  .text:000F8702 mov dword ptr [esi+204h], 3F800000h
+  real field_208;                  ///< offset=0x208  .text:000F86AB per-tick increment of field_204
+  real deceleration;               ///< offset=0x20C  .text:000F8677 projectile_calculate_deceleration_from_distances result
+  real field_210;                  ///< offset=0x210  .text:000FA304 fcomp dword ptr [ebx+210h]
+  real_vector3d field_214;         ///< offset=0x214  .text:000F85E7 angular_velocity / |angular_velocity|
+  real field_220;                  ///< offset=0x220  .text:000F8605 sine of the angular speed
+  real field_224;                  ///< offset=0x224  .text:000F860D cosine of the angular speed
 } projectile_data_t;
+cs(projectile_data_t, 0x228);
+co(projectile_data_t, flags, 0x1dc);
+co(projectile_data_t, action, 0x1e0);
+co(projectile_data_t, tracer_attachment_index, 0x1ec);
+co(projectile_data_t, detonation_timer, 0x1f0);
+co(projectile_data_t, arming_time, 0x1f8);
+co(projectile_data_t, odometer, 0x200);
+co(projectile_data_t, deceleration, 0x20c);
+co(projectile_data_t, field_214, 0x214);
+co(projectile_data_t, field_224, 0x224);
+co(object_data_t, owner_object_index, 0x74);
+co(object_data_t, field_d0, 0xd0);
+co(object_data_t, outgoing_function_values, 0xe4);
+co(object_data_t, attachment_types, 0xf4);
+co(object_data_t, attachment_indices, 0xfc);
+
+enum {
+  _projectile_tracer_bit = 1,   /* projectile_make_tracer / projectile_kill_tracer */
+  _projectile_attached_bit = 3  /* cleared by projectile_handle_parent_destroyed before the detach */
+};
+
+/* 'proj' tag definition: the 0x17c-byte object definition followed by the
+ * projectile block.  Offsets from the accesses in items/projectiles.c. */
+typedef struct {
+  char pad_000[0x140];                 ///< offset=0x000  object definition header
+  tag_block attachments;               ///< offset=0x140  0x48-byte elements; index selects the tracer attachment (0xf8d50)
+  char pad_14c[0x17c - 0x14c];         ///< offset=0x14C
+  uint32_t flags;                      ///< offset=0x17C
+  int16_t detonation_timer_starts;     ///< offset=0x180
+  int16_t impact_noise;                ///< offset=0x182  ai sound volume passed on impact
+  int16_t function_inputs[NUMBER_OF_INCOMING_OBJECT_FUNCTIONS]; ///< offset=0x184  projectile_export_function_values
+  tag_reference super_detonation;      ///< offset=0x18C
+  real ai_perception_radius;           ///< offset=0x19C
+  real collision_radius;               ///< offset=0x1A0
+  real arming_time;                    ///< offset=0x1A4  seconds
+  real danger_radius;                  ///< offset=0x1A8
+  tag_reference effect;                ///< offset=0x1AC
+  real timer_lower_bound;              ///< offset=0x1BC
+  real timer_upper_bound;              ///< offset=0x1C0
+  real minimum_velocity;               ///< offset=0x1C4
+  real maximum_range;                  ///< offset=0x1C8
+  real air_gravity_scale;              ///< offset=0x1CC
+  real air_damage_range_lower_bound;   ///< offset=0x1D0
+  real air_damage_range_upper_bound;   ///< offset=0x1D4
+  real water_gravity_scale;            ///< offset=0x1D8
+  real water_damage_range_lower_bound; ///< offset=0x1DC
+  real water_damage_range_upper_bound; ///< offset=0x1E0
+  real initial_velocity;               ///< offset=0x1E4
+  real final_velocity;                 ///< offset=0x1E8
+  real guided_angular_velocity;        ///< offset=0x1EC  radians per second
+  int16_t detonation_noise;            ///< offset=0x1F0
+  uint8_t pad_1f2[2];                  ///< offset=0x1F2
+  tag_reference detonation_started;    ///< offset=0x1F4
+  tag_reference flyby_sound;           ///< offset=0x204
+  tag_reference attached_detonation_damage; ///< offset=0x214
+  tag_reference impact_damage;         ///< offset=0x224
+  uint8_t pad_234[0xc];                ///< offset=0x234
+  tag_block material_responses;        ///< offset=0x240  0xa0-byte elements
+} projectile_definition_t;
+co(projectile_definition_t, attachments, 0x140);
+co(projectile_definition_t, flags, 0x17c);
+co(projectile_definition_t, function_inputs, 0x184);
+co(projectile_definition_t, super_detonation, 0x18c);
+co(projectile_definition_t, collision_radius, 0x1a0);
+co(projectile_definition_t, effect, 0x1ac);
+co(projectile_definition_t, maximum_range, 0x1c8);
+co(projectile_definition_t, air_gravity_scale, 0x1cc);
+co(projectile_definition_t, water_gravity_scale, 0x1d8);
+co(projectile_definition_t, initial_velocity, 0x1e4);
+co(projectile_definition_t, guided_angular_velocity, 0x1ec);
+co(projectile_definition_t, detonation_noise, 0x1f0);
+co(projectile_definition_t, detonation_started, 0x1f4);
+co(projectile_definition_t, flyby_sound, 0x204);
+co(projectile_definition_t, attached_detonation_damage, 0x214);
+co(projectile_definition_t, impact_damage, 0x224);
+co(projectile_definition_t, material_responses, 0x240);
+
+/* object_get_and_verify_type mask for projectiles (object type 5); every
+ * projectile accessor passes 0x20. */
+enum {
+  _object_type_projectile = 5,
+  _object_mask_projectile = 1 << _object_type_projectile
+};
+
+/* collision_test_result.field_00 type values.  "collision.type==
+ * _collision_result_object" is an assert string at 0x29af70; that type
+ * carries the hit object in field_38. */
+enum {
+  _collision_result_object = 3
+};
+
+/* 0x31f3a0: {"normal", "incident", "negative incident", "reflection",
+ * "gravity"} -- the marker names handed to every projectile effect. */
+#define NUMBER_OF_EFFECT_MARKERS 5
+#define effect_marker_names ((void *)0x31f3a0)
+
+/* The incoming function values start one slot into object.field_d0 (+0xd4). */
+#define object_incoming_function_values(object) (&(object)->field_d0[1])
+
+#define projectile_get(index) \
+  ((projectile_data_t *)object_get_and_verify_type((index), _object_mask_projectile))
+#define projectile_definition_get(index) \
+  ((projectile_definition_t *)tag_get(TAG_GROUP_PROJ, (index)))
 
 // OBJE -> SCEN
 /// size=0x1A8

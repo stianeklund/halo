@@ -1,4 +1,5 @@
 #include "x87_math.h"
+#include "halo/objects/objects.h"
 #ifdef HALO_RNG_TRACE
 #include "halo/math/rng_trace.h"
 /* Mirrors the host LOS-exit detour for calls returning into projectile_collision_test_line:
@@ -45,22 +46,17 @@ void projectiles_dispose_from_old_map(void)
 {
 }
 
-/* Clear bit 1 of projectile flags at offset 0x1dc. */
 void projectile_kill_tracer(int projectile_handle)
 {
-  char *proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  *(uint32_t *)(proj + 0x1dc) &= ~2u;
+  projectile_data_t *projectile = projectile_get(projectile_handle);
+  projectile->flags &= ~FLAG(_projectile_tracer_bit);
 }
 
-/* Delete all live projectile objects (type_mask 0x20).
- * Walks every projectile in the object table via object_iterator_new/next
- * and calls object_delete on each handle. Used during level teardown or
- * game reset to purge all in-flight projectiles. */
 void projectiles_delete_all(void)
 {
   object_iter_t iter;
 
-  object_iterator_new(&iter, 0x20, 0);
+  object_iterator_new(&iter, _object_mask_projectile, 0);
   while (object_iterator_next(&iter) != NULL) {
     object_delete(iter.last_handle);
   }
@@ -75,159 +71,133 @@ void projectile_delete(int projectile_handle)
 {
 }
 
-/* Set the projectile's target handle at offset 0x1e8. */
 void projectile_set_target_object_index(int projectile_handle, int target)
 {
-  char *proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  *(int *)(proj + 0x1e8) = target;
+  projectile_data_t *projectile = projectile_get(projectile_handle);
+  projectile->target_object_index = target;
 }
 
-/* Set bit 1 of projectile flags at offset 0x1dc. */
 void projectile_make_tracer(int projectile_handle)
 {
-  char *proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  *(uint32_t *)(proj + 0x1dc) |= 2u;
+  projectile_data_t *projectile = projectile_get(projectile_handle);
+  projectile->flags |= FLAG(_projectile_tracer_bit);
 }
 
-/* Compute the negated gravity contribution for a projectile.
- * Multiplies the per-tick gravity constant (DAT_0032512c) by the float
- * stored at projectile_tag+0x1cc (a physics/velocity field in the proj tag),
- * then negates the result.  The sign flip converts a positive tag-stored value
- * into the downward (negative) acceleration component used by the projectile
- * physics integrator.  Leaf function, no callees. */
 float projectile_get_ballistic_acceleration(int projectile_tag)
 {
-  float grav = *(float *)0x32512c;
-  return -(grav * *(float *)(projectile_tag + 0x1cc));
+  projectile_definition_t *definition = (projectile_definition_t *)projectile_tag;
+  return -(global_gravity * definition->air_gravity_scale);
 }
 
-/* Compute a normalized value for a projectile tag field at offset 0x1e4.
- * If the tag field (e.g. a max-distance or scale parameter) is greater than
- * the global zero reference at 0x2533c0 (0.0f), returns value / field.
- * Otherwise returns the zero reference unchanged.
- * Used by the caller to normalize a float quantity against the tag's field,
- * guarding against division by zero or a zero/unset field. */
-float projectile_estimate_time_to_target(void *proj_tag, float value)
+float projectile_estimate_time_to_target(void *proj_tag, float target_distance)
 {
+  projectile_definition_t *definition = (projectile_definition_t *)proj_tag;
   float result;
 
-  result = *(const float *)0x2533c0;
-  if (*(float *)((char *)proj_tag + 0x1e4) > *(const float *)0x2533c0) {
-    result = value / *(float *)((char *)proj_tag + 0x1e4);
+  result = REAL_ZERO_POOL;
+  if (definition->initial_velocity > REAL_ZERO_POOL) {
+    result = target_distance / definition->initial_velocity;
   }
 
   return result;
 }
 
-/* Return true if any projectile object (type 0x20) exists in the world.
- * Loads the projectile's tag definition as a side effect (cache priming). */
+/* Returns true while any projectile exists; the definition lookup of the
+ * first one is kept although its result is unused. */
 bool dangerous_projectiles_near_player(void)
 {
-  char iter[16];
-  void *projectile;
+  object_iter_t iter;
+  projectile_data_t *projectile;
 
-  object_iterator_new(iter, 0x20, 0);
-  projectile = object_iterator_next(iter);
+  object_iterator_new(&iter, _object_mask_projectile, 0);
+  projectile = object_iterator_next(&iter);
   if (projectile != NULL) {
-    tag_get(0x70726f6a, *(int *)projectile);
+    projectile_definition_get(projectile->object.tag_index);
     return true;
   }
   return false;
 }
 
-/* Clear the projectile's target handle if it matches the given value. */
-void projectile_handle_deleted_object(int projectile_handle, int target)
+void projectile_handle_deleted_object(int projectile_handle, int object_index)
 {
-  char *proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  if (*(int *)(proj + 0x1e8) == target)
-    *(int *)(proj + 0x1e8) = -1;
+  projectile_data_t *projectile = projectile_get(projectile_handle);
+  if (projectile->target_object_index == object_index)
+    projectile->target_object_index = NONE;
 }
 
-/* Escalate the projectile's detonation state (offset 0x1e0) to at least
- * the given state value.  Only updates the field if state is strictly
- * greater than the current value, so the state can only increase
- * (0=none, 1=pending, 2=immediate). Called by projectile_update with state=2
- * to force an immediate detonation. */
-void projectile_set_action(int projectile_handle, int16_t state)
+/* The action only ever escalates (0 none, 1 pending, 2 immediate). */
+void projectile_set_action(int projectile_handle, int16_t action)
 {
-  char *proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  if (state > *(int16_t *)(proj + 0x1e0))
-    *(int16_t *)(proj + 0x1e0) = state;
+  projectile_data_t *projectile = projectile_get(projectile_handle);
+  if (action > projectile->action)
+    projectile->action = action;
 }
 
-/* Dispatch a projectile detonation effect based on the type word at tag_def[0].
- * Type 3 (contrail/attached): calls effect_new_attached_from_markers with the
- * attached object handle at tag_def[+0x38] and the marker-slot index at
- * tag_def[+0x3e] (uint16_t), plus hardcoded marker_count=5 and
- * effect_definition=0x31f3a0. Any other type: calls
- * effect_new_unattached_from_markers with NULL translational-velocity,
- * marker_count=5, effect_definition=0x31f3a0, and a trailing integer 1.
- * Both branches pass through the caller-supplied marker_points/marker_forwards
- * arrays and scale_a/scale_b values; unknown tail floats are 0.0/0.0.
- * Receive register args: esi=effect_tag_index, edi=object_index, eax=tag_def,
- * edx=marker_points, ecx=marker_forwards. */
+/* Arguments arrive in registers: esi=effect_tag_index, edi=object_index,
+ * eax=collision, edx=marker_points, ecx=marker_forwards. */
 void projectile_effect_new(int effect_tag_index, int object_index, void *tag_def,
-                  float *marker_points, float *marker_forwards, float scale_a,
-                  float scale_b)
+                  float *marker_points, float *marker_forwards, float scale,
+                  float material_effect_scale)
 {
-  int attached_handle;
-  uint16_t marker_index;
+  collision_test_result *collision = (collision_test_result *)tag_def;
+  int object_hit;
+  uint16_t node_index;
 
-  if (*(int16_t *)tag_def == 3) {
-    attached_handle = *(int *)((char *)tag_def + 0x38);
-    marker_index = *(uint16_t *)((char *)tag_def + 0x3e);
+  if (collision->field_00 == _collision_result_object) {
+    object_hit = collision->field_38;
+    node_index = (uint16_t)collision->field_3e;
     effect_new_attached_from_markers(
-      effect_tag_index, object_index, attached_handle, marker_index, 5,
-      (void *)0x31f3a0, marker_points, marker_forwards, scale_a, scale_b, 0.0f,
-      0.0f);
+      effect_tag_index, object_index, object_hit, node_index,
+      NUMBER_OF_EFFECT_MARKERS, effect_marker_names, marker_points,
+      marker_forwards, scale, material_effect_scale, 0.0f, 0.0f);
   } else {
     effect_new_unattached_from_markers(
-      effect_tag_index, object_index, NULL, 5, (void *)0x31f3a0, marker_points,
-      marker_forwards, scale_a, scale_b, 0.0f, 0.0f, 1);
+      effect_tag_index, object_index, NULL, NUMBER_OF_EFFECT_MARKERS,
+      effect_marker_names, marker_points, marker_forwards, scale,
+      material_effect_scale, 0.0f, 0.0f, true);
   }
 }
 
-/* For each of the 4 scale slots in a projectile's tag definition, compute the
- * current scale value based on the selector enum at tag[0x184 + i*2]:
- *   0 = skip (leave projectile float unchanged)
- *   1 = age fraction: projectile[0x200] / tag[0x1c8]; 0.0 if tag[0x1c8]==0.0
- *   2 = raw float from projectile[0x1f0]
- *   3 = armed flag: 1.0 if projectile[0x1dc] & 0x2, else 0.0
- * Writes the result to projectile[0xd4 + i*4] (four consecutive float slots).
- * Asserts (halts) on any selector value outside 0..3. */
+enum {
+  _projectile_export_function_none = 0,
+  _projectile_export_function_range_remaining,
+  _projectile_export_function_time_remaining,
+  _projectile_export_function_tracer
+};
+
 void projectile_export_function_values(int projectile_handle)
 {
-  char *proj;
-  char *tag;
-  int16_t *sel_ptr;
-  float *out_ptr;
-  float value;
-  int16_t sel;
-  int counter;
+  projectile_data_t *projectile;
+  projectile_definition_t *definition;
+  int16_t *function_input;
+  real *function_value;
+  real value;
+  int16_t input;
+  int function_count;
 
-  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  tag = (char *)tag_get(0x70726f6a, *(int *)proj);
+  projectile = projectile_get(projectile_handle);
+  definition = projectile_definition_get(projectile->object.tag_index);
 
-  sel_ptr = (int16_t *)(tag + 0x184);
-  out_ptr = (float *)(proj + 0xd4);
-  counter = 4;
+  function_input = definition->function_inputs;
+  function_value = object_incoming_function_values(&projectile->object);
+  function_count = NUMBER_OF_INCOMING_OBJECT_FUNCTIONS;
 
   do {
-    sel = *sel_ptr;
-    if (sel != 0) {
-      switch (sel) {
-      case 1:
-        if (*(float *)(tag + 0x1c8) != 0.0f) {
-          value = *(float *)(proj + 0x200) / *(float *)(tag + 0x1c8);
+    input = *function_input;
+    if (input != _projectile_export_function_none) {
+      switch (input) {
+      case _projectile_export_function_range_remaining:
+        if (definition->maximum_range != 0.0f) {
+          value = projectile->odometer / definition->maximum_range;
         } else {
           value = 0.0f;
         }
         break;
-      case 2:
-        value = *(float *)(proj + 0x1f0);
+      case _projectile_export_function_time_remaining:
+        value = projectile->detonation_timer;
         break;
-      case 3:
-        if (*(uint8_t *)(proj + 0x1dc) & 0x2) {
+      case _projectile_export_function_tracer:
+        if (projectile->flags & FLAG(_projectile_tracer_bit)) {
           value = 1.0f;
         } else {
           value = 0.0f;
@@ -238,66 +208,47 @@ void projectile_export_function_values(int projectile_handle)
         system_exit(-1);
         break;
       }
-      *out_ptr = value;
+      *function_value = value;
     }
-    sel_ptr++;
-    out_ptr++;
-    counter--;
-  } while (counter != 0);
+    function_input++;
+    function_value++;
+    function_count--;
+  } while (function_count != 0);
 }
 
-/* Compute the peak-intercept fraction for a projectile detonation range.
- * Given a tag struct (via ECX) with two radius values at offsets 0x1e4 and
- * 0x1e8, and a range [range_begin, range_end], returns the position within
- * the range at which a parabolic distribution peaked:
- *   result = (r1^2 - r2^2) / (2 * (range_end - range_begin))
- * Returns 0.0 if the two radii are equal or if the range width is zero.
- * Used by the projectile trajectory system to locate the apex of a parabolic
- * detonation-effect distribution along the projectile's travel path. */
+/* Constant deceleration that slows initial_velocity to final_velocity over
+ * the distance (range_end - range_begin): (v0^2 - v1^2) / (2 * distance). */
 float projectile_calculate_deceleration_from_distances(void *tag, float range_begin, float range_end)
 {
+  projectile_definition_t *definition = (projectile_definition_t *)tag;
+
   range_end -= range_begin;
   /* 0xf7fa9: FSTP dword [ebp+0xc] -- the width is narrowed to float32
    * before the zero test and the 2*width divisor. */
   HALO_FLT_ROUNDTRIP(range_end);
-  if (*(float *)((char *)tag + 0x1e4) == *(float *)((char *)tag + 0x1e8) || range_end == *(float *)0x2533c0)
-    return *(float *)0x2533c0;
-  return (*(float *)((char *)tag + 0x1e4) * *(float *)((char *)tag + 0x1e4) -
-          *(float *)((char *)tag + 0x1e8) * *(float *)((char *)tag + 0x1e8)) / (range_end + range_end);
+  if (definition->initial_velocity == definition->final_velocity || range_end == REAL_ZERO_POOL)
+    return REAL_ZERO_POOL;
+  return (definition->initial_velocity * definition->initial_velocity -
+          definition->final_velocity * definition->final_velocity) / (range_end + range_end);
 }
 
-/* Arm a projectile and detach it from its parent object.
- * Asserts that the projectile has a valid parent (parent_object_index != NONE
- * at offset 0xcc).  Sets both the "age scale" float at 0x1f0 and the
- * "fade scale" float at 0x1f8 to 1.0, clears bit 3 (0x8) of the flags word
- * at 0x1dc (the "attached-to-parent" flag), then calls
- * object_detach_from_parent to unlink the projectile from the weapon/unit that
- * fired it. Returns 1 (bool true) unconditionally on success. Source line
- * reference: c:\halo\SOURCE\items\projectiles.c line 1845. */
 char projectile_handle_parent_destroyed(int projectile_handle)
 {
-  char *proj;
+  projectile_data_t *projectile;
 
-  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  if (*(int *)(proj + 0xcc) == -1) {
+  projectile = projectile_get(projectile_handle);
+  if (projectile->object.parent_object_index.value == NONE) {
     display_assert("projectile->object.parent_object_index != NONE",
                    "c:\\halo\\SOURCE\\items\\projectiles.c", 0x735, 1);
     system_exit(-1);
   }
-  *(float *)(proj + 0x1f8) = 1.0f;
-  *(float *)(proj + 0x1f0) = 1.0f;
-  *(uint32_t *)(proj + 0x1dc) &= ~0x8u;
+  projectile->arming_time = 1.0f;
+  projectile->detonation_timer = 1.0f;
+  projectile->flags &= ~FLAG(_projectile_attached_bit);
   object_detach_from_parent(projectile_handle);
-  return 1;
+  return true;
 }
 
-/* Scatter a direction vector using the global random seed.
- * Retrieves the engine-wide random seed via get_global_random_seed_address,
- * then delegates to random_direction3d to produce a randomised unit vector
- * within 'angle' radians of 'forward'.  'zero' is always passed as 0.0
- * at call sites (minimum cone half-angle).  The resulting direction is
- * written to 'result'.  This is the global-seed variant; callers that own a
- * local seed call random_direction3d directly. */
 void random_vector_in_cone3d(float *forward, float zero, float angle,
                              float *result)
 {

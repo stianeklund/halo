@@ -441,7 +441,7 @@ typedef struct {
     uint32_t unk_112;         ///< offset=0x70  .text:00143FFA                 mov     [edi+70h], edx
     int32_t owner_player_index; ///< offset=0x70  object.owner_player_index (PAL 2342 props.c prop_add; CMP -1 @0x64343)
   };
-  uint32_t unk_116;         ///< offset=0x74  .text:000348B6                 mov     eax, [ecx+74h]
+  int32_t owner_object_index; ///< offset=0x74  .text:000348B6                 mov     eax, [ecx+74h]
   uint32_t unk_120;         ///< offset=0x78
   uint32_t unk_124;         ///< offset=0x7C  .text:00141C2B                 mov     eax, [esi+7Ch]
   int16_t unk_128;          ///< offset=0x80  .text:00141C3E                 cmp     word ptr [esi+80h], 0FFFFh  animation related, possibly datum index
@@ -474,10 +474,10 @@ typedef struct {
   datum_handle_t next_object_index;   ///< offset=0xC4  .text:0014537B                 mov     ecx, [eax+0C4h]
   datum_handle_t unk_200;   ///< offset=0xC8  .text:000320C3                 mov     eax, [edi+0C8h]
   datum_handle_t parent_object_index;   ///< offset=0xCC  .text:00145348                 mov     ecx, [eax+0CCh]
-  float unk_208[5];         ///< offset=0xD0  .text:0013E640                 fld     dword ptr [ebx+edx*4+0D0h] Colors related, 5 4-byte elements
-  float unk_228[NUMBER_OF_OUTGOING_OBJECT_FUNCTIONS]; ///< offset=0xE4  .text:001403FF                 mov     edx, [esi+ecx*4+0E4h] function stuff
-  char unk_244[8];          ///< offset=0xF4
-  char unk_252[32];         ///< offset=0xFC  .text:00097B90                 mov     eax, [edx+ecx*4+0FCh] illumination related?
+  real field_d0[5];         ///< offset=0xD0  .text:0013E640 fld dword ptr [ebx+edx*4+0D0h]; [1..4] (+0xD4) are the incoming function values projectile_export_function_values writes
+  real outgoing_function_values[NUMBER_OF_OUTGOING_OBJECT_FUNCTIONS]; ///< offset=0xE4  .text:001403FF mov edx, [esi+ecx*4+0E4h]
+  int8_t attachment_types[8];   ///< offset=0xF4
+  int32_t attachment_indices[8]; ///< offset=0xFC  .text:00097B90 mov eax, [edx+ecx*4+0FCh]; indexed by the definition's attachment index (projectile tracer, 0xf8d84)
   uint32_t unk_284;         ///< offset=0x11C .text:0013617A                 mov     dword ptr [esi+11Ch], 0FFFFFFFFh widget-related?
   uint32_t unk_288;         ///< offset=0x120 .text:00143F94                 mov     [edi+120h], eax
   uint16_t unk_292;         ///< offset=0x124 .text:001376FF                 movzx   eax, word ptr [ebx+124h] region-related?
