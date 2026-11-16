@@ -4067,15 +4067,18 @@ typedef bool (*profile_sort32_compare_proc)(int32_t a, int32_t b);
  * FUN_0014cb00 output +0x02/+0x00/+0x04 on the bsp path).  Only +0x36 and
  * +0x42 remain unobserved.
  * ------------------------------------------------------------------------- */
+/* A point's leaf and cluster in the structure bsp. */
+typedef struct location_t {
+    int32_t leaf_index;    /* +0x00 */
+    int16_t cluster_index; /* +0x04 */
+    int16_t pad_06;        /* +0x06 */
+} location_t;
+
 typedef struct collision_test_result {
     int16_t type;          /* +0x00: -1 when no hit, 2 on a bsp surface hit */
     int16_t pad_02;        /* +0x02 */
-    int32_t field_04;      /* +0x04: leading surface/leaf index */
-    int16_t field_08;      /* +0x08: cluster index for field_04 (MOVSX) */
-    int16_t pad_0a;        /* +0x0a */
-    int32_t leaf_index;    /* +0x0c: trailing location (leaf, cluster) */
-    int16_t cluster_index; /* +0x10: cluster of leaf_index (MOVSX) */
-    int16_t pad_12;        /* +0x12 */
+    location_t start_location; /* +0x04 */
+    location_t location;   /* +0x0c */
     float   t;             /* +0x14: hit fraction along the sweep */
     real_point3d position; /* +0x18: point + t * delta */
     real_vector3d normal;  /* +0x24 */
@@ -4100,9 +4103,10 @@ co(collision_test_result, normal,   0x24);
 co(collision_test_result, object_index, 0x38);
 co(collision_test_result, region_index, 0x3c);
 co(collision_test_result, node_index, 0x3e);
-co(collision_test_result, field_40, 0x40);
-co(collision_test_result, field_44, 0x44);
-co(collision_test_result, field_4e, 0x4e);
+co(collision_test_result, bsp_index, 0x40);
+co(collision_test_result, surface_index, 0x44);
+co(collision_test_result, location, 0x0c);
+co(collision_test_result, material_index, 0x4e);
 
 /* CRT qsort/_shortsort comparator: two cdecl record pointers, int result. */
 typedef int(__cdecl *qsort_compar_proc)(const void *, const void *);

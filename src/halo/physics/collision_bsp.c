@@ -3040,10 +3040,10 @@ bool FUN_0014e940(int param_1, float *origin, float *delta, float radius,
   bool hit = false;
 
   result->type = -1;
-  result->field_04 = -1;
-  result->field_08 = -1;
-  result->leaf_index = -1;
-  result->cluster_index = -1;
+  result->start_location.leaf_index = -1;
+  result->start_location.cluster_index = -1;
+  result->location.leaf_index = -1;
+  result->location.cluster_index = -1;
   result->t = 1.0f;
 
   if (collision_bsp_test_pill_new((int)global_collision_bsp_get(), 0, 0, origin,

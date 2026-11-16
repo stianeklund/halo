@@ -339,8 +339,7 @@ typedef struct {
   int32_t owner_object_index;       ///< offset=0x0C
   int16_t owner_team_index;         ///< offset=0x10
   uint8_t pad_12[2];                ///< offset=0x12
-  int32_t leaf_index;               ///< offset=0x14  collision_test_result leaf_index
-  int32_t cluster_index;            ///< offset=0x18  collision_test_result cluster_index (dword copy)
+  location_t location;              ///< offset=0x14
   real_point3d origin;              ///< offset=0x1C
   real_point3d epicenter;           ///< offset=0x28
   real_vector3d direction;          ///< offset=0x34
@@ -354,7 +353,7 @@ typedef struct {
 cs(damage_data_t, 0x54);
 co(damage_data_t, flags, 0x04);
 co(damage_data_t, owner_team_index, 0x10);
-co(damage_data_t, leaf_index, 0x14);
+co(damage_data_t, location, 0x14);
 co(damage_data_t, origin, 0x1c);
 co(damage_data_t, epicenter, 0x28);
 co(damage_data_t, direction, 0x34);
@@ -416,10 +415,9 @@ enum {
  * flyby sound fills it in projectile_update. */
 typedef struct {
   real_point3d position;   ///< offset=0x00
-  real_vector3d field_0c;  ///< offset=0x0C  projectile up
-  real_vector3d field_18;  ///< offset=0x18  global down vector
-  real field_24;           ///< offset=0x24
-  real field_28;           ///< offset=0x28
+  real_vector3d forward;                ///< offset=0x0C
+  real_vector3d translational_velocity; ///< offset=0x18
+  location_t game_location;             ///< offset=0x24
 } impulse_sound_location_t;
 cs(impulse_sound_location_t, 0x2c);
 

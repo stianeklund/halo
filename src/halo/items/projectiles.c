@@ -1000,7 +1000,6 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   projectile_data_t *projectile;
   projectile_definition_t *definition;
   projectile_material_response_definition_t *material_response;
-  projectile_material_response_definition_t *surface_response;
   float damage_scale;
   int16_t response;
   float effect_scale, material_effect_scale;
@@ -1193,22 +1192,16 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
     damage.epicenter = collision->position;
     damage.direction = *velocity;
     normalize3d((float *)&damage.direction);
-    material_type = collision->material_type;
-    if (material_type < 0 ||
-        (int)material_type >= definition->material_responses.count) {
-      surface_response = &default_projectile_material_response;
+    damage.material_type = collision->material_type;
+    if ((damage.material_type >= 0) &&
+        ((int)damage.material_type < definition->material_responses.count)) {
+      damage.material_response = tag_block_get_element(&definition->material_responses,
+                                                        (int)damage.material_type,
+                                                        sizeof(*damage.material_response));
     } else {
-      surface_response = tag_block_get_element(&definition->material_responses,
-                                              (int)material_type,
-                                              sizeof(*surface_response));
+      damage.material_response = &default_projectile_material_response;
     }
-    /* Divergence: the reference stores this to damage.material_response
-     * (0xf94c1) before the call; this lift drops it. */
-    (void)surface_response;
-    damage.material_type = (int16_t)material_type;
-    damage.leaf_index = collision->leaf_index;
-    /* Dword copy of the int16 cluster_index and its padding. */
-    damage.cluster_index = *(int32_t *)&collision->cluster_index;
+    damage.location = collision->location;
     FUN_00146a90((uint16_t)(uint8_t)collision->breakable_surface_index, &damage,
                  collision->surface_index);
   }
@@ -1451,7 +1444,7 @@ clamp_material_effect_scale:
       *(real_point3d *)halo_global_zero_vector_ptr;
     projectile->object.flags |= 0x20;
     projectile->flags |= FLAG(_projectile_attached_bit);
-    object_translate(projectile_handle, hit_pos, &collision->leaf_index);
+    object_translate(projectile_handle, hit_pos, &collision->location);
     if (collision->type == _collision_result_object) {
       object_attach_to_parent(collision->object_index, projectile_handle,
                               (int16_t)collision->node_index);
@@ -1483,7 +1476,6 @@ bool projectile_update(int projectile_handle)
   int game_time;
   int local_player_index;
   int player_index;
-  object_data_t *player_unit;
   int player_unit_index;
   float dot;
   float distance_squared;
@@ -1935,14 +1927,13 @@ bool projectile_update(int projectile_handle)
     --collision_user_depth_word;
 
     if (moved != '\0') {
-      {
-        float dz_wide;
-        real_vector3d delta;
-        vector_from_points3d((real_point3d *)&projectile->object.position, &new_position, &delta);
-        dz_wide = delta.k;
-        HALO_FLT_ROUNDTRIP(delta.k);
-        projectile->odometer += sqrtf(dz_wide * delta.k + delta.j * delta.j + delta.i * delta.i);
-      }
+      real_vector3d movement;
+      float dz_wide;
+
+      vector_from_points3d((real_point3d *)&projectile->object.position, &new_position, &movement);
+      dz_wide = movement.k;
+      HALO_FLT_ROUNDTRIP(movement.k);
+      projectile->odometer += sqrtf(dz_wide * movement.k + movement.j * movement.j + movement.i * movement.i);
 
       /* flyby sound for the first local player the projectile passes */
       if ((flyby_played == '\0') && (definition->flyby_sound.tag_index != NONE)) {
@@ -1956,30 +1947,32 @@ bool projectile_update(int projectile_handle)
               ((player_data_t *)datum_get(player_data, scratch))->unit_handle;
             if ((player_unit_index != NONE) &&
                 (player_unit_index != ignore_object_index)) {
+              object_data_t *player_unit;
+              real_point3d *listener_position;
+              real_vector3d listener_vector;
+              real_vector3d parallel;
+              real_vector3d perpendicular;
+
               player_unit = object_get_and_verify_type(player_unit_index, NONE);
+              listener_position = (real_point3d *)&player_unit->unk_80;
               sound_range =
                 (float)sound_get_default_priority(definition->flyby_sound.tag_index);
-              target_delta.i = player_unit->unk_80 - projectile->object.position.x;
-              target_delta.j =
-                player_unit->unk_84 - projectile->object.position.y;
-              target_delta.k =
-                player_unit->unk_88 - projectile->object.position.z;
-              FUN_0010b910((float *)&target_delta, (float *)&new_position,
-                           (float *)&perpendicular, (float *)&sound_location.position);
-              dot = perpendicular.i * (new_position.x - projectile->object.position.x) +
-                    perpendicular.j * (new_position.y - projectile->object.position.y) +
-                    perpendicular.k * (new_position.z - projectile->object.position.z);
+              vector_from_points3d((real_point3d *)&projectile->object.position,
+                                   listener_position, &listener_vector);
+              FUN_0010b910((float *)&listener_vector, (float *)&movement,
+                           (float *)&parallel, (float *)&perpendicular);
+              dot = dot_product3d(&parallel, &movement);
               if ((dot >= 0.0f) &&
-                  ((float)FUN_00012170((float *)&new_position) > dot)) {
-                distance_squared = (float)FUN_00012170((float *)&sound_location.position);
+                  ((float)FUN_00012170((float *)&movement) > dot)) {
+                distance_squared = (float)FUN_00012170((float *)&perpendicular);
                 if (distance_squared < sound_range * sound_range) {
-                  vector3d_scale_add(&player_unit->unk_80,
-                                     (float *)&sound_location.position, /* dup-args-ok: in-place */
+                  vector3d_scale_add((float *)listener_position, (float *)&perpendicular,
                                      -1.0f, (float *)&sound_location.position);
-                  sound_location.field_0c = *(real_vector3d *)&projectile->object.up;
-                  sound_location.field_18 = *global_down3d;
-                  sound_location.field_24 = 0.0f;
-                  sound_location.field_28 = 0.0f;
+                  sound_location.forward = movement;
+                  normalize3d((float *)&sound_location.forward);
+                  sound_location.translational_velocity =
+                    *(real_vector3d *)halo_global_zero_vector_ptr;
+                  sound_location.game_location = collision.location;
                   unattached_impulse_sound_new(definition->flyby_sound.tag_index,
                                                &sound_location, 1.0f);
                   flyby_played = '\x01';
@@ -2028,7 +2021,7 @@ bool projectile_update(int projectile_handle)
       }
 
       object_translate(projectile_handle, (float *)&new_position,
-                       &collision.leaf_index);
+                       &collision.location);
       {
         float tick_remaining = time_remaining;
         *(real_vector3d *)&projectile->object.translational_velocity = velocity;
