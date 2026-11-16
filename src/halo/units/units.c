@@ -3052,7 +3052,7 @@ bool unit_find_nearby_seat(int unit_handle, int target_unit_handle,
   not_found = (unit_handle != target_unit_handle);
   result_handle = -1;
 
-  child_handle = target_obj->unk_200.value;
+  child_handle = target_obj->first_child_object_index.value;
   while (child_handle != -1) {
     child_obj = (object_data_t *)object_get_and_verify_type(child_handle, -1);
 
@@ -4883,7 +4883,7 @@ char unit_seat_allow_noncombatants(int unit_handle, int16_t seat_index)
 
 /* unit_update_seat_occupancy (0x1aa890)
  *
- * Walks the child object chain of a unit (starting at unk_200, offset 0xC8)
+ * Walks the child object chain of a unit (starting at first_child_object_index, offset 0xC8)
  * and updates two seat-occupancy handles: unk_724 (offset 0x2D4) for seats
  * with flag bit 2 (0x4) set, and unk_728 (offset 0x2D8) for seats with flag
  * bit 3 (0x8) set. For each child that is a biped or vehicle with a valid

@@ -1190,7 +1190,7 @@ unsigned char hs_objects_can_see_flag(int arg0, short flag_index, float arg2)
  *   only when that byte is 0, which is why falling out of them returns false
  *   (MOV AL,[EBP-1] at 0xc9937/0xc9967 reloads the stored zero).
  *
- *   Child loop (0xc9915..0xc9935): starts at [EBX+0xc8] (unk_200), resolves the
+ *   Child loop (0xc9915..0xc9935): starts at [EBX+0xc8] (first_child_object_index), resolves the
  *   handle, RECURSES on 0xc98e0 with the child HANDLE (PUSH ESI at 0xc991d, not
  *   the resolved pointer in EDI), returns true on a nonzero AL, and advances
  *   through [EDI+0xc4] (next_object_index) — the resolved child, not the base
@@ -1230,7 +1230,7 @@ bool FUN_000c98e0(int object_handle)
   if (is_player)
     return is_player;
 
-  linked_handle = object->unk_200.value;
+  linked_handle = object->first_child_object_index.value;
   while (linked_handle != -1) {
     linked_object =
       (object_data_t *)object_get_and_verify_type(linked_handle, -1);

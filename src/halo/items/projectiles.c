@@ -540,18 +540,18 @@ void projectile_adjust_for_angular_velocity_change(int projectile_handle)
   if (angular_speed != REAL_ZERO_POOL) {
     inverse_angular_speed = 1.0f / angular_speed;
     projectile->flags |= FLAG(_projectile_has_angular_velocity_bit);
-    scale_vector3d(angular_velocity, inverse_angular_speed, &projectile->angular_velocity_axis);
-    projectile->angular_velocity_sine = x87_fsin(angular_speed);
-    projectile->angular_velocity_cosine = x87_fcos(angular_speed);
+    scale_vector3d(angular_velocity, inverse_angular_speed, &projectile->rotation_axis);
+    projectile->rotation_sine = x87_fsin(angular_speed);
+    projectile->rotation_cosine = x87_fcos(angular_speed);
   } else {
     projectile->flags &= ~FLAG(_projectile_has_angular_velocity_bit);
-    projectile->angular_velocity_sine = REAL_ZERO_POOL;
-    projectile->angular_velocity_cosine = 1.0f;
+    projectile->rotation_sine = REAL_ZERO_POOL;
+    projectile->rotation_cosine = 1.0f;
   }
 }
 
 /* The water flag selects the water damage range; both branches copy the water
- * upper bound into field_210. */
+ * upper bound into maximum_damage_distance. */
 void projectile_calculate_deceleration(int projectile_handle)
 {
   projectile_data_t *projectile;
@@ -564,10 +564,10 @@ void projectile_calculate_deceleration(int projectile_handle)
     projectile->deceleration = projectile_calculate_deceleration_from_distances(
       definition, definition->water_damage_range_lower_bound,
       definition->water_damage_range_upper_bound);
-    projectile->field_210 = definition->water_damage_range_upper_bound;
+    projectile->maximum_damage_distance = definition->water_damage_range_upper_bound;
 
     if (definition->water_damage_range_lower_bound > REAL_ZERO_POOL) {
-      projectile->field_208 =
+      projectile->deceleration_timer_delta =
         definition->water_damage_range_lower_bound / definition->initial_velocity;
       return;
     }
@@ -575,17 +575,17 @@ void projectile_calculate_deceleration(int projectile_handle)
     projectile->deceleration = projectile_calculate_deceleration_from_distances(
       definition, definition->air_damage_range_lower_bound,
       definition->air_damage_range_upper_bound);
-    projectile->field_210 = definition->water_damage_range_upper_bound;
+    projectile->maximum_damage_distance = definition->water_damage_range_upper_bound;
 
     if (definition->air_damage_range_lower_bound > REAL_ZERO_POOL) {
-      projectile->field_208 =
+      projectile->deceleration_timer_delta =
         definition->air_damage_range_lower_bound / definition->initial_velocity;
       return;
     }
   }
 
-  projectile->field_204 = 1.0f;
-  projectile->field_208 = 0.0f;
+  projectile->deceleration_timer = 1.0f;
+  projectile->deceleration_timer_delta = 0.0f;
 }
 
 /* Tests the path from the projectile's position to new_pos: one ray along
@@ -713,7 +713,7 @@ void projectile_detonate(int projectile_handle, char has_hit_count, float curren
       ((projectile->flags & 0x40u) == 0) &&
       (projectile->object.parent_object_index.value != NONE)) {
     parent = object_get_and_verify_type(projectile->object.parent_object_index.value, _object_mask_all);
-    sibling_index = parent->unk_200.value;
+    sibling_index = parent->first_child_object_index.value;
     count = 0;
 
     while (sibling_index != NONE) {
@@ -732,7 +732,7 @@ void projectile_detonate(int projectile_handle, char has_hit_count, float curren
             ->unk_456.value == NONE) ||
          game_engine_running()) &&
         ((short)count > 6)) {
-      sibling_index = parent->unk_200.value;
+      sibling_index = parent->first_child_object_index.value;
       while (sibling_index != NONE) {
         sibling = object_get_and_verify_type(sibling_index, _object_mask_all);
         if (sibling->tag_index == projectile->object.tag_index) {
@@ -1423,7 +1423,7 @@ clamp_material_effect_scale:
       projectile_data_t *child_projectile;
 
       parent_object = object_get_and_verify_type(collision->object_index, -1);
-      object_index = parent_object->unk_200.value;
+      object_index = parent_object->first_child_object_index.value;
       attached_count = 0;
       while (object_index != NONE) {
         child_object = object_get_and_verify_type(object_index, -1);
@@ -1550,8 +1550,8 @@ bool projectile_update(int projectile_handle)
 
   projectile->arming_time =
     projectile->arming_time_delta + projectile->arming_time;
-  projectile->field_204 =
-    projectile->field_208 + projectile->field_204;
+  projectile->deceleration_timer =
+    projectile->deceleration_timer_delta + projectile->deceleration_timer;
 
   {
     uint8_t start_timer;
@@ -1727,7 +1727,7 @@ bool projectile_update(int projectile_handle)
       system_exit(-1);
     }
 
-    if (projectile->field_204 >= 1.0f) {
+    if (projectile->deceleration_timer >= 1.0f) {
       if ((!(initial_speed > definition->final_velocity)) ||
           (projectile->deceleration == 0.0f)) {
         if (((definition->maximum_range != 0.0f) ||
@@ -1735,7 +1735,7 @@ bool projectile_update(int projectile_handle)
               !(definition->minimum_velocity <=
                 definition->final_velocity))) ||
             ((projectile->deceleration == 0.0f) &&
-             (!(projectile->odometer >= projectile->field_210)))) {
+             (!(projectile->odometer >= projectile->maximum_damage_distance)))) {
           if ((initial_speed < definition->final_velocity) &&
               (initial_speed > 0.0f)) {
             scale =
@@ -1998,9 +1998,9 @@ bool projectile_update(int projectile_handle)
         if ((projectile->flags & FLAG(_projectile_has_angular_velocity_bit)) != 0) {
           float *forward = (float *)&projectile->object.forward;
           float *up = (float *)&projectile->object.up;
-          float *axis = (float *)&projectile->angular_velocity_axis;
-          float sine = projectile->angular_velocity_sine;
-          float cosine = projectile->angular_velocity_cosine;
+          float *axis = (float *)&projectile->rotation_axis;
+          float sine = projectile->rotation_sine;
+          float cosine = projectile->rotation_cosine;
           rotate_vector3d_by_sincos(forward, axis, sine, cosine);
           rotate_vector3d_by_sincos(up, axis, sine, cosine);
           normalize3d(forward);
@@ -2022,8 +2022,8 @@ bool projectile_update(int projectile_handle)
               normalize3d(up);
             }
           }
-          rotate_vector3d_by_sincos(up, forward, projectile->angular_velocity_sine,
-                                    projectile->angular_velocity_cosine);
+          rotate_vector3d_by_sincos(up, forward, projectile->rotation_sine,
+                                    projectile->rotation_cosine);
         }
       }
 

@@ -105,13 +105,13 @@ typedef struct {
   real arming_time;                ///< offset=0x1F8  .text:000F9DBD fld dword ptr [ebx+1F8h]
   real arming_time_delta;          ///< offset=0x1FC  .text:000F8E15 1/(definition arming_time * 30), added to arming_time each tick
   real odometer;          ///< offset=0x200  .text:000F7F66 accumulates per-tick displacement; compared to maximum_range
-  real field_204;                  ///< offset=0x204  .text:000F8702 mov dword ptr [esi+204h], 3F800000h
-  real field_208;                  ///< offset=0x208  .text:000F86AB per-tick increment of field_204
+  real deceleration_timer;         ///< offset=0x204  .text:000F8702 set to 1.0 when deceleration starts at once; >= 1.0 enables it
+  real deceleration_timer_delta;   ///< offset=0x208  .text:000F86AB per-tick increment of deceleration_timer
   real deceleration;               ///< offset=0x20C  .text:000F8677 projectile_calculate_deceleration_from_distances result
-  real field_210;                  ///< offset=0x210  .text:000FA304 fcomp dword ptr [ebx+210h]
-  real_vector3d angular_velocity_axis; ///< offset=0x214  .text:000F85E7 angular_velocity / |angular_velocity|
-  real angular_velocity_sine;                  ///< offset=0x220  .text:000F8605 sine of the angular speed
-  real angular_velocity_cosine;                  ///< offset=0x224  .text:000F860D cosine of the angular speed
+  real maximum_damage_distance;    ///< offset=0x210  .text:000FA304 damage range upper bound, compared to odometer
+  real_vector3d rotation_axis; ///< offset=0x214  .text:000F85E7 angular_velocity / |angular_velocity|
+  real rotation_sine;           ///< offset=0x220  .text:000F8605 sine of the angular speed
+  real rotation_cosine;         ///< offset=0x224  .text:000F860D cosine of the angular speed
 } projectile_data_t;
 cs(projectile_data_t, 0x228);
 co(projectile_data_t, flags, 0x1dc);
@@ -121,8 +121,8 @@ co(projectile_data_t, detonation_timer, 0x1f0);
 co(projectile_data_t, arming_time, 0x1f8);
 co(projectile_data_t, odometer, 0x200);
 co(projectile_data_t, deceleration, 0x20c);
-co(projectile_data_t, angular_velocity_axis, 0x214);
-co(projectile_data_t, angular_velocity_cosine, 0x224);
+co(projectile_data_t, rotation_axis, 0x214);
+co(projectile_data_t, rotation_cosine, 0x224);
 co(object_data_t, owner_object_index, 0x74);
 co(object_data_t, field_d0, 0xd0);
 co(object_data_t, outgoing_function_values, 0xe4);
@@ -224,7 +224,7 @@ enum {
 };
 
 /* projectile.flags bit 0: set when object.angular_velocity is non-zero and
- * angular_velocity_axis holds its unit axis (projectile_adjust_for_angular_velocity_change). */
+ * rotation_axis holds its unit axis (projectile_adjust_for_angular_velocity_change). */
 enum {
   _projectile_has_angular_velocity_bit = 0
 };

@@ -8136,11 +8136,11 @@ void object_disconnect_from_map(int object_handle)
   if (obj->parent_object_index.value != NONE) {
     /* Object has a parent: unlink from parent's child chain.
      * Get the parent's object data, then call the list-remove helper
-     * at 0x13e510 with EAX = &parent_obj->unk_200 (child list head)
+     * at 0x13e510 with EAX = &parent_obj->first_child_object_index (child list head)
      * and EBX = object_handle to unlink. */
     object_data_t *parent_obj = (object_data_t *)object_get_and_verify_type(
       obj->parent_object_index.value, -1);
-    object_child_list_remove((void *)&parent_obj->unk_200,
+    object_child_list_remove((void *)&parent_obj->first_child_object_index,
                              object_handle);
   } else {
     /* No parent: remove from cluster partition. */
@@ -9254,8 +9254,8 @@ void object_delete_internal(int object_handle, int delete_sibling)
   }
 
   /* Recursively delete child objects (obj+0xC8). */
-  if (obj->unk_200.value != -1) {
-    object_delete_internal(obj->unk_200.value, 1);
+  if (obj->first_child_object_index.value != -1) {
+    object_delete_internal(obj->first_child_object_index.value, 1);
   }
 
   /* Optionally recursively delete sibling objects (obj+0xC4). */
@@ -9309,7 +9309,7 @@ void object_delete(int object_handle)
  * object_connect_to_map — link an object into the BSP/collision world.
  *
  * If the object has a parent (parent_object_index != -1), it chains into the
- * parent's child list via next_object_index/unk_200 and marks the header as
+ * parent's child list via next_object_index/first_child_object_index and marks the header as
  * attached. Otherwise, it resolves a BSP location (from the caller or by
  * probing the object's bounding position), inserts into the collision/BSP
  * structure, and optionally garbage-collects or activates the object based on
@@ -9322,7 +9322,7 @@ void object_delete(int object_handle)
  * (object_get_and_verify_type) with PUSH -1. Confirmed: CALL 0x140bc0
  * (object_delete_internal) with delete_sibling=0. Confirmed: CALL 0xba6c0
  * (players_get_combined_pvs). Confirmed: offset 0xCC = parent_object_index,
- * 0xC8 = unk_200, 0xC4 = next_object_index. Confirmed: 0x5a8d40 and 0x5a8d30
+ * 0xC8 = first_child_object_index, 0xC4 = next_object_index. Confirmed: 0x5a8d40 and 0x5a8d30
  * are alternate object list pointers selected by flag 0x2000000.
  */
 void object_connect_to_map(int object_handle, void *location)
@@ -9356,8 +9356,8 @@ void object_connect_to_map(int object_handle, void *location)
       obj->parent_object_index.value, -1);
     object_data_t *self_obj =
       (object_data_t *)object_get_and_verify_type(object_handle, -1);
-    self_obj->next_object_index.value = parent_obj->unk_200.value;
-    parent_obj->unk_200.value = (uint32_t)object_handle;
+    self_obj->next_object_index.value = parent_obj->first_child_object_index.value;
+    parent_obj->first_child_object_index.value = (uint32_t)object_handle;
     hdr->unk_2 |= 0x80;
     *(int16_t *)((char *)obj + 0x4c) = -1;
   } else {
@@ -12285,8 +12285,8 @@ bool object_update(int object_handle)
       }
     }
 
-    if (obj->unk_200.value != -1) {
-      object_update(obj->unk_200.value);
+    if (obj->first_child_object_index.value != -1) {
+      object_update(obj->first_child_object_index.value);
     }
     if (obj->parent_object_index.value != -1 &&
         obj->next_object_index.value != -1) {
@@ -12337,7 +12337,7 @@ void object_update_children_recursive(int object_handle)
   object_compute_node_matrices(object_handle);
 
   /* walk the child object chain */
-  child_handle = obj->unk_200.value;
+  child_handle = obj->first_child_object_index.value;
   while (child_handle != -1) {
     object_header_data_t *child_header =
       (object_header_data_t *)datum_get(*(data_t **)0x5a8d50, child_handle);
@@ -12601,8 +12601,8 @@ void object_delete_recursive(int object_handle, int delete_sibling)
   FUN_00138eb0(object_handle);
 
   /* Recursively deactivate child object. */
-  if (obj->unk_200.value != -1) {
-    object_delete_recursive(obj->unk_200.value, 1);
+  if (obj->first_child_object_index.value != -1) {
+    object_delete_recursive(obj->first_child_object_index.value, 1);
   }
 
   /* Optionally deactivate sibling object. */

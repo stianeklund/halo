@@ -472,7 +472,7 @@ typedef struct {
   uint32_t unk_188;         ///< offset=0xBC  .text:00143F81                 mov     [edi+0BCh], eax
   uint32_t unk_192;         ///< offset=0xC0
   datum_handle_t next_object_index;   ///< offset=0xC4  .text:0014537B                 mov     ecx, [eax+0C4h]
-  datum_handle_t unk_200;   ///< offset=0xC8  .text:000320C3                 mov     eax, [edi+0C8h]
+  datum_handle_t first_child_object_index; ///< offset=0xC8  .text:000320C3 head of the child list linked through next_object_index
   datum_handle_t parent_object_index;   ///< offset=0xCC  .text:00145348                 mov     ecx, [eax+0CCh]
   real field_d0[5];         ///< offset=0xD0  .text:0013E640 fld dword ptr [ebx+edx*4+0D0h]; [1..4] (+0xD4) are the incoming function values projectile_export_function_values writes
   real outgoing_function_values[NUMBER_OF_OUTGOING_OBJECT_FUNCTIONS]; ///< offset=0xE4  .text:001403FF mov edx, [esi+ecx*4+0E4h]
