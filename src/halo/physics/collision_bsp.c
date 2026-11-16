@@ -3049,9 +3049,9 @@ bool FUN_0014e940(int param_1, float *origin, float *delta, float radius,
   if (collision_bsp_test_pill_new((int)global_collision_bsp_get(), 0, 0, origin,
                                   delta, radius, &t, normal)) {
     result->t = t;
-    result->normal[0] = normal[0];
-    result->normal[1] = normal[1];
-    result->normal[2] = normal[2];
+    result->normal.i = normal[0];
+    result->normal.j = normal[1];
+    result->normal.k = normal[2];
     result->field_00 = 2;
     result->field_30 = 3.4028235e+38f;
     result->field_34 = -1;
@@ -3066,12 +3066,12 @@ bool FUN_0014e940(int param_1, float *origin, float *delta, float radius,
   /* One FLD of result->t held on the x87 stack and duplicated per component
    * (0x14e9d8: FLD [ESI+0x14] / FLD ST(0) ...), not three reloads. */
   hit_t = result->t;
-  result->position[0] = hit_t * delta[0] + origin[0];
-  result->position[1] = hit_t * delta[1] + origin[1];
-  result->position[2] = hit_t * delta[2] + origin[2];
-  result->normal[0] = 0.0f;
-  result->normal[1] = 0.0f;
-  result->normal[2] = 0.0f;
+  result->position.x = hit_t * delta[0] + origin[0];
+  result->position.y = hit_t * delta[1] + origin[1];
+  result->position.z = hit_t * delta[2] + origin[2];
+  result->normal.i = 0.0f;
+  result->normal.j = 0.0f;
+  result->normal.k = 0.0f;
 
   return hit;
 }

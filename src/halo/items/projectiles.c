@@ -1,5 +1,29 @@
 #include "x87_math.h"
 #include "halo/objects/objects.h"
+#include "halo/math/real_math.h"
+
+/* result = a + b. */
+static __inline real_vector3d *add_vectors3d(real_vector3d const *a,
+                                             real_vector3d const *b,
+                                             real_vector3d *result)
+{
+  result->i = a->i + b->i;
+  result->j = a->j + b->j;
+  result->k = a->k + b->k;
+  return result;
+}
+
+/* result = p + t * v. */
+static __inline real_point3d *point_from_line3d(real_point3d const *p,
+                                                real_vector3d const *v, real t,
+                                                real_point3d *result)
+{
+  result->x = p->x + t * v->i;
+  result->y = p->y + t * v->j;
+  result->z = p->z + t * v->k;
+  return result;
+}
+
 #ifdef HALO_RNG_TRACE
 #include "halo/math/rng_trace.h"
 /* Mirrors the host LOS-exit detour for calls returning into projectile_collision_test_line:
@@ -241,111 +265,79 @@ void random_vector_in_cone3d(float *forward, float minimum_angle, float maximum_
 /* Solves a*t^4 + (acceleration_height - v^2)*t^2 + c = 0 (a = acceleration^2/4,
  * c = |delta|^2) for the flight time t, falling back to the minimum-speed arc
  * (t_max, v_min) when there is no solution.  Returns false on the fallback paths.
- * param_5 is never read. */
-char projectile_aim_ballistic(float speed, float gravity_scale, float *origin,
-                              float *target, int param_5, float *ballistic_fraction,
+ * target_velocity_min is never read. */
+char projectile_aim_ballistic(float base_velocity, float gravity_scale, float *origin,
+                              float *target_point, int target_velocity_min,
+                              float *target_ballistic_fraction_min,
                               float *forced_velocity, char lob, float *result_aim_vector,
                               float *result_velocity, float *result_ticks,
                               float *result_distance, float *result_vertical_velocity,
                               float *result_horizontal_velocity)
 {
+  char result;
+  bool solution;
   real_vector3d aim_vector;
-  /* separate scalars: a real_vector3d delta is laid out at [ebp-0x34] (-3 bytes) */
-  float dx;
-  float dy;
-  float dz;
-  float t_max;
-  float two_a;
-  float c;
+  real_vector3d delta;
+  float acceleration;
+  float a;
   float b;
-  float v_min;
+  float c;
   float four_a_c;
   float acceleration_height;
-  float acceleration_height_wide; /* 0xf81ad: FST, the subtract uses the wide copy */
-  float inverse_t; /* 0xf82ea: 1/t stays in ST(0), never stored */
-  /* volatile: without it the byte flag at [ebp-1] is enregistered (-20 bytes) */
-  volatile char result;
-  bool solution;
-  float a;
-  float acceleration;
-  /* shares t_squared_max's slot; a separate local costs 10 bytes */
+  float acceleration_height_wide;
+  float horizontal_distance_squared;
+  float t_squared_max;
+  float t_max;
+  float v_min;
+  float t;
+  float inverse_t;
+  float v_max;
   float v_desired;
   float distance;
-  /* scratch shared by several roles; splitting them into named locals costs bytes */
-  float temp;
-  float temp2;
-  float temp_wide; /* 0xf8272: FST, the square uses the wide copy */
-  float horizontal_distance_squared;
+  float vertical_velocity;
+  float horizontal_velocity;
 
-  solution = false;
-  dx = target[0] - origin[0];
-  /* 0xf80b4: FSTP dword [ebp-0x28] -- narrowed before the reload at 0xf80cf. */
-  HALO_FLT_ROUNDTRIP(dx);
+  v_max = base_velocity;
   result = true;
-  dy = target[1] - origin[1];
-  /* 0xf80bd: FSTP dword [ebp-0x24] -- narrowed before the reload at 0xf80c9. */
-  HALO_FLT_ROUNDTRIP(dy);
-  dz = target[2] - origin[2];
-  /* 0xf80c6: FSTP dword [ebp-0x20] -- narrowed before the reloads at
-   * 0xf810c / 0xf81aa / 0xf8303. */
-  HALO_FLT_ROUNDTRIP(dz);
+  solution = false;
+  vector_from_points3d((real_point3d *)origin, (real_point3d *)target_point, &delta);
+  /* 0xf80b4/0xf80bd/0xf80c6: each component is FSTP'd before it is reloaded. */
+  HALO_FLT_ROUNDTRIP(delta);
 
-  /* Stays on the FPU stack while acceleration and a are computed. */
-  horizontal_distance_squared = dy * dy + dx * dx;
-
-  acceleration = global_gravity * gravity_scale;
-  if (acceleration < REAL_ZERO_POOL) {
-    acceleration = 0.0f;
-  }
-  /* 0xf80fa: FSTP dword [ebp+0x10] -- the clamp compares the wide stack copy
-   * (FCOMP at 0xf80e6), then stores the float32 the rest of the function
-   * reloads (0xf80fd, 0xf8309).  The zero path stores an integer 0. */
+  horizontal_distance_squared = delta.i * delta.i + delta.j * delta.j;
+  acceleration = (REAL_ZERO_POOL > global_gravity * gravity_scale)
+                   ? 0.0f
+                   : global_gravity * gravity_scale;
+  /* 0xf80fa: the clamp compares the wide product; the stored float32 is reloaded. */
   HALO_FLT_ROUNDTRIP(acceleration);
-
-  temp = acceleration * acceleration;
-  a = temp * REAL_0_25_POOL;
-  /* 0xf8109: FSTP dword [ebp+0xc] -- narrowed before the reloads at 0xf815f
-   * (two_a) and 0xf820a.  temp itself is never stored. */
+  a = acceleration * acceleration * REAL_0_25_POOL;
   HALO_FLT_ROUNDTRIP(a);
-
-  c = dz * dz + horizontal_distance_squared;
-  /* 0xf8114: FSTP dword [ebp-0x14] -- narrowed before the reloads at 0xf8119
-   * and 0xf8203. */
+  c = delta.k * delta.k + horizontal_distance_squared;
   HALO_FLT_ROUNDTRIP(c);
 
-  temp = c * a;
-  four_a_c = temp * REAL_4_0_POOL;
+  four_a_c = c * a;
+  four_a_c *= REAL_4_0_POOL;
   if (!(four_a_c > REAL_ZERO_POOL)) {
     display_assert("4.0f * a * c > 0.0f",
                    "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2f8, 1);
     system_exit(-1);
   }
-  /* 0xf8125: FST dword [ebp-0xc] -- no pop, so the assert compare at 0xf8128
-   * still sees the wide stack copy; the FSQRT at 0xf8155 and the subtract at
-   * 0xf8278 reload the narrowed slot. */
+  /* 0xf8125: FST -- the assert sees the wide product, later reads the float32. */
   HALO_FLT_ROUNDTRIP(four_a_c);
-
   b = -sqrtf(four_a_c);
-  /* 0xf815c: FSTP dword [ebp-0x10] -- narrowed before the divide at 0xf816a. */
   HALO_FLT_ROUNDTRIP(b);
-  two_a = a + a;
-
-  v_desired = -b / two_a;
-  if (!(v_desired >= REAL_ZERO_POOL)) {
+  t_squared_max = -(b / (a + a));
+  if (!(t_squared_max >= REAL_ZERO_POOL)) {
     display_assert("t_squared_max >= 0.0f",
                    "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2fc, 1);
     system_exit(-1);
   }
-  /* 0xf816f: FST dword [ebp+0x14] -- the compare above sees the wide copy,
-   * the FSQRT at 0xf819f reloads the narrowed slot. */
-  HALO_FLT_ROUNDTRIP(v_desired);
-  t_max = sqrtf(v_desired); /* v_desired holds t_squared_max here */
-  /* 0xf81a4: FSTP dword [ebp-0x1c] -- narrowed before the reload at 0xf81fa. */
+  HALO_FLT_ROUNDTRIP(t_squared_max);
+  t_max = sqrtf(t_squared_max);
   HALO_FLT_ROUNDTRIP(t_max);
 
-  /* 0xf81ad: FST dword [ebp-8] -- no pop.  The subtract at 0xf81b0 uses the
-   * wide copy; the reloads at 0xf8211 and 0xf826f use the narrowed slot. */
-  acceleration_height_wide = acceleration * dz;
+  /* 0xf81ad: FST -- the subtract uses the wide product, later reads the float32. */
+  acceleration_height_wide = acceleration * delta.k;
   acceleration_height = acceleration_height_wide;
   HALO_FLT_ROUNDTRIP(acceleration_height);
   if (acceleration_height_wide - b < REAL_ZERO_POOL) {
@@ -357,77 +349,73 @@ char projectile_aim_ballistic(float speed, float gravity_scale, float *origin,
   if (forced_velocity != NULL) {
     v_desired = *forced_velocity;
   } else {
-    v_desired = speed;
-    if ((ballistic_fraction != NULL) && (*ballistic_fraction > REAL_ZERO_POOL)) {
-      temp2 = t_max * *ballistic_fraction;
-      temp2 = temp2 * temp2;
-      temp = acceleration_height - -(temp2 * a + c / temp2);
-      if (!(temp > REAL_ZERO_POOL)) {
+    v_desired = v_max;
+    if ((target_ballistic_fraction_min != NULL) &&
+        (*target_ballistic_fraction_min > REAL_ZERO_POOL)) {
+      float t_desired;
+      float t_desired_squared;
+      float v_desired_sq;
+
+      t_desired = t_max * *target_ballistic_fraction_min;
+      t_desired_squared = t_desired * t_desired;
+      v_desired_sq =
+        acceleration_height - -(t_desired_squared * a + c / t_desired_squared);
+      if (!(v_desired_sq > REAL_ZERO_POOL)) {
         display_assert("v_desired_sq > 0.0f",
                        "c:\\halo\\SOURCE\\items\\projectiles.c", 0x326, 1);
         system_exit(-1);
       }
-      temp = sqrtf(temp);
-      if (speed > temp) {
-        v_desired = temp;
+      v_desired_sq = sqrtf(v_desired_sq);
+      if (v_max > v_desired_sq) {
+        v_desired = v_desired_sq;
       }
     }
   }
 
   if (v_desired >= v_min) {
-    temp = acceleration_height - v_desired * v_desired;
-    /* 0xf8272: FST dword [ebp+8] -- no pop.  The square at 0xf8275 multiplies
-     * the wide stack copy by the narrowed slot, so keep one wide copy; every
-     * later read (compare 0xf827e, subtract 0xf82b7) uses the narrowed one. */
-    temp_wide = temp;
-    HALO_FLT_ROUNDTRIP(temp);
-    temp2 = temp_wide * temp - four_a_c;
-    /* 0xf827b: FSTP dword [ebp+0xc] -- narrowed before the compare at 0xf828e
-     * and the FSQRT at 0xf829e. */
-    HALO_FLT_ROUNDTRIP(temp2);
-    if ((temp < REAL_ZERO_POOL) && (temp2 >= REAL_ZERO_POOL)) {
-      /* speed's slot holds t from here on; a separate local costs 6 bytes */
-      speed = (sqrtf(temp2) * (lob ? 1 : -1) - temp) / two_a;
-      if (REAL_ZERO_POOL < speed) {
-        speed = sqrtf(speed);
-        /* 0xf82cc: FSTP dword [ebp+8] -- the quotient itself is never stored
-         * (the compare at 0xf82bd uses the wide stack copy); only t is
-         * narrowed, and the output block reloads it at 0xf82ea/0xf8306/0xf832d. */
-        HALO_FLT_ROUNDTRIP(speed);
+    float b_desired;
+    float b_desired_wide;
+    float discriminant;
+    float t_squared;
+
+    b_desired = acceleration_height - v_desired * v_desired;
+    /* 0xf8272: FST -- the square multiplies the wide copy by the float32. */
+    b_desired_wide = b_desired;
+    HALO_FLT_ROUNDTRIP(b_desired);
+    discriminant = b_desired_wide * b_desired - four_a_c;
+    HALO_FLT_ROUNDTRIP(discriminant);
+    if ((b_desired < REAL_ZERO_POOL) && (discriminant >= REAL_ZERO_POOL)) {
+      t_squared = (sqrtf(discriminant) * (lob ? 1 : -1) - b_desired) / (a + a);
+      if (REAL_ZERO_POOL < t_squared) {
+        t = sqrtf(t_squared);
+        HALO_FLT_ROUNDTRIP(t);
         solution = true;
       }
     }
   }
   if (!solution) {
     result = false;
-    speed = t_max;
+    t = t_max;
     v_desired = v_min;
   }
 
-  inverse_t = REAL_ONE_POOL / speed;
-  aim_vector.i = dx * inverse_t;
-  /* 0xf82f8: FSTP dword [ebp-0x34] -- narrowed before the reload at 0xf831d. */
+  inverse_t = REAL_ONE_POOL / t;
+  aim_vector.i = delta.i * inverse_t;
   HALO_FLT_ROUNDTRIP(aim_vector.i);
-  aim_vector.j = dy * inverse_t;
-  /* 0xf8300: FSTP dword [ebp-0x30] -- narrowed before the reload at 0xf8317.
-   * aim_vector.k is FST (0xf8314), so its wide stack copy is what
-   * result_vertical_velocity receives at 0xf832a; only the slot copy is
-   * narrowed and it is not round-tripped. */
+  aim_vector.j = delta.j * inverse_t;
   HALO_FLT_ROUNDTRIP(aim_vector.j);
-  aim_vector.k = inverse_t * dz + speed * acceleration * REAL_0_5_POOL;
+  /* 0xf8314: FST -- vertical_velocity receives the wide sum. */
+  aim_vector.k = inverse_t * delta.k + t * acceleration * REAL_0_5_POOL;
 
-  temp2 = aim_vector.j * aim_vector.j + aim_vector.i * aim_vector.i;
-  temp2 = sqrtf(temp2); /* horizontal velocity */
-  temp = aim_vector.k; /* vertical velocity */
-  distance = speed * v_desired;
+  horizontal_velocity = sqrtf(aim_vector.j * aim_vector.j + aim_vector.i * aim_vector.i);
+  vertical_velocity = aim_vector.k;
+  distance = t * v_desired;
 
   if (normalize3d((float *)&aim_vector) == REAL_ZERO_POOL) {
-    aim_vector.i = dx;
     result = false;
-    aim_vector.j = dy;
-    aim_vector.k = dz;
+    aim_vector = delta;
     if (normalize3d((float *)&aim_vector) == REAL_ZERO_POOL) {
-      aim_vector = *(real_vector3d *)global_up_vector_ptr;
+      aim_vector = *global_up3d;
     }
   }
 
@@ -436,7 +424,6 @@ char projectile_aim_ballistic(float speed, float gravity_scale, float *origin,
                    "c:\\halo\\SOURCE\\items\\projectiles.c", 0x363, 1);
     system_exit(-1);
   }
-
   *(real_vector3d *)result_aim_vector = aim_vector;
 
   if (result_distance != NULL) {
@@ -446,13 +433,13 @@ char projectile_aim_ballistic(float speed, float gravity_scale, float *origin,
     *result_velocity = v_desired;
   }
   if (result_vertical_velocity != NULL) {
-    *result_vertical_velocity = temp;
+    *result_vertical_velocity = vertical_velocity;
   }
   if (result_horizontal_velocity != NULL) {
-    *result_horizontal_velocity = temp2;
+    *result_horizontal_velocity = horizontal_velocity;
   }
   if (result_ticks != NULL) {
-    *result_ticks = speed;
+    *result_ticks = t;
   }
   return result;
 }
@@ -465,9 +452,7 @@ bool projectile_aim_linear(float speed, float *origin, float *target,
   float distance;
   float ticks;
 
-  aim_vector.i = target[0] - origin[0];
-  aim_vector.j = target[1] - origin[1];
-  aim_vector.k = target[2] - origin[2];
+  vector_from_points3d((real_point3d *)origin, (real_point3d *)target, &aim_vector);
 
   distance = normalize3d((float *)&aim_vector);
   /* 0xf843e: FSTP dword [ebp+0x10] -- the magnitude is narrowed before the
@@ -543,21 +528,19 @@ char projectile_aim(int projectile_tag, int origin, int target, void *velocity_o
 void projectile_adjust_for_angular_velocity_change(int projectile_handle)
 {
   projectile_data_t *projectile;
+  real_vector3d *angular_velocity;
   float angular_speed;
   float inverse_angular_speed;
 
   projectile = projectile_get(projectile_handle);
+  angular_velocity = (real_vector3d *)&projectile->object.angular_velocity;
 
-  angular_speed = sqrtf(projectile->object.angular_velocity.x * projectile->object.angular_velocity.x +
-                        projectile->object.angular_velocity.y * projectile->object.angular_velocity.y +
-                        projectile->object.angular_velocity.z * projectile->object.angular_velocity.z);
+  angular_speed = sqrtf(magnitude_squared3d(angular_velocity));
 
   if (angular_speed != REAL_ZERO_POOL) {
     inverse_angular_speed = 1.0f / angular_speed;
     projectile->flags |= FLAG(_projectile_has_angular_velocity_bit);
-    projectile->field_214.i = inverse_angular_speed * projectile->object.angular_velocity.x;
-    projectile->field_214.j = inverse_angular_speed * projectile->object.angular_velocity.y;
-    projectile->field_214.k = inverse_angular_speed * projectile->object.angular_velocity.z;
+    scale_vector3d(angular_velocity, inverse_angular_speed, &projectile->field_214);
     projectile->field_220 = x87_fsin(angular_speed);
     projectile->field_224 = x87_fcos(angular_speed);
   } else {
@@ -616,8 +599,7 @@ bool projectile_collision_test_line(int projectile_handle, float *new_pos,
   projectile_definition_t *definition;
   real_point3d *position;
   real_point3d *destination;
-  float *up;
-  float *left;
+  real_vector3d *up;
   float radius;
   real_vector3d delta;
   /* One aggregate keeps the five vectors in the original frame order. */
@@ -652,53 +634,33 @@ bool projectile_collision_test_line(int projectile_handle, float *new_pos,
                RNG_TRACE_BITS(projectile->object.translational_velocity.z));
 #endif
 
-  sweep.ray.i = destination->x - position->x;
-  sweep.ray.j = destination->y - position->y;
-  sweep.ray.k = destination->z - position->z;
+  vector_from_points3d(position, destination, &sweep.ray);
   if (SWEEP_LOS(FUN_0014df70(0x1000e9, (float *)position, (float *)&sweep.ray,
                              projectile->ignore_object_index, collision_result)) == 0) {
     if (definition->collision_radius < REAL_0_0001_POOL) {
       return false;
     }
 
-    up = global_up_vector_ptr;
-    delta.i = destination->x - position->x;
-    delta.j = destination->y - position->y;
-    delta.k = destination->z - position->z;
+    up = (real_vector3d *)global_up_vector_ptr;
+    vector_from_points3d(position, destination, &delta);
 
-    sweep.direction.i = delta.j * up[2] - delta.k * up[1];
-    sweep.direction.j = delta.k * up[0] - delta.i * up[2];
-    sweep.direction.k = delta.i * up[1] - delta.j * up[0];
+    sweep.direction.i = delta.j * up->k - delta.k * up->j;
+    sweep.direction.j = delta.k * up->i - delta.i * up->k;
+    sweep.direction.k = delta.i * up->j - delta.j * up->i;
 
     if (normalize3d((float *)&sweep.direction) == REAL_ZERO_POOL) {
       /* Moving straight along up: offset sideways instead. */
-      left = global_left_vector_ptr;
-      sweep.direction.i = left[0];
-      sweep.direction.j = left[1];
-      sweep.direction.k = left[2];
+      sweep.direction = *(real_vector3d *)global_left_vector_ptr;
     }
 
     radius = definition->collision_radius;
 
-    sweep.positive_origin.x = sweep.direction.i * radius + position->x;
-    sweep.positive_origin.y = sweep.direction.j * radius + position->y;
-    sweep.positive_origin.z = sweep.direction.k * radius + position->z;
+    point_from_line3d(position, &sweep.direction, radius, &sweep.positive_origin);
+    point_from_line3d(destination, &sweep.direction, radius, &sweep.positive_end);
+    point_from_line3d(position, &sweep.direction, -radius, &sweep.negative_origin);
+    point_from_line3d(destination, &sweep.direction, -radius, &sweep.negative_end);
 
-    sweep.positive_end.x = sweep.direction.i * radius + destination->x;
-    sweep.positive_end.y = sweep.direction.j * radius + destination->y;
-    sweep.positive_end.z = sweep.direction.k * radius + destination->z;
-
-    sweep.negative_origin.x = sweep.direction.i * (-radius) + position->x;
-    sweep.negative_origin.y = sweep.direction.j * (-radius) + position->y;
-    sweep.negative_origin.z = sweep.direction.k * (-radius) + position->z;
-
-    sweep.negative_end.x = sweep.direction.i * (-radius) + destination->x;
-    sweep.negative_end.y = sweep.direction.j * (-radius) + destination->y;
-    sweep.negative_end.z = sweep.direction.k * (-radius) + destination->z;
-
-    sweep.direction.i = sweep.positive_end.x - sweep.positive_origin.x;
-    sweep.direction.j = sweep.positive_end.y - sweep.positive_origin.y;
-    sweep.direction.k = sweep.positive_end.z - sweep.positive_origin.z;
+    vector_from_points3d(&sweep.positive_origin, &sweep.positive_end, &sweep.direction);
 
     if (SWEEP_LOS(FUN_0014df70(0x89, (float *)&sweep.positive_origin, (float *)&sweep.direction,
                                projectile->ignore_object_index, collision_result)) == 0 &&
@@ -798,9 +760,7 @@ void projectile_detonate(int projectile_handle, char has_hit_count, float curren
       object_get_world_position(projectile->object.parent_object_index.value, &parent_position);
       object_detach_from_parent(projectile_handle);
 
-      original_position.x = projectile->object.position.x;
-      original_position.y = projectile->object.position.y;
-      original_position.z = projectile->object.position.z;
+      original_position = projectile->object.position;
 
       object_translate(projectile_handle, (float *)&parent_position, NULL);
       object_try_place(projectile_handle, (float *)&original_position);
@@ -821,12 +781,7 @@ void projectile_detonate(int projectile_handle, char has_hit_count, float curren
   object_get_orientation(projectile_handle, (float *)&marker_forwards[0], (float *)&up);
 
   marker_points[1] = marker_points[0];
-  up.i = global_down3d->i;
-  up.j = global_down3d->j;
-  up.k = global_down3d->k;
-  marker_forwards[1].i = up.i;
-  marker_forwards[1].j = up.j;
-  marker_forwards[1].k = up.k;
+  marker_forwards[1] = *global_down3d;
 
   effect_new_unattached_from_markers(effect_tag_index, projectile->object.owner_object_index,
                                      NULL, 2, marker_names, (float *)marker_points, (float *)marker_forwards, 0.0f,
@@ -956,46 +911,47 @@ bool projectile_new(int projectile_handle)
 void projectile_accelerate(int projectile_handle, float *acceleration)
 {
   projectile_data_t *projectile;
-  vector3_t *velocity;
+  real_vector3d *velocity;
   real_vector3d direction;
   float magnitude_squared;
   float scale;
 
 #ifdef HALO_RNG_TRACE
   RNG_TRACE_EX(RNG_TRACE_KIND_PROJECTILE_ACCEL_X,
-               (unsigned int)projectile_handle, RNG_TRACE_BITS(acceleration[0]));
+               (unsigned int)projectile_handle, RNG_TRACE_BITS(((real_vector3d *)acceleration)->i));
   RNG_TRACE_EX(RNG_TRACE_KIND_PROJECTILE_ACCEL_YZ,
-               RNG_TRACE_BITS(acceleration[1]), RNG_TRACE_BITS(acceleration[2]));
+               RNG_TRACE_BITS(((real_vector3d *)acceleration)->j),
+               RNG_TRACE_BITS(((real_vector3d *)acceleration)->k));
 #endif
   projectile = projectile_get(projectile_handle);
   projectile_definition_get(projectile->object.tag_index);
   if (!real_vector3d_valid(acceleration)) {
     display_assert(
       csprintf(error_string_buffer, "%s: assert_valid_real_vector2d(%f, %f, %f)",
-               "acceleration", (double)acceleration[0], (double)acceleration[1], (double)acceleration[2]),
+               "acceleration", (double)((real_vector3d *)acceleration)->i,
+               (double)((real_vector3d *)acceleration)->j,
+               (double)((real_vector3d *)acceleration)->k),
       "c:\\halo\\SOURCE\\items\\projectiles.c", 0x3ef, 1);
     system_exit(-1);
   }
 
   if (projectile->object.parent_object_index.value == NONE) {
-    velocity = &projectile->object.translational_velocity;
+    velocity = (real_vector3d *)&projectile->object.translational_velocity;
 
     if (!real_vector3d_valid((float *)velocity)) {
       display_assert(
         csprintf(error_string_buffer, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                  "&projectile->object.translational_velocity",
-                 (double)velocity->x, (double)velocity->y, (double)velocity->z),
+                 (double)velocity->i, (double)velocity->j, (double)velocity->k),
         "c:\\halo\\SOURCE\\items\\projectiles.c", 0x3f3, 1);
       system_exit(-1);
     }
 
-    velocity->x += acceleration[0];
-    velocity->y += acceleration[1];
-    velocity->z += acceleration[2];
+    add_vectors3d(velocity, (real_vector3d *)acceleration, velocity); /* dup-args-ok: in-place */
 
     random_seed_get_direction3d((unsigned int *)get_global_random_seed_address(), (float *)&direction);
 
-    magnitude_squared = acceleration[0] * acceleration[0] + acceleration[1] * acceleration[1] + acceleration[2] * acceleration[2];
+    magnitude_squared = magnitude_squared3d((real_vector3d *)acceleration);
     /* 0xf9001: the squared magnitude is narrowed to float32 before the FSQRT
      * (0xf9018); the sqrt and scale stay wide.  Without it a thrown grenade
      * lands one tick late (system-link run 3, tick 1009 vs 1010). */
@@ -1021,7 +977,7 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
       display_assert(
         csprintf(error_string_buffer, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                  "&projectile->object.translational_velocity",
-                 (double)velocity->x, (double)velocity->y, (double)velocity->z),
+                 (double)velocity->i, (double)velocity->j, (double)velocity->k),
         "c:\\halo\\SOURCE\\items\\projectiles.c", 0x405, 1);
       system_exit(-1);
     }
@@ -1040,6 +996,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
                   int16_t *col_result /* @<esi> */)
 {
   collision_test_result *collision = (collision_test_result *)col_result;
+  real_vector3d *velocity = (real_vector3d *)in_velocity;
   projectile_data_t *projectile;
   projectile_definition_t *definition;
   projectile_material_response_definition_t *material_response;
@@ -1070,24 +1027,24 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   real_vector3d tangent_component;
   real_vector3d normal_component;
   real_vector3d direction;
-  real_point3d *point;
-  int marker_index;
+  short marker_index;
 
 #ifdef HALO_RNG_TRACE
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_HIT_XY,
-               RNG_TRACE_BITS(hit_pos[0]), RNG_TRACE_BITS(hit_pos[1]));
+               RNG_TRACE_BITS(((real_point3d *)hit_pos)->x),
+               RNG_TRACE_BITS(((real_point3d *)hit_pos)->y));
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_HIT_Z_HANDLE,
-               RNG_TRACE_BITS(hit_pos[2]), (unsigned int)projectile_handle);
+               RNG_TRACE_BITS(((real_point3d *)hit_pos)->z), (unsigned int)projectile_handle);
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_VEL_XY,
-               RNG_TRACE_BITS(in_velocity[0]), RNG_TRACE_BITS(in_velocity[1]));
+               RNG_TRACE_BITS(velocity->i), RNG_TRACE_BITS(velocity->j));
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_VEL_Z_TYPE,
-               RNG_TRACE_BITS(in_velocity[2]),
+               RNG_TRACE_BITS(velocity->k),
                (unsigned int)(unsigned short)collision->field_00);
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_NORMAL_XY,
-               RNG_TRACE_BITS(collision->normal[0]),
-               RNG_TRACE_BITS(collision->normal[1]));
+               RNG_TRACE_BITS(collision->normal.i),
+               RNG_TRACE_BITS(collision->normal.j));
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_NORMAL_Z_T,
-               RNG_TRACE_BITS(collision->normal[2]),
+               RNG_TRACE_BITS(collision->normal.k),
                RNG_TRACE_BITS(collision->t));
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_OBJECT_META,
                (unsigned int)collision->field_38,
@@ -1100,7 +1057,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
 
   effect_scale = 1.0f;
   material_effect_scale = 0.0f;
-  direction = *(real_vector3d *)in_velocity;
+  direction = *velocity;
   speed = normalize3d((float *)&direction);
   if (speed == REAL_ZERO_POOL) {
     direction = *global_up3d;
@@ -1136,13 +1093,13 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
     damage.owner_object_index = projectile->object.owner_object_index;
     damage.owner_team_index = projectile->object.owner_team_index;
     damage.scale = damage_scale;
-    damage.origin = *(real_point3d *)collision->position;
-    damage.epicenter = *(real_point3d *)collision->position;
-    damage.direction = *(real_vector3d *)in_velocity;
+    damage.origin = collision->position;
+    damage.epicenter = collision->position;
+    damage.direction = *velocity;
     normalize3d((float *)&damage.direction);
     object_cause_damage(&damage, collision->field_38,
                         (short)collision->field_3e, (short)collision->field_3c,
-                        (short)collision->field_4e, collision->normal);
+                        (short)collision->field_4e, (float *)&collision->normal);
     if (damage.material_type != NONE) {
       effect_definition_index = damage.material_type;
     }
@@ -1163,10 +1120,12 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   temp = -material_response->velocity_noise;
   seed = get_global_random_seed_address();
   velocity_noise = random_real_range(seed, temp, 0.0f);
+  /* Read through in_velocity, not the velocity alias: through the alias
+   * VC71 swaps FMUL operands here and in the hit_pos nudge (-15 bytes). */
   impact_velocity = velocity_noise -
-                    collision->normal[2] * in_velocity[2] -
-                    collision->normal[1] * in_velocity[1] -
-                    collision->normal[0] * in_velocity[0];
+                    collision->normal.k * ((real_vector3d *)in_velocity)->k -
+                    collision->normal.j * ((real_vector3d *)in_velocity)->j -
+                    collision->normal.i * ((real_vector3d *)in_velocity)->i;
   /* 0xf932b FSTP: narrowed before the range test and 0xf9950 reload it. */
   HALO_FLT_ROUNDTRIP(impact_velocity);
 
@@ -1176,7 +1135,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   {
     float angle_between;
 
-    angle_between = FUN_0010c510(in_velocity, collision->normal);
+    angle_between = FUN_0010c510(in_velocity, (float *)&collision->normal);
     impact_angle = angle_between - REAL_HALF_PI_POOL + impact_angle;
     /* 0xf9365 FSTP: narrowed before the range test and 0xf981e reload it. */
     HALO_FLT_ROUNDTRIP(impact_angle);
@@ -1230,9 +1189,9 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   if (collision->field_00 == 2 && (collision->field_4c & 0x8)) {
     damage_data_new(&damage, definition->impact_damage.tag_index);
     damage.flags |= 8;
-    damage.origin = *(real_point3d *)collision->position;
-    damage.epicenter = *(real_point3d *)collision->position;
-    damage.direction = *(real_vector3d *)in_velocity;
+    damage.origin = collision->position;
+    damage.epicenter = collision->position;
+    damage.direction = *velocity;
     normalize3d((float *)&damage.direction);
     material_type = collision->field_34;
     if (material_type < 0 ||
@@ -1254,7 +1213,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
                  collision->field_44);
   }
 
-  *(real_point3d *)hit_pos = *(real_point3d *)collision->position;
+  *(real_point3d *)hit_pos = collision->position;
 
   if (response == _projectile_material_response_overpenetrate) {
     if (collision->field_00 == 0) {
@@ -1266,17 +1225,18 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
       }
       projectile->object.flags = object_flags;
       projectile_calculate_deceleration(projectile_handle);
-      hit_pos[0] -= collision->normal[0] * REAL_0_001_POOL;
-      hit_pos[1] -= collision->normal[1] * REAL_0_001_POOL;
+      ((real_point3d *)hit_pos)->x -= collision->normal.i * REAL_0_001_POOL;
+      ((real_point3d *)hit_pos)->y -= collision->normal.j * REAL_0_001_POOL;
       /* Read through the parameter, not `collision`: the alias keeps the
        * reference's FLD normal.k / FMUL 0.001f operand order. */
-      hit_pos[2] -= ((collision_test_result *)col_result)->normal[2] *
+      ((real_point3d *)hit_pos)->z -= ((collision_test_result *)col_result)->normal.k *
                     REAL_0_001_POOL;
     } else if (collision->field_00 == _collision_result_object) {
       temp = REAL_ONE_POOL - material_response->field_90;
-      in_velocity[0] *= temp;
-      in_velocity[1] *= temp;
-      in_velocity[2] *= temp;
+      /* Through in_velocity for the same reason as impact_velocity. */
+      ((real_vector3d *)in_velocity)->i *= temp;
+      ((real_vector3d *)in_velocity)->j *= temp;
+      ((real_vector3d *)in_velocity)->k *= temp;
       projectile->ignore_object_index = collision->field_38;
     } else {
       if (definition->timer_upper_bound == REAL_ZERO_POOL) {
@@ -1288,21 +1248,21 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
       goto clear_velocity;
     }
   } else if (response == _projectile_material_response_reflect) {
-    FUN_0010b910(in_velocity, collision->normal,
+    FUN_0010b910(in_velocity, (float *)&collision->normal,
                  (float *)&normal_component, (float *)&tangent_component);
-    in_velocity[0] =
+    velocity->i =
       (1.0f - material_response->perpendicular_friction) * tangent_component.i -
       (1.0f - material_response->parallel_friction) * normal_component.i;
-    in_velocity[1] =
+    velocity->j =
       (1.0f - material_response->perpendicular_friction) * tangent_component.j -
       (1.0f - material_response->parallel_friction) * normal_component.j;
-    in_velocity[2] =
+    velocity->k =
       (1.0f - material_response->perpendicular_friction) * tangent_component.k -
       (1.0f - material_response->parallel_friction) * normal_component.k;
     goto add_noise;
   } else {
   clear_velocity:
-    *(real_vector3d *)in_velocity = *(real_vector3d *)halo_global_zero_vector_ptr;
+    *velocity = *(real_vector3d *)halo_global_zero_vector_ptr;
   }
 
 add_noise:
@@ -1323,15 +1283,11 @@ add_noise:
       upper_bound = material_response->velocity_noise;
       seed = get_global_random_seed_address();
       temp += random_real_range(seed, lower_bound, upper_bound);
-      in_velocity[0] = temp * in_velocity[0];
-      in_velocity[1] = temp * in_velocity[1];
-      in_velocity[2] = temp * in_velocity[2];
+      scale_vector3d(velocity, temp, velocity); /* dup-args-ok: in-place */
     }
   }
 
-  speed_squared = in_velocity[0] * in_velocity[0] +
-                  in_velocity[1] * in_velocity[1] +
-                  in_velocity[2] * in_velocity[2];
+  speed_squared = magnitude_squared3d(velocity);
   if (response != _projectile_material_response_attach) {
     if (speed_squared <
         definition->minimum_velocity * definition->minimum_velocity) {
@@ -1347,7 +1303,7 @@ add_noise:
 
   if (speed_squared < REAL_0_0001_POOL) {
     projectile->flags |= 0x10;
-    if (collision->normal[2] > REAL_0_3_POOL) {
+    if (collision->normal.k > REAL_0_3_POOL) {
       projectile->object.flags |= 0x20;
       if (definition->timer_upper_bound == REAL_ZERO_POOL) {
         action_projectile = projectile_get(projectile_handle);
@@ -1393,17 +1349,13 @@ clamp_material_effect_scale:
     direction.k * REAL_NEGATIVE_ONE_POOL;
   marker_forwards[_effect_marker_negative_incident] = direction;
   marker_forwards[_effect_marker_gravity] = *global_down3d;
-  marker_forwards[_effect_marker_normal] = *(real_vector3d *)collision->normal;
-  FUN_0010c8e0((float *)&direction, collision->normal,
+  marker_forwards[_effect_marker_normal] = collision->normal;
+  FUN_0010c8e0((float *)&direction, (float *)&collision->normal,
                (float *)&marker_forwards[_effect_marker_reflection]);
 
-  point = marker_points;
   for (marker_index = 0; marker_index < NUMBER_OF_EFFECT_MARKERS;
        marker_index++) {
-    point->x = collision->position[0];
-    point->y = collision->position[1];
-    point->z = collision->position[2];
-    point++;
+    marker_points[marker_index] = collision->position;
   }
 
   if (impact_velocity > REAL_ONE_OVER_120_POOL) {
@@ -1658,13 +1610,8 @@ bool projectile_update(int projectile_handle)
     ignore_object_index = projectile->ignore_object_index;
     moved = '\0';
 
-    /* 0xf9e07-0xf9e37: (x*x + y*y) + z*z */
-    speed = sqrtf(projectile->object.translational_velocity.x *
-                    projectile->object.translational_velocity.x +
-                  projectile->object.translational_velocity.y *
-                    projectile->object.translational_velocity.y +
-                  projectile->object.translational_velocity.z *
-                    projectile->object.translational_velocity.z);
+    speed = sqrtf(magnitude_squared3d(
+      (real_vector3d *)&projectile->object.translational_velocity));
     /* 0xf9e4c: FST dword [ebp-0x1c] -- the FSQRT result is narrowed before it
      * is copied on to [ebp-0x2c] (new_speed) and [ebp-0x38] (average_speed) at
      * 0xf9e55/0xf9e58, so all four locals hold the same float32. */
@@ -1742,23 +1689,17 @@ bool projectile_update(int projectile_handle)
       }
       angles[1] = angles[0];
       angles_to_vector((float *)&perpendicular, angles);
-      target_position.x = perpendicular.i * wander_fraction + target_position.x;
-      /* 0xfa06c / 0xfa07b / 0xfa08a: FSTP dword [ebp-0x6c] / [ebp-0x68] /
-       * [ebp-0x64] -- each component is narrowed before the target_delta
-       * subtractions reload it at 0xfa08d / 0xfa099 / 0xfa0a2. */
-      HALO_FLT_ROUNDTRIP(target_position.x);
-      target_position.y = perpendicular.j * wander_fraction + target_position.y;
-      HALO_FLT_ROUNDTRIP(target_position.y);
-      target_position.z = perpendicular.k * wander_fraction + target_position.z;
-      HALO_FLT_ROUNDTRIP(target_position.z);
-      target_delta.i = target_position.x - projectile->object.position.x;
-      target_delta.j = target_position.y - projectile->object.position.y;
-      target_delta.k = target_position.z - projectile->object.position.z;
+      point_from_line3d(&target_position, &perpendicular, wander_fraction,
+                        &target_position); /* dup-args-ok: in-place */
+      /* 0xfa06c/0xfa07b/0xfa08a: each component is FSTP'd before the
+       * target_delta subtractions reload it. */
+      HALO_FLT_ROUNDTRIP(target_position);
+      vector_from_points3d((real_point3d *)&projectile->object.position, &target_position,
+                           &target_delta);
       cross_product3d((float *)&projectile->object.translational_velocity,
                       (float *)&target_delta, (float *)&steer_axis);
-      dot = target_delta.i * projectile->object.translational_velocity.x +
-            target_delta.j * projectile->object.translational_velocity.y +
-            target_delta.k * projectile->object.translational_velocity.z;
+      dot = dot_product3d(&target_delta,
+                          (real_vector3d *)&projectile->object.translational_velocity);
       if ((dot > 0.0f) &&
           ((float)normalize3d((float *)&steer_axis) > 0.0f)) {
         float turn_cos, turn_sin;
@@ -1799,9 +1740,7 @@ bool projectile_update(int projectile_handle)
               (initial_speed > 0.0f)) {
             scale =
               (definition->final_velocity / initial_speed) * REAL_0_99_POOL;
-            velocity.i *= scale;
-            velocity.j *= scale;
-            velocity.k *= scale;
+            scale_vector3d(&velocity, scale, &velocity); /* dup-args-ok: in-place */
           }
         } else {
           projectile_set_action(projectile_handle, _projectile_action_delete);
@@ -1824,9 +1763,7 @@ bool projectile_update(int projectile_handle)
            * 0xfa413 / 0xfa42c. */
           HALO_FLT_ROUNDTRIP(average_speed);
           scale = new_speed / initial_speed;
-          velocity.i *= scale;
-          velocity.j *= scale;
-          velocity.k *= scale;
+          scale_vector3d(&velocity, scale, &velocity); /* dup-args-ok: in-place */
           /* 0xfa1fa/0xfa202/0xfa208: FSTP dword narrows each scaled component;
            * 0xfa20b/0xfa21a (and y/z) reload the narrowed slots for both
            * terms of the average. */
@@ -1854,9 +1791,7 @@ bool projectile_update(int projectile_handle)
            * slot at 0xfa265. */
           HALO_FLT_ROUNDTRIP(new_speed);
           scale = new_speed / initial_speed;
-          velocity.i *= scale;
-          velocity.j *= scale;
-          velocity.k *= scale;
+          scale_vector3d(&velocity, scale, &velocity); /* dup-args-ok: in-place */
           /* 0xfa270/0xfa278/0xfa27e: FSTP dword [ebp-0x10]/[ebp-0xc]/[ebp-8]
            * narrow each scaled component; 0xfa281/0xfa28f/0xfa29e reload the
            * narrowed slots for the average.  clang otherwise keeps the
@@ -1920,9 +1855,8 @@ bool projectile_update(int projectile_handle)
     }
 
     scale = range_fraction * time_remaining;
-    new_position.x = average_velocity.i * scale + projectile->object.position.x;
-    new_position.y = average_velocity.j * scale + projectile->object.position.y;
-    new_position.z = average_velocity.k * scale + projectile->object.position.z;
+    point_from_line3d((real_point3d *)&projectile->object.position, &average_velocity, scale,
+                      &new_position);
 
     if (!valid_real_point3d((float *)&new_position)) {
       display_assert(csprintf(error_string_buffer,
@@ -1974,11 +1908,9 @@ bool projectile_update(int projectile_handle)
             scale = initial_speed;
           }
           scale /= new_speed;
-          velocity.i *= scale;
-          velocity.j *= scale;
-          velocity.k *= scale;
+          scale_vector3d(&velocity, scale, &velocity); /* dup-args-ok: in-place */
         }
-        normal_k = collision.normal[2];
+        normal_k = collision.normal.k;
         if (normal_k > REAL_0_3_POOL) {
           projectile->flags |= FLAG(_projectile_unknown_bit2);
         }
@@ -1987,7 +1919,7 @@ bool projectile_update(int projectile_handle)
                              time_remaining, (float *)&velocity,
                              (int16_t *)&collision);
         bounce_count++;
-        ai_handle_spatial_effect(projectile_handle, collision.position, 1,
+        ai_handle_spatial_effect(projectile_handle, (float *)&collision.position, 1,
                                  definition->impact_noise, 1);
         if ((projectile->flags & FLAG(_projectile_attached_bit)) != 0) {
           moved = '\0';
@@ -2004,18 +1936,12 @@ bool projectile_update(int projectile_handle)
 
     if (moved != '\0') {
       {
-        volatile float dx, dy;
-        /* 0xfa6d2: FST dword [ebp-0x3c] -- no pop, so the square at 0xfa6d5
-         * multiplies the wide ST(0) by the narrowed slot; dx/dy are FSTP'd
-         * (0xfa6c0/0xfa6c9) and squared narrow-by-narrow.  Addend order is
-         * dz, dy, dx (0xfa6d5/0xfa6d8/0xfa6e0). */
-        float dz, dz_wide;
-        dx = new_position.x - projectile->object.position.x;
-        dy = new_position.y - projectile->object.position.y;
-        dz = new_position.z - projectile->object.position.z;
-        dz_wide = dz;
-        HALO_FLT_ROUNDTRIP(dz);
-        projectile->odometer += sqrtf(dz_wide * dz + dy * dy + dx * dx);
+        float dz_wide;
+        real_vector3d delta;
+        vector_from_points3d((real_point3d *)&projectile->object.position, &new_position, &delta);
+        dz_wide = delta.k;
+        HALO_FLT_ROUNDTRIP(delta.k);
+        projectile->odometer += sqrtf(dz_wide * delta.k + delta.j * delta.j + delta.i * delta.i);
       }
 
       /* flyby sound for the first local player the projectile passes */
@@ -2086,13 +2012,9 @@ bool projectile_update(int projectile_handle)
         {
           float *forward = (float *)&projectile->object.forward;
           float *up = (float *)&projectile->object.up;
-          velocity_direction.i = projectile->object.translational_velocity.x;
-          velocity_direction.j = projectile->object.translational_velocity.y;
-          velocity_direction.k = projectile->object.translational_velocity.z;
+          velocity_direction = *(real_vector3d *)&projectile->object.translational_velocity;
           if ((float)normalize3d((float *)&velocity_direction) > 0.0f) {
-            forward[0] = velocity_direction.i;
-            forward[1] = velocity_direction.j;
-            forward[2] = velocity_direction.k;
+            *(real_vector3d *)forward = velocity_direction;
             cross_product3d(up, forward, (float *)&sound_location.position);
             cross_product3d(forward, (float *)&sound_location.position, up);
             if ((float)normalize3d(up) == 0.0f) {
@@ -2109,9 +2031,7 @@ bool projectile_update(int projectile_handle)
                        &collision.field_0c);
       {
         float tick_remaining = time_remaining;
-        projectile->object.translational_velocity.x = velocity.i;
-        projectile->object.translational_velocity.y = velocity.j;
-        projectile->object.translational_velocity.z = velocity.k;
+        *(real_vector3d *)&projectile->object.translational_velocity = velocity;
         if ((tick_remaining != 0.0f) && ((short)bounce_count != 0) &&
             (projectile->tracer_attachment_index != NONE) &&
             (projectile->object.attachment_indices

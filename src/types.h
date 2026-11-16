@@ -4077,8 +4077,8 @@ typedef struct collision_test_result {
     int16_t field_10;      /* +0x10: cluster index for field_0c (MOVSX) */
     int16_t pad_12;        /* +0x12 */
     float   t;             /* +0x14: hit fraction along the sweep */
-    float   position[3];   /* +0x18: point + t * delta */
-    float   normal[3];     /* +0x24 */
+    real_point3d position; /* +0x18: point + t * delta */
+    real_vector3d normal;  /* +0x24 */
     float   field_30;      /* +0x30 */
     int16_t field_34;      /* +0x34 */
     int16_t pad_36;        /* +0x36 */
