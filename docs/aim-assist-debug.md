@@ -34,14 +34,14 @@ draws no ring. The rings are the true cone edges projected through the camera.
 Each vertex is `camera + 0.5 * dir` on the cone. A ring is therefore as wide on
 screen as the cone is in the world, at any FOV.
 
-Like jukkis, each ring is centered on the axis its own search uses. Each ring
-is projected from the render camera:
+The rings are centered as jukkis centers them. Each ring is projected from
+the render camera:
 
-- **magnetism**: centered on the observer-camera forward
-  (`observer_get_camera()+0x20`) that `local_player_aim_assist` handed to the
-  cone search on the last `get_local_player_input_blob` tick. If magnetism tests
-  a view older than the one on screen, this ring trails the reticle while you
-  turn.
+- **magnetism**: centered on the render camera forward, so it stays on the
+  reticle. The search itself uses the observer-camera forward
+  (`observer_get_camera()+0x20`) from before the tick's look turn, so while
+  you turn the tested cone is one tick behind this ring. The trace still
+  records that search axis.
 - **autoaim**: centered on `director_camera_deterministic`'s forward. In first
   person that forward is the unit's facing, `unit+0x1ec`. `player_aim_projectile`
   searches around that axis when the shot fires. The call is read-only.

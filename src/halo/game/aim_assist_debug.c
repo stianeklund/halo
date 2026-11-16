@@ -489,7 +489,6 @@ void aim_assist_debug_render(void)
   real magnetism_parameters[6];
   boolean have_autoaim;
   boolean have_magnetism;
-  real_vector3d magnetism_axis;
   real_vector3d autoaim_axis;
   char text[0x100];
 
@@ -521,17 +520,14 @@ void aim_assist_debug_render(void)
     aiming_unit_index, magnetism_parameters,
     player_control_get_zoom_level(local_player_index));
 
-  /* Each ring around the axis its own search uses, as jukkis does: magnetism
-   * around the observer forward local_player_aim_assist handed the search on
-   * the last tick, autoaim around the deterministic (unit facing) forward. */
-  magnetism_axis = state->search_forward_valid ? state->search_forward
-                                               : render.camera.forward;
+  /* As jukkis draws them: magnetism around the view, autoaim around the
+   * deterministic (unit facing) forward its search uses. */
   aim_debug_facing_forward(player->unit_handle, &render.camera.forward,
                            &autoaim_axis);
 
   if (halo_aim_assist_debug.rings) {
     if (have_magnetism) {
-      aim_debug_draw_ring(&render.camera.position, &magnetism_axis,
+      aim_debug_draw_ring(&render.camera.position, &render.camera.forward,
                           magnetism_parameters[2], &aim_debug_magnetism_color);
     }
     if (have_autoaim) {
