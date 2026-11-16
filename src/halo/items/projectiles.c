@@ -729,7 +729,7 @@ void projectile_detonate(int projectile_handle, char has_hit_count, float curren
     if ((parent->type == _object_type_biped) &&
         ((((unit_data_t *)object_get_and_verify_type(
              projectile->object.parent_object_index.value, _object_mask_biped))
-            ->unk_456.value == NONE) ||
+            ->player_index.value == NONE) ||
          game_engine_running()) &&
         ((short)count > 6)) {
       sibling_index = parent->first_child_object_index.value;
@@ -1099,7 +1099,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
     normalize3d((float *)&damage.direction);
     object_cause_damage(&damage, collision->object_index,
                         (short)collision->node_index, (short)collision->region_index,
-                        (short)collision->field_4e, (float *)&collision->normal);
+                        (short)collision->material_index, (float *)&collision->normal);
     if (damage.material_type != NONE) {
       effect_definition_index = damage.material_type;
     }
@@ -1209,8 +1209,8 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
     damage.leaf_index = collision->leaf_index;
     /* Dword copy of the int16 cluster_index and its padding. */
     damage.cluster_index = *(int32_t *)&collision->cluster_index;
-    FUN_00146a90((uint16_t)(uint8_t)collision->field_4d, &damage,
-                 collision->field_44);
+    FUN_00146a90((uint16_t)(uint8_t)collision->breakable_surface_index, &damage,
+                 collision->surface_index);
   }
 
   *(real_point3d *)hit_pos = collision->position;
@@ -1644,7 +1644,7 @@ bool projectile_update(int projectile_handle)
          * separate pointer local moves bytes */
         scratch = (int)object_get_and_verify_type(projectile->target_object_index,
                                                   _object_mask_unit);
-        if (((unit_data_t *)scratch)->unk_456.value != NONE) {
+        if (((unit_data_t *)scratch)->player_index.value != NONE) {
           turn_angle *= (float)FUN_000b5590(0x13);
           /* 0xf9f2e: FSTP dword [ebp-0x30] -- narrowed again after the
            * scale. */
@@ -2096,8 +2096,8 @@ bool projectile_update(int projectile_handle)
 
 /* Sum of the damage-effect midpoints of the first trigger's projectile
  * (impact damage, then attached-detonation damage); also returns the
- * trigger's field_08 through out_field8 when non-NULL. */
-float weapon_definition_get_damage_potential(int weapon_tag_index, float *out_field8)
+ * trigger's final rate of fire through rate_of_fire when non-NULL. */
+float weapon_definition_get_damage_potential(int weapon_tag_index, float *rate_of_fire)
 {
   weapon_definition_t *weapon;
   weapon_trigger_definition_t *trigger;
@@ -2111,8 +2111,8 @@ float weapon_definition_get_damage_potential(int weapon_tag_index, float *out_fi
   trigger = tag_block_get_element(&weapon->triggers, 0,
                                   sizeof(weapon_trigger_definition_t));
   damage_potential = 0.0f;
-  if (out_field8 != NULL) {
-    *out_field8 = trigger->field_08;
+  if (rate_of_fire != NULL) {
+    *rate_of_fire = trigger->final_rate_of_fire;
   }
   projectile_tag_index = trigger->projectile.tag_index;
   if (projectile_tag_index != NONE) {

@@ -727,7 +727,7 @@ typedef struct {
   uint8_t unk_447;                    ///< offset=0x1BF .text:001AE773                 mov     [esi+1BFh], al    seat index
   uint32_t unk_448;                   ///< offset=0x1C0 .text:001A81DA                 mov     [esi+1C0h], ecx
   uint32_t persistent_control_flags;  ///< offset=0x1C4 .text:001A81D3                 mov     [esi+1C4h], edi
-  datum_handle_t unk_456;             ///< offset=0x1C8 .text:00030656                 cmp     dword ptr [ebx+1C8h], 0FFFFFFFFh
+  datum_handle_t player_index;        ///< offset=0x1C8 .text:00030656                 cmp     dword ptr [ebx+1C8h], 0FFFFFFFFh
   uint16_t unk_460;                   ///< offset=0x1CC .text:0004091B                 cmp     bx, [esi+1CCh]
   uint16_t unk_462;                   ///< offset=0x1CE .text:001A9B5E                 mov     [esi+1CEh], ax
   uint32_t unk_464;                   ///< offset=0x1D0 .text:00040924                 mov     ecx, [esi+1D0h] game time related
@@ -4085,13 +4085,13 @@ typedef struct collision_test_result {
     int32_t object_index;      /* +0x38: object handle (FUN_0014dce0) */
     int16_t region_index;      /* +0x3c */
     int16_t node_index;      /* +0x3e */
-    int16_t field_40;      /* +0x40 */
+    int16_t bsp_index;     /* +0x40 */
     int16_t pad_42;        /* +0x42 */
-    int32_t field_44;      /* +0x44 */
-    int32_t field_48;      /* +0x48 */
+    int32_t surface_index; /* +0x44 */
+    int32_t plane_designator; /* +0x48 */
     char    flags;         /* +0x4c: bit 3 tested on bsp hits */
-    char    field_4d;      /* +0x4d */
-    int16_t field_4e;      /* +0x4e */
+    char    breakable_surface_index; /* +0x4d */
+    int16_t material_index; /* +0x4e */
 } collision_test_result;
 cs(collision_test_result, 0x50);
 co(collision_test_result, t,        0x14);

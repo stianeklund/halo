@@ -2861,8 +2861,8 @@ void ai_communication_started(int unit_handle, uint16_t priority, uint16_t type,
                        &global_scenario_get()->object_names,
                        unit->object.unk_106, sizeof(scenario_object_name_t)))
                       ->name);
-      } else if (unit->unk_456.value != -1) {
-        crt_sprintf(string, "player %d: ", unit->unk_456.value & 0xffff);
+      } else if (unit->player_index.value != -1) {
+        crt_sprintf(string, "player %d: ", unit->player_index.value & 0xffff);
       } else {
         crt_sprintf(string, "unit %04X: ", unit_handle & 0xffff);
       }
@@ -4013,7 +4013,7 @@ void ai_communication_finished(int unit_handle, short priority,
             unit_data_t *reply_unit =
               (unit_data_t *)object_get_and_verify_type(reply_unit_handle, 3);
 
-            if (reply_unit->unk_456.value == -1) { /* unit +0x1c8 player */
+            if (reply_unit->player_index.value == -1) { /* unit +0x1c8 player */
               char play_reply = 1;
 
               if (!reply_to_player) {
@@ -4570,7 +4570,7 @@ void ai_communication_event(short communication_type, int subject_unit_index,
         subject_encounter = (ai_communication_encounter_view_t *)datum_get(
           encounter_data, subject_encounter_index);
       }
-    } else if (subject_unit->unk_456.value != -1) { /* unit.player_index */
+    } else if (subject_unit->player_index.value != -1) { /* unit.player_index */
       subject_race = 1; /* _race_player */
     }
   }
@@ -4591,7 +4591,7 @@ void ai_communication_event(short communication_type, int subject_unit_index,
         cause_groups[0] = true;
         cause_groups[1] = false;
       }
-    } else if (cause_unit->unk_456.value != -1) {
+    } else if (cause_unit->player_index.value != -1) {
       cause_race = 1; /* _race_player */
     }
   }
@@ -5058,7 +5058,7 @@ void ai_communication_event(short communication_type, int subject_unit_index,
           if ((protagonist_unit->object.damage_flags & 4) != 0 || /* dead */
               protagonist_unit->object.type == 1) {  /* vehicle */
             valid = false;
-          } else if (protagonist_unit->unk_456.value != -1 &&
+          } else if (protagonist_unit->player_index.value != -1 &&
                      protagonist_unit->actor_index.value == -1) {
             if (usage->flags & 8) { /* _dialogue_usage_player_bit */
               is_reply = true;

@@ -3055,11 +3055,11 @@ bool FUN_0014e940(int param_1, float *origin, float *delta, float radius,
     result->type = 2;
     result->field_30 = 3.4028235e+38f;
     result->material_type = -1;
-    result->field_44 = -1;
-    result->field_48 = -1;
+    result->surface_index = -1;
+    result->plane_designator = -1;
     result->flags = 0;
-    result->field_4d = 0;
-    result->field_4e = -1;
+    result->breakable_surface_index = 0;
+    result->material_index = -1;
     hit = true;
   }
 

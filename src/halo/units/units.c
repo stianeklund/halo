@@ -3064,7 +3064,7 @@ bool unit_find_nearby_seat(int unit_handle, int target_unit_handle,
         /* child occupies the requested seat */
         result_handle = child_handle;
         not_found = false;
-      } else if (unit_data->unk_456.value != -1 &&
+      } else if (unit_data->player_index.value != -1 &&
                  game_allegiance_get_team_is_friendly(
                    (int16_t)unit_data->object.unk_104,
                    (uint16_t)child_obj->unk_104)) {

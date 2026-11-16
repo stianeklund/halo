@@ -433,13 +433,13 @@ cs(impulse_sound_location_t, 0x2c);
  * weapon_definition_get_damage_potential. */
 typedef struct {
   char pad_00[0x8];
-  real field_08;
+  real final_rate_of_fire;       ///< offset=0x08
   char pad_0c[0x94 - 0xc];
   tag_reference projectile;      ///< offset=0x94  resolved as a 'proj' tag
   char pad_a4[0x114 - 0xa4];
 } weapon_trigger_definition_t;
 cs(weapon_trigger_definition_t, 0x114);
-co(weapon_trigger_definition_t, field_08, 0x08);
+co(weapon_trigger_definition_t, final_rate_of_fire, 0x08);
 co(weapon_trigger_definition_t, projectile, 0x94);
 
 /* 'weap' definition prefix */
