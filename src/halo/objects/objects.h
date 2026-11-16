@@ -217,6 +217,247 @@ enum {
 #define projectile_definition_get(index) \
   ((projectile_definition_t *)tag_get(TAG_GROUP_PROJ, (index)))
 
+/* object.flags bit 4: selects the water gravity scale and water damage range
+ * over the air ones (projectile_calculate_deceleration, projectile_update). */
+enum {
+  _object_under_water_bit = 4
+};
+
+/* projectile.flags bit 0: set when object.angular_velocity is non-zero and
+ * field_214 holds its unit axis (projectile_adjust_for_angular_velocity_change). */
+enum {
+  _projectile_has_angular_velocity_bit = 0
+};
+
+/* projectile_definition_t.flags bit 1: projectile_aim uses the ballistic solver
+ * (when air_gravity_scale > 0) instead of the straight-line one. */
+enum {
+  _projectile_definition_aim_ballistic_bit = 1
+};
+#define REAL_4_0_POOL (*(float *)0x2533d8) /* 4.0f */
+
+#define TAG_GROUP_CONT 0x636f6e74 /* 'cont' */
+
+enum {
+  _object_mask_biped = 1 << _object_type_biped
+};
+
+/* Element of projectile_definition_t.attachments (element size 0x48 at
+ * 0xf8d50).  projectile_new matches the leading group tag against 'cont'. */
+typedef struct {
+  int32_t tag_group;        ///< offset=0x00  group tag of the attached tag reference
+  char pad_04[0x44];        ///< offset=0x04
+} projectile_attachment_definition_t;
+cs(projectile_attachment_definition_t, 0x48);
+
+
+
+typedef struct {
+  real lower;
+  real upper;
+} real_bounds;
+
+/* 'proj' material_responses element (0xa0 stride at every
+ * tag_block_get_element call in projectile_collision).  Offsets and widths
+ * from projectile_collision (0xf90d0); 0x31ed08 is the default record used
+ * when the material index is out of range, and its three initialized 'effe'
+ * references prove the tag_reference spans at +0x04, +0x3c and +0x68. */
+typedef struct {
+  uint8_t pad_00[2];                   ///< offset=0x00
+  int16_t default_response;            ///< offset=0x02  response when the potential gate fails
+  tag_reference default_effect;        ///< offset=0x04  effect index read at +0x10
+  uint8_t pad_14[0x10];                ///< offset=0x14
+  int16_t potential_response;          ///< offset=0x24  0 disables the potential gate
+  uint16_t potential_flags;            ///< offset=0x26  bit 0: only when the hit object is a unit
+  real potential_skip_fraction;        ///< offset=0x28  gate passes when random_math_real() >= this
+  real_bounds potential_angle;         ///< offset=0x2C  impact angle range, upper 0 = unbounded
+  real_bounds potential_velocity;      ///< offset=0x34  impact velocity range, upper 0 = unbounded
+  tag_reference potential_effect;      ///< offset=0x3C  effect index read at +0x48
+  uint8_t pad_4c[0x10];                ///< offset=0x4C
+  int16_t scale_effects_by;            ///< offset=0x5C  0: damage scale, 1: impact angle * 2/pi
+  uint8_t pad_5e[2];                   ///< offset=0x5E
+  real angular_noise;                  ///< offset=0x60  cone angle and impact-angle noise
+  real velocity_noise;                 ///< offset=0x64  speed noise range
+  tag_reference detonation_effect;     ///< offset=0x68  fired by projectile_detonate
+  uint8_t pad_78[0x18];                ///< offset=0x78
+  real field_90;                       ///< offset=0x90  overpenetration keeps (1 - this) of the velocity
+  uint8_t pad_94[4];                   ///< offset=0x94
+  real parallel_friction;              ///< offset=0x98  reflect: damps the component along the normal
+  real perpendicular_friction;         ///< offset=0x9C  reflect: damps the component across the surface
+} projectile_material_response_definition_t;
+cs(projectile_material_response_definition_t, 0xa0);
+co(projectile_material_response_definition_t, default_effect, 0x04);
+co(projectile_material_response_definition_t, potential_response, 0x24);
+co(projectile_material_response_definition_t, potential_effect, 0x3c);
+co(projectile_material_response_definition_t, scale_effects_by, 0x5c);
+co(projectile_material_response_definition_t, angular_noise, 0x60);
+co(projectile_material_response_definition_t, detonation_effect, 0x68);
+co(projectile_material_response_definition_t, field_90, 0x90);
+co(projectile_material_response_definition_t, perpendicular_friction, 0x9c);
+
+#define REAL_TWO_OVER_PI_POOL (*(float *)0x28ac24) /* 0.63661975f */
+#define REAL_ONE_OVER_120_POOL (*(float *)0x28ac20) /* 0.008333334f */
+#define REAL_NEGATIVE_ONE_POOL (*(float *)0x255e94) /* -1.0f */
+
+/* Pointers to constant unit vectors: 0x31fc44 -> (0,0,1), 0x31fc50 -> (0,0,-1). */
+#define global_up3d (*(real_vector3d **)0x31fc44)
+#define global_down3d (*(real_vector3d **)0x31fc50)
+
+/* Slots of the marker arrays handed to the effect calls, in the order of
+ * the effect_marker_names strings at 0x31f3a0. */
+enum {
+  _effect_marker_normal = 0,
+  _effect_marker_incident = 1,
+  _effect_marker_negative_incident = 2,
+  _effect_marker_reflection = 3,
+  _effect_marker_gravity = 4
+};
+
+#define default_projectile_material_response \
+  (*(projectile_material_response_definition_t *)0x31ed08)
+
+
+/* Material responses, by their effect in projectile_collision: raise the
+ * action to delete / detonate, reflect the velocity off the surface, keep
+ * the velocity and ignore the hit object, attach to the hit object. */
+enum {
+  _projectile_material_response_disappear = 0,
+  _projectile_material_response_detonate = 1,
+  _projectile_material_response_reflect = 2,
+  _projectile_material_response_overpenetrate = 3,
+  _projectile_material_response_attach = 4
+};
+
+/* damage_data_new (0x136750) output, 0x54 bytes.  Same block as
+ * struct damage_data in types.h, which cannot gain members there.
+ * +0x14/+0x18/+0x4c/+0x50 are stored by projectile_collision at
+ * 0xf94c1..0xf94de; +0x48/+0x4c are read back after object_cause_damage. */
+typedef struct {
+  uint8_t pad_00[4];                ///< offset=0x00
+  uint32_t flags;                   ///< offset=0x04
+  int32_t owner_player_index;       ///< offset=0x08
+  int32_t owner_object_index;       ///< offset=0x0C
+  int16_t owner_team_index;         ///< offset=0x10
+  uint8_t pad_12[2];                ///< offset=0x12
+  int32_t field_14;                 ///< offset=0x14  collision_test_result +0x0c
+  int32_t field_18;                 ///< offset=0x18  collision_test_result +0x10 (dword copy)
+  real_point3d origin;              ///< offset=0x1C
+  real_point3d epicenter;           ///< offset=0x28
+  real_vector3d direction;          ///< offset=0x34
+  real scale;                       ///< offset=0x40
+  uint8_t pad_44[4];                ///< offset=0x44
+  real field_48;                    ///< offset=0x48  written by object_cause_damage
+  int16_t material_type;            ///< offset=0x4C  material_responses index; NONE when unset
+  uint8_t pad_4e[2];                ///< offset=0x4E
+  projectile_material_response_definition_t *material_response; ///< offset=0x50
+} damage_data_t;
+cs(damage_data_t, 0x54);
+co(damage_data_t, flags, 0x04);
+co(damage_data_t, owner_team_index, 0x10);
+co(damage_data_t, field_14, 0x14);
+co(damage_data_t, origin, 0x1c);
+co(damage_data_t, epicenter, 0x28);
+co(damage_data_t, direction, 0x34);
+co(damage_data_t, scale, 0x40);
+co(damage_data_t, field_48, 0x48);
+co(damage_data_t, material_type, 0x4c);
+co(damage_data_t, material_response, 0x50);
+
+enum {
+  _projectile_unknown_bit2 = 2, /* set when the hit surface normal k > 0.3 */
+  _projectile_unknown_bit4 = 4,
+  /* latched by projectile_update once detonation_timer starts advancing */
+  _projectile_detonation_timer_running_bit = 5
+};
+
+enum {
+  /* forward follows the translational velocity (projectile_update) */
+  _projectile_definition_oriented_along_velocity_bit = 0
+};
+
+enum {
+  _object_unknown_bit5 = 5 /* projectile_update stops simulating when set */
+};
+
+/* projectile_data_t.action; projectile_update's post-loop switch detonates
+ * on 1 and deletes on 2, and projectile_set_action only ever raises it. */
+enum {
+  _projectile_action_none = 0,
+  _projectile_action_detonate = 1,
+  _projectile_action_delete = 2
+};
+
+/* collision_user_stack entry pushed around projectile_update's line test */
+#define COLLISION_USER_PROJECTILE_UPDATE 0xe
+#define MAXIMUM_COLLISION_USER_STACK_DEPTH 0x20 /* named by the depth assert string */
+#define MAXIMUM_PROJECTILE_BOUNCES_PER_TICK 10
+/* kb global global_current_collision_user_depth read by address: the
+ * extern-symbol spelling of the pop loses raw bytes in projectile_update */
+#define collision_user_depth_word (*(int16_t *)0x4761d8)
+/* kb global global_gravity read by address for the same reason */
+#define global_gravity_by_address (*(float *)0x32512c)
+
+/* profile section whose name string (+0x00) is "projectile_update";
+ * +0x08 is the section's active byte. */
+#define projectile_update_profile_section ((void *)0x31eda8)
+#define projectile_update_profile_section_active (*(char *)0x31edb0)
+/* kb global profile_global_enable read by address: the extern-symbol
+ * spelling changes projectile_update's code bytes */
+#define profile_global_enable_byte (*(char *)0x449ef1)
+
+#define REAL_10_POOL (*(float *)0x253f34) /* 10.0f */
+#define REAL_0_125_POOL (*(float *)0x268ed0) /* 0.125f */
+#define REAL_ONE_NINETIETH_POOL (*(float *)0x26f2e0) /* 0.011111111f */
+#define REAL_TWO_PI_POOL (*(float *)0x255a54) /* 6.2831855f */
+#define REAL_0_99_POOL (*(float *)0x28ace8) /* 0.99f */
+#define REAL_ONE_THIRTIETH_28AB38_POOL (*(float *)0x28ab38) /* 0.033333335f */
+
+/* Location handed to unattached_impulse_sound_new (0x2c bytes); the
+ * flyby sound fills it in projectile_update. */
+typedef struct {
+  real_point3d position;   ///< offset=0x00
+  real_vector3d field_0c;  ///< offset=0x0C  projectile up
+  real_vector3d field_18;  ///< offset=0x18  global down vector
+  real field_24;           ///< offset=0x24
+  real field_28;           ///< offset=0x28
+} impulse_sound_location_t;
+cs(impulse_sound_location_t, 0x2c);
+
+/* Marker name strings in .rdata handed to effect_new_unattached_from_markers. */
+#define marker_name_none ((void *)0x25386f)    /* "" */
+#define marker_name_gravity ((void *)0x26ad40) /* "gravity" */
+
+#define TAG_GROUP_JPT 0x6a707421 /* 'jpt!' */
+
+/* 'weap' trigger block element; only the fields read by
+ * weapon_definition_get_damage_potential. */
+typedef struct {
+  char pad_00[0x8];
+  real field_08;
+  char pad_0c[0x94 - 0xc];
+  tag_reference projectile;      ///< offset=0x94  resolved as a 'proj' tag
+  char pad_a4[0x114 - 0xa4];
+} weapon_trigger_definition_t;
+cs(weapon_trigger_definition_t, 0x114);
+co(weapon_trigger_definition_t, field_08, 0x08);
+co(weapon_trigger_definition_t, projectile, 0x94);
+
+/* 'weap' definition prefix */
+typedef struct {
+  char pad_000[0x4fc];
+  tag_block triggers;            ///< offset=0x4FC  weapon_trigger_definition_t
+} weapon_definition_t;
+co(weapon_definition_t, triggers, 0x4fc);
+
+/* 'jpt!' definition prefix */
+typedef struct {
+  char pad_000[0x1d4];
+  real field_1d4;                ///< offset=0x1D4  averaged with field_1d8 as the damage potential
+  real field_1d8;                ///< offset=0x1D8
+} damage_effect_definition_t;
+co(damage_effect_definition_t, field_1d4, 0x1d4);
+co(damage_effect_definition_t, field_1d8, 0x1d8);
+
 // OBJE -> SCEN
 /// size=0x1A8
 typedef struct {

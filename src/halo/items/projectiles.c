@@ -18,30 +18,16 @@ static bool sweep_los_trace(bool result, int16_t *collision_result)
 #define SWEEP_LOS(call) (call)
 #endif
 
-/* projectiles_initialize (0xf7c70)
- *
- * Confirmed: the body is a single RET (C3).
- * Confirmed: only reference is the projectile object_type_definition table
- *   at 0x324108, slot +0x10 (initialize). */
+/* The empty hooks below are slots of the projectile object type definition
+ * (0x324108); each compiles to a lone RET. */
 void projectiles_initialize(void)
 {
 }
 
-/* projectiles_initialize_for_new_map (0xf7c80)
- *
- * Confirmed: the body is a single RET (C3).
- * Confirmed: only reference is the projectile object_type_definition table
- *   at 0x324108, slot +0x18 (initialize_for_new_map). */
 void projectiles_initialize_for_new_map(void)
 {
 }
 
-/* projectiles_dispose_from_old_map (0xf7c90)
- *
- * Confirmed: the body is a single RET (C3).
- * Confirmed: only reference is the projectile object_type_definition table
- *   at 0x324108, slot +0x1c (dispose_from_old_map); name from PAL 2342
- *   objects/object_types.c projectile_data_definition (T2). */
 void projectiles_dispose_from_old_map(void)
 {
 }
@@ -62,11 +48,6 @@ void projectiles_delete_all(void)
   }
 }
 
-/* projectile_delete (0xf7d20)
- *
- * Confirmed: the body is a single RET (C3).
- * Confirmed: only reference is the projectile object_type_definition table
- *   at 0x324108, slot +0x2c (datum delete), called with the object handle. */
 void projectile_delete(int projectile_handle)
 {
 }
@@ -249,119 +230,57 @@ char projectile_handle_parent_destroyed(int projectile_handle)
   return true;
 }
 
-void random_vector_in_cone3d(float *forward, float zero, float angle,
+void random_vector_in_cone3d(float *forward, float minimum_angle, float maximum_angle,
                              float *result)
 {
-  seed_random_vector_in_cone3d(get_global_random_seed_address(), forward, zero, angle,
-                     result);
+  seed_random_vector_in_cone3d(get_global_random_seed_address(), forward, minimum_angle,
+                               maximum_angle, result);
 }
 
-/*
- * Ballistic arc trajectory solver.
- *
- * Computes the initial aim direction for a projectile that must follow a
- * parabolic arc from origin to target under gravity.  The caller supplies an
- * initial speed budget (speed), the effective per-tick gravity scale (gravity),
- * 3D origin and target vectors, and optional constraints / override values.
- * On success the function fills aim_vector with the normalised launch direction
- * and populates up to five optional output scalars; it returns 1 when a
- * non-trivial arc solution was found and 0 when the fallback minimum-range
- * trajectory is used instead.
- *
- * Algorithm overview
- * ------------------
- * 1. Compute the displacement delta = target - origin.
- * 2. Derive the effective gravity coefficient
- *      a_coeff = max(0, per_tick_const * gravity)
- *    and the quadratic coefficient a = a_coeff^2 * 0.25.
- * 3. Compute the discriminant base (4*a*c, where c = |delta|^2) and verify
- *    that a solution exists (assert 4ac > 0).
- * 4. The maximum time-of-flight for which the quadratic has real solutions is
- *      t_sq_max = sqrt(4*a*c) / (2*a)
- *    (asserted >= 0).  t_max = sqrt(t_sq_max).
- * 5. The minimum time-of-flight (t_min) is:
- *      t_min = sqrt(a_coeff * dz - disc_base)  if that is >= 0, else 0.
- * 6. Choose launch speed V:
- *    - If param_7 != NULL: V = *param_7.
- *    - Else start with V = speed; if param_6 != NULL and *param_6 > 0 then
- *      reduce V to match the desired time (capped at the caller's max speed).
- * 7. If a valid arc solution exists (t_min <= V), solve the quadratic for the
- *    time parameter t_disc and replace V when the result is valid.
- * 8. Build the initial velocity vector (vx,vy,vz) from the chosen t/V values,
- *    normalise it, and write the unit direction to aim_vector.
- * 9. Fill optional outputs: param_10 = time, param_11 = t_param,
- *    param_12 = t_param*time, param_13 = vertical velocity, param_14 =
- *    horizontal speed magnitude.
- *
- * Source ref: c:\halo\SOURCE\items\projectiles.c lines 0x2ee-0x36f.
- */
-char projectile_aim_ballistic(float speed, float gravity, float *origin,
-                              float *target, int param_5, float *param_6,
-                              float *param_7, char param_8, float *aim_vector,
-                              float *param_10, float *param_11, float *param_12,
-                              float *param_13, float *param_14)
+/* Solves a*t^4 + (acceleration_height - v^2)*t^2 + c = 0 (a = acceleration^2/4,
+ * c = |delta|^2) for the flight time t, falling back to the minimum-speed arc
+ * (t_max, v_min) when there is no solution.  Returns false on the fallback paths.
+ * param_5 is never read. */
+char projectile_aim_ballistic(float speed, float gravity_scale, float *origin,
+                              float *target, int param_5, float *ballistic_fraction,
+                              float *forced_velocity, char lob, float *result_aim_vector,
+                              float *result_velocity, float *result_ticks,
+                              float *result_distance, float *result_vertical_velocity,
+                              float *result_horizontal_velocity)
 {
-  /* Local variables mirror the original MSVC stack frame layout.
-   * Frame size: SUB ESP,0x34 (= 52 bytes = 13 float slots + 1 char).
-   *
-   * Locals at EBP-N (Ghidra names):
-   *   EBP-0x34 = aim_vec[0]   (float buffer for normalize3d)
-   *   EBP-0x30 = aim_vec[1]
-   *   EBP-0x2c = aim_vec[2]   (also holds aim_z)
-   *   EBP-0x28 = dx
-   *   EBP-0x24 = dy
-   *   EBP-0x20 = dz
-   *   EBP-0x1c = t_max
-   *   EBP-0x18 = two_a
-   *   EBP-0x14 = dist_sq
-   *   EBP-0x10 = disc_base (-sqrt(4ac)), then t_min
-   *   EBP-0x0c = c4 = 4*a*c
-   *   EBP-0x08 = b = a_coeff*dz
-   *   EBP-0x01 = result (char)
-   *
-   * Parameter slots reused as float temps by the original MSVC code:
-   *   EBP+0x08 (speed)   -> t_sol
-   *   EBP+0x0c (gravity) -> a (quadratic coefficient a = a_coeff^2*0.25)
-   *   EBP+0x10 (origin)  -> a_coeff, then t_sol*V_out product
-   *   EBP+0x14 (target)  -> V (chosen speed), then V_out
-   *
-   * Source ref: c:\halo\SOURCE\items\projectiles.c lines 0x2ee-0x36f.
-   */
-  /* Declare as contiguous array so normalize3d reads all three components.
-   * MSVC placed local_38/34/30 adjacent (EBP-0x34/-0x30/-0x2c); clang may
-   * insert a gap (local_14 lands between Y and Z), causing normalize3d to
-   * read the wrong Z and leave it unnormalized → assert_valid_real_normal3d. */
-  float aim_xyz[3]; /* [0]=local_38 (X), [1]=local_34 (Y), [2]=local_30 (Z) */
-#define aim_x aim_xyz[0] /* local_38, EBP-0x34 */
-#define aim_y aim_xyz[1] /* local_34, EBP-0x30 */
-#define aim_z aim_xyz[2] /* local_30, EBP-0x2c */
-  float dx;  /* local_2c, EBP-0x28 */
-  float dy;  /* local_28, EBP-0x24 */
-  float dz;  /* local_24, EBP-0x20 */
-  float t_max;  /* local_20, EBP-0x1c */
-  float two_a;  /* local_1c, EBP-0x18 */
-  float dist_sq;  /* local_18, EBP-0x14 */
-  float t_min;  /* local_14, EBP-0x10; disc_base then t_min */
-  float c4;  /* local_10, EBP-0x0c */
-  float b;  /* local_c, EBP-0x08 */
-  float b_wide; /* wide (un-narrowed) companion of b, see 0xf81ad FST */
-  float inv_t;  /* 1/t_sol, never stored by the original (0xf82ea) */
-  volatile char ok;  /* local_5, EBP-0x01 */
-  float a; /* quadratic coeff a = a_coeff^2 * 0.25 */
-  float a_coeff; /* effective gravity: max(0, per_tick*gravity) */
-  float V; /* chosen launch speed, then V_out at output stage */
-  float tmp_f;  /* fVar1 */
-  float tmp_f2;  /* fVar2 */
-  float tmp_wide; /* wide (un-narrowed) companion of tmp_f, see 0xf8272 */
-  float partial; /* dy^2 + dx^2 partial sum for interleaved dist_sq */
+  real_vector3d aim_vector;
+  /* separate scalars: a real_vector3d delta is laid out at [ebp-0x34] (-3 bytes) */
+  float dx;
+  float dy;
+  float dz;
+  float t_max;
+  float two_a;
+  float c;
+  float b;
+  float v_min;
+  float four_a_c;
+  float acceleration_height;
+  float acceleration_height_wide; /* 0xf81ad: FST, the subtract uses the wide copy */
+  float inverse_t; /* 0xf82ea: 1/t stays in ST(0), never stored */
+  /* volatile: without it the byte flag at [ebp-1] is enregistered (-20 bytes) */
+  volatile char result;
+  bool solution;
+  float a;
+  float acceleration;
+  /* shares t_squared_max's slot; a separate local costs 10 bytes */
+  float v_desired;
+  float distance;
+  /* scratch shared by several roles; splitting them into named locals costs bytes */
+  float temp;
+  float temp2;
+  float temp_wide; /* 0xf8272: FST, the square uses the wide copy */
+  float horizontal_distance_squared;
 
-  /* 1. Displacement = target - origin.
-   * ok is set to 1 here to match the original's instruction order:
-   * FSUB,FSTP(dx),MOVB(1),FSUB,FSTP(dy),FSUB,FSTP(dz). */
+  solution = false;
   dx = target[0] - origin[0];
   /* 0xf80b4: FSTP dword [ebp-0x28] -- narrowed before the reload at 0xf80cf. */
   HALO_FLT_ROUNDTRIP(dx);
-  ok = 1;
+  result = true;
   dy = target[1] - origin[1];
   /* 0xf80bd: FSTP dword [ebp-0x24] -- narrowed before the reload at 0xf80c9. */
   HALO_FLT_ROUNDTRIP(dy);
@@ -370,42 +289,32 @@ char projectile_aim_ballistic(float speed, float gravity, float *origin,
    * 0xf810c / 0xf81aa / 0xf8303. */
   HALO_FLT_ROUNDTRIP(dz);
 
-  /* 2. Partial distance sum (dy^2 + dx^2) computed first.
-   * The original interleaves this with the gravity computation:
-   * partial stays on the FPU stack as st1 while a_coeff/a are computed,
-   * then dz^2 is added to partial to complete dist_sq. */
-  partial = dy * dy + dx * dx;
+  /* Stays on the FPU stack while acceleration and a are computed. */
+  horizontal_distance_squared = dy * dy + dx * dx;
 
-  /* 3. Effective gravity coefficient, clamped to zero. */
-  a_coeff = *(float *)0x32512c * gravity;
-  if (a_coeff < *(float *)0x2533c0) {
-    a_coeff = 0.0f;
+  acceleration = global_gravity * gravity_scale;
+  if (acceleration < REAL_ZERO_POOL) {
+    acceleration = 0.0f;
   }
   /* 0xf80fa: FSTP dword [ebp+0x10] -- the clamp compares the wide stack copy
    * (FCOMP at 0xf80e6), then stores the float32 the rest of the function
    * reloads (0xf80fd, 0xf8309).  The zero path stores an integer 0. */
-  HALO_FLT_ROUNDTRIP(a_coeff);
+  HALO_FLT_ROUNDTRIP(acceleration);
 
-  /* 4. Quadratic coefficient a = a_coeff^2 * 0.25.
-   * Two-step to force a_coeff*a_coeff before *0.25 (matches MSVC operand
-   * order). */
-  tmp_f = a_coeff * a_coeff;
-  a = tmp_f * *(float *)0x25337c;
+  temp = acceleration * acceleration;
+  a = temp * REAL_0_25_POOL;
   /* 0xf8109: FSTP dword [ebp+0xc] -- narrowed before the reloads at 0xf815f
-   * (two_a) and 0xf820a.  tmp_f itself is never stored. */
+   * (two_a) and 0xf820a.  temp itself is never stored. */
   HALO_FLT_ROUNDTRIP(a);
 
-  /* 5. Complete dist_sq by adding dz^2 to partial sum. */
-  dist_sq = dz * dz + partial;
+  c = dz * dz + horizontal_distance_squared;
   /* 0xf8114: FSTP dword [ebp-0x14] -- narrowed before the reloads at 0xf8119
-   * and 0xf8203.  partial stays on the FPU stack and is discarded. */
-  HALO_FLT_ROUNDTRIP(dist_sq);
+   * and 0xf8203. */
+  HALO_FLT_ROUNDTRIP(c);
 
-  /* 6. c4 = dist_sq * a * 4.0; assert > 0.
-   * Two-step to force dist_sq*a before *4.0 (matches MSVC operand order). */
-  tmp_f = dist_sq * a;
-  c4 = tmp_f * *(float *)0x2533d8;
-  if (!(c4 > *(const float *)0x2533c0)) {
+  temp = c * a;
+  four_a_c = temp * REAL_4_0_POOL;
+  if (!(four_a_c > REAL_ZERO_POOL)) {
     display_assert("4.0f * a * c > 0.0f",
                    "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2f8, 1);
     system_exit(-1);
@@ -413,944 +322,643 @@ char projectile_aim_ballistic(float speed, float gravity, float *origin,
   /* 0xf8125: FST dword [ebp-0xc] -- no pop, so the assert compare at 0xf8128
    * still sees the wide stack copy; the FSQRT at 0xf8155 and the subtract at
    * 0xf8278 reload the narrowed slot. */
-  HALO_FLT_ROUNDTRIP(c4);
+  HALO_FLT_ROUNDTRIP(four_a_c);
 
-  /* 7. disc_base = -sqrt(c4); two_a = 2*a. */
-  t_min = -sqrtf(c4);
+  b = -sqrtf(four_a_c);
   /* 0xf815c: FSTP dword [ebp-0x10] -- narrowed before the divide at 0xf816a. */
-  HALO_FLT_ROUNDTRIP(t_min);
+  HALO_FLT_ROUNDTRIP(b);
   two_a = a + a;
 
-  /* t_sq_max = -disc_base / two_a; assert >= 0. */
-  V = -t_min / two_a;
-  if (!(V >= *(const float *)0x2533c0)) {
+  v_desired = -b / two_a;
+  if (!(v_desired >= REAL_ZERO_POOL)) {
     display_assert("t_squared_max >= 0.0f",
                    "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2fc, 1);
     system_exit(-1);
   }
   /* 0xf816f: FST dword [ebp+0x14] -- the compare above sees the wide copy,
    * the FSQRT at 0xf819f reloads the narrowed slot. */
-  HALO_FLT_ROUNDTRIP(V);
-  t_max = sqrtf(V); /* t_max */
+  HALO_FLT_ROUNDTRIP(v_desired);
+  t_max = sqrtf(v_desired); /* v_desired holds t_squared_max here */
   /* 0xf81a4: FSTP dword [ebp-0x1c] -- narrowed before the reload at 0xf81fa. */
   HALO_FLT_ROUNDTRIP(t_max);
 
-  /* 8. b = a_coeff * dz; t_min = sqrt(b - disc_base) if >= 0, else 0.
-   * Branch polarity: original falls through to the zero path, jumps to sqrt. */
   /* 0xf81ad: FST dword [ebp-8] -- no pop.  The subtract at 0xf81b0 uses the
    * wide copy; the reloads at 0xf8211 and 0xf826f use the narrowed slot. */
-  b_wide = a_coeff * dz;
-  b = b_wide;
-  HALO_FLT_ROUNDTRIP(b);
-  if (b_wide - t_min < *(float *)0x2533c0) {
-    t_min = 0.0f;
+  acceleration_height_wide = acceleration * dz;
+  acceleration_height = acceleration_height_wide;
+  HALO_FLT_ROUNDTRIP(acceleration_height);
+  if (acceleration_height_wide - b < REAL_ZERO_POOL) {
+    v_min = 0.0f;
   } else {
-    t_min = sqrtf(b_wide - t_min);
+    v_min = sqrtf(acceleration_height_wide - b);
   }
 
-  /* 9. Choose launch speed V. */
-  if (param_7 != NULL) {
-    V = *param_7;
+  if (forced_velocity != NULL) {
+    v_desired = *forced_velocity;
   } else {
-    V = speed;
-    if ((param_6 != NULL) && (*param_6 > *(float *)0x2533c0)) {
-      tmp_f2 = t_max * *param_6;
-      tmp_f2 = tmp_f2 * tmp_f2;
-      tmp_f = b - -(tmp_f2 * a + dist_sq / tmp_f2);
-      if (!(tmp_f > *(const float *)0x2533c0)) {
+    v_desired = speed;
+    if ((ballistic_fraction != NULL) && (*ballistic_fraction > REAL_ZERO_POOL)) {
+      temp2 = t_max * *ballistic_fraction;
+      temp2 = temp2 * temp2;
+      temp = acceleration_height - -(temp2 * a + c / temp2);
+      if (!(temp > REAL_ZERO_POOL)) {
         display_assert("v_desired_sq > 0.0f",
                        "c:\\halo\\SOURCE\\items\\projectiles.c", 0x326, 1);
         system_exit(-1);
       }
-      tmp_f = sqrtf(tmp_f);
-      if (speed > tmp_f) {
-        V = tmp_f;
+      temp = sqrtf(temp);
+      if (speed > temp) {
+        v_desired = temp;
       }
     }
   }
 
-  /* 10. If V >= t_min, try to find an arc solution. */
-  if (V >= t_min) {
-    tmp_f = b - V * V;
+  if (v_desired >= v_min) {
+    temp = acceleration_height - v_desired * v_desired;
     /* 0xf8272: FST dword [ebp+8] -- no pop.  The square at 0xf8275 multiplies
      * the wide stack copy by the narrowed slot, so keep one wide copy; every
      * later read (compare 0xf827e, subtract 0xf82b7) uses the narrowed one. */
-    tmp_wide = tmp_f;
-    HALO_FLT_ROUNDTRIP(tmp_f);
-    tmp_f2 = tmp_wide * tmp_f - c4;
+    temp_wide = temp;
+    HALO_FLT_ROUNDTRIP(temp);
+    temp2 = temp_wide * temp - four_a_c;
     /* 0xf827b: FSTP dword [ebp+0xc] -- narrowed before the compare at 0xf828e
      * and the FSQRT at 0xf829e. */
-    HALO_FLT_ROUNDTRIP(tmp_f2);
-    if ((tmp_f < *(float *)0x2533c0) && (tmp_f2 >= *(float *)0x2533c0)) {
-      speed =
-        (sqrtf(tmp_f2) * (float)(int)((unsigned int)(param_8 != '\0') * 2 + -1) -
-         tmp_f) /
-        two_a;
-      if (*(float *)0x2533c0 < speed) {
+    HALO_FLT_ROUNDTRIP(temp2);
+    if ((temp < REAL_ZERO_POOL) && (temp2 >= REAL_ZERO_POOL)) {
+      /* speed's slot holds t from here on; a separate local costs 6 bytes */
+      speed = (sqrtf(temp2) * (lob ? 1 : -1) - temp) / two_a;
+      if (REAL_ZERO_POOL < speed) {
         speed = sqrtf(speed);
         /* 0xf82cc: FSTP dword [ebp+8] -- the quotient itself is never stored
-         * (the compare at 0xf82bd uses the wide stack copy); only the arc time
-         * is narrowed, and LAB_output reloads it at 0xf82ea/0xf8306/0xf832d. */
+         * (the compare at 0xf82bd uses the wide stack copy); only t is
+         * narrowed, and the output block reloads it at 0xf82ea/0xf8306/0xf832d. */
         HALO_FLT_ROUNDTRIP(speed);
-        goto LAB_output;
+        solution = true;
       }
     }
   }
-  ok = 0;
-  speed = t_max; /* t_sol = t_max */
-  V = t_min; /* V_out = t_min */
+  if (!solution) {
+    result = false;
+    speed = t_max;
+    v_desired = v_min;
+  }
 
-LAB_output:
-  /* 11. Build velocity direction (dx/t, dy/t, a_coeff*t*0.5 + dz/t). */
-  /* 0xf82ea: FDIV leaves 1/t_sol in ST(0); the original never stores it, so
-   * all three components multiply the un-narrowed reciprocal
-   * (0xf82f6/0xf82fe/0xf8303). */
-  inv_t = *(float *)0x2533c8 / speed;
-  aim_x = dx * inv_t;
+  inverse_t = REAL_ONE_POOL / speed;
+  aim_vector.i = dx * inverse_t;
   /* 0xf82f8: FSTP dword [ebp-0x34] -- narrowed before the reload at 0xf831d. */
-  HALO_FLT_ROUNDTRIP(aim_x);
-  aim_y = dy * inv_t;
+  HALO_FLT_ROUNDTRIP(aim_vector.i);
+  aim_vector.j = dy * inverse_t;
   /* 0xf8300: FSTP dword [ebp-0x30] -- narrowed before the reload at 0xf8317.
-   * aim_z is FST (0xf8314), so its wide stack copy is what param_13 receives
-   * at 0xf832a; only the slot copy is narrowed and it is not round-tripped. */
-  HALO_FLT_ROUNDTRIP(aim_y);
-  aim_z = inv_t * dz + speed * a_coeff * *(float *)0x253398;
+   * aim_vector.k is FST (0xf8314), so its wide stack copy is what
+   * result_vertical_velocity receives at 0xf832a; only the slot copy is
+   * narrowed and it is not round-tripped. */
+  HALO_FLT_ROUNDTRIP(aim_vector.j);
+  aim_vector.k = inverse_t * dz + speed * acceleration * REAL_0_5_POOL;
 
-  /* Precompute sqrt(aim_y^2 + aim_x^2) for param_14 output, stored early. */
-  tmp_f2 = aim_y * aim_y + aim_x * aim_x;
-  tmp_f2 = sqrtf(tmp_f2);
+  temp2 = aim_vector.j * aim_vector.j + aim_vector.i * aim_vector.i;
+  temp2 = sqrtf(temp2); /* horizontal velocity */
+  temp = aim_vector.k; /* vertical velocity */
+  distance = speed * v_desired;
 
-  /* Store aim_z before normalize overwrites aim_z. */
-  tmp_f = aim_z;
-
-  /* Compute t_sol*V_out product into a_coeff slot (mirrors MSVC FSTP EBP+0x10).
-   */
-  a_coeff = speed * V;
-
-  if (normalize3d(aim_xyz) == *(float *)0x2533c0) {
-    /* Degenerate: fall back to displacement direction. */
-    aim_x = dx;
-    ok = 0;
-    aim_y = dy;
-    aim_z = dz;
-    if (normalize3d(aim_xyz) == *(float *)0x2533c0) {
-      /* Degenerate displacement: use global up vector. */
-      aim_z = *(float *)(*(int *)0x31fc44 + 8);
-      aim_x = *(float *)(*(int *)0x31fc44);
-      aim_y = *(float *)(*(int *)0x31fc44 + 4);
+  if (normalize3d((float *)&aim_vector) == REAL_ZERO_POOL) {
+    aim_vector.i = dx;
+    result = false;
+    aim_vector.j = dy;
+    aim_vector.k = dz;
+    if (normalize3d((float *)&aim_vector) == REAL_ZERO_POOL) {
+      aim_vector = *(real_vector3d *)global_up_vector_ptr;
     }
   }
 
-  if (aim_vector == NULL) {
+  if (result_aim_vector == NULL) {
     display_assert("result_aim_vector",
                    "c:\\halo\\SOURCE\\items\\projectiles.c", 0x363, 1);
     system_exit(-1);
   }
 
-  aim_vector[0] = aim_x;
-  aim_vector[1] = aim_y;
-  aim_vector[2] = aim_z;
+  *(real_vector3d *)result_aim_vector = aim_vector;
 
-  if (param_12 != NULL) {
-    *param_12 = a_coeff; /* t_sol * V_out */
+  if (result_distance != NULL) {
+    *result_distance = distance;
   }
-  if (param_10 != NULL) {
-    *param_10 = V; /* V_out */
+  if (result_velocity != NULL) {
+    *result_velocity = v_desired;
   }
-  if (param_13 != NULL) {
-    *param_13 = tmp_f; /* aim_z before normalize */
+  if (result_vertical_velocity != NULL) {
+    *result_vertical_velocity = temp;
   }
-  if (param_14 != NULL) {
-    *param_14 = tmp_f2; /* sqrt(aim_y^2 + aim_x^2) */
+  if (result_horizontal_velocity != NULL) {
+    *result_horizontal_velocity = temp2;
   }
-  if (param_11 != NULL) {
-    *param_11 = speed; /* t_sol */
+  if (result_ticks != NULL) {
+    *result_ticks = speed;
   }
-  return ok;
-#undef aim_x
-#undef aim_y
-#undef aim_z
+  return result;
 }
 
-/* Compute the straight-line aim vector and travel parameters for a projectile
- * with no ballistic arc (no gravity).
- * Subtracts origin from target to form the direction delta, normalises it in
- * place (normalize3d overwrites the local vector with the unit vector and
- * returns the original length as the distance), then writes outputs:
- *   aim_vector  - normalised direction from origin to target (required,
- * asserted non-NULL) out_dist    - optional: raw length of the origin→target
- * vector out_speed   - optional: copy of the input speed out_t       -
- * optional: travel time = dist / speed; 0.0 if speed <= 0.0 Returns 1 (bool
- * true) unconditionally. Source ref: c:\halo\SOURCE\items\projectiles.c line
- * 0x399 (921). */
 bool projectile_aim_linear(float speed, float *origin, float *target,
-                           float *aim_vector, float *out_speed, float *out_t,
-                           float *out_dist)
+                           float *result_aim_vector, float *result_velocity,
+                           float *result_ticks, float *result_distance)
 {
-  float local_vec[3];
-  float dist;
-  float t;
+  real_vector3d aim_vector;
+  float distance;
+  float ticks;
 
-  local_vec[0] = target[0] - origin[0];
-  local_vec[1] = target[1] - origin[1];
-  local_vec[2] = target[2] - origin[2];
+  aim_vector.i = target[0] - origin[0];
+  aim_vector.j = target[1] - origin[1];
+  aim_vector.k = target[2] - origin[2];
 
-  dist = normalize3d(local_vec);
+  distance = normalize3d((float *)&aim_vector);
   /* 0xf843e: FSTP dword [ebp+0x10] -- the magnitude is narrowed before the
-   * divide at 0xf8457 and before it is copied to out_dist at 0xf84a7. */
-  HALO_FLT_ROUNDTRIP(dist);
+   * divide at 0xf8457 and before it is copied to result_distance at 0xf84a7. */
+  HALO_FLT_ROUNDTRIP(distance);
 
-  if (speed > *(const float *)0x2533c0) {
-    t = dist / speed;
+  if (speed > REAL_ZERO_POOL) {
+    ticks = distance / speed;
   } else {
-    t = 0.0f;
+    ticks = 0.0f;
   }
 
-  if (aim_vector == NULL) {
+  if (result_aim_vector == NULL) {
     display_assert("result_aim_vector",
                    "c:\\halo\\SOURCE\\items\\projectiles.c", 0x399, 1);
     system_exit(-1);
   }
 
-  aim_vector[0] = local_vec[0];
-  aim_vector[1] = local_vec[1];
-  aim_vector[2] = local_vec[2];
+  *(real_vector3d *)result_aim_vector = aim_vector;
 
-  if (out_dist != NULL) {
-    *out_dist = dist;
+  if (result_distance != NULL) {
+    *result_distance = distance;
   }
-  if (out_speed != NULL) {
-    *out_speed = speed;
+  if (result_velocity != NULL) {
+    *result_velocity = speed;
   }
-  if (out_t != NULL) {
-    *out_t = t;
+  if (result_ticks != NULL) {
+    *result_ticks = ticks;
   }
 
   return true;
 }
 
-/* Resolve the launch speed for a projectile and compute its aim direction.
- *
- * If param_4 is NULL the speed is read from the projectile tag definition at
- * offset 0x1e4 (pointer to float).  Otherwise param_4 is dereferenced to get
- * the speed value.  The resolved speed is stored back into param_4 so both
- * call paths share the same code below.
- *
- * If the projectile tag has the ballistic-arc flag set (bit 1 of byte at
- * param_1+0x17c) AND the per-arc gravity value at param_1+0x1cc is > 0.0f,
- * projectile_aim_ballistic (ballistic arc solver) is called to compute a curved
- * trajectory.  Otherwise the simpler straight-line aim helper
- * projectile_aim_linear is used.  param_13, when non-NULL, receives 0 for the
- * arc path and 1 for the straight-line path. */
-/* Returns the inner aim-solver's success flag in EAX (void-EAX implicit
- * return). The original is declared void and writes the arc/linear selector
- * through param_13, but it leaks the residual EAX of projectile_aim_ballistic
- * / projectile_aim_linear (neither path resets AL/EAX before RET). Callers such
- * as actor_combat firing-solution (actor_combat_compute_ballistic_solution)
- * test this AL to decide whether a valid aim solution exists; return-ignoring
- * callers are unaffected. */
-char projectile_aim(int projectile_tag, int param_2, int param_3, void *param_4,
-                    int param_5, int param_6, int param_7, int param_8,
-                    int param_9, int param_10, int param_11, int param_12,
-                    void *param_13)
+/* Declared void in the original: AL is whatever the solver left in EAX, and
+ * callers such as actor_combat_compute_ballistic_solution test it. */
+char projectile_aim(int projectile_tag, int origin, int target, void *velocity_override,
+                    int param_5, int ballistic_fraction, int forced_velocity, int lob,
+                    int result_aim_vector, int result_velocity, int result_ticks,
+                    int result_distance, void *result_linear)
 {
+  projectile_definition_t *definition = (projectile_definition_t *)projectile_tag;
   float speed;
-  char *out;
   char result;
 
-  if (param_4 == NULL) {
-    speed = *(float *)(projectile_tag + 0x1e4);
+  if (velocity_override == NULL) {
+    speed = definition->initial_velocity;
   } else {
-    speed = *(float *)param_4;
+    speed = *(float *)velocity_override;
   }
 
-  out = (char *)param_13;
-
-  if ((*(unsigned char *)(projectile_tag + 0x17c) & 2) &&
-      (*(float *)(projectile_tag + 0x1cc) > *(float *)0x2533c0)) {
+  if ((definition->flags & FLAG(_projectile_definition_aim_ballistic_bit)) &&
+      definition->air_gravity_scale > REAL_ZERO_POOL) {
     result = projectile_aim_ballistic(
-      speed, *(float *)(projectile_tag + 0x1cc), (float *)param_2,
-      (float *)param_3, param_5, (float *)param_6, (float *)param_7,
-      (char)param_8, (float *)param_9, (float *)param_10, (float *)param_11,
-      (float *)param_12, 0, 0);
-    if (out != NULL) {
-      *out = 0;
+      speed, definition->air_gravity_scale, (float *)origin, (float *)target, param_5,
+      (float *)ballistic_fraction, (float *)forced_velocity, (char)lob,
+      (float *)result_aim_vector, (float *)result_velocity, (float *)result_ticks,
+      (float *)result_distance, NULL, NULL);
+    if (result_linear != NULL) {
+      *(char *)result_linear = false;
     }
   } else {
     result = (char)projectile_aim_linear(
-      speed, (float *)param_2, (float *)param_3, (float *)param_9,
-      (float *)param_10, (float *)param_11, (float *)param_12);
-    if (out != NULL) {
-      *out = 1;
+      speed, (float *)origin, (float *)target, (float *)result_aim_vector,
+      (float *)result_velocity, (float *)result_ticks, (float *)result_distance);
+    if (result_linear != NULL) {
+      *(char *)result_linear = true;
     }
   }
 
   return result;
 }
 
-/* Compute projectile velocity direction and speed angle from the velocity
- * stored at obj+0x3c (vx/vy/vz). If the speed magnitude is non-zero, sets
- * the velocity-valid flag (bit 0 at obj+0x1dc), stores the normalized
- * direction into obj+0x214..0x21c, and stores sin(speed)/cos(speed) at
- * obj+0x220/0x224. If speed is zero, clears the flag and stores sin=0,
- * cos=1. Takes projectile_handle in EAX (register arg). */
 void projectile_adjust_for_angular_velocity_change(int projectile_handle)
 {
-  char *obj;
-  float speed;
-  float inv_speed;
+  projectile_data_t *projectile;
+  float angular_speed;
+  float inverse_angular_speed;
 
-  obj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
+  projectile = projectile_get(projectile_handle);
 
-  speed = sqrtf(*(float *)(obj + 0x3c) * *(float *)(obj + 0x3c) +
-                *(float *)(obj + 0x40) * *(float *)(obj + 0x40) +
-                *(float *)(obj + 0x44) * *(float *)(obj + 0x44));
+  angular_speed = sqrtf(projectile->object.angular_velocity.x * projectile->object.angular_velocity.x +
+                        projectile->object.angular_velocity.y * projectile->object.angular_velocity.y +
+                        projectile->object.angular_velocity.z * projectile->object.angular_velocity.z);
 
-  if (speed != *(const float *)0x2533c0) {
-    inv_speed = 1.0f / speed;
-    *(uint32_t *)(obj + 0x1dc) |= 0x1u;
-    *(float *)(obj + 0x214) = inv_speed * *(float *)(obj + 0x3c);
-    *(float *)(obj + 0x218) = inv_speed * *(float *)(obj + 0x40);
-    *(float *)(obj + 0x21c) = inv_speed * *(float *)(obj + 0x44);
-    *(float *)(obj + 0x220) = x87_fsin(speed);
-    *(float *)(obj + 0x224) = x87_fcos(speed);
+  if (angular_speed != REAL_ZERO_POOL) {
+    inverse_angular_speed = 1.0f / angular_speed;
+    projectile->flags |= FLAG(_projectile_has_angular_velocity_bit);
+    projectile->field_214.i = inverse_angular_speed * projectile->object.angular_velocity.x;
+    projectile->field_214.j = inverse_angular_speed * projectile->object.angular_velocity.y;
+    projectile->field_214.k = inverse_angular_speed * projectile->object.angular_velocity.z;
+    projectile->field_220 = x87_fsin(angular_speed);
+    projectile->field_224 = x87_fcos(angular_speed);
   } else {
-    *(uint32_t *)(obj + 0x1dc) &= ~0x1u;
-    *(float *)(obj + 0x220) = *(const float *)0x2533c0;
-    *(float *)(obj + 0x224) = 1.0f;
+    projectile->flags &= ~FLAG(_projectile_has_angular_velocity_bit);
+    projectile->field_220 = REAL_ZERO_POOL;
+    projectile->field_224 = 1.0f;
   }
 }
 
-/* Initialise the projectile's parabolic detonation-radius cache fields
- * (proj+0x20c, proj+0x210, proj+0x208, proj+0x204).
- *
- * Fetches the 'proj' tag definition for the object, then selects between two
- * sets of tag range fields based on bit 4 of the object flags byte at proj+4:
- *
- *   bit4 SET   (detonating state):
- *     range_begin = tag+0x1dc, range_end = tag+0x1e0
- *     compare field for threshold: tag+0x1dc
- *   bit4 CLEAR (non-detonating state):
- *     range_begin = tag+0x1d0, range_end = tag+0x1d4
- *     compare field for threshold: tag+0x1d0
- *
- * For both branches:
- *   proj+0x20c = projectile_calculate_deceleration_from_distances(tag, range_begin, range_end)  [parabolic apex]
- *   proj+0x210 = tag+0x1e0  [raw end-range copy]
- *   If range_begin > 0.0:
- *     proj+0x208 = range_begin / tag+0x1e4
- *   Else (range_begin <= 0.0 or zero threshold):
- *     proj+0x204 = 1.0f
- *     proj+0x208 = 0.0f
- *
- * Called with projectile_handle in EAX (register arg). */
+/* The water flag selects the water damage range; both branches copy the water
+ * upper bound into field_210. */
 void projectile_calculate_deceleration(int projectile_handle)
 {
-  char *proj;
-  char *tag_def;
+  projectile_data_t *projectile;
+  projectile_definition_t *definition;
 
-  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  tag_def = (char *)tag_get(0x70726f6a, *(int *)proj);
+  projectile = projectile_get(projectile_handle);
+  definition = projectile_definition_get(projectile->object.tag_index);
 
-  if (*(uint8_t *)(proj + 0x4) & 0x10) {
-    /* detonating branch: use tag offsets 0x1dc/0x1e0 */
-    *(float *)(proj + 0x20c) = projectile_calculate_deceleration_from_distances(
-      tag_def, *(float *)(tag_def + 0x1dc), *(float *)(tag_def + 0x1e0));
-    *(int *)(proj + 0x210) = *(int *)(tag_def + 0x1e0);
+  if (projectile->object.flags & FLAG(_object_under_water_bit)) {
+    projectile->deceleration = projectile_calculate_deceleration_from_distances(
+      definition, definition->water_damage_range_lower_bound,
+      definition->water_damage_range_upper_bound);
+    projectile->field_210 = definition->water_damage_range_upper_bound;
 
-    if (*(float *)(tag_def + 0x1dc) > *(float *)0x2533c0) {
-      *(float *)(proj + 0x208) = *(float *)(tag_def + 0x1dc) / *(float *)(tag_def + 0x1e4);
+    if (definition->water_damage_range_lower_bound > REAL_ZERO_POOL) {
+      projectile->field_208 =
+        definition->water_damage_range_lower_bound / definition->initial_velocity;
       return;
     }
   } else {
-    /* non-detonating branch: use tag offsets 0x1d0/0x1d4 */
-    *(float *)(proj + 0x20c) = projectile_calculate_deceleration_from_distances(
-      tag_def, *(float *)(tag_def + 0x1d0), *(float *)(tag_def + 0x1d4));
-    *(int *)(proj + 0x210) = *(int *)(tag_def + 0x1e0);
+    projectile->deceleration = projectile_calculate_deceleration_from_distances(
+      definition, definition->air_damage_range_lower_bound,
+      definition->air_damage_range_upper_bound);
+    projectile->field_210 = definition->water_damage_range_upper_bound;
 
-    if (*(float *)(tag_def + 0x1d0) > *(float *)0x2533c0) {
-      *(float *)(proj + 0x208) = *(float *)(tag_def + 0x1d0) / *(float *)(tag_def + 0x1e4);
+    if (definition->air_damage_range_lower_bound > REAL_ZERO_POOL) {
+      projectile->field_208 =
+        definition->air_damage_range_lower_bound / definition->initial_velocity;
       return;
     }
   }
 
-  *(float *)(proj + 0x204) = 1.0f;
-  *(float *)(proj + 0x208) = 0.0f;
+  projectile->field_204 = 1.0f;
+  projectile->field_208 = 0.0f;
 }
 
-/*
- * Swept-sphere lateral collision test for a projectile (0xf8720).
- *
- * Tests whether a projectile's movement from its current world position to
- * new_pos would collide with the BSP. Three separate ray/segment casts are
- * performed:
- *
- *   1. A direct centre-line cast from proj_pos toward new_pos (flags 0x1000e9).
- *   2. A lateral cast offset +radius in the cross(up, delta) direction (0x89).
- *   3. A lateral cast offset -radius in that same direction (0x89).
- *
- * The cross direction is the unit vector perpendicular to both the world-up
- * vector and the movement delta.  If the delta is parallel to world-up the
- * function falls back to the global default forward vector.
- *
- * radius = *(float *)(tag_def + 0x1a0)
- * If radius < ~1e-7 the lateral sweeps are skipped and returns 0.
- *
- * Register args: projectile_handle@<eax>, new_pos@<edi>
- * Stack arg:     collision_result (int16_t *)
- * Returns: 1 if any cast hit, 0 if all missed.
- *
- * Confirmed: PUSH 0x20; PUSH EAX -> object_get_and_verify_type(handle, 0x20).
- * Confirmed: PUSH ECX; PUSH 0x70726f6a -> tag_get('proj', obj->tag_index).
- * Confirmed: ESI = LEA [EBX+0xc] = &obj->position (float[3] at offset 0xc).
- * Confirmed: EBX+0x1e4 = proj.field_1e4 used as max_distance arg.
- * Confirmed: first FUN_0014df70 call: flags=0x1000e9, origin=&proj_pos,
- *            dir=&delta, max_dist=proj.field_1e4, result=param_1.
- * Confirmed: EAX=[0x31fc44] -> global_up_vector_ptr (float*).
- * Confirmed: cross = cross(up_vec, delta) from FLD/FMUL/FSUBP sequences.
- * Confirmed: CALL 0x13010 -> normalize3d; FCOMP [0x2533c0] -> compare to 0.
- * Confirmed: fallback to EAX=[0x31fc40] -> global_default_fwd_ptr (float*).
- * Confirmed: tag_def[0x1a0] = sweep radius; FCOMP [0x253f44] ~= 1e-7.
- * Confirmed: second call flags=0x89, origin=[EBP-0x1c], dir=[EBP-0x10].
- * Confirmed: FUN_000130d0(0x89, [EBP-0x40], [EBP-0x34], ..) for neg-side.
- * Confirmed: FSTP ST0 at 0xf8898 discards -radius; ST2 (new_pos.z+r*cz) used
- *            directly in FSUB [EBP-0x14] at 0xf88d3 to compute dir.z.
- */
+/* Tests the path from the projectile's position to new_pos: one ray along
+ * the centre line, then (when the definition has a collision radius) two
+ * parallel sweeps offset by +/-radius along cross(delta, up).
+ * projectile_handle arrives in EAX and new_pos in EDI. */
 bool projectile_collision_test_line(int projectile_handle, float *new_pos,
                   int16_t *collision_result)
 {
-  char *proj;
-  void *tag_def;
-  float *proj_pos; /* &obj->position (float[3] at proj+0xc) */
-  float *up_vec;
-  float *fwd_vec;
+  projectile_data_t *projectile;
+  projectile_definition_t *definition;
+  real_point3d *position;
+  real_point3d *destination;
+  float *up;
+  float *left;
   float radius;
-  float dx, dy, dz;
-  /* cross direction: cross(delta, up_vec), stored in dir1 then normalized */
+  real_vector3d delta;
+  /* One aggregate keeps the five vectors in the original frame order. */
   struct {
-    float pt_a2[3];  /* -0x40 */
-    float pt_b2[3];  /* -0x34 */
-    float pt_b1[3];  /* -0x28 */
-    float origin[3];/* -0x1c */
-    float dir[3];   /* -0x10 */
-  } s;
-#define dir1 s.dir
-#define origin1 s.origin
-#define pt_b1 s.pt_b1
-#define pt_b2 s.pt_b2
-#define pt_a2 s.pt_a2
+    real_point3d negative_origin;
+    real_point3d negative_end;
+    real_point3d positive_end;
+    union {
+      real_vector3d ray;
+      real_point3d positive_origin;
+    };
+    real_vector3d direction;
+  } sweep;
 
 #ifdef HALO_RNG_TRACE
   RNG_TRACE_EX(RNG_TRACE_KIND_SWEEP_POS, RNG_TRACE_BITS(new_pos[0]),
                RNG_TRACE_BITS(new_pos[2]));
 #endif
-  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  tag_def = tag_get(0x70726f6a, *(int *)proj);
-  proj_pos = (float *)(proj + 0xc);
+  projectile = projectile_get(projectile_handle);
+  definition = projectile_definition_get(projectile->object.tag_index);
+  position = &projectile->object.position;
+  destination = (real_point3d *)new_pos;
 #ifdef HALO_RNG_TRACE
-  RNG_TRACE_EX(RNG_TRACE_KIND_SWEEP_NEW_Y_HANDLE, RNG_TRACE_BITS(new_pos[1]),
+  RNG_TRACE_EX(RNG_TRACE_KIND_SWEEP_NEW_Y_HANDLE, RNG_TRACE_BITS(destination->y),
                (unsigned int)projectile_handle);
-  RNG_TRACE_EX(RNG_TRACE_KIND_SWEEP_POS_XY, RNG_TRACE_BITS(proj_pos[0]),
-               RNG_TRACE_BITS(proj_pos[1]));
-  RNG_TRACE_EX(RNG_TRACE_KIND_SWEEP_POS_Z_VEL_X, RNG_TRACE_BITS(proj_pos[2]),
-               RNG_TRACE_BITS(*(float *)(proj + 0x18)));
+  RNG_TRACE_EX(RNG_TRACE_KIND_SWEEP_POS_XY, RNG_TRACE_BITS(position->x),
+               RNG_TRACE_BITS(position->y));
+  RNG_TRACE_EX(RNG_TRACE_KIND_SWEEP_POS_Z_VEL_X, RNG_TRACE_BITS(position->z),
+               RNG_TRACE_BITS(projectile->object.translational_velocity.x));
   RNG_TRACE_EX(RNG_TRACE_KIND_SWEEP_VEL_YZ,
-               RNG_TRACE_BITS(*(float *)(proj + 0x1c)),
-               RNG_TRACE_BITS(*(float *)(proj + 0x20)));
+               RNG_TRACE_BITS(projectile->object.translational_velocity.y),
+               RNG_TRACE_BITS(projectile->object.translational_velocity.z));
 #endif
 
-  /* 1. Centre-line collision test (flags 0x1000e9). */
-  origin1[0] = new_pos[0] - proj_pos[0];
-  origin1[1] = new_pos[1] - proj_pos[1];
-  origin1[2] = new_pos[2] - proj_pos[2];
-  if (SWEEP_LOS(FUN_0014df70(0x1000e9, proj_pos, origin1, *(int *)(proj + 0x1e4),
-                   collision_result)) == 0) {
-    /* Check sweep radius; if too small skip lateral tests. */
-    if (*(float *)((char *)tag_def + 0x1a0) < *(float *)0x253f44) {
-      return 0;
+  sweep.ray.i = destination->x - position->x;
+  sweep.ray.j = destination->y - position->y;
+  sweep.ray.k = destination->z - position->z;
+  if (SWEEP_LOS(FUN_0014df70(0x1000e9, (float *)position, (float *)&sweep.ray,
+                             projectile->ignore_object_index, collision_result)) == 0) {
+    if (definition->collision_radius < REAL_0_0001_POOL) {
+      return false;
     }
 
-    /* Compute cross direction: cross(delta, up_vec). */
-    up_vec = *(float **)0x31fc44;
-    dx = new_pos[0] - proj_pos[0];
-    dy = new_pos[1] - proj_pos[1];
-    dz = new_pos[2] - proj_pos[2];
+    up = global_up_vector_ptr;
+    delta.i = destination->x - position->x;
+    delta.j = destination->y - position->y;
+    delta.k = destination->z - position->z;
 
-    dir1[0] = dy * up_vec[2] - dz * up_vec[1];
-    dir1[1] = dz * up_vec[0] - dx * up_vec[2];
-    dir1[2] = dx * up_vec[1] - dy * up_vec[0];
+    sweep.direction.i = delta.j * up[2] - delta.k * up[1];
+    sweep.direction.j = delta.k * up[0] - delta.i * up[2];
+    sweep.direction.k = delta.i * up[1] - delta.j * up[0];
 
-    if (normalize3d(dir1) == *(float *)0x2533c0) {
-      /* Degenerate (delta parallel to up): fall back to default forward. */
-      fwd_vec = *(float **)0x31fc40;
-      dir1[0] = fwd_vec[0];
-      dir1[1] = fwd_vec[1];
-      dir1[2] = fwd_vec[2];
+    if (normalize3d((float *)&sweep.direction) == REAL_ZERO_POOL) {
+      /* Moving straight along up: offset sideways instead. */
+      left = global_left_vector_ptr;
+      sweep.direction.i = left[0];
+      sweep.direction.j = left[1];
+      sweep.direction.k = left[2];
     }
 
-    radius = *(float *)((char *)tag_def + 0x1a0);
+    radius = definition->collision_radius;
 
-    /* Build positive-side origin: proj_pos + radius * cross_dir. */
-    origin1[0] = dir1[0] * radius + proj_pos[0];
-    origin1[1] = dir1[1] * radius + proj_pos[1];
-    origin1[2] = dir1[2] * radius + proj_pos[2];
+    sweep.positive_origin.x = sweep.direction.i * radius + position->x;
+    sweep.positive_origin.y = sweep.direction.j * radius + position->y;
+    sweep.positive_origin.z = sweep.direction.k * radius + position->z;
 
-    /* Build positive-side endpoint: new_pos + radius * cross_dir. */
-    pt_b1[0] = dir1[0] * radius + new_pos[0];
-    pt_b1[1] = dir1[1] * radius + new_pos[1];
-    pt_b1[2] = dir1[2] * radius + new_pos[2];
+    sweep.positive_end.x = sweep.direction.i * radius + destination->x;
+    sweep.positive_end.y = sweep.direction.j * radius + destination->y;
+    sweep.positive_end.z = sweep.direction.k * radius + destination->z;
 
-    /* Build negative-side origin: proj_pos - radius * cross_dir. */
-    pt_a2[0] = dir1[0] * (-radius) + proj_pos[0];
-    pt_a2[1] = dir1[1] * (-radius) + proj_pos[1];
-    pt_a2[2] = dir1[2] * (-radius) + proj_pos[2];
+    sweep.negative_origin.x = sweep.direction.i * (-radius) + position->x;
+    sweep.negative_origin.y = sweep.direction.j * (-radius) + position->y;
+    sweep.negative_origin.z = sweep.direction.k * (-radius) + position->z;
 
-    /* Build negative-side endpoint: new_pos - radius * cross_dir. */
-    pt_b2[0] = dir1[0] * (-radius) + new_pos[0];
-    pt_b2[1] = dir1[1] * (-radius) + new_pos[1];
-    pt_b2[2] = dir1[2] * (-radius) + new_pos[2];
+    sweep.negative_end.x = sweep.direction.i * (-radius) + destination->x;
+    sweep.negative_end.y = sweep.direction.j * (-radius) + destination->y;
+    sweep.negative_end.z = sweep.direction.k * (-radius) + destination->z;
 
-    /* Compute sweep direction for positive-side cast: pt_b1 - origin1. */
-    dir1[0] = pt_b1[0] - origin1[0];
-    dir1[1] = pt_b1[1] - origin1[1];
-    dir1[2] = pt_b1[2] - origin1[2];
+    sweep.direction.i = sweep.positive_end.x - sweep.positive_origin.x;
+    sweep.direction.j = sweep.positive_end.y - sweep.positive_origin.y;
+    sweep.direction.k = sweep.positive_end.z - sweep.positive_origin.z;
 
-    /* 2. Positive-side lateral collision test (flags 0x89). */
-    /* 3. Negative-side lateral collision test: segment pt_a2 -> pt_b2 (flags 0x89). */
-    if (SWEEP_LOS(FUN_0014df70(0x89, origin1, dir1, *(int *)(proj + 0x1e4),
-                     collision_result)) == 0 &&
-        FUN_000130d0(0x89, pt_a2, pt_b2, *(int *)(proj + 0x1e4),
-                     collision_result) == 0) {
-      return 0;
+    if (SWEEP_LOS(FUN_0014df70(0x89, (float *)&sweep.positive_origin, (float *)&sweep.direction,
+                               projectile->ignore_object_index, collision_result)) == 0 &&
+        FUN_000130d0(0x89, (float *)&sweep.negative_origin, (float *)&sweep.negative_end,
+                     projectile->ignore_object_index, collision_result) == 0) {
+      return false;
     }
   }
-
-  return 1;
-}
-#undef dir1
-#undef origin1
-#undef pt_b1
-#undef pt_b2
-#undef pt_a2
-
-/* Detonate a projectile: fire effects, apply area damage, notify AI.
- *
- * param_1 (projectile_handle): datum handle of the projectile object.
- * param_2 (has_hit_count): non-zero if the projectile has accumulated a hit
- *   counter (used to decide whether to update the contrail attachment state).
- * param_3 (current_time): current game time in seconds; used to compute the
- *   contrail delta-time argument.
- *
- * Flow:
- *   1. If the tag has the burst-fire flag (bit 3 at tag+0x17c) and the
- *      projectile has a parent with more than 6 siblings of the same type,
- *      kill or randomize the excess siblings' velocities and then
- *      detach from the parent and reposition at the burst centre.
- *   2. If has_hit_count and the projectile has a valid contrail attachment,
- *      compute node matrices and set the contrail state.
- *   3. Fire the primary effect at the projectile's world position.
- *   4. If the projectile has a parent and the tag has splash-damage data
- *      (tag+0x220), apply area damage to the scene.
- *   5. Look up the detonation-effect index (proj+0x1e2); fire a per-slot
- *      secondary effect if the index is valid.
- *   6. Notify the AI subsystem of the detonation position.
- *
- * Binary: 0x000f8920 in projectiles.obj.
- * Confirmed: prototype from caller projectile_update @ 0xfab65
- *   (SETZ AL for param_2, EDX=[EBP-0x18] for param_3, ECX=[EBP+8] for param_1).
- */
-void projectile_detonate(int projectile_handle, char has_hit_count, float current_time)
-{
-  char *proj; /* projectile object data pointer (type 0x20) */
-  char *proj_tag; /* projectile tag data pointer (group 'proj') */
-  int effect_tag; /* current effect tag index; updated in burst block */
-  void *effect_def[2]; /* effect definition passed to
-                          effect_new_unattached_from_markers */
-
-  /* burst-limit locals */
-  char *parent_obj; /* type-any parent object ptr */
-  int sibling; /* datum handle of current sibling in child list */
-  char *sibling_base; /* type-any sibling object ptr */
-  char *sibling_proj; /* type-0x20 sibling projectile ptr */
-  int count; /* count of active same-type siblings */
-
-  /* world position and orientation buffers */
-  float pos[6];
-  float fwd[6];
-  float up_buf[3];
-  float parent_pos[3]; /* parent world position (local_b8) */
-  float saved_vel[3]; /* saved proj object position at 0xc..0x14 */
-
-  /* damage params for area damage (0x54 bytes as in damage_data_new) */
-  char damage_params[0x54];
-
-  /* secondary detonation effect */
-  short det_idx; /* proj->detonation_effect_index at proj+0x1e2 */
-  void *det_entry; /* pointer to tag-block element */
-  int det_effect;
-
-  /* AI notification */
-  short ai_volume;
-
-  /* --- Setup. --- */
-  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  proj_tag = (char *)tag_get(0x70726f6a, *(int *)proj);
-  effect_tag = *(int *)(proj_tag + 0x1b8);
-
-  /* Effect definition struct: two pointer-sized globals on the stack. */
-  effect_def[0] = (void *)0x25386fu; /* DAT_0025386f */
-  effect_def[1] = (void *)0x26ad40u; /* "gravity" marker name string */
-
-  /* --- Block 1: Burst-fire sibling count limit. ---
-   * Condition: tag flag bit 3 at +0x17c (burst-limit enabled),
-   *            proj not already detonating (bit 6 at +0x1dc clear),
-   *            projectile has a valid parent (proj+0xcc != -1). */
-  if (((*(uint8_t *)(proj_tag + 0x17c) & 8u) != 0) &&
-      ((*(uint8_t *)(proj + 0x1dc) & 0x40u) == 0) &&
-      (*(int *)(proj + 0xcc) != -1)) {
-    parent_obj = (char *)object_get_and_verify_type(*(int *)(proj + 0xcc), -1);
-    sibling = *(int *)(parent_obj + 0xc8); /* first child */
-    count = 0;
-
-    /* Count siblings with the same tag group that are not detonating. */
-    while (sibling != -1) {
-      sibling_base = (char *)object_get_and_verify_type(sibling, -1);
-      if (*(int *)sibling_base == *(int *)proj) {
-        sibling_proj = (char *)object_get_and_verify_type(sibling, 0x20);
-        if ((*(uint8_t *)(sibling_proj + 0x1dc) & 0x40u) == 0)
-          count++;
-      }
-      sibling = *(int *)(sibling_base + 0xc4);
-    }
-
-    /* Proceed if: parent has no weapon (short at +0x64 == 0),
-     * game engine not running or game_engine_running() returns true,
-     * and (short)count > 6. */
-    if ((*(short *)(parent_obj + 0x64) == 0) &&
-        ((*(int *)((char *)object_get_and_verify_type(*(int *)(proj + 0xcc),
-                                                      1) +
-                   0x1c8) == -1) ||
-         game_engine_running()) &&
-        ((short)count > 6)) {
-      sibling = *(int *)(parent_obj + 0xc8);
-      while (sibling != -1) {
-        sibling_base = (char *)object_get_and_verify_type(sibling, -1);
-        if (*(int *)sibling_base == *(int *)proj) {
-          sibling_proj = (char *)object_get_and_verify_type(sibling, 0x20);
-          if ((*(uint8_t *)(sibling_proj + 0x1dc) & 0x40u) == 0) {
-            /* Second lookup: get proj ptr for mutation. */
-            sibling_proj = (char *)object_get_and_verify_type(sibling, 0x20);
-            if ((short)count <= 6) {
-              /* Remaining (<=6): mark detonating, randomize vel. */
-              *(uint32_t *)(sibling_proj + 0x1dc) |= 0x40u;
-              *(float *)(sibling_proj + 0x1f0) *= random_math_real(
-                (unsigned int *)get_global_random_seed_address());
-              *(float *)(sibling_proj + 0x1f8) *= random_math_real(
-                (unsigned int *)get_global_random_seed_address());
-            } else {
-              /* Excess (>6): zero angular/linear velocity. */
-              *(float *)(sibling_proj + 0x1f0) = 0.0f;
-              *(float *)(sibling_proj + 0x1f8) = 0.0f;
-            }
-            count--;
-          }
-        }
-        sibling = *(int *)(sibling_base + 0xc4);
-      }
-
-      /* Switch effect to burst-centre effect (tag+0x198). */
-      effect_tag = *(int *)(proj_tag + 0x198);
-
-      /* Detach from parent and reposition at burst centre. */
-      object_get_world_position(*(int *)(proj + 0xcc), (vector3_t *)parent_pos);
-      object_detach_from_parent(projectile_handle);
-
-      /* Save projectile position from obj+0xc. */
-      saved_vel[0] = *(float *)(proj + 0xc);
-      saved_vel[1] = *(float *)(proj + 0x10);
-      saved_vel[2] = *(float *)(proj + 0x14);
-
-      object_translate(projectile_handle, parent_pos, (void *)0);
-      object_try_place(projectile_handle, saved_vel);
-      object_update_children_recursive(projectile_handle);
-    }
-  }
-
-  /* (EBX restored from [EBP-8] = proj_tag; EDI restored from [EBP+8] = param_1.
-   * In C these variables are unchanged.) */
-
-  /* --- Block 2: Contrail attachment update. ---
-   * Only if has_hit_count, and attachment index and contrail handle are valid.
-   */
-  if (has_hit_count && (*(int *)(proj + 0x1ec) != -1) &&
-      (*(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4) != -1)) {
-    object_compute_node_matrices(projectile_handle);
-
-    /* contrail_owner_collision(contrail_handle, reset_points, dt):
-     * dt = (DAT_0028ab38) * (*(float*)0x2533c8 - current_time).
-     * Binary: FLD 0x2533c8; FSUB [EBP+0x10]; FMUL 0x28ab38;
-     *         FSTP [ESP]; PUSH 0; PUSH ECX; CALL 0x986d0.
-     * This is the push-then-fstp float argument pattern. */
-    contrail_owner_collision(
-      *(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4), 0,
-      (*(float *)0x2533c8u - current_time) * *(float *)0x28ab38u);
-  }
-
-  /* --- Block 3: Primary effect at projectile world position. --- */
-  object_get_world_position(projectile_handle, (vector3_t *)pos);
-  object_get_orientation(projectile_handle, fwd, up_buf);
-
-  pos[3] = pos[0];
-  pos[4] = pos[1];
-  pos[5] = pos[2];
-  up_buf[0] = (*(float **)0x31fc50u)[0];
-  up_buf[1] = (*(float **)0x31fc50u)[1];
-  up_buf[2] = (*(float **)0x31fc50u)[2];
-  fwd[3] = up_buf[0];
-  fwd[4] = up_buf[1];
-  fwd[5] = up_buf[2];
-
-  effect_new_unattached_from_markers(effect_tag, *(int *)(proj + 0x74),
-                                     (float *)0, 2, effect_def, pos, fwd, 0.0f,
-                                     0.0f, 0.0f, 0.0f, 1.0f);
-
-  /* --- Block 4: Area damage (if parent valid and tag has splash entry). --- */
-  if ((*(int *)(proj + 0xcc) != -1) && (*(int *)(proj_tag + 0x220) != -1)) {
-    damage_data_new(damage_params, *(int *)(proj_tag + 0x220));
-
-    /* Set "area damage" flag bit 3 (at damage_params+4). */
-    *(uint32_t *)(damage_params + 4) |= 8u;
-
-    /* Forward only (no up needed). */
-    object_get_orientation(projectile_handle, (float *)(damage_params + 0x34), (float *)0);
-
-    /* Get world position for damage origin into damage_params+0x1c. */
-    object_get_world_position(projectile_handle, (vector3_t *)(damage_params + 0x1c));
-
-    /* Copy position from +0x1c to +0x28. */
-    *(float *)(damage_params + 0x28) = *(float *)(damage_params + 0x1c);
-    *(float *)(damage_params + 0x2c) = *(float *)(damage_params + 0x20);
-    *(float *)(damage_params + 0x30) = *(float *)(damage_params + 0x24);
-
-    /* Object-index and team fields.
-     * [EBP-0x9c] = damage_params+0x0c = obj+0x74 (object index).
-     * [EBP-0xa0] = damage_params+0x08 = obj+0x70.
-     * [EBP-0x98] = damage_params+0x10 = word at obj+0x68 (team). */
-    *(int *)(damage_params + 0x0c) = *(int *)(proj + 0x74);
-    *(int *)(damage_params + 0x08) = *(int *)(proj + 0x70);
-    *(short *)(damage_params + 0x10) = *(short *)(proj + 0x68);
-
-    object_cause_damage(
-      damage_params, *(int *)(proj + 0xcc), (short)-1,
-      (short)-1, /* dup-args-ok: verified 3x PUSH -1 at 0x000f8c5e/6c/7a */
-      (short)-1, (float *)0);
-  }
-
-  /* --- Block 5: Secondary detonation effect by per-slot index. ---
-   * proj->detonation_effect_index at proj+0x1e2 (short).
-   * If -1: skip. If negative (but not -1): use global null entry 0x31ed08.
-   * If out of range: same null entry. Otherwise: tag_block_get_element. */
-  det_idx = *(short *)(proj + 0x1e2);
-
-  if (det_idx != (short)-1) {
-    if (det_idx >= 0 && (int)det_idx < *(int *)(proj_tag + 0x240)) {
-      det_entry =
-        tag_block_get_element((void *)(proj_tag + 0x240), (int)det_idx, 0xa0);
-    } else {
-      det_entry = (void *)0x31ed08u;
-    }
-
-    det_effect = *(int *)((char *)det_entry + 0x74);
-    effect_new_unattached_from_markers(det_effect, *(int *)(proj + 0x74),
-                                       (float *)0, 2, effect_def, pos, fwd,
-                                       0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-  }
-
-  /* --- Block 6: Notify AI of detonation position. ---
-   * ai_handle_spatial_effect(object_handle, position, effect_type, volume, count).
-   * proj_tag+0x1f0 = AI sound volume category (short).
-   * effect_type=2 (explosive), count=1. */
-  ai_volume = *(short *)(proj_tag + 0x1f0);
-  ai_handle_spatial_effect(projectile_handle, pos, (short)2, ai_volume, (short)1);
-}
-
-/* Initialise a newly-created projectile object.
- *
- * Called once per projectile spawn.  Sets up all per-object state that cannot
- * be baked into the tag definition:
- *
- *   - Sets the object active-flags bit (0x2000) and the fuze-type field
- *     (proj+0x1dc = 2).
- *   - Clears the target-object handle (proj+0x1e8 = -1) and the per-tick
- *     counter word (proj+0x1e0 = 0; proj+0x1e2 = 0xFFFF).
- *   - Resolves and stores the root-parent handle for the owner object
- *     (proj+0x1e4 = object_get_root_parent(proj[0x1d])).
- *   - Computes per-tick speed and range decay factors:
- *       proj+0x1f4 = 1.0f / (initial_speed * 30.0f)  if >= 1 tick worth
- *       proj+0x1fc = 1.0f / (max_range   * 30.0f)    if >= 1 tick worth
- *     (30.0f = TICKS_PER_SECOND at 0x253394; 1.0f = 0x2533c8).
- *   - Walks the tag's material-response block (tag+0x140, element size 0x48)
- *     and records the first index whose type-tag == 'cont' (0x636f6e74) at
- *     proj+0x1ec (-1 if none).
- *   - Applies one tick of velocity to position:
- *       proj+0x18..0x20 (pos.xyz) += tag[0x1e4] * proj+0x24..0x2c (vel.xyz)
- *   - Tests whether the new position is inside a valid world region via
- *     FUN_0018f3e0(&proj[0x48], &proj[0x50], NULL).  Sets or clears bit 4
- *     of the object flags word (proj+0x4) accordingly.
- *   - Calls projectile_adjust_for_angular_velocity_change (velocity direction cache) and projectile_calculate_deceleration
- *     (detonation radius cache) with the projectile handle in EAX.
- *   - Sets flags bits 0xc0000 (active + detonating-armed) in proj+0x4.
- *   - Returns 1 (success).
- *
- * Layout notes (all relative to proj = object_get_and_verify_type(handle,
- * 0x20)): proj+0x04  object flags (uint32) proj+0x18  position.xyz (3 floats)
- *   proj+0x24  velocity.xyz / direction (3 floats, pre-normalised by spawner)
- *   proj+0x48  location struct (passed as arg1 to FUN_0018f3e0)
- *   proj+0x50  world position (passed as arg2 to FUN_0018f3e0)
- *   proj+0x74  parent object handle (int)
- *   proj+0x1dc fuze type (uint32; 2 = standard)
- *   proj+0x1e0 counter word (uint16)
- *   proj+0x1e2 counter high word (uint16; init 0xFFFF)
- *   proj+0x1e4 root-parent handle (int)
- *   proj+0x1e8 target-object handle (int; -1 = none)
- *   proj+0x1ec contact-material index (int; -1 = none)
- *   proj+0x1f4 speed decay factor (float)
- *   proj+0x1fc range decay factor (float)
- *
- * Disasm-verified: call at 0x000f8eaf passes handle in EAX (projectile_adjust_for_angular_velocity_change);
- * call at 0x000f8ebf passes handle in EAX (projectile_calculate_deceleration).
- * All cdecl stack args confirmed from PUSH/ADD-ESP pairs. */
-bool projectile_new(int projectile_handle)
-{
-  char *proj; /* projectile object base (type 0x20) */
-  char *proj_tag; /* projectile tag data ('proj') */
-  float initial_speed; /* tag+0x1bc / random range result */
-  float speed_factor; /* initial_speed * 30.0f */
-  float range_factor; /* tag+0x1a4 * 30.0f */
-  int root_parent; /* result of object_get_root_parent */
-  void *mat_block; /* material response block element pointer */
-  int mat_count; /* number of material response entries */
-  int16_t mat_idx; /* loop index into material response block */
-  int *seed; /* random seed pointer from get_global_random_seed_address */
-
-  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  proj_tag = (char *)tag_get(0x70726f6a, *(int *)proj);
-
-  /* Set active flag bit, fuze type, and clear target/counter fields. */
-  *(uint32_t *)(proj + 0x4) |= 0x2000u;
-  *(uint32_t *)(proj + 0x1dc) = 2;
-  *(int *)(proj + 0x1e8) = -1;
-  *(uint16_t *)(proj + 0x1e0) = 0;
-  *(uint16_t *)(proj + 0x1e2) = 0xFFFF;
-
-  /* Resolve and store root-parent handle. */
-  root_parent = object_get_root_parent(*(int *)(proj + 0x74));
-  *(int *)(proj + 0x1e4) = root_parent;
-
-  /* Compute per-tick speed decay factor from initial_speed tag field.
-   * Tag+0x17c bit2: if set, initial_speed is a fixed float (tag+0x1bc).
-   * Otherwise: random_real_range(seed, tag+0x1bc, tag+0x1c0). */
-  if (*(uint8_t *)(proj_tag + 0x17c) & 4) {
-    initial_speed = *(float *)(proj_tag + 0x1bc);
-  } else {
-    seed = get_global_random_seed_address();
-    initial_speed = random_real_range(seed, *(float *)(proj_tag + 0x1bc),
-                                      *(float *)(proj_tag + 0x1c0));
-  }
-
-  /* Store 1.0 / (initial_speed * 30.0) if speed exceeds one-tick threshold. */
-  speed_factor = initial_speed * TICKS_PER_SECOND;
-  if (*(float *)0x2533c8 <= speed_factor) {
-    *(float *)(proj + 0x1f4) = *(float *)0x2533c8 / speed_factor;
-  }
-  /* Compute per-tick range decay factor from max-range tag field (tag+0x1a4).
-   */
-  range_factor = *(float *)(proj_tag + 0x1a4) * TICKS_PER_SECOND;
-  if (*(float *)0x2533c8 <= range_factor) {
-    *(float *)(proj + 0x1fc) = *(float *)0x2533c8 / range_factor;
-  }
-
-  /* Find first 'cont' (contact) material response entry in tag block.
-   * tag+0x140 = tag_block_t: { int count; ... }; element size = 0x48.
-   * Stores the matching index into proj+0x1ec, or -1 if none found. */
-  *(int *)(proj + 0x1ec) = -1;
-  mat_count = *(int *)(proj_tag + 0x140);
-  mat_idx = 0;
-  while (mat_idx < mat_count) {
-    mat_block =
-      tag_block_get_element((void *)(proj_tag + 0x140), mat_idx, 0x48);
-    if (*(int *)mat_block == 0x636f6e74) {
-      *(int *)(proj + 0x1ec) = mat_idx;
-      break;
-    }
-    mat_idx++;
-  }
-
-  /* Apply one tick of initial velocity to position.
-   * proj+0x18..0x20 = position.xyz
-   * proj+0x24..0x2c = velocity direction (unit vector * initial_speed from
-   * spawner) tag+0x1e4 = initial speed (used as the tick delta multiplier here)
-   */
-  {
-    float tick_speed = *(float *)(proj_tag + 0x1e4);
-    *(float *)(proj + 0x18) += tick_speed * *(float *)(proj + 0x24);
-    *(float *)(proj + 0x1c) += tick_speed * *(float *)(proj + 0x28);
-    *(float *)(proj + 0x20) += tick_speed * *(float *)(proj + 0x2c);
-  }
-
-  /* Test world-region validity.  FUN_0018f3e0 returns non-zero if the position
-   * is inside a valid region.  Bit 4 of object flags = "region-valid" marker.
-   */
-  if (FUN_0018f3e0((void *)(proj + 0x48), (void *)(proj + 0x50), 0)) {
-    *(uint32_t *)(proj + 0x4) |= 0x10u;
-  } else {
-    *(uint32_t *)(proj + 0x4) &= ~0x10u;
-  }
-
-  /* Update velocity direction cache and detonation radius cache.
-   * Both functions take the handle in EAX (register-arg convention). */
-  projectile_adjust_for_angular_velocity_change(projectile_handle);
-  projectile_export_function_values(projectile_handle);
-  projectile_calculate_deceleration(projectile_handle);
-
-  /* Set active + detonating-armed flag bits. */
-  *(uint32_t *)(proj + 0x4) |= 0xc0000u;
 
   return true;
 }
 
-/*
- * Apply an acceleration vector to a projectile's translational velocity and
- * add a random scatter impulse.
- *
- * param_1: projectile datum handle
- * param_2: pointer to a 3-float acceleration vector (x, y, z)
- *
- * Only operates when the projectile has no parent object (proj+0xcc == -1).
- * When active:
- *   1. Validates param_2 (acceleration) and proj+0x18 (translational velocity)
- *      with assert_valid_real_vector2d checks.
- *   2. Adds the acceleration to the object's translational velocity at
- *      proj+0x18..0x20.
- *   3. Generates a random unit direction via random_seed_get_direction3d and
- *      scales it by magnitude(acceleration) * random_real * (PI/2).
- *   4. Adds the scaled random vector to the projectile impulse velocity at
- *      proj+0x3c..0x44.
- *   5. Rebuilds the velocity direction cache (projectile_adjust_for_angular_velocity_change).
- *   6. Clears bit 5 of the object flags word at proj+0x4.
- *
- * Disasm-verified: projectile_adjust_for_angular_velocity_change called with projectile_handle in EAX.
- * Deferred stack cleanup: ADD ESP,0x10 at 0xf906b cleans 4 accumulated pushes
- * (random_seed_get_direction3d args + random_math_real arg +
- * real_vector3d_valid arg). The float constant at 0x2568bc = PI/2 (0x3FC90FDB).
- */
+/* When more than six projectiles of one definition are stuck to a biped the
+ * definition's super detonation replaces the normal effect. */
+void projectile_detonate(int projectile_handle, char has_hit_count, float current_time)
+{
+  projectile_data_t *projectile;
+  projectile_definition_t *definition;
+  int effect_tag_index;
+  void *marker_names[2];
+
+  object_data_t *parent;
+  int sibling_index;
+  object_data_t *sibling;
+  projectile_data_t *sibling_projectile;
+  int count;
+
+  real_point3d marker_points[2];
+  real_vector3d marker_forwards[2];
+  real_vector3d up;
+  real_point3d parent_position;
+  real_point3d original_position;
+
+  damage_data_t damage;
+
+  short material_type;
+  projectile_material_response_definition_t *material_response;
+  int detonation_effect_index;
+
+  short ai_volume;
+
+  projectile = projectile_get(projectile_handle);
+  definition = projectile_definition_get(projectile->object.tag_index);
+  effect_tag_index = definition->effect.tag_index;
+
+  marker_names[0] = marker_name_none;
+  marker_names[1] = marker_name_gravity;
+
+  if (((definition->flags & 8u) != 0) &&
+      ((projectile->flags & 0x40u) == 0) &&
+      (projectile->object.parent_object_index.value != NONE)) {
+    parent = object_get_and_verify_type(projectile->object.parent_object_index.value, _object_mask_all);
+    sibling_index = parent->unk_200.value;
+    count = 0;
+
+    while (sibling_index != NONE) {
+      sibling = object_get_and_verify_type(sibling_index, _object_mask_all);
+      if (sibling->tag_index == projectile->object.tag_index) {
+        sibling_projectile = projectile_get(sibling_index);
+        if ((sibling_projectile->flags & 0x40u) == 0)
+          count++;
+      }
+      sibling_index = sibling->next_object_index.value;
+    }
+
+    if ((parent->type == _object_type_biped) &&
+        ((((unit_data_t *)object_get_and_verify_type(
+             projectile->object.parent_object_index.value, _object_mask_biped))
+            ->unk_456.value == NONE) ||
+         game_engine_running()) &&
+        ((short)count > 6)) {
+      sibling_index = parent->unk_200.value;
+      while (sibling_index != NONE) {
+        sibling = object_get_and_verify_type(sibling_index, _object_mask_all);
+        if (sibling->tag_index == projectile->object.tag_index) {
+          sibling_projectile = projectile_get(sibling_index);
+          if ((sibling_projectile->flags & 0x40u) == 0) {
+            sibling_projectile = projectile_get(sibling_index);
+            if ((short)count <= 6) {
+              sibling_projectile->flags |= 0x40u;
+              sibling_projectile->detonation_timer *= random_math_real(
+                (unsigned int *)get_global_random_seed_address());
+              sibling_projectile->arming_time *= random_math_real(
+                (unsigned int *)get_global_random_seed_address());
+            } else {
+              sibling_projectile->detonation_timer = 0.0f;
+              sibling_projectile->arming_time = 0.0f;
+            }
+            count--;
+          }
+        }
+        sibling_index = sibling->next_object_index.value;
+      }
+
+      effect_tag_index = definition->super_detonation.tag_index;
+
+      object_get_world_position(projectile->object.parent_object_index.value, &parent_position);
+      object_detach_from_parent(projectile_handle);
+
+      original_position.x = projectile->object.position.x;
+      original_position.y = projectile->object.position.y;
+      original_position.z = projectile->object.position.z;
+
+      object_translate(projectile_handle, (float *)&parent_position, NULL);
+      object_try_place(projectile_handle, (float *)&original_position);
+      object_update_children_recursive(projectile_handle);
+    }
+  }
+
+  if (has_hit_count && (projectile->tracer_attachment_index != NONE) &&
+      (projectile->object.attachment_indices[projectile->tracer_attachment_index] != NONE)) {
+    object_compute_node_matrices(projectile_handle);
+
+    contrail_owner_collision(
+      projectile->object.attachment_indices[projectile->tracer_attachment_index], 0,
+      (REAL_ONE_POOL - current_time) * REAL_ONE_THIRTIETH_28AB38_POOL);
+  }
+
+  object_get_world_position(projectile_handle, &marker_points[0]);
+  object_get_orientation(projectile_handle, (float *)&marker_forwards[0], (float *)&up);
+
+  marker_points[1] = marker_points[0];
+  up.i = global_down3d->i;
+  up.j = global_down3d->j;
+  up.k = global_down3d->k;
+  marker_forwards[1].i = up.i;
+  marker_forwards[1].j = up.j;
+  marker_forwards[1].k = up.k;
+
+  effect_new_unattached_from_markers(effect_tag_index, projectile->object.owner_object_index,
+                                     NULL, 2, marker_names, (float *)marker_points, (float *)marker_forwards, 0.0f,
+                                     0.0f, 0.0f, 0.0f, 1.0f);
+
+  if ((projectile->object.parent_object_index.value != NONE) &&
+      (definition->attached_detonation_damage.tag_index != NONE)) {
+    damage_data_new(&damage, definition->attached_detonation_damage.tag_index);
+
+    damage.flags |= 8u;
+
+    object_get_orientation(projectile_handle, (float *)&damage.direction, NULL);
+
+    object_get_world_position(projectile_handle, &damage.origin);
+
+    damage.epicenter = damage.origin;
+
+    damage.owner_object_index = projectile->object.owner_object_index;
+    damage.owner_player_index = projectile->object.owner_player_index;
+    damage.owner_team_index = projectile->object.owner_team_index;
+
+    object_cause_damage(
+      &damage, projectile->object.parent_object_index.value, NONE,
+      NONE, /* dup-args-ok: verified 3x PUSH -1 at 0x000f8c5e/6c/7a */
+      NONE, NULL);
+  }
+
+  material_type = projectile->hit_material_type;
+
+  if (material_type != NONE) {
+    if (material_type >= 0 && (int)material_type < definition->material_responses.count) {
+      material_response = tag_block_get_element(&definition->material_responses, (int)material_type,
+                                                sizeof(projectile_material_response_definition_t));
+    } else {
+      material_response = &default_projectile_material_response;
+    }
+
+    detonation_effect_index = material_response->detonation_effect.tag_index;
+    effect_new_unattached_from_markers(detonation_effect_index, projectile->object.owner_object_index,
+                                       NULL, 2, marker_names, (float *)marker_points, (float *)marker_forwards,
+                                       0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+  }
+
+  ai_volume = definition->detonation_noise;
+  ai_handle_spatial_effect(projectile_handle, (float *)&marker_points[0], (short)2, ai_volume, (short)1);
+}
+
+/* Arguments of projectile_adjust_for_angular_velocity_change and
+ * projectile_calculate_deceleration go in EAX. */
+bool projectile_new(int projectile_handle)
+{
+  projectile_data_t *projectile;
+  projectile_definition_t *definition;
+  float timer;
+  float timer_ticks;
+  float arming_ticks;
+  float initial_velocity;
+  projectile_attachment_definition_t *attachment;
+  int attachment_count;
+  int16_t attachment_index;
+  int *seed;
+
+  projectile = projectile_get(projectile_handle);
+  definition = projectile_definition_get(projectile->object.tag_index);
+
+  projectile->object.flags |= 0x2000u;
+  projectile->flags = FLAG(_projectile_tracer_bit);
+  projectile->target_object_index = NONE;
+  projectile->action = 0;
+  projectile->hit_material_type = NONE;
+
+  projectile->ignore_object_index = object_get_root_parent(projectile->object.owner_object_index);
+
+  if (definition->flags & 4) {
+    timer = definition->timer_lower_bound;
+  } else {
+    seed = get_global_random_seed_address();
+    timer = random_real_range(seed, definition->timer_lower_bound,
+                              definition->timer_upper_bound);
+  }
+
+  timer_ticks = timer * TICKS_PER_SECOND;
+  if (REAL_ONE_POOL <= timer_ticks) {
+    projectile->detonation_timer_delta = REAL_ONE_POOL / timer_ticks;
+  }
+  arming_ticks = definition->arming_time * TICKS_PER_SECOND;
+  if (REAL_ONE_POOL <= arming_ticks) {
+    projectile->arming_time_delta = REAL_ONE_POOL / arming_ticks;
+  }
+
+  projectile->tracer_attachment_index = NONE;
+  attachment_count = definition->attachments.count;
+  attachment_index = 0;
+  while (attachment_index < attachment_count) {
+    attachment = tag_block_get_element(&definition->attachments, attachment_index,
+                                       sizeof(projectile_attachment_definition_t));
+    if (attachment->tag_group == TAG_GROUP_CONT) {
+      projectile->tracer_attachment_index = attachment_index;
+      break;
+    }
+    attachment_index++;
+  }
+
+  initial_velocity = definition->initial_velocity;
+  projectile->object.translational_velocity.x += initial_velocity * projectile->object.forward.x;
+  projectile->object.translational_velocity.y += initial_velocity * projectile->object.forward.y;
+  projectile->object.translational_velocity.z += initial_velocity * projectile->object.forward.z;
+
+  if (FUN_0018f3e0(&projectile->object.unk_72, &projectile->object.unk_80, 0)) {
+    projectile->object.flags |= 0x10u;
+  } else {
+    projectile->object.flags &= ~0x10u;
+  }
+
+  projectile_adjust_for_angular_velocity_change(projectile_handle);
+  projectile_export_function_values(projectile_handle);
+  projectile_calculate_deceleration(projectile_handle);
+
+  projectile->object.flags |= 0xc0000u;
+
+  return true;
+}
+
+/* Adds acceleration to the translational velocity of an unattached projectile
+ * and a random spin proportional to its magnitude.  projectile_handle goes to
+ * projectile_adjust_for_angular_velocity_change in EAX. */
 void projectile_accelerate(int projectile_handle, float *acceleration)
 {
-  char *proj; /* projectile object base (type 0x20) */
-  float *vel; /* pointer to proj+0x18 (translational velocity xyz) */
-  float dir[3]; /* random unit direction from random_seed_get_direction3d */
-  float magnitude; /* squared magnitude, then magnitude of acceleration vector */
-  float scale; /* scatter scale: rand_real * magnitude * (PI/2) */
+  projectile_data_t *projectile;
+  vector3_t *velocity;
+  real_vector3d direction;
+  float magnitude_squared;
+  float scale;
 
 #ifdef HALO_RNG_TRACE
   RNG_TRACE_EX(RNG_TRACE_KIND_PROJECTILE_ACCEL_X,
@@ -1358,195 +966,111 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
   RNG_TRACE_EX(RNG_TRACE_KIND_PROJECTILE_ACCEL_YZ,
                RNG_TRACE_BITS(acceleration[1]), RNG_TRACE_BITS(acceleration[2]));
 #endif
-  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  tag_get(0x70726f6a, *(int *)proj);
-  if (!(bool)real_vector3d_valid(acceleration)) {
+  projectile = projectile_get(projectile_handle);
+  projectile_definition_get(projectile->object.tag_index);
+  if (!real_vector3d_valid(acceleration)) {
     display_assert(
-      csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+      csprintf(error_string_buffer, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                "acceleration", (double)acceleration[0], (double)acceleration[1], (double)acceleration[2]),
       "c:\\halo\\SOURCE\\items\\projectiles.c", 0x3ef, 1);
     system_exit(-1);
   }
 
-  /* Only apply acceleration when the projectile has no parent. */
-  if (*(int *)(proj + 0xcc) == -1) {
-    vel = (float *)(proj + 0x18);
+  if (projectile->object.parent_object_index.value == NONE) {
+    velocity = &projectile->object.translational_velocity;
 
-    if (!(bool)real_vector3d_valid(vel)) {
+    if (!real_vector3d_valid((float *)velocity)) {
       display_assert(
-        csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+        csprintf(error_string_buffer, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                  "&projectile->object.translational_velocity",
-                 (double)vel[0], (double)vel[1], (double)vel[2]),
+                 (double)velocity->x, (double)velocity->y, (double)velocity->z),
         "c:\\halo\\SOURCE\\items\\projectiles.c", 0x3f3, 1);
       system_exit(-1);
     }
 
-    /* Add acceleration to object translational velocity (proj+0x18..0x20). */
-    vel[0] += acceleration[0];
-    vel[1] += acceleration[1];
-    vel[2] += acceleration[2];
+    velocity->x += acceleration[0];
+    velocity->y += acceleration[1];
+    velocity->z += acceleration[2];
 
-    /* Get a random direction vector into dir[3]. */
-    random_seed_get_direction3d((unsigned int *)get_global_random_seed_address(), dir);
+    random_seed_get_direction3d((unsigned int *)get_global_random_seed_address(), (float *)&direction);
 
-    /* Compute squared magnitude, then scale = sqrt(sq_mag) * rand * PI/2. */
-    magnitude = acceleration[0] * acceleration[0] + acceleration[1] * acceleration[1] + acceleration[2] * acceleration[2];
-    /* 0xf9001: FSTP dword [ebp-4] -- the squared magnitude is narrowed to
-     * float32 before the FSQRT (0xf9018).  The sqrt itself is FST (kept
-     * wide on the stack) and scale is never stored, so only this copy
-     * rounds.  Without it the grenade scatter velocity differs in the low
-     * bits and a thrown grenade lands one tick late (system-link run 3,
-     * tick 1009 vs 1010). */
-    HALO_FLT_ROUNDTRIP(magnitude);
+    magnitude_squared = acceleration[0] * acceleration[0] + acceleration[1] * acceleration[1] + acceleration[2] * acceleration[2];
+    /* 0xf9001: the squared magnitude is narrowed to float32 before the FSQRT
+     * (0xf9018); the sqrt and scale stay wide.  Without it a thrown grenade
+     * lands one tick late (system-link run 3, tick 1009 vs 1010). */
+    HALO_FLT_ROUNDTRIP(magnitude_squared);
 
-    scale = random_math_real((unsigned int *)get_global_random_seed_address()) * sqrtf(magnitude) * *(float *)0x2568bc;
+    scale = random_math_real((unsigned int *)get_global_random_seed_address()) * sqrtf(magnitude_squared) * REAL_HALF_PI_POOL;
 
-    /* 0xf9028..0xf9054: dir[0]*scale stays on the x87 stack and is added
-     * wide into +0x3c; dir[1]*scale and dir[2]*scale go through FSTP
-     * dword [ebp-0xc] / [ebp-8] (narrowed) before the adds. */
-    dir[1] *= scale;
-    HALO_FLT_ROUNDTRIP(dir[1]);
-    dir[2] *= scale;
-    HALO_FLT_ROUNDTRIP(dir[2]);
-    *(float *)(proj + 0x3c) += dir[0] * scale;
-    *(float *)(proj + 0x40) += dir[1];
-    *(float *)(proj + 0x44) += dir[2];
+    /* 0xf9028..0xf9054: direction.i*scale stays on the x87 stack; j and k
+     * are narrowed through their stack slots before the adds. */
+    direction.j *= scale;
+    HALO_FLT_ROUNDTRIP(direction.j);
+    direction.k *= scale;
+    HALO_FLT_ROUNDTRIP(direction.k);
+    projectile->object.angular_velocity.x += direction.i * scale;
+    projectile->object.angular_velocity.y += direction.j;
+    projectile->object.angular_velocity.z += direction.k;
 
-    /* Rebuild velocity direction cache. */
     projectile_adjust_for_angular_velocity_change(projectile_handle);
 
-    /* Clear object flag bit 5 ("motion-pending" or similar). */
-    *(uint32_t *)(proj + 0x4) &= ~0x20u;
+    projectile->object.flags &= ~0x20u;
 
-    if (!(bool)real_vector3d_valid(vel)) {
+    if (!real_vector3d_valid((float *)velocity)) {
       display_assert(
-        csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+        csprintf(error_string_buffer, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                  "&projectile->object.translational_velocity",
-                 (double)vel[0], (double)vel[1], (double)vel[2]),
+                 (double)velocity->x, (double)velocity->y, (double)velocity->z),
         "c:\\halo\\SOURCE\\items\\projectiles.c", 0x405, 1);
       system_exit(-1);
     }
   }
 }
 
-/*
- * projectile_collision - Projectile collision response handler.
+/* projectile_collision (0xf90d0): applies the material response for a hit
+ * reported by projectile_collision_test_line.  Writes the hit point back to
+ * hit_pos and the response velocity back to in_velocity.
  *
- * Called when a projectile has collided (projectile_update calls this after
- * projectile_collision_test_line reports a hit).  The function:
- *   1. Resolves the projectile object and its tag record.
- *   2. Copies the incoming velocity vector (in_velocity) to a local,
- *      normalises it, and replaces it with the zero vector if it is already
- *      zero (degenerate direction).
- *   3. Computes a 0-1 "detonation fraction" from the tag's range parameters
- *      (local_24, used later as an alpha/scale weight).
- *   4. If the collision state is 3 (world surface) and the tag has a valid
- *      detonation_causer, asserts the collision object index, builds damage
- *      params via damage_data_new, then applies area damage via
- * object_cause_damage.
- *   5. Selects the detonation result type (0-4) from a tag element block,
- *      using random tests for probability-gated outcomes.
- *   6. Handles a second pass for collision state 2 (shield/object bounce)
- *      with bit 0x8 set, applying breakable-surface damage via FUN_00146a90.
- *   7. Writes the collision surface normal/position back to hit_pos.
- *   8. Applies the detonation result:
- *        0 - attach / deactivate
- *        1 - attach at rest
- *        2 - deflect velocity via surface projection
- * (FUN_0010b910/0010c510/0010c8e0) 3 - ricochet: velocity reflected by (1 -
- * elasticity) * direction 4 - detonate: spawn effects, optionally attach to
- * target, set flags
- *   9. Emits hit effects (effect_new_attached_from_markers /
- * effect_new_unattached_from_markers) conditioned on the collision normal dot
- * product.
- *  10. For detonation result 4 and "attach on impact" tag flag, computes
- *      a spin-rate scale and stores it at proj+0x1f4.
- *
- * ABI:
- *   Prototype : void projectile_collision(int projectile_handle, float *hit_pos,
- *                                 float param_3,
- *                                 float *velocity@<eax>,
- *                                 int16_t *col_result@<esi>)
- *   in_EAX    : velocity vector (float[3]); saved to EDI at entry.
- *   in_ESI    : collision result buffer (int16_t *); unaff_ESI in Ghidra.
- *   param_1   : projectile object handle.
- *   param_2   : hit world-position (float *); output written back.
- *   param_3   : time/distance scale passed from caller (float, EBP-0x18 in
- *               projectile_update); used as the collision normal speed component.
- *
- * Source line refs from assert strings:
- *   0x47c (line 1148) collision->object_index!=NONE
- *   0x5cf (line 1487) default detonation result
- */
+ * Register arguments: in_velocity arrives in EAX (moved to EDI at entry),
+ * col_result (a collision_test_result) in ESI.  param_3 is never read
+ * anywhere in 0xf90d0..0xf9c26. */
 void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
                   float *in_velocity /* @<eax> */,
                   int16_t *col_result /* @<esi> */)
 {
-  int *proj; /* object_get_and_verify_type(projectile_handle, 0x20) */
-  char *proj_tag; /* tag_get('proj', proj[0]) - void * base address       */
-  char *tag_elem; /* tag element for the current detonation result index  */
-  char *dtag_elem; /* tag element for the secondary (bounce) pass          */
-
-  /* "Detonation fraction": how far along the projectile's range we are. */
-  float det_frac;
-
-  /* Detonation result: 0=none/attach, 1=attached_rest, 2=deflect,
-   *                    3=ricochet, 4=detonate.                             */
-  int16_t det_result;
-
-  /* Effect scale weights (alpha, intensity).  The reference seeds them in
-   * the normalize3d argument setup, before the call at 0xf912a:
-   *   0xf9116  movl $0x3f800000,-0x1c(%ebp)   scale_a = 1.0f
-   *   0xf911d  movl $0x0,-0x14(%ebp)          scale_b = 0.0f
-   * param_3 (0x10(%ebp)) is never read anywhere in 0xf90d0..0xf9c26, so
-   * scale_b's only later source is damage_params+0x48 (0xf92b8). */
-  float scale_a, scale_b;
-
-  /* Squared magnitude of velocity after response processing. */
-  float vel_sq;
-
-  /* local_4 / local_8: initially the tag element index (int16_t range), later
-   * the 32-bit effect-tag handle passed to effect_new_attached_from_markers /
-   * effect_new_unattached_from_markers. The binary uses the same 4-byte stack
-   * slot (raw int copy in MOV, not FPU).
-   */
-  int tag_idx;
-
-  /* Miscellaneous temporaries. */
-  float ftemp;
-  /* Single-assignment normalize result: ref keeps this ST-resident across
-   * the == 0 test (fcoms no-pop) and the det_frac fraction — must NOT be a
-   * multi-assignment temp or MSVC spills it to a slot. */
-  float mag;
-  float ang_dot; /* dot product of velocity with surface normal       */
-  float deflect_dot; /* normal-speed component for deflect case           */
-  float ang_speed; /* angular speed for deflect case                    */
-  int obj_handle;
-  char *pTemp; /* used for object_get_and_verify_type returns (void*) */
-  int iTemp;
-  uint32_t uTemp;
-  short sTemp;
-  float *seed;
-
-  /* Damage params buffer (0x54 bytes; see damage_data_new). */
-  char damage_params[0x54];
-
-  /* Marker/position arrays for effect_new_attached_from_markers /
-   * effect_new_unattached_from_markers. MSVC stack overlap: marker_count=5 but
-   * only marker_forwards[0] is explicitly set.  In the MSVC layout the next 4
-   * float[3] locals are contiguous and read as forwards[1..4] by the effects
-   * system: [0] "normal"            — collision surface normal [1] "incident"
-   * — scaled normalised velocity [2] "negative incident" — normalised velocity
-   *   [3] "reflection"        — velocity x normal (cross product)
-   *   [4] "gravity"           — global up vector (*0x31fc50)  */
-  float marker_points[5 * 3];
-  float marker_forwards[5 * 3];
-  /* Surface-decompose buffers for result type 2 (deflect). */
-  float proj_component[3];
-  float perp_component[3];
-
-  /* Velocity copy passed to normalize / normalised direction. */
-  float vel_local[3];
+  collision_test_result *collision = (collision_test_result *)col_result;
+  projectile_data_t *projectile;
+  projectile_definition_t *definition;
+  projectile_material_response_definition_t *material_response;
+  projectile_material_response_definition_t *surface_response;
+  float damage_scale;
+  int16_t response;
+  float effect_scale, material_effect_scale;
+  float speed_squared;
+  /* Holds the material type until the response is chosen (one stack slot
+   * in the reference). */
+  int effect_definition_index;
+  int16_t attached_count;
+  float temp;
+  /* Single assignment: the reference keeps it ST-resident across the == 0
+   * test and the damage_scale fraction. */
+  float speed;
+  float impact_velocity;
+  float impact_angle;
+  float velocity_noise;
+  int object_index;
+  projectile_data_t *action_projectile;
+  uint32_t object_flags;
+  short material_type;
+  int *seed;
+  damage_data_t damage;
+  real_point3d marker_points[NUMBER_OF_EFFECT_MARKERS];
+  real_vector3d marker_forwards[NUMBER_OF_EFFECT_MARKERS];
+  real_vector3d tangent_component;
+  real_vector3d normal_component;
+  real_vector3d direction;
+  real_point3d *point;
+  int marker_index;
 
 #ifdef HALO_RNG_TRACE
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_HIT_XY,
@@ -1556,593 +1080,437 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_VEL_XY,
                RNG_TRACE_BITS(in_velocity[0]), RNG_TRACE_BITS(in_velocity[1]));
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_VEL_Z_TYPE,
-               RNG_TRACE_BITS(in_velocity[2]), (unsigned int)(unsigned short)col_result[0]);
+               RNG_TRACE_BITS(in_velocity[2]),
+               (unsigned int)(unsigned short)collision->field_00);
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_NORMAL_XY,
-               RNG_TRACE_BITS(*(float *)((char *)col_result + 0x24)),
-               RNG_TRACE_BITS(*(float *)((char *)col_result + 0x28)));
+               RNG_TRACE_BITS(collision->normal[0]),
+               RNG_TRACE_BITS(collision->normal[1]));
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_NORMAL_Z_T,
-               RNG_TRACE_BITS(*(float *)((char *)col_result + 0x2c)),
-               RNG_TRACE_BITS(*(float *)((char *)col_result + 0x14)));
+               RNG_TRACE_BITS(collision->normal[2]),
+               RNG_TRACE_BITS(collision->t));
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_OBJECT_META,
-               *(unsigned int *)((char *)col_result + 0x38),
-               *(unsigned int *)((char *)col_result + 0x34));
+               (unsigned int)collision->field_38,
+               *(unsigned int *)&collision->field_34);
 #endif
 
-  /* ------------------------------------------------------------------ */
-  /* 1. Resolve object and tag.                                          */
-  /* ------------------------------------------------------------------ */
-  proj = (int *)object_get_and_verify_type(projectile_handle, 0x20);
-  proj_tag = (char *)tag_get(0x70726f6a /* 'proj' */, proj[0]);
+  projectile = projectile_get(projectile_handle);
+  definition = projectile_definition_get(projectile->object.tag_index);
+  effect_definition_index = collision->field_34;
 
-  /* 2. Copy velocity to local and normalise.                            */
-  /* local_8 = word [ESI+0x34] (current detonation-result index).       */
-  tag_idx = (int)(int16_t)(col_result[0x1a]);
-
-  /* Ref 0xf9116/0xf911d: scale_a/scale_b stored before normalize3d so mag
-   * stays ST-resident for the FCOMS == 0 test and the det_frac FSUB. */
-  vel_local[0] = in_velocity[0];
-  scale_a = 1.0f;
-  scale_b = 0.0f;
-  vel_local[1] = in_velocity[1];
-  vel_local[2] = in_velocity[2];
-  mag = normalize3d(vel_local);
-
-  /* If velocity is zero, replace direction with the global up vector.
-   * Also update vel_local so marker_forwards[3..11] are valid unit vectors. */
-  if (mag == *(float *)0x2533c0) {
-    vel_local[0] = *(float *)(*(int *)0x31fc44);
-    vel_local[1] = *(float *)(*(int *)0x31fc44 + 4);
-    vel_local[2] = *(float *)(*(int *)0x31fc44 + 8);
+  effect_scale = 1.0f;
+  material_effect_scale = 0.0f;
+  direction = *(real_vector3d *)in_velocity;
+  speed = normalize3d((float *)&direction);
+  if (speed == REAL_ZERO_POOL) {
+    direction = *global_up3d;
   }
 
-  /* 3. Compute detonation fraction (det_frac = local_24).              */
-  /* Range: [proj_tag+0x1e8] = near_time, [proj_tag+0x1e4] = far_time.  */
-  if (*(float *)(proj_tag + 0x1e8) == *(float *)(proj_tag + 0x1e4)) {
-    det_frac = 1.0f;
+  if (definition->final_velocity == definition->initial_velocity) {
+    damage_scale = 1.0f;
   } else {
-    /* mag = magnitude from normalize3d; reused from FPU at 0xf9156. */
-    det_frac = (mag - *(float *)(proj_tag + 0x1e8)) /
-               (*(float *)(proj_tag + 0x1e4) - *(float *)(proj_tag + 0x1e8));
-    if (det_frac < *(float *)0x2533c0) {
-      det_frac = 0.0f;
+    damage_scale = (speed - definition->final_velocity) /
+                   (definition->initial_velocity - definition->final_velocity);
+    if (damage_scale < REAL_ZERO_POOL) {
+      damage_scale = 0.0f;
     } else {
-      /* 0xf9180: FST dword [ebp-0x20] -- no pop, so the "< 0" compare at
-       * 0xf9183 still sees the wide stack copy; the "> 1.0" compare
-       * reloads the narrowed slot at 0xf9199, as does every later use. */
-      HALO_FLT_ROUNDTRIP(det_frac);
-      /* 0xf9199: FLDS [ebp-0x20]; FCOMPS [1.0f]; FNSTSW; TEST $0x41,AH;
-       * JNE 0xf91b4.  Mask 0x41 is C3|C0 (equal OR less), so JNE skips the
-       * store whenever det_frac <= 1.0 and the assignment is reached only
-       * when it is strictly greater -- an ordinary upper clamp.  The
-       * equality idiom in this same function uses mask 0x44 (C3|C2), e.g.
-       * 0xf913a / 0xf9167 / 0xf93a3; do not confuse the two. */
-      if (det_frac > *(float *)0x2533c8) {
-        det_frac = 1.0f;
+      /* 0xf9180 FST without pop: the < 0 compare sees the wide value, the
+       * > 1 compare and every later use reload the narrowed slot. */
+      HALO_FLT_ROUNDTRIP(damage_scale);
+      if (damage_scale > REAL_ONE_POOL) {
+        damage_scale = 1.0f;
       }
     }
   }
 
-  /* 4. Initial det_result: the reference has no store before the tag read. */
-
-  /* ------------------------------------------------------------------ */
-  /* Collision state == 3 (world surface) + detonation causer present.  */
-  /* ------------------------------------------------------------------ */
-  if (col_result[0] == 3 && *(int *)(proj_tag + 0x230) != -1) {
-    /* assert collision->object_index != NONE */
-    if (*(int *)((char *)col_result + 0x38) == -1) {
+  if (collision->field_00 == _collision_result_object &&
+      definition->impact_damage.tag_index != NONE) {
+    if (collision->field_38 == NONE) {
       display_assert("collision->object_index!=NONE",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x47c, 1);
       system_exit(-1);
     }
-    damage_data_new(damage_params, *(int *)(proj_tag + 0x230));
-    *(uint32_t *)(damage_params + 4) |= 8u;
-    *(int *)(damage_params + 0x08) = *(int *)((char *)proj + 0x70);
-    *(int *)(damage_params + 0x0c) = *(int *)((char *)proj + 0x74);
-    *(short *)(damage_params + 0x10) = *(short *)((char *)proj + 0x68);
-    *(float *)(damage_params + 0x40) = det_frac;
-    *(float *)(damage_params + 0x1c) = *(float *)((char *)col_result + 0x18);
-    *(float *)(damage_params + 0x20) = *(float *)((char *)col_result + 0x1c);
-    *(float *)(damage_params + 0x24) =
-      *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
-    *(float *)(damage_params + 0x28) = *(float *)((char *)col_result + 0x18);
-    *(float *)(damage_params + 0x2c) = *(float *)((char *)col_result + 0x1c);
-    *(float *)(damage_params + 0x30) =
-      *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
-    *(float *)(damage_params + 0x34) = in_velocity[0];
-    *(float *)(damage_params + 0x38) = in_velocity[1];
-    *(float *)(damage_params + 0x3c) = in_velocity[2];
-    normalize3d((float *)(damage_params + 0x34));
-    /* Call area damage.  Last arg is the impact direction (ESI+0x24) — the
-     * normalized velocity computed just above. */
-    object_cause_damage(damage_params, *(int *)((char *)col_result + 0x38),
-                        (short)col_result[0x1f], (short)col_result[0x1e],
-                        (short)col_result[0x27],
-                        (float *)((char *)col_result + 0x24));
-    /* Update tag_idx from area-damage result material type.
-     * object_cause_damage writes the resolved material type to
-     * damage_params+0x4C and velocity scale to damage_params+0x48.  Original
-     * binary reads from [EBP-0x40] and [EBP-0x44] which are
-     * damage_params+0x4C/0x48 (damage_params base = EBP-0x8C). */
-    if ((short)*(int16_t *)(damage_params + 0x4c) != -1) {
-      tag_idx = (int)(short)*(int16_t *)(damage_params + 0x4c);
+    damage_data_new(&damage, definition->impact_damage.tag_index);
+    damage.flags |= 8u;
+    damage.owner_player_index = projectile->object.owner_player_index;
+    damage.owner_object_index = projectile->object.owner_object_index;
+    damage.owner_team_index = projectile->object.owner_team_index;
+    damage.scale = damage_scale;
+    damage.origin = *(real_point3d *)collision->position;
+    damage.epicenter = *(real_point3d *)collision->position;
+    damage.direction = *(real_vector3d *)in_velocity;
+    normalize3d((float *)&damage.direction);
+    object_cause_damage(&damage, collision->field_38,
+                        (short)collision->field_3e, (short)collision->field_3c,
+                        (short)collision->field_4e, collision->normal);
+    if (damage.material_type != NONE) {
+      effect_definition_index = damage.material_type;
     }
-    scale_b = *(float *)(damage_params + 0x48);
+    material_effect_scale = damage.field_48;
   }
 
-  /* Write det_result index to projectile obj+0x1e2 (word).             */
-  sTemp = (int16_t)tag_idx;
-  *(int16_t *)((char *)proj + 0x1e2) = sTemp;
-
-  /* ------------------------------------------------------------------ */
-  /* 5. Select tag element (detonation result block).                    */
-  /* ------------------------------------------------------------------ */
-  if (sTemp < 0 || (int)sTemp >= *(int *)(proj_tag + 0x240)) {
-    tag_elem = (char *)0x31ed08; /* sentinel / null record */
+  material_type = (int16_t)effect_definition_index;
+  projectile->hit_material_type = material_type;
+  if (material_type < 0 ||
+      (int)material_type >= definition->material_responses.count) {
+    material_response = &default_projectile_material_response;
   } else {
-    tag_elem = (char *)tag_block_get_element((void *)(proj_tag + 0x240),
-                                             (int)sTemp, 0xa0);
+    material_response = tag_block_get_element(&definition->material_responses,
+                                              (int)material_type,
+                                              sizeof(*material_response));
   }
 
-  /* Compute angular-speed randomness. */
-  /* local_10 = -[tag_elem+0x64]; call get_global_random_seed /
-   * random_real_range */
-  ftemp = -*(float *)((char *)tag_elem + 0x64);
-  seed = (float *)get_global_random_seed_address();
-  ang_speed =
-    random_real_range((int *)seed, ftemp, 0.0f); /* note: 2nd arg pushed 0x0 */
-  /* local_38: surface-normal dot with incoming velocity (projection). */
-  ang_dot =
-    ang_speed -
-    *(float *)((char *)col_result + 0x2c) * in_velocity[2] - /* buf-alias-ok */
-    *(float *)((char *)col_result + 0x28) * in_velocity[1] -
-    *(float *)((char *)col_result + 0x24) * in_velocity[0];
-  /* 0xf932b: FSTP dword [ebp-0x34] -- narrowed before the reloads at
-   * 0xf93a8 / 0xf93b5 (range test) and 0xf9950. */
-  HALO_FLT_ROUNDTRIP(ang_dot);
+  temp = -material_response->velocity_noise;
+  seed = get_global_random_seed_address();
+  velocity_noise = random_real_range(seed, temp, 0.0f);
+  impact_velocity = velocity_noise -
+                    collision->normal[2] * in_velocity[2] -
+                    collision->normal[1] * in_velocity[1] -
+                    collision->normal[0] * in_velocity[0];
+  /* 0xf932b FSTP: narrowed before the range test and 0xf9950 reload it. */
+  HALO_FLT_ROUNDTRIP(impact_velocity);
 
-  /* local_10 = [tag_elem+0x60]; compute angular displacement. */
-  ftemp = *(float *)((char *)tag_elem + 0x60);
-  seed = (float *)get_global_random_seed_address();
-  deflect_dot = random_real_range((int *)seed, -ftemp, ftemp);
-
+  temp = material_response->angular_noise;
+  seed = get_global_random_seed_address();
+  impact_angle = random_real_range(seed, -temp, temp);
   {
-    float ang_offset;
-    /* FUN_0010c510(&in_velocity, col_result+0x24) -> angle between vel and
-     * normal. */
-    ang_offset =
-      FUN_0010c510(in_velocity, (float *)((char *)col_result + 0x24));
-    deflect_dot = ang_offset - *(float *)0x2568bc + deflect_dot;
-    /* 0xf9365: FSTP dword [ebp-0x30] -- narrowed before the reloads at
-     * 0xf937e / 0xf938b (range test) and 0xf981e (scale_a). */
-    HALO_FLT_ROUNDTRIP(deflect_dot);
+    float angle_between;
+
+    angle_between = FUN_0010c510(in_velocity, collision->normal);
+    impact_angle = angle_between - REAL_HALF_PI_POOL + impact_angle;
+    /* 0xf9365 FSTP: narrowed before the range test and 0xf981e reload it. */
+    HALO_FLT_ROUNDTRIP(impact_angle);
   }
 
-  /* ------------------------------------------------------------------ */
-  /* Probability check for alternate detonation result.                  */
-  /* ------------------------------------------------------------------ */
-  det_result = (int16_t) * (int16_t *)((char *)tag_elem + 0x2);
+  response = material_response->default_response;
   {
-    int use_alt;
-    use_alt = 0;
-    if (*(int16_t *)((char *)tag_elem + 0x24) == 0) {
-      use_alt = 1;
+    int use_default;
+
+    use_default = 0;
+    if (material_response->potential_response == 0) {
+      use_default = 1;
     } else {
-      /* Check angular-displacement ranges. */
-      if (*(float *)((char *)tag_elem + 0x30) != *(float *)0x2533c0) {
-        if (deflect_dot < *(float *)((char *)tag_elem + 0x2c) ||
-            deflect_dot > *(float *)((char *)tag_elem + 0x30)) {
-          use_alt = 1;
+      if (material_response->potential_angle.upper != REAL_ZERO_POOL) {
+        if (impact_angle < material_response->potential_angle.lower ||
+            impact_angle > material_response->potential_angle.upper) {
+          use_default = 1;
         }
       }
-      if (!use_alt &&
-          *(float *)((char *)tag_elem + 0x38) != *(float *)0x2533c0) {
-        if (ang_dot < *(float *)((char *)tag_elem + 0x34) ||
-            ang_dot > *(float *)((char *)tag_elem + 0x38)) {
-          use_alt = 1;
+      if (!use_default &&
+          material_response->potential_velocity.upper != REAL_ZERO_POOL) {
+        if (impact_velocity < material_response->potential_velocity.lower ||
+            impact_velocity > material_response->potential_velocity.upper) {
+          use_default = 1;
         }
       }
-      if (!use_alt && (*(char *)((char *)tag_elem + 0x26) & 1)) {
-        if (col_result[0] != 3) {
-          use_alt = 1;
-        } else {
-          iTemp = (object_try_and_get_and_verify_type(
-                     *(int *)((char *)col_result + 0x38), 3) != 0) ?
-                    1 :
-                    0;
-          if (iTemp == 0) {
-            use_alt = 1;
-          }
+      if (!use_default && (material_response->potential_flags & 1)) {
+        if (collision->field_00 != _collision_result_object) {
+          use_default = 1;
+        } else if (!object_try_and_get_and_verify_type(collision->field_38,
+                                                       _object_mask_unit)) {
+          use_default = 1;
         }
       }
     }
-    if (!use_alt) {
-      /* Random probability gate. */
-      seed = (float *)get_global_random_seed_address();
-      ftemp = random_math_real((unsigned int *)seed);
-      if (ftemp >= *(float *)((char *)tag_elem + 0x28)) { /* buf-alias-ok */
-        det_result =
-          (int16_t) * (int16_t *)((char *)tag_elem + 0x24); /* buf-alias-ok */
-        /* raw int copy: effect tag handle from alt result */
-        tag_idx = *(int *)((char *)tag_elem + 0x48); /* buf-alias-ok */
+    if (!use_default) {
+      seed = get_global_random_seed_address();
+      temp = random_math_real((unsigned int *)seed);
+      if (temp >= material_response->potential_skip_fraction) {
+        response = material_response->potential_response;
+        effect_definition_index = material_response->potential_effect.tag_index;
       } else {
-        /* Random gate failed: fall back to the DEFAULT result effect.
-         * Original: `if (fVar11 < *(puVar4+0x28)) goto LAB_000f9408;` where
-         * LAB_000f9408 sets local_8 = *(puVar4+0x10). Without this fallback
-         * tag_idx keeps the raw material index (e.g. 0x1d, no salt) and is
-         * passed as an effect handle → tag_get('effe', idx) asserts with the
-         * absolute tag at that index (a 'mode' model), halting in
-         * cache_files.c:247. */
-        tag_idx = *(int *)((char *)tag_elem + 0x10);
+        effect_definition_index = material_response->default_effect.tag_index;
       }
     } else {
-      /* raw int copy: effect tag handle from default result */
-      tag_idx = *(int *)((char *)tag_elem + 0x10);
+      effect_definition_index = material_response->default_effect.tag_index;
     }
   }
 
-  /* ------------------------------------------------------------------ */
-  /* 6. Collision state == 2 with bit 0x8: breakable surface.           */
-  /* ------------------------------------------------------------------ */
-  if (col_result[0] == 2 &&
-      (*(uint8_t *)((char *)col_result + 0x4c) & 0x8)) { /* buf-alias-ok */
-    damage_data_new(damage_params, *(int *)(proj_tag + 0x230));
-    /* MSVC stack overlap: in the original binary col_pos/col_pos2/vel_local
-     * overlap the damage_params buffer. Write directly into damage_params. */
-    *(uint32_t *)(damage_params + 0x04) |= 8;
-    *(float *)(damage_params + 0x1c) = *(float *)((char *)col_result + 0x18);
-    *(float *)(damage_params + 0x20) = *(float *)((char *)col_result + 0x1c);
-    *(float *)(damage_params + 0x24) =
-      *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
-    *(float *)(damage_params + 0x28) = *(float *)((char *)col_result + 0x18);
-    *(float *)(damage_params + 0x2c) = *(float *)((char *)col_result + 0x1c);
-    *(float *)(damage_params + 0x30) =
-      *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
-    *(float *)(damage_params + 0x34) = in_velocity[0];
-    *(float *)(damage_params + 0x38) = in_velocity[1];
-    *(float *)(damage_params + 0x3c) = in_velocity[2];
-    normalize3d((float *)(damage_params + 0x34));
-    /* Resolve bounce pass tag element (result unused; matches original code).
-     */
-    sTemp = col_result[0x1a];
-    if (sTemp < 0 || (int)sTemp >= *(int *)(proj_tag + 0x240)) {
-      dtag_elem = (char *)0x31ed08;
+  /* Breakable structure surface. */
+  if (collision->field_00 == 2 && (collision->field_4c & 0x8)) {
+    damage_data_new(&damage, definition->impact_damage.tag_index);
+    damage.flags |= 8;
+    damage.origin = *(real_point3d *)collision->position;
+    damage.epicenter = *(real_point3d *)collision->position;
+    damage.direction = *(real_vector3d *)in_velocity;
+    normalize3d((float *)&damage.direction);
+    material_type = collision->field_34;
+    if (material_type < 0 ||
+        (int)material_type >= definition->material_responses.count) {
+      surface_response = &default_projectile_material_response;
     } else {
-      dtag_elem = (char *)tag_block_get_element((void *)(proj_tag + 0x240),
-                                                (int)sTemp, 0xa0);
+      surface_response = tag_block_get_element(&definition->material_responses,
+                                              (int)material_type,
+                                              sizeof(*surface_response));
     }
-    (void)dtag_elem;
-    /* Material type at offset 0x4C — required by FUN_00146a90's early-out check
-     */
-    *(int16_t *)(damage_params + 0x4c) = (int16_t)sTemp;
-    /* Cluster/leaf from collision result */
-    *(int *)(damage_params + 0x14) = *(int *)((char *)col_result + 0x0c);
-    *(int *)(damage_params + 0x18) = *(int *)((char *)col_result + 0x10);
-    FUN_00146a90((uint16_t)*(uint8_t *)((char *)col_result + 0x4d),
-                 damage_params, *(int *)((char *)col_result + 0x44));
+    /* Divergence: the reference stores this to damage.material_response
+     * (0xf94c1) before the call; this lift drops it. */
+    (void)surface_response;
+    damage.material_type = (int16_t)material_type;
+    damage.field_14 = collision->field_0c;
+    /* Dword copy of the int16 field_10 and its padding. */
+    damage.field_18 = *(int32_t *)&collision->field_10;
+    FUN_00146a90((uint16_t)(uint8_t)collision->field_4d, &damage,
+                 collision->field_44);
   }
 
-  /* ------------------------------------------------------------------ */
-  /* 7. Write collision position back to hit_pos (param_2).             */
-  /* ------------------------------------------------------------------ */
-  memcpy(hit_pos, (char *)col_result + 0x18, 3 * sizeof(float));
+  *(real_point3d *)hit_pos = *(real_point3d *)collision->position;
 
-  /* ------------------------------------------------------------------ */
-  /* 8. Apply detonation result.                                         */
-  /* ------------------------------------------------------------------ */
-  if (det_result == 3) {
-    /* Ricochet. */
-    if (col_result[0] == 0) {
-      /* Toggle bit 0x10 in proj[1]. */
-      uTemp = (uint32_t)proj[1];
-      if (uTemp & 0x10) {
-        uTemp &= ~0x10u;
+  if (response == _projectile_material_response_overpenetrate) {
+    if (collision->field_00 == 0) {
+      object_flags = projectile->object.flags;
+      if (object_flags & 0x10) {
+        object_flags &= ~0x10u;
       } else {
-        uTemp |= 0x10u;
+        object_flags |= 0x10u;
       }
-      proj[1] = (int)uTemp;
+      projectile->object.flags = object_flags;
       projectile_calculate_deceleration(projectile_handle);
-      /* Subtract normal-component contribution from hit_pos. */
-      hit_pos[0] -= *(float *)((char *)col_result + 0x24) * /* buf-alias-ok */
-                    *(float *)0x255ef8;
-      hit_pos[1] -= *(float *)((char *)col_result + 0x28) * /* buf-alias-ok */
-                    *(float *)0x255ef8;
-      hit_pos[2] -= *(float *)((char *)col_result + 0x2c) * /* buf-alias-ok */
-                    *(float *)0x255ef8;
-    } else if (col_result[0] == 3) {
-      ftemp = *(float *)0x2533c8 - *(float *)((char *)tag_elem + 0x90);
-      in_velocity[0] *= ftemp;
-      in_velocity[1] *= ftemp;
-      in_velocity[2] *= ftemp;
-      proj[0x79] = *(int *)((char *)col_result + 0x38); /* buf-alias-ok */
+      hit_pos[0] -= collision->normal[0] * REAL_0_001_POOL;
+      hit_pos[1] -= collision->normal[1] * REAL_0_001_POOL;
+      /* Read through the parameter, not `collision`: the alias keeps the
+       * reference's FLD normal.k / FMUL 0.001f operand order. */
+      hit_pos[2] -= ((collision_test_result *)col_result)->normal[2] *
+                    REAL_0_001_POOL;
+    } else if (collision->field_00 == _collision_result_object) {
+      temp = REAL_ONE_POOL - material_response->field_90;
+      in_velocity[0] *= temp;
+      in_velocity[1] *= temp;
+      in_velocity[2] *= temp;
+      projectile->ignore_object_index = collision->field_38;
     } else {
-      /* Not state 0 or 3 — check tag's max speed. */
-      if (*(float *)(proj_tag + 0x1c0) == *(float *)0x2533c0) {
-        det_result = 1;
+      if (definition->timer_upper_bound == REAL_ZERO_POOL) {
+        response = _projectile_material_response_detonate;
       } else {
-        proj[0x77] = proj[0x77] | 0x14;
-        det_result = 4;
+        projectile->flags |= 0x14;
+        response = _projectile_material_response_attach;
       }
-      goto apply_default_velocity;
+      goto clear_velocity;
     }
-  } else if (det_result == 2) {
-    /* Deflect: project velocity onto/off surface normal. */
-    /* arg3 = perp (EBP+0xffffff58), arg4 = proj (EBP+0xffffff64).
-     * Decompiler note: Ghidra swaps proj/perp labels; the disassembly at
-     * 000f9726 uses [EBP+0xffffff64] as one component and 0xffffff58 as
-     * the other; verified from FUN_0010b910 body: EBP+0x10 = proj_out,
-     * EBP+0x14 = perp_out, so arg order is (v, n, perp_out, proj_out). */
-    FUN_0010b910(in_velocity, (float *)((char *)col_result + 0x24),
-                 perp_component, proj_component);
-    /* new_vel = (1 - tag[0x9c]) * proj - (1 - tag[0x98]) * perp
-     * (0x9726: FMUL proj[0xffffff64], 0x9738: FMUL perp[0xffffff58]) */
+  } else if (response == _projectile_material_response_reflect) {
+    FUN_0010b910(in_velocity, collision->normal,
+                 (float *)&normal_component, (float *)&tangent_component);
     in_velocity[0] =
-      (1.0f - *(float *)((char *)tag_elem + 0x9c)) * proj_component[0] -
-      (1.0f - *(float *)((char *)tag_elem + 0x98)) * perp_component[0];
+      (1.0f - material_response->perpendicular_friction) * tangent_component.i -
+      (1.0f - material_response->parallel_friction) * normal_component.i;
     in_velocity[1] =
-      (1.0f - *(float *)((char *)tag_elem + 0x9c)) * proj_component[1] -
-      (1.0f - *(float *)((char *)tag_elem + 0x98)) * perp_component[1];
+      (1.0f - material_response->perpendicular_friction) * tangent_component.j -
+      (1.0f - material_response->parallel_friction) * normal_component.j;
     in_velocity[2] =
-      (1.0f - *(float *)((char *)tag_elem + 0x9c)) * proj_component[2] -
-      (1.0f - *(float *)((char *)tag_elem + 0x98)) * perp_component[2];
-    goto apply_speed_scale;
+      (1.0f - material_response->perpendicular_friction) * tangent_component.k -
+      (1.0f - material_response->parallel_friction) * normal_component.k;
+    goto add_noise;
   } else {
-  apply_default_velocity:
-    /* Use global forward direction. */
-    in_velocity[0] = *(float *)(*(int *)0x31fc38);
-    in_velocity[1] = *(float *)(*(int *)0x31fc38 + 4);
-    in_velocity[2] = *(float *)(*(int *)0x31fc38 + 8);
+  clear_velocity:
+    *(real_vector3d *)in_velocity = *(real_vector3d *)halo_global_zero_vector_ptr;
   }
 
-apply_speed_scale:
-  /* Optional: random speed scale in [tag+0x60]. */
-  if (*(float *)((char *)tag_elem + 0x60) != *(float *)0x2533c0) {
-    seed = (float *)get_global_random_seed_address();
+add_noise:
+  if (material_response->angular_noise != REAL_ZERO_POOL) {
+    seed = get_global_random_seed_address();
     seed_random_vector_in_cone3d(
-      (int *)seed, in_velocity,
+      seed, in_velocity,
       0.0f, /* dup-args-ok: in-place, verified PUSH EDI x2 at 0x000f95f3/59 */
-      *(float *)((char *)tag_elem + 0x60), in_velocity);
+      material_response->angular_noise, in_velocity);
   }
 
-  /* Optional: speed magnitude randomisation [tag+0x64]. */
-  if (*(float *)((char *)tag_elem + 0x64) != *(float *)0x2533c0) {
-    float lo, hi; /* C89: hoist from inner block */
-    ftemp = normalize3d(in_velocity);
-    if (ftemp != *(float *)0x2533c0) {
-      lo = -*(float *)((char *)tag_elem + 0x64);
-      hi = *(float *)((char *)tag_elem + 0x64);
-      seed = (float *)get_global_random_seed_address();
-      ftemp += random_real_range((int *)seed, lo, hi);
-      in_velocity[0] = ftemp * in_velocity[0];
-      in_velocity[1] = ftemp * in_velocity[1];
-      in_velocity[2] = ftemp * in_velocity[2];
+  if (material_response->velocity_noise != REAL_ZERO_POOL) {
+    float lower_bound, upper_bound;
+
+    temp = normalize3d(in_velocity);
+    if (temp != REAL_ZERO_POOL) {
+      lower_bound = -material_response->velocity_noise;
+      upper_bound = material_response->velocity_noise;
+      seed = get_global_random_seed_address();
+      temp += random_real_range(seed, lower_bound, upper_bound);
+      in_velocity[0] = temp * in_velocity[0];
+      in_velocity[1] = temp * in_velocity[1];
+      in_velocity[2] = temp * in_velocity[2];
     }
   }
 
-  /* Compute squared speed. */
-  vel_sq = in_velocity[0] * in_velocity[0] + in_velocity[1] * in_velocity[1] +
-           in_velocity[2] * in_velocity[2];
-
-  /* Clamp-to-minimum-speed check. */
-  if (det_result != 4) {
-    if (vel_sq < *(float *)(proj_tag + 0x1c4) * *(float *)(proj_tag + 0x1c4)) {
-      pTemp = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-      if (*(int16_t *)(pTemp + 0x1e0) < 1) {
-        *(int16_t *)(pTemp + 0x1e0) = 1;
+  speed_squared = in_velocity[0] * in_velocity[0] +
+                  in_velocity[1] * in_velocity[1] +
+                  in_velocity[2] * in_velocity[2];
+  if (response != _projectile_material_response_attach) {
+    if (speed_squared <
+        definition->minimum_velocity * definition->minimum_velocity) {
+      action_projectile = projectile_get(projectile_handle);
+      if (action_projectile->action < _projectile_action_detonate) {
+        action_projectile->action = _projectile_action_detonate;
       }
     }
   }
-  /* 0xf9694: FST dword [ebp-0x38] -- no pop, so the min-speed compare at
-   * 0xf96ae (det_result != 4 path) uses the wide stack copy; the 1e-7 test
-   * at 0xf979b reloads the narrowed slot. */
-  HALO_FLT_ROUNDTRIP(vel_sq);
+  /* 0xf9694 FST without pop: the minimum-velocity compare sees the wide
+   * value, the epsilon test reloads the narrowed slot. */
+  HALO_FLT_ROUNDTRIP(speed_squared);
 
-  /* Gravity / vertical velocity threshold check. */
-  if (vel_sq < *(float *)0x253f44) {
-    proj[0x77] = proj[0x77] | 0x10;
-    if (*(float *)((char *)col_result + 0x2c) > *(float *)0x2533e4) {
-      proj[1] = proj[1] | 0x20;
-      if (*(float *)(proj_tag + 0x1c0) == *(float *)0x2533c0) {
-        pTemp = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-        if (*(int16_t *)(pTemp + 0x1e0) < 1) {
-          *(int16_t *)(pTemp + 0x1e0) = 1;
+  if (speed_squared < REAL_0_0001_POOL) {
+    projectile->flags |= 0x10;
+    if (collision->normal[2] > REAL_0_3_POOL) {
+      projectile->object.flags |= 0x20;
+      if (definition->timer_upper_bound == REAL_ZERO_POOL) {
+        action_projectile = projectile_get(projectile_handle);
+        if (action_projectile->action < _projectile_action_detonate) {
+          action_projectile->action = _projectile_action_detonate;
         }
       }
     }
   }
 
-  /* ------------------------------------------------------------------ */
-  /* Detonation result scale (scale_a / local_20).                       */
-  /* ------------------------------------------------------------------ */
-  scale_a = 0.0f;
+  effect_scale = 0.0f;
   {
-    int16_t scale_mode =
-      *(int16_t *)((char *)tag_elem + 0x5c); /* buf-alias-ok */
-    if (scale_mode == 0) {
-      scale_a = det_frac;
-    } else if (scale_mode == 1) {
-      scale_a = deflect_dot * *(float *)0x28ac24;
-      /* 0xf9827: FSTP dword [ebp-0x1c] -- narrowed before both clamp
-       * compares reload it at 0xf9832 and 0xf984b. */
-      HALO_FLT_ROUNDTRIP(scale_a);
+    int16_t scale_effects_by = material_response->scale_effects_by;
+
+    if (scale_effects_by == 0) {
+      effect_scale = damage_scale;
+    } else if (scale_effects_by == 1) {
+      effect_scale = impact_angle * REAL_TWO_OVER_PI_POOL;
+      /* 0xf9827 FSTP: narrowed before both clamp compares reload it. */
+      HALO_FLT_ROUNDTRIP(effect_scale);
     } else {
-      goto clamp_scale_b; /* ref 1b6c: JNE -> scale_b clamp */
+      goto clamp_material_effect_scale;
     }
   }
-
-  /* Clamp scale_a into [0,1].  0xf9835 lower bound (TEST $0x5,AH; JP),
-   * 0xf984e upper bound (TEST $0x41,AH; JNE) -- same shape as det_frac. */
-  if (scale_a < *(float *)0x2533c0) {
-    scale_a = 0.0f;
-  } else if (scale_a > *(float *)0x2533c8) {
-    scale_a = 1.0f;
+  if (effect_scale < REAL_ZERO_POOL) {
+    effect_scale = 0.0f;
+  } else if (effect_scale > REAL_ONE_POOL) {
+    effect_scale = 1.0f;
   }
 
-clamp_scale_b:
-  /* scale_b (local_18 / local_14) -- intensity weight.  Clamped into [0,1]
-   * at 0xf9865 / 0xf987e, same shape as scale_a. */
-  if (scale_b < *(float *)0x2533c0) {
-    scale_b = 0.0f;
-  } else if (scale_b > *(float *)0x2533c8) {
-    scale_b = 1.0f;
+clamp_material_effect_scale:
+  if (material_effect_scale < REAL_ZERO_POOL) {
+    material_effect_scale = 0.0f;
+  } else if (material_effect_scale > REAL_ONE_POOL) {
+    material_effect_scale = 1.0f;
   }
 
-  /* ------------------------------------------------------------------ */
-  /* Build marker arrays for effect functions.                            */
-  /* ------------------------------------------------------------------ */
-  {
-    int k;
-    float *mp;
-    {
-      float scale_f = *(float *)0x255e94;
-      float *up_ptr = *(float **)0x31fc50;
+  marker_forwards[_effect_marker_incident].i =
+    direction.i * REAL_NEGATIVE_ONE_POOL;
+  marker_forwards[_effect_marker_incident].j =
+    direction.j * REAL_NEGATIVE_ONE_POOL;
+  marker_forwards[_effect_marker_incident].k =
+    direction.k * REAL_NEGATIVE_ONE_POOL;
+  marker_forwards[_effect_marker_negative_incident] = direction;
+  marker_forwards[_effect_marker_gravity] = *global_down3d;
+  marker_forwards[_effect_marker_normal] = *(real_vector3d *)collision->normal;
+  FUN_0010c8e0((float *)&direction, collision->normal,
+               (float *)&marker_forwards[_effect_marker_reflection]);
 
-      /* Ref 0xf9892..0xf9925 store order: incident/neg-incident, gravity,
-       * normal, then FUN_0010c8e0 into reflection. */
-      marker_forwards[3] = vel_local[0] * scale_f;
-      marker_forwards[6] = vel_local[0];
-      marker_forwards[4] = vel_local[1] * scale_f;
-      marker_forwards[7] = vel_local[1];
-      marker_forwards[5] = vel_local[2] * scale_f;
-      marker_forwards[8] = vel_local[2];
-      marker_forwards[12] = up_ptr[0];
-      marker_forwards[13] = up_ptr[1];
-      marker_forwards[14] = up_ptr[2];
-      marker_forwards[0] =
-        *(float *)((char *)col_result + 0x24); /* buf-alias-ok */
-      marker_forwards[1] =
-        *(float *)((char *)col_result + 0x28); /* buf-alias-ok */
-      marker_forwards[2] =
-        *(float *)((char *)col_result + 0x2c); /* buf-alias-ok */
-      FUN_0010c8e0(vel_local, (float *)((char *)col_result + 0x24),
-                   marker_forwards + 9);
-    }
-
-    /* Fill 5 marker_points entries with col_result position. */
-    mp = marker_points;
-    for (k = 0; k < 5; k++) {
-      mp[0] = *(float *)((char *)col_result + 0x18);
-      mp[1] = *(float *)((char *)col_result + 0x1c);
-      mp[2] = *(float *)((char *)col_result + 0x20); /* buf-alias-ok */
-      mp += 3;
-    }
+  point = marker_points;
+  for (marker_index = 0; marker_index < NUMBER_OF_EFFECT_MARKERS;
+       marker_index++) {
+    point->x = collision->position[0];
+    point->y = collision->position[1];
+    point->z = collision->position[2];
+    point++;
   }
 
-  /* ------------------------------------------------------------------ */
-  /* 9. Emit hit effect (if ang_dot > threshold).                        */
-  /* ------------------------------------------------------------------ */
-  if (ang_dot > *(float *)0x28ac20) {
-    if (col_result[0] == 3) {
-      /* effect_update(tag, proj_handle, attached_obj, node_idx, 5, def, pts,
-       * fwds, sA, sB, 0, 0) */
+  if (impact_velocity > REAL_ONE_OVER_120_POOL) {
+    if (collision->field_00 == _collision_result_object) {
       effect_new_attached_from_markers(
-        tag_idx, projectile_handle, *(int *)((char *)col_result + 0x38),
-        (uint16_t)col_result[0x1f], 5, (void *)0x31f3a0, marker_points,
-        marker_forwards, scale_a, scale_b, 0.0f, 0.0f);
+        effect_definition_index, projectile_handle, collision->field_38,
+        (uint16_t)collision->field_3e, NUMBER_OF_EFFECT_MARKERS,
+        effect_marker_names, (float *)marker_points, (float *)marker_forwards,
+        effect_scale, material_effect_scale, 0.0f, 0.0f);
     } else {
       effect_new_unattached_from_markers(
-        tag_idx, projectile_handle, 0, 5, (void *)0x31f3a0, marker_points,
-        marker_forwards, scale_a, scale_b, 0.0f, 0.0f, 1);
+        effect_definition_index, projectile_handle, 0, NUMBER_OF_EFFECT_MARKERS,
+        effect_marker_names, (float *)marker_points, (float *)marker_forwards,
+        effect_scale, material_effect_scale, 0.0f, 0.0f, 1);
     }
   }
 
-  /* ------------------------------------------------------------------ */
-  /* Secondary effect: destroy/detonate tag effect.                      */
-  /* ------------------------------------------------------------------ */
-  if (!(proj[0x77] & 0x20) && ((proj[0x77] & 0x10) || det_result == 4)) {
-    if (col_result[0] == 3) {
+  if (!(projectile->flags & 0x20) &&
+      ((projectile->flags & 0x10) ||
+       response == _projectile_material_response_attach)) {
+    if (collision->field_00 == _collision_result_object) {
       effect_new_attached_from_markers(
-        *(int *)(proj_tag + 0x200), projectile_handle,
-        *(int *)((char *)col_result + 0x38), (uint16_t)col_result[0x1f], 5,
-        (void *)0x31f3a0, marker_points, marker_forwards, scale_a, scale_b,
-        0.0f, 0.0f);
+        definition->detonation_started.tag_index, projectile_handle,
+        collision->field_38, (uint16_t)collision->field_3e,
+        NUMBER_OF_EFFECT_MARKERS, effect_marker_names,
+        (float *)marker_points, (float *)marker_forwards, effect_scale,
+        material_effect_scale, 0.0f, 0.0f);
     } else {
       effect_new_unattached_from_markers(
-        *(int *)(proj_tag + 0x200), projectile_handle, 0, 5, (void *)0x31f3a0,
-        marker_points, marker_forwards, scale_a, scale_b, 0.0f, 0.0f, 1);
+        definition->detonation_started.tag_index, projectile_handle, 0,
+        NUMBER_OF_EFFECT_MARKERS, effect_marker_names, (float *)marker_points,
+        (float *)marker_forwards, effect_scale, material_effect_scale, 0.0f,
+        0.0f, 1);
     }
   }
 
-  /* ------------------------------------------------------------------ */
-  /* 10. Final detonation result dispatch.                               */
-  /* ------------------------------------------------------------------ */
-  switch (det_result) {
-  case 0:
-    pTemp = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-    if (*(int16_t *)(pTemp + 0x1e0) < 2) {
-      *(int16_t *)(pTemp + 0x1e0) = 2;
+  switch (response) {
+  case _projectile_material_response_disappear:
+    action_projectile = projectile_get(projectile_handle);
+    if (action_projectile->action < _projectile_action_delete) {
+      action_projectile->action = _projectile_action_delete;
       return;
     }
     break;
 
-  case 1:
-    pTemp = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-    if (*(int16_t *)(pTemp + 0x1e0) < 1) {
-      *(int16_t *)(pTemp + 0x1e0) = 1;
+  case _projectile_material_response_detonate:
+    action_projectile = projectile_get(projectile_handle);
+    if (action_projectile->action < _projectile_action_detonate) {
+      action_projectile->action = _projectile_action_detonate;
       return;
     }
     break;
 
-  case 2:
-  case 3:
+  case _projectile_material_response_reflect:
+  case _projectile_material_response_overpenetrate:
     break;
 
-  case 4: {
-    /* Detonate. */
-    if (col_result[0] == 3 && (*(uint8_t *)(proj_tag + 0x17c) & 0x8)) {
-      /* Kill all projectiles of same tag attached to this object. */
-      int *parent_obj;
-      int *child_obj;
-      char *child_proj_p;
-      parent_obj = (int *)object_get_and_verify_type(
-        *(int *)((char *)col_result + 0x38), -1);
-      obj_handle = parent_obj[0x32]; /* first child at proj+0xc8 */
-      tag_idx = 0;
-      while (obj_handle != -1) {
-        child_obj = (int *)object_get_and_verify_type(obj_handle, -1);
-        if (child_obj[0] == proj[0] /* same tag */) {
-          child_proj_p = (char *)object_get_and_verify_type(obj_handle, 0x20);
-          if (!(*(uint8_t *)(child_proj_p + 0x1dc) & 0x40)) {
-            char *cp2;
-            cp2 = (char *)object_get_and_verify_type(obj_handle, 0x20);
-            *(int *)(cp2 + 0x1f8) = 0;
-            *(int *)(cp2 + 0x1f0) = 0;
-            tag_idx = tag_idx + 1;
+  case _projectile_material_response_attach: {
+    if (collision->field_00 == _collision_result_object &&
+        (definition->flags & 0x8)) {
+      /* Zero the timers of this definition's projectiles already attached
+       * to the hit object; flag this one once more than five are found. */
+      object_data_t *parent_object;
+      object_data_t *child_object;
+      projectile_data_t *child_projectile;
+
+      parent_object = object_get_and_verify_type(collision->field_38, -1);
+      object_index = parent_object->unk_200.value;
+      attached_count = 0;
+      while (object_index != NONE) {
+        child_object = object_get_and_verify_type(object_index, -1);
+        if (child_object->tag_index == projectile->object.tag_index) {
+          child_projectile = projectile_get(object_index);
+          if (!(child_projectile->flags & 0x40)) {
+            projectile_data_t *attached_projectile;
+
+            attached_projectile = projectile_get(object_index);
+            attached_projectile->arming_time = 0.0f;
+            attached_projectile->detonation_timer = 0.0f;
+            attached_count++;
           }
         }
-        if ((int16_t)tag_idx > 5) {
-          proj[0x77] = proj[0x77] | 0x80;
+        if (attached_count > 5) {
+          projectile->flags |= 0x80;
           break;
         }
-        obj_handle = child_obj[0x31];
+        object_index = child_object->next_object_index.value;
       }
     }
-    /* Reset object forward/up to global zero vector. */
-    {
-      int *zv = (int *)(*(int *)0x31fc38);
-      proj[6] = zv[0];
-      proj[7] = zv[1];
-      proj[8] = zv[2];
-      proj[0xf] = zv[0];
-      proj[0x10] = zv[1];
-      proj[0x11] = zv[2];
+    projectile->object.translational_velocity =
+      *(real_point3d *)halo_global_zero_vector_ptr;
+    projectile->object.angular_velocity =
+      *(real_point3d *)halo_global_zero_vector_ptr;
+    projectile->object.flags |= 0x20;
+    projectile->flags |= FLAG(_projectile_attached_bit);
+    object_translate(projectile_handle, hit_pos, &collision->field_0c);
+    if (collision->field_00 == _collision_result_object) {
+      object_attach_to_parent(collision->field_38, projectile_handle,
+                              (int16_t)collision->field_3e);
     }
-    proj[1] = proj[1] | 0x20;
-    proj[0x77] = proj[0x77] | 0x8;
-    object_translate(projectile_handle, hit_pos,
-                     (float *)((char *)col_result + 0xc));
-    if (col_result[0] == 3) {
-      object_attach_to_parent(*(int *)((char *)col_result + 0x38),
-                              projectile_handle, (int16_t)col_result[0x1f]);
-    }
-    /* Compute spin rate scale if tag "attach on impact" flag (bit 2) set. */
-    if ((*(uint8_t *)(proj_tag + 0x17c) & 0x4)) {
-      ftemp = *(float *)(proj_tag + 0x1c0) * TICKS_PER_SECOND;
-      if (ftemp >= *(float *)0x2533c8) {
-        *(float *)((char *)proj + 0x1f4) = *(float *)0x2533c8 / ftemp;
+    if (definition->flags & 0x4) {
+      temp = definition->timer_upper_bound * TICKS_PER_SECOND;
+      if (temp >= REAL_ONE_POOL) {
+        projectile->detonation_timer_delta = REAL_ONE_POOL / temp;
       }
     }
     break;
-  } /* case 4 */
+  }
 
   default:
     display_assert(0, "c:\\halo\\SOURCE\\items\\projectiles.c", 0x5cf, 1);
@@ -2151,199 +1519,113 @@ clamp_scale_b:
   }
 }
 
-/*
- * Main projectile physics update tick (projectile_update).
- *
- * Processes one game-tick worth of physics for a single projectile:
- *   1. Contrail cleanup: if the projectile is not already detonating and has
- *      an active contrail sub-object, deletes it and clears the reference.
- *   2. Time/distance accumulation: advances the per-tick timer fields.
- *   3. Detonation flag: sets the detonating flag (bit 5) when the detonation
- *      timer (_DAT_002533c8) has elapsed, and forces the detonation state to
- *      at least 1 when the max-range field (_DAT_002533c8) is exceeded.
- *   4. Exports function values, then enters the main physics do-while loop:
- *      a. Copies current velocity/speed; validates the velocity vector.
- *      b. Guided-missile steering: if a target is locked, rotates the
- *         velocity vector toward the target using sin/cos.
- *      c. Speed clamping / deceleration based on max-range remaining.
- *      d. Gravity integration.
- *      e. Range limit (local_64 fraction) that proportionally clamps
- *         displacement and flags detonation.
- *      f. Computes new_pos; validates it.
- *      g. Collision depth push/pop around projectile_collision_test_line.
- *      h. Bounce limit (max 10) or detonation-state check -> time=0.
- *      i. On collision hit: adjusts velocity for bounce, calls projectile_collision
- *         for detonation effects and ai_handle_spatial_effect for sound, increments
- *         bounce counter.
- *      j. Accumulates total distance; proximity-checks up to 4 local players
- *         for 3D sound trigger (unattached_impulse_sound_new).
- *      k. Updates orientation (forward/up) from velocity direction.
- *      l. Translates object to new_pos; writes back velocity.
- *      m. If bounced: updates contrail node-matrices and contrail state.
- *   5. Post-loop detonation handling: projectile_detonate (velocity/impact) or
- *      object_delete.
- *   6. Validates axes; exits profiling section.
- */
+/* Advances one projectile by one tick: detonation timer, guidance,
+ * deceleration, gravity, maximum range, then up to
+ * MAXIMUM_PROJECTILE_BOUNCES_PER_TICK collision steps. */
 bool projectile_update(int projectile_handle)
 {
-  register char *proj; /* object data for the projectile                     */
-  register char *proj_tag; /* tag data ('proj') for the projectile               */
-  int contrail_handle; /* handle of the attached contrail sub-object         */
-  int time_tick; /* game_time_get() result for seeding randomness      */
-  int player_idx; /* loop var: local player index (0-3)                 */
-  int player_handle; /* result of local_player_get_player_index            */
-  int player_obj; /* pointer to player object data                      */
-  int obj_handle; /* misc object handle from datum_get result           */
-  float dot; /* dot product for sound proximity check              */
-  float mag_sq; /* magnitude-squared for proximity                    */
-  float sound_range; /* sound trigger range from tag                       */
-  /* Velocity components (float[3] at proj+0x18).
-   * Must be an array: separate floats let clang place vel[1]=EBP-0xC (saved
-   * ESI) and vel[2]=EBP-0x8 (saved EDI). projectile_collision writes through the
-   * velocity pointer and would corrupt the saved register slots. */
-  float vel[3];
+  projectile_data_t *projectile;
+  projectile_definition_t *definition;
+  int contrail_handle;
+  int game_time;
+  int local_player_index;
+  int player_index;
+  object_data_t *player_unit;
+  int player_unit_index;
+  float dot;
+  float distance_squared;
+  float sound_range;
+  real_vector3d velocity;
+  real_vector3d average_velocity;
+  real_point3d new_position;
+  real_point3d target_position;
+  real_vector3d perpendicular;
+  float angles[3];
+  real_vector3d target_delta;
+  real_vector3d velocity_direction;
+  real_vector3d steer_axis;
+  /* unattached_impulse_sound_new location (0x2c bytes); also the
+   * cross-product scratch of the orientation update */
+  impulse_sound_location_t sound_location;
+  float speed;
+  float initial_speed;
+  float range_fraction;
+  float new_speed;
+  float average_speed;
+  float gravity;
+  float scale;
+  float remaining_fraction;
+  /* the original keeps this live in ST(2) across the whole split-tick arm
+   * (0xfa1bb..0xfa24a) */
+  float split_fraction;
+  float target_distance;
+  float wander_fraction;
+  int bounce_count;
+  float time_remaining;
+  char flyby_played;
+  char moved;
+  char collided;
+  int ignore_object_index;
+  float turn_angle;
+  collision_test_result collision;
+  float normal_k;
+  object_data_t *target;
+  int scratch;
 
-  /* Average velocity for position integration (float[3]). */
-  float avg_vel[3];
-
-  /* New position after one tick (float[3]).
-   * Declared as an array to prevent clang from aliasing new_pos[1] with
-   * proj_tag when separate float variables are laid out contiguously on the
-   * stack (new_pos_y at EBP-0x20 overlapped proj_tag at EBP-0x20). */
-  float new_pos[3];
-
-  /* Guidance target position. */
-  float target_pos_x, target_pos_y, target_pos_z;
-
-  /* Local copies for perpendicular decomposition. */
-  float perp_vec[3]; /* perpendicular component (local_bc area)           */
-  float angles_out[3]; /* angles_to_vector output area (local_9c area)      */
-  float steer_delta[3]; /* delta toward target (local_88 area)               */
-
-  /* Forward / up vector copies for the orientation update. */
-  float fwd_copy[3]; /* copy of proj->forward (local_7c area)             */
-
-  /* Intermediate buffers for cross_product3d / cross_product3d. */
-  float cross_buf[3]; /* result of cross_product3d (local_10c area)        */
-  float cross_buf2[11]; /* second cross buffer / location for
-                           unattached_impulse_sound_new (44 bytes) */
-
-  /* Distance/range helpers. */
-  float speed; /* |velocity| at start of tick (local_3c)            */
-  float speed_prev; /* copy of speed before deceleration (local_20)      */
-  float range_frac; /* fraction of tick before max-range hit (local_64)  */
-  float dist_at_hit; /* deceleration-adjusted distance (local_30)        */
-  float dist_post; /* post-decel speed (local_3c updated)               */
-
-  /* Gravity / deceleration temps. */
-  float gravity; /* local_8 — gravity deceleration magnitude          */
-  float decel_frac; /* fVar2 — generic float scratch                     */
-  float tmp_frac; /* fVar5/fVar6 — secondary scratch                   */
-  float split_frac; /* fraction of the tick before the speed floor; the
-                     * original keeps it live in ST(2) across the whole
-                     * split-tick arm (0xfa1bb..0xfa24a) */
-
-  /* Steering helpers. */
-  float target_dist; /* distance to guidance target (local_8 scratch)     */
-  float steer_frac; /* lateral blend weight (local_2c)                   */
-
-  /* Bounce count, time remaining, found-sound flag, hit flag. */
-  int bounce_count; /* local_38: number of bounces so far in this tick   */
-  float time_remaining; /* local_1c: fraction of tick remaining (starts 1.0) */
-  char found_sound; /* local_21: set once a proximity sound is triggered  */
-  char hit_flag; /* local_15: set when projectile_collision_test_line reports a hit      */
-  char col_hit; /* local_15 updated after detonation check            */
-
-  /* Saved object target index (proj+0x1e4). */
-  int saved_target; /* local_90: *(int*)(proj+0x1e4) at tick start       */
-
-  /* Steering turn rate. */
-  float steer_turn_rate; /* local_34: steering turn rate (radians/tick)     */
-
-  /* collision_bsp_test_vector result; projectile_collision reads up to offset 0x4e. */
-  char collision_result[0x50]; /* 80 bytes required                          */
-
-  /* Collision normal z component for bounce-angle check. */
-  float col_normal_z; /* local_13c: collision normal z component            */
-
-  /* Temp for object-data pointer (object_get_and_verify_type returns int). */
-  int obj_type_f; /* pointer to target object data (used as int for field
-                     access) */
-
-  /* Location passed to unattached_impulse_sound_new reuses cross_buf2.       */
-
-  /* Misc integer temps. */
-  int cd_slot; /* collision-depth slot index                        */
-  int tmp_int; /* miscellaneous integer scratch                     */
-
-  /* ----------------------------------------------------------------------- */
-  /* 1. Resolve object and tag data.                                         */
-  /* ----------------------------------------------------------------------- */
-  proj = (char *)object_get_and_verify_type(projectile_handle, 0x20);
-  proj_tag = (char *)tag_get(0x70726f6a, *(int *)proj);
+  projectile = projectile_get(projectile_handle);
+  definition = projectile_definition_get(projectile->object.tag_index);
 
   time_remaining = 1.0f;
   bounce_count = 0;
-  found_sound = '\0';
+  flyby_played = '\0';
 
-  /* Cache proj_tag in local_28 equivalent. */
-
-  /* ----------------------------------------------------------------------- */
-  /* 2. Profiling entry.                                                     */
-  /* ----------------------------------------------------------------------- */
-  if ((*(char *)0x449ef1 != '\0') && (*(char *)0x31edb0 != '\0')) {
-    profile_enter_private((void *)0x31eda8);
+  if (profile_global_enable_byte && projectile_update_profile_section_active) {
+    profile_enter_private(projectile_update_profile_section);
   }
 
-  /* ----------------------------------------------------------------------- */
-  /* 3. Contrail cleanup.                                                    */
-  /* ----------------------------------------------------------------------- */
-  if (((*(uint8_t *)(proj + 0x1dc) & 2) == 0) &&
-      (*(int *)(proj + 0x1ec) != -1)) {
-    contrail_handle = *(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4);
-    if (contrail_handle != -1) {
+  /* byte-width flag read: the dword form here costs raw bytes */
+  if ((((uint8_t)projectile->flags & FLAG(_projectile_tracer_bit)) == 0) &&
+      (projectile->tracer_attachment_index != NONE)) {
+    contrail_handle =
+      projectile->object.attachment_indices[projectile->tracer_attachment_index];
+    if (contrail_handle != NONE) {
       contrail_delete(contrail_handle);
     }
-    *(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4) = -1;
-    *(int *)(proj + 0x1ec) = -1;
+    projectile->object.attachment_indices[projectile->tracer_attachment_index] = NONE;
+    projectile->tracer_attachment_index = NONE;
   }
 
-  /* ----------------------------------------------------------------------- */
-  /* 4. Time/distance accumulation.                                          */
-  /* ----------------------------------------------------------------------- */
-  *(float *)(proj + 0x1f8) =
-    *(float *)(proj + 0x1fc) + *(float *)(proj + 0x1f8);
-  *(float *)(proj + 0x204) =
-    *(float *)(proj + 0x208) + *(float *)(proj + 0x204);
+  projectile->arming_time =
+    projectile->arming_time_delta + projectile->arming_time;
+  projectile->field_204 =
+    projectile->field_208 + projectile->field_204;
 
-  /* ----------------------------------------------------------------------- */
-  /* 5. Detonation flag check.                                               */
-  /* ----------------------------------------------------------------------- */
   {
-    uint8_t det_type;
-    det_type = 0;
+    uint8_t start_timer;
+    start_timer = 0;
     {
-      int det_kind = *(int16_t *)(proj_tag + 0x180);
-      if (det_kind == 1 || det_kind == 2) {
-        det_type = (uint8_t)((*(uint32_t *)(proj + 0x1dc) >> 4) & 1);
+      int timer_starts = definition->detonation_timer_starts;
+      if (timer_starts == 1 || timer_starts == 2) {
+        start_timer = (uint8_t)((projectile->flags >> _projectile_unknown_bit4) & 1);
       } else {
-        det_type = 1;
+        start_timer = 1;
       }
     }
     {
-      uint32_t flags = *(uint32_t *)(proj + 0x1dc);
-      if (((flags & 0x20) != 0) || ((flags & 8) != 0) || (det_type != 0)) {
-        if ((flags & 0x20) == 0) {
-          *(uint32_t *)(proj + 0x1dc) = flags | 0x20;
+      uint32_t flags = projectile->flags;
+      if (((flags & FLAG(_projectile_detonation_timer_running_bit)) != 0) ||
+          ((flags & FLAG(_projectile_attached_bit)) != 0) || (start_timer != 0)) {
+        if ((flags & FLAG(_projectile_detonation_timer_running_bit)) == 0) {
+          projectile->flags = flags | FLAG(_projectile_detonation_timer_running_bit);
         }
         {
-          float timer_val = *(float *)(proj + 500) + *(float *)(proj + 0x1f0);
-          *(float *)(proj + 0x1f0) = timer_val;
-          if (timer_val >= 1.0f) {
-            char *tmp_proj2 =
-              (char *)object_get_and_verify_type(projectile_handle, 0x20);
-            if (*(int16_t *)(tmp_proj2 + 0x1e0) < 1) {
-              *(int16_t *)(tmp_proj2 + 0x1e0) = 1;
+          float timer =
+            projectile->detonation_timer_delta + projectile->detonation_timer;
+          projectile->detonation_timer = timer;
+          if (timer >= 1.0f) {
+            projectile_data_t *detonating = projectile_get(projectile_handle);
+            if (detonating->action < _projectile_action_detonate) {
+              detonating->action = _projectile_action_detonate;
             }
           }
         }
@@ -2351,395 +1633,375 @@ bool projectile_update(int projectile_handle)
     }
   }
 
-  /* ----------------------------------------------------------------------- */
-  /* 6. Export function values.                                              */
-  /* ----------------------------------------------------------------------- */
   projectile_export_function_values(projectile_handle);
 
-  /* ----------------------------------------------------------------------- */
-  /* 7. Main physics do-while loop.                                          */
-  /* ----------------------------------------------------------------------- */
   do {
-    float *pfVel; /* pointer to proj velocity (proj+0x18) */
-
-    /* Bail conditions. */
-    if ((*(int16_t *)(proj + 0x1e0) != 0) &&
-        (((*(int16_t *)(proj + 0x1e0) != 1) ||
-          (*(float *)(proj + 0x1fc) == 0.0f) ||
-          (!(*(float *)(proj + 0x1f8) < 1.0f))))) {
+    if ((projectile->action != _projectile_action_none) &&
+        (((projectile->action != _projectile_action_detonate) ||
+          (projectile->arming_time_delta == 0.0f) ||
+          (!(projectile->arming_time < 1.0f))))) {
       break;
     }
-    if (((*(uint8_t *)(proj + 0x1dc) & 8) != 0) ||
-        ((*(uint8_t *)(proj + 4) & 0x20) != 0) ||
-        (*(int *)(proj + 0xcc) != -1)) {
+    if (((projectile->flags & FLAG(_projectile_attached_bit)) != 0) ||
+        ((projectile->object.flags & FLAG(_object_unknown_bit5)) != 0) ||
+        (projectile->object.parent_object_index.value != NONE)) {
       break;
     }
 
-    pfVel = (float *)(proj + 0x18);
-    vel[0] = *pfVel;
-    vel[1] = *(float *)(proj + 0x1c);
-    vel[2] = *(float *)(proj + 0x20);
-    avg_vel[0] = *pfVel;
-    avg_vel[1] = *(float *)(proj + 0x1c);
-    avg_vel[2] = *(float *)(proj + 0x20);
-    saved_target = *(int *)(proj + 0x1e4);
-    hit_flag = '\0';
+    velocity.i = projectile->object.translational_velocity.x;
+    velocity.j = projectile->object.translational_velocity.y;
+    velocity.k = projectile->object.translational_velocity.z;
+    average_velocity.i = projectile->object.translational_velocity.x;
+    average_velocity.j = projectile->object.translational_velocity.y;
+    average_velocity.k = projectile->object.translational_velocity.z;
+    ignore_object_index = projectile->ignore_object_index;
+    moved = '\0';
 
     /* 0xf9e07-0xf9e37: (x*x + y*y) + z*z */
-    speed = sqrtf(*pfVel * *pfVel +
-                  *(float *)(proj + 0x1c) * *(float *)(proj + 0x1c) +
-                  *(float *)(proj + 0x20) * *(float *)(proj + 0x20));
+    speed = sqrtf(projectile->object.translational_velocity.x *
+                    projectile->object.translational_velocity.x +
+                  projectile->object.translational_velocity.y *
+                    projectile->object.translational_velocity.y +
+                  projectile->object.translational_velocity.z *
+                    projectile->object.translational_velocity.z);
     /* 0xf9e4c: FST dword [ebp-0x1c] -- the FSQRT result is narrowed before it
-     * is copied on to [ebp-0x2c] (dist_at_hit) and [ebp-0x38] (dist_post) at
+     * is copied on to [ebp-0x2c] (new_speed) and [ebp-0x38] (average_speed) at
      * 0xf9e55/0xf9e58, so all four locals hold the same float32. */
     HALO_FLT_ROUNDTRIP(speed);
-    dist_at_hit = speed;
-    speed_prev = speed;
-    dist_post = speed; /* MSVC local_3c aliases speed; no-decel path reads
-                          dist_post before any decel sets it */
+    new_speed = speed;
+    initial_speed = speed;
+    average_speed = speed;
 
-    if (!(char)real_vector3d_valid(pfVel)) {
-      display_assert(csprintf((char *)0x5ab100,
+    if (!(char)real_vector3d_valid(
+          (float *)&projectile->object.translational_velocity)) {
+      display_assert(csprintf(error_string_buffer,
                               "%s: assert_valid_real_vector2d(%f, %f, %f)",
                               "&projectile->object.translational_velocity",
-                              (double)*pfVel, (double)*(float *)(proj + 0x1c),
-                              (double)*(float *)(proj + 0x20)),
+                              (double)projectile->object.translational_velocity.x,
+                              (double)projectile->object.translational_velocity.y,
+                              (double)projectile->object.translational_velocity.z),
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x146, 1);
       system_exit(-1);
     }
 
-    /* -------------------------------------------------------------------- */
-    /* 7a. Guided-missile steering.                                          */
-    /* -------------------------------------------------------------------- */
-    if ((*(int *)(proj + 0x1e8) != -1) &&
-        (*(float *)(proj_tag + 0x1ec) > 0.0f)) {
-      obj_type_f =
-        (int)object_get_and_verify_type(*(int *)(proj + 0x1e8), 0xffffffff);
-      steer_turn_rate = *(float *)(proj_tag + 0x1ec) * *(float *)0x2546a4;
+    if ((projectile->target_object_index != NONE) &&
+        (definition->guided_angular_velocity > 0.0f)) {
+      target = object_get_and_verify_type(projectile->target_object_index, NONE);
+      turn_angle = definition->guided_angular_velocity * REAL_ONE_THIRTIETH_POOL;
       /* 0xf9efa: FSTP dword [ebp-0x30] -- narrowed before the reload at
        * 0xf9f28. */
-      HALO_FLT_ROUNDTRIP(steer_turn_rate);
-      if (((1u << *(uint8_t *)(obj_type_f + 100)) & 3u) != 0) {
-        tmp_int = (int)object_get_and_verify_type(*(int *)(proj + 0x1e8), 3);
-        if (*(int *)(tmp_int + 0x1c8) != -1) {
-          steer_turn_rate *= (float)FUN_000b5590(0x13);
+      HALO_FLT_ROUNDTRIP(turn_angle);
+      if ((FLAG(target->type) & _object_mask_unit) != 0) {
+        /* the unit pointer goes through the shared int scratch slot; a
+         * separate pointer local moves bytes */
+        scratch = (int)object_get_and_verify_type(projectile->target_object_index,
+                                                  _object_mask_unit);
+        if (((unit_data_t *)scratch)->unk_456.value != NONE) {
+          turn_angle *= (float)FUN_000b5590(0x13);
           /* 0xf9f2e: FSTP dword [ebp-0x30] -- narrowed again after the
            * scale. */
-          HALO_FLT_ROUNDTRIP(steer_turn_rate);
+          HALO_FLT_ROUNDTRIP(turn_angle);
         }
       }
-      target_dist = (float)FUN_0001ad60((float *)(obj_type_f + 0x50),
-                                        (float *)(proj + 0x50));
-      if (!(target_dist > *(float *)0x253f34)) {
-        if ((target_dist > *(float *)0x253f40) &&
-            (!((steer_frac = (target_dist - *(float *)0x253f40) *
-                            *(float *)0x268ed0) < 0.0f))) {
+      target_distance = (float)FUN_0001ad60(&target->unk_80,
+                                        &projectile->object.unk_80);
+      if (!(target_distance > REAL_10_POOL)) {
+        if ((target_distance > REAL_2_0_POOL) &&
+            (!((wander_fraction = (target_distance - REAL_2_0_POOL) *
+                            REAL_0_125_POOL) < 0.0f))) {
           /* 0xf9f7c: FST dword [ebp-0x28] -- no pop, so the "< 0" test at
            * 0xf9f7f uses the wide stack copy; the "> 1.0" test reloads the
            * narrowed slot at 0xf9f8c. */
-          HALO_FLT_ROUNDTRIP(steer_frac);
-          if (steer_frac > 1.0f) {
-            steer_frac = 1.0f;
+          HALO_FLT_ROUNDTRIP(wander_fraction);
+          if (wander_fraction > 1.0f) {
+            wander_fraction = 1.0f;
           }
         } else {
-          steer_frac = 0.0f;
+          wander_fraction = 0.0f;
         }
       } else {
-        steer_frac = 1.0f;
+        wander_fraction = 1.0f;
       }
-      unit_get_center_of_mass(*(int *)(proj + 0x1e8), &target_pos_x);
-      time_tick = game_time_get();
-      tmp_int = (time_tick + (projectile_handle >> 16) * 7) & 0xffff;
+      unit_get_center_of_mass(projectile->target_object_index,
+                              (float *)&target_position);
+      game_time = game_time_get();
+      scratch = (game_time + (projectile_handle >> 16) * 7) & 0xffff;
       {
-        float angle_noise1 =
-          FUN_0010a5e0(10, (float)tmp_int * *(float *)0x26f2e0);
-        angles_out[0] = angle_noise1 * *(float *)0x255a54;
-        time_tick = game_time_get();
-        tmp_int = (time_tick + (projectile_handle >> 16) * 3) & 0xffff;
+        float yaw_noise =
+          FUN_0010a5e0(10, (float)scratch * REAL_ONE_NINETIETH_POOL);
+        angles[0] = yaw_noise * REAL_TWO_PI_POOL;
+        game_time = game_time_get();
+        scratch = (game_time + (projectile_handle >> 16) * 3) & 0xffff;
         {
-          float angle_noise2 =
-            FUN_0010a5e0(10, (float)tmp_int * *(float *)0x26f2e0);
-          angles_out[2] =
-            *(float *)0x256980 - angle_noise2 * *(float *)0x2568bc;
+          float pitch_noise =
+            FUN_0010a5e0(10, (float)scratch * REAL_ONE_NINETIETH_POOL);
+          angles[2] =
+            REAL_PI_POOL - pitch_noise * REAL_HALF_PI_POOL;
         }
       }
-      angles_out[1] = angles_out[0];
-      angles_to_vector(perp_vec, angles_out);
-      target_pos_x = perp_vec[0] * steer_frac + target_pos_x;
+      angles[1] = angles[0];
+      angles_to_vector((float *)&perpendicular, angles);
+      target_position.x = perpendicular.i * wander_fraction + target_position.x;
       /* 0xfa06c / 0xfa07b / 0xfa08a: FSTP dword [ebp-0x6c] / [ebp-0x68] /
-       * [ebp-0x64] -- each component is narrowed before the steer_delta
+       * [ebp-0x64] -- each component is narrowed before the target_delta
        * subtractions reload it at 0xfa08d / 0xfa099 / 0xfa0a2. */
-      HALO_FLT_ROUNDTRIP(target_pos_x);
-      target_pos_y = perp_vec[1] * steer_frac + target_pos_y;
-      HALO_FLT_ROUNDTRIP(target_pos_y);
-      target_pos_z = perp_vec[2] * steer_frac + target_pos_z;
-      HALO_FLT_ROUNDTRIP(target_pos_z);
-      steer_delta[0] = target_pos_x - *(float *)(proj + 0xc);
-      steer_delta[1] = target_pos_y - *(float *)(proj + 0x10);
-      steer_delta[2] = target_pos_z - *(float *)(proj + 0x14);
-      cross_product3d(pfVel, steer_delta, cross_buf);
-      dot = steer_delta[0] * *pfVel + steer_delta[1] * *(float *)(proj + 0x1c) +
-            steer_delta[2] * *(float *)(proj + 0x20);
+      HALO_FLT_ROUNDTRIP(target_position.x);
+      target_position.y = perpendicular.j * wander_fraction + target_position.y;
+      HALO_FLT_ROUNDTRIP(target_position.y);
+      target_position.z = perpendicular.k * wander_fraction + target_position.z;
+      HALO_FLT_ROUNDTRIP(target_position.z);
+      target_delta.i = target_position.x - projectile->object.position.x;
+      target_delta.j = target_position.y - projectile->object.position.y;
+      target_delta.k = target_position.z - projectile->object.position.z;
+      cross_product3d((float *)&projectile->object.translational_velocity,
+                      (float *)&target_delta, (float *)&steer_axis);
+      dot = target_delta.i * projectile->object.translational_velocity.x +
+            target_delta.j * projectile->object.translational_velocity.y +
+            target_delta.k * projectile->object.translational_velocity.z;
       if ((dot > 0.0f) &&
-          ((float)normalize3d(cross_buf) > 0.0f)) {
-        float steer_cos, steer_sin;
+          ((float)normalize3d((float *)&steer_axis) > 0.0f)) {
+        float turn_cos, turn_sin;
 #ifdef XDK_BUILD
         __asm {
-          fld steer_turn_rate
+          fld turn_angle
           fcos
-          fstp steer_cos
-          fld steer_turn_rate
+          fstp turn_cos
+          fld turn_angle
           fsin
-          fstp steer_sin
+          fstp turn_sin
         }
 #else
-        steer_cos = x87_fcos(steer_turn_rate);
-        steer_sin = x87_fsin(steer_turn_rate);
+        turn_cos = x87_fcos(turn_angle);
+        turn_sin = x87_fsin(turn_angle);
 #endif
-        rotate_vector3d_by_sincos(pfVel, cross_buf, steer_sin, steer_cos);
+        rotate_vector3d_by_sincos((float *)&projectile->object.translational_velocity,
+                                  (float *)&steer_axis, turn_sin, turn_cos);
       }
     }
 
-    if (!(char)real_vector3d_valid(vel)) {
+    if (!(char)real_vector3d_valid((float *)&velocity)) {
       display_assert("projectile velocity is bad after steering.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x19d, 1);
       system_exit(-1);
     }
 
-    /* -------------------------------------------------------------------- */
-    /* 7b. Speed clamping / deceleration.                                   */
-    /* -------------------------------------------------------------------- */
-    if (*(float *)(proj + 0x204) >= 1.0f) {
-      if ((!(speed_prev > *(float *)(proj_tag + 0x1e8))) ||
-          (*(float *)(proj + 0x20c) == 0.0f)) {
-        /* Already at or below max speed, or no deceleration. */
-        if (((*(float *)(proj_tag + 0x1c8) != 0.0f) ||
-             ((*(float *)(proj_tag + 0x1c0) != 0.0f) ||
-              !(*(float *)(proj_tag + 0x1c4) <=
-                *(float *)(proj_tag + 0x1e8)))) ||
-            ((*(float *)(proj + 0x20c) == 0.0f) &&
-             (!(*(float *)(proj + 0x200) >= *(float *)(proj + 0x210))))) {
-          if ((speed_prev < *(float *)(proj_tag + 0x1e8)) &&
-              (speed_prev > 0.0f)) {
-            decel_frac =
-              (*(float *)(proj_tag + 0x1e8) / speed_prev) * *(float *)0x28ace8;
-            vel[0] *= decel_frac;
-            vel[1] *= decel_frac;
-            vel[2] *= decel_frac;
+    if (projectile->field_204 >= 1.0f) {
+      if ((!(initial_speed > definition->final_velocity)) ||
+          (projectile->deceleration == 0.0f)) {
+        if (((definition->maximum_range != 0.0f) ||
+             ((definition->timer_upper_bound != 0.0f) ||
+              !(definition->minimum_velocity <=
+                definition->final_velocity))) ||
+            ((projectile->deceleration == 0.0f) &&
+             (!(projectile->odometer >= projectile->field_210)))) {
+          if ((initial_speed < definition->final_velocity) &&
+              (initial_speed > 0.0f)) {
+            scale =
+              (definition->final_velocity / initial_speed) * REAL_0_99_POOL;
+            velocity.i *= scale;
+            velocity.j *= scale;
+            velocity.k *= scale;
           }
         } else {
-          projectile_set_action(projectile_handle, 2);
+          projectile_set_action(projectile_handle, _projectile_action_delete);
         }
       } else {
-        decel_frac = time_remaining * *(float *)(proj + 0x20c);
-        dist_at_hit = speed_prev - decel_frac;
-        if (dist_at_hit <= *(float *)(proj_tag + 0x1e8)) {
-          /* Speed will cross min: split tick. */
-          split_frac = (speed_prev - *(float *)(proj_tag + 0x1e8)) / decel_frac;
-          dist_at_hit = *(float *)(proj_tag + 0x1e8) * *(float *)0x28ace8;
+        scale = time_remaining * projectile->deceleration;
+        new_speed = initial_speed - scale;
+        if (new_speed <= definition->final_velocity) {
+          /* the speed reaches final_velocity partway through the tick */
+          split_fraction = (initial_speed - definition->final_velocity) / scale;
+          new_speed = definition->final_velocity * REAL_0_99_POOL;
           /* 0xfa1c9: FSTP dword [ebp-0x2c] -- narrowed before the reload at
            * 0xfa1d4. */
-          HALO_FLT_ROUNDTRIP(dist_at_hit);
-          tmp_frac = 1.0f - split_frac;
-          dist_post =
-            tmp_frac * *(float *)(proj_tag + 0x1e8) +
-            (dist_at_hit + speed_prev) * split_frac * *(float *)0x253398;
+          HALO_FLT_ROUNDTRIP(new_speed);
+          remaining_fraction = 1.0f - split_fraction;
+          average_speed =
+            remaining_fraction * definition->final_velocity +
+            (new_speed + initial_speed) * split_fraction * REAL_0_5_POOL;
           /* 0xfa1ec: FSTP dword [ebp-0x38] -- narrowed before the reloads at
            * 0xfa413 / 0xfa42c. */
-          HALO_FLT_ROUNDTRIP(dist_post);
-          decel_frac = dist_at_hit / speed_prev;
-          vel[0] *= decel_frac;
-          vel[1] *= decel_frac;
-          vel[2] *= decel_frac;
+          HALO_FLT_ROUNDTRIP(average_speed);
+          scale = new_speed / initial_speed;
+          velocity.i *= scale;
+          velocity.j *= scale;
+          velocity.k *= scale;
           /* 0xfa1fa/0xfa202/0xfa208: FSTP dword narrows each scaled component;
            * 0xfa20b/0xfa21a (and y/z) reload the narrowed slots for both
            * terms of the average. */
-          HALO_FLT_ROUNDTRIP(vel[0]);
-          HALO_FLT_ROUNDTRIP(vel[1]);
-          HALO_FLT_ROUNDTRIP(vel[2]);
-          /* 0xfa210: FMUL ST(2) is split_frac (live since 0xfa1bb), not the
-           * dist_at_hit/speed_prev ratio that ST(0) holds. */
-          avg_vel[0] = tmp_frac * vel[0] +
-                       (vel[0] + *pfVel) * split_frac * *(float *)0x253398;
-          avg_vel[1] = tmp_frac * vel[1] + (vel[1] + *(float *)(proj + 0x1c)) *
-                                             split_frac * *(float *)0x253398;
-          avg_vel[2] = tmp_frac * vel[2] + (vel[2] + *(float *)(proj + 0x20)) *
-                                             split_frac * *(float *)0x253398;
+          HALO_FLT_ROUNDTRIP(velocity.i);
+          HALO_FLT_ROUNDTRIP(velocity.j);
+          HALO_FLT_ROUNDTRIP(velocity.k);
+          /* 0xfa210: FMUL ST(2) is split_fraction (live since 0xfa1bb), not the
+           * new_speed/initial_speed ratio that ST(0) holds. */
+          average_velocity.i =
+            remaining_fraction * velocity.i +
+            (velocity.i + projectile->object.translational_velocity.x) *
+              split_fraction * REAL_0_5_POOL;
+          average_velocity.j =
+            remaining_fraction * velocity.j +
+            (velocity.j + projectile->object.translational_velocity.y) *
+              split_fraction * REAL_0_5_POOL;
+          average_velocity.k =
+            remaining_fraction * velocity.k +
+            (velocity.k + projectile->object.translational_velocity.z) *
+              split_fraction * REAL_0_5_POOL;
         } else {
-          /* Speed stays above min: normal decel. */
-          dist_post = speed_prev - decel_frac * *(float *)0x253398;
+          average_speed = initial_speed - scale * REAL_0_5_POOL;
           /* 0xfa19e: FST dword [ebp-0x2c] -- no pop, so the split-tick test at
            * 0xfa1a1 saw the wide stack copy; this arm reloads the narrowed
            * slot at 0xfa265. */
-          HALO_FLT_ROUNDTRIP(dist_at_hit);
-          decel_frac = dist_at_hit / speed_prev;
-          vel[0] *= decel_frac;
-          vel[1] *= decel_frac;
-          vel[2] *= decel_frac;
+          HALO_FLT_ROUNDTRIP(new_speed);
+          scale = new_speed / initial_speed;
+          velocity.i *= scale;
+          velocity.j *= scale;
+          velocity.k *= scale;
           /* 0xfa270/0xfa278/0xfa27e: FSTP dword [ebp-0x10]/[ebp-0xc]/[ebp-8]
            * narrow each scaled component; 0xfa281/0xfa28f/0xfa29e reload the
            * narrowed slots for the average.  clang otherwise keeps the
            * product in ST(i) (FST no-pop) and averages the wide value. */
-          HALO_FLT_ROUNDTRIP(vel[0]);
-          HALO_FLT_ROUNDTRIP(vel[1]);
-          HALO_FLT_ROUNDTRIP(vel[2]);
-          avg_vel[0] = (vel[0] + *pfVel) * *(float *)0x253398;
-          avg_vel[1] = (vel[1] + *(float *)(proj + 0x1c)) * *(float *)0x253398;
-          avg_vel[2] = (vel[2] + *(float *)(proj + 0x20)) * *(float *)0x253398;
+          HALO_FLT_ROUNDTRIP(velocity.i);
+          HALO_FLT_ROUNDTRIP(velocity.j);
+          HALO_FLT_ROUNDTRIP(velocity.k);
+          average_velocity.i =
+            (velocity.i + projectile->object.translational_velocity.x) * REAL_0_5_POOL;
+          average_velocity.j =
+            (velocity.j + projectile->object.translational_velocity.y) * REAL_0_5_POOL;
+          average_velocity.k =
+            (velocity.k + projectile->object.translational_velocity.z) * REAL_0_5_POOL;
         }
       }
     }
 
-    if (!(char)real_vector3d_valid(vel)) {
+    if (!(char)real_vector3d_valid((float *)&velocity)) {
       display_assert("projectile velocity is bad after deceleration.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1cd, 1);
       system_exit(-1);
     }
 
-    /* -------------------------------------------------------------------- */
-    /* 7c. Gravity integration.                                             */
-    /* -------------------------------------------------------------------- */
-    if ((*(uint8_t *)(proj + 4) & 0x10) == 0) {
-      gravity = *(float *)(proj_tag + 0x1cc);
+    if ((projectile->object.flags & FLAG(_object_under_water_bit)) == 0) {
+      gravity = definition->air_gravity_scale;
     } else {
-      gravity = *(float *)(proj_tag + 0x1d8);
+      gravity = definition->water_gravity_scale;
     }
-    gravity = *(float *)0x32512c * gravity;
+    gravity = global_gravity_by_address * gravity;
     /* 0xfa3b4: FSTP dword [ebp-4] -- narrowed before the reloads at 0xfa3ba
      * and 0xfa58c. */
     HALO_FLT_ROUNDTRIP(gravity);
-    vel[2] -= gravity * time_remaining;
-    avg_vel[2] -= gravity * time_remaining * *(float *)0x253398;
+    velocity.k -= gravity * time_remaining;
+    average_velocity.k -= gravity * time_remaining * REAL_0_5_POOL;
 
-    if (!(char)real_vector3d_valid(vel)) {
+    if (!(char)real_vector3d_valid((float *)&velocity)) {
       display_assert("projectile velocity is bad after gravity.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1dc, 1);
       system_exit(-1);
     }
 
-    /* -------------------------------------------------------------------- */
-    /* 7d. Max-range limit.                                                 */
-    /* -------------------------------------------------------------------- */
-    if ((*(float *)(proj_tag + 0x1c8) == 0.0f) ||
-        (!(dist_post * time_remaining + *(float *)(proj + 0x200) >
-           *(float *)(proj_tag + 0x1c8)))) {
-      range_frac = 1.0f;
+    if ((definition->maximum_range == 0.0f) ||
+        (!(average_speed * time_remaining + projectile->odometer >
+           definition->maximum_range))) {
+      range_fraction = 1.0f;
     } else {
-      if (dist_post != 0.0f) {
-        range_frac =
-          ((*(float *)(proj_tag + 0x1c8) - *(float *)(proj + 0x200)) /
-           dist_post) *
+      if (average_speed != 0.0f) {
+        range_fraction =
+          ((definition->maximum_range - projectile->odometer) /
+           average_speed) *
           time_remaining;
       } else {
-        range_frac = 0.0f;
+        range_fraction = 0.0f;
       }
-      tmp_int = (int)object_get_and_verify_type(projectile_handle, 0x20);
-      if (*(int16_t *)(tmp_int + 0x1e0) < 1) {
-        *(int16_t *)(tmp_int + 0x1e0) = 1;
+      {
+        projectile_data_t *detonating = projectile_get(projectile_handle);
+        if (detonating->action < _projectile_action_detonate) {
+          detonating->action = _projectile_action_detonate;
+        }
       }
     }
 
-    /* -------------------------------------------------------------------- */
-    /* 7e. New position computation.                                        */
-    /* -------------------------------------------------------------------- */
-    decel_frac = range_frac * time_remaining;
-    new_pos[0] = avg_vel[0] * decel_frac + *(float *)(proj + 0xc);
-    new_pos[1] = avg_vel[1] * decel_frac + *(float *)(proj + 0x10);
-    new_pos[2] = avg_vel[2] * decel_frac + *(float *)(proj + 0x14);
+    scale = range_fraction * time_remaining;
+    new_position.x = average_velocity.i * scale + projectile->object.position.x;
+    new_position.y = average_velocity.j * scale + projectile->object.position.y;
+    new_position.z = average_velocity.k * scale + projectile->object.position.z;
 
-    if (!valid_real_point3d(new_pos)) {
-      display_assert(csprintf((char *)0x5ab100,
+    if (!valid_real_point3d((float *)&new_position)) {
+      display_assert(csprintf(error_string_buffer,
                               "%s: assert_valid_real_point3d(%f, %f, %f)",
-                              "&new_position", (double)new_pos[0],
-                              (double)new_pos[1], (double)new_pos[2]),
+                              "&new_position", (double)new_position.x,
+                              (double)new_position.y, (double)new_position.z),
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1f9, 1);
       system_exit(-1);
     }
 
-    /* -------------------------------------------------------------------- */
-    /* 7f. Collision depth push.                                            */
-    /* -------------------------------------------------------------------- */
-    if (*(int16_t *)0x4761d8 >= 0x20) {
+    if (global_current_collision_user_depth >=
+        MAXIMUM_COLLISION_USER_STACK_DEPTH) {
       display_assert("global_current_collision_user_depth < "
                      "MAXIMUM_COLLISION_USER_STACK_DEPTH",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1fb, 1);
       system_exit(-1);
     }
-    cd_slot = (int)*(int16_t *)0x4761d8;
-    *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 + 1;
-    *(int16_t *)((char *)0x5a8c80 + cd_slot * 2) = 0xe;
+    collision_user_stack[global_current_collision_user_depth++] =
+      COLLISION_USER_PROJECTILE_UPDATE;
 
-    /* -------------------------------------------------------------------- */
-    /* 7g. Bounce-limit / detonation check, collision test.                */
-    /* -------------------------------------------------------------------- */
-    if ((short)bounce_count == 10) {
-      tmp_int = (int)object_get_and_verify_type(projectile_handle, 0x20);
-      if (*(int16_t *)(tmp_int + 0x1e0) < 1) {
-        *(int16_t *)(tmp_int + 0x1e0) = 1;
+    if ((short)bounce_count == MAXIMUM_PROJECTILE_BOUNCES_PER_TICK) {
+      {
+        projectile_data_t *detonating = projectile_get(projectile_handle);
+        if (detonating->action < _projectile_action_detonate) {
+          detonating->action = _projectile_action_detonate;
+        }
       }
       time_remaining = 0.0f;
-    } else if (*(int16_t *)(proj + 0x1e0) == 2) {
+    } else if (projectile->action == _projectile_action_delete) {
       time_remaining = 0.0f;
     } else {
-      hit_flag = '\x01';
-      col_hit = (char)projectile_collision_test_line(projectile_handle, new_pos,
-                                   (int16_t *)collision_result);
-      if (col_hit == '\0') {
+      moved = '\x01';
+      collided = (char)projectile_collision_test_line(
+        projectile_handle, (float *)&new_position, (int16_t *)&collision);
+      if (collided == '\0') {
         time_remaining = 0.0f;
       } else {
-        /* After hit: adjust time and post-decel velocity. */
-        time_remaining =
-          1.0f - *(float *)((char *)collision_result + 0x14);
+        time_remaining = 1.0f - collision.t;
         /* 0xfa589: FSTP dword [ebp-0x18] -- narrowed before the reloads at
          * 0xfa58f and 0xfa5a8. */
         HALO_FLT_ROUNDTRIP(time_remaining);
-        vel[2] += gravity * time_remaining;
+        velocity.k += gravity * time_remaining;
         /* 0xfa595: FSTP dword [ebp-8] -- narrowed before the reload at
          * 0xfa5d6. */
-        HALO_FLT_ROUNDTRIP(vel[2]);
-        if (dist_at_hit != 0.0f) {
-          decel_frac = time_remaining * *(float *)(proj + 0x20c) + dist_at_hit;
-          if (decel_frac > speed_prev) {
-            decel_frac = speed_prev;
+        HALO_FLT_ROUNDTRIP(velocity.k);
+        if (new_speed != 0.0f) {
+          scale = time_remaining * projectile->deceleration + new_speed;
+          if (scale > initial_speed) {
+            scale = initial_speed;
           }
-          decel_frac /= dist_at_hit;
-          vel[0] *= decel_frac;
-          vel[1] *= decel_frac;
-          vel[2] *= decel_frac;
+          scale /= new_speed;
+          velocity.i *= scale;
+          velocity.j *= scale;
+          velocity.k *= scale;
         }
-        /* Set bit 2 if normal angle exceeds threshold. */
-        col_normal_z = *(float *)((char *)collision_result + 0x2c);
-        if (col_normal_z > *(float *)0x2533e4) {
-          *(uint32_t *)(proj + 0x1dc) |= 4;
+        normal_k = collision.normal[2];
+        if (normal_k > REAL_0_3_POOL) {
+          projectile->flags |= FLAG(_projectile_unknown_bit2);
         }
-        *(int *)(proj + 0x1e4) = -1;
-        projectile_collision(projectile_handle, new_pos, time_remaining, vel,
-                     (int16_t *)collision_result);
+        projectile->ignore_object_index = NONE;
+        projectile_collision(projectile_handle, (float *)&new_position,
+                             time_remaining, (float *)&velocity,
+                             (int16_t *)&collision);
         bounce_count++;
-        ai_handle_spatial_effect(projectile_handle,
-                     (float *)((char *)collision_result + 0x18), 1,
-                     *(int16_t *)(proj_tag + 0x182), 1);
-        if ((*(uint8_t *)(proj + 0x1dc) & 8) != 0) {
-          hit_flag = '\0';
+        ai_handle_spatial_effect(projectile_handle, collision.position, 1,
+                                 definition->impact_noise, 1);
+        if ((projectile->flags & FLAG(_projectile_attached_bit)) != 0) {
+          moved = '\0';
         }
       }
     }
 
-    /* -------------------------------------------------------------------- */
-    /* 7h. Collision depth pop.                                             */
-    /* -------------------------------------------------------------------- */
-    if (*(int16_t *)0x4761d8 < 2) {
+    if (collision_user_depth_word <= 1) {
       display_assert("global_current_collision_user_depth > 1",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x230, 1);
       system_exit(-1);
     }
-    *(int16_t *)0x4761d8 = *(int16_t *)0x4761d8 - 1;
+    --collision_user_depth_word;
 
-    /* -------------------------------------------------------------------- */
-    /* 7i. Post-hit processing.                                             */
-    /* -------------------------------------------------------------------- */
-    if (hit_flag != '\0') {
-      /* Accumulate total travel distance. */
+    if (moved != '\0') {
       {
         volatile float dx, dy;
         /* 0xfa6d2: FST dword [ebp-0x3c] -- no pop, so the square at 0xfa6d5
@@ -2747,61 +2009,53 @@ bool projectile_update(int projectile_handle)
          * (0xfa6c0/0xfa6c9) and squared narrow-by-narrow.  Addend order is
          * dz, dy, dx (0xfa6d5/0xfa6d8/0xfa6e0). */
         float dz, dz_wide;
-        dx = new_pos[0] - *(float *)(proj + 0xc);
-        dy = new_pos[1] - *(float *)(proj + 0x10);
-        dz = new_pos[2] - *(float *)(proj + 0x14);
+        dx = new_position.x - projectile->object.position.x;
+        dy = new_position.y - projectile->object.position.y;
+        dz = new_position.z - projectile->object.position.z;
         dz_wide = dz;
         HALO_FLT_ROUNDTRIP(dz);
-        *(float *)(proj + 0x200) += sqrtf(dz_wide * dz + dy * dy + dx * dx);
+        projectile->odometer += sqrtf(dz_wide * dz + dy * dy + dx * dx);
       }
 
-      /* Proximity sound check (up to 4 local players). */
-      if ((found_sound == '\0') && (*(int *)(proj_tag + 0x210) != -1)) {
-        for (player_idx = 0; (short)player_idx < 4; player_idx++) {
-          player_handle = local_player_get_player_index(player_idx);
-          if (player_handle != -1) {
-            tmp_int = local_player_get_player_index(player_idx);
-            obj_handle =
-              *(int *)((char *)datum_get(*(void **)0x5aa6d4, tmp_int) + 0x34);
-            if ((obj_handle != -1) && (obj_handle != saved_target)) {
-              player_obj =
-                (int)object_get_and_verify_type(obj_handle, 0xffffffff);
-              pfVel = (float *)(player_obj + 0x50);
+      /* flyby sound for the first local player the projectile passes */
+      if ((flyby_played == '\0') && (definition->flyby_sound.tag_index != NONE)) {
+        for (local_player_index = 0;
+             (short)local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS;
+             local_player_index++) {
+          player_index = local_player_get_player_index(local_player_index);
+          if (player_index != NONE) {
+            scratch = local_player_get_player_index(local_player_index);
+            player_unit_index =
+              ((player_data_t *)datum_get(player_data, scratch))->unit_handle;
+            if ((player_unit_index != NONE) &&
+                (player_unit_index != ignore_object_index)) {
+              player_unit = object_get_and_verify_type(player_unit_index, NONE);
               sound_range =
-                (float)sound_get_default_priority(*(int *)(proj_tag + 0x210));
-              steer_delta[0] = *pfVel - *(float *)(proj + 0xc);
-              steer_delta[1] =
-                *(float *)(player_obj + 0x54) - *(float *)(proj + 0x10);
-              steer_delta[2] =
-                *(float *)(player_obj + 0x58) - *(float *)(proj + 0x14);
-              FUN_0010b910(steer_delta, new_pos, perp_vec, cross_buf2);
-              dot = perp_vec[0] * (new_pos[0] - *(float *)(proj + 0xc)) +
-                    perp_vec[1] * (new_pos[1] - *(float *)(proj + 0x10)) +
-                    perp_vec[2] * (new_pos[2] - *(float *)(proj + 0x14));
+                (float)sound_get_default_priority(definition->flyby_sound.tag_index);
+              target_delta.i = player_unit->unk_80 - projectile->object.position.x;
+              target_delta.j =
+                player_unit->unk_84 - projectile->object.position.y;
+              target_delta.k =
+                player_unit->unk_88 - projectile->object.position.z;
+              FUN_0010b910((float *)&target_delta, (float *)&new_position,
+                           (float *)&perpendicular, (float *)&sound_location.position);
+              dot = perpendicular.i * (new_position.x - projectile->object.position.x) +
+                    perpendicular.j * (new_position.y - projectile->object.position.y) +
+                    perpendicular.k * (new_position.z - projectile->object.position.z);
               if ((dot >= 0.0f) &&
-                  ((float)FUN_00012170(new_pos) > dot)) {
-                mag_sq = (float)FUN_00012170(cross_buf2);
-                if (mag_sq < sound_range * sound_range) {
-                  /* sound origin = player_pos + (-1)*perp_component; reuse
-                   * cross_buf2 */
-                  vector3d_scale_add((float *)(player_obj + 0x50),
-                                     cross_buf2, /* dup-args-ok: reuse buffer
-                                                    for sound origin. */
-                                     -1.0f, cross_buf2);
-                  /* forward/up must be valid unit vectors for sound_manager
-                   * assert. proj+0x30 is the up vector (always unit); proj+0x24
-                   * is acceleration. */
-                  cross_buf2[3] = *(float *)(proj + 0x30);
-                  cross_buf2[4] = *(float *)(proj + 0x34);
-                  cross_buf2[5] = *(float *)(proj + 0x38);
-                  cross_buf2[6] = (*(float **)0x31fc50)[0];
-                  cross_buf2[7] = (*(float **)0x31fc50)[1];
-                  cross_buf2[8] = (*(float **)0x31fc50)[2];
-                  cross_buf2[9] = 0.0f;
-                  cross_buf2[10] = 0.0f;
-                  unattached_impulse_sound_new(*(int *)(proj_tag + 0x210),
-                                               cross_buf2, 1.0f);
-                  found_sound = '\x01';
+                  ((float)FUN_00012170((float *)&new_position) > dot)) {
+                distance_squared = (float)FUN_00012170((float *)&sound_location.position);
+                if (distance_squared < sound_range * sound_range) {
+                  vector3d_scale_add(&player_unit->unk_80,
+                                     (float *)&sound_location.position, /* dup-args-ok: in-place */
+                                     -1.0f, (float *)&sound_location.position);
+                  sound_location.field_0c = *(real_vector3d *)&projectile->object.up;
+                  sound_location.field_18 = *global_down3d;
+                  sound_location.field_24 = 0.0f;
+                  sound_location.field_28 = 0.0f;
+                  unattached_impulse_sound_new(definition->flyby_sound.tag_index,
+                                               &sound_location, 1.0f);
+                  flyby_played = '\x01';
                 }
               }
             }
@@ -2809,202 +2063,162 @@ bool projectile_update(int projectile_handle)
         }
       }
 
-      /* ------------------------------------------------------------------ */
-      /* 7j. Orientation update.                                            */
-      /* ------------------------------------------------------------------ */
-      if (((*(uint8_t *)(proj_tag + 0x17c) & 1) == 0) ||
-          ((*(float *)(proj + 0x18) == 0.0f) &&
-           (*(float *)(proj + 0x1c) == 0.0f) &&
-           (*(float *)(proj + 0x20) == 0.0f))) {
-        /* Apply stored rotation (sin/cos at proj+0x220/0x224) if flag set.
-         * Both fwd and up rotate around the stored angular velocity axis
-         * (proj+0x214). After rotation, Gram-Schmidt re-orthogonalizes to
-         * prevent FP drift across ticks (original: 0xfa9d9-0xfaa21). */
-        if ((*(uint8_t *)(proj + 0x1dc) & 1) != 0) {
-          float *fwd = (float *)(proj + 0x24);
-          float *up = (float *)(proj + 0x30);
-          float *axis = (float *)(proj + 0x214);
-          float sin_a = *(float *)(proj + 0x220);
-          float cos_a = *(float *)(proj + 0x224);
-          rotate_vector3d_by_sincos(fwd, axis, sin_a, cos_a);
-          rotate_vector3d_by_sincos(up, axis, sin_a, cos_a);
-          normalize3d(fwd);
-          cross_product3d(up, fwd, cross_buf2);
-          cross_product3d(fwd, cross_buf2, up);
+      if (((definition->flags &
+            FLAG(_projectile_definition_oriented_along_velocity_bit)) == 0) ||
+          ((projectile->object.translational_velocity.x == 0.0f) &&
+           (projectile->object.translational_velocity.y == 0.0f) &&
+           (projectile->object.translational_velocity.z == 0.0f))) {
+        if ((projectile->flags & FLAG(_projectile_has_angular_velocity_bit)) != 0) {
+          float *forward = (float *)&projectile->object.forward;
+          float *up = (float *)&projectile->object.up;
+          float *axis = (float *)&projectile->field_214;
+          float sine = projectile->field_220;
+          float cosine = projectile->field_224;
+          rotate_vector3d_by_sincos(forward, axis, sine, cosine);
+          rotate_vector3d_by_sincos(up, axis, sine, cosine);
+          normalize3d(forward);
+          cross_product3d(up, forward, (float *)&sound_location.position);
+          cross_product3d(forward, (float *)&sound_location.position, up);
           normalize3d(up);
         }
       } else {
-        /* Align forward to current velocity direction. After Gram-Schmidt,
-         * spin up around the new fwd by the stored tumble angle (0xfa9ad). */
         {
-          float *fwd = (float *)(proj + 0x24);
-          float *up = (float *)(proj + 0x30);
-          fwd_copy[0] = *(float *)(proj + 0x18);
-          fwd_copy[1] = *(float *)(proj + 0x1c);
-          fwd_copy[2] = *(float *)(proj + 0x20);
-          if ((float)normalize3d(fwd_copy) > 0.0f) {
-            fwd[0] = fwd_copy[0];
-            fwd[1] = fwd_copy[1];
-            fwd[2] = fwd_copy[2];
-            cross_product3d(up, fwd, cross_buf2);
-            cross_product3d(fwd, cross_buf2, up);
+          float *forward = (float *)&projectile->object.forward;
+          float *up = (float *)&projectile->object.up;
+          velocity_direction.i = projectile->object.translational_velocity.x;
+          velocity_direction.j = projectile->object.translational_velocity.y;
+          velocity_direction.k = projectile->object.translational_velocity.z;
+          if ((float)normalize3d((float *)&velocity_direction) > 0.0f) {
+            forward[0] = velocity_direction.i;
+            forward[1] = velocity_direction.j;
+            forward[2] = velocity_direction.k;
+            cross_product3d(up, forward, (float *)&sound_location.position);
+            cross_product3d(forward, (float *)&sound_location.position, up);
             if ((float)normalize3d(up) == 0.0f) {
-              perpendicular3d(fwd, up);
+              perpendicular3d(forward, up);
               normalize3d(up);
             }
           }
-          rotate_vector3d_by_sincos(up, fwd, *(float *)(proj + 0x220),
-                                    *(float *)(proj + 0x224));
+          rotate_vector3d_by_sincos(up, forward, projectile->field_220,
+                                    projectile->field_224);
         }
       }
 
-      /* ------------------------------------------------------------------ */
-      /* 7k. Translate object to new position.                              */
-      /* ------------------------------------------------------------------ */
-      object_translate(projectile_handle, new_pos,
-                       (void *)((char *)collision_result + 0x0c));
-      /* Write back velocity. */
+      object_translate(projectile_handle, (float *)&new_position,
+                       &collision.field_0c);
       {
-        float local_1c_cmp = time_remaining;
-        *(float *)(proj + 0x18) = vel[0];
-        *(float *)(proj + 0x1c) = vel[1];
-        *(float *)(proj + 0x20) = vel[2];
-        if ((local_1c_cmp != 0.0f) &&
-            ((short)bounce_count != 0) && (*(int *)(proj + 0x1ec) != -1) &&
-            (*(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4) != -1)) {
+        float tick_remaining = time_remaining;
+        projectile->object.translational_velocity.x = velocity.i;
+        projectile->object.translational_velocity.y = velocity.j;
+        projectile->object.translational_velocity.z = velocity.k;
+        if ((tick_remaining != 0.0f) && ((short)bounce_count != 0) &&
+            (projectile->tracer_attachment_index != NONE) &&
+            (projectile->object.attachment_indices
+               [projectile->tracer_attachment_index] != NONE)) {
           object_compute_node_matrices(projectile_handle);
           contrail_owner_collision(
-            *(int *)(proj + 0xfc + *(int *)(proj + 0x1ec) * 4), 0,
-            (1.0f - time_remaining) * *(float *)0x28ab38);
+            projectile->object.attachment_indices[projectile->tracer_attachment_index], 0,
+            (1.0f - time_remaining) * REAL_ONE_THIRTIETH_28AB38_POOL);
         }
       }
     }
 
-    if (!(char)real_vector3d_valid((float *)(proj + 0x18))) {
-      display_assert(csprintf((char *)0x5ab100,
+    if (!(char)real_vector3d_valid(
+          (float *)&projectile->object.translational_velocity)) {
+      display_assert(csprintf(error_string_buffer,
                               "%s: assert_valid_real_vector2d(%f, %f, %f)",
                               "&projectile->object.translational_velocity",
-                              (double)*(float *)(proj + 0x18),
-                              (double)*(float *)(proj + 0x1c),
-                              (double)*(float *)(proj + 0x20)),
+                              (double)projectile->object.translational_velocity.x,
+                              (double)projectile->object.translational_velocity.y,
+                              (double)projectile->object.translational_velocity.z),
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2a0, 1);
       system_exit(-1);
     }
   } while (time_remaining > 0.0f);
 
-  /* ----------------------------------------------------------------------- */
-  /* 8. Post-loop detonation dispatch.                                       */
-  /* ----------------------------------------------------------------------- */
-  switch (*(int16_t *)(proj + 0x1e0)) {
-    case 1: {
-      float fval = *(float *)(proj + 0x1fc);
-      if (fval == 0.0f ||
-          *(float *)(proj + 0x1f8) >= 1.0f) {
+  switch (projectile->action) {
+    case _projectile_action_detonate: {
+      float arming_time_delta = projectile->arming_time_delta;
+      if (arming_time_delta == 0.0f ||
+          projectile->arming_time >= 1.0f) {
         projectile_detonate(projectile_handle, (char)(bounce_count == 0),
                      time_remaining);
         object_delete(projectile_handle);
       }
       break;
     }
-    case 2:
+    case _projectile_action_delete:
       object_delete(projectile_handle);
       break;
   }
 
-  /* ----------------------------------------------------------------------- */
-  /* 9. Validate axes and profiling exit.                                    */
-  /* ----------------------------------------------------------------------- */
-  if (!valid_real_normal3d_perpendicular((float *)(proj + 0x24),
-                                         (float *)(proj + 0x30))) {
+  if (!valid_real_normal3d_perpendicular((float *)&projectile->object.forward,
+                                         (float *)&projectile->object.up)) {
     display_assert(
-      csprintf((char *)0x5ab100,
+      csprintf(error_string_buffer,
                "%s, %s: assert_valid_real_vector3d_axes2"
                "(%f, %f, %f / %f, %f, %f)",
                "&projectile->object.forward", "&projectile->object.up",
-               (double)*(float *)(proj + 0x24), (double)*(float *)(proj + 0x28),
-               (double)*(float *)(proj + 0x2c), (double)*(float *)(proj + 0x30),
-               (double)*(float *)(proj + 0x34),
-               (double)*(float *)(proj + 0x38)),
+               (double)projectile->object.forward.x,
+               (double)projectile->object.forward.y,
+               (double)projectile->object.forward.z,
+               (double)projectile->object.up.x, (double)projectile->object.up.y,
+               (double)projectile->object.up.z),
       "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2b0, 1);
     system_exit(-1);
   }
-  if ((*(char *)0x449ef1 != '\0') && (*(char *)0x31edb0 != '\0')) {
-    profile_exit_private((void *)0x31eda8);
+  if (profile_global_enable_byte && projectile_update_profile_section_active) {
+    profile_exit_private(projectile_update_profile_section);
   }
   return 1;
 }
 
-/*
- * Compute the average damage value for the given weapon tag's projectile.
- *
- * Looks up the weapon tag (group 'weap') and retrieves the first element of
- * the trigger block at offset 0x4fc (element size 0x114).  If out_field8 is
- * non-NULL, writes the float at element+8 there (a trigger parameter such as
- * rounds-per-shot or charge time).
- *
- * Then follows the projectile-type reference at element+0xa0 to a 'proj' tag,
- * and from there the impact-damage-effect reference at proj+0x230 ('jpt!').
- * The midpoint of the damage range (min+max)*0.5f is accumulated.  If a
- * second damage-effect reference exists at proj+0x220, its midpoint is added
- * as well.  Returns the total accumulated average damage as a float.
- */
+/* Sum of the damage-effect midpoints of the first trigger's projectile
+ * (impact damage, then attached-detonation damage); also returns the
+ * trigger's field_08 through out_field8 when non-NULL. */
 float weapon_definition_get_damage_potential(int weapon_tag_index, float *out_field8)
 {
-  char *weap_tag;
-  char *trigger_elem;
-  char *proj_tag;
-  char *jpt_tag;
-  int proj_ref;
-  int jpt_ref;
-  float local_float;
+  weapon_definition_t *weapon;
+  weapon_trigger_definition_t *trigger;
+  projectile_definition_t *projectile;
+  damage_effect_definition_t *damage_effect;
+  int projectile_tag_index;
+  int damage_effect_tag_index;
+  float damage_potential;
 
-  weap_tag = (char *)tag_get(0x77656170, weapon_tag_index);
-  trigger_elem =
-    (char *)tag_block_get_element((void *)(weap_tag + 0x4fc), 0, 0x114);
-  local_float = 0.0f;
-  if (out_field8 != (float *)0) {
-    *out_field8 = *(float *)(trigger_elem + 0x8);
+  weapon = tag_get(TAG_GROUP_WEAP, weapon_tag_index);
+  trigger = tag_block_get_element(&weapon->triggers, 0,
+                                  sizeof(weapon_trigger_definition_t));
+  damage_potential = 0.0f;
+  if (out_field8 != NULL) {
+    *out_field8 = trigger->field_08;
   }
-  proj_ref = *(int *)(trigger_elem + 0xa0);
-  if (proj_ref != -1) {
-    proj_tag = (char *)tag_get(0x70726f6a, proj_ref);
-    jpt_ref = *(int *)(proj_tag + 0x230);
-    if (jpt_ref != -1) {
-      jpt_tag = (char *)tag_get(0x6a707421, jpt_ref);
-      local_float = (*(float *)(jpt_tag + 0x1d8) + *(float *)(jpt_tag + 0x1d4)) *
-                    *(float *)0x253398;
+  projectile_tag_index = trigger->projectile.tag_index;
+  if (projectile_tag_index != NONE) {
+    projectile = projectile_definition_get(projectile_tag_index);
+    damage_effect_tag_index = projectile->impact_damage.tag_index;
+    if (damage_effect_tag_index != NONE) {
+      damage_effect = tag_get(TAG_GROUP_JPT, damage_effect_tag_index);
+      damage_potential = (damage_effect->field_1d8 + damage_effect->field_1d4) *
+                         REAL_0_5_POOL;
     }
-    jpt_ref = *(int *)(proj_tag + 0x220);
-    if (jpt_ref != -1) {
-      jpt_tag = (char *)tag_get(0x6a707421, jpt_ref);
-      return (*(float *)(jpt_tag + 0x1d8) + *(float *)(jpt_tag + 0x1d4)) *
-               *(float *)0x253398 +
-             local_float;
+    damage_effect_tag_index = projectile->attached_detonation_damage.tag_index;
+    if (damage_effect_tag_index != NONE) {
+      damage_effect = tag_get(TAG_GROUP_JPT, damage_effect_tag_index);
+      return (damage_effect->field_1d8 + damage_effect->field_1d4) *
+               REAL_0_5_POOL +
+             damage_potential;
     }
   }
 
-  return local_float;
+  return damage_potential;
 }
 
-/*
- * Wrapper: advance animation state by one frame (update_kind=1) for the
- * given animation graph tag and animation state pointer. Thin wrapper around
- * animation_update_internal with a fixed update_kind of 1.
- * No known direct call-graph callers (likely dispatched via function pointer
- * or animation callback table).
- */
 void animation_update(int animation_graph_tag_index, short *state, int *out_sound)
 {
   animation_update_internal(1, animation_graph_tag_index, state, out_sound);
 }
 
-/*
- * Wrapper: choose a random animation from the given animation graph
- * for the given animation index, using update_kind=1 (normal update).
- * Calls model_animation_choose_random(1, animation_graph_tag_index,
- * animation_index). Called by unit_try_and_exit_seat when transitioning a unit
- * to a new animation state after a melee/scripted override.
- */
 int16_t animation_choose_random_permutation(int animation_graph_tag_index, int16_t animation_index)
 {
   return model_animation_choose_random(1, animation_graph_tag_index,
