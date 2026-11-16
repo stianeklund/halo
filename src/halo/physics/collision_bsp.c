@@ -3057,7 +3057,7 @@ bool FUN_0014e940(int param_1, float *origin, float *delta, float radius,
     result->material_type = -1;
     result->field_44 = -1;
     result->field_48 = -1;
-    result->field_4c = 0;
+    result->flags = 0;
     result->field_4d = 0;
     result->field_4e = -1;
     hit = true;

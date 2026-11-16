@@ -1186,7 +1186,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   }
 
   /* Breakable structure surface. */
-  if (collision->type == 2 && (collision->field_4c & 0x8)) {
+  if (collision->type == 2 && (collision->flags & 0x8)) {
     damage_data_new(&damage, definition->impact_damage.tag_index);
     damage.flags |= 8;
     damage.origin = collision->position;
@@ -1232,7 +1232,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
       ((real_point3d *)hit_pos)->z -= ((collision_test_result *)col_result)->normal.k *
                     REAL_0_001_POOL;
     } else if (collision->type == _collision_result_object) {
-      temp = REAL_ONE_POOL - material_response->field_90;
+      temp = REAL_ONE_POOL - material_response->initial_friction;
       /* Through in_velocity for the same reason as impact_velocity. */
       ((real_vector3d *)in_velocity)->i *= temp;
       ((real_vector3d *)in_velocity)->j *= temp;

@@ -280,7 +280,7 @@ typedef struct {
   real velocity_noise;                 ///< offset=0x64  speed noise range
   tag_reference detonation_effect;     ///< offset=0x68  fired by projectile_detonate
   uint8_t pad_78[0x18];                ///< offset=0x78
-  real field_90;                       ///< offset=0x90  overpenetration keeps (1 - this) of the velocity
+  real initial_friction;               ///< offset=0x90  an object hit keeps (1 - this) of the velocity
   uint8_t pad_94[4];                   ///< offset=0x94
   real parallel_friction;              ///< offset=0x98  reflect: damps the component along the normal
   real perpendicular_friction;         ///< offset=0x9C  reflect: damps the component across the surface
@@ -292,7 +292,7 @@ co(projectile_material_response_definition_t, potential_effect, 0x3c);
 co(projectile_material_response_definition_t, scale_effects_by, 0x5c);
 co(projectile_material_response_definition_t, angular_noise, 0x60);
 co(projectile_material_response_definition_t, detonation_effect, 0x68);
-co(projectile_material_response_definition_t, field_90, 0x90);
+co(projectile_material_response_definition_t, initial_friction, 0x90);
 co(projectile_material_response_definition_t, perpendicular_friction, 0x9c);
 
 #define REAL_TWO_OVER_PI_POOL (*(float *)0x28ac24) /* 0.63661975f */

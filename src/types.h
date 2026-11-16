@@ -4089,7 +4089,7 @@ typedef struct collision_test_result {
     int16_t pad_42;        /* +0x42 */
     int32_t field_44;      /* +0x44 */
     int32_t field_48;      /* +0x48 */
-    char    field_4c;      /* +0x4c */
+    char    flags;         /* +0x4c: bit 3 tested on bsp hits */
     char    field_4d;      /* +0x4d */
     int16_t field_4e;      /* +0x4e */
 } collision_test_result;
