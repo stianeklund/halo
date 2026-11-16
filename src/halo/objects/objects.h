@@ -109,9 +109,9 @@ typedef struct {
   real field_208;                  ///< offset=0x208  .text:000F86AB per-tick increment of field_204
   real deceleration;               ///< offset=0x20C  .text:000F8677 projectile_calculate_deceleration_from_distances result
   real field_210;                  ///< offset=0x210  .text:000FA304 fcomp dword ptr [ebx+210h]
-  real_vector3d field_214;         ///< offset=0x214  .text:000F85E7 angular_velocity / |angular_velocity|
-  real field_220;                  ///< offset=0x220  .text:000F8605 sine of the angular speed
-  real field_224;                  ///< offset=0x224  .text:000F860D cosine of the angular speed
+  real_vector3d angular_velocity_axis; ///< offset=0x214  .text:000F85E7 angular_velocity / |angular_velocity|
+  real angular_velocity_sine;                  ///< offset=0x220  .text:000F8605 sine of the angular speed
+  real angular_velocity_cosine;                  ///< offset=0x224  .text:000F860D cosine of the angular speed
 } projectile_data_t;
 cs(projectile_data_t, 0x228);
 co(projectile_data_t, flags, 0x1dc);
@@ -121,8 +121,8 @@ co(projectile_data_t, detonation_timer, 0x1f0);
 co(projectile_data_t, arming_time, 0x1f8);
 co(projectile_data_t, odometer, 0x200);
 co(projectile_data_t, deceleration, 0x20c);
-co(projectile_data_t, field_214, 0x214);
-co(projectile_data_t, field_224, 0x224);
+co(projectile_data_t, angular_velocity_axis, 0x214);
+co(projectile_data_t, angular_velocity_cosine, 0x224);
 co(object_data_t, owner_object_index, 0x74);
 co(object_data_t, field_d0, 0xd0);
 co(object_data_t, outgoing_function_values, 0xe4);
@@ -197,9 +197,9 @@ enum {
   _object_mask_projectile = 1 << _object_type_projectile
 };
 
-/* collision_test_result.field_00 type values.  "collision.type==
+/* collision_test_result.type values.  "collision.type==
  * _collision_result_object" is an assert string at 0x29af70; that type
- * carries the hit object in field_38. */
+ * carries the hit object in object_index. */
 enum {
   _collision_result_object = 3
 };
@@ -224,7 +224,7 @@ enum {
 };
 
 /* projectile.flags bit 0: set when object.angular_velocity is non-zero and
- * field_214 holds its unit axis (projectile_adjust_for_angular_velocity_change). */
+ * angular_velocity_axis holds its unit axis (projectile_adjust_for_angular_velocity_change). */
 enum {
   _projectile_has_angular_velocity_bit = 0
 };

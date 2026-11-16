@@ -33,7 +33,7 @@ static bool sweep_los_trace(bool result, const collision_test_result *collision)
 {
   RNG_TRACE_EX(RNG_TRACE_KIND_LOS_RESULT,
                0x80000000u | ((unsigned int)(unsigned char)result << 16) |
-                 (unsigned short)collision->field_00,
+                 (unsigned short)collision->type,
                RNG_TRACE_BITS(collision->t));
   return result;
 }
@@ -149,9 +149,9 @@ void projectile_effect_new(int effect_tag_index, int object_index, void *tag_def
   int object_hit;
   uint16_t node_index;
 
-  if (collision->field_00 == _collision_result_object) {
-    object_hit = collision->field_38;
-    node_index = (uint16_t)collision->field_3e;
+  if (collision->type == _collision_result_object) {
+    object_hit = collision->object_index;
+    node_index = (uint16_t)collision->node_index;
     effect_new_attached_from_markers(
       effect_tag_index, object_index, object_hit, node_index,
       NUMBER_OF_EFFECT_MARKERS, effect_marker_names, marker_points,
@@ -540,13 +540,13 @@ void projectile_adjust_for_angular_velocity_change(int projectile_handle)
   if (angular_speed != REAL_ZERO_POOL) {
     inverse_angular_speed = 1.0f / angular_speed;
     projectile->flags |= FLAG(_projectile_has_angular_velocity_bit);
-    scale_vector3d(angular_velocity, inverse_angular_speed, &projectile->field_214);
-    projectile->field_220 = x87_fsin(angular_speed);
-    projectile->field_224 = x87_fcos(angular_speed);
+    scale_vector3d(angular_velocity, inverse_angular_speed, &projectile->angular_velocity_axis);
+    projectile->angular_velocity_sine = x87_fsin(angular_speed);
+    projectile->angular_velocity_cosine = x87_fcos(angular_speed);
   } else {
     projectile->flags &= ~FLAG(_projectile_has_angular_velocity_bit);
-    projectile->field_220 = REAL_ZERO_POOL;
-    projectile->field_224 = 1.0f;
+    projectile->angular_velocity_sine = REAL_ZERO_POOL;
+    projectile->angular_velocity_cosine = 1.0f;
   }
 }
 
@@ -1039,7 +1039,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
                RNG_TRACE_BITS(velocity->i), RNG_TRACE_BITS(velocity->j));
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_VEL_Z_TYPE,
                RNG_TRACE_BITS(velocity->k),
-               (unsigned int)(unsigned short)collision->field_00);
+               (unsigned int)(unsigned short)collision->type);
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_NORMAL_XY,
                RNG_TRACE_BITS(collision->normal.i),
                RNG_TRACE_BITS(collision->normal.j));
@@ -1047,13 +1047,13 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
                RNG_TRACE_BITS(collision->normal.k),
                RNG_TRACE_BITS(collision->t));
   RNG_TRACE_EX(RNG_TRACE_KIND_RESPONSE_OBJECT_META,
-               (unsigned int)collision->field_38,
-               *(unsigned int *)&collision->field_34);
+               (unsigned int)collision->object_index,
+               *(unsigned int *)&collision->material_type);
 #endif
 
   projectile = projectile_get(projectile_handle);
   definition = projectile_definition_get(projectile->object.tag_index);
-  effect_definition_index = collision->field_34;
+  effect_definition_index = collision->material_type;
 
   effect_scale = 1.0f;
   material_effect_scale = 0.0f;
@@ -1080,9 +1080,9 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
     }
   }
 
-  if (collision->field_00 == _collision_result_object &&
+  if (collision->type == _collision_result_object &&
       definition->impact_damage.tag_index != NONE) {
-    if (collision->field_38 == NONE) {
+    if (collision->object_index == NONE) {
       display_assert("collision->object_index!=NONE",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x47c, 1);
       system_exit(-1);
@@ -1097,8 +1097,8 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
     damage.epicenter = collision->position;
     damage.direction = *velocity;
     normalize3d((float *)&damage.direction);
-    object_cause_damage(&damage, collision->field_38,
-                        (short)collision->field_3e, (short)collision->field_3c,
+    object_cause_damage(&damage, collision->object_index,
+                        (short)collision->node_index, (short)collision->region_index,
                         (short)collision->field_4e, (float *)&collision->normal);
     if (damage.material_type != NONE) {
       effect_definition_index = damage.material_type;
@@ -1163,9 +1163,9 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
         }
       }
       if (!use_default && (material_response->potential_flags & 1)) {
-        if (collision->field_00 != _collision_result_object) {
+        if (collision->type != _collision_result_object) {
           use_default = 1;
-        } else if (!object_try_and_get_and_verify_type(collision->field_38,
+        } else if (!object_try_and_get_and_verify_type(collision->object_index,
                                                        _object_mask_unit)) {
           use_default = 1;
         }
@@ -1186,14 +1186,14 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   }
 
   /* Breakable structure surface. */
-  if (collision->field_00 == 2 && (collision->field_4c & 0x8)) {
+  if (collision->type == 2 && (collision->field_4c & 0x8)) {
     damage_data_new(&damage, definition->impact_damage.tag_index);
     damage.flags |= 8;
     damage.origin = collision->position;
     damage.epicenter = collision->position;
     damage.direction = *velocity;
     normalize3d((float *)&damage.direction);
-    material_type = collision->field_34;
+    material_type = collision->material_type;
     if (material_type < 0 ||
         (int)material_type >= definition->material_responses.count) {
       surface_response = &default_projectile_material_response;
@@ -1216,7 +1216,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   *(real_point3d *)hit_pos = collision->position;
 
   if (response == _projectile_material_response_overpenetrate) {
-    if (collision->field_00 == 0) {
+    if (collision->type == 0) {
       object_flags = projectile->object.flags;
       if (object_flags & 0x10) {
         object_flags &= ~0x10u;
@@ -1231,13 +1231,13 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
        * reference's FLD normal.k / FMUL 0.001f operand order. */
       ((real_point3d *)hit_pos)->z -= ((collision_test_result *)col_result)->normal.k *
                     REAL_0_001_POOL;
-    } else if (collision->field_00 == _collision_result_object) {
+    } else if (collision->type == _collision_result_object) {
       temp = REAL_ONE_POOL - material_response->field_90;
       /* Through in_velocity for the same reason as impact_velocity. */
       ((real_vector3d *)in_velocity)->i *= temp;
       ((real_vector3d *)in_velocity)->j *= temp;
       ((real_vector3d *)in_velocity)->k *= temp;
-      projectile->ignore_object_index = collision->field_38;
+      projectile->ignore_object_index = collision->object_index;
     } else {
       if (definition->timer_upper_bound == REAL_ZERO_POOL) {
         response = _projectile_material_response_detonate;
@@ -1359,10 +1359,10 @@ clamp_material_effect_scale:
   }
 
   if (impact_velocity > REAL_ONE_OVER_120_POOL) {
-    if (collision->field_00 == _collision_result_object) {
+    if (collision->type == _collision_result_object) {
       effect_new_attached_from_markers(
-        effect_definition_index, projectile_handle, collision->field_38,
-        (uint16_t)collision->field_3e, NUMBER_OF_EFFECT_MARKERS,
+        effect_definition_index, projectile_handle, collision->object_index,
+        (uint16_t)collision->node_index, NUMBER_OF_EFFECT_MARKERS,
         effect_marker_names, (float *)marker_points, (float *)marker_forwards,
         effect_scale, material_effect_scale, 0.0f, 0.0f);
     } else {
@@ -1376,10 +1376,10 @@ clamp_material_effect_scale:
   if (!(projectile->flags & 0x20) &&
       ((projectile->flags & 0x10) ||
        response == _projectile_material_response_attach)) {
-    if (collision->field_00 == _collision_result_object) {
+    if (collision->type == _collision_result_object) {
       effect_new_attached_from_markers(
         definition->detonation_started.tag_index, projectile_handle,
-        collision->field_38, (uint16_t)collision->field_3e,
+        collision->object_index, (uint16_t)collision->node_index,
         NUMBER_OF_EFFECT_MARKERS, effect_marker_names,
         (float *)marker_points, (float *)marker_forwards, effect_scale,
         material_effect_scale, 0.0f, 0.0f);
@@ -1414,7 +1414,7 @@ clamp_material_effect_scale:
     break;
 
   case _projectile_material_response_attach: {
-    if (collision->field_00 == _collision_result_object &&
+    if (collision->type == _collision_result_object &&
         (definition->flags & 0x8)) {
       /* Zero the timers of this definition's projectiles already attached
        * to the hit object; flag this one once more than five are found. */
@@ -1422,7 +1422,7 @@ clamp_material_effect_scale:
       object_data_t *child_object;
       projectile_data_t *child_projectile;
 
-      parent_object = object_get_and_verify_type(collision->field_38, -1);
+      parent_object = object_get_and_verify_type(collision->object_index, -1);
       object_index = parent_object->unk_200.value;
       attached_count = 0;
       while (object_index != NONE) {
@@ -1452,9 +1452,9 @@ clamp_material_effect_scale:
     projectile->object.flags |= 0x20;
     projectile->flags |= FLAG(_projectile_attached_bit);
     object_translate(projectile_handle, hit_pos, &collision->field_0c);
-    if (collision->field_00 == _collision_result_object) {
-      object_attach_to_parent(collision->field_38, projectile_handle,
-                              (int16_t)collision->field_3e);
+    if (collision->type == _collision_result_object) {
+      object_attach_to_parent(collision->object_index, projectile_handle,
+                              (int16_t)collision->node_index);
     }
     if (definition->flags & 0x4) {
       temp = definition->timer_upper_bound * TICKS_PER_SECOND;
@@ -1998,9 +1998,9 @@ bool projectile_update(int projectile_handle)
         if ((projectile->flags & FLAG(_projectile_has_angular_velocity_bit)) != 0) {
           float *forward = (float *)&projectile->object.forward;
           float *up = (float *)&projectile->object.up;
-          float *axis = (float *)&projectile->field_214;
-          float sine = projectile->field_220;
-          float cosine = projectile->field_224;
+          float *axis = (float *)&projectile->angular_velocity_axis;
+          float sine = projectile->angular_velocity_sine;
+          float cosine = projectile->angular_velocity_cosine;
           rotate_vector3d_by_sincos(forward, axis, sine, cosine);
           rotate_vector3d_by_sincos(up, axis, sine, cosine);
           normalize3d(forward);
@@ -2022,8 +2022,8 @@ bool projectile_update(int projectile_handle)
               normalize3d(up);
             }
           }
-          rotate_vector3d_by_sincos(up, forward, projectile->field_220,
-                                    projectile->field_224);
+          rotate_vector3d_by_sincos(up, forward, projectile->angular_velocity_sine,
+                                    projectile->angular_velocity_cosine);
         }
       }
 

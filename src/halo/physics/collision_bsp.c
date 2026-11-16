@@ -3039,7 +3039,7 @@ bool FUN_0014e940(int param_1, float *origin, float *delta, float radius,
   float hit_t;
   bool hit = false;
 
-  result->field_00 = -1;
+  result->type = -1;
   result->field_04 = -1;
   result->field_08 = -1;
   result->field_0c = -1;
@@ -3052,9 +3052,9 @@ bool FUN_0014e940(int param_1, float *origin, float *delta, float radius,
     result->normal.i = normal[0];
     result->normal.j = normal[1];
     result->normal.k = normal[2];
-    result->field_00 = 2;
+    result->type = 2;
     result->field_30 = 3.4028235e+38f;
-    result->field_34 = -1;
+    result->material_type = -1;
     result->field_44 = -1;
     result->field_48 = -1;
     result->field_4c = 0;

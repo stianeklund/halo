@@ -4068,7 +4068,7 @@ typedef bool (*profile_sort32_compare_proc)(int32_t a, int32_t b);
  * +0x42 remain unobserved.
  * ------------------------------------------------------------------------- */
 typedef struct collision_test_result {
-    int16_t field_00;      /* +0x00: -1 when no hit, 2 on a bsp surface hit */
+    int16_t type;          /* +0x00: -1 when no hit, 2 on a bsp surface hit */
     int16_t pad_02;        /* +0x02 */
     int32_t field_04;      /* +0x04: leading surface/leaf index */
     int16_t field_08;      /* +0x08: cluster index for field_04 (MOVSX) */
@@ -4080,11 +4080,11 @@ typedef struct collision_test_result {
     real_point3d position; /* +0x18: point + t * delta */
     real_vector3d normal;  /* +0x24 */
     float   field_30;      /* +0x30 */
-    int16_t field_34;      /* +0x34 */
+    int16_t material_type;      /* +0x34 */
     int16_t pad_36;        /* +0x36 */
-    int32_t field_38;      /* +0x38: object handle (FUN_0014dce0) */
-    int16_t field_3c;      /* +0x3c */
-    int16_t field_3e;      /* +0x3e */
+    int32_t object_index;      /* +0x38: object handle (FUN_0014dce0) */
+    int16_t region_index;      /* +0x3c */
+    int16_t node_index;      /* +0x3e */
     int16_t field_40;      /* +0x40 */
     int16_t pad_42;        /* +0x42 */
     int32_t field_44;      /* +0x44 */
@@ -4097,9 +4097,9 @@ cs(collision_test_result, 0x50);
 co(collision_test_result, t,        0x14);
 co(collision_test_result, position, 0x18);
 co(collision_test_result, normal,   0x24);
-co(collision_test_result, field_38, 0x38);
-co(collision_test_result, field_3c, 0x3c);
-co(collision_test_result, field_3e, 0x3e);
+co(collision_test_result, object_index, 0x38);
+co(collision_test_result, region_index, 0x3c);
+co(collision_test_result, node_index, 0x3e);
 co(collision_test_result, field_40, 0x40);
 co(collision_test_result, field_44, 0x44);
 co(collision_test_result, field_4e, 0x4e);
