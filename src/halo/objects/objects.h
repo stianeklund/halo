@@ -346,7 +346,7 @@ typedef struct {
   real_vector3d direction;          ///< offset=0x34
   real scale;                       ///< offset=0x40
   uint8_t pad_44[4];                ///< offset=0x44
-  real field_48;                    ///< offset=0x48  written by object_cause_damage
+  real material_effect_scale;       ///< offset=0x48  written by object_cause_damage; scales the impact effect
   int16_t material_type;            ///< offset=0x4C  material_responses index; NONE when unset
   uint8_t pad_4e[2];                ///< offset=0x4E
   projectile_material_response_definition_t *material_response; ///< offset=0x50
@@ -359,7 +359,7 @@ co(damage_data_t, origin, 0x1c);
 co(damage_data_t, epicenter, 0x28);
 co(damage_data_t, direction, 0x34);
 co(damage_data_t, scale, 0x40);
-co(damage_data_t, field_48, 0x48);
+co(damage_data_t, material_effect_scale, 0x48);
 co(damage_data_t, material_type, 0x4c);
 co(damage_data_t, material_response, 0x50);
 
@@ -452,11 +452,11 @@ co(weapon_definition_t, triggers, 0x4fc);
 /* 'jpt!' definition prefix */
 typedef struct {
   char pad_000[0x1d4];
-  real field_1d4;                ///< offset=0x1D4  averaged with field_1d8 as the damage potential
-  real field_1d8;                ///< offset=0x1D8
+  real damage_lower_bound;       ///< offset=0x1D4  averaged with damage_upper_bound as the damage potential
+  real damage_upper_bound;       ///< offset=0x1D8
 } damage_effect_definition_t;
-co(damage_effect_definition_t, field_1d4, 0x1d4);
-co(damage_effect_definition_t, field_1d8, 0x1d8);
+co(damage_effect_definition_t, damage_lower_bound, 0x1d4);
+co(damage_effect_definition_t, damage_upper_bound, 0x1d8);
 
 // OBJE -> SCEN
 /// size=0x1A8

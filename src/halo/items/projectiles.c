@@ -1103,7 +1103,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
     if (damage.material_type != NONE) {
       effect_definition_index = damage.material_type;
     }
-    material_effect_scale = damage.field_48;
+    material_effect_scale = damage.material_effect_scale;
   }
 
   material_type = (int16_t)effect_definition_index;
@@ -2120,13 +2120,13 @@ float weapon_definition_get_damage_potential(int weapon_tag_index, float *out_fi
     damage_effect_tag_index = projectile->impact_damage.tag_index;
     if (damage_effect_tag_index != NONE) {
       damage_effect = tag_get(TAG_GROUP_JPT, damage_effect_tag_index);
-      damage_potential = (damage_effect->field_1d8 + damage_effect->field_1d4) *
+      damage_potential = (damage_effect->damage_upper_bound + damage_effect->damage_lower_bound) *
                          REAL_0_5_POOL;
     }
     damage_effect_tag_index = projectile->attached_detonation_damage.tag_index;
     if (damage_effect_tag_index != NONE) {
       damage_effect = tag_get(TAG_GROUP_JPT, damage_effect_tag_index);
-      return (damage_effect->field_1d8 + damage_effect->field_1d4) *
+      return (damage_effect->damage_upper_bound + damage_effect->damage_lower_bound) *
                REAL_0_5_POOL +
              damage_potential;
     }
