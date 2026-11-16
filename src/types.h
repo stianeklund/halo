@@ -407,7 +407,6 @@ co(lights_game_globals_t, enabled, 0x00);
 #define NUMBER_OF_OUTGOING_OBJECT_FUNCTIONS 4
 #define MAXIMUM_REGIONS_PER_OBJECT 8
 
-/// size=0x1A4
 /* A point's leaf and cluster in the structure bsp. */
 typedef struct location_t {
     int32_t leaf_index;    /* +0x00 */
@@ -415,6 +414,7 @@ typedef struct location_t {
     int16_t pad_06;        /* +0x06 */
 } location_t;
 
+/// size=0x1A4
 typedef struct {
   uint32_t tag_index;       ///< offset=0x00
   uint32_t flags;           ///< offset=0x04  .text:00095B7B                 mov     [esi+4], ecx
