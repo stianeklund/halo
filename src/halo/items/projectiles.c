@@ -1206,9 +1206,9 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
      * (0xf94c1) before the call; this lift drops it. */
     (void)surface_response;
     damage.material_type = (int16_t)material_type;
-    damage.field_14 = collision->field_0c;
-    /* Dword copy of the int16 field_10 and its padding. */
-    damage.field_18 = *(int32_t *)&collision->field_10;
+    damage.leaf_index = collision->leaf_index;
+    /* Dword copy of the int16 cluster_index and its padding. */
+    damage.cluster_index = *(int32_t *)&collision->cluster_index;
     FUN_00146a90((uint16_t)(uint8_t)collision->field_4d, &damage,
                  collision->field_44);
   }
@@ -1451,7 +1451,7 @@ clamp_material_effect_scale:
       *(real_point3d *)halo_global_zero_vector_ptr;
     projectile->object.flags |= 0x20;
     projectile->flags |= FLAG(_projectile_attached_bit);
-    object_translate(projectile_handle, hit_pos, &collision->field_0c);
+    object_translate(projectile_handle, hit_pos, &collision->leaf_index);
     if (collision->type == _collision_result_object) {
       object_attach_to_parent(collision->object_index, projectile_handle,
                               (int16_t)collision->node_index);
@@ -2028,7 +2028,7 @@ bool projectile_update(int projectile_handle)
       }
 
       object_translate(projectile_handle, (float *)&new_position,
-                       &collision.field_0c);
+                       &collision.leaf_index);
       {
         float tick_remaining = time_remaining;
         *(real_vector3d *)&projectile->object.translational_velocity = velocity;

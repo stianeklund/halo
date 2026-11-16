@@ -4073,8 +4073,8 @@ typedef struct collision_test_result {
     int32_t field_04;      /* +0x04: leading surface/leaf index */
     int16_t field_08;      /* +0x08: cluster index for field_04 (MOVSX) */
     int16_t pad_0a;        /* +0x0a */
-    int32_t field_0c;      /* +0x0c: trailing leaf index */
-    int16_t field_10;      /* +0x10: cluster index for field_0c (MOVSX) */
+    int32_t leaf_index;    /* +0x0c: trailing location (leaf, cluster) */
+    int16_t cluster_index; /* +0x10: cluster of leaf_index (MOVSX) */
     int16_t pad_12;        /* +0x12 */
     float   t;             /* +0x14: hit fraction along the sweep */
     real_point3d position; /* +0x18: point + t * delta */
