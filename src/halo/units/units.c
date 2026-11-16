@@ -11473,9 +11473,9 @@ char unit_unsuspecting(int object_handle, void *position)
     unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
     if ((*(int *)(unit_tag + 0x17c) & 0x10000) == 0) {
       pos = (float *)position;
-      dx = unit->object.unk_80 - pos[0];
-      dy = unit->object.unk_84 - pos[1];
-      dz = unit->object.unk_88 - pos[2];
+      dx = unit->object.bounding_sphere_center.x - pos[0];
+      dy = unit->object.bounding_sphere_center.y - pos[1];
+      dz = unit->object.bounding_sphere_center.z - pos[2];
       dot = dx * unit->unk_528.x + dy * unit->unk_528.y + dz * unit->unk_528.z;
 
       /* FCOMP 0.0; TEST AH,0x41; JE true. */

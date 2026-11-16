@@ -408,6 +408,13 @@ co(lights_game_globals_t, enabled, 0x00);
 #define MAXIMUM_REGIONS_PER_OBJECT 8
 
 /// size=0x1A4
+/* A point's leaf and cluster in the structure bsp. */
+typedef struct location_t {
+    int32_t leaf_index;    /* +0x00 */
+    int16_t cluster_index; /* +0x04 */
+    int16_t pad_06;        /* +0x06 */
+} location_t;
+
 typedef struct {
   uint32_t tag_index;       ///< offset=0x00
   uint32_t flags;           ///< offset=0x04  .text:00095B7B                 mov     [esi+4], ecx
@@ -417,15 +424,8 @@ typedef struct {
   vector3_t forward;        ///< offset=0x24
   vector3_t up;             ///< offset=0x30
   vector3_t angular_velocity; ///< offset=0x3C
-  uint32_t unk_72;          ///< offset=0x48  .text:00140149                 mov     edx, [ecx+48h] location.???, leaf index?
-
-  // .text:00031FEE                 mov     edx, [eax+4Ch]  
-  // .text:00034D1F                 movsx   eax, word ptr [eax+4Ch] object.location.cluster_index
-  datum_handle_t unk_76;    ///< offset=0x4C
-
-  float unk_80;             ///< offset=0x50  .text:0009D161                 fsub    dword ptr [ebx+50h]
-  float unk_84;             ///< offset=0x54  .text:0009D167                 fsub    dword ptr [ebx+54h]
-  float unk_88;             ///< offset=0x58  .text:0009D16D                 fsub    dword ptr [ebx+58h]
+  location_t location;      ///< offset=0x48
+  real_point3d bounding_sphere_center; ///< offset=0x50
   float unk_92;             ///< offset=0x5C  .text:0009D155                 fld     dword ptr [ebx+5Ch]
   float unk_96;             ///< offset=0x60  .text:00141E5B                 fld     dword ptr [esi+60h]
   int16_t type;             ///< offset=0x64  .text:0013D811                 movsx   ecx, word ptr [esi+64h] type enum
@@ -4067,13 +4067,6 @@ typedef bool (*profile_sort32_compare_proc)(int32_t a, int32_t b);
  * FUN_0014cb00 output +0x02/+0x00/+0x04 on the bsp path).  Only +0x36 and
  * +0x42 remain unobserved.
  * ------------------------------------------------------------------------- */
-/* A point's leaf and cluster in the structure bsp. */
-typedef struct location_t {
-    int32_t leaf_index;    /* +0x00 */
-    int16_t cluster_index; /* +0x04 */
-    int16_t pad_06;        /* +0x06 */
-} location_t;
-
 typedef struct collision_test_result {
     int16_t type;          /* +0x00: -1 when no hit, 2 on a bsp surface hit */
     int16_t pad_02;        /* +0x02 */

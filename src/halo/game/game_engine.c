@@ -9109,7 +9109,7 @@ void oddball_engine_update(void)
             ->unit_handle;
         if (unit_handle != NONE) {
           unit = (object_data_t *)object_get_and_verify_type(unit_handle, 3);
-          game_engine_set_goal_position(ball_index, (int *)&unit->unk_80, 0.0f,
+          game_engine_set_goal_position(ball_index, (int *)&unit->bounding_sphere_center, 0.0f,
                                         "target_blue", NONE, NONE,
                                         owner_player_index);
         }

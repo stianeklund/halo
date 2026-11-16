@@ -2128,11 +2128,11 @@ float ai_communication_get_player_rating(int unit_handle, char test_line_of_sigh
           cluster_index =
             ((object_data_t *)object_get_and_verify_type(
                object_get_root_parent(unit_handle), -1))
-              ->unk_76.index;
+              ->location.cluster_index;
           player_cluster_index =
             ((object_data_t *)object_get_and_verify_type(
                object_get_root_parent(player->unit_handle), -1))
-              ->unk_76.index;
+              ->location.cluster_index;
           if (cluster_index != -1 && player_cluster_index != -1 &&
               !scenario_ensure_point_within_world(cluster_index,
                                                   player_cluster_index)) {
@@ -2963,7 +2963,7 @@ void ai_communication_notify(int unit_handle, uint16_t priority, uint16_t type,
   }
   if (information->information_type != 0 || information->look_priority > 0) {
     unit = (unit_data_t *)object_get_and_verify_type(unit_handle, 3);
-    location = &unit->object.unk_72; /* object location, +0x48 */
+    location = &unit->object.location; /* object location, +0x48 */
     team = unit->object.owner_team_index;
     volume = 1;
     unit_get_head_position(unit_handle, (float *)&speaker_head);
@@ -2983,7 +2983,7 @@ void ai_communication_notify(int unit_handle, uint16_t priority, uint16_t type,
     if (unit->object.parent_object_index.value != -1) {
       parent_object_index = object_get_root_parent(unit_handle);
       location = &((object_data_t *)object_get_and_verify_type(
-                     parent_object_index, -1))->unk_72;
+                     parent_object_index, -1))->location;
     }
     actor_iterator_new(&actors, 1);
     actor = (actor_t *)actor_iterator_next(&actors);

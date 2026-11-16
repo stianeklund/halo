@@ -2743,8 +2743,7 @@ void update_alien_scout_physics(int vehicle_index, float steering,
     TAG_GROUP_PHYS, definition->physics.tag_index);
   state = (struct powered_mass_point_datum *)powered_mass_points;
 
-  /* object.location (+0x48, still unk_72/unk_76 in object_data_t) */
-  water_depth = FUN_0018f510(&vehicle->unit.object.unk_72,
+  water_depth = FUN_0018f510(&vehicle->unit.object.location,
                              &vehicle->unit.object.position);
 
   magic_force = *(real_vector3d *)global_zero_vector_ptr;

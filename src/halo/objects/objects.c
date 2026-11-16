@@ -555,9 +555,9 @@ void scripted_camera_update(int camera, camera_control_t *controls,
         scripted_camera_globals.relative_object_index, -1);
       if (object == NULL)
         break;
-      focus_x = object->unk_80;
-      focus_y = object->unk_84;
-      focus_z = object->unk_88;
+      focus_x = object->bounding_sphere_center.x;
+      focus_y = object->bounding_sphere_center.y;
+      focus_z = object->bounding_sphere_center.z;
     }
     value = REAL_ZERO_POOL;
     if (speed != REAL_ZERO_POOL) {
@@ -8300,7 +8300,7 @@ bool object_has_node(int object_handle, int16_t node_index)
  *
  * When param_2 != 0 (hide):
  *   Sets bit 0x40 on hdr->unk_2. If the object has no parent
- *   (parent_object_index == -1) AND unk_76.index == -1, calls
+ *   (parent_object_index == -1) AND location.cluster_index == -1, calls
  *   object_deactivate to deactivate (clear bit 0x01).
  *
  * When param_2 == 0 (unhide):
@@ -8311,7 +8311,7 @@ bool object_has_node(int object_handle, int16_t node_index)
  *   (object_get_and_verify_type) with type_mask=-1.
  * Confirmed: OR byte [ESI+2],0x40 in true branch; AND AL,0xBF in false.
  * Confirmed: CMP dword [EAX+0xCC],-1 (parent_object_index.value).
- * Confirmed: CMP word [EAX+0x4C],-1 (unk_76.index, 16-bit compare).
+ * Confirmed: CMP word [EAX+0x4C],-1 (location.cluster_index, 16-bit compare).
  * Confirmed: CALL 0x13fb80 (deactivate) and CALL 0x13fb30 (activate).
  * Confirmed: ADD ESP,0x10 cleans datum_get + object_get_and_verify_type.
  */
@@ -8324,7 +8324,7 @@ void object_set_automatic_deactivation(int object_handle, char param_2)
 
   if (param_2 != 0) {
     hdr->unk_2 |= 0x40;
-    if (obj->parent_object_index.value == -1 && obj->unk_76.index == -1) {
+    if (obj->parent_object_index.value == -1 && obj->location.cluster_index == -1) {
       object_deactivate(object_handle);
     }
   } else {
@@ -8486,7 +8486,7 @@ void object_get_location(int object_handle, void *location_out)
   *(loc_t *)location_out =
     *(loc_t *)&((object_data_t *)object_get_and_verify_type(
                   object_get_root_parent(object_handle), -1))
-       ->unk_72;
+       ->location;
 }
 
 /*
@@ -8953,7 +8953,7 @@ void objects_disconnect_from_structure_bsp(void)
  * Confirmed: Float at 0x254a58 = PI/4 (0.7854f).
  * Confirmed: Player unit handle at player_datum + 0x34.
  * Confirmed: Unit forward vector at unit_obj + 0x1E0 (vector3_t unk_480).
- * Confirmed: Object position at obj + 0x50 (unk_80/unk_84/unk_88).
+ * Confirmed: Object position at obj + 0x50 (bounding_sphere_center).
  * Confirmed: Object bounding radius at obj + 0x5C (unk_92).
  */
 char object_visible_to_any_player(int object_handle)
@@ -9016,9 +9016,9 @@ char object_visible_to_any_player(int object_handle)
             unit_get_head_position(unit_handle, head_pos);
 
             /* Distance check: is player head within bounding sphere? */
-            dx = obj->unk_80 - head_pos[0];
-            dy = obj->unk_84 - head_pos[1];
-            dz = obj->unk_88 - head_pos[2];
+            dx = obj->bounding_sphere_center.x - head_pos[0];
+            dy = obj->bounding_sphere_center.y - head_pos[1];
+            dz = obj->bounding_sphere_center.z - head_pos[2];
             dy_copy = dy;
             dist_sq = dz * dz + dy_copy * dy_copy + dx * dx;
 
@@ -9030,9 +9030,9 @@ char object_visible_to_any_player(int object_handle)
             /* FOV check: is object within player's viewing cone? */
             unit_obj = (char *)object_get_and_verify_type(unit_handle, 3);
 
-            delta[0] = obj->unk_80 - head_pos[0];
-            delta[1] = obj->unk_84 - head_pos[1];
-            delta[2] = obj->unk_88 - head_pos[2];
+            delta[0] = obj->bounding_sphere_center.x - head_pos[0];
+            delta[1] = obj->bounding_sphere_center.y - head_pos[1];
+            delta[2] = obj->bounding_sphere_center.z - head_pos[2];
             radius_d = (double)obj->unk_92;
             magnitude = normalize3d(delta);
 
@@ -9379,8 +9379,7 @@ void object_connect_to_map(int object_handle, void *location)
     if ((int16_t)loc[1] == -1) {
       obj->flags |= 0x200000;
     } else {
-      obj->unk_72 = loc[0];
-      obj->unk_76.value = loc[1];
+      obj->location = *(location_t *)loc;
       hdr->unk_4 = (uint16_t)loc[1];
       obj->flags &= ~0x200000u;
     }
@@ -10032,14 +10031,14 @@ int16_t object_find_in_radius(int flags, unsigned int type_mask,
     }
 
     if ((type_mask & (1 << obj->type)) != 0) {
-      float dx = obj->unk_80 - position[0];
-      float dy = obj->unk_84 - position[1];
-      float dz = obj->unk_88 - position[2];
+      float dx = obj->bounding_sphere_center.x - position[0];
+      float dy = obj->bounding_sphere_center.y - position[1];
+      float dz = obj->bounding_sphere_center.z - position[2];
       float effective_radius = obj->unk_92 + radius;
 
       if (dx * dx + dz * dz + dy * dy <= effective_radius * effective_radius) {
 #ifdef HALO_RNG_TRACE
-        RNG_TRACE_EX(RNG_TRACE_KIND_RADIUS_HIT, *(unsigned int *)&obj->unk_88,
+        RNG_TRACE_EX(RNG_TRACE_KIND_RADIUS_HIT, *(unsigned int *)&obj->bounding_sphere_center.z,
                      handle);
 #endif
 #line 11177

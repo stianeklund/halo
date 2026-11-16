@@ -890,7 +890,7 @@ bool projectile_new(int projectile_handle)
   projectile->object.translational_velocity.y += initial_velocity * projectile->object.forward.y;
   projectile->object.translational_velocity.z += initial_velocity * projectile->object.forward.z;
 
-  if (FUN_0018f3e0(&projectile->object.unk_72, &projectile->object.unk_80, 0)) {
+  if (FUN_0018f3e0(&projectile->object.location, &projectile->object.bounding_sphere_center, 0)) {
     projectile->object.flags |= 0x10u;
   } else {
     projectile->object.flags &= ~0x10u;
@@ -1643,8 +1643,8 @@ bool projectile_update(int projectile_handle)
           HALO_FLT_ROUNDTRIP(turn_angle);
         }
       }
-      target_distance = (float)FUN_0001ad60(&target->unk_80,
-                                        &projectile->object.unk_80);
+      target_distance = (float)FUN_0001ad60((float *)&target->bounding_sphere_center,
+                                        (float *)&projectile->object.bounding_sphere_center);
       if (!(target_distance > REAL_10_POOL)) {
         if ((target_distance > REAL_2_0_POOL) &&
             (!((wander_fraction = (target_distance - REAL_2_0_POOL) *
@@ -1954,7 +1954,7 @@ bool projectile_update(int projectile_handle)
               real_vector3d perpendicular;
 
               player_unit = object_get_and_verify_type(player_unit_index, NONE);
-              listener_position = (real_point3d *)&player_unit->unk_80;
+              listener_position = &player_unit->bounding_sphere_center;
               sound_range =
                 (float)sound_get_default_priority(definition->flyby_sound.tag_index);
               vector_from_points3d((real_point3d *)&projectile->object.position,
