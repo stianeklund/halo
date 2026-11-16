@@ -20,6 +20,28 @@
 
 #include "../math/real_math.h"
 
+/* Scripted fixed-position camera, filled by static_camera_new (0x8d3a0) and
+ * consumed once by static_camera_update (0x8d410). */
+typedef struct {
+  real_point3d position;                   ///< offset=0x00
+  int32_t location;                        ///< offset=0x0c
+  real_vector3d forward;                   ///< offset=0x10
+  real_vector3d up;                        ///< offset=0x1c
+  real field_of_view;                      ///< offset=0x28
+  int32_t timer;                           ///< offset=0x2c
+  uint32_t flags;                          ///< offset=0x30
+  boolean initialized;                     ///< offset=0x34
+} static_camera_t;
+
+/* Per-player first-person camera state: the field of view last applied. */
+typedef struct {
+  real field_of_view;                      ///< offset=0x00
+} first_person_camera_t;
+
+typedef struct {
+  int16_t local_player_index;              ///< offset=0x00
+} first_person_camera_action_t;
+
 /* 0x86de0  mode-0/1 camera set — now ported. */
 static __inline void camera_internal_set_mode_0_1(int16_t player, int reset,
                                                   int mode_flags)

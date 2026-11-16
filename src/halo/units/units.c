@@ -3060,7 +3060,7 @@ bool unit_find_nearby_seat(int unit_handle, int target_unit_handle,
     if ((1 << (*(uint8_t *)&child_obj->type & 0x1f)) & 3) {
       child_unit = (unit_data_t *)object_get_and_verify_type(child_handle, 3);
 
-      if (child_unit->unk_672 == seat_index) {
+      if (child_unit->parent_seat_index == seat_index) {
         /* child occupies the requested seat */
         result_handle = child_handle;
         not_found = false;
@@ -3393,7 +3393,7 @@ void unit_get_head_position(int object_handle, float *out_position)
  * 1. Unit has a parent (parent_object_index != -1):
  *    Copies the parent object's world position (offset 0x0C). If the parent's
  *    object type is 0 or 1 (biped/vehicle) and the unit has a valid seat
- *    definition index (unk_672 != -1), looks up the seat's marker name (at
+ *    definition index (parent_seat_index != -1), looks up the seat's marker name (at
  *    seat_def + 0x84) and resolves it on the parent via
  *    object_get_marker_by_name. For seat type 1, skips if the marker
  *    name byte at seat_def + 0x84 is zero.
@@ -3404,7 +3404,7 @@ void unit_get_head_position(int object_handle, float *out_position)
  *
  * 3. Unit has no parent but has flags/non-zero type:
  *    If unk_728 is NONE, gets the "head" marker on the unit itself. Otherwise,
- *    resolves unk_728 as a unit, reads its seat index (unk_672), looks up the
+ *    resolves unk_728 as a unit, reads its seat index (parent_seat_index), looks up the
  *    seat definition's marker name (seat_def + 0x24) from the original unit's
  *    tag, and resolves it on the original unit via
  * object_get_marker_by_name.
@@ -3719,10 +3719,10 @@ int16_t unit_impulse_to_animation_kind(int16_t impulse_index,
  * States outside [0x17..0x29] -> fall to parent check.
  *
  * If parent_object_index != -1 (unit is seated/mounted):
- *   - If unk_672 (seat-anim index) is -1 -> return false.
+ *   - If parent_seat_index is -1 -> return false.
  *   - Resolves parent via object_try_and_get_and_verify_type (0x13d640).
  *   - Looks up the seat-anim entry at parent_unit_tag+0x2e4, indexed by
- *     unk_672, element size 0x11c.
+ *     parent_seat_index, element size 0x11c.
  *   - If impulse_index is in [0xc, 0xd]: returns bit 8 of seat_anim[0].
  *   - If impulse_index is outside [0xc, 0xd]: returns false.
  *
@@ -3736,7 +3736,7 @@ int16_t unit_impulse_to_animation_kind(int16_t impulse_index,
  * Confirmed: PUSH 0x3 / PUSH EAX -> object_get_and_verify_type.
  * Confirmed: MOVSX EAX,byte[ESI+0x253]; ADD -0x17; CMP 0x12; jump table
  * 0x1a97a8. Confirmed: MOVSX ECX,DI at 0x1a976c and 0x1a9786 (DI = caller's EDI
- * = anim_index). Confirmed: CMP [ESI+0x2a0],-1 -> unk_672 check. Confirmed:
+ * = anim_index). Confirmed: CMP [ESI+0x2a0],-1 -> parent_seat_index check. Confirmed:
  * object_try_and_get_and_verify_type at 0x13d640 / tag_get /
  * tag_block_get_element. Confirmed: MOV EAX,[EAX]; SHR EAX,8; AND AL,1 -> bit 8
  * gate.
@@ -3779,7 +3779,7 @@ bool unit_animation_state_allows_impulse(int unit_handle, int impulse_index)
     char *parent_tag;
     int *seat_anim;
 
-    if ((int16_t)unit->unk_672 == -1)
+    if ((int16_t)unit->parent_seat_index == -1)
       return false;
 
     parent = (unit_data_t *)object_try_and_get_and_verify_type(
@@ -3789,7 +3789,7 @@ bool unit_animation_state_allows_impulse(int unit_handle, int impulse_index)
 
     parent_tag = (char *)tag_get(0x756e6974, *(int *)parent);
     seat_anim = (int *)tag_block_get_element(
-      parent_tag + 0x2e4, (int)(int16_t)unit->unk_672, 0x11c);
+      parent_tag + 0x2e4, (int)(int16_t)unit->parent_seat_index, 0x11c);
 
     /* Only impulses 0xc and 0xd can fire when mounted */
     if ((int16_t)impulse_index < 0xc || (int16_t)impulse_index > 0xd)
@@ -3899,7 +3899,7 @@ int unit_get_aiming_unit_index(int unit_index)
 
 /* unit_scripting_unit_driver (0x1a9900)
  *
- * Copies the unit's aiming vector (unk_492, offset 0x1EC) into the output
+ * Copies the unit's aiming vector (offset 0x1EC) into the output
  * buffer. Resolves the unit via object_get_and_verify_type with type mask
  * 0x3 (biped | vehicle).
  */
@@ -5934,7 +5934,7 @@ int unit_get_weapon(int16_t weapon_index, char *unit_data)
  * to the map and attaches it at the unit's "left hand" marker. If it has a
  * parent, asserts that the parent is the unit. Then detaches the item from
  * the unit, clears its velocity, generates a random direction offset based on
- * the unit's unk_492 facing vector with a small random angle and scale, adds
+ * the unit's aiming vector with a small random angle and scale, adds
  * that to the root position, and attempts to place the item at the new
  * position. If placement fails and the game engine is not running, deletes
  * the item. Also deletes if the unit has flag bit 0x100000 set in unk_436.
@@ -5994,7 +5994,7 @@ void unit_detach_weapon(int unit_handle, int weapon_handle)
   *(float *)(weapon + 0x40) = global_origin[1];
   *(float *)(weapon + 0x44) = global_origin[2];
 
-  /* Generate random throw direction from unit's facing vector (unk_492) */
+  /* Generate random throw direction from unit's aiming vector */
   seed = get_global_random_seed_address();
   seed_random_vector_in_cone3d(seed, (float *)(unit + 0x1ec), 0.0f, 0.39269909f,
                      direction);
@@ -9455,7 +9455,7 @@ apply_angle:
  *   - unk_480 (offset 0x1E0) — aiming vector
  *   - unk_516 (offset 0x204) — looking vector
  *   - unk_36/unk_48 (offsets 0x24/0x30) — forward/up from object_data_t
- *   - unk_492 (offset 0x1EC) — additional vector
+ *   - aiming_vector (offset 0x1EC)
  *   - unk_528 (offset 0x210) — additional vector
  *
  * Each vector is checked via valid_real_normal3d; additionally the
@@ -9550,8 +9550,8 @@ void unit_control_trace(int unit_handle, const char *label)
 
   /* dump aiming vector + velocity as floats */
   error(2, "  aiming vector %f %f %f velocity %f %f %f",
-        (double)unit->unk_492.x, (double)unit->unk_492.y,
-        (double)unit->unk_492.z, (double)unit->unk_504.x,
+        (double)unit->aiming_vector.i, (double)unit->aiming_vector.j,
+        (double)unit->aiming_vector.k, (double)unit->unk_504.x,
         (double)unit->unk_504.y, (double)unit->unk_504.z);
 
   /* dump looking vector + velocity as floats */
@@ -9583,8 +9583,8 @@ void unit_control_trace(int unit_handle, const char *label)
 
   /* dump aiming vector + velocity as hex */
   error(2, "  aiming vector %08X %08X %08X velocity %08X %08X %08X",
-        *(uint32_t *)&unit->unk_492.x, *(uint32_t *)&unit->unk_492.y,
-        *(uint32_t *)&unit->unk_492.z, *(uint32_t *)&unit->unk_504.x,
+        *(uint32_t *)&unit->aiming_vector.i, *(uint32_t *)&unit->aiming_vector.j,
+        *(uint32_t *)&unit->aiming_vector.k, *(uint32_t *)&unit->unk_504.x,
         *(uint32_t *)&unit->unk_504.y, *(uint32_t *)&unit->unk_504.z);
 
   /* dump looking vector + velocity as hex */
@@ -12394,7 +12394,7 @@ bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
                           (void *)0x25386f);
 
   /* Set seat index and parent */
-  unit->unk_672 = seat_index;
+  unit->parent_seat_index = seat_index;
   unit->object.parent_object_index.value = vehicle_handle;
 
   /* Update unit seat occupancy tracking. */

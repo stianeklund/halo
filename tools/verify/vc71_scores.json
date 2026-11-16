@@ -3265,7 +3265,7 @@
       "score": 100.0,
       "source": "src/halo/bungie_net/network/transport_endpoint_set_winsock.c"
     },
-    "FUN_000849f0": {
+    "real_local_random_range": {
       "addr": "0x849f0",
       "end": "0x84a0b",
       "kind": "auto",
@@ -3463,7 +3463,7 @@
       "score": 79.5,
       "source": "src/halo/camera/observer.c"
     },
-    "FUN_0008d410": {
+    "static_camera_update": {
       "addr": "0x8d410",
       "end": "0x8d82b",
       "kind": "auto",

@@ -7514,6 +7514,71 @@
   {
    "data": [
     {
+     "addr": "0x266f38",
+     "decl": "real dead_camera_initial_timer;",
+     "comment": "3.0f; dead_camera_new timer seed, compared and re-stored by dead_camera_update (MOV ECX,[0x266f38] at 0x85e03)"
+    },
+    {
+     "addr": "0x266f68",
+     "decl": "int16_t director_game_camera_modes[3];",
+     "comment": "{4,2,0}: director mode cycle passed to FUN_00086a50 in normal play"
+    },
+    {
+     "addr": "0x266f70",
+     "decl": "int16_t director_replay_camera_modes[4];",
+     "comment": "{4,2,0,1}: director mode cycle passed to FUN_00086a50 in replay"
+    },
+    {
+     "addr": "0x266f80",
+     "decl": "real director_variable_acceleration;",
+     "comment": "25.0f; debug-variable velocity step in FUN_00086670"
+    },
+    {
+     "addr": "0x266f84",
+     "decl": "real director_input_scale_step;",
+     "comment": "1.3f; pow() base for the debug input scale step in FUN_00086670"
+    },
+    {
+     "addr": "0x2670ac",
+     "decl": "real director_stick_pitch_scale;",
+     "comment": "right stick y * dtime scale in director_compute_camera_input"
+    },
+    {
+     "addr": "0x2670b0",
+     "decl": "real director_stick_yaw_scale;",
+     "comment": "right stick x * dtime scale in director_compute_camera_input"
+    },
+    {
+     "addr": "0x2670c8",
+     "decl": "real editor_orbit_field_of_view;",
+     "comment": "1.2217305f; stored and re-read by the editor_camera_orbiting_update command validator"
+    },
+    {
+     "addr": "0x2670d0",
+     "decl": "real editor_orbit_timer;",
+     "comment": "0.5f; stored and re-read by the editor_camera_orbiting_update command validator"
+    },
+    {
+     "addr": "0x2670d8",
+     "decl": "real editor_camera_default_position_y;",
+     "comment": "1.0f; default position y in FUN_00087c00 (loaded into ECX at 0x87c32)"
+    },
+    {
+     "addr": "0x2ee5e0",
+     "decl": "const char *director_camera_mode_names[5];",
+     "comment": "\"%s camera\" names: following, orbiting, flying, editor, first person"
+    },
+    {
+     "addr": "0x2ee5f8",
+     "decl": "director_variable_definition_t director_variable_definitions[4];",
+     "comment": "debug variable definitions read by FUN_00086670 and director_init_player_cameras"
+    },
+    {
+     "addr": "0x2ee66c",
+     "decl": "int32_t editor_camera_relative_object_index;",
+     "comment": "initially NONE; written by FUN_00087eb0, passed as scripted_camera_set_camera_point_relative relative_object_index"
+    },
+    {
      "addr": "0x2ee67c",
      "decl": "editor_camera_translate_function translate_funcs[2][2];",
      "comment": "editor camera mode callbacks {_translate_from, _translate_to}; name from the editor_camera_set_mode assert strings"
@@ -7524,8 +7589,18 @@
      "comment": "console_printf(0, names[mode]) in editor_camera_set_mode"
     },
     {
+     "addr": "0x2ee694",
+     "decl": "const char *editor_camera_scripted_messages[2];",
+     "comment": "\"%s scripted camera mode\" argument indexed by the enable byte: exiting, entering"
+    },
+    {
      "addr": "0x3352a8",
      "decl": "director_globals_t director_globals;"
+    },
+    {
+     "addr": "0x335690",
+     "decl": "uint8_t director_unknown_335690;",
+     "comment": "read only by director_compute_camera_input (held analog button 4 repeat gate); meaning unproven"
     },
     {
      "addr": "0x335698",
@@ -19190,6 +19265,46 @@
      "addr": "0x335718",
      "decl": "observer_globals_t observer_globals;",
      "comment": "delta time, then the four per-local-player observers (stride 0x29c)"
+    },
+    {
+     "addr": "0x2ee6ac",
+     "decl": "int16_t observer_parameter_sizes[5];",
+     "comment": "float count of each command parameter, {3, 3, 1, 1, 6}; read per parameter by observer_compute_update"
+    },
+    {
+     "addr": "0x2ee6b8",
+     "decl": "int16_t observer_velocity_sizes[5];",
+     "comment": "float count of each parameter's velocity, {3, 3, 1, 1, 3}; the forward/up pair integrates a 3-component rotation"
+    },
+    {
+     "addr": "0x26738c",
+     "decl": "real observer_acceleration_limits[5];",
+     "comment": "per-parameter acceleration clamp {1500, 1500, 100000, 100000, 100000}; observer_compute_accelerations"
+    },
+    {
+     "addr": "0x325716",
+     "decl": "int16_t flying_camera_reset_ticks;",
+     "comment": "only xrefs are flying_camera_update 0x89467/0x89479: while positive, zero facing and roll, then decrement"
+    },
+    {
+     "addr": "0x26769c",
+     "decl": "real orbiting_camera_field_of_view;",
+     "comment": "0.87266463 (50 degrees); orbiting_camera_update stores it as the command field of view and re-reads it in the validity check (0x8d035, 0x8d24e)"
+    },
+    {
+     "addr": "0x2676a8",
+     "decl": "real orbiting_camera_timer;",
+     "comment": "0.5; orbiting_camera_update's command timer, re-read by the validity check (0x8d040, 0x8d28b). A separate object from the 0.5 at 0x2676a4"
+    },
+    {
+     "addr": "0x2676ac",
+     "decl": "real orbiting_camera_height_offset;",
+     "comment": "0.52; added to the unit position z by orbiting_camera_update (0x8d008)"
+    },
+    {
+     "addr": "0x2673a4",
+     "decl": "real observer_near_plane_scale;",
+     "comment": "0.174; observer.obj's own .rdata (after observer_acceleration_limits), single read at 0x8c1c5 scaling the focus distance into the near-plane probe size"
     }
    ]
   },
@@ -41791,7 +41906,7 @@
    "functions": [
     {
      "addr": "0x849f0",
-     "decl": "float FUN_000849f0(float min, float max);",
+     "decl": "float real_local_random_range(float lower_bound, float upper_bound);",
      "ported": true
     }
    ],
@@ -44707,7 +44822,7 @@
    "functions": [
     {
      "addr": "0x8d410",
-     "decl": "void FUN_0008d410(void *camera, int action, void *result);",
+     "decl": "void static_camera_update(void *camera, const void *action, void *result);",
      "ported": true,
      "source_path": "halo/camera/static_camera.c"
     }

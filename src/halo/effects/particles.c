@@ -880,7 +880,7 @@ void particle_new(void *spawn_params)
   if (*(float *)((char *)tag + 0x84) == 0.0f) {
     *(float *)(datum + 0x20) = *(float *)0x2548fc; /* FLT_MAX */
   } else {
-    float anim_rate = FUN_000849f0(*(float *)((char *)tag + 0x80),
+    float anim_rate = real_local_random_range(*(float *)((char *)tag + 0x80),
                                    *(float *)((char *)tag + 0x84));
     *(float *)(datum + 0x20) = 1.0f / anim_rate;
   }

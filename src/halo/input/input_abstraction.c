@@ -127,13 +127,13 @@ void input_abstraction_update_device_changes(unsigned int device_change_flags)
  * return 0. MOV ECX,[EAX+0x34] (player->unit_handle); PUSH 3; PUSH ECX; CALL
  * object_try_and_get_and_verify_type; MOV ESI,EAX (unit); TEST ESI,ESI/JZ ->
  * return 0. MOV EAX,[ESI+0xcc] (unit->object.parent_object_index); CMP
- * EAX,-1/JZ -> return 0. CMP word[ESI+0x2a0],-1/JZ (unit->unk_672) -> return 0.
+ * EAX,-1/JZ -> return 0. CMP word[ESI+0x2a0],-1/JZ (unit->parent_seat_index) -> return 0.
  *   PUSH 2; PUSH EAX; CALL object_get_and_verify_type -> vehicle (no NULL
  *   check, immediately dereferenced).
  *   MOV EDX,[EAX] (vehicle tag_index, object_data_t offset 0x00); PUSH EDX;
  *   PUSH 'vehi'(0x76656869); CALL tag_get -> vehi_tag.
  *   MOV CX,[EAX+0x2f4]; CMP CX,3/JZ; CMP CX,5/JNZ -> return 0 unless 3 or 5.
- *   MOVSX ECX,word[ESI+0x2a0] (unit->unk_672); PUSH 0x11c; PUSH ECX;
+ *   MOVSX ECX,word[ESI+0x2a0] (unit->parent_seat_index); PUSH 0x11c; PUSH ECX;
  *   ADD EAX,0x2e4; PUSH EAX; CALL tag_block_get_element -> seat.
  *   MOV CL,[EAX]; TEST CL,4; MOV AL,1/JNZ -> return 1, else MOV AL,BL(=0).
  *
@@ -178,7 +178,7 @@ char input_abstraction_print_config_control(int controller_index)
   }
 
   if (unit->object.parent_object_index.value == -1 ||
-      (int16_t)unit->unk_672 == -1) {
+      (int16_t)unit->parent_seat_index == -1) {
     return 0;
   }
 
@@ -188,7 +188,7 @@ char input_abstraction_print_config_control(int controller_index)
   if (*(int16_t *)(vehi_tag + 0x2f4) == 3 ||
       *(int16_t *)(vehi_tag + 0x2f4) == 5) {
     seat = (char *)tag_block_get_element(vehi_tag + 0x2e4,
-                                         (int)(int16_t)unit->unk_672, 0x11c);
+                                         (int)(int16_t)unit->parent_seat_index, 0x11c);
     return (char)((*seat & 4) != 0);
   }
   return 0;

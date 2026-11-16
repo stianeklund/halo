@@ -1705,7 +1705,7 @@ void first_person_weapon_update(int16_t local_player_index)
           (char *)game_globals_get() + 0x170, 0, 0xf4);
         if (*(int16_t *)(fp + 0xe) == 0) {
           *(int16_t *)(fp + 0xe) =
-            (int16_t)(int)(FUN_000849f0(*(float *)(globals_element + 0x9c),
+            (int16_t)(int)(real_local_random_range(*(float *)(globals_element + 0x9c),
                                         *(float *)(globals_element + 0xa0)) *
                            *(float *)0x253394);
         }

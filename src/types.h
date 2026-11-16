@@ -733,7 +733,7 @@ typedef struct {
   uint32_t unk_464;                   ///< offset=0x1D0 .text:00040924                 mov     ecx, [esi+1D0h] game time related
   vector3_t desired_facing_vector;   ///< offset=0x1D4 .text:001AF62B                 lea     ecx, [esi+1D4h]
   vector3_t unk_480;                  ///< offset=0x1E0 .text:001AF63E                 lea     edx, [esi+1E0h]
-  vector3_t unk_492;                  ///< offset=0x1EC .text:001AF678                 lea     eax, [esi+1ECh]
+  real_vector3d aiming_vector;              ///< offset=0x1EC .text:001AF678                 lea     eax, [esi+1ECh]
   vector3_t unk_504;                  ///< offset=0x1F8 .text:001AF7E5                 fld     dword ptr [esi+1F8h]
   vector3_t unk_516;                  ///< offset=0x204 .text:001AF651                 lea     eax, [esi+204h]
   vector3_t unk_528;                  ///< offset=0x210 .text:001AF68B                 add     esi, 210h
@@ -788,7 +788,7 @@ typedef struct {
   float unk_660;                      ///< offset=0x294 .text:001AB90C                 fstp    dword ptr [esi+294h]   self illumination
   float unk_664;                      ///< offset=0x298 .text:001A80AC                 fld     dword ptr [esi+298h]
   uint32_t unk_668;                   ///< offset=0x29C
-  uint16_t unk_672;                   ///< offset=0x2A0 .text:000B6805                 movsx   ecx, word ptr [edi+2A0h]   tag block index
+  uint16_t parent_seat_index;                 ///< offset=0x2A0 .text:000B6805                 movsx   ecx, word ptr [edi+2A0h]   tag block index
   uint16_t unk_674;                   ///< offset=0x2A2 .text:000B0B06                 mov     ax, [ebx+2A2h]   current weapon index into (0x2A8)
   uint16_t unk_676;                   ///< offset=0x2A4 .text:000B707C                 mov     ax, [ebx+2A4h]   next weapon index
   uint16_t unk_678;                   ///< offset=0x2A6

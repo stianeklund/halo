@@ -18,15 +18,15 @@
  *
  * Register-arg callees are reached through shims in camera_internal.h. */
 #include "camera_internal.h"
+#include "director.h"
 
 /*
- * FUN_00085a40 (0x85a40) — is there another player whose player-record dword
- * at +0x20 equals this player's?
+ * FUN_00085a40 (0x85a40) — is there another player on this player's team?
  *
  * player_handle arrives in EDI (the decompiler reports it as `unaff_EDI`:
  * EDI is read at 0x85a4d/0x85a80 and never written in this function).
  * Returns in AL: 1 as soon as an iterated player other than player_handle has
- * the same dword at player+0x20; otherwise the BL zeroed at 0x85a62 (0).
+ * the same team_index; otherwise the BL zeroed at 0x85a62 (0).
  *
  * Call sites traced from the disassembly:
  *   PUSH EDI / PUSH EAX(=[0x5aa6d4]) / CALL 0x119320
@@ -42,31 +42,28 @@
  * iter.datum_handle (data_iter_t +0x8). Both [0x5aa6d4] loads are kept
  * separate, matching the two MOVs at 0x85a46 and 0x85a54.
  *
- * The meaning of the player field at +0x20 is unproven here; it is only ever
- * compared for equality between two player records.
- *
  * 0x85a40 / director.obj
  */
 bool FUN_00085a40(int player_handle)
 {
   data_iter_t iter;
-  char *player;
-  char *other;
-  int value;
+  player_data_t *player;
+  player_data_t *other;
+  int32_t team_index;
   bool result;
 
-  player = (char *)datum_get(player_data, player_handle);
-  value = *(int *)(player + 0x20);
+  player = (player_data_t *)datum_get(player_data, player_handle);
+  team_index = player->team_index;
   result = 0;
 
   data_iterator_new(&iter, player_data);
-  other = (char *)data_iterator_next(&iter);
+  other = (player_data_t *)data_iterator_next(&iter);
   while (other != NULL) {
     if (iter.datum_handle != (uint32_t)player_handle &&
-        *(int *)(other + 0x20) == value) {
+        other->team_index == team_index) {
       return 1;
     }
-    other = (char *)data_iterator_next(&iter);
+    other = (player_data_t *)data_iterator_next(&iter);
   }
 
   return result;
@@ -80,7 +77,7 @@ bool FUN_00085a40(int player_handle)
  *   BL          restrict_flag; tested at 0x85ab6 and again at 0x85b0e, never
  *               written in this function (decompiler reports `unaff_BL`).
  *   [EBP+0x8]   player_handle  — the player to exclude (CMP at 0x85b03) and,
- *               when restrict_flag is set, the source of the +0x20 dword.
+ *               when restrict_flag is set, the source of the team_index.
  *   [EBP+0xc]   current_handle — compared against each candidate's low word
  *               (0x85b20..0x85b32) and returned unchanged at 0x85b4d.
  *   Result in EAX (0x85b57 MOV EAX,ESI / 0x85b4d MOV EAX,[EBP+0xc]).
@@ -96,10 +93,8 @@ bool FUN_00085a40(int player_handle)
  * iter.datum_handle (data_iter_t +0x8).
  *
  * Candidate filter (0x85b00..0x85b15): handle differs from player_handle, the
- * player dword at +0x34 is not -1, and — only when restrict_flag is set — the
- * dword at +0x20 matches the caller player's. The meaning of both fields is
- * unproven; +0x20 is only ever compared for equality (same as FUN_00085a40)
- * and +0x34 only against -1.
+ * player has a unit, and — only when restrict_flag is set — it is on the
+ * caller player's team.
  *
  * Selection (0x85b17..0x85b46): the first candidate is remembered in ESI; a
  * later candidate whose low 16 bits exceed those of current_handle replaces it
@@ -113,23 +108,23 @@ uint32_t FUN_00085ab0(char restrict_flag, uint32_t player_handle,
                       uint32_t current_handle)
 {
   data_iter_t iter;
-  char *player;
-  int value;
+  player_data_t *player;
+  int32_t team_index;
   uint32_t result;
 
   if (restrict_flag == 0) {
-    value = -1;
+    team_index = -1;
   } else {
-    player = (char *)datum_get(player_data, (int)player_handle);
-    value = *(int *)(player + 0x20);
+    player = (player_data_t *)datum_get(player_data, (int)player_handle);
+    team_index = player->team_index;
   }
 
   result = 0xffffffff;
   data_iterator_new(&iter, player_data);
-  player = (char *)data_iterator_next(&iter);
+  player = (player_data_t *)data_iterator_next(&iter);
   while (player != NULL) {
-    if (iter.datum_handle != player_handle && *(int *)(player + 0x34) != -1 &&
-        (restrict_flag == 0 || *(int *)(player + 0x20) == value)) {
+    if (iter.datum_handle != player_handle && player->unit_handle != NONE &&
+        (restrict_flag == 0 || player->team_index == team_index)) {
       if (result == 0xffffffff) {
         result = iter.datum_handle;
       } else if ((int)(iter.datum_handle & 0xffff) >
@@ -138,7 +133,7 @@ uint32_t FUN_00085ab0(char restrict_flag, uint32_t player_handle,
         break;
       }
     }
-    player = (char *)data_iterator_next(&iter);
+    player = (player_data_t *)data_iterator_next(&iter);
   }
 
   if (result == 0xffffffff) {
@@ -148,91 +143,74 @@ uint32_t FUN_00085ab0(char restrict_flag, uint32_t player_handle,
 }
 
 /*
- * dead_camera_new (0x85b60) — initialize the dead/third-person follow camera
- * state block for a local player.
+ * dead_camera_new (0x85b60) — initialize the dead camera for a local player.
  *
- * cdecl(camera, local_player_index, handle). The assert at 0x85b7b passes
+ * cdecl(camera, local_player_index, unit_index). The assert at 0x85b7b passes
  * "camera" as the reason string with file c:\halo\SOURCE\camera\dead_camera.c
  * line 0x17 (23), which names the first parameter.
  *
- * Layout written into the block (field meanings beyond the first vector are
- * unproven; the offsets below are exactly the stores at 0x85b98..0x85c6e):
- *   +0x00..0x0b  three dwords copied verbatim from observer_get_camera()
- *                (MOV dword, not FLD/FSTP) — the observer camera position
- *   +0x0c        random_real_range(seed, 0.0f, 2*pi)
- *   +0x10        -random_real_range(seed, 0.15*pi, 0.35*pi)   (FCHS at 0x85c02)
- *   +0x14        random_real_range(seed, 2.0f, 6.0f)
- *   +0x18        1.2217305f (0x3f9c61aa, 70 degrees in radians)
- *   +0x1c        dword copied from [0x266f38]
- *   +0x20        local_player_get_player_index(local_player_index)
- *   +0x24        copy of the dword just written at +0x20 (reloaded from the
- *                block at 0x85c54/0x85c65, not held in a register)
- *   +0x28        `handle` when it is not -1, otherwise player_data[+0x38]
- *   +0x2c        float selected at 0x85c0a..0x85c32
- *
- * Store order matters: +0x18 is written before the first random draw, and the
- * three random_real_range() calls happen in the order 0x14, 0x0c, 0x10 — each
- * one re-reads the local seed address (three separate CALL 0x10b120).
- *
- * The +0x2c selector reads three distinct float globals and only calls
- * game_engine_running() on the handle == -1 path (JZ at 0x85c10).
+ * The position is copied as three dwords from observer_get_camera(); the
+ * timer is a dword copy of the pool constant.  The three random_real_range()
+ * calls happen in the order distance, yaw, pitch, each re-reading the local
+ * seed address.  unit_index NONE follows the player's previous unit and only
+ * then calls game_engine_running() for the switch delay.
  *
  * 0x85b60 / director.obj
  */
-void dead_camera_new(void *camera, int16_t local_player_index, int handle)
+void dead_camera_new(void *camera, int16_t local_player_index, int unit_index)
 {
-  char *dst;
-  uint32_t *src;
-  float selected;
-  float drawn;
-  uint32_t copied;
-  int player_handle;
-  char *player;
+  dead_camera_t *dead_camera;
+  real_point3d *observer_position;
+  real switch_timer;
+  real pitch;
+  real timer;
+  int32_t player_index;
+  player_data_t *player;
 
-  src = (uint32_t *)observer_get_camera((unsigned short)local_player_index);
+  observer_position =
+    (real_point3d *)observer_get_camera((unsigned short)local_player_index);
 
   assert_halt_at("c:\\halo\\SOURCE\\camera\\dead_camera.c", 23, camera);
 
-  dst = (char *)camera;
-  *(uint32_t *)(dst + 0x00) = src[0];
-  *(uint32_t *)(dst + 0x04) = src[1];
-  *(uint32_t *)(dst + 0x08) = src[2];
-  *(float *)(dst + 0x18) = 1.2217305f;
-  *(float *)(dst + 0x14) =
+  dead_camera = (dead_camera_t *)camera;
+  dead_camera->position = *observer_position;
+  dead_camera->field_of_view = 1.2217305f; /* 70 degrees */
+  dead_camera->distance =
     random_real_range((int *)random_math_get_local_seed_address(), 2.0f, 6.0f);
-  *(float *)(dst + 0x0c) = random_real_range(
+  dead_camera->facing.yaw = random_real_range(
     (int *)random_math_get_local_seed_address(), 0.0f, 6.2831855f);
-  drawn = random_real_range((int *)random_math_get_local_seed_address(),
+  pitch = random_real_range((int *)random_math_get_local_seed_address(),
                             0.47123894f, 1.0995574f);
-  /* [0x266f38] is loaded at 0x85bfc, ahead of the FCHS/FSTP pair at
+  /* The timer constant is loaded at 0x85bfc, ahead of the FCHS/FSTP pair at
    * 0x85c02/0x85c07 — keep the read in front of the negated store. */
-  copied = *(uint32_t *)0x266f38;
-  *(float *)(dst + 0x10) = -drawn;
-  *(uint32_t *)(dst + 0x1c) = copied;
+  timer = 3.0f;
+  dead_camera->facing.pitch = -pitch;
+  dead_camera->timer = timer;
 
-  if (handle != -1) {
-    selected = *(float *)0x2548fc;
+  if (unit_index != NONE) {
+    switch_timer = 3.4028235e+38f;
   } else if (game_engine_running()) {
-    selected = *(float *)0x266f3c;
+    switch_timer = 15.0f;
   } else {
-    selected = *(float *)0x266f40;
+    switch_timer = 3.0f;
   }
-  *(float *)(dst + 0x2c) = selected;
+  dead_camera->switch_timer = switch_timer;
 
-  player_handle = local_player_get_player_index(local_player_index);
-  *(int *)(dst + 0x20) = player_handle;
+  player_index = local_player_get_player_index(local_player_index);
+  dead_camera->player_index = player_index;
 
-  /* JNE at 0x85c43 makes the handle == -1 case the fall-through; both tails
-   * duplicate the +0x28/+0x24 stores and reload +0x20 from the block. */
-  if (handle == -1) {
-    player = (char *)datum_get(player_data, player_handle);
-    *(int *)(dst + 0x28) = *(int *)(player + 0x38);
-    *(int *)(dst + 0x24) = *(int *)(dst + 0x20);
+  /* JNE at 0x85c43 makes the unit_index == NONE case the fall-through; both
+   * tails duplicate the unit_index/current_player_index stores and reload
+   * player_index from the block. */
+  if (unit_index == NONE) {
+    player = (player_data_t *)datum_get(player_data, player_index);
+    dead_camera->unit_index = player->previous_unit_handle;
+    dead_camera->current_player_index = dead_camera->player_index;
     return;
   }
 
-  *(int *)(dst + 0x28) = handle;
-  *(int *)(dst + 0x24) = *(int *)(dst + 0x20);
+  dead_camera->unit_index = unit_index;
+  dead_camera->current_player_index = dead_camera->player_index;
 }
 
 /* camera_director_t, director_globals_t, director_scripting_t and
@@ -252,6 +230,7 @@ void dead_camera_new(void *camera, int16_t local_player_index, int handle)
 enum {
   SCRIPTED_CAMERA_UPDATE_ENTRY = 0x853c0, /* scripted_camera_update */
   DEAD_CAMERA_UPDATE_ENTRY = 0x85c80, /* dead_camera_update */
+  EDITOR_CAMERA_UPDATE_ENTRY = 0x87f20, /* editor_camera_update */
   FIRST_PERSON_CAMERA_UPDATE_ENTRY = 0x89270, /* first_person_camera_update */
   FLYING_CAMERA_UPDATE_ENTRY = 0x893a0, /* flying_camera_update */
   FOLLOWING_CAMERA_UPDATE_ENTRY = 0x89cd0, /* following_camera_update */
@@ -259,16 +238,16 @@ enum {
 };
 
 
-/* dead_camera_update (0x85c80). Preserve the original no-player fallback
- * (the command pointer), which is also present in PAL 2342. */
+/* dead_camera_update (0x85c80).  With no player to follow the next unit is
+ * the command pointer itself, as in the original. */
 void dead_camera_update(void *camera_data, void *control_data,
                         void *result_data)
 {
   dead_camera_t *camera;
   camera_control_t *controls;
   camera_command_t *result;
-  char *unit;
-  char *player;
+  object_data_t *unit;
+  player_data_t *player;
   int32_t next_player;
   int32_t next_unit;
   bool match_team;
@@ -276,22 +255,23 @@ void dead_camera_update(void *camera_data, void *control_data,
   camera = (dead_camera_t *)camera_data;
   controls = (camera_control_t *)control_data;
   result = (camera_command_t *)result_data;
-  unit = camera->unit_index == -1 ?
+  unit = camera->unit_index == NONE ?
            NULL :
-           (char *)object_try_and_get_and_verify_type(camera->unit_index, -1);
+           (object_data_t *)object_try_and_get_and_verify_type(
+             camera->unit_index, -1);
   result->position =
-    unit != NULL ? *(real_point3d *)(unit + 0x50) : camera->position;
+    unit != NULL ? unit->bounding_sphere_center : camera->position;
   result->depth = camera->distance;
   angles_to_vector((float *)&result->forward, (float *)&camera->facing);
   observer_up_from_forward((float *)&result->forward, (float *)&result->up);
   result->field_of_view = camera->field_of_view;
-  result->offset = **(real_vector3d **)0x31fc38;
-  result->velocity = **(real_vector3d **)0x31fc38;
-  result->flags = 1;
+  result->offset = *(real_vector3d *)global_zero_vector_ptr;
+  result->velocity = *(real_vector3d *)global_zero_vector_ptr;
+  result->flags = FLAG(_observer_command_valid_bit);
   result->timer = 0.0f > camera->timer ? 0.0f : camera->timer;
   result->field_54[0] = 0.0f;
   result->field_4c[0] = 3;
-  if (camera->timer == *(real *)0x266f38) {
+  if (camera->timer == dead_camera_initial_timer) {
     result->depth = 0.5f;
     result->field_54[2] = 0.0f;
     result->field_4c[2] = 3;
@@ -305,66 +285,25 @@ void dead_camera_update(void *camera_data, void *control_data,
     next_player = FUN_00085ab0((char)match_team, camera->player_index,
                                camera->current_player_index);
     camera->current_player_index = next_player;
-    if (next_player != -1) {
-      player = (char *)datum_get(player_data, next_player);
-      next_unit = *(int32_t *)(player + 0x34);
+    if (next_player != NONE) {
+      player = (player_data_t *)datum_get(player_data, next_player);
+      next_unit = player->unit_handle;
     } else {
       next_unit = (int32_t)result_data;
     }
-    if (next_unit != camera->unit_index && next_unit != -1) {
-      camera->timer = *(real *)0x266f38;
+    if (next_unit != camera->unit_index && next_unit != NONE) {
+      camera->timer = dead_camera_initial_timer;
       camera->unit_index = next_unit;
     }
-    camera->switch_timer =
-      game_engine_running() ? *(real *)0x266f3c : *(real *)0x266f40;
+    camera->switch_timer = game_engine_running() ?
+                             15.0f :
+                             3.0f;
   }
-  if ((result->flags & 1) &&
-      (!valid_real_normal3d_perpendicular((float *)&result->forward,
-                                          (float *)&result->up) ||
-       (*(uint32_t *)&result->position.x & 0x7f800000) == 0x7f800000 ||
-       !(result->position.x >= *(float *)0x266e98) ||
-       !(result->position.x <= *(float *)0x266e94) ||
-       (*(uint32_t *)&result->position.y & 0x7f800000) == 0x7f800000 ||
-       !(result->position.y >= *(float *)0x266e98) ||
-       !(result->position.y <= *(float *)0x266e94) ||
-       (*(uint32_t *)&result->position.z & 0x7f800000) == 0x7f800000 ||
-       !(result->position.z >= *(float *)0x266e98) ||
-       !(result->position.z <= *(float *)0x266e94) ||
-       (*(uint32_t *)&result->offset.i & 0x7f800000) == 0x7f800000 ||
-       !(result->offset.i >= *(float *)0x266e98) ||
-       !(result->offset.i <= *(float *)0x266e94) ||
-       (*(uint32_t *)&result->offset.j & 0x7f800000) == 0x7f800000 ||
-       !(result->offset.j >= *(float *)0x266e98) ||
-       !(result->offset.j <= *(float *)0x266e94) ||
-       (*(uint32_t *)&result->offset.k & 0x7f800000) == 0x7f800000 ||
-       !(result->offset.k >= *(float *)0x266e98) ||
-       !(result->offset.k <= *(float *)0x266e94) ||
-       !real_vector3d_valid((float *)&result->velocity) ||
-       (*(uint32_t *)&result->depth & 0x7f800000) == 0x7f800000 ||
-       !(result->depth >= *(float *)0x2533c0) ||
-       !(result->depth <= *(float *)0x266e94) ||
-       (*(uint32_t *)&result->field_of_view & 0x7f800000) == 0x7f800000 ||
-       !(result->field_of_view >= *(float *)0x255ef8) ||
-       !(result->field_of_view <= *(float *)0x2568bc) ||
-       (*(uint32_t *)&result->timer & 0x7f800000) == 0x7f800000 ||
-       !(result->timer >= *(float *)0x2533c0) ||
-       !(result->timer <= *(float *)0x266e90))) {
-    char *msg = csprintf((char *)0x5ab100,
-                         "Invalid camera command.\n"
-                         "F: (%f, %f, %f) U: (%f, %f, %f)\n"
-                         "P: (%f, %f, %f) O: (%f, %f, %f)\n"
-                         "D: %f V: (%f, %f, %f), FOV: %f, T: %f, FL: %ld",
-                         (double)result->forward.i, (double)result->forward.j,
-                         (double)result->forward.k, (double)result->up.i,
-                         (double)result->up.j, (double)result->up.k,
-                         (double)result->position.x, (double)result->position.y,
-                         (double)result->position.z, (double)result->offset.i,
-                         (double)result->offset.j, (double)result->offset.k,
-                         (double)result->depth, (double)result->velocity.i,
-                         (double)result->velocity.j, (double)result->velocity.k,
-                         (double)result->field_of_view, (double)result->timer,
-                         result->flags);
-    display_assert(msg, "c:\\halo\\SOURCE\\camera\\dead_camera.c", 0x9e, 1);
+  if (!director_camera_command_valid(result, result->field_of_view,
+                                     result->timer)) {
+    display_assert(csprintf(error_string_buffer, CAMERA_COMMAND_INVALID_FORMAT,
+                            CAMERA_COMMAND_INVALID_ARGUMENTS(result)),
+                   "c:\\halo\\SOURCE\\camera\\dead_camera.c", 0x9e, true);
     system_exit(-1);
   }
 }
@@ -372,8 +311,9 @@ void dead_camera_update(void *camera_data, void *control_data,
 /* Allocate director scripting state. */
 void director_initialize(void)
 {
-  *(char **)0x5ab200 = (char *)game_state_malloc("director scripting", 0, 4);
-  **(char **)0x5ab200 = 0;
+  director_camera_scripted = (director_scripting_t *)game_state_malloc(
+    "director scripting", 0, sizeof(director_scripting_t));
+  director_camera_scripted->camera_scripted = false;
 }
 
 /* Dispose — nothing to clean up. */
@@ -391,7 +331,7 @@ void director_inhibit_facing(int16_t local_player_index)
                      "c:\\halo\\SOURCE\\camera\\director.c", 0xb3,
                      local_player_index >= 0 &&
                        local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  ((char *)0x335301)[(int)local_player_index * 0xf8] = 1;
+  director_globals.local_players[local_player_index].inhibited_facing = true;
 }
 
 /* Set active local-player context used by hs/console during cheat dispatch.
@@ -403,7 +343,7 @@ void director_set_local_player_context(int16_t player_index)
                      "c:\\halo\\SOURCE\\camera\\director.c", 0xb3,
                      player_index >= 0 &&
                        player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  ((char *)0x335302)[(int)player_index * 0xf8] = 1;
+  director_globals.local_players[player_index].inhibited_input = true;
 }
 
 /* director_inhibited_facing (0x86270) — read the per-player "facing inhibited"
@@ -417,7 +357,7 @@ bool director_inhibited_facing(short local_player_index)
                      "c:\\halo\\SOURCE\\camera\\director.c", 0xb3,
                      local_player_index >= 0 &&
                        local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  return ((bool *)0x335301)[(int)local_player_index * 0xf8];
+  return director_globals.local_players[local_player_index].inhibited_facing;
 }
 
 /* director_inhibited_input (0x862c0) — read the per-player "input inhibited"
@@ -431,7 +371,7 @@ bool director_inhibited_input(short local_player_index)
                      "c:\\halo\\SOURCE\\camera\\director.c", 0xb3,
                      local_player_index >= 0 &&
                        local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  return ((bool *)0x335302)[(int)local_player_index * 0xf8];
+  return director_globals.local_players[local_player_index].inhibited_input;
 }
 
 /* Number of director game modes — the assert bound is CMP SI,0x5 at 0x8631d. */
@@ -445,9 +385,9 @@ void director_set_mode(int16_t mode)
   assert_halt_msg_at("mode>=0 && mode<NUMBER_OF_DIRECTOR_GAME_MODES",
                      "c:\\halo\\SOURCE\\camera\\director.c", 0x180,
                      mode >= 0 && mode < NUMBER_OF_DIRECTOR_GAME_MODES);
-  if (*(int16_t *)0x3352ac != mode) {
-    *(int16_t *)0x3352ac = mode;
-    *(uint8_t *)0x3352ae = 1;
+  if (director_globals.game_mode != mode) {
+    director_globals.game_mode = mode;
+    director_globals.initialize_camera = true;
   }
 }
 
@@ -508,9 +448,7 @@ int16_t director_get_perspective(int16_t local_player_index)
     system_exit(-1);
   }
 
-  director =
-    (camera_director_t *)((char *)0x3352b0 + local_player_index * 0xf8);
-
+  director = &director_globals.local_players[local_player_index];
 
   if (director->camera_proc == FIRST_PERSON_CAMERA_UPDATE_ENTRY) {
     if (director->camera_change_pause == 0.0f) {
@@ -560,7 +498,7 @@ int16_t director_desired_perspective(int unit_handle, int16_t *perspective)
           &((unit_definition_t *)tag_get(TAG_GROUP_UNIT,
                                          parent_object->tag_index))
              ->seats,
-          (short)unit->unk_672 /* parent seat index */, sizeof(unit_seat_t));
+          (short)unit->parent_seat_index, sizeof(unit_seat_t));
 
         third_person_on_enter =
           (seat->flags & FLAG(_unit_seat_third_person_on_enter_bit)) != 0;
@@ -591,15 +529,14 @@ int16_t director_desired_perspective(int unit_handle, int16_t *perspective)
 
 
 /*
- * FUN_000865a0 — set player director mode entry fields.
- * Writes param_1 to [base+0x8], 1.0f to [base+0xc4], clears [base+0xc0],
- * and if param_2 is true writes 1.0f to [base+0x4].
- * Base = 0x3352b0 + local_player_index * 0xf8.
- * local_player_index passed in SI.
+ * FUN_000865a0 — install a camera proc for a local player (index in SI),
+ * resetting the debug controls; pause_camera_change primes the camera
+ * change pause.
  *
  * 0x865a0 / director.obj
  */
-void FUN_000865a0(int16_t local_player_index, int param_1, bool param_2)
+void FUN_000865a0(int16_t local_player_index, int camera_proc,
+                  bool pause_camera_change)
 {
   camera_director_t *director;
 
@@ -609,19 +546,20 @@ void FUN_000865a0(int16_t local_player_index, int param_1, bool param_2)
                      local_player_index >= 0 &&
                        local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
   director = &director_globals.local_players[local_player_index];
-  director->camera_proc = param_1;
+  director->camera_proc = camera_proc;
   director->debug_input_scale = 1.0f;
-  director->debug_controls = 0;
-  if (param_2) {
+  director->debug_controls = false;
+  if (pause_camera_change) {
     director->camera_change_pause = 1.0f;
   }
 }
 
 
-/* Per-player default-state init (0x86600). Fills four 12-byte slots at
- * struct offset 0x194/0x1a0/0x1ac/0x1b8 (relative to 0x3352b4 + player*0xf8).
- * Each slot's first dword is seeded from a const table at 0x2ee604 (0x1c
- * stride); the remaining two dwords are zeroed.
+/* Per-player default-state init (0x86600). Resets the four debug_variables
+ * {value, velocity, delta} of a local player: value from the definitions'
+ * initial_value (0x2ee604 = 0x2ee5f8 + 0xc, 0x1c stride), the other two to
+ * zero.  dst walks the delta member (director + 0xd0, 0xc stride); the
+ * strength-reduced pointer shape is what the original emits.
  *
  * Original prototype passes the player index in AX — reached via the
  * reverse-thunk codegen in tools/patch.py when the original binary calls
@@ -638,7 +576,9 @@ void director_init_player_cameras(int16_t local_player_index)
                      local_player_index >= 0 &&
                        local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-  src = (uint32_t *)0x2ee604;
+  src = (uint32_t *)&director_variable_definitions[0].initial_value;
+  /* Named spellings of this base (0x3352b0 + 0xd0, the delta member of
+   * local_players[0].debug_variables[0]) lose a byte; kept by address. */
   dst = (char *)0x3352b0 + (int)local_player_index * 0xf8 + 0xd0;
 
   i = 4;
@@ -653,8 +593,8 @@ void director_init_player_cameras(int16_t local_player_index)
 }
 
 /* FUN_00086670: input-variable integration used by the flying camera.
- * 2276, like PAL 2342, tests the HEIGHT definition's has_hyper_scale byte
- * for every variable; this intentionally preserves that original behavior. */
+ * 2276 tests the first definition's has_hyper_scale byte (0x2ee610) for
+ * every variable; this intentionally preserves that original behavior. */
 void FUN_00086670(int16_t local_player_index, int mode_flags, float fwd)
 {
   camera_director_t *director;
@@ -673,20 +613,21 @@ void FUN_00086670(int16_t local_player_index, int mode_flags, float fwd)
                      "c:\\halo\\SOURCE\\camera\\director.c", 0xb3,
                      local_player_index >= 0 &&
                        local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  director =
-    (camera_director_t *)((char *)0x3352b0 + local_player_index * 0xf8);
-  director->debug_input_scale *= (real)pow(*(real *)0x266f84, fwd);
+  director = &director_globals.local_players[local_player_index];
+  director->debug_input_scale *= (real)pow(director_input_scale_step, fwd);
   director->debug_input_scale =
-    director->debug_input_scale < *(real *)0x25bb10 ?
-      *(real *)0x25bb10 :
-      (director->debug_input_scale > *(real *)0x25acf0 ?
-         *(real *)0x25acf0 :
+    director->debug_input_scale < 0.01f ?
+      0.01f :
+      (director->debug_input_scale > 50.0f ?
+         50.0f :
          director->debug_input_scale);
-  for (i = 0; i < 4; ++i) {
-    definition = (director_variable_definition_t *)0x2ee5f8 + i;
+  for (i = 0; i < NUMBER_OF_DIRECTOR_VARIABLES; ++i) {
+    definition = &director_variable_definitions[i];
     instance = &director->debug_variables[i];
-    hyper_scale = *(uint8_t *)0x2ee610 ? director->debug_input_scale : 1.0f;
-    velocity_scale = *(real *)0x3352a8 * *(real *)0x266f7c;
+    hyper_scale = director_variable_definitions[0].has_hyper_scale ?
+                    director->debug_input_scale :
+                    1.0f;
+    velocity_scale = director_globals.dtime * 5.0f;
     velocity_scale = velocity_scale < 0.0f ?
                        0.0f :
                        (velocity_scale > 1.0f ? 1.0f : velocity_scale);
@@ -699,14 +640,16 @@ void FUN_00086670(int16_t local_player_index, int mode_flags, float fwd)
             (mode_flags & (1U << definition->reset_bit)) != 0;
     instance->velocity *= velocity_scale;
     if (negative && !positive)
-      instance->velocity -=
-        *(real *)0x266f80 * definition->scale * *(real *)0x3352a8 * hyper_scale;
+      instance->velocity -= director_variable_acceleration *
+                            definition->scale * director_globals.dtime *
+                            hyper_scale;
     else if (positive && !negative)
-      instance->velocity +=
-        *(real *)0x266f80 * definition->scale * *(real *)0x3352a8 * hyper_scale;
+      instance->velocity += director_variable_acceleration *
+                            definition->scale * director_globals.dtime *
+                            hyper_scale;
     else if (game_in_editor())
       instance->velocity = 0.0f;
-    delta = *(real *)0x3352a8 * instance->velocity;
+    delta = director_globals.dtime * instance->velocity;
     instance->delta = delta;
     if (reset)
       instance->value = definition->initial_value;
@@ -720,25 +663,24 @@ void FUN_00086670(int16_t local_player_index, int mode_flags, float fwd)
   }
 }
 
-/* Reset director state for all 4 players when disposing old map.
- * Per-player data starts at 0x335374 with stride 0xF8 bytes.
- * Offsets verified against disassembly (ESI-relative). */
+/* Clear every local player's camera proc and debug controls when the old
+ * map is disposed, and drop scripted camera control. */
 void director_dispose_from_old_map(void)
 {
   int16_t i;
-  char *entry = (char *)0x335374;
+  camera_director_t *director = director_globals.local_players;
 
-  for (i = 0; i < 4; i++) {
+  for (i = 0; i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS; i++) {
     assert_halt_msg_at("local_player_index>=0 && "
                        "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
                        "c:\\halo\\SOURCE\\camera\\director.c", 0xb3,
                        i >= 0 && i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-    *(int *)(entry - 0xbc) = 0;
-    *(float *)entry = 1.0f;
-    *(uint8_t *)(entry - 4) = 0;
-    entry += 0xf8;
+    director->camera_proc = 0;
+    director->debug_input_scale = 1.0f;
+    director->debug_controls = false;
+    director++;
   }
-  **(char **)0x5ab200 = 0;
+  director_camera_scripted->camera_scripted = false;
 }
 
 /* director_load_camera (0x86900) — debug helper that reads "d:\camera.txt"
@@ -750,40 +692,40 @@ void director_dispose_from_old_map(void)
 void director_load_camera(void)
 {
   void *file;
-  real position[3];
-  real forward[3];
-  real derived_up[3];
-  real stored_up[3];
+  real_point3d position;
+  real_vector3d forward;
+  real_vector3d derived_up;
+  real_vector3d stored_up;
   real field_of_view;
+  camera_director_t *director;
+  flying_camera_t *camera;
 
   file = crt_fopen("d:\\camera.txt", "r");
   if (file) {
-    _fscanf(file, "%f %f %f\n", &position[0], &position[1], &position[2]);
-    _fscanf(file, "%f %f %f\n", &forward[0], &forward[1], &forward[2]);
-    _fscanf(file, "%f %f %f\n", &stored_up[0], &stored_up[1], &stored_up[2]);
+    _fscanf(file, "%f %f %f\n", &position.x, &position.y, &position.z);
+    _fscanf(file, "%f %f %f\n", &forward.i, &forward.j, &forward.k);
+    _fscanf(file, "%f %f %f\n", &stored_up.i, &stored_up.j, &stored_up.k);
     _fscanf(file, "%f\n", &field_of_view);
     crt_fclose(file);
-    FUN_00089350(((camera_director_t *)0x3352b0)->camera_data, position,
-                 forward);
-    observer_up_from_forward(forward, derived_up);
-    *(real *)(((camera_director_t *)0x3352b0)->camera_data + 0x14) =
-      FUN_0010c510(stored_up, derived_up);
-    if ((derived_up[2] * stored_up[1] - stored_up[2] * derived_up[1]) *
-            forward[0] +
-          (forward[1] *
-             (stored_up[2] * derived_up[0] - derived_up[2] * stored_up[0]) +
-           forward[2] *
-             (stored_up[0] * derived_up[1] - derived_up[0] * stored_up[1])) >
+    director = &director_globals.local_players[0];
+    camera = (flying_camera_t *)director->camera_data;
+    FUN_00089350(camera, (float *)&position, (float *)&forward);
+    observer_up_from_forward((float *)&forward, (float *)&derived_up);
+    camera->roll = FUN_0010c510((float *)&stored_up, (float *)&derived_up);
+    if ((derived_up.k * stored_up.j - stored_up.k * derived_up.j) *
+            forward.i +
+          (forward.j *
+             (stored_up.k * derived_up.i - derived_up.k * stored_up.i) +
+           forward.k *
+             (stored_up.i * derived_up.j - derived_up.i * stored_up.j)) >
         REAL_ZERO_POOL) {
-      *(real *)(((camera_director_t *)0x3352b0)->camera_data + 0x14) =
-        -*(real *)(((camera_director_t *)0x3352b0)->camera_data + 0x14);
+      camera->roll = -camera->roll;
     }
-    *(real *)(((camera_director_t *)0x3352b0)->camera_data + 0x18) =
-      field_of_view;
-    ((camera_director_t *)0x3352b0)->camera_proc = FLYING_CAMERA_UPDATE_ENTRY;
-    ((camera_director_t *)0x3352b0)->debug_input_scale = 1.0f;
-    ((camera_director_t *)0x3352b0)->debug_controls = 0;
-    ((camera_director_t *)0x3352b0)->camera_mode_index = 2;
+    camera->field_of_view = field_of_view;
+    director->camera_proc = FLYING_CAMERA_UPDATE_ENTRY;
+    director->debug_input_scale = 1.0f;
+    director->debug_controls = false;
+    director->camera_mode_index = 2;
   }
 }
 
@@ -800,38 +742,42 @@ void FUN_00086a50(int local_player_index, int16_t *mode_table, int16_t count)
                      (int16_t)local_player_index >= 0 &&
                        (int16_t)local_player_index <
                          MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
-  director = (camera_director_t *)((char *)0x3352b0 +
-                                   (int16_t)local_player_index * 0xf8);
+  director = &director_globals.local_players[(int16_t)local_player_index];
   director->camera_mode_index = (director->camera_mode_index + 1) % count;
   camera_mode = mode_table[director->camera_mode_index];
   switch (camera_mode) {
-  case 0:
+  case _director_camera_mode_following:
     following_camera_new(director->camera_data);
-    FUN_000865a0((int16_t)local_player_index, 0x89cd0, true);
+    FUN_000865a0((int16_t)local_player_index, FOLLOWING_CAMERA_UPDATE_ENTRY,
+                 true);
     break;
-  case 1:
+  case _director_camera_mode_orbiting:
     orbiting_camera_new((float *)director->camera_data, director->command.depth,
                         (float *)&director->command.forward);
-    FUN_000865a0((int16_t)local_player_index, 0x8cf30, true);
+    FUN_000865a0((int16_t)local_player_index, ORBITING_CAMERA_UPDATE_ENTRY,
+                 true);
     break;
-  case 2:
+  case _director_camera_mode_flying:
     FUN_00089350(director->camera_data, (float *)&director->command.position,
                  (float *)&director->command.forward);
-    FUN_000865a0((int16_t)local_player_index, 0x893a0, true);
+    FUN_000865a0((int16_t)local_player_index, FLYING_CAMERA_UPDATE_ENTRY,
+                 true);
     break;
-  case 3:
+  case _director_camera_mode_editor:
     break;
-  case 4:
+  case _director_camera_mode_first_person:
     first_person_camera_new(director->camera_data);
-    FUN_000865a0((int16_t)local_player_index, 0x89270, true);
+    FUN_000865a0((int16_t)local_player_index, FIRST_PERSON_CAMERA_UPDATE_ENTRY,
+                 true);
     break;
   default:
     display_assert(NULL, "c:\\halo\\SOURCE\\camera\\director.c", 0x200, 1);
     system_exit(-1);
     break;
   }
-  console_printf(0, "%s camera",
-                 ((char **)0x2ee5e0)[mode_table[director->camera_mode_index]]);
+  console_printf(
+    0, "%s camera",
+    director_camera_mode_names[mode_table[director->camera_mode_index]]);
 }
 
 /* director_camera_deterministic (0x86b80) — deterministic camera dispatch.
@@ -869,8 +815,7 @@ int16_t director_camera_deterministic(int unit_handle, int param_2, int param_3)
 /* director_choose_game_perspective (0x86be0) — pick the first-person or
  * following camera for a local player's unit.
  *
- * Name and shape from PAL 2342 source/camera/director.c (T2); the 2276 body
- * matches it call-for-call. Register ABI: local_player_index @<eax> (kept in
+ * Register ABI: local_player_index @<eax> (kept in
  * SI, 16-bit TEST/CMP), force @<bl> (read by five TEST BL,BL, never written).
  * Sole caller: director_set_player_camera_normal (0x86ed5).
  *
@@ -980,44 +925,24 @@ void director_script_camera(unsigned char value)
 
 /* Normal-play camera dispatch for one player (mode-0/1, 0x86de0).
  *
- * Three behaviors selected by reset_flag and the player's death state:
- *
- *   1. reset_flag != 0 (forced reset):
- *      Re-init the camera-data block via 0x88c40, install the first-person
- *      camera fn (0x89270), prime the +0xc0 timer to 1.0f, clear the +0xbc
- *      byte. Returns immediately.
- *
- *   2. reset_flag == 0:
- *      Compute is_dead from player_data: dead iff player_data[+0x34] == -1
- *      AND player_data[+0xaa] (signed short) > 0. Then optionally cycle
- *      camera mode (mode_flags), then if no scripted camera state is active,
- *      re-evaluate the active camera and either:
- *        - is_dead && current != vehicle/death-follow camera: install
- *          third-person follow state via 0x85b60 + set camera 0x85c80 with
- *          timer reset.
- *        - !is_dead && current == 0x85c80: call 0x864b0 to classify whether
- *          gameplay should resume directly in first person (0x89270) or
- *          through the transition camera (0x89cd0). The helper also writes a
- *          small state word stored at base+0x50.
- *
- * Ghidra comparison against the original Xbox binary suggests our earlier
- * comments were too death-camera-centric here: 0x864b0 is vehicle/seat-state
- * sensitive, and 0x89cd0 appears to drive the smooth third-person-to-first-
- * person blend seen when exiting a vehicle.
+ * reset_flag installs a fresh first-person camera (the inlined body of
+ * FUN_000865a0 without the change pause).  Otherwise mode_flags cycles the
+ * game camera modes, and unless a script owns the camera the gameplay
+ * perspective is re-evaluated; a player with no unit whose +0xaa word is
+ * positive gets the dead camera, and leaving the dead camera re-selects the
+ * following or first-person camera from director_desired_perspective.
  *
  * Original receives player index in AX, plus two byte stack args —
  * reverse-thunked to plain cdecl by tools/patch.py. */
 void director_set_player_camera_normal(int16_t local_player_index,
                                        char reset_flag, char mode_flags)
 {
-  char *base;
-  uint8_t is_dead;
-  void *current_camera;
-  int player_handle;
-  char *player_data;
-  int unit_handle;
-  int16_t local_word;
-  int16_t result;
+  camera_director_t *director;
+  uint8_t dead;
+  player_data_t *player;
+  int32_t unit_index;
+  int16_t perspective;
+  int16_t following;
 
   assert_halt_msg_at("local_player_index>=0 && "
                      "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
@@ -1025,11 +950,10 @@ void director_set_player_camera_normal(int16_t local_player_index,
                      local_player_index >= 0 &&
                        local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-  base = (char *)0x3352b4 + (int)local_player_index * 0xf8;
+  director = &director_globals.local_players[local_player_index];
 
   if (reset_flag != 0) {
-    /* 0x88c40: zero camera-data first dword. */
-    ((void (*)(void *))0x88c40)((void *)(base + 8));
+    first_person_camera_new(director->camera_data);
 
     assert_halt_msg_at("local_player_index>=0 && "
                        "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
@@ -1037,46 +961,41 @@ void director_set_player_camera_normal(int16_t local_player_index,
                        local_player_index >= 0 &&
                          local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-    *(uint8_t *)(base + 0xbc) = 0;
-    *(uint32_t *)(base + 4) = 0x89270;
-    *(float *)(base + 0xc0) = 1.0f;
+    director->debug_controls = false;
+    director->camera_proc = FIRST_PERSON_CAMERA_UPDATE_ENTRY;
+    director->debug_input_scale = 1.0f;
     return;
   }
 
-  /* Compute is_dead from the player's data record. */
-  player_handle = local_player_get_player_index(local_player_index);
-  player_data = (char *)datum_get(*(data_t **)0x5aa6d4, player_handle);
-  if (*(int *)(player_data + 0x34) != -1) {
-    is_dead = 0;
-  } else if (*(int16_t *)(player_data + 0xaa) > 0) {
-    is_dead = 1;
+  player = (player_data_t *)datum_get(
+    player_data, local_player_get_player_index(local_player_index));
+  /* +0xaa is an unnamed signed word of the player record. */
+  if (player->unit_handle != NONE) {
+    dead = false;
+  } else if (*(int16_t *)((char *)player + 0xaa) > 0) {
+    dead = true;
   } else {
-    is_dead = 0;
+    dead = false;
   }
 
   if (mode_flags != 0)
-    camera_internal_cycle_mode(local_player_index, (int16_t *)0x266f68, 3);
+    FUN_00086a50(local_player_index, director_game_camera_modes, 3);
 
-  /* If a scripted camera is active (script_state[0] != 0), nothing else. */
-  if (**(char **)0x5ab200 != 0)
+  if (director_camera_scripted->camera_scripted)
     return;
 
-  camera_internal_reevaluate(local_player_index, 0);
+  director_choose_game_perspective(local_player_index, false);
 
-  current_camera = *(void **)(base + 4);
+  if (dead) {
+    if (director->camera_proc == DEAD_CAMERA_UPDATE_ENTRY)
+      return;
 
-  if (is_dead != 0) {
-    if (current_camera == (void *)0x85c80)
-      return; /* already in the third-person follow camera */
-
-    dead_camera_new((void *)(base + 8), local_player_index, -1);
-    camera_internal_set_camera_fn(local_player_index, (void *)0x85c80, 1);
+    dead_camera_new(director->camera_data, local_player_index, NONE);
+    FUN_000865a0(local_player_index, DEAD_CAMERA_UPDATE_ENTRY, true);
     return;
   }
 
-  /* is_dead == 0: only switch back to gameplay camera if we're still in the
-   * third-person follow camera. */
-  if (current_camera != (void *)0x85c80)
+  if (director->camera_proc != DEAD_CAMERA_UPDATE_ENTRY)
     return;
 
   assert_halt_msg_at("local_player_index>=0 && "
@@ -1085,39 +1004,31 @@ void director_set_player_camera_normal(int16_t local_player_index,
                      local_player_index >= 0 &&
                        local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-  /* 0xb6870: lookup player's unit handle. */
-  unit_handle = ((int (*)(int16_t))0xb6870)(local_player_index);
+  unit_index = player_control_get_unit_index(local_player_index);
+  following = director_desired_perspective(unit_index, &perspective);
 
-  /* 0x864b0: classify how gameplay should resume from 0x85c80. Binary
-   * evidence says this is not just a dead-camera test: it is sensitive to
-   * unit/seat state and selects whether we go through 0x89cd0 (transition
-   * camera) or straight to 0x89270. It also writes a small state word that we
-   * preserve at base+0x50 for the camera pipeline. */
-  result = director_desired_perspective(unit_handle, &local_word);
-
-  if (result == 1) {
-    ((void (*)(void *))0x89850)((void *)(base + 8));
-    camera_internal_set_camera_fn(local_player_index, (void *)0x89cd0, 0);
+  if (following == 1) {
+    following_camera_new(director->camera_data);
+    FUN_000865a0(local_player_index, FOLLOWING_CAMERA_UPDATE_ENTRY, false);
   } else {
-    ((void (*)(void *))0x88c40)((void *)(base + 8));
-    camera_internal_set_camera_fn(local_player_index, (void *)0x89270, 0);
+    first_person_camera_new(director->camera_data);
+    FUN_000865a0(local_player_index, FIRST_PERSON_CAMERA_UPDATE_ENTRY, false);
   }
 
-  *(int16_t *)(base + 0x50) = local_word;
+  director->seat_state = perspective;
 }
 
-/* Switch player to scripted/editor camera (mode 2 dispatch, 0x86fa0).
- * If reset_flag is set, or the current camera fn is not already the scripted
- * one (0x87f20), call the scripted-camera initializer at 0x87800 with the
- * per-player camera-data pointer, then install 0x87f20 as the active camera
- * fn, prime the timer at +0xc0 to 1.0f, and clear the byte flag at +0xbc.
+/* Switch player to the editor camera (mode 2 dispatch, 0x86fa0).  Unless it
+ * is already installed (or reset_flag forces it), initialize the editor
+ * camera and install editor_camera_update with the inlined FUN_000865a0
+ * stores.
  *
  * Original receives player index in SI and reset_flag as a byte stack arg —
  * reverse-thunked to plain cdecl by tools/patch.py. */
 void director_set_player_camera_scripted(int16_t local_player_index,
                                          char reset_flag)
 {
-  char *base;
+  camera_director_t *director;
 
   assert_halt_msg_at("local_player_index>=0 && "
                      "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
@@ -1125,12 +1036,10 @@ void director_set_player_camera_scripted(int16_t local_player_index,
                      local_player_index >= 0 &&
                        local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-  base = (char *)0x3352b4 + (int)local_player_index * 0xf8;
+  director = &director_globals.local_players[local_player_index];
 
-  if (reset_flag != 0 || *(uint32_t *)(base + 4) != 0x87f20) {
-    /* 0x87800: scripted-camera init; cdecl(camera_data_ptr, player_index). */
-    ((void (*)(void *, int16_t))0x87800)((void *)(base + 8),
-                                         local_player_index);
+  if (reset_flag != 0 || director->camera_proc != EDITOR_CAMERA_UPDATE_ENTRY) {
+    editor_camera_initialize(director->camera_data, local_player_index);
 
     assert_halt_msg_at("local_player_index>=0 && "
                        "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
@@ -1138,21 +1047,15 @@ void director_set_player_camera_scripted(int16_t local_player_index,
                        local_player_index >= 0 &&
                          local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-    *(uint32_t *)(base + 4) = 0x87f20;
-    *(float *)(base + 0xc0) = 1.0f;
-    *(uint8_t *)(base + 0xbc) = 0;
+    director->camera_proc = EDITOR_CAMERA_UPDATE_ENTRY;
+    director->debug_input_scale = 1.0f;
+    director->debug_controls = false;
   }
 }
 
-/* Replay-mode dispatch for one player (0x87050).
- * Two cases:
- *   - reset_flag != 0: forcibly install the first-person camera fn at base+4
- *     (using the camera-data init helper at 0x88c40), prime the timer, clear
- *     the reset byte at +0xbc.
- *   - reset_flag == 0 && mode_flags != 0: cycle through replay camera modes
- *     by calling 0x86a50, which expects @eax=player_index, @ebx=mode-table
- *     pointer, and a stack arg = entry count. The mode table at 0x266f70 has
- *     4 short entries.
+/* Replay-mode dispatch for one player (0x87050).  reset_flag installs a fresh
+ * first-person camera (inlined FUN_000865a0 stores); otherwise mode_flags
+ * cycles the replay camera modes.
  *
  * Original receives reset_flag in AL and player index in SI; reverse-thunked
  * to plain cdecl by tools/patch.py. */
@@ -1160,7 +1063,7 @@ void director_apply_replay_mode_for_player(char reset_flag,
                                            int16_t local_player_index,
                                            char mode_flags)
 {
-  char *base;
+  camera_director_t *director;
 
   if (reset_flag != 0) {
     assert_halt_msg_at("local_player_index>=0 && "
@@ -1169,10 +1072,8 @@ void director_apply_replay_mode_for_player(char reset_flag,
                        local_player_index >= 0 &&
                          local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-    base = (char *)0x3352b4 + (int)local_player_index * 0xf8;
-
-    /* 0x88c40: camera-data init helper (cdecl: camera_data_ptr). */
-    ((void (*)(void *))0x88c40)((void *)(base + 8));
+    director = &director_globals.local_players[local_player_index];
+    first_person_camera_new(director->camera_data);
 
     assert_halt_msg_at("local_player_index>=0 && "
                        "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
@@ -1180,48 +1081,35 @@ void director_apply_replay_mode_for_player(char reset_flag,
                        local_player_index >= 0 &&
                          local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-    *(uint32_t *)(base + 4) = 0x89270;
-    *(float *)(base + 0xc0) = 1.0f;
-    *(uint8_t *)(base + 0xbc) = 0;
+    director->camera_proc = FIRST_PERSON_CAMERA_UPDATE_ENTRY;
+    director->debug_input_scale = 1.0f;
+    director->debug_controls = false;
     return;
   }
 
   if (mode_flags != 0)
-    camera_internal_cycle_mode(local_player_index, (int16_t *)0x266f70, 4);
+    FUN_00086a50(local_player_index, director_replay_camera_modes, 4);
 }
 
-/* Build per-player camera input snapshot for one tick (0x87110).
+/* Build the per-player camera_action_t for one tick (0x87110).
  *
- * Output buffer layout (32-bit fields unless noted):
- *   +0x00 int16  player_index
- *   +0x02 uint8  valid
- *   +0x04 float  delta_time
- *   +0x08 float  forward
- *   +0x0c float  side
- *   +0x10 float  pitch_accumulator
- *   +0x14 float  yaw_accumulator
- *   +0x18 float  roll_accumulator
- *   +0x1c float  zoom_accumulator
- *   +0x20 float  trigger
- *
- * Branches on whether the player has a controllable unit:
- *   - Has unit: derive look/strafe from unit's control state, scaled by
- *     per-player sensitivity (base+0xc0). Returns "valid" derived from the
- *     unit's cinematic byte (+0x14).
- *   - No unit: fall back to gamepad direct-input. The "no unit" branch
- *     calls 0xcf690 which is stubbed to 0 on Xbox, so the fallback body is
- *     dead code on retail — kept faithful to the binary anyway.
+ * Branches on whether the player's gamepad is connected:
+ *   - Gamepad: the sticks drive facing and translation when the debug
+ *     controls are toggled on (digital button 7); the return value comes
+ *     from analog button 4's hold count.
+ *   - No gamepad: fall back to the debug input state from 0xcf690, which is
+ *     stubbed to 0 on Xbox, so that body is dead code on retail — kept
+ *     faithful to the binary anyway.
  *
  * Original receives the output-buffer pointer in EAX; reverse-thunked to
  * plain cdecl by tools/patch.py. */
 bool director_compute_camera_input(short *out_buf, int local_player_index)
 {
   int16_t player16 = (int16_t)local_player_index;
-  int player_handle;
-  char *player_data;
-  int unit_handle;
-  void *current_camera;
-  char *base;
+  camera_action_t *action;
+  camera_director_t *director;
+  player_data_t *player;
+  int16_t gamepad_index;
 
   assert_halt_msg_at("local_player_index>=0 && "
                      "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
@@ -1229,29 +1117,27 @@ bool director_compute_camera_input(short *out_buf, int local_player_index)
                      player16 >= 0 &&
                        player16 < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-  csmemset(out_buf, 0, 0x24);
-  *out_buf = player16;
-  *(float *)(out_buf + 2) = *(float *)0x3352a8;
+  action = (camera_action_t *)out_buf;
+  csmemset(action, 0, sizeof(camera_action_t));
+  action->local_player_index = player16;
+  action->seconds_elapsed = director_globals.dtime;
 
-  base = (char *)0x3352b4 + (int)player16 * 0xf8;
+  director = &director_globals.local_players[player16];
 
-  player_handle = local_player_get_player_index(player16);
-  player_data = (char *)datum_get(*(data_t **)0x5aa6d4, player_handle);
-  unit_handle = (int)*(int16_t *)(player_data + 2);
+  player = (player_data_t *)datum_get(
+    player_data, local_player_get_player_index(player16));
+  gamepad_index = player->local_player_index;
 
-  if (unit_handle == -1 || input_has_gamepad((int16_t)unit_handle) == 0) {
-    /* No unit / unit not playable: gamepad-direct fallback. On Xbox 0xcf690
-     * is stubbed to 0, so the inner body never runs. */
-    int *gamepad_state = (int *)((void *(*)(void))0xcf690)();
-    if (gamepad_state != NULL) {
+  if (gamepad_index == NONE || input_has_gamepad(gamepad_index) == 0) {
+    int *debug_input = (int *)FUN_000cf690();
+    if (debug_input != NULL) {
       bool back_pressed;
 
-      gamepad_state = (int *)((void *(*)(void))0xcf690)();
+      debug_input = (int *)FUN_000cf690();
       back_pressed = input_key_is_down(0x1d);
 
-      if ((current_camera = *(void **)(base + 4),
-           current_camera != (void *)0x89270 &&
-             *((char *)gamepad_state + 0xd) != 0) ||
+      if ((director->camera_proc != FIRST_PERSON_CAMERA_UPDATE_ENTRY &&
+           ((char *)debug_input)[0xd] != 0) ||
           input_key_is_down(0x1e) != 0) {
         uint8_t mode_flags = (input_key_is_down(0x20) != 0) ? 1 : 0;
         if (input_key_is_down(0x2e))
@@ -1269,100 +1155,98 @@ bool director_compute_camera_input(short *out_buf, int local_player_index)
         if (input_key_is_down(0x31))
           mode_flags |= 0x80;
 
-        camera_internal_integrate(player16, mode_flags,
-                                  (float)gamepad_state[2]);
+        FUN_00086670(player16, mode_flags, (float)debug_input[2]);
 
-        *(float *)(out_buf + 4) = (float)gamepad_state[0] * *(float *)0x2670a0;
-        *(float *)(out_buf + 6) = (float)gamepad_state[1] * *(float *)0x2670a0;
-        *(float *)(out_buf + 8) += *(float *)(base + 0xd8);
-        *(float *)(out_buf + 0x10) = (float)gamepad_state[2];
-        *(float *)(out_buf + 10) += *(float *)(base + 0xe4);
-        *(float *)(out_buf + 0xc) += *(float *)(base + 0xf0);
-        *(float *)(out_buf + 0xe) += *(float *)(base + 0xcc);
-        *((uint8_t *)out_buf + 2) = 1;
+        action->facing_delta.yaw =
+          (float)debug_input[0] * -0.0031415927f;
+        action->facing_delta.pitch =
+          (float)debug_input[1] * -0.0031415927f;
+        action->facing_delta.roll += director->debug_variables[1].delta;
+        action->wheel_delta = (float)debug_input[2];
+        action->translation.i += director->debug_variables[2].delta;
+        action->translation.j += director->debug_variables[3].delta;
+        action->translation.k += director->debug_variables[0].delta;
+        action->active = true;
 
-        ((void (*)(int))0x86220)(local_player_index);
-        ((void (*)(int))0x861d0)(local_player_index);
+        director_set_local_player_context((int16_t)local_player_index);
+        director_inhibit_facing((int16_t)local_player_index);
       }
       return back_pressed == 1;
     }
     return false;
   }
 
-  /* Has unit: pull look/strafe from the unit's control struct. */
   {
-    char *unit_data = (char *)input_get_gamepad_state(unit_handle);
-    bool valid_unit;
+    input_gamepad_state *gamepad =
+      (input_gamepad_state *)input_get_gamepad_state(gamepad_index);
+    bool pressed;
 
-    if (*(char *)0x335690 != 0) {
-      valid_unit = (*(char *)(unit_data + 0x14) == 1);
+    if (director_unknown_335690 != 0) {
+      pressed = (gamepad->analog_hold[4] == 1);
     } else {
-      uint8_t cb = *(uint8_t *)(unit_data + 0x14);
-      if (cb == 0) {
-        valid_unit = false;
-      } else if ((unsigned)cb % 0x1e != 0) {
-        valid_unit = false;
+      uint8_t held = gamepad->analog_hold[4];
+      if (held == 0) {
+        pressed = false;
+      } else if ((unsigned)held % 30 != 0) {
+        pressed = false;
       } else {
-        valid_unit = true;
+        pressed = true;
       }
     }
 
-    current_camera = *(void **)(base + 4);
-    if (current_camera == (void *)0x89270 || current_camera == (void *)0x89cd0)
-      return valid_unit;
+    if (director->camera_proc == FIRST_PERSON_CAMERA_UPDATE_ENTRY ||
+        director->camera_proc == FOLLOWING_CAMERA_UPDATE_ENTRY)
+      return pressed;
 
-    if (*(char *)(unit_data + 0x1f) == 1)
-      *(char *)(base + 0xbc) = (*(char *)(base + 0xbc) == 0);
+    if (gamepad->digital_hold[7] == 1)
+      director->debug_controls = (director->debug_controls == 0);
 
-    if (*(char *)(base + 0xbc) == 0)
-      return valid_unit;
+    if (director->debug_controls == 0)
+      return pressed;
 
     {
-      uint8_t mode_flags = (*(char *)(unit_data + 0x17) != 0) ? 0x10 : 0;
-      float trigger;
+      uint8_t mode_flags = (gamepad->analog_hold[7] != 0) ? 0x10 : 0;
+      float wheel;
 
-      if (*(char *)(unit_data + 0x16) != 0)
+      if (gamepad->analog_hold[6] != 0)
         mode_flags |= 0x20;
 
-      trigger = (float)((int)((unsigned)(1 < *(uint8_t *)(unit_data + 0x18)) -
-                              (unsigned)(1 < *(uint8_t *)(unit_data + 0x19)))) *
-                *(float *)0x253524;
+      wheel = (float)((int)((unsigned)(1 < gamepad->digital_hold[0]) -
+                            (unsigned)(1 < gamepad->digital_hold[1]))) *
+              0.4f;
 
-      *(float *)(out_buf + 0x10) = trigger;
-      camera_internal_integrate(player16, mode_flags, trigger);
+      action->wheel_delta = wheel;
+      FUN_00086670(player16, mode_flags, wheel);
 
-      *(float *)(out_buf + 4) = (float)(int)*(int16_t *)(unit_data + 0x24) *
-                                *(float *)0x3352a8 * *(float *)0x2670b0;
-      *(float *)(out_buf + 6) = (float)(int)*(int16_t *)(unit_data + 0x26) *
-                                *(float *)0x3352a8 * *(float *)0x2670ac;
-      *(float *)(out_buf + 10) = (float)(int)*(int16_t *)(unit_data + 0x22) *
-                                 *(float *)(base + 0xc0) * *(float *)0x3352a8 *
-                                 *(float *)0x2670a8;
-      *(float *)(out_buf + 0xc) = (float)(int)*(int16_t *)(unit_data + 0x20) *
-                                  *(float *)(base + 0xc0) * *(float *)0x3352a8 *
-                                  *(float *)0x2670a4;
+      action->facing_delta.yaw = (float)(int)gamepad->stick_rx *
+                                 director_globals.dtime *
+                                 director_stick_yaw_scale;
+      action->facing_delta.pitch = (float)(int)gamepad->stick_ry *
+                                   director_globals.dtime *
+                                   director_stick_pitch_scale;
+      action->translation.i = (float)(int)gamepad->stick_ly *
+                              director->debug_input_scale *
+                              director_globals.dtime *
+                              5e-05f;
+      action->translation.j = (float)(int)gamepad->stick_lx *
+                              director->debug_input_scale *
+                              director_globals.dtime *
+                              -5e-05f;
 
-      *(float *)(out_buf + 0xe) += *(float *)(base + 0xcc);
-      *((uint8_t *)out_buf + 2) = 1;
+      action->translation.k += director->debug_variables[0].delta;
+      action->active = true;
 
-      ((void (*)(int))0x86220)(local_player_index);
-      ((void (*)(int))0x861d0)(local_player_index);
+      director_set_local_player_context((int16_t)local_player_index);
+      director_inhibit_facing((int16_t)local_player_index);
     }
 
-    return valid_unit;
+    return pressed;
   }
 }
 
 /*
- * FUN_000874d0 — dispatch per-player camera update based on director mode.
- *
- * Reads the global director mode from 0x3352ac (short) and calls the
- * appropriate per-player camera function:
- *   mode 0, 1 → director_set_player_camera_normal(local_player_index,
- * reset_flag, mode_flags) mode 2    →
- * director_set_player_camera_scripted(local_player_index, reset_flag) mode 4 →
- * director_apply_replay_mode_for_player(reset_flag, local_player_index,
- * mode_flags) other     → no-op
+ * FUN_000874d0 — dispatch the per-player camera setup for the director game
+ * mode: 0/1 normal play, 2 editor camera, 4 replay, anything else a no-op.
  *
  * local_player_index@<ecx>, reset_flag@<eax>, mode_flags@<edx>.
  *
@@ -1370,7 +1254,7 @@ bool director_compute_camera_input(short *out_buf, int local_player_index)
  */
 void FUN_000874d0(int16_t local_player_index, char reset_flag, char mode_flags)
 {
-  switch (*(int16_t *)0x3352ac) {
+  switch (director_globals.game_mode) {
   case 0:
   case 1:
     director_set_player_camera_normal(local_player_index, reset_flag,
@@ -1398,10 +1282,12 @@ void director_initialize_for_new_map(void)
   char *p;
 
   /* director mode: 0 = normal gameplay, 2 = editor (scripted camera) */
-  *(int16_t *)0x3352ac = game_in_editor() ? 2 : 0;
-  *(uint8_t *)0x3352ae = 0;
+  director_globals.game_mode = game_in_editor() ? 2 : 0;
+  director_globals.initialize_camera = 0;
 
   /* p points into the per-player array at offset 0x48 from the struct base */
+  /* &director_globals.local_players[0].bored_time; the named spelling loses
+   * 3 bytes, so the address is kept. */
   p = (char *)0x3352fc;
   for (i = 0; i < 4; i++) {
     assert_halt_msg_at("local_player_index>=0 && "
@@ -1415,7 +1301,7 @@ void director_initialize_for_new_map(void)
     *(uint8_t *)(p + 4) = 0;
     *(uint32_t *)(p - 0x48) = 0; /* timer field at struct base */
 
-    switch (*(int16_t *)0x3352ac) {
+    switch (director_globals.game_mode) {
     case 0:
     case 1:
       camera_internal_set_mode_0_1(i, 1, 0);
@@ -1434,200 +1320,173 @@ void director_initialize_for_new_map(void)
   }
 }
 
-/* Update all active local players' cameras for this tick.
- * Stores delta_time, polls input via 0x87110, dispatches per-mode camera
- * update, runs the active camera function, then commits the result to the
- * observer.
+/* Update all active local players' cameras for this tick: build the camera
+ * action, run the mode dispatch, call the active camera proc into a fresh
+ * command, then hand the command to the observer.
  *
- * The active camera function is where the transition-camera path starts, but
- * not where it finishes: the camera output block copied to ps+0x54 is later
- * consumed by observer-side code which seeds and integrates several per-axis
- * blend timers. That observer stage is what makes the vehicle-exit return to
- * first person feel smooth in the original binary. */
+ * While camera_change_pause runs the command's timer is raised to it; with
+ * the first-person camera and less than 0.2s left the pause ends at once and
+ * two of the command's per-axis transition slots are reset. */
 void director_update(float delta_time)
 {
   int i;
   uint8_t mode_flags;
-  uint8_t local_98[36]; /* camera input buffer (written by 0x87110) */
-  uint8_t local_74[0x68]; /* camera output buffer (written by camera_fn) */
-  char *ps; /* per-player struct base (0xf8-byte stride) */
+  camera_action_t action;
+  camera_command_t command;
+  camera_director_t *director;
 
-  *(float *)0x3352a8 = delta_time;
+  director_globals.dtime = delta_time;
   i = 0;
-  ps = (char *)0x3352b4;
+  director = director_globals.local_players;
 
   do {
-    if (local_player_get_player_index((int16_t)i) != -1) {
+    if (local_player_get_player_index((int16_t)i) != NONE) {
       assert_halt_msg_at("local_player_index>=0 && "
                          "local_player_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS",
                          "c:\\halo\\SOURCE\\camera\\director.c", 0xb3,
                          (int16_t)i >= 0 &&
                            (int16_t)i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
-      ps[0x4d] = 0;
-      ps[0x4e] = 0;
+      director->inhibited_facing = false;
+      director->inhibited_input = false;
 
-      mode_flags = camera_internal_poll_input(local_98, i);
+      mode_flags =
+        (uint8_t)director_compute_camera_input((short *)&action, i);
 
       {
-        uint8_t rst = *(uint8_t *)0x3352ae;
-        switch (*(int16_t *)0x3352ac) {
+        uint8_t initialize = director_globals.initialize_camera;
+        switch (director_globals.game_mode) {
         case 0:
         case 1:
-          camera_internal_set_mode_0_1((int16_t)i, rst, mode_flags);
+          director_set_player_camera_normal((int16_t)i, initialize,
+                                            mode_flags);
           break;
         case 2:
-          camera_internal_set_mode_2((int16_t)i, rst, mode_flags);
+          director_set_player_camera_scripted((int16_t)i, initialize);
           break;
         case 4:
-          camera_internal_set_mode_4(rst, (int16_t)i, mode_flags);
+          director_apply_replay_mode_for_player(initialize, (int16_t)i,
+                                                mode_flags);
           break;
         }
       }
 
-      /* clear first-update flag after camera mode dispatch */
-      *(uint8_t *)0x3352ae = 0;
+      director_globals.initialize_camera = false;
 
-      csmemset(local_74, 0, 0x68);
+      csmemset(&command, 0, sizeof(camera_command_t));
 
-      /* call the per-player camera update function if set */
       {
-        void (*camera_fn)(void *, void *, void *) =
-          *(void (**)(void *, void *, void *))(ps + 4);
-        if (camera_fn != NULL) {
-          /* the debug camera (0x853c0) only runs for the active gamepad player
-           */
-          if ((void *)camera_fn != (void *)0x853c0 ||
+        director_camera_proc camera_proc =
+          (director_camera_proc)director->camera_proc;
+        if (camera_proc != NULL) {
+          /* The scripted camera only runs for the next active local player. */
+          if (director->camera_proc != SCRIPTED_CAMERA_UPDATE_ENTRY ||
               (int16_t)i == local_player_get_next(-1)) {
-            camera_fn(ps + 8, local_98, local_74);
+            camera_proc(director->camera_data, &action, &command);
           }
         }
       }
 
-      if (!(local_74[0] & 1)) {
-        /* camera produced no valid output — clear the valid bit */
-        *(uint32_t *)(ps + 0x54) &= ~1U;
+      if (!(command.flags & FLAG(_observer_command_valid_bit))) {
+        director->command.flags &= ~FLAG(_observer_command_valid_bit);
       } else {
-        float *timer = (float *)ps; /* timer at struct offset 0 */
-        if (*timer != 0.0f) {
-          if (*(float *)0x2549d4 <= *timer ||
-              *(void **)(ps + 4) != (void *)0x89270) {
-            /* track max timer in local_74[0x48] — this lives inside the
-             * camera output buffer so it's passed to the observer via
-             * the qmemcpy into ps+0x54. The observer uses it to drive
-             * the smooth camera blend. */
-            if (*(float *)(local_74 + 0x48) <= *timer)
-              *(float *)(local_74 + 0x48) = *timer;
+        if (director->camera_change_pause != 0.0f) {
+          if (0.2f <=
+                director->camera_change_pause ||
+              director->camera_proc != FIRST_PERSON_CAMERA_UPDATE_ENTRY) {
+            if (command.timer <= director->camera_change_pause)
+              command.timer = director->camera_change_pause;
           } else {
-            /* reset camera when timer underflows threshold with fp camera.
-             * The writes below seed transition flags and timers in the camera
-             * output buffer (local_74) at offsets 0x4c/0x4e (flag bytes = 3)
-             * and 0x54/0x5c (timer floats = 0). The observer consumes these
-             * to drive the smooth third-person-to-first-person blend. */
-            *timer = 0.0f;
-            *(uint32_t *)(local_74 + 0x54) = 0;
-            *(uint8_t *)(local_74 + 0x4c) = 3;
-            *(uint32_t *)(local_74 + 0x5c) = 0;
-            *(uint8_t *)(local_74 + 0x4e) = 3;
+            director->camera_change_pause = 0.0f;
+            command.field_54[0] = 0.0f;
+            command.field_4c[0] = 3;
+            command.field_54[2] = 0.0f;
+            command.field_4c[2] = 3;
           }
-          /* count down timer, clamped to zero */
           {
-            float next = *timer - delta_time;
-            *timer = next < 0.0f ? 0.0f : next;
+            float next = director->camera_change_pause - delta_time;
+            director->camera_change_pause = next < 0.0f ? 0.0f : next;
           }
         }
-        /* copy 0x68 bytes of camera output into the per-player camera slot */
-        qmemcpy(ps + 0x54, local_74, 0x68);
+        qmemcpy(&director->command, &command, sizeof(camera_command_t));
       }
 
-      /* commit camera data to the observer subsystem */
-      observer_set_camera((int16_t)i, ps + 0x54);
+      observer_set_camera((int16_t)i, &director->command);
     }
 
     i++;
-    ps += 0xf8;
-  } while ((int16_t)i < 4);
+    director++;
+  } while ((int16_t)i < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 }
 
 /* director_initialize_for_saved_game (0x877e0) — after-load callback in the
  * game_state_revert table at 0x32eaa8.
  *
  * Re-runs the per-map director reset, then re-applies the saved scripted-
- * camera byte (director scripting state, *(char **)0x5ab200) to every local
- * player through director_script_camera. The byte is zero-extended
+ * camera byte (director_camera_scripted) to every local player through
+ * director_script_camera. The byte is zero-extended
  * (XOR ECX,ECX; MOV CL,[EAX]) before the single cdecl PUSH. */
 void director_initialize_for_saved_game(void)
 {
   director_initialize_for_new_map();
-  director_script_camera(**(unsigned char **)0x5ab200);
+  director_script_camera(director_camera_scripted->camera_scripted);
 }
 
-/* editor_camera_initialize (0x87800) — initialize the scripted/editor camera
- * for one local player.
+/* editor_camera_initialize (0x87800) — initialize the editor camera for one
+ * local player.
  *
- * On the first call after a map load (byte flag at 0x33569a still 0) the
- * editor-camera defaults are pulled out of the scenario tag: the tag_block at
- * scenario+0x354 (element size 0x34) supplies four dwords copied to the
- * globals at 0x33569c (position xyz at +0x0/+0x4/+0x8, angles at +0xc). If
- * either the block count (scenario+0x354) or its address (scenario+0x358) is
- * zero, the 0x14-byte global block at 0x33569c is zeroed instead.
- *
- * Afterwards the cached angles at 0x3356a8 are converted to a forward vector
- * and handed, together with the position globals, to the camera-data setup
- * helper at 0x89350. For local player 0 the camera-data pointer is latched in
- * the global at 0x3356b0, and when the mode word at 0x3356c4 is non-zero the
- * matching entry of the 8-byte-stride dispatch table at 0x2ee680 is called
- * with the camera-data pointer. */
+ * On the first call after a map load the focus is seeded from the first
+ * element of the scenario block at +0x354 (zeroed when the block is empty);
+ * the scenario is re-fetched for every access, as in the original.  The
+ * camera data then gets the focus position and the forward vector of the
+ * focus angles.  Local player 0's camera data becomes the live editor
+ * camera, and the current mode's _translate_to callback runs on it. */
 void editor_camera_initialize(void *camera_data, int16_t local_player_index)
 {
-  void *scenario;
   uint32_t *element;
-  float forward[3];
+  real_vector3d forward;
 
-  if (*(char *)0x33569a == 0) {
-    scenario = global_scenario_get();
-    if (*(int *)((char *)scenario + 0x354) == 0 ||
-        (scenario = global_scenario_get(),
-         *(int *)((char *)scenario + 0x358) == 0)) {
-      csmemset((void *)0x33569c, 0, 0x14);
+  if (!editor_camera_globals.initialized) {
+    if (scenario_block_354(global_scenario_get())->count == 0 ||
+        scenario_block_354(global_scenario_get())->address == NULL) {
+      csmemset(&editor_camera_globals.focus_position, 0,
+               sizeof(real_point3d) + sizeof(real_euler_angles2d));
     } else {
-      scenario = global_scenario_get();
       element = (uint32_t *)tag_block_get_element(
-        (void *)((char *)scenario + 0x354), 0, 0x34);
-      *(uint32_t *)0x33569c = element[0];
-      *(uint32_t *)0x3356a0 = element[1];
-      *(uint32_t *)0x3356a4 = element[2];
-      *(uint32_t *)0x3356a8 = element[3];
+        scenario_block_354(global_scenario_get()), 0,
+        SCENARIO_BLOCK_354_ELEMENT_SIZE);
+      editor_camera_globals.focus_position = *(real_point3d *)element;
+      *(uint32_t *)&editor_camera_globals.focus_angles.yaw = element[3];
     }
   }
-  *(char *)0x33569a = 1;
+  editor_camera_globals.initialized = true;
 
-  angles_to_vector(forward, (float *)0x3356a8);
+  angles_to_vector((float *)&forward,
+                   (float *)&editor_camera_globals.focus_angles);
 
-  /* 0x89350: cdecl(camera_data, position globals, forward vector) — three
-   * pushes before the call, with the shared ADD ESP,0x14 also retiring
-   * angles_to_vector's two arguments. */
-  FUN_00089350(camera_data, (float *)0x33569c, forward);
+  /* 0x89350: cdecl(camera_data, position, forward) — the shared
+   * ADD ESP,0x14 also retires angles_to_vector's two arguments. */
+  FUN_00089350(camera_data, (float *)&editor_camera_globals.focus_position,
+               (float *)&forward);
 
   if (local_player_index == 0) {
-    *(void **)0x3356b0 = camera_data;
+    editor_camera_globals.camera = (flying_camera_t *)camera_data;
   }
 
-  if (*(int16_t *)0x3356c4 != 0) {
-    (*(void (**)(void *))(0x2ee680 + (int)*(int16_t *)0x3356c4 * 8))(
-      camera_data);
+  if (editor_camera_globals.mode != 0) {
+    translate_funcs[editor_camera_globals.mode][_translate_to](
+      (flying_camera_t *)camera_data);
   }
 }
 
 /* editor_camera_get_focus (0x878d0) — read back the cached editor/flying
- * camera focus: the position xyz dwords at 0x33569c/0x3356a0/0x3356a4 and the
- * two angle dwords at 0x3356a8/0x3356ac.
+ * camera focus position and angles.
  *
  * Both out-pointers are asserted non-NULL first; the assert strings and line
  * numbers (0x78, 0x79) come from editor_flying_camera.c, so they are spelled
  * explicitly rather than via assert_halt (which would stamp director.c).
- * The reference copies all five fields as plain dword MOVs, so the copy is
- * written on uint32_t lvalues rather than float ones. */
+ * The reference copies all five dwords with plain MOVs, which the struct
+ * assignments produce; the uint32_t pointers are the kb.json prototype. */
 void editor_camera_get_focus(uint32_t *position, uint32_t *angles)
 {
   if (position == 0) {
@@ -1642,22 +1501,18 @@ void editor_camera_get_focus(uint32_t *position, uint32_t *angles)
     system_exit(-1);
   }
 
-  position[0] = *(uint32_t *)0x33569c;
-  position[1] = *(uint32_t *)0x3356a0;
-  position[2] = *(uint32_t *)0x3356a4;
-  angles[0] = *(uint32_t *)0x3356a8;
-  angles[1] = *(uint32_t *)0x3356ac;
+  *(real_point3d *)position = editor_camera_globals.focus_position;
+  *(real_euler_angles2d *)angles = editor_camera_globals.focus_angles;
 }
 
-/* editor_camera_set_focus (0x87950) — store the editor/flying camera focus:
- * the position xyz dwords into 0x33569c/0x3356a0/0x3356a4 and the two angle
- * dwords into 0x3356a8/0x3356ac.  Mirror of editor_camera_get_focus.
+/* editor_camera_set_focus (0x87950) — store the editor/flying camera focus
+ * position and angles.  Mirror of editor_camera_get_focus.
  *
  * Both in-pointers are asserted non-NULL first; the assert strings and line
  * numbers (0x81, 0x82) come from editor_flying_camera.c, so they are spelled
  * explicitly rather than via assert_halt (which would stamp director.c).
- * The reference copies all five fields as plain dword MOVs, so the copy is
- * written on uint32_t lvalues rather than float ones. */
+ * The reference copies all five dwords with plain MOVs, which the struct
+ * assignments produce; the uint32_t pointers are the kb.json prototype. */
 void editor_camera_set_focus(const uint32_t *position, const uint32_t *angles)
 {
   if (position == 0) {
@@ -1672,11 +1527,8 @@ void editor_camera_set_focus(const uint32_t *position, const uint32_t *angles)
     system_exit(-1);
   }
 
-  *(uint32_t *)0x33569c = position[0];
-  *(uint32_t *)0x3356a0 = position[1];
-  *(uint32_t *)0x3356a4 = position[2];
-  *(uint32_t *)0x3356a8 = angles[0];
-  *(uint32_t *)0x3356ac = angles[1];
+  editor_camera_globals.focus_position = *(const real_point3d *)position;
+  editor_camera_globals.focus_angles = *(const real_euler_angles2d *)angles;
 }
 
 /* editor_camera_set_position (0x879d0) — push a new focus into the editor/
@@ -1723,29 +1575,21 @@ void editor_camera_set_position(const uint32_t *point, const uint32_t *angles)
   camera->facing = *(const real_euler_angles2d *)angles;
 }
 
-/* FUN_00087ac0 (0x87ac0) — set the editor/flying-camera enable byte at
- * 0x335699 and return its previous value.
- *
- * The reference loads the old byte into AL (MOV AL,[0x335699]) before storing
- * the incoming stack byte, and nothing on either path clobbers AL before the
- * RET, so the old value is the return value.  The name and the meaning of the
- * byte are unproven — there is no string or assert evidence in this function —
- * so the raw FUN_ name and a mechanical parameter name are kept.
- *
- * When the new value is zero and the live camera-data pointer at 0x3356b0 is
- * non-NULL, the dword at camera_data+0x14 is cleared. */
+/* FUN_00087ac0 (0x87ac0) — set editor_camera_globals.use_roll and return its
+ * previous value (left in AL by the original).  Turning it off levels the
+ * live editor camera's roll. */
 char FUN_00087ac0(char enabled)
 {
   char previous;
-  uint32_t *camera_data;
+  flying_camera_t *camera;
 
-  previous = *(char *)0x335699;
-  *(char *)0x335699 = enabled;
+  previous = editor_camera_globals.use_roll;
+  editor_camera_globals.use_roll = enabled;
 
   if (enabled == 0) {
-    camera_data = *(uint32_t **)0x3356b0;
-    if (camera_data != 0) {
-      camera_data[5] = 0;
+    camera = editor_camera_globals.camera;
+    if (camera != NULL) {
+      camera->roll = 0.0f;
     }
   }
 
@@ -1791,73 +1635,43 @@ void editor_camera_set_mode(int16_t mode)
 }
 
 
-/* 28-byte camera state block exchanged by FUN_00087c00 (0x87c00).  The
- * reference only ever moves it as seven dwords (MOV ECX,0x7 / REP MOVSD) or
- * touches individual dwords, so every member is typed uint32_t; +0xc is the
- * angle pair written by vector_to_angles, and +0x14/+0x18 are only ever
- * copied wholesale, never read or written individually. */
-typedef struct camera_capture_state {
-  uint32_t field_00;
-  uint32_t field_04;
-  uint32_t field_08;
-  uint32_t field_0c;
-  uint32_t field_10;
-  uint32_t field_14;
-  uint32_t field_18;
-} camera_capture_state;
-
-/* FUN_00087c00 (0x87c00) — record the caller's camera state into the capture
- * globals and hand back either the parked override or a default view.
+/* FUN_00087c00 (0x87c00) — translate_funcs[1][_translate_to]: entering
+ * editor camera mode 1, park the caller's flying camera in
+ * persisted_cameras[0] and either restore persisted_cameras[1] (when it was
+ * saved by FUN_00088200) or reset the camera to a default view.
  *
- * The caller's 28-byte block (stack parameter at [EBP+8], held in EAX) is
- * first copied into the globals at 0x3356d0 with MOV ECX,0x7 / REP MOVSD, so
- * it is written here as a whole-struct assignment rather than field stores.
+ * Both whole-camera copies are MOV ECX,0x7 / REP MOVSD struct assignments.
+ * On the default path the position y constant is loaded into ECX at 0x87c32
+ * before any of the three stores, and the facing is recomputed from the
+ * source forward vector; roll and field of view keep the caller's values.
  *
- * If the override byte at 0x33570c is non-zero, the seven dwords parked at
- * 0x3356f0 are copied back over the caller's block (second REP MOVSD) and the
- * function returns.  Otherwise the first three dwords are reset to
- * 0 / [0x2670d8] / 0 — the reference loads [0x2670d8] into ECX at 0x87c32,
- * before any of the three stores — and the angle pair at +0xc is recomputed by
- * vector_to_angles from the vector at *(0x2ee670) + 0x1c.  Dwords +0x14 and
- * +0x18 keep whatever the caller passed in on that path.
- *
- * Call site 0x87c56 is cdecl with ADD ESP,0x8: PUSH EDX (= *(0x2ee670) + 0x1c)
- * is the last argument (in_vector), PUSH EAX (= block + 0xc) the first
- * (out_angles).
- *
- * The parameter is declared void * so the kb.json declaration needs no
- * file-local type; the original reads it only as this seven-dword block. */
+ * The parameter is declared void * to match the kb.json declaration. */
 void FUN_00087c00(void *state)
 {
-  camera_capture_state *block = (camera_capture_state *)state;
+  flying_camera_t *camera = (flying_camera_t *)state;
 
-  *(camera_capture_state *)0x3356d0 = *block;
+  editor_camera_globals.persisted_cameras[0].camera = *camera;
 
-  if (*(char *)0x33570c != 0) {
-    *block = *(camera_capture_state *)0x3356f0;
+  if (editor_camera_globals.persisted_cameras[1].saved) {
+    *camera = editor_camera_globals.persisted_cameras[1].camera;
     return;
   }
 
-  block->field_00 = 0;
-  block->field_04 = *(uint32_t *)0x2670d8;
-  block->field_08 = 0;
-  vector_to_angles((float *)&block->field_0c,
-                   (float *)(*(char **)0x2ee670 + 0x1c));
+  camera->position.x = 0.0f;
+  camera->position.y = editor_camera_default_position_y;
+  camera->position.z = 0.0f;
+  vector_to_angles((float *)&camera->facing,
+                   (float *)&editor_camera_source->forward);
 }
 
-/* editor_camera_move_to_point (0x87c80) — place the editor/flying camera so
- * that it sits back from `point` along its current facing.
- *
- * The facing vector comes from angles_to_vector on the angle pair at
- * camera_data + 0xc (cdecl, ADD ESP,0x8: PUSH EAX = [0x3356b0] + 0xc is the
- * last argument, PUSH ECX = the local vector at EBP-0xc the first).  The
- * camera-data pointer at 0x3356b0 is re-loaded after the call (MOV EAX at
- * 0x87cc9).  Each position component is point[i] - forward[i] * [0x254e04]
- * (FMUL then FSUBR [ESI+i*4], so the point is the minuend). */
+/* editor_camera_move_to_point (0x87c80) — place the editor camera 2.5 units
+ * back from `point` along its current facing.  The live camera pointer is
+ * re-loaded after angles_to_vector, and each component is
+ * point - forward * 2.5 (FMUL then FSUBR, the point is the minuend). */
 void editor_camera_move_to_point(const float *point)
 {
-  float forward[3];
-  float *camera_data;
+  real_vector3d forward;
+  flying_camera_t *camera;
 
   if (point == 0) {
     display_assert("point", "c:\\halo\\SOURCE\\camera\\editor_flying_camera.c",
@@ -1865,18 +1679,18 @@ void editor_camera_move_to_point(const float *point)
     system_exit(-1);
   }
 
-  angles_to_vector(forward, (float *)(*(char **)0x3356b0 + 0xc));
-  camera_data = *(float **)0x3356b0;
-  camera_data[0] = point[0] - forward[0] * *(float *)0x254e04;
-  camera_data[1] = point[1] - forward[1] * *(float *)0x254e04;
-  camera_data[2] = point[2] - forward[2] * *(float *)0x254e04;
+  angles_to_vector((float *)&forward,
+                   (float *)&editor_camera_globals.camera->facing);
+  camera = editor_camera_globals.camera;
+  camera->position.x = point[0] - forward.i * 2.5f;
+  camera->position.y = point[1] - forward.j * 2.5f;
+  camera->position.z = point[2] - forward.k * 2.5f;
 }
 
 /* editor_camera_set_position_and_roll (0x87d00) — like
  * editor_camera_set_position, but angles is {yaw, pitch, roll}: the facing is
  * re-derived from the yaw/pitch/roll matrix and the roll is recomputed from
- * the matrix up vector.  The dword at 0x2ee66c is the editor camera target
- * handle stored by FUN_00087eb0. */
+ * the matrix up vector. */
 void editor_camera_set_position_and_roll(const uint32_t *point,
                                          const float *angles)
 {
@@ -1917,41 +1731,41 @@ void editor_camera_set_position_and_roll(const uint32_t *point,
   dot = cross.k * forward.k + cross.j * forward.j + cross.i * forward.i;
   editor_camera_globals.camera->roll =
     FUN_0010c510((float *)&pitched, (float *)&matrix.up) * dot;
-  if (*(int32_t *)0x2ee66c != NONE) {
+  if (editor_camera_relative_object_index != NONE) {
     editor_camera_globals.unit_offset = *(const real_vector3d *)point;
   }
   editor_camera_globals.reset_all = 1;
 }
 
-/* FUN_00087eb0 (0x87eb0) — record the editor camera target handle and derive
- * the camera offset vector at 0x3356b8.
+/* FUN_00087eb0 (0x87eb0) — record the editor camera relative object and
+ * derive editor_camera_globals.unit_offset.
  *
- * param_1 is stored to [0x2ee66c] unconditionally (MOV [0x2ee66c],EAX at
- * 0x87ebf).  With a live camera-data pointer at 0x3356b0 and a handle other
- * than -1, the offset is camera_data[i] - object[0x50 + i*4] (FLD [ESI],
- * FSUB [EAX+0x50]: camera position is the minuend).  For a -1 handle the
- * three dwords at the pointer held in [0x31fc38] are copied (MOV dword). */
+ * param_1 is stored unconditionally (MOV [0x2ee66c],EAX at 0x87ebf).  With a
+ * live editor camera and a handle other than -1, the offset is the camera
+ * position minus the object's bounding_sphere_center (FLD [ESI],
+ * FSUB [EAX+0x50]).  For a -1 handle the zero vector is copied as three
+ * dwords.  A typed object pointer loses 7 bytes, so the +0x50 stays. */
 void FUN_00087eb0(void *param_1)
 {
   float *camera_data;
   float *object_position;
   uint32_t *source;
 
-  camera_data = *(float **)0x3356b0;
-  *(void **)0x2ee66c = param_1;
+  camera_data = (float *)editor_camera_globals.camera;
+  editor_camera_relative_object_index = (int32_t)param_1;
   if (camera_data != 0) {
     if ((int)param_1 != -1) {
       object_position =
         (float *)((char *)object_get_and_verify_type((int)param_1, -1) + 0x50);
-      *(float *)0x3356b8 = camera_data[0] - object_position[0];
-      *(float *)0x3356bc = camera_data[1] - object_position[1];
-      *(float *)0x3356c0 = camera_data[2] - object_position[2];
+      editor_camera_globals.unit_offset.i = camera_data[0] - object_position[0];
+      editor_camera_globals.unit_offset.j = camera_data[1] - object_position[1];
+      editor_camera_globals.unit_offset.k = camera_data[2] - object_position[2];
       return;
     }
-    source = *(uint32_t **)0x31fc38;
-    *(uint32_t *)0x3356b8 = source[0];
-    *(uint32_t *)0x3356bc = source[1];
-    *(uint32_t *)0x3356c0 = source[2];
+    source = (uint32_t *)global_zero_vector_ptr;
+    ((uint32_t *)&editor_camera_globals.unit_offset)[0] = source[0];
+    ((uint32_t *)&editor_camera_globals.unit_offset)[1] = source[1];
+    ((uint32_t *)&editor_camera_globals.unit_offset)[2] = source[2];
   }
 }
 
@@ -1961,8 +1775,7 @@ void FUN_00087eb0(void *param_1)
  * Ghidra types this void(void) and reports the three stack parameters as
  * in_stack_00000004/8/c; the disassembly reads [EBP+8], [EBP+0xc] (EDI) and
  * [EBP+0x10] (ESI), so the function really takes three cdecl parameters and
- * forwards all three to the dispatch entry at 0x87024.  param_2/param_3 keep
- * the types FUN_000853c0 already declares for the same two pointers.
+ * forwards all three to the current mode's update_funcs entry.
  *
  * update_funcs is the 4-byte-stride table at 0x2ee674; translate_funcs is the
  * 8-byte-stride record pair at 0x2ee67c (_translate_from) / 0x2ee680
@@ -1975,53 +1788,57 @@ void FUN_00087eb0(void *param_1)
  * at 0x87fa1), so the reload is kept.  FUN_00087eb0 takes one argument: the
  * PUSH EDX at 0x87fba is covered by the single ADD ESP,0xc at 0x87fc6 that
  * also cleans the two vector_to_angles pushes. */
-void editor_camera_update(int param_1, unsigned short *param_2,
-                          unsigned int *param_3)
+void editor_camera_update(int camera_data, unsigned short *controls,
+                          unsigned int *result)
 {
-  uint32_t *camera_data;
-  char *globals;
+  camera_action_t *action;
+  camera_command_t *command;
+  flying_camera_t *camera;
+  editor_camera_source_t *source;
 
-  if (*(void **)(0x2ee674 + (int)*(int16_t *)0x3356c4 * 4) == 0) {
+  action = (camera_action_t *)controls;
+  command = (camera_command_t *)result;
+
+  if (update_funcs[editor_camera_globals.mode] == NULL) {
     display_assert("update_funcs[camera_mode]",
                    "c:\\halo\\SOURCE\\camera\\editor_flying_camera.c", 0x154,
                    1);
     system_exit(-1);
   }
 
-  if (*(char *)0x335698 != 0) {
-    if (*((char *)param_2 + 2) == 0) {
-      scripted_camera_update(0, (camera_control_t *)param_2,
-                             (camera_command_t *)param_3);
+  if (editor_camera_globals.scripted) {
+    if (!action->active) {
+      scripted_camera_update(0, (camera_control_t *)action, command);
       return;
     }
 
-    camera_data = *(uint32_t **)0x3356b0;
-    globals = *(char **)0x2ee670;
-    *(real_point3d *)camera_data = *(real_point3d *)(globals + 0x10);
+    camera = editor_camera_globals.camera;
+    source = editor_camera_source;
+    camera->position = source->position;
+    vector_to_angles((float *)&camera->facing,
+                     (float *)&editor_camera_source->forward);
+    FUN_00087eb0((void *)editor_camera_relative_object_index);
 
-
-    vector_to_angles((float *)(camera_data + 3),
-                     (float *)(*(char **)0x2ee670 + 0x1c));
-    FUN_00087eb0(*(void **)0x2ee66c);
-
-    if (*(int16_t *)0x3356c4 != 0) {
-      if (*(void **)(0x2ee67c + (int)*(int16_t *)0x3356c4 * 8) == 0) {
+    if (editor_camera_globals.mode != 0) {
+      if (translate_funcs[editor_camera_globals.mode][_translate_from] ==
+          NULL) {
         display_assert("translate_funcs[camera_mode][_translate_from]",
                        "c:\\halo\\SOURCE\\camera\\editor_flying_camera.c",
                        0x164, 1);
         system_exit(-1);
       }
-      (*(void (**)(void *))(0x2ee680 + (int)*(int16_t *)0x3356c4 * 8))(
-        *(void **)0x3356b0);
+      translate_funcs[editor_camera_globals.mode][_translate_to](
+        editor_camera_globals.camera);
     }
   }
 
-  (*(void (**)(int, unsigned short *, unsigned int *))(
-    0x2ee674 + (int)*(int16_t *)0x3356c4 * 4))(param_1, param_2, param_3);
+  update_funcs[editor_camera_globals.mode]((void *)camera_data, action,
+                                           command);
 
-  if (*(char *)0x335698 != 0) {
-    param_3[0x12] = 0;
-    param_3[0] |= 9;
+  if (editor_camera_globals.scripted) {
+    command->timer = 0.0f;
+    command->flags |= FLAG(_observer_command_valid_bit) |
+                      FLAG(_observer_command_force_time_bit);
   }
 }
 
@@ -2066,220 +1883,172 @@ void editor_camera_update(int param_1, unsigned short *param_2,
  * 0x881e9, so the save-then-overwrite order is preserved. */
 void editor_camera_set_scripted(unsigned char enable)
 {
-  float local_angles[2];
-  char *globals;
-
-  uint32_t *camera_data;
+  real_euler_angles2d facing;
+  editor_camera_source_t *source;
+  flying_camera_t *camera;
   const char *message;
   char previous;
   int16_t mode;
-  int target;
+  int32_t relative_object_index;
 
   if (enable != 0) {
-    /* MOV AX,[0x3356c4] at 0x88062 is the only load; both MOVSX at 0x8806d
+    /* MOV AX,[mode] at 0x88062 is the only load; both MOVSX at 0x8806d
      * and 0x880a1 re-use AX, so the mode word is read once. */
-    mode = *(int16_t *)0x3356c4;
+    mode = editor_camera_globals.mode;
     if (mode != 0) {
-      if (*(void **)(0x2ee67c + (int)mode * 8) == 0) {
+      if (translate_funcs[mode][_translate_from] == NULL) {
         display_assert("translate_funcs[camera_mode][_translate_from]",
                        "c:\\halo\\SOURCE\\camera\\editor_flying_camera.c",
                        0x183, 1);
         system_exit(-1);
       }
-      (*(void (**)(void *))(0x2ee67c + (int)mode * 8))(*(void **)0x3356b0);
+      translate_funcs[mode][_translate_from](editor_camera_globals.camera);
     }
 
-    vector_to_angles(local_angles, (float *)(*(char **)0x2ee670 + 0x1c));
-    globals = *(char **)0x2ee670;
-    editor_camera_set_position((const uint32_t *)(globals + 0x10),
-                               (const uint32_t *)local_angles);
+    vector_to_angles((float *)&facing,
+                     (float *)&editor_camera_source->forward);
+    source = editor_camera_source;
+    editor_camera_set_position((const uint32_t *)&source->position,
+                               (const uint32_t *)&facing);
 
-    /* JZ 0x8810e at 0x880e5: the fall-through (target != -1) is the
-     * 0x3356b8 path, so the != test comes first. */
-    target = *(int *)0x2ee66c;
-    if (target != -1) {
-      globals = *(char **)0x2ee670;
+    /* JZ 0x8810e at 0x880e5: the fall-through (relative object present) is
+     * the unit_offset path, so the != test comes first. */
+    relative_object_index = editor_camera_relative_object_index;
+    if (relative_object_index != NONE) {
+      source = editor_camera_source;
       scripted_camera_set_camera_point_relative(
-        (float *)0x3356b8, (float *)(globals + 0x1c), (float *)(globals + 0x28),
-        1.2217305f, 0, target);
+        (float *)&editor_camera_globals.unit_offset, (float *)&source->forward,
+        (float *)&source->up, 1.2217305f, 0, relative_object_index);
     } else {
-      globals = *(char **)0x2ee670;
+      source = editor_camera_source;
       scripted_camera_set_camera_point_relative(
-        (float *)(globals + 0x10), (float *)(globals + 0x1c),
-        (float *)(globals + 0x28), 1.2217305f, 0, -1);
+        (float *)&source->position, (float *)&source->forward,
+        (float *)&source->up, 1.2217305f, 0, NONE);
     }
   } else {
-    /* ADD EAX,0x10 / MOV ECX,EAX at 0x8813a: globals + 0x10 is held in one
-     * register and the three dwords are read through it. */
-    camera_data = *(uint32_t **)0x3356b0;
-    *(real_point3d *)camera_data = *(real_point3d *)(*(char **)0x2ee670 + 0x10);
+    /* ADD EAX,0x10 / MOV ECX,EAX at 0x8813a: source->position is held in
+     * one register and the three dwords are read through it. */
+    camera = editor_camera_globals.camera;
+    camera->position = editor_camera_source->position;
 
+    vector_to_angles((float *)&camera->facing,
+                     (float *)&editor_camera_source->forward);
+    FUN_00087eb0((void *)editor_camera_relative_object_index);
 
-    vector_to_angles((float *)(camera_data + 3),
-                     (float *)(*(char **)0x2ee670 + 0x1c));
-    FUN_00087eb0(*(void **)0x2ee66c);
-
-    mode = *(int16_t *)0x3356c4;
+    mode = editor_camera_globals.mode;
     if (mode != 0) {
-      if (*(void **)(0x2ee67c + (int)mode * 8) == 0) {
+      if (translate_funcs[mode][_translate_from] == NULL) {
         display_assert("translate_funcs[camera_mode][_translate_from]",
                        "c:\\halo\\SOURCE\\camera\\editor_flying_camera.c",
                        0x19e, 1);
         system_exit(-1);
       }
-      (*(void (**)(void *))(0x2ee680 + (int)mode * 8))(*(void **)0x3356b0);
+      translate_funcs[mode][_translate_to](editor_camera_globals.camera);
     }
   }
 
-  /* The reference loads CL from 0x335698 and the message pointer before it
-   * writes 0x3356ca / 0x335698 (stores at 0x881e3 / 0x881e9 sit after the
-   * three console_printf pushes). */
-  previous = *(char *)0x335698;
-  message = *(const char **)(0x2ee694 + (unsigned int)enable * 4);
-  *(char *)0x3356ca = previous;
-  *(char *)0x335698 = (char)enable;
+  /* The original loads the old flag and the message pointer before it
+   * writes last_scripted / scripted (stores at 0x881e3 / 0x881e9 sit after
+   * the three console_printf pushes). */
+  previous = editor_camera_globals.scripted;
+  message = editor_camera_scripted_messages[enable];
+  editor_camera_globals.last_scripted = previous;
+  editor_camera_globals.scripted = (char)enable;
   console_printf(0, "%s scripted camera mode", message);
 }
 
-/* FUN_00088200 (0x88200) — park the caller's camera block as the override
- * state, then refill the caller's block from the live camera globals.
+/* FUN_00088200 (0x88200) — translate_funcs[1][_translate_from]: leaving
+ * editor camera mode 1, save the caller's flying camera in
+ * persisted_cameras[1] (marking it saved), then move the camera to the
+ * source position and forward vector.
  *
- * Ghidra types this void(void) and reports the stack parameter as
- * in_stack_00000004; the disassembly reads it at [EBP+8] into EAX, so it is a
- * single cdecl pointer parameter.
- *
- * The 28-byte block is copied into the override globals at 0x3356f0 with
- * MOV ECX,0x7 / REP MOVSD (whole-struct assignment here, same shape as
- * FUN_00087c00), and the override flag byte at 0x33570c is then set to 1.
- *
- * The block is refilled from *(0x2ee670): dwords +0x10/+0x14/+0x18 go to
- * block[0..2] (the reference holds globals+0x10 in ECX across all three
- * loads), and the angle pair at +0xc is recomputed by vector_to_angles from
- * the vector at *(0x2ee670) + 0x1c.  [0x2ee670] is re-loaded for that vector
- * (MOV EDX at 0x88238), so the reload is kept.  Dwords +0x14 and +0x18 of the
- * block keep whatever the caller passed in.
- *
- * Call site 0x88246 is cdecl: PUSH EDX (= *(0x2ee670) + 0x1c) is the last
- * argument (in_vector), PUSH EAX (= block + 0xc) the first (out_angles).
- * FUN_00087eb0 takes one argument, the dword at [0x2ee66c] (PUSH EAX at
- * 0x88250); the single ADD ESP,0xc at 0x88256 cleans all three pushes. */
+ * The save is a MOV ECX,0x7 / REP MOVSD struct assignment (same shape as
+ * FUN_00087c00).  The original holds source+0x10 in ECX for the three
+ * position dwords and re-loads the source pointer for the forward vector;
+ * roll and field of view keep the caller's values.  One ADD ESP,0xc cleans
+ * the vector_to_angles and FUN_00087eb0 pushes. */
 void FUN_00088200(void *state)
 {
-  camera_capture_state *block = (camera_capture_state *)state;
-  char *globals;
+  flying_camera_t *camera = (flying_camera_t *)state;
+  editor_camera_source_t *source;
 
-  *(camera_capture_state *)0x3356f0 = *block;
-  *(char *)0x33570c = 1;
+  editor_camera_globals.persisted_cameras[1].camera = *camera;
+  editor_camera_globals.persisted_cameras[1].saved = true;
 
-  globals = *(char **)0x2ee670;
-  block->field_00 = *(uint32_t *)(globals + 0x10);
-  block->field_04 = *(uint32_t *)(globals + 0x14);
-  block->field_08 = *(uint32_t *)(globals + 0x18);
-  vector_to_angles((float *)&block->field_0c,
-                   (float *)(*(char **)0x2ee670 + 0x1c));
-  FUN_00087eb0(*(void **)0x2ee66c);
+  source = editor_camera_source;
+  camera->position = source->position;
+  vector_to_angles((float *)&camera->facing,
+                   (float *)&editor_camera_source->forward);
+  FUN_00087eb0((void *)editor_camera_relative_object_index);
 }
 
 /* editor_camera_orbiting_update (0x887e0) — orbiting-mode entry of the
  * editor camera update_funcs table; cdecl (camera_data [EBP+8],
  * control_data [EBP+0xc], result_data [EBP+0x10]).
  *
- * The validator reads field_of_view and timer back from the globals at
- * 0x2670c8 / 0x2670d0 (FLD [0x2670c8] at 0x88b0c, [0x2670d0] at 0x88b49),
- * not from the result block, so those reads are kept on the globals.  The
- * distance clamp (JZ at 0x88882) also clamps NaN; the pitch clamp (JP at
- * 0x88839, JNZ at 0x88850) leaves NaN unclamped. */
+ * The orbit reuses the editor flying camera: its facing is the orbit angle
+ * pair and its position.y holds the orbit distance (FUN_00087c00 seeds it).
+ *
+ * The validator reads field_of_view and timer back from the constant pools
+ * (FLD [0x2670c8] at 0x88b0c, [0x2670d0] at 0x88b49), not from the result
+ * block, so those reads are kept on the pools.  The distance clamp (JZ at
+ * 0x88882) also clamps NaN; the pitch clamp (JP at 0x88839, JNZ at 0x88850)
+ * leaves NaN unclamped. */
 void editor_camera_orbiting_update(void *camera_data, void *control_data,
                                    void *result_data)
 {
-  char *camera;
-  char *controls;
+  flying_camera_t *camera;
+  camera_action_t *action;
   camera_command_t *result;
   player_control_unit_camera_info_t info;
   real pitch;
   real distance;
-  char *msg;
 
-  camera = (char *)camera_data;
-  controls = (char *)control_data;
+  camera = (flying_camera_t *)camera_data;
+  action = (camera_action_t *)control_data;
   result = (camera_command_t *)result_data;
 
-  player_control_get_unit_camera_info(*(int16_t *)controls, &info);
+  player_control_get_unit_camera_info(action->local_player_index, &info);
   result->position = info.position;
-  if (controls[2] != 0) {
-    *(real *)(camera + 0xc) =
-      *(real *)(controls + 0x8) + *(real *)(camera + 0xc);
-    pitch = *(real *)(controls + 0xc) + *(real *)(camera + 0x10);
-    if (pitch < *(real *)0x267208) {
-      pitch = *(real *)0x267208;
-    } else if (pitch > *(real *)0x267204) {
-      pitch = *(real *)0x267204;
+  if (action->active) {
+    camera->facing.yaw = action->facing_delta.yaw + camera->facing.yaw;
+    pitch = action->facing_delta.pitch + camera->facing.pitch;
+    if (pitch < -1.2566371f) {
+      pitch = -1.2566371f;
+    } else if (pitch > 1.2566371f) {
+      pitch = 1.2566371f;
     }
-    *(real *)(camera + 0x10) = pitch;
-    director_set_local_player_context(*(int16_t *)controls);
+    camera->facing.pitch = pitch;
+    director_set_local_player_context(action->local_player_index);
   }
 
   distance =
-    *(real *)(camera + 0x4) - *(real *)(controls + 0x20) * *(real *)0x259ec0;
-  if (!(distance > *(real *)0x253f3c)) {
-    distance = *(real *)0x253f3c;
+    camera->position.y - action->wheel_delta * 0.33333334f;
+  if (!(distance > 0.6f)) {
+    distance = 0.6f;
   }
-  *(real *)(camera + 0x4) = distance;
+  camera->position.y = distance;
 
-  if (info.unit_index != -1) {
-    angles_to_vector((float *)&result->forward, (float *)(camera + 0xc));
+  if (info.unit_index != NONE) {
+    angles_to_vector((float *)&result->forward, (float *)&camera->facing);
     observer_up_from_forward((float *)&result->forward, (float *)&result->up);
     object_get_root_location(info.unit_index, (float *)&result->velocity, NULL);
-    result->flags = 1;
+    result->flags = FLAG(_observer_command_valid_bit);
   }
 
-  result->offset = **(real_vector3d **)0x31fc38;
-  result->depth = *(real *)(camera + 0x4);
-  result->field_of_view = *(real *)0x2670c8;
-  result->timer = *(real *)0x2670d0;
+  result->offset = *(real_vector3d *)global_zero_vector_ptr;
+  result->depth = camera->position.y;
+  result->field_of_view = editor_orbit_field_of_view;
+  result->timer = editor_orbit_timer;
 
-  if ((result->flags & 1) &&
-      (!valid_real_normal3d_perpendicular((float *)&result->forward,
-                                          (float *)&result->up) ||
-       (*(uint32_t *)&result->position.x & 0x7f800000) == 0x7f800000 ||
-       !(result->position.x >= *(float *)0x266e98) ||
-       !(result->position.x <= *(float *)0x266e94) ||
-       (*(uint32_t *)&result->position.y & 0x7f800000) == 0x7f800000 ||
-       !(result->position.y >= *(float *)0x266e98) ||
-       !(result->position.y <= *(float *)0x266e94) ||
-       (*(uint32_t *)&result->position.z & 0x7f800000) == 0x7f800000 ||
-       !(result->position.z >= *(float *)0x266e98) ||
-       !(result->position.z <= *(float *)0x266e94) ||
-       (*(uint32_t *)&result->offset.i & 0x7f800000) == 0x7f800000 ||
-       !(result->offset.i >= *(float *)0x266e98) ||
-       !(result->offset.i <= *(float *)0x266e94) ||
-       (*(uint32_t *)&result->offset.j & 0x7f800000) == 0x7f800000 ||
-       !(result->offset.j >= *(float *)0x266e98) ||
-       !(result->offset.j <= *(float *)0x266e94) ||
-       (*(uint32_t *)&result->offset.k & 0x7f800000) == 0x7f800000 ||
-       !(result->offset.k >= *(float *)0x266e98) ||
-       !(result->offset.k <= *(float *)0x266e94) ||
-       !real_vector3d_valid((float *)&result->velocity) ||
-       (*(uint32_t *)&result->depth & 0x7f800000) == 0x7f800000 ||
-       !(result->depth >= *(float *)0x2533c0) ||
-       !(result->depth <= *(float *)0x266e94) ||
-       (*(uint32_t *)0x2670c8 & 0x7f800000) == 0x7f800000 ||
-       !(*(float *)0x2670c8 >= *(float *)0x255ef8) ||
-       !(*(float *)0x2670c8 <= *(float *)0x2568bc) ||
-       (*(uint32_t *)0x2670d0 & 0x7f800000) == 0x7f800000 ||
-       !(*(float *)0x2670d0 >= *(float *)0x2533c0) ||
-       !(*(float *)0x2670d0 <= *(float *)0x266e90))) {
-    msg = csprintf(
-      (char *)0x5ab100, (const char *)0x266e08, (double)result->forward.i,
-      (double)result->forward.j, (double)result->forward.k,
-      (double)result->up.i, (double)result->up.j, (double)result->up.k,
-      (double)result->position.x, (double)result->position.y,
-      (double)result->position.z, (double)result->offset.i,
-      (double)result->offset.j, (double)result->offset.k, (double)result->depth,
-      (double)result->velocity.i, (double)result->velocity.j,
-      (double)result->velocity.k, (double)*(float *)0x2670c8,
-      (double)*(float *)0x2670d0, result->flags);
-    display_assert(msg, (const char *)0x267120, 0x23b, 1);
+  if (!director_camera_command_valid(result, editor_orbit_field_of_view,
+                                     editor_orbit_timer)) {
+    display_assert(
+      csprintf(error_string_buffer, CAMERA_COMMAND_INVALID_FORMAT,
+               CAMERA_COMMAND_INVALID_ARGUMENTS_AT(
+                 result, editor_orbit_field_of_view,
+                 editor_orbit_timer)),
+      "c:\\halo\\SOURCE\\camera\\editor_flying_camera.c", 0x23b, true);
     system_exit(-1);
   }
 }
