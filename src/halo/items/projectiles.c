@@ -5,15 +5,16 @@
 /* Mirrors the host LOS-exit detour for calls returning into projectile_collision_test_line:
  * kind 33 with value bit 31 set (host sets it when the return address is
  * below 0x138900). */
-static bool sweep_los_trace(bool result, int16_t *collision_result)
+static bool sweep_los_trace(bool result, const collision_test_result *collision)
 {
   RNG_TRACE_EX(RNG_TRACE_KIND_LOS_RESULT,
                0x80000000u | ((unsigned int)(unsigned char)result << 16) |
-                 (unsigned short)collision_result[0],
-               *(unsigned int *)((char *)collision_result + 0x14));
+                 (unsigned short)collision->field_00,
+               RNG_TRACE_BITS(collision->t));
   return result;
 }
-#define SWEEP_LOS(call) sweep_los_trace((call), collision_result)
+#define SWEEP_LOS(call) \
+  sweep_los_trace((call), (const collision_test_result *)collision_result)
 #else
 #define SWEEP_LOS(call) (call)
 #endif
