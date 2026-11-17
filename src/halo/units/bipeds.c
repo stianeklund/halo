@@ -3813,8 +3813,6 @@ LAB_001a36a4:
            * state via an unverified best_edge). Re-enable only after best_edge
            * is re-derived from the mach-edge fallback disasm. */
           physics->field_a8 = best_edge;
-          ((uint8_t *)&physics->new_position.y)[1] = 0; /* LIFT BUG (kept): 0x1a3d07 clears results[0] +0x29/+0x2a */
-          ((uint8_t *)&physics->new_position.y)[2] = 0;
         }
       }
     }
