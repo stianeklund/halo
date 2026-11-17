@@ -576,7 +576,7 @@ void particle_system_new_particles(void *ps_arg, int16_t type_index, float dt)
     *(char *)(particle + 2) = 1;
     *(float *)(particle + 0x44) = -1.0f;
     *(float *)(particle + 0x40) = random_real_range(
-      (int *)random_math_get_local_seed_address(), 0.0f, 3.14159265f * 2.0f);
+      random_math_get_local_seed_address(), 0.0f, 3.14159265f * 2.0f);
 
     if (creation_func_idx < 0 || creation_func_idx >= 3) {
       display_assert("creation_function_index>=0 && "
@@ -646,24 +646,24 @@ void randomize_particle_variables(void *sys_def_arg, short state_index, void *ou
 
   /* Generate random interpolation factor */
   range[2] =
-    random_real_range((int *)random_math_get_local_seed_address(), 0.0f, 1.0f);
+    random_real_range(random_math_get_local_seed_address(), 0.0f, 1.0f);
 
   /* Fill output with random ranges */
   range[1] = *(float *)(state_def + 0x54);
   range[0] = *(float *)(state_def + 0x50);
-  output[1] = random_real_range((int *)random_math_get_local_seed_address(),
+  output[1] = random_real_range(random_math_get_local_seed_address(),
                                 range[0], range[1]);
   range[0] = *(float *)(state_def + 0x5c);
   range[1] = *(float *)(state_def + 0x58);
-  output[2] = random_real_range((int *)random_math_get_local_seed_address(),
+  output[2] = random_real_range(random_math_get_local_seed_address(),
                                 range[1], range[0]);
   range[0] = *(float *)(state_def + 0x4c);
   range[1] = *(float *)(state_def + 0x48);
-  output[0] = random_real_range((int *)random_math_get_local_seed_address(),
+  output[0] = random_real_range(random_math_get_local_seed_address(),
                                 range[1], range[0]);
   range[0] = *(float *)(state_def + 0x70);
   range[1] = *(float *)(state_def + 0x60);
-  output[3] = random_real_range((int *)random_math_get_local_seed_address(),
+  output[3] = random_real_range(random_math_get_local_seed_address(),
                                 range[1], range[0]);
 
   /* Fill output with linear interpolations */
@@ -791,7 +791,7 @@ void particle_system_update(float dt, int particle_system_handle)
       particle_system_next_type_state_index(type_state, type_def, ps_datum);
       rr_lo_a = *(float *)(state_elem + 0x28);
       rr_hi_a = *(float *)(state_elem + 0x2c);
-      duration = random_real_range((int *)random_math_get_local_seed_address(),
+      duration = random_real_range(random_math_get_local_seed_address(),
                                    rr_lo_a, rr_hi_a);
     } else {
       *(short *)type_state = next_state;
@@ -800,7 +800,7 @@ void particle_system_update(float dt, int particle_system_handle)
                                                  (int)next_state, 0xc0);
       rr_lo_b = *(float *)(state_elem + 0x20);
       rr_hi_b = *(float *)(state_elem + 0x24);
-      duration = random_real_range((int *)random_math_get_local_seed_address(),
+      duration = random_real_range(random_math_get_local_seed_address(),
                                    rr_lo_b, rr_hi_b);
     }
     *(float *)(type_state + 8) = duration;
@@ -899,7 +899,7 @@ void particle_system_update(float dt, int particle_system_handle)
           rr_lo_e = *(float *)(pstate_elem + 0x20);
           rr_hi_e = *(float *)(pstate_elem + 0x24);
           duration = random_real_range(
-            (int *)random_math_get_local_seed_address(), rr_lo_e, rr_hi_e);
+            random_math_get_local_seed_address(), rr_lo_e, rr_hi_e);
           *(float *)(particle + 0xc) = duration;
           *(float *)(particle + 0x10) = duration;
           randomize_particle_variables(type_def, *(short *)(particle + 8), particle + 0x48);
@@ -938,7 +938,7 @@ void particle_system_update(float dt, int particle_system_handle)
               rr_hi = *(float *)(pstate_elem + 0x24);
             }
             duration = random_real_range(
-              (int *)random_math_get_local_seed_address(), rr_lo, rr_hi);
+              random_math_get_local_seed_address(), rr_lo, rr_hi);
             *(float *)(particle + 0x10) = duration;
             *(float *)(particle + 0xc) = duration + *(float *)(particle + 0xc);
 
@@ -1544,7 +1544,7 @@ char particle_system_initialize(int particle_handle)
           bounds[1] = *(float *)(state_elem + 0x24);
           bounds[0] = *(float *)(state_elem + 0x20);
           duration = random_real_range(
-            (int *)random_math_get_local_seed_address(), bounds[0], bounds[1]);
+            random_math_get_local_seed_address(), bounds[0], bounds[1]);
           *(float *)(instance + 0x04) = duration;
           *(float *)(instance + 0x08) = duration;
         }

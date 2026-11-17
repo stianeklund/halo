@@ -1255,18 +1255,18 @@ void player_control_set_facing(int16_t local_player_index, float *direction)
 
   pc = (player_control_t *)((char *)player_control_globals +
                             (int)local_player_index * 0x40 + 0x10);
-  desired_yaw = &pc->desired_angles_yaw;
+  desired_yaw = &pc->desired_angles.yaw;
 
   /* Convert direction vector to yaw/pitch angles */
   vector_to_angles(desired_yaw, direction);
 
   /* assert_valid_real on desired_angles.pitch (slot+0x10) */
-  if ((*(uint32_t *)&pc->desired_angles_pitch & 0x7f800000u) == 0x7f800000u) {
+  if ((*(uint32_t *)&pc->desired_angles.pitch & 0x7f800000u) == 0x7f800000u) {
     display_assert(
       csprintf(error_string_buffer, "%s: assert_valid_real(0x%08X %f)",
                "player_control->desired_angles.pitch",
-               *(uint32_t *)&pc->desired_angles_pitch,
-               (double)pc->desired_angles_pitch),
+               *(uint32_t *)&pc->desired_angles.pitch,
+               (double)pc->desired_angles.pitch),
       "c:\\halo\\SOURCE\\game\\player_control.c", 0xbb, 1);
     system_exit(NONE);
   }
@@ -1321,7 +1321,7 @@ void player_control_set_facing(int16_t local_player_index, float *direction)
  *      exists for the pitch bounds, so they stay as literals.
  *
  * c:\halo\SOURCE\game\player_control.c */
-real *player_control_get_facing_angles(int16_t local_player_index)
+real_euler_angles2d *player_control_get_facing_angles(int16_t local_player_index)
 {
   player_control_t *player;
 
@@ -1332,18 +1332,18 @@ real *player_control_get_facing_angles(int16_t local_player_index)
   player = (player_control_t *)((char *)player_control_globals +
                                 local_player_index * 0x40 + 0x10);
 
-  if (!((*(uint32_t *)&player->desired_angles_pitch & 0x7f800000) !=
+  if (!((*(uint32_t *)&player->desired_angles.pitch & 0x7f800000) !=
           0x7f800000 &&
-        player->desired_angles_pitch <= MAXIMUM_DESIRED_PITCH &&
-        player->desired_angles_pitch >= MINIMUM_DESIRED_PITCH &&
-        (*(uint32_t *)&player->desired_angles_yaw & 0x7f800000) != 0x7f800000 &&
-        player->desired_angles_yaw <= REAL_TWO_PI &&
-        player->desired_angles_yaw >= 0.0f)) {
+        player->desired_angles.pitch <= MAXIMUM_DESIRED_PITCH &&
+        player->desired_angles.pitch >= MINIMUM_DESIRED_PITCH &&
+        (*(uint32_t *)&player->desired_angles.yaw & 0x7f800000) != 0x7f800000 &&
+        player->desired_angles.yaw <= REAL_TWO_PI &&
+        player->desired_angles.yaw >= 0.0f)) {
     display_assert("valid_euler_angles2d(&player->desired_angles)",
                    "c:\\halo\\SOURCE\\game\\player_control.c", 0x3c0, 1);
     system_exit(NONE);
   }
-  return &player->desired_angles_yaw;
+  return &player->desired_angles;
 }
 
 /* Build the this-frame action record for a local player and hand back the
@@ -1378,7 +1378,7 @@ real *player_control_get_facing_direction(int16_t local_player_index,
 {
   player_aiming_vector_from_facing(
     local_player_get_player_index(local_player_index), facing_out,
-    player_control_get_facing_angles(local_player_index));
+    &player_control_get_facing_angles(local_player_index)->yaw);
   return facing_out;
 }
 
@@ -1457,7 +1457,7 @@ void player_control_modify_desired_angles(int16_t local_player_index,
   globals_tag =
     tag_block_get_element((char *)game_globals_get() + 0x110, 0, 0x80);
 
-  desired_pitch = &pc->desired_angles_pitch;
+  desired_pitch = &pc->desired_angles.pitch;
   pitch_minimum_target = MINIMUM_DESIRED_PITCH; /* -85.5 degrees */
   pitch_maximum_target = MAXIMUM_DESIRED_PITCH; /* +85.5 degrees */
 
@@ -1469,19 +1469,19 @@ void player_control_modify_desired_angles(int16_t local_player_index,
    * form compiles to NaN-transparent guards (0x41/JE, 0x5/JNP) and was the
    * [FCOM-WARN] on this function. Behavior is identical either way here
    * because the exponent-bits prescreen rejects NaN/Inf first. */
-  if (!((*(uint32_t *)&pc->desired_angles_pitch & 0x7f800000) != 0x7f800000 &&
-        pc->desired_angles_pitch <= MAXIMUM_DESIRED_PITCH &&
-        pc->desired_angles_pitch >= MINIMUM_DESIRED_PITCH &&
-        (*(uint32_t *)&pc->desired_angles_yaw & 0x7f800000) != 0x7f800000 &&
-        pc->desired_angles_yaw <= REAL_TWO_PI &&
-        pc->desired_angles_yaw >= 0.0f)) {
+  if (!((*(uint32_t *)&pc->desired_angles.pitch & 0x7f800000) != 0x7f800000 &&
+        pc->desired_angles.pitch <= MAXIMUM_DESIRED_PITCH &&
+        pc->desired_angles.pitch >= MINIMUM_DESIRED_PITCH &&
+        (*(uint32_t *)&pc->desired_angles.yaw & 0x7f800000) != 0x7f800000 &&
+        pc->desired_angles.yaw <= REAL_TWO_PI &&
+        pc->desired_angles.yaw >= 0.0f)) {
     display_assert("valid_euler_angles2d(&player->desired_angles)",
                    "c:\\halo\\SOURCE\\game\\player_control.c", 0x494, 1);
     system_exit(NONE);
   }
 
   player_control_get_unit_camera_info(local_player_index, camera_info);
-  pc->desired_angles_yaw = yaw_delta + pc->desired_angles_yaw;
+  pc->desired_angles.yaw = yaw_delta + pc->desired_angles.yaw;
 
   /* constrain yaw to the arc this seat permits */
   if (*(int16_t *)(camera_info + 4) != NONE) {
@@ -1516,13 +1516,13 @@ void player_control_modify_desired_angles(int16_t local_player_index,
       if (arc <= (-REAL_PI))
         arc += REAL_TWO_PI;
 
-      delta_high = yaw_high - pc->desired_angles_yaw;
+      delta_high = yaw_high - pc->desired_angles.yaw;
       if (delta_high >= REAL_PI)
         delta_high -= REAL_TWO_PI;
       if (delta_high <= (-REAL_PI))
         delta_high += REAL_TWO_PI;
 
-      delta = pc->desired_angles_yaw - yaw_low;
+      delta = pc->desired_angles.yaw - yaw_low;
       if (delta >= REAL_PI)
         delta -= REAL_TWO_PI;
       if (delta <= (-REAL_PI))
@@ -1535,17 +1535,17 @@ void player_control_modify_desired_angles(int16_t local_player_index,
       if (!((delta_high >= 0.0f && delta_high < arc) ||
             (delta >= 0.0f && delta < arc))) {
         if (fabs(delta_high) > fabs(delta))
-          pc->desired_angles_yaw = yaw_low;
+          pc->desired_angles.yaw = yaw_low;
         else
-          pc->desired_angles_yaw = yaw_high;
+          pc->desired_angles.yaw = yaw_high;
       }
     }
   }
 
-  while (pc->desired_angles_yaw < 0.0f)
-    pc->desired_angles_yaw += REAL_TWO_PI;
-  while (pc->desired_angles_yaw > REAL_TWO_PI)
-    pc->desired_angles_yaw -= REAL_TWO_PI;
+  while (pc->desired_angles.yaw < 0.0f)
+    pc->desired_angles.yaw += REAL_TWO_PI;
+  while (pc->desired_angles.yaw > REAL_TWO_PI)
+    pc->desired_angles.yaw -= REAL_TWO_PI;
 
   /* ease the pitch limits toward the camera's targets */
   limits = *(char **)(camera_info + 8);
@@ -1571,7 +1571,7 @@ void player_control_modify_desired_angles(int16_t local_player_index,
           *(float *)(unit_obj + 0x38) > 0.2f) {
         float offset;
 
-        marker_angles[0] = pc->desired_angles_yaw;
+        marker_angles[0] = pc->desired_angles.yaw;
         marker_angles[1] = 0.0f;
         angles_to_vector(forward, marker_angles);
         offset =
@@ -1645,11 +1645,11 @@ void player_control_modify_desired_angles(int16_t local_player_index,
     delta = MAXIMUM_PITCH_LIMIT_CHANGE;
   pc->pitch_maximum += delta;
 
-  pc->desired_angles_pitch = pitch_delta + pc->desired_angles_pitch;
-  if (pc->desired_angles_pitch < pc->pitch_minimum)
-    pc->desired_angles_pitch = pc->pitch_minimum;
-  else if (pc->desired_angles_pitch > pc->pitch_maximum)
-    pc->desired_angles_pitch = pc->pitch_maximum;
+  pc->desired_angles.pitch = pitch_delta + pc->desired_angles.pitch;
+  if (pc->desired_angles.pitch < pc->pitch_minimum)
+    pc->desired_angles.pitch = pc->pitch_minimum;
+  else if (pc->desired_angles.pitch > pc->pitch_maximum)
+    pc->desired_angles.pitch = pc->pitch_maximum;
 }
 
 void player_control_initialize_for_new_map(void)
@@ -1698,7 +1698,7 @@ __declspec(noinline) void player_control_new_unit(int16_t local_player_index,
   pc->persistent_action_flags = 0;
   if (player_index != -1) {
     unit = (int)object_get_and_verify_type(player_index, 3);
-    facing = &pc->desired_angles_yaw;
+    facing = &pc->desired_angles.yaw;
     vector_to_angles(facing, (float *)(unit + 0x1d4));
     if (*facing < REAL_ZERO_POOL)
       *facing += REAL_TWO_PI_POOL;
@@ -1741,13 +1741,13 @@ void handle_one_player_input(int16_t local_player_index, float delta_time)
   /* validate desired facing angles if player exists */
   if (player_index != NONE) {
     uint32_t bits;
-    bits = *(uint32_t *)&pc->desired_angles_pitch;
+    bits = *(uint32_t *)&pc->desired_angles.pitch;
     if ((bits & 0x7f800000) == 0x7f800000) {
       display_assert("player->desired_angles.pitch",
                      "c:\\halo\\SOURCE\\game\\player_control.c", 0x2ce, 1);
       system_exit(NONE);
     }
-    bits = *(uint32_t *)&pc->desired_angles_yaw;
+    bits = *(uint32_t *)&pc->desired_angles.yaw;
     if ((bits & 0x7f800000) == 0x7f800000) {
       display_assert("player->desired_angles.yaw",
                      "c:\\halo\\SOURCE\\game\\player_control.c", 0x2cf, 1);
@@ -1906,13 +1906,13 @@ final_copy:
   if (player_index != NONE) {
     uint32_t bits;
     /* validate final desired angles and trigger */
-    bits = *(uint32_t *)&pc->desired_angles_pitch;
+    bits = *(uint32_t *)&pc->desired_angles.pitch;
     if ((bits & 0x7f800000) == 0x7f800000) {
       display_assert("player->desired_angles.pitch",
                      "c:\\halo\\SOURCE\\game\\player_control.c", 0x35d, 1);
       system_exit(NONE);
     }
-    bits = *(uint32_t *)&pc->desired_angles_yaw;
+    bits = *(uint32_t *)&pc->desired_angles.yaw;
     if ((bits & 0x7f800000) == 0x7f800000) {
       display_assert("player->desired_angles.yaw",
                      "c:\\halo\\SOURCE\\game\\player_control.c", 0x35e, 1);
@@ -1931,8 +1931,8 @@ final_copy:
       player_action_t *action = (player_action_t *)action_buf;
 
       action->buttons = pc->field_0x04;
-      *(int *)&action->desired_facing_yaw = *(int *)&pc->desired_angles_yaw;
-      *(int *)&action->desired_facing_pitch = *(int *)&pc->desired_angles_pitch;
+      *(int *)&action->desired_facing_yaw = *(int *)&pc->desired_angles.yaw;
+      *(int *)&action->desired_facing_pitch = *(int *)&pc->desired_angles.pitch;
       action->desired_weapon_index = pc->desired_weapon_index;
       action->desired_grenade_index = pc->desired_grenade_index;
       *(int *)&action->throttle_x = *(int *)&pc->field_0x14;

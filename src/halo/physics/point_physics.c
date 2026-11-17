@@ -368,8 +368,8 @@ boolean FUN_001509c0(void *instance_data, int object_index)
 
     instance->world_matrix.scale = 1.0f;
     object_get_world_position(object_index, &instance->world_matrix.position);
-    object_get_orientation(object_index, &instance->world_matrix.forward.x,
-                           &instance->world_matrix.up.x);
+    object_get_orientation(object_index, &instance->world_matrix.forward.i,
+                           &instance->world_matrix.up.i);
     cross_product3d_inline(
       (const real_vector3d *)&instance->world_matrix.up,
       (const real_vector3d *)&instance->world_matrix.forward,

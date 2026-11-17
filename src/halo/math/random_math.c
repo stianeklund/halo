@@ -535,7 +535,7 @@ void unlock_global_random_seed(void)
   *(int *)0x46e3f0 = *(int *)0x46e3f0 - 1;
 }
 
-__declspec(noinline) int *get_global_random_seed_address(void)
+__declspec(noinline) unsigned int *get_global_random_seed_address(void)
 {
   if (game_engine_running() && *(int *)0x46e3f0 != 0) {
     display_assert(
@@ -543,7 +543,7 @@ __declspec(noinline) int *get_global_random_seed_address(void)
       "c:\\halo\\SOURCE\\math\\random_math.c", 0x38, 1);
     system_exit(-1);
   }
-  return (int *)0x46e3f4;
+  return (unsigned int *)0x46e3f4;
 }
 
 /* Returns the current global random seed value.
@@ -641,7 +641,7 @@ __declspec(noinline) float random_math_real(unsigned int *seed)
 /* Generate a random float in [min, max] using the same LCG as seed_random_range.
  * Advances *seed, extracts the upper 16 bits (0..65535), normalizes to
  * [0.0, 1.0] by dividing by 65535, then scales into [min, max]. */
-float random_real_range(int *seed, float min, float max)
+float random_real_range(unsigned int *seed, float min, float max)
 {
   unsigned int s;
   float fraction;
@@ -788,7 +788,7 @@ void seed_random_orientation(unsigned int *seed, float *facing, float *up)
  *   angle   - maximum rotation angle (radians)
  *   result  - output direction vector (3 floats), initially set to forward
  */
-void seed_random_vector_in_cone3d(int *seed, float *forward, float zero, float angle,
+void seed_random_vector_in_cone3d(unsigned int *seed, float *forward, float zero, float angle,
                         float *result)
 {
   float random_vec[3];

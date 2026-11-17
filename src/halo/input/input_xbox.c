@@ -664,10 +664,10 @@ bool input_get_buffered_key(void *out_keystroke)
 }
 
 /* FUN_000cf690 (0xcf690)
- * Returns 0 (stub/always-false check). */
-int FUN_000cf690(void)
+ * Returns NULL: no mouse state. */
+void *FUN_000cf690(void)
 {
-  return 0;
+  return NULL;
 }
 
 bool input_has_gamepad(int16_t gamepad_index)

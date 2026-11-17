@@ -316,7 +316,7 @@ int16_t local_random_range(int16_t min, int16_t max)
 void local_random_vector_in_cone3d(float *forward, float zero, float angle,
                                    float *result)
 {
-  seed_random_vector_in_cone3d((int *)random_math_get_local_seed_address(), forward, zero,
+  seed_random_vector_in_cone3d(random_math_get_local_seed_address(), forward, zero,
                      angle, result);
 }
 
@@ -338,7 +338,7 @@ float contrail_scale_random_value(float datum_scale, float range_min,
   if ((flags & (1 << (char)(bit_index + 1))) != 0) {
     range_min *= datum_scale;
   }
-  return random_real_range((int *)random_math_get_local_seed_address(), 0.0f, range_min) + base;
+  return random_real_range(random_math_get_local_seed_address(), 0.0f, range_min) + base;
 }
 
 void contrails_initialize(void)
@@ -499,7 +499,7 @@ void contrail_add_points(int contrail_handle /* @<eax> */, int count, int flag)
             float vel[3];
             float root_loc[3];
             unsigned int *seed = random_math_get_local_seed_address();
-            seed_random_vector_in_cone3d((int *)seed, (float *)(marker + 0x3c), 0.0f,
+            seed_random_vector_in_cone3d(seed, (float *)(marker + 0x3c), 0.0f,
                               dir_angle, vel);
 
             *(float *)(pd + 0x1c) = *(float *)(marker + 0x60);
@@ -698,7 +698,7 @@ void contrail_update_points(int contrail_handle, float delta_time)
 
               seed = random_math_get_local_seed_address();
               new_rate =
-                random_real_range((int *)seed, 0.0f, range_dur) + base_dur;
+                random_real_range(seed, 0.0f, range_dur) + base_dur;
 
               *(float *)(pt + 8) = new_rate;
               if (new_rate != 0.0f) {
@@ -739,7 +739,7 @@ void contrail_update_points(int contrail_handle, float delta_time)
 
               seed = random_math_get_local_seed_address();
               new_rate =
-                random_real_range((int *)seed, 0.0f, range_dur) + base_dur;
+                random_real_range(seed, 0.0f, range_dur) + base_dur;
 
               *(float *)(pt + 8) = new_rate;
               if (new_rate != 0.0f) {

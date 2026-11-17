@@ -7579,6 +7579,16 @@
      "comment": "initially NONE; written by FUN_00087eb0, passed as scripted_camera_set_camera_point_relative relative_object_index"
     },
     {
+     "addr": "0x2ee670",
+     "decl": "struct editor_camera_source *editor_camera_source;",
+     "comment": "pointer slot read by the editor camera (xrefs in editor_camera_update, editor_camera_set_scripted, FUN_00087c00, FUN_00088200); pointee layout in director.h"
+    },
+    {
+     "addr": "0x2ee674",
+     "decl": "void (*update_funcs[2])(void *, camera_action_t *, camera_command_t *);",
+     "comment": "per-mode editor camera update procs; name from the update_funcs[camera_mode] assert (editor_flying_camera.c:0x154); 2 entries up to translate_funcs at 0x2ee67c"
+    },
+    {
      "addr": "0x2ee67c",
      "decl": "editor_camera_translate_function translate_funcs[2][2];",
      "comment": "editor camera mode callbacks {_translate_from, _translate_to}; name from the editor_camera_set_mode assert strings"
@@ -7599,8 +7609,8 @@
     },
     {
      "addr": "0x335690",
-     "decl": "uint8_t director_unknown_335690;",
-     "comment": "read only by director_compute_camera_input (held analog button 4 repeat gate); meaning unproven"
+     "decl": "boolean director_camera_switch_fast;",
+     "comment": "hs global \"director_camera_switch_fast\" (script globals table 0x2f36a8, type boolean); read by director_compute_camera_input"
     },
     {
      "addr": "0x335698",
@@ -7717,7 +7727,7 @@
     },
     {
      "addr": "0x86b80",
-     "decl": "int16_t director_camera_deterministic(int unit_handle, int param_2, int param_3);",
+     "decl": "int16_t director_camera_deterministic(int unit_handle, real_point3d *out_position, real_vector3d *out_forward);",
      "ported": true
     },
     {
@@ -7748,7 +7758,7 @@
     },
     {
      "addr": "0x87110",
-     "decl": "bool director_compute_camera_input(short *out_buf@<eax>, int local_player_index);",
+     "decl": "bool director_compute_camera_input(camera_action_t *action@<eax>, int local_player_index);",
      "ported": true
     },
     {
@@ -7781,17 +7791,17 @@
     },
     {
      "addr": "0x878d0",
-     "decl": "void editor_camera_get_focus(uint32_t *position, uint32_t *angles);",
+     "decl": "void editor_camera_get_focus(real_point3d *position, real_euler_angles2d *angles);",
      "ported": true
     },
     {
      "addr": "0x87950",
-     "decl": "void editor_camera_set_focus(const uint32_t *position, const uint32_t *angles);",
+     "decl": "void editor_camera_set_focus(const real_point3d *position, const real_euler_angles2d *angles);",
      "ported": true
     },
     {
      "addr": "0x879d0",
-     "decl": "void editor_camera_set_position(const uint32_t *point, const uint32_t *angles);",
+     "decl": "void editor_camera_set_position(const real_point3d *point, const real_euler_angles2d *angles);",
      "ported": true
     },
     {
@@ -7811,22 +7821,22 @@
     },
     {
      "addr": "0x87c80",
-     "decl": "void editor_camera_move_to_point(const float *point);",
+     "decl": "void editor_camera_move_to_point(const real_point3d *point);",
      "ported": true
     },
     {
      "addr": "0x87d00",
-     "decl": "void editor_camera_set_position_and_roll(const uint32_t *point, const float *angles);",
+     "decl": "void editor_camera_set_position_and_roll(const real_point3d *point, const struct editor_camera_angles *angles);",
      "ported": true
     },
     {
      "addr": "0x87eb0",
-     "decl": "void FUN_00087eb0(void *param_1);",
+     "decl": "void FUN_00087eb0(int32_t object_index);",
      "ported": true
     },
     {
      "addr": "0x87f20",
-     "decl": "void editor_camera_update(int param_1, unsigned short *param_2, unsigned int *param_3);",
+     "decl": "void editor_camera_update(void *camera_data, camera_action_t *action, camera_command_t *command);",
      "ported": true
     },
     {
@@ -7863,12 +7873,12 @@
     },
     {
      "addr": "0x88c80",
-     "decl": "void FUN_00088c80(int unit_handle, float *out_position, float *out_forward);",
+     "decl": "void FUN_00088c80(int unit_handle, real_point3d *out_position, real_vector3d *out_forward);",
      "ported": true
     },
     {
      "addr": "0x88d50",
-     "decl": "void first_person_camera_for_unit_and_vector(float *vector @<eax>, int32_t unit_index @<ecx>, void *result @<esi>);",
+     "decl": "void first_person_camera_for_unit_and_vector(const real_vector3d *vector @<eax>, int32_t unit_index @<ecx>, camera_command_t *result @<esi>);",
      "ported": true,
      "static_in_tu": true
     },
@@ -7880,7 +7890,7 @@
     },
     {
      "addr": "0x89270",
-     "decl": "void first_person_camera_update(void *camera, void *param_2, void *result);",
+     "decl": "void first_person_camera_update(void *camera, camera_action_t *action, camera_command_t *result);",
      "ported": true
     }
    ],
@@ -15252,7 +15262,7 @@
     },
     {
      "addr": "0xcf690",
-     "decl": "int FUN_000cf690(void);",
+     "decl": "void *FUN_000cf690(void);",
      "ported": true,
      "source_path": "src/halo/input/input_xbox.c"
     },
@@ -17687,7 +17697,7 @@
     },
     {
      "addr": "0x84ae0",
-     "decl": "void bored_camera_update(bored_camera_t *camera, camera_control_t *controls, camera_command_t *result);",
+     "decl": "void bored_camera_update(bored_camera_t *camera, camera_action_t *controls, camera_command_t *result);",
      "ported": true,
      "source": "src/halo/objects/objects.c",
      "name": "bored_camera_update"
@@ -17763,7 +17773,7 @@
     },
     {
      "addr": "0x853c0",
-     "decl": "void scripted_camera_update(int camera, camera_control_t *controls, camera_command_t *result);",
+     "decl": "void scripted_camera_update(int camera, camera_action_t *controls, camera_command_t *result);",
      "ported": true,
      "source": "src/halo/objects/objects.c",
      "name": "scripted_camera_update"
@@ -19055,7 +19065,7 @@
     },
     {
      "addr": "0x89350",
-     "decl": "void FUN_00089350(void *camera_data, float *position, float *forward);",
+     "decl": "void FUN_00089350(void *camera_data, real_point3d *position, real_vector3d *forward);",
      "ported": true
     },
     {
@@ -19070,7 +19080,7 @@
     },
     {
      "addr": "0x898b0",
-     "decl": "void *unit_camera_get(int unit_handle /* @<eax> */);",
+     "decl": "unit_camera_t *unit_camera_get(int unit_handle /* @<eax> */);",
      "comment": "[NAME: unit_camera_get \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
      "ported": true
     },
@@ -19093,12 +19103,12 @@
     },
     {
      "addr": "0x89ab0",
-     "decl": "void camera_track_splut(void *definition@<ecx>, float t, float *out);",
+     "decl": "void camera_track_splut(unit_camera_t *definition@<ecx>, real t, real_vector3d *out);",
      "ported": true
     },
     {
      "addr": "0x89c00",
-     "decl": "void FUN_00089c00(int unit_handle, int param_2, int param_3);",
+     "decl": "void FUN_00089c00(int unit_handle, real_point3d *out_position, real_vector3d *out_forward);",
      "ported": true
     },
     {
@@ -19159,23 +19169,23 @@
     },
     {
      "addr": "0x8aa80",
-     "decl": "void observer_up_from_forward(float *forward, float *up);",
+     "decl": "void observer_up_from_forward(const real_vector3d *forward, real_vector3d *up);",
      "ported": true
     },
     {
      "addr": "0x8ab10",
-     "decl": "void observer_apply_rotational_displacement(float *rotation @<eax>, float *vector_a, float *vector_b);",
+     "decl": "void observer_apply_rotational_displacement(const real_vector3d *rotation @<eax>, real_vector3d *vector_a, real_vector3d *vector_b);",
      "comment": "[NAME: observer_apply_rotational_displacement \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
      "ported": true
     },
     {
      "addr": "0x8ab90",
-     "decl": "bool FUN_0008ab90(float *out_fraction, bool indoor @<al>, float *ray_origin @<esi>, float *ray_endpoint @<edi>);",
+     "decl": "bool FUN_0008ab90(real *out_fraction, bool indoor @<al>, real_point3d *ray_origin @<esi>, real_point3d *ray_endpoint @<edi>);",
      "ported": true
     },
     {
      "addr": "0x8ac70",
-     "decl": "bool observer_collision_test_differential(float scale, float *out_fraction, bool indoor, float *ray_origin @<esi>, float *point @<ecx>, float *vector @<eax>);",
+     "decl": "bool observer_collision_test_differential(real scale, real *out_fraction, bool indoor, real_point3d *ray_origin @<esi>, const real_point3d *point @<ecx>, const real_vector3d *vector @<eax>);",
      "comment": "[NAME: observer_collision_test_differential \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
      "ported": true
     },
@@ -19209,12 +19219,12 @@
     },
     {
      "addr": "0x8c150",
-     "decl": "void FUN_0008c150(float *up, float *focus_distance, float near_plane_dist, float *forward @<eax>, float *position @<ecx>);",
+     "decl": "void FUN_0008c150(const real_vector3d *up, real *focus_distance, real near_plane_dist, const real_vector3d *forward @<eax>, real_point3d *position @<ecx>);",
      "ported": true
     },
     {
      "addr": "0x8c440",
-     "decl": "void FUN_0008c440(void *velocities, void *result @<eax>, void *state @<ecx>);",
+     "decl": "void FUN_0008c440(real *target_parameters, real *displacement @<eax>, real *current_parameters @<ecx>);",
      "ported": true
     },
     {
@@ -19241,7 +19251,7 @@
     },
     {
      "addr": "0x8cf10",
-     "decl": "void orbiting_camera_new(float *orbiting_camera, float distance, float *vector);",
+     "decl": "void orbiting_camera_new(void *camera_data, real distance, real_vector3d *forward);",
      "comment": "[NAME: orbiting_camera_new \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
      "ported": true
     },
@@ -19253,7 +19263,7 @@
     },
     {
      "addr": "0x8d3a0",
-     "decl": "void static_camera_new(void *camera, const vector3_t *position, uint32_t field_0c, const vector3_t *forward, const vector3_t *up, float field_of_view, int32_t duration_ticks, uint32_t flags);",
+     "decl": "void static_camera_new(void *camera, const real_point3d *position, uint32_t field_0c, const real_vector3d *forward, const real_vector3d *up, float field_of_view, int32_t duration_ticks, uint32_t flags);",
      "comment": "[NAME: static_camera_new \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
      "ported": true
     }
@@ -19839,7 +19849,7 @@
     },
     {
      "addr": "0xb7e30",
-     "decl": "real * player_control_get_facing_angles(int16_t local_player_index);",
+     "decl": "real_euler_angles2d *player_control_get_facing_angles(int16_t local_player_index);",
      "ported": true
     },
     {
@@ -22930,7 +22940,7 @@
     },
     {
      "addr": "0x10b0d0",
-     "decl": "int *get_global_random_seed_address(void);",
+     "decl": "unsigned int *get_global_random_seed_address(void);",
      "ported": true
     },
     {
@@ -22951,7 +22961,7 @@
     },
     {
      "addr": "0x10b270",
-     "decl": "float random_real_range(int *seed, float min, float max);",
+     "decl": "float random_real_range(unsigned int *seed, float min, float max);",
      "name": "random_real_range",
      "ported": true,
      "status": "ported"
@@ -22977,7 +22987,7 @@
     {
      "addr": "0x10b4c0",
      "comment": "Generate a random direction within a cone around a forward vector.",
-     "decl": "void seed_random_vector_in_cone3d(int *seed, float *forward, float zero, float angle, float *result);",
+     "decl": "void seed_random_vector_in_cone3d(unsigned int *seed, float *forward, float zero, float angle, float *result);",
      "ported": true,
      "name": "seed_random_vector_in_cone3d"
     },

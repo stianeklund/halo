@@ -15,23 +15,66 @@ enum {
 
 #define NUMBER_OF_DIRECTOR_VARIABLES 4
 
+/* camera_director_t.camera_data holds the flying camera in the flying and
+ * editor modes. */
+static __inline flying_camera_t *director_flying_camera(camera_director_t *director)
+{
+  void *camera = director->camera_data;
+
+  return camera;
+}
+
+#define k_half_pi 1.5707964f
+
 /* camera_director_t.camera_proc called as a function by director_update. */
 typedef void (*director_camera_proc)(void *camera_data,
                                      camera_action_t *action,
                                      camera_command_t *command);
 
+/* Record returned by FUN_000cf690 (input_get_mouse_state in player_control.c)
+ * that the debug camera reads: yaw and pitch deltas, the wheel delta that
+ * becomes action->wheel_delta, and a byte of unproven meaning tested next to
+ * the key 0x1e check. */
+typedef struct {
+  int32_t delta_x;
+  int32_t delta_y;
+  int32_t wheel;
+  uint8_t pad_0c[1];
+  uint8_t field_0d;
+} director_mouse_state_t;
+co(director_mouse_state_t, wheel, 0x08);
+co(director_mouse_state_t, field_0d, 0x0d);
+
+/* The two player_data_t members director_update_player_camera reads; +0xaa
+ * lies inside player_data_t.pad_8c, which is not split in types.h.  The
+ * word is read as a signed count (game_engine.c compares it against the
+ * lives limit). */
+typedef struct {
+  uint8_t pad_00[0x34];
+  datum_index unit_handle;
+  uint8_t pad_38[0x72];
+  int16_t field_aa;
+} director_player_view_t;
+co(director_player_view_t, unit_handle, 0x34);
+co(director_player_view_t, field_aa, 0xaa);
+
 /* Scenario tag block at +0x354 (element size 0x34) that seeds the editor
  * camera focus from its first element: three position dwords and a yaw.
  * It lies inside scenario_t.pad_210, which is not split in types.h. */
+typedef struct {
+  uint8_t pad_00[0x354];
+  tag_block field_354;
+} director_scenario_view_t;
+co(director_scenario_view_t, field_354, 0x354);
 #define scenario_block_354(scenario) \
-  ((tag_block *)((char *)(scenario) + 0x354))
+  (&((director_scenario_view_t *)(scenario))->field_354)
 #define SCENARIO_BLOCK_354_ELEMENT_SIZE 0x34
 
 /* Pointer slot at 0x2ee670.  The editor camera reads three vectors from the
  * pointee: the point, forward and up it hands to
  * scripted_camera_set_camera_point_relative.  The pointee is also read by
  * rasterizer/profile code; nothing else about it is proven. */
-typedef struct {
+typedef struct editor_camera_source {
   uint8_t pad_00[0x10];
   real_point3d position;
   real_vector3d forward;
@@ -40,23 +83,13 @@ typedef struct {
 co(editor_camera_source_t, position, 0x10);
 co(editor_camera_source_t, forward, 0x1c);
 co(editor_camera_source_t, up, 0x28);
-#define editor_camera_source (*(editor_camera_source_t **)0x2ee670)
-/* Per-mode editor camera update procs; named by the
- * "update_funcs[camera_mode]" assert in editor_camera_update. */
-#define update_funcs ((director_camera_proc *)0x2ee674)
 
-/* kb.json data symbols still spelled by address.  Using the extern loses
- * aligned bytes: director_unknown_335690 + director_stick_pitch_scale +
- * director_stick_yaw_scale together -2 in director_compute_camera_input
- * (any subset as externs loses up to -18), editor_camera_default_position_y
- * -1 in FUN_00087c00, editor_camera_scripted_messages -6 in
- * editor_camera_set_scripted.  Deleting a line switches its uses to the kb
- * symbol. */
-#define director_unknown_335690 (*(uint8_t *)0x335690)
-#define director_stick_pitch_scale (*(real *)0x2670ac)
-#define director_stick_yaw_scale (*(real *)0x2670b0)
-#define editor_camera_default_position_y (*(real *)0x2670d8)
-#define editor_camera_scripted_messages ((const char **)0x2ee694)
+/* Leading fields of an element of the scenario block at +0x354: the editor
+ * camera's starting focus. */
+typedef struct {
+  real_point3d position;
+  real_euler_angles2d angles;
+} director_scenario_start_t;
 
 /* input_get_gamepad_state result, 0x28 bytes; same layout as the
  * input_gamepad_state of input_xbox.c.  The *_hold arrays count the frames a
@@ -78,32 +111,30 @@ co(input_gamepad_state, stick_lx, 0x20);
 co(input_gamepad_state, stick_ry, 0x26);
 
 /* The director's inline copy of the camera command validator.  It tests the
- * float bit pattern for NaN/infinity and compares against the constant pools
- * instead of calling valid_real().  The field of view and timer operands are
- * separate because editor_camera_orbiting_update validates them from its
- * globals rather than from the command. */
+ * float bit pattern for NaN/infinity and range-checks the command instead of
+ * calling valid_real().  The field of view and timer operands are separate
+ * because editor_camera_orbiting_update validates them from its globals
+ * rather than from the command. */
+#define k_real_exponent_mask 0x7f800000
 #define real_bits_valid(value) \
-  ((*(uint32_t *)&(value) & 0x7f800000) != 0x7f800000)
-#define director_world_real_valid(value)                                  \
-  (real_bits_valid(value) && (value) >= REAL_NEG_5000_POOL &&             \
-   (value) <= REAL_5000_POOL)
+  ((real_bits_of(&(value))->bits & k_real_exponent_mask) != k_real_exponent_mask)
+#define director_world_real_valid(value) \
+  (real_bits_valid(value) && (value) >= -5000.0f && (value) <= 5000.0f)
 #define director_camera_command_valid(command, field_of_view, timer)      \
   (!((command)->flags & FLAG(_observer_command_valid_bit)) ||             \
-   (valid_real_normal3d_perpendicular((float *)&(command)->forward,       \
-                                      (float *)&(command)->up) &&         \
+   (valid_real_normal3d_perpendicular(&(command)->forward.i,       \
+                                      &(command)->up.i) &&         \
     director_world_real_valid((command)->position.x) &&                   \
     director_world_real_valid((command)->position.y) &&                   \
     director_world_real_valid((command)->position.z) &&                   \
     director_world_real_valid((command)->offset.i) &&                     \
     director_world_real_valid((command)->offset.j) &&                     \
     director_world_real_valid((command)->offset.k) &&                     \
-    real_vector3d_valid((float *)&(command)->velocity) &&                 \
-    real_bits_valid((command)->depth) &&                                  \
-    (command)->depth >= REAL_ZERO_POOL &&                                 \
-    (command)->depth <= REAL_5000_POOL && real_bits_valid(field_of_view) && \
-    (field_of_view) >= REAL_0_001_POOL &&                                 \
-    (field_of_view) <= REAL_HALF_PI_POOL && real_bits_valid(timer) &&     \
-    (timer) >= REAL_ZERO_POOL && (timer) <= REAL_3600_POOL))
+    real_vector3d_valid(&(command)->velocity.i) &&                 \
+    real_bits_valid((command)->depth) && (command)->depth >= 0.0f &&      \
+    (command)->depth <= 5000.0f && real_bits_valid(field_of_view) &&      \
+    (field_of_view) >= 0.001f && (field_of_view) <= k_half_pi &&          \
+    real_bits_valid(timer) && (timer) >= 0.0f && (timer) <= 3600.0f))
 
 /* "Invalid camera command." arguments with the field of view and timer
  * taken from the given operands (see director_camera_command_valid). */

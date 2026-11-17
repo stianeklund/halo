@@ -1679,7 +1679,7 @@ void create_pelican_effect(int vehicle_handle)
 
   do {
     marker = markers + (int)i * 0x6c;
-    seed_random_vector_in_cone3d((int *)random_math_get_local_seed_address(),
+    seed_random_vector_in_cone3d(random_math_get_local_seed_address(),
                                  (float *)(marker + 0x3c), 0.0f, 0.2617994f,
                                  direction);
 
@@ -1791,7 +1791,7 @@ void create_ghost_effect(int vehicle_index)
       marker = &markers[marker_index];
 
       seed_random_vector_in_cone3d(
-        (int *)random_math_get_local_seed_address(),
+        random_math_get_local_seed_address(),
         (float *)&marker->matrix.forward, 0.0f, 15.0f, &direction.i);
 
       vector = direction;
@@ -1799,7 +1799,7 @@ void create_ghost_effect(int vehicle_index)
       if (FUN_0014df70(0x61, (float *)&marker->matrix.position, &vector.i,
                        vehicle_index, (int16_t *)&collision)) {
 #define GHOST_WASH_SCALE \
-  (-marker->matrix.forward.z * (1.0f - collision.t) * vehicle->unit.seat_power[0])
+  (-marker->matrix.forward.k * (1.0f - collision.t) * vehicle->unit.seat_power[0])
         scale = GHOST_WASH_SCALE < 0.0f   ? 0.0f
                 : GHOST_WASH_SCALE > 1.0f ? 1.0f
                                           : GHOST_WASH_SCALE;

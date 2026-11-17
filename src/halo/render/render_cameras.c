@@ -1220,9 +1220,9 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   normalize3d(&view_left.x);
   normalize3d(&view_up.x);
   normalize3d(&view_backward.x);
-  fr->field_44.forward = view_left;
-  fr->field_44.left = view_up;
-  fr->field_44.up = view_backward;
+  fr->field_44.forward = *(real_vector3d *)&view_left;
+  fr->field_44.left = *(real_vector3d *)&view_up;
+  fr->field_44.up = *(real_vector3d *)&view_backward;
   fr->field_44.position = camera->field_00;
   fr->field_44.scale = 1.0f;
   matrix_inverse(&fr->field_44.scale, &fr->field_10.scale);

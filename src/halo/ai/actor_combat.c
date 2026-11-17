@@ -178,7 +178,7 @@ void actor_combat_set_fire_timer(int actor_handle /* @<esi> */)
   {
     float min_time = *(float *)((char *)burst_ref + 0x1c);
     float max_time = *(float *)((char *)burst_ref + 0x20);
-    int *seed = get_global_random_seed_address();
+    unsigned int *seed = get_global_random_seed_address();
     random_time = random_real_range(seed, min_time, max_time);
   }
 
@@ -235,7 +235,7 @@ bool actor_combat_evaluate_firing(int actor_handle /* @<eax> */,
   {
     float min_time = *(float *)((char *)timing_data + 0x80);
     float max_time = *(float *)((char *)timing_data + 0x84);
-    int *seed = get_global_random_seed_address();
+    unsigned int *seed = get_global_random_seed_address();
     float delay = random_real_range(seed, min_time, max_time);
     ((actor_t *)actor)->field_5f4 = (short)(int)(delay * TICKS_PER_SECOND);
   }
@@ -645,7 +645,7 @@ void actor_start_burst(int actor_handle)
   float dx, dy, dz;
   float combat_prop, scaled_val;
   float fvar;
-  int *seed;
+  unsigned int *seed;
   uint16_t random_val;
   short fire_timer;
   int *vehicle_obj;

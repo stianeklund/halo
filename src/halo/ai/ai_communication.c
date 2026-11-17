@@ -1696,7 +1696,7 @@ void actor_reset_idle_vocalization_timer(int actor_handle)
   float delay_min;
   float delay_max;
   int16_t bonus;
-  int *seed;
+  unsigned int *seed;
   float delay_seconds;
 
   actor = (actor_t *)datum_get(*(data_t **)0x6325a4, actor_handle);

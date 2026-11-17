@@ -3305,7 +3305,7 @@ char actor_action_consider_grenade(int actor_handle)
   char *actor;
   char *actv_tag;
   int current_time;
-  int *seed;
+  unsigned int *seed;
   float expiry;
   float throw_chance;
   float team_mult;

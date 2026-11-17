@@ -136,7 +136,7 @@ float distance_squared3d(const float *a, const float *b)
 
 float FUN_000121e0(float min, float max)
 {
-  int *seed = get_global_random_seed_address();
+  unsigned int *seed = get_global_random_seed_address();
   return random_real_range(seed, min, max);
 }
 

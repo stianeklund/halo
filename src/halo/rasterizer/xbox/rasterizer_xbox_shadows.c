@@ -33,9 +33,10 @@
  * emits a higher-addressed term first, so no source order reproduces that;
  * this order matches the most of it (position operand first, z in the
  * middle). */
-static __inline real dot_product3d(const vector3_t *a, const vector3_t *b)
+static __inline real dot_product3d(const real_point3d *a,
+                                   const real_vector3d *b)
 {
-  return a->x * b->x + a->z * b->z + a->y * b->y;
+  return a->x * b->i + a->z * b->k + a->y * b->j;
 }
 
 /* 0x172590
@@ -489,13 +490,13 @@ void _rasterizer_environment_shadow_draw(void *shader, short bitmap_index,
         (rasterizer_environment_shadows_globals.object_bounding_radius * 0.5f);
 
       shader_constants[0] =
-        rasterizer_environment_shadows_globals.shadow_matrix.forward.x *
+        rasterizer_environment_shadows_globals.shadow_matrix.forward.i *
         inv_range * 0.5f;
       shader_constants[1] =
-        rasterizer_environment_shadows_globals.shadow_matrix.forward.y *
+        rasterizer_environment_shadows_globals.shadow_matrix.forward.j *
         inv_range * 0.5f;
       shader_constants[2] =
-        rasterizer_environment_shadows_globals.shadow_matrix.forward.z *
+        rasterizer_environment_shadows_globals.shadow_matrix.forward.k *
         inv_range * 0.5f;
       shader_constants[3] =
         (1.0f -
@@ -505,13 +506,13 @@ void _rasterizer_environment_shadow_draw(void *shader, short bitmap_index,
            inv_range) *
         0.5f;
       shader_constants[4] =
-        rasterizer_environment_shadows_globals.shadow_matrix.left.x *
+        rasterizer_environment_shadows_globals.shadow_matrix.left.i *
         inv_range * -0.5f;
       shader_constants[5] =
-        rasterizer_environment_shadows_globals.shadow_matrix.left.y *
+        rasterizer_environment_shadows_globals.shadow_matrix.left.j *
         inv_range * -0.5f;
       shader_constants[6] =
-        rasterizer_environment_shadows_globals.shadow_matrix.left.z *
+        rasterizer_environment_shadows_globals.shadow_matrix.left.k *
         inv_range * -0.5f;
       shader_constants[7] =
         (dot_product3d(
@@ -521,33 +522,33 @@ void _rasterizer_environment_shadow_draw(void *shader, short bitmap_index,
          1.0f) *
         0.5f;
       shader_constants[8] =
-        rasterizer_environment_shadows_globals.shadow_matrix.up.x *
+        rasterizer_environment_shadows_globals.shadow_matrix.up.i *
         inv_range_scaled;
       shader_constants[9] =
-        rasterizer_environment_shadows_globals.shadow_matrix.up.y *
+        rasterizer_environment_shadows_globals.shadow_matrix.up.j *
         inv_range_scaled;
       shader_constants[10] =
-        rasterizer_environment_shadows_globals.shadow_matrix.up.z *
+        rasterizer_environment_shadows_globals.shadow_matrix.up.k *
         inv_range_scaled;
       shader_constants[16] =
-        rasterizer_environment_shadows_globals.shadow_matrix.up.x;
+        rasterizer_environment_shadows_globals.shadow_matrix.up.i;
       shader_constants[17] =
-        rasterizer_environment_shadows_globals.shadow_matrix.up.y;
+        rasterizer_environment_shadows_globals.shadow_matrix.up.j;
       shader_constants[18] =
-        rasterizer_environment_shadows_globals.shadow_matrix.up.z;
+        rasterizer_environment_shadows_globals.shadow_matrix.up.k;
       shader_constants[19] = 0.0f;
       dot = dot_product3d(
         &rasterizer_environment_shadows_globals.shadow_matrix.position,
         &rasterizer_environment_shadows_globals.shadow_matrix.up);
       shader_constants[11] = -(dot * inv_range_scaled);
       shader_constants[12] =
-        -(rasterizer_environment_shadows_globals.shadow_matrix.up.x *
+        -(rasterizer_environment_shadows_globals.shadow_matrix.up.i *
           inv_half_range);
       shader_constants[13] =
-        -(rasterizer_environment_shadows_globals.shadow_matrix.up.y *
+        -(rasterizer_environment_shadows_globals.shadow_matrix.up.j *
           inv_half_range);
       shader_constants[14] =
-        -(rasterizer_environment_shadows_globals.shadow_matrix.up.z *
+        -(rasterizer_environment_shadows_globals.shadow_matrix.up.k *
           inv_half_range);
       shader_constants[15] = dot * inv_half_range;
       D3DDevice_SetVertexShaderConstant(-0x51, shader_constants, 5);

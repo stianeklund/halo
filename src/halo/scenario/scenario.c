@@ -526,13 +526,13 @@ void render_object_shadow_end(object_render_data *data)
   real_plane3d shadow_volume_planes[NUMBER_OF_SHADOW_VOLUME_PLANES];
   real_rectangle3d shadow_volume_bounds;
 
-  shadow_volume_planes[0].normal[0] = data->shadow_matrix.up.x;
-  shadow_volume_planes[0].normal[1] = data->shadow_matrix.up.y;
-  shadow_volume_planes[0].normal[2] = data->shadow_matrix.up.z;
+  shadow_volume_planes[0].normal[0] = data->shadow_matrix.up.i;
+  shadow_volume_planes[0].normal[1] = data->shadow_matrix.up.j;
+  shadow_volume_planes[0].normal[2] = data->shadow_matrix.up.k;
   shadow_volume_planes[0].d =
-    data->shadow_matrix.up.z * data->shadow_matrix.position.z +
-    data->shadow_matrix.up.y * data->shadow_matrix.position.y +
-    data->shadow_matrix.up.x * data->shadow_matrix.position.x;
+    data->shadow_matrix.up.k * data->shadow_matrix.position.z +
+    data->shadow_matrix.up.j * data->shadow_matrix.position.y +
+    data->shadow_matrix.up.i * data->shadow_matrix.position.x;
   shadow_volume_planes[1].normal[0] = -shadow_volume_planes[0].normal[0];
   shadow_volume_planes[1].normal[1] = -shadow_volume_planes[0].normal[1];
   shadow_volume_planes[1].normal[2] = -shadow_volume_planes[0].normal[2];
@@ -540,13 +540,13 @@ void render_object_shadow_end(object_render_data *data)
   shadow_volume_planes[0].d -= data->shadow_bounding_radius * 0.5f;
   shadow_volume_planes[1].d -= data->shadow_bounding_radius * 4.0f;
 
-  shadow_volume_planes[2].normal[0] = data->shadow_matrix.forward.x;
-  shadow_volume_planes[2].normal[1] = data->shadow_matrix.forward.y;
-  shadow_volume_planes[2].normal[2] = data->shadow_matrix.forward.z;
+  shadow_volume_planes[2].normal[0] = data->shadow_matrix.forward.i;
+  shadow_volume_planes[2].normal[1] = data->shadow_matrix.forward.j;
+  shadow_volume_planes[2].normal[2] = data->shadow_matrix.forward.k;
   shadow_volume_planes[2].d =
-    data->shadow_matrix.forward.z * data->shadow_matrix.position.z +
-    data->shadow_matrix.forward.y * data->shadow_matrix.position.y +
-    data->shadow_matrix.forward.x * data->shadow_matrix.position.x;
+    data->shadow_matrix.forward.k * data->shadow_matrix.position.z +
+    data->shadow_matrix.forward.j * data->shadow_matrix.position.y +
+    data->shadow_matrix.forward.i * data->shadow_matrix.position.x;
   shadow_volume_planes[3].normal[0] = -shadow_volume_planes[2].normal[0];
   shadow_volume_planes[3].normal[1] = -shadow_volume_planes[2].normal[1];
   shadow_volume_planes[3].normal[2] = -shadow_volume_planes[2].normal[2];
@@ -554,13 +554,13 @@ void render_object_shadow_end(object_render_data *data)
   shadow_volume_planes[2].d -= data->shadow_bounding_radius;
   shadow_volume_planes[3].d -= data->shadow_bounding_radius;
 
-  shadow_volume_planes[4].normal[0] = data->shadow_matrix.left.x;
-  shadow_volume_planes[4].normal[1] = data->shadow_matrix.left.y;
-  shadow_volume_planes[4].normal[2] = data->shadow_matrix.left.z;
+  shadow_volume_planes[4].normal[0] = data->shadow_matrix.left.i;
+  shadow_volume_planes[4].normal[1] = data->shadow_matrix.left.j;
+  shadow_volume_planes[4].normal[2] = data->shadow_matrix.left.k;
   shadow_volume_planes[4].d =
-    data->shadow_matrix.left.z * data->shadow_matrix.position.z +
-    data->shadow_matrix.left.y * data->shadow_matrix.position.y +
-    data->shadow_matrix.left.x * data->shadow_matrix.position.x;
+    data->shadow_matrix.left.k * data->shadow_matrix.position.z +
+    data->shadow_matrix.left.j * data->shadow_matrix.position.y +
+    data->shadow_matrix.left.i * data->shadow_matrix.position.x;
   shadow_volume_planes[5].normal[0] = -shadow_volume_planes[4].normal[0];
   shadow_volume_planes[5].normal[1] = -shadow_volume_planes[4].normal[1];
   shadow_volume_planes[5].normal[2] = -shadow_volume_planes[4].normal[2];
@@ -569,38 +569,38 @@ void render_object_shadow_end(object_render_data *data)
   shadow_volume_planes[5].d -= data->shadow_bounding_radius;
 
   shadow_volume_bounds.x1 =
-    (data->shadow_matrix.forward.x < 0.0f ? -data->shadow_matrix.forward.x :
-                                            data->shadow_matrix.forward.x) +
-    (data->shadow_matrix.left.x < 0.0f ? -data->shadow_matrix.left.x :
-                                         data->shadow_matrix.left.x);
+    (data->shadow_matrix.forward.i < 0.0f ? -data->shadow_matrix.forward.i :
+                                            data->shadow_matrix.forward.i) +
+    (data->shadow_matrix.left.i < 0.0f ? -data->shadow_matrix.left.i :
+                                         data->shadow_matrix.left.i);
   shadow_volume_bounds.x0 = -shadow_volume_bounds.x1;
   shadow_volume_bounds.y1 =
-    (data->shadow_matrix.forward.y < 0.0f ? -data->shadow_matrix.forward.y :
-                                            data->shadow_matrix.forward.y) +
-    (data->shadow_matrix.left.y < 0.0f ? -data->shadow_matrix.left.y :
-                                         data->shadow_matrix.left.y);
+    (data->shadow_matrix.forward.j < 0.0f ? -data->shadow_matrix.forward.j :
+                                            data->shadow_matrix.forward.j) +
+    (data->shadow_matrix.left.j < 0.0f ? -data->shadow_matrix.left.j :
+                                         data->shadow_matrix.left.j);
   shadow_volume_bounds.y0 = -shadow_volume_bounds.y1;
   shadow_volume_bounds.z1 =
-    (data->shadow_matrix.forward.z < 0.0f ? -data->shadow_matrix.forward.z :
-                                            data->shadow_matrix.forward.z) +
-    (data->shadow_matrix.left.z < 0.0f ? -data->shadow_matrix.left.z :
-                                         data->shadow_matrix.left.z);
+    (data->shadow_matrix.forward.k < 0.0f ? -data->shadow_matrix.forward.k :
+                                            data->shadow_matrix.forward.k) +
+    (data->shadow_matrix.left.k < 0.0f ? -data->shadow_matrix.left.k :
+                                         data->shadow_matrix.left.k);
   shadow_volume_bounds.z0 = -shadow_volume_bounds.z1;
 
-  shadow_volume_bounds.x0 += (data->shadow_matrix.up.x <= 0.0f) ?
-                               data->shadow_matrix.up.x * 4.0f :
-                               data->shadow_matrix.up.x * -0.5f;
-  shadow_volume_bounds.x1 += (data->shadow_matrix.up.x > 0.0f) ?
-                               data->shadow_matrix.up.x * 4.0f :
-                               data->shadow_matrix.up.x * -0.5f;
-  shadow_volume_bounds.y0 += (data->shadow_matrix.up.y <= 0.0f) ?
-                               data->shadow_matrix.up.y * 4.0f :
-                               data->shadow_matrix.up.y * -0.5f;
-  shadow_volume_bounds.y1 += (data->shadow_matrix.up.y > 0.0f) ?
-                               data->shadow_matrix.up.y * 4.0f :
-                               data->shadow_matrix.up.y * -0.5f;
-  shadow_volume_bounds.z0 += data->shadow_matrix.up.z * 4.0f;
-  shadow_volume_bounds.z1 -= data->shadow_matrix.up.z * 0.5f;
+  shadow_volume_bounds.x0 += (data->shadow_matrix.up.i <= 0.0f) ?
+                               data->shadow_matrix.up.i * 4.0f :
+                               data->shadow_matrix.up.i * -0.5f;
+  shadow_volume_bounds.x1 += (data->shadow_matrix.up.i > 0.0f) ?
+                               data->shadow_matrix.up.i * 4.0f :
+                               data->shadow_matrix.up.i * -0.5f;
+  shadow_volume_bounds.y0 += (data->shadow_matrix.up.j <= 0.0f) ?
+                               data->shadow_matrix.up.j * 4.0f :
+                               data->shadow_matrix.up.j * -0.5f;
+  shadow_volume_bounds.y1 += (data->shadow_matrix.up.j > 0.0f) ?
+                               data->shadow_matrix.up.j * 4.0f :
+                               data->shadow_matrix.up.j * -0.5f;
+  shadow_volume_bounds.z0 += data->shadow_matrix.up.k * 4.0f;
+  shadow_volume_bounds.z1 -= data->shadow_matrix.up.k * 0.5f;
 
   shadow_volume_bounds.x0 =
     shadow_volume_bounds.x0 * data->shadow_bounding_radius +

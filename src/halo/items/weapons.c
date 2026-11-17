@@ -2940,9 +2940,9 @@ void trigger_create_projectiles(int weapon_handle, int16_t trigger_index)
     origin[0] = marker->matrix.position.x;
     origin[1] = marker->matrix.position.y;
     origin[2] = marker->matrix.position.z;
-    forward[0] = marker->matrix.forward.x;
-    forward[1] = marker->matrix.forward.y;
-    forward[2] = marker->matrix.forward.z;
+    forward[0] = marker->matrix.forward.i;
+    forward[1] = marker->matrix.forward.j;
+    forward[2] = marker->matrix.forward.k;
     speed = 0.0f;
     error_angle = 0.0f;
 

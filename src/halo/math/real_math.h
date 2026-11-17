@@ -20,6 +20,17 @@ static __inline boolean valid_real(real n)
   return (*(long *)&n & 0x7f800000) != 0x7f800000;
 }
 
+/* The IEEE-754 bit view of a float, as assert_valid_real prints it. */
+typedef union {
+  real value;
+  uint32_t bits;
+} real_bits;
+
+static __inline const real_bits *real_bits_of(const void *value)
+{
+  return value;
+}
+
 /* result = b - a.  Inlined in lightning_submit (0x135818, 0x135c6f). */
 static __inline real_vector3d *vector_from_points3d(real_point3d const *a,
                                                     real_point3d const *b,
@@ -53,5 +64,10 @@ static __inline real dot_product3d(real_vector3d const *a,
 {
   return a->i * b->i + a->j * b->j + a->k * b->k;
 }
+
+/* The constant vectors the engine reaches through pointer globals. */
+#define global_zero_vector3d ((const real_vector3d *)global_zero_vector_ptr)
+#define global_forward_vector3d ((const real_vector3d *)global_forward_vector_ptr)
+#define global_up_vector3d ((const real_vector3d *)global_up_vector_ptr)
 
 #endif /* HALO_MATH_REAL_MATH_H */

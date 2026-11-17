@@ -3341,7 +3341,7 @@ uint32_t unit_test_spawning(int unit_handle)
   uint32_t *unit;
   char *unit_tag;
   uint32_t flags;
-  int *seed;
+  unsigned int *seed;
   int16_t count;
 
   unit = (uint32_t *)object_get_and_verify_type(unit_handle, 3);
@@ -5960,7 +5960,7 @@ void unit_detach_weapon(int unit_handle, int weapon_handle)
   float *global_origin;
   float direction[3];
   float position[3];
-  int *seed;
+  unsigned int *seed;
   float scale;
 
   unit = (char *)object_get_and_verify_type(unit_handle, 3);
@@ -9273,7 +9273,7 @@ void unit_apply_alignment_vector(int unit_handle, float *alignment_vector)
 void unit_start_flaming_to_death(int unit_handle, int param_2)
 {
   char *unit;
-  int *seed;
+  unsigned int *seed;
   int16_t ticks;
 
   unit = (char *)object_get_and_verify_type(unit_handle, 3);
@@ -9404,9 +9404,9 @@ void unit_update_running_blind(int unit_handle, float *run_vector)
   }
 
   {
-    int *seed;
+    unsigned int *seed;
     seed = get_global_random_seed_address();
-    angle_delta = random_real_range((int *)seed, max_left, local_val);
+    angle_delta = random_real_range(seed, max_left, local_val);
   }
 
 apply_angle:
@@ -12565,8 +12565,8 @@ void unit_exit_seat_end(int unit_handle)
     matrix4x3_multiply((float *)node_matrix2, (float *)seat_rotation_offset,
                        (float *)&matrix_out);
 
-    *(vector3_t *)(unit + 0x24) = matrix_out.forward;
-    *(vector3_t *)(unit + 0x30) = matrix_out.up;
+    *(real_vector3d *)(unit + 0x24) = matrix_out.forward;
+    *(real_vector3d *)(unit + 0x30) = matrix_out.up;
   }
 
   /* Set object as garbage (for cleanup) */
@@ -12641,7 +12641,7 @@ void unit_died(int unit_handle, char param_2)
     unit_tag = (char *)tag_get(0x756e6974, *(int *)unit);
 
     {
-      int *seed;
+      unsigned int *seed;
       float rnd;
       seed = get_global_random_seed_address();
       rnd = random_math_real((unsigned int *)seed);

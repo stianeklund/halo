@@ -204,7 +204,7 @@ float effect_real_random_range(int bit_index, int effect_ptr, uint32_t flags_lo,
   if (flags_hi & (1 << (bit_index + 1)))
     range *= *(float *)(effect_ptr + 0x48);
 
-  return random_real_range((int *)seed, 0.0f, range) + base;
+  return random_real_range(seed, 0.0f, range) + base;
 }
 
 /* Compute a scaled random velocity vector for an effect. Calls effect_real_random_range
@@ -265,7 +265,7 @@ void effect_set_event(int effect_handle, int event_index)
   char *tag_data;
   char *event;
   char *tag_flags;
-  int *seed;
+  unsigned int *seed;
 
   effect = (char *)(int)datum_absolute_index_to_index(*(data_t **)0x5aa8b0,
                                                       effect_handle);
@@ -287,7 +287,7 @@ void effect_set_event(int effect_handle, int event_index)
   if (*(uint8_t *)tag_flags & 2)
     seed = get_global_random_seed_address();
   else
-    seed = (int *)random_math_get_local_seed_address();
+    seed = random_math_get_local_seed_address();
 
   *(float *)(effect + 0x54) =
     random_real_range(seed, *(float *)(event + 8), *(float *)(event + 0xc));
@@ -910,7 +910,7 @@ void effect_generate_particles(void *effect)
                     dist_range *= *(float *)(ef + 0x48);
 
                   random_distance =
-                    random_real_range((int *)seed, 0.0f, dist_range) + dist_base;
+                    random_real_range(seed, 0.0f, dist_range) + dist_base;
 
                   seed = random_math_get_local_seed_address();
                   random_seed_get_direction3d(seed, random_dir);
@@ -1044,7 +1044,7 @@ void effect_generate_particles(void *effect)
                     size_range *= *(float *)(ef + 0x48);
 
                   *(float *)(spawn_params.bytes + 0x48) =
-                    random_real_range((int *)seed, 0.0f, size_range) +
+                    random_real_range(seed, 0.0f, size_range) +
                     size_base;
                 }
 
@@ -1069,13 +1069,13 @@ void effect_generate_particles(void *effect)
                     scl_range *= *(float *)(ef + 0x48);
 
                   *(float *)(spawn_params.bytes + 0x44) =
-                    random_real_range((int *)seed, 0.0f, scl_range) + scl_base;
+                    random_real_range(seed, 0.0f, scl_range) + scl_base;
                 }
 
                 if (*(uint8_t *)(part + 0x64) & 2) {
                   seed = random_math_get_local_seed_address();
                   *(float *)(spawn_params.bytes + 0x40) =
-                    random_real_range((int *)seed, 0.0f, 6.2831855f);
+                    random_real_range(seed, 0.0f, 6.2831855f);
                 } else {
                   *(float *)(spawn_params.bytes + 0x40) = 0.0f;
                 }
@@ -1223,7 +1223,7 @@ void effect_generate_part(float *position, void *effect, void *location, void *p
                  (int)*(uint32_t *)(loc_entry + 0x64));
 
     seed = (unsigned int *)random_math_get_local_seed_address();
-    decal_scale = random_real_range((int *)seed, *(float *)(loc_entry + 0x54),
+    decal_scale = random_real_range(seed, *(float *)(loc_entry + 0x54),
                                     *(float *)(loc_entry + 0x58));
 
     decal_new(*(int *)(loc_entry + 0x24), position, direction, decal_scale,
@@ -1817,7 +1817,7 @@ event_loop:
 
         /* set event duration from random range */
         *(float *)((char *)effect + 0x54) =
-          random_real_range((int *)seed, *(float *)((char *)event_elem + 0x10),
+          random_real_range(seed, *(float *)((char *)event_elem + 0x10),
                             *(float *)((char *)event_elem + 0x14));
 
         /* create particles/effects for each part in the event */
@@ -1828,14 +1828,14 @@ event_loop:
           void *part;
           float lo, hi;
           int flags_a, flags_b;
-          int *seed2;
+          unsigned int *seed2;
           float result;
           uint8_t byte_val;
 
           part = tag_block_get_element(parts_block, part_idx, 0xe8);
           lo = (float)(int)*(int16_t *)((char *)part + 0x6c);
           hi = (float)(int)*(int16_t *)((char *)part + 0x6e);
-          seed2 = (int *)random_math_get_local_seed_address();
+          seed2 = random_math_get_local_seed_address();
           flags_a = *(int *)((char *)part + 0xe0);
           flags_b = *(int *)((char *)part + 0xe4);
 

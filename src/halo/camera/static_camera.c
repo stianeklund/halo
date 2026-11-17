@@ -22,8 +22,8 @@ void static_camera_update(void *camera, const void *action, void *result)
     system_exit(-1);
   }
 
-  static_camera = (static_camera_t *)camera;
-  command = (camera_command_t *)result;
+  static_camera = camera;
+  command = result;
   if (!static_camera->initialized) {
     command->position = static_camera->position;
     command->forward = static_camera->forward;
@@ -32,7 +32,7 @@ void static_camera_update(void *camera, const void *action, void *result)
     command->timer = (real)static_camera->timer;
     command->velocity.i = command->velocity.j = command->velocity.k = 0.0f;
     command->flags = static_camera->flags | FLAG(_observer_command_valid_bit);
-    command->offset = *(real_vector3d *)global_zero_vector_ptr;
+    command->offset = *global_zero_vector3d;
     static_camera->initialized = true;
 
     if (!camera_command_valid(command)) {

@@ -223,13 +223,13 @@ bool valid_real_normal3d_perpendicular(float *a, float *b)
  * 3 cdecl params: camera_state, unit_datum, result buffer.
  */
 /* 0x84ae0 */
-void bored_camera_update(bored_camera_t *camera, camera_control_t *controls,
+void bored_camera_update(bored_camera_t *camera, camera_action_t *controls,
                          camera_command_t *result)
 {
   uint32_t now;
   int threshold;
   int unit_index;
-  float *facing;
+  real_euler_angles2d *facing;
   int shots;
   player_control_unit_camera_info_t camera_info;
   real_point3d camera_position;
@@ -262,23 +262,23 @@ void bored_camera_update(bored_camera_t *camera, camera_control_t *controls,
       if (camera_info.camera->unit_camera_tracks.count != 0) {
         tag_block_get_element(&camera_info.camera->unit_camera_tracks, 0, 0x1c);
       }
-      facing = (float *)player_control_get_facing_angles(controls->local_player_index);
-      angles[0] = facing[0];
-      angles[1] = facing[1];
+      facing = player_control_get_facing_angles(controls->local_player_index);
+      angles[0] = facing->yaw;
+      angles[1] = facing->pitch;
       unit_get_camera_position(unit_index, &camera_position.x);
       /* angles[] is one {yaw, pitch} pair: angles_to_vector reads both. */
-      angles[1] = random_real_range((int *)random_math_get_local_seed_address(),
+      angles[1] = random_real_range(random_math_get_local_seed_address(),
                                     -1.0995574f, 0.39269909f);
-      angles[0] += random_real_range((int *)random_math_get_local_seed_address(),
+      angles[0] += random_real_range(random_math_get_local_seed_address(),
                                      -0.78539819f, 0.78539819f) +
                    3.14159265f;
       angles_to_vector(&result->forward.i, angles);
-      observer_up_from_forward(&result->forward.i, &result->up.i);
+      observer_up_from_forward(&result->forward, &result->up);
       field_of_view = random_real_range(
-        (int *)random_math_get_local_seed_address(), 0.52359879f, 1.3962634f);
+        random_math_get_local_seed_address(), 0.52359879f, 1.3962634f);
       result->field_of_view = field_of_view;
       result->depth = random_real_range(
-        (int *)random_math_get_local_seed_address(), 1.0f, 6.0f);
+        random_math_get_local_seed_address(), 1.0f, 6.0f);
       result->velocity = *(real_vector3d *)global_zero_vector_ptr;
       shots = camera->boredom_count + 1;
       if (3 < shots) {
@@ -518,7 +518,7 @@ int scripted_camera_time(void)
  * 3 cdecl params.
  */
 /* 0x853c0 */
-void scripted_camera_update(int camera, camera_control_t *controls,
+void scripted_camera_update(int camera, camera_action_t *controls,
                             camera_command_t *result)
 {
   real_vector3d *forward;
@@ -9129,7 +9129,7 @@ char object_select_random_region_permutations_by_variant(
         if (count == 1) {
           chosen = 0;
         } else {
-          int *seed = get_global_random_seed_address();
+          unsigned int *seed = get_global_random_seed_address();
           chosen = seed_random_range((unsigned int *)seed, 0, count);
         }
         *(unsigned char *)(obj + 0x130 + (int)region_count) =

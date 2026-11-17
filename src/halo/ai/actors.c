@@ -1589,7 +1589,7 @@ char actor_type_flood_desire_shamble(int actor_handle)
   int behind_count;
   int lateral_count;
   float base_prob;
-  int *seed;
+  unsigned int *seed;
   float timer_f;
   float dot;
   int stand_count;
@@ -5354,7 +5354,7 @@ int actor_new(int actv_tag_index)
   int actr_tag_index;
   char *state;
   float rand_val;
-  int *seed;
+  unsigned int *seed;
 
   new_handle = -1;
   if (actv_tag_index != -1) {
@@ -5536,7 +5536,7 @@ void actor_customize_unit(int actv_tag_index, int unit_index)
   int object_handle;
   int i;
   int count;
-  int *seed;
+  unsigned int *seed;
   float blend;
   float *out_color;
   float *copy_dest;
@@ -6113,7 +6113,7 @@ void actor_died(int actor_handle)
   float random_val;
   float ammo_fraction;
   short ticks;
-  int *seed;
+  unsigned int *seed;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   tag = (char *)tag_get(0x61637476, ((actor_t *)actor)->field_05c);

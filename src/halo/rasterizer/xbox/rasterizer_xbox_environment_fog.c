@@ -673,11 +673,11 @@ void rasterizer_environment_fog_screen_wind_update(void *screen_data,
         target_direction->j = 0.0f;
       }
       wind->target_magnitude = random_real_range(
-        (int *)random_math_get_local_seed_address(),
+        random_math_get_local_seed_address(),
         screen->wind_velocity_lower, screen->wind_velocity_upper);
       wind->change_time = global_game_time_sec;
       wind->change_period =
-        random_real_range((int *)random_math_get_local_seed_address(),
+        random_real_range(random_math_get_local_seed_address(),
                           screen->wind_period_lower, screen->wind_period_upper);
     }
   }

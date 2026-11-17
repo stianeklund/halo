@@ -504,14 +504,14 @@ int glow_normal_particle_new(int glow_widget_ptr, short index, short count)
       fmax = *(float *)(glow_tag + 0x88);
       fmin = *(float *)(glow_tag + 0x84);
       *(float *)(particle + 0x1c) = random_real_range(
-        (int *)random_math_get_local_seed_address(), fmin, fmax);
+        random_math_get_local_seed_address(), fmin, fmax);
     }
 
     if (*(int16_t *)(glow_tag + 0x9c) == -1) {
       fmax = *(float *)(glow_tag + 0xa4);
       fmin = *(float *)(glow_tag + 0xa0);
       *(float *)(particle + 0x20) = random_real_range(
-        (int *)random_math_get_local_seed_address(), fmin, fmax);
+        random_math_get_local_seed_address(), fmin, fmax);
       *(float *)(particle + 0x20) =
         *(float *)(particle + 0x20) /
         (float)*(int16_t *)(glow_widget_ptr + 0x228);
@@ -520,7 +520,7 @@ int glow_normal_particle_new(int glow_widget_ptr, short index, short count)
     if ((*(int16_t *)(glow_tag + 0xb0) == -1) &&
         ((*(unsigned char *)(glow_tag + 0x28) &
           FLAG(_glow_definition_modify_particle_color_bit)) == 0)) {
-      t = random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+      t = random_real_range(random_math_get_local_seed_address(), 0.0f,
                             1.0f);
       *(float *)(particle + 0xc) = 1.0f;
       *(float *)(particle + 0x10) =
@@ -537,7 +537,7 @@ int glow_normal_particle_new(int glow_widget_ptr, short index, short count)
     switch (*(int16_t *)(glow_tag + 0x24)) {
     case 0:
       *(float *)(particle + 0x28) =
-        random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+        random_real_range(random_math_get_local_seed_address(), 0.0f,
                           *(float *)(glow_widget_ptr + 0x234));
       break;
     case 1:
@@ -551,7 +551,7 @@ int glow_normal_particle_new(int glow_widget_ptr, short index, short count)
     }
 
     *(float *)(particle + 8) = random_real_range(
-      (int *)random_math_get_local_seed_address(), 0.0f, 6.2831855f);
+      random_math_get_local_seed_address(), 0.0f, 6.2831855f);
   }
 
   return particle;
@@ -600,7 +600,7 @@ void get_particle_world_position(int glow_widget, int particle_ptr,
 {
   vector3_t sides[4];
   vector3_t up;
-  vector3_t ups[4];
+  real_vector3d ups[4];
   vector3_t positions[4];
   vector3_t side;
   float knots[4];
@@ -656,12 +656,12 @@ void get_particle_world_position(int glow_widget, int particle_ptr,
     positions[2].y = (positions[3].y - positions[0].y) * 0.75f + positions[0].y;
     positions[2].z = (positions[3].z - positions[0].z) * 0.75f + positions[0].y;
 
-    ups[1].x = (ups[3].x - ups[0].x) * 0.25f + ups[0].x;
-    ups[1].y = (ups[3].y - ups[0].y) * 0.25f + ups[0].y;
-    ups[1].z = (ups[3].z - ups[0].z) * 0.25f + ups[0].y;
-    ups[2].x = (ups[3].x - ups[0].x) * 0.75f + ups[0].x;
-    ups[2].y = (ups[3].y - ups[0].y) * 0.75f + ups[0].y;
-    ups[2].z = (ups[3].z - ups[0].z) * 0.75f + ups[0].y;
+    ups[1].i = (ups[3].i - ups[0].i) * 0.25f + ups[0].i;
+    ups[1].j = (ups[3].j - ups[0].j) * 0.25f + ups[0].j;
+    ups[1].k = (ups[3].k - ups[0].k) * 0.25f + ups[0].j;
+    ups[2].i = (ups[3].i - ups[0].i) * 0.75f + ups[0].i;
+    ups[2].j = (ups[3].j - ups[0].j) * 0.75f + ups[0].j;
+    ups[2].k = (ups[3].k - ups[0].k) * 0.75f + ups[0].j;
 
     knots[1] = (knots[3] - knots[0]) * 0.25f + knots[0];
     knots[2] = (knots[3] - knots[0]) * 0.75f + knots[0];
@@ -688,9 +688,9 @@ void get_particle_world_position(int glow_widget, int particle_ptr,
       positions[2].z =
         (positions[3].z - positions[1].z) * 0.5f + positions[1].y;
 
-      ups[2].x = (ups[3].x - ups[1].x) * 0.5f + ups[1].x;
-      ups[2].y = (ups[3].y - ups[1].y) * 0.5f + ups[1].y;
-      ups[2].z = (ups[3].z - ups[1].z) * 0.5f + ups[1].y;
+      ups[2].i = (ups[3].i - ups[1].i) * 0.5f + ups[1].i;
+      ups[2].j = (ups[3].j - ups[1].j) * 0.5f + ups[1].j;
+      ups[2].k = (ups[3].k - ups[1].k) * 0.5f + ups[1].j;
 
       knots[2] = (knots[3] - knots[1]) * 0.5f + knots[1];
       break;
@@ -706,9 +706,9 @@ void get_particle_world_position(int glow_widget, int particle_ptr,
       positions[1].z =
         (positions[2].z - positions[0].z) * 0.5f + positions[0].y;
 
-      ups[1].x = (ups[2].x - ups[0].x) * 0.5f + ups[0].x;
-      ups[1].y = (ups[2].y - ups[0].y) * 0.5f + ups[0].y;
-      ups[1].z = (ups[2].z - ups[0].z) * 0.5f + ups[0].y;
+      ups[1].i = (ups[2].i - ups[0].i) * 0.5f + ups[0].i;
+      ups[1].j = (ups[2].j - ups[0].j) * 0.5f + ups[0].j;
+      ups[1].k = (ups[2].k - ups[0].k) * 0.5f + ups[0].j;
 
       knots[2] = (glow->marker_time_index[1] - knots[0]) * 0.5f + knots[0];
       break;
@@ -761,18 +761,18 @@ void get_particle_world_position(int glow_widget, int particle_ptr,
         ((glow_datum *)marker)->markers[0].matrix.position;
       ups[index] = ((glow_datum *)marker)->markers[0].matrix.up;
       /* sides[index] = cross(matrix_up, matrix_forward) */
-      sides[index].x = ((glow_datum *)marker)->markers[0].matrix.up.y *
-                         ((glow_datum *)marker)->markers[0].matrix.forward.z -
-                       ((glow_datum *)marker)->markers[0].matrix.up.z *
-                         ((glow_datum *)marker)->markers[0].matrix.forward.y;
-      sides[index].y = ((glow_datum *)marker)->markers[0].matrix.up.z *
-                         ((glow_datum *)marker)->markers[0].matrix.forward.x -
-                       ((glow_datum *)marker)->markers[0].matrix.up.x *
-                         ((glow_datum *)marker)->markers[0].matrix.forward.z;
-      sides[index].z = ((glow_datum *)marker)->markers[0].matrix.up.x *
-                         ((glow_datum *)marker)->markers[0].matrix.forward.y -
-                       ((glow_datum *)marker)->markers[0].matrix.up.y *
-                         ((glow_datum *)marker)->markers[0].matrix.forward.x;
+      sides[index].x = ((glow_datum *)marker)->markers[0].matrix.up.j *
+                         ((glow_datum *)marker)->markers[0].matrix.forward.k -
+                       ((glow_datum *)marker)->markers[0].matrix.up.k *
+                         ((glow_datum *)marker)->markers[0].matrix.forward.j;
+      sides[index].y = ((glow_datum *)marker)->markers[0].matrix.up.k *
+                         ((glow_datum *)marker)->markers[0].matrix.forward.i -
+                       ((glow_datum *)marker)->markers[0].matrix.up.i *
+                         ((glow_datum *)marker)->markers[0].matrix.forward.k;
+      sides[index].z = ((glow_datum *)marker)->markers[0].matrix.up.i *
+                         ((glow_datum *)marker)->markers[0].matrix.forward.j -
+                       ((glow_datum *)marker)->markers[0].matrix.up.j *
+                         ((glow_datum *)marker)->markers[0].matrix.forward.i;
     }
     break;
   }
@@ -966,7 +966,7 @@ int glow_trailing_particle_new(int glow_widget /* @<ebx> */)
       fmax = *(float *)(glow_widget + 0x234) * *(float *)(glow_tag + 0x10c);
       fmin = *(float *)(glow_widget + 0x234) * *(float *)(glow_tag + 0x108);
       *(float *)(particle + 0x28) = random_real_range(
-        (int *)random_math_get_local_seed_address(), fmin, fmax);
+        random_math_get_local_seed_address(), fmin, fmax);
       get_particle_world_position(glow_widget, particle, 0.0f);
     } else {
       *(uint32_t *)(particle + 0x2c) = *(uint32_t *)(glow_widget + 0x68);
@@ -991,11 +991,11 @@ int glow_trailing_particle_new(int glow_widget /* @<ebx> */)
       break;
     case 2:
       *(float *)(particle + 0x38) = random_real_range(
-        (int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
+        random_math_get_local_seed_address(), -1.0f, 1.0f);
       *(float *)(particle + 0x3c) = random_real_range(
-        (int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
+        random_math_get_local_seed_address(), -1.0f, 1.0f);
       *(float *)(particle + 0x40) = random_real_range(
-        (int *)random_math_get_local_seed_address(), -1.0f, 1.0f);
+        random_math_get_local_seed_address(), -1.0f, 1.0f);
       normalize3d((float *)(particle + 0x38));
       break;
     default:
@@ -1011,7 +1011,7 @@ int glow_trailing_particle_new(int glow_widget /* @<ebx> */)
     *(float *)(particle + 0x40) = *(float *)(particle + 0x40) * scale;
 
     /* Particle size (tag radius range / widget divisor). */
-    radius = random_real_range((int *)random_math_get_local_seed_address(),
+    radius = random_real_range(random_math_get_local_seed_address(),
                                *(float *)(glow_tag + 0xa0),
                                *(float *)(glow_tag + 0xa4));
     *(float *)(particle + 0x20) =
@@ -1022,7 +1022,7 @@ int glow_trailing_particle_new(int glow_widget /* @<ebx> */)
       (int16_t)(int)(*(float *)(glow_tag + 0x100) * TICKS_PER_SECOND);
 
     /* Color lerp between tag min (0xb8..0xc0) and max (0xc8..0xd0). */
-    t = random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+    t = random_real_range(random_math_get_local_seed_address(), 0.0f,
                           1.0f);
     *(float *)(particle + 0xc) = 1.0f;
     *(float *)(particle + 0x10) =

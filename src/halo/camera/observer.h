@@ -46,6 +46,35 @@ typedef struct {
 } unit_camera_track_t;
 cs(unit_camera_track_t, 0x1c);
 
+/* Views of the unit tag layouts used by unit_camera_get: a vehicle seat
+ * element (0x11c bytes, flags dword first) embeds a unit_camera_t at +0x84,
+ * and the unit definition embeds one at +0x1a8.  Sizes of the remainder are
+ * unproven. */
+typedef struct {
+  uint32_t flags;                          ///< offset=0x00
+  uint8_t pad_04[0x80];                    ///< offset=0x04
+  unit_camera_t camera;                    ///< offset=0x84
+  uint8_t pad_dc[0x40];                    ///< offset=0xdc
+} observer_unit_seat_t;
+cs(observer_unit_seat_t, 0x11c);
+co(observer_unit_seat_t, camera, 0x84);
+
+typedef struct {
+  uint8_t pad_00[0x1a8];                   ///< offset=0x00
+  unit_camera_t camera;                    ///< offset=0x1a8
+} observer_unit_definition_t;
+co(observer_unit_definition_t, camera, 0x1a8);
+
+/* View of the structure-BSP cluster element (0x68 bytes, types.h keeps the
+ * range opaque): its predicted-resources tag block sits at +0x28. */
+typedef struct {
+  uint8_t pad_00[0x28];                    ///< offset=0x00
+  tag_block predicted_resources;           ///< offset=0x28
+  uint8_t pad_34[0x34];                    ///< offset=0x34
+} observer_bsp_cluster_t;
+cs(observer_bsp_cluster_t, 0x68);
+co(observer_bsp_cluster_t, predicted_resources, 0x28);
+
 /* Globals tag (game_globals_get): camera_track_splut falls back to the first
  * 'trak' reference of the block at +0x104 (0x10-byte elements).  Size
  * unproven. */
@@ -73,20 +102,39 @@ cs(observer_derivative_t, 0x38);
  * observer_compute_update copies them across by count.  The six 11-float
  * arrays at +0x158 are the t^5..t^0 coefficients summed by
  * observer_compute_update. */
+/* Array view of camera_command_t for the loops that walk its floats by
+ * parameter index (same 0x68 bytes, same offsets as camera_command_t). */
+typedef struct {
+  uint8_t pad_00[0x4];                     ///< offset=0x00
+  real parameters[NUMBER_OF_OBSERVER_PARAMETERS]; ///< offset=0x04
+  real velocity[3];                        ///< offset=0x3c
+  uint8_t pad_48[0x20];                    ///< offset=0x48
+} observer_command_arrays_t;
+cs(observer_command_arrays_t, 0x68);
+co(observer_command_arrays_t, velocity, 0x3c);
+
 typedef struct {
   int32_t header_signature;                ///< offset=0x00
   camera_command_t *pending_command;       ///< offset=0x04
-  camera_command_t last_command;           ///< offset=0x08
+  union {
+    camera_command_t last_command;         ///< offset=0x08
+    observer_command_arrays_t last_command_arrays; ///< offset=0x08
+  };
   uint8_t updated_for_frame;               ///< offset=0x70
   uint8_t first_command;                   ///< offset=0x71
   uint8_t pad_72[2];                       ///< offset=0x72
   observer_result_t result;                ///< offset=0x74
-  real_point3d focus_position;             ///< offset=0xb0
-  real_vector3d focus_offset;              ///< offset=0xbc
-  real focus_distance;                     ///< offset=0xc8
-  real field_of_view;                      ///< offset=0xcc
-  real_vector3d forward;                   ///< offset=0xd0
-  real_vector3d up;                        ///< offset=0xdc
+  union {
+    struct {
+      real_point3d focus_position;         ///< offset=0xb0
+      real_vector3d focus_offset;          ///< offset=0xbc
+      real focus_distance;                 ///< offset=0xc8
+      real field_of_view;                  ///< offset=0xcc
+      real_vector3d forward;               ///< offset=0xd0
+      real_vector3d up;                    ///< offset=0xdc
+    };
+    real parameters[NUMBER_OF_OBSERVER_PARAMETERS]; ///< offset=0xb0
+  };
   observer_derivative_t velocities;        ///< offset=0xe8
   observer_derivative_t accelerations;     ///< offset=0x120
   real coefficient5[NUMBER_OF_OBSERVER_VELOCITIES]; ///< offset=0x158
@@ -117,8 +165,13 @@ co(observer_data_t, coefficient0, 0x234);
 co(observer_data_t, displacements, 0x260);
 co(observer_data_t, trailer_signature, 0x298);
 
-#define observer_data_get(local_player_index) \
-  ((observer_data_t *)&observer_globals.local_players[(local_player_index)])
+/* The observer of a local player, seen through this file's full layout. */
+static __inline observer_data_t *observer_data_get(int16_t local_player_index)
+{
+  void *observer = &observer_globals.local_players[local_player_index];
+
+  return observer;
+}
 
 /* camera_command_t.flags bits beyond types.h's valid/force-time pair:
  * observer_update_result skips the near-plane obstruction probe for bit 4,
@@ -131,15 +184,5 @@ enum {
 #ifndef MAXIMUM_COLLISION_USER_STACK_DEPTH
 #define MAXIMUM_COLLISION_USER_STACK_DEPTH 0x20
 #endif
-
-/* Shared constant-pool floats still read by name.  A plain literal at these
- * sites changes the emitted code: in observer_integrate's loop the compiler
- * keeps 3.0f/4.0f/5.0f in x87 registers instead of re-reading memory with
- * FMUL m32 as 2276 does, and FUN_0008c150's 0.5f step loses 4 bytes the same
- * way. */
-#define REAL_0_5_POOL (*(float *)0x253398) /* 0.5f */
-#define REAL_3_0_POOL (*(float *)0x254644) /* 3.0f */
-#define REAL_4_0_POOL (*(float *)0x2533d8) /* 4.0f */
-#define REAL_5_0_POOL (*(float *)0x254cc4) /* 5.0f */
 
 #endif

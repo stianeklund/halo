@@ -1117,8 +1117,7 @@ typedef struct {
   int32_t field_0x04;            ///< offset=0x04
   uint16_t action_flags;         ///< offset=0x08 (player_control_inhibit_buttons)
   uint16_t persistent_action_flags; ///< offset=0x0a (persistent variant)
-  real    desired_angles_yaw;    ///< offset=0x0c player->desired_angles.yaw
-  real    desired_angles_pitch;  ///< offset=0x10 player->desired_angles.pitch
+  real_euler_angles2d desired_angles; ///< offset=0x0c player->desired_angles
   real    field_0x14;            ///< offset=0x14
   int32_t field_0x18;            ///< offset=0x18
   real    primary_trigger;       ///< offset=0x1c player->primary_trigger
@@ -1140,8 +1139,7 @@ cs(player_control_t, 0x40);
 co(player_control_t, unit_index,             0x00);
 co(player_control_t, action_flags,           0x08);
 co(player_control_t, persistent_action_flags, 0x0a);
-co(player_control_t, desired_angles_yaw,     0x0c);
-co(player_control_t, desired_angles_pitch,   0x10);
+co(player_control_t, desired_angles,         0x0c);
 co(player_control_t, primary_trigger,        0x1c);
 co(player_control_t, desired_weapon_index,   0x20);
 co(player_control_t, target_object_index,    0x28);
@@ -1312,10 +1310,10 @@ cs(real_rectangle3d, 0x18);
 /// (0x109150) / matrix_transform_point (0x109590) operand layout.
 typedef struct {
   real      scale;    ///< offset=0x00
-  vector3_t forward;  ///< offset=0x04
-  vector3_t left;     ///< offset=0x10
-  vector3_t up;       ///< offset=0x1c
-  vector3_t position; ///< offset=0x28
+  real_vector3d forward; ///< offset=0x04
+  real_vector3d left;    ///< offset=0x10
+  real_vector3d up;      ///< offset=0x1c
+  real_point3d position; ///< offset=0x28
 } real_matrix4x3;
 cs(real_matrix4x3, 0x34);
 
@@ -1701,6 +1699,9 @@ typedef struct unit_definition_t {
 co(unit_definition_t, flags, 0x17c);
 co(unit_definition_t, ai_danger_radius, 0x284);
 co(unit_definition_t, seats, 0x2e4);
+
+#define unit_definition_get(tag_index) \
+  ((unit_definition_t *)tag_get(TAG_GROUP_UNIT, (tag_index)))
 
 /* Biped tag definition: the unit definition followed by the biped block.
  *   +0x2f4 biped_flags — bit 2 flying, bit 6 climbs anything
@@ -5809,5 +5810,12 @@ typedef struct widget_stack_node_t {
 } widget_stack_node_t;
 cs(widget_stack_node_t, 0x10);
 co(widget_stack_node_t, next, 0x0c);
+
+/* Defined in camera/director.c. */
+struct editor_camera_angles;
+
+#define global_structure_bsp_get() ((structure_bsp_t *)scenario_get())
+/* globals_definition_t is defined in camera/observer.h. */
+#define global_game_globals_get() ((globals_definition_t *)game_globals_get())
 
 #endif /* TYPES_H */

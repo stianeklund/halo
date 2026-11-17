@@ -163,7 +163,7 @@ void weather_particle_system_new(int16_t local_player_index, int particle_system
       upper_bound = *(float *)((char *)type_element + 0xa8);
       lower_bound = *(float *)((char *)type_element + 0xa4);
       *(float *)particle_type =
-        random_real_range((int *)random_math_get_local_seed_address(),
+        random_real_range(random_math_get_local_seed_address(),
                           lower_bound, upper_bound);
 
       type_index = type_index + 1;
@@ -260,15 +260,15 @@ int weather_particle_system_new_particle(int16_t type_index /* @<eax> */,
       (char *)tag_get(0x6269746d, *(int *)((char *)type_element + 0x1a0));
 
     *(float *)(particle + 4) =
-      random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+      random_real_range(random_math_get_local_seed_address(), 0.0f,
                         *(float *)(particle_type + 4));
 
     *(float *)(particle + 8) =
-      random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+      random_real_range(random_math_get_local_seed_address(), 0.0f,
                         *(float *)(particle_type + 4));
 
     *(float *)(particle + 0xc) =
-      random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+      random_real_range(random_math_get_local_seed_address(), 0.0f,
                         *(float *)(particle_type + 4));
 
     *(int *)(particle + 0x18) = 0;
@@ -278,7 +278,7 @@ int weather_particle_system_new_particle(int16_t type_index /* @<eax> */,
     direction = (float *)(particle + 0x1c);
     random_seed_get_direction3d(random_math_get_local_seed_address(), direction);
 
-    scale = random_real_range((int *)random_math_get_local_seed_address(),
+    scale = random_real_range(random_math_get_local_seed_address(),
                               *(float *)((char *)type_element + 0xcc),
                               *(float *)((char *)type_element + 0xd0));
     direction[0] *= scale;
@@ -286,23 +286,23 @@ int weather_particle_system_new_particle(int16_t type_index /* @<eax> */,
     direction[2] *= scale;
 
     *(float *)(particle + 0x44) =
-      random_real_range((int *)random_math_get_local_seed_address(),
+      random_real_range(random_math_get_local_seed_address(),
                         *(float *)((char *)type_element + 0xfc),
                         *(float *)((char *)type_element + 0x100));
 
     *(float *)(particle + 0x4c) =
-      random_real_range((int *)random_math_get_local_seed_address(),
+      random_real_range(random_math_get_local_seed_address(),
                         *(float *)((char *)type_element + 0x104),
                         *(float *)((char *)type_element + 0x108));
 
     *(float *)(particle + 0x48) =
-      random_real_range((int *)random_math_get_local_seed_address(),
+      random_real_range(random_math_get_local_seed_address(),
                         *(float *)((char *)type_element + 0x10c),
                         *(float *)((char *)type_element + 0x110));
 
     if (*(char *)((char *)type_element + 0x20) & 4) {
       *(float *)(particle + 0x30) =
-        random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+        random_real_range(random_math_get_local_seed_address(), 0.0f,
                           6.2831855f);
     } else {
       *(int *)(particle + 0x30) = 0;
@@ -315,7 +315,7 @@ int weather_particle_system_new_particle(int16_t type_index /* @<eax> */,
     sequence_element =
       tag_block_get_element((void *)(bitmap + 0x54), (int)sequence_index, 0x40);
     *(float *)(particle + 0x2c) =
-      random_real_range((int *)random_math_get_local_seed_address(), 0.0f,
+      random_real_range(random_math_get_local_seed_address(), 0.0f,
                         (float)*(int *)((char *)sequence_element + 0x34));
 
     FUN_0007c270((float *)(particle + 0x38),
@@ -325,7 +325,7 @@ int weather_particle_system_new_particle(int16_t type_index /* @<eax> */,
                  random_math_real(random_math_get_local_seed_address()));
 
     *(float *)(particle + 0x34) =
-      random_real_range((int *)random_math_get_local_seed_address(),
+      random_real_range(random_math_get_local_seed_address(),
                         *(float *)((char *)type_element + 0x134),
                         *(float *)((char *)type_element + 0x144));
 
@@ -416,7 +416,7 @@ void weather_particle_update_physics(int16_t type_index /* @<eax> */,
     turbulence_min = -*(float *)((char *)type_element + 0xd8);
     seed = random_math_get_local_seed_address();
     speed =
-      speed + random_real_range((int *)seed, turbulence_min, turbulence_max);
+      speed + random_real_range(seed, turbulence_min, turbulence_max);
 
     if (speed < *(float *)((char *)type_element + 0xcc))
       speed = *(float *)((char *)type_element + 0xcc);

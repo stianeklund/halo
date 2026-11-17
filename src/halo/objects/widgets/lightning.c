@@ -486,7 +486,7 @@ void lightning_submit(int object_index, int lightning_index, void *lighting,
                       !points[point_count + segment_point_index].valid);
 
                   jitter = random_real_range(
-                               (int *)random_math_get_local_seed_address(),
+                               random_math_get_local_seed_address(),
                                -1.0f, 1.0f) *
                            jitter_offset;
                   scale_vector3d(&up, jitter, &offset);

@@ -1501,7 +1501,7 @@ static float decals_dot3(const float *a, const float *b)
 
 static float decals_random_real(float min, float max)
 {
-  return random_real_range((int *)random_math_get_local_seed_address(), min,
+  return random_real_range(random_math_get_local_seed_address(), min,
                            max);
 }
 

@@ -1145,11 +1145,11 @@ int16_t model_animation_choose_random(int update_kind,
  * three x87-resident deltas are popped). */
 /* Stores (x, y, z); VC71 evaluates the arguments right to left, so the IK
  * basis rebuild computes z first and keeps all three on the x87 stack. */
-static __inline void anim_set_vector3d(vector3_t *v, float x, float y, float z)
+static __inline void anim_set_vector3d(real_vector3d *v, float x, float y, float z)
 {
-  v->x = x;
-  v->y = y;
-  v->z = z;
+  v->i = x;
+  v->j = y;
+  v->k = z;
 }
 
 static __inline float anim_distance3d(const vector3_t *p0, const vector3_t *p1)
@@ -1194,8 +1194,8 @@ void inverse_kinematics_adjust_matrices(float *composed_matrix,
   vector3_t *c_position = &c->position;
   float len_bc, len_cd, len_ab;
   float inv_len_ab, reach, split, height;
-  vector3_t *b_forward, *b_left, *b_up;
-  vector3_t *c_forward, *c_left, *c_up;
+  real_vector3d *b_forward, *b_left, *b_up;
+  real_vector3d *c_forward, *c_left, *c_up;
   vector3_t bc_dir;
   vector3_t axis, bend, perp, offset, new_position;
 
@@ -1234,44 +1234,44 @@ void inverse_kinematics_adjust_matrices(float *composed_matrix,
   b_left = &b->left;
   b_up = &b->up;
   offset.x = perp.x * height;
-  b_forward->x = split * axis.x + offset.x;
+  b_forward->i = split * axis.x + offset.x;
   offset.y = perp.y * height;
-  b_forward->y = split * axis.y + offset.y;
+  b_forward->j = split * axis.y + offset.y;
   offset.z = perp.z * height;
-  b_forward->z = split * axis.z + offset.z;
+  b_forward->k = split * axis.z + offset.z;
   normalize3d((float *)b_forward);
 
   anim_set_vector3d(b_up,
-                    b_left->z * b_forward->y - b_left->y * b_forward->z,
-                    b_left->x * b_forward->z - b_left->z * b_forward->x,
-                    b_left->y * b_forward->x - b_forward->y * b_left->x);
+                    b_left->k * b_forward->j - b_left->j * b_forward->k,
+                    b_left->i * b_forward->k - b_left->k * b_forward->i,
+                    b_left->j * b_forward->i - b_forward->j * b_left->i);
   normalize3d((float *)b_up);
   anim_set_vector3d(b_left,
-                    b_up->y * b_forward->z - b_up->z * b_forward->y,
-                    b_up->z * b_forward->x - b_up->x * b_forward->z,
-                    b_forward->y * b_up->x - b_forward->x * b_up->y);
+                    b_up->j * b_forward->k - b_up->k * b_forward->j,
+                    b_up->k * b_forward->i - b_up->i * b_forward->k,
+                    b_forward->j * b_up->i - b_forward->i * b_up->j);
 
-  new_position.x = len_bc * b_forward->x + b->position.x;
-  new_position.y = len_bc * b_forward->y + b->position.y;
-  new_position.z = len_bc * b_forward->z + b->position.z;
+  new_position.x = len_bc * b_forward->i + b->position.x;
+  new_position.y = len_bc * b_forward->j + b->position.y;
+  new_position.z = len_bc * b_forward->k + b->position.z;
 
   c_forward = &c->forward;
   c_left = &c->left;
   c_up = &c->up;
-  c_forward->x = len_ab * axis.x - offset.x;
-  c_forward->y = len_ab * axis.y - offset.y;
-  c_forward->z = len_ab * axis.z - offset.z;
+  c_forward->i = len_ab * axis.x - offset.x;
+  c_forward->j = len_ab * axis.y - offset.y;
+  c_forward->k = len_ab * axis.z - offset.z;
   normalize3d((float *)c_forward);
 
   anim_set_vector3d(c_up,
-                    c_forward->y * c_left->z - c_forward->z * c_left->y,
-                    c_forward->z * c_left->x - c_forward->x * c_left->z,
-                    c_forward->x * c_left->y - c_forward->y * c_left->x);
+                    c_forward->j * c_left->k - c_forward->k * c_left->j,
+                    c_forward->k * c_left->i - c_forward->i * c_left->k,
+                    c_forward->i * c_left->j - c_forward->j * c_left->i);
   normalize3d((float *)c_up);
   anim_set_vector3d(c_left,
-                    c_forward->z * c_up->y - c_forward->y * c_up->z,
-                    c_forward->x * c_up->z - c_forward->z * c_up->x,
-                    c_forward->y * c_up->x - c_forward->x * c_up->y);
+                    c_forward->k * c_up->j - c_forward->j * c_up->k,
+                    c_forward->i * c_up->k - c_forward->k * c_up->i,
+                    c_forward->j * c_up->i - c_forward->i * c_up->j);
 
   *c_position = new_position;
   *d = *composed;

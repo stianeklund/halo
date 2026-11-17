@@ -630,16 +630,16 @@ void first_person_weapon_center_flashlight(int object_handle, float *out_positio
 
 
 
-  out_position[0] = marker.matrix.position.x - marker.matrix.forward.x * 0.5f;
-  out_position[1] = marker.matrix.position.y - marker.matrix.forward.y * 0.5f;
-  out_position[2] = marker.matrix.position.z - marker.matrix.forward.z * 0.5f;
+  out_position[0] = marker.matrix.position.x - marker.matrix.forward.i * 0.5f;
+  out_position[1] = marker.matrix.position.y - marker.matrix.forward.j * 0.5f;
+  out_position[2] = marker.matrix.position.z - marker.matrix.forward.k * 0.5f;
 
-  *(vector3_t *)out_forward = marker.matrix.forward;
+  *(real_vector3d *)out_forward = marker.matrix.forward;
 
 
 
   /* 0xdd31b-0xdd32f: out_up is written unconditionally (no NULL test). */
-  *(vector3_t *)out_up = marker.matrix.up;
+  *(real_vector3d *)out_up = marker.matrix.up;
 
 
 }

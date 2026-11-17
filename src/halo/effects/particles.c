@@ -866,7 +866,7 @@ void particle_new(void *spawn_params)
   {
     float lifetime;
     unsigned int *seed = random_math_get_local_seed_address();
-    lifetime = random_real_range((int *)seed, *(float *)((char *)tag + 0x38),
+    lifetime = random_real_range(seed, *(float *)((char *)tag + 0x38),
                                  *(float *)((char *)tag + 0x3c));
     *(float *)(datum + 0x18) = lifetime;
     if (lifetime > 0.7f) {

@@ -896,8 +896,8 @@ int player_aim_projectile(int player_index, float *origin, float *forward)
 
   if (unit_get_aim_assist_parameters(aiming_unit_index, aim_assist_parameters,
                                      unit_get_zoom_level(aiming_unit_index))) {
-    director_camera_deterministic(player->unit_handle, (int)&camera_position,
-                                  (int)&camera_forward);
+    director_camera_deterministic(player->unit_handle, &camera_position,
+                                  &camera_forward);
     aim_vector = *(real_vector3d *)forward;
     aim_level = 0.0f;
 

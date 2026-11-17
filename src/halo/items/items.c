@@ -1855,7 +1855,7 @@ void item_detonate(int item_handle)
 {
   char *item_obj;
   char *item_tag;
-  int *seed;
+  unsigned int *seed;
   float rnd;
 
   item_obj = (char *)object_get_and_verify_type(item_handle, 0x1c);

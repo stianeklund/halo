@@ -842,7 +842,7 @@ bool projectile_new(int projectile_handle)
   projectile_attachment_definition_t *attachment;
   int attachment_count;
   int16_t attachment_index;
-  int *seed;
+  unsigned int *seed;
 
   projectile = projectile_get(projectile_handle);
   definition = projectile_definition_get(projectile->object.tag_index);
@@ -1019,7 +1019,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   projectile_data_t *action_projectile;
   uint32_t object_flags;
   short material_type;
-  int *seed;
+  unsigned int *seed;
   damage_data_t damage;
   real_point3d marker_points[NUMBER_OF_EFFECT_MARKERS];
   real_vector3d marker_forwards[NUMBER_OF_EFFECT_MARKERS];

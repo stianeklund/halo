@@ -1988,14 +1988,14 @@ void FUN_001631d0(int light_index)
       gel_bitmap_index = *(int *)(light->owner + 0x88);
     }
 
-    matrix.forward = light->forward;
-    matrix.up = light->up;
+    matrix.forward = *(const real_vector3d *)&light->forward;
+    matrix.up = *(const real_vector3d *)&light->up;
     {
       const vector3_t *a = &light->forward;
       const vector3_t *b = &light->up;
-      matrix.left.x = a->y * b->z - a->z * b->y;
-      matrix.left.y = a->z * b->x - a->x * b->z;
-      matrix.left.z = a->x * b->y - a->y * b->x;
+      matrix.left.i = a->y * b->z - a->z * b->y;
+      matrix.left.j = a->z * b->x - a->x * b->z;
+      matrix.left.k = a->x * b->y - a->y * b->x;
     }
     normalize3d((float *)&matrix.left);
 
@@ -2004,21 +2004,21 @@ void FUN_001631d0(int light_index)
 
     *(real_point3d *)&vertex_constants[0] = light->position;
     vertex_constants[3] = 0.5f / radius;
-    vertex_constants[4] = -matrix.forward.x;
-    vertex_constants[5] = -matrix.forward.y;
-    vertex_constants[6] = -matrix.forward.z;
+    vertex_constants[4] = -matrix.forward.i;
+    vertex_constants[5] = -matrix.forward.j;
+    vertex_constants[6] = -matrix.forward.k;
     vertex_constants[7] = 1.0f;
-    vertex_constants[8] = -matrix.left.x;
-    vertex_constants[9] = -matrix.left.y;
-    vertex_constants[10] = -matrix.left.z;
+    vertex_constants[8] = -matrix.left.i;
+    vertex_constants[9] = -matrix.left.j;
+    vertex_constants[10] = -matrix.left.k;
     vertex_constants[11] = 1.0f;
-    vertex_constants[12] = -matrix.up.x;
-    vertex_constants[13] = -matrix.up.y;
-    vertex_constants[14] = -matrix.up.z;
+    vertex_constants[12] = -matrix.up.i;
+    vertex_constants[13] = -matrix.up.j;
+    vertex_constants[14] = -matrix.up.k;
     vertex_constants[15] = 1.0f;
-    vertex_constants[16] = matrix.forward.x * cone_scale;
-    vertex_constants[17] = matrix.forward.y * cone_scale;
-    vertex_constants[18] = matrix.forward.z * cone_scale;
+    vertex_constants[16] = matrix.forward.i * cone_scale;
+    vertex_constants[17] = matrix.forward.j * cone_scale;
+    vertex_constants[18] = matrix.forward.k * cone_scale;
     vertex_constants[19] = -(cone_scale * (radius * 0.5f));
 
     D3DDevice_SetVertexShaderConstant(-0x51, vertex_constants, 5);

@@ -902,10 +902,10 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
 
                   /* Get RNG seed and generate jitter */
                   seed = random_math_get_local_seed_address();
-                  jitter_u = random_real_range((int *)seed, -0.75f, 0.75f);
+                  jitter_u = random_real_range(seed, -0.75f, 0.75f);
 
                   seed = random_math_get_local_seed_address();
-                  jitter_v = random_real_range((int *)seed, -0.75f, 0.75f);
+                  jitter_v = random_real_range(seed, -0.75f, 0.75f);
 
                   /* Compute world-space position from grid coordinates */
                   u_coord = ((float)col_iter + jitter_u) * effect_size;
@@ -1022,7 +1022,7 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
                       lo = *(float *)(effect_entry + 0x18);
                       hi = *(float *)(effect_entry + 0x1c);
                       seed = random_math_get_local_seed_address();
-                      rand_val = random_real_range((int *)seed, lo, hi);
+                      rand_val = random_real_range(seed, lo, hi);
                       velocity[0] = velocity[0] * rand_val;
                       velocity[1] = velocity[1] * rand_val;
                       velocity[2] = velocity[2] * rand_val;
@@ -1065,7 +1065,7 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
                     /* Random angle in [0, pi] */
                     seed = random_math_get_local_seed_address();
                     *(float *)(spawn_params + 0x40) =
-                      random_real_range((int *)seed, 0.0f, 3.14159274f);
+                      random_real_range(seed, 0.0f, 3.14159274f);
 
                     /* Random scale from effect bounds (offset 0x24..0x28) */
                     {
@@ -1073,7 +1073,7 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
                       float hi2 = *(float *)(effect_entry + 0x28);
                       seed = random_math_get_local_seed_address();
                       *(float *)(spawn_params + 0x44) =
-                        random_real_range((int *)seed, lo2, hi2);
+                        random_real_range(seed, lo2, hi2);
                     }
 
                     /* Random scale from effect bounds (offset 0x34..0x38) */
@@ -1082,7 +1082,7 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
                       float hi3 = *(float *)(effect_entry + 0x38);
                       seed = random_math_get_local_seed_address();
                       *(float *)(spawn_params + 0x48) =
-                        random_real_range((int *)seed, lo3, hi3);
+                        random_real_range(seed, lo3, hi3);
                     }
 
                     /* Color alpha — computed from effect distance curve */

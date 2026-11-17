@@ -892,21 +892,21 @@ void player_effect_get_camera_effect_matrix(int16_t local_player_index,
     }
     rumble_player_set_scale(scale);
 
-    random_a = random_real_range((int *)random_math_get_local_seed_address(),
+    random_a = random_real_range(random_math_get_local_seed_address(),
                                  -1.0f, 1.0f);
-    random_b = random_real_range((int *)random_math_get_local_seed_address(),
+    random_b = random_real_range(random_math_get_local_seed_address(),
                                  -1.0f, 1.0f);
-    random_c = random_real_range((int *)random_math_get_local_seed_address(),
+    random_c = random_real_range(random_math_get_local_seed_address(),
                                  -1.0f, 1.0f);
     FUN_00109e90(matrix, random_c * scripted->field_0c[0] * scale,
                  random_b * scripted->field_0c[1] * scale,
                  random_a * scripted->field_0c[2] * scale);
 
-    random_a = random_real_range((int *)random_math_get_local_seed_address(),
+    random_a = random_real_range(random_math_get_local_seed_address(),
                                  -1.0f, 1.0f);
-    random_b = random_real_range((int *)random_math_get_local_seed_address(),
+    random_b = random_real_range(random_math_get_local_seed_address(),
                                  -1.0f, 1.0f);
-    random_c = random_real_range((int *)random_math_get_local_seed_address(),
+    random_c = random_real_range(random_math_get_local_seed_address(),
                                  -1.0f, 1.0f);
     ((real_matrix4x3 *)matrix)->position.x =
       random_c * scripted->field_00[1] * scale;

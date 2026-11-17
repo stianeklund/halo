@@ -2165,7 +2165,7 @@ float sound_compute_random_scale(float random_min, float random_max,
   float random_value;
 
   seed = random_math_get_local_seed_address();
-  random_value = random_real_range((int *)seed, random_min, random_max);
+  random_value = random_real_range(seed, random_min, random_max);
   return random_value * ((bend_max - bend_min) * source_scale + bend_min);
 }
 
@@ -2817,7 +2817,7 @@ int looping_sound_new(int definition_index /* @<eax> */, int param_2,
 
     *(int *)(entry + index * 4 + 0x54) =
       (int)(((high - low) * scale + low) *
-              random_real_range((int *)random_math_get_local_seed_address(),
+              random_real_range(random_math_get_local_seed_address(),
                                 min, max) *
               *(const float *)0x254cb8 +
             (float)*(const int *)0x4eaf4c);
@@ -2931,12 +2931,12 @@ void detail_sound_random_offset(void *element, void *out_track_data)
   e = (char *)element;
   out = (float *)out_track_data;
 
-  distance = random_real_range((int *)random_math_get_local_seed_address(),
+  distance = random_real_range(random_math_get_local_seed_address(),
                                *(float *)(e + 0x60), *(float *)(e + 0x64));
   if (distance != 0.0f) {
-    angles[1] = random_real_range((int *)random_math_get_local_seed_address(),
+    angles[1] = random_real_range(random_math_get_local_seed_address(),
                                   *(float *)(e + 0x58), *(float *)(e + 0x5c));
-    angles[0] = random_real_range((int *)random_math_get_local_seed_address(),
+    angles[0] = random_real_range(random_math_get_local_seed_address(),
                                   *(float *)(e + 0x50), *(float *)(e + 0x54));
     angles_to_vector(out, angles);
     out[0] = distance * out[0];
@@ -3390,7 +3390,7 @@ int sound_create_looping_entry(int sound_tag_handle /* @<eax> */,
   *(short *)(sound_entry + 0x8c) = -1;
   *(short *)(sound_entry + 0x4) = 0;
 
-  random_gain = random_real_range((int *)random_math_get_local_seed_address(),
+  random_gain = random_real_range(random_math_get_local_seed_address(),
                                   *(float *)((char *)sound_tag + 0x14),
                                   *(float *)((char *)sound_tag + 0x18));
 
@@ -4681,7 +4681,7 @@ void FUN_001cf100(void)
             random_max = *(float *)(element + 0x14);
             random_min = *(float *)(element + 0x10);
             random_value =
-              random_real_range((int *)random_math_get_local_seed_address(),
+              random_real_range(random_math_get_local_seed_address(),
                                 random_min, random_max);
 
             *(int *)(entry + 0x54 + index * 4) =
