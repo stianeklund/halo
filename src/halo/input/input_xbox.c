@@ -663,9 +663,9 @@ bool input_get_buffered_key(void *out_keystroke)
   return true;
 }
 
-/* FUN_000cf690 (0xcf690)
+/* input_get_mouse_state (0xcf690)
  * Returns NULL: no mouse state. */
-void *FUN_000cf690(void)
+void *input_get_mouse_state(void)
 {
   return NULL;
 }

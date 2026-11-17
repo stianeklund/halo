@@ -66,7 +66,7 @@ int action_charge_valid_melee_destination(int actor_handle, float *source_pos)
   dir[0] = source_pos[0] - target_pos[0];
   dir[1] = source_pos[1] - target_pos[1];
   dir[2] = source_pos[2] - target_pos[2];
-  FUN_0014df70(0x33, target_pos, dir, -1, collision_result);
+  collision_test_vector(0x33, target_pos, dir, -1, collision_result);
 
   if (*(volatile short *)0x4761d8 <= 1) {
     display_assert("global_current_collision_user_depth > 1",
@@ -8559,7 +8559,7 @@ char FUN_000283b0(float *actor_facing, char is_aim, float az_min, float az_max,
     ray[0] = direction[0] * *(float *)0x254644;
     ray[1] = direction[1] * *(float *)0x254644;
     ray[2] = direction[2] * *(float *)0x254644;
-    clear = !FUN_0014df70(0x21, actor_facing, ray, -1, collision_result);
+    clear = !collision_test_vector(0x21, actor_facing, ray, -1, collision_result);
     if (*(volatile short *)0x4761d8 <= 1) {
       display_assert("global_current_collision_user_depth > 1",
                      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x42e, 1);
@@ -8804,7 +8804,7 @@ void actor_look_idle_new_minor_direction(float *look_vectors,
    Such a degenerate copy-case look-spec arises during actor activation: the
    idle look producer actor_look_idle_new_major_direction sets the look-spec
    type (e.g. +0x56c=4) BEFORE calling FUN_000283b0, which writes the look
-   vector ONLY on success. When 283b0's collision raycast (FUN_0014df70) finds
+   vector ONLY on success. When 283b0's collision raycast (collision_test_vector) finds
    no clear direction in any of its attempts it returns false and leaves the
    vector unwritten — so a never-initialised (0,0,0) survives with the type
    already armed. The slot is then copied (+0x56c -> +0x57c) and consumed by
@@ -8819,7 +8819,7 @@ void actor_look_idle_new_minor_direction(float *look_vectors,
 
    NOTE (upstream): the root reason +0x570 carries a bad vector (live: an
    uninitialized X = 0xffffffff with valid Y/Z, i.e. NaN; sometimes (0,0,0))
-   is FUN_000283b0 / FUN_0014df70 reporting every idle-look candidate blocked
+   is FUN_000283b0 / collision_test_vector reporting every idle-look candidate blocked
    at activation and returning 0 without writing +0x570, leaving its prior /
    uninitialized contents; that raycast lift should be re-validated
    separately. */

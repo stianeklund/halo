@@ -3276,7 +3276,7 @@
       "score": 100.0,
       "source": "src/halo/camera/bored_camera.c"
     },
-    "FUN_00085a40": {
+    "player_has_allies": {
       "addr": "0x85a40",
       "end": "0x85aaa",
       "kind": "auto",
@@ -3287,7 +3287,7 @@
       "score": 96.6,
       "source": "src/halo/camera/director.c"
     },
-    "FUN_00085ab0": {
+    "player_get_next_player_with_a_unit": {
       "addr": "0x85ab0",
       "end": "0x85b5e",
       "kind": "auto",
@@ -3298,7 +3298,7 @@
       "score": 92.9,
       "source": "src/halo/camera/director.c"
     },
-    "FUN_000865a0": {
+    "director_set_camera": {
       "addr": "0x865a0",
       "end": "0x86600",
       "kind": "auto",
@@ -3309,7 +3309,7 @@
       "score": 100.0,
       "source": "src/halo/camera/director.c"
     },
-    "FUN_00086670": {
+    "director_process_variables": {
       "addr": "0x86670",
       "end": "0x8688b",
       "kind": "auto",
@@ -3320,7 +3320,7 @@
       "score": 95.5,
       "source": "src/halo/camera/director.c"
     },
-    "FUN_00086a50": {
+    "director_rotate_cameras": {
       "addr": "0x86a50",
       "end": "0x86b63",
       "kind": "auto",
@@ -3331,7 +3331,7 @@
       "score": 96.7,
       "source": "src/halo/camera/director.c"
     },
-    "FUN_000874d0": {
+    "director_choose_camera": {
       "addr": "0x874d0",
       "end": "0x8750b",
       "kind": "auto",
@@ -3342,7 +3342,7 @@
       "score": 80.0,
       "source": "src/halo/camera/director.c"
     },
-    "FUN_00087ac0": {
+    "editor_camera_use_roll": {
       "addr": "0x87ac0",
       "end": "0x87ae8",
       "kind": "auto",
@@ -3353,7 +3353,7 @@
       "score": 100.0,
       "source": "src/halo/camera/director.c"
     },
-    "FUN_00087c00": {
+    "translate_flying_to_orbiting": {
       "addr": "0x87c00",
       "end": "0x87c62",
       "kind": "auto",
@@ -3364,7 +3364,7 @@
       "score": 100.0,
       "source": "src/halo/camera/director.c"
     },
-    "FUN_00087eb0": {
+    "editor_camera_set_unit_focus": {
       "addr": "0x87eb0",
       "end": "0x87f20",
       "kind": "auto",
@@ -3375,7 +3375,7 @@
       "score": 100.0,
       "source": "src/halo/camera/director.c"
     },
-    "FUN_00088200": {
+    "translate_orbiting_to_flying": {
       "addr": "0x88200",
       "end": "0x8825d",
       "kind": "auto",
@@ -3386,7 +3386,7 @@
       "score": 96.9,
       "source": "src/halo/camera/director.c"
     },
-    "FUN_00088c80": {
+    "first_person_camera_deterministic": {
       "addr": "0x88c80",
       "end": "0x88d4e",
       "kind": "auto",
@@ -3397,7 +3397,7 @@
       "score": 94.0,
       "source": "src/halo/camera/first_person_camera.c"
     },
-    "FUN_00089350": {
+    "flying_camera_new_from_point_and_vector": {
       "addr": "0x89350",
       "end": "0x89393",
       "kind": "auto",
@@ -3408,7 +3408,7 @@
       "score": 96.3,
       "source": "src/halo/camera/observer.c"
     },
-    "FUN_00089a20": {
+    "uniform_cubic_spline_vector3d": {
       "addr": "0x89a20",
       "end": "0x89ab0",
       "kind": "auto",
@@ -3419,7 +3419,7 @@
       "score": 100.0,
       "source": "src/halo/camera/observer.c"
     },
-    "FUN_0008ab90": {
+    "observer_collision_test_with_t": {
       "addr": "0x8ab90",
       "end": "0x8ac66",
       "kind": "auto",
@@ -3430,7 +3430,7 @@
       "score": 85.7,
       "source": "src/halo/camera/observer.c"
     },
-    "FUN_0008c030": {
+    "observer_rotational_displacement": {
       "addr": "0x8c030",
       "end": "0x8c14d",
       "kind": "auto",
@@ -3441,7 +3441,7 @@
       "score": 89.0,
       "source": "src/halo/camera/observer.c"
     },
-    "FUN_0008c150": {
+    "observer_check_penetration": {
       "addr": "0x8c150",
       "end": "0x8c433",
       "kind": "auto",
@@ -3452,7 +3452,7 @@
       "score": 76.1,
       "source": "src/halo/camera/observer.c"
     },
-    "FUN_0008c440": {
+    "observer_find_displacement": {
       "addr": "0x8c440",
       "end": "0x8c4b0",
       "kind": "auto",
@@ -5850,7 +5850,7 @@
       "score": 96.0,
       "source": "src/halo/input/input_xbox.c"
     },
-    "FUN_000cf690": {
+    "input_get_mouse_state": {
       "addr": "0xcf690",
       "end": "0xcf693",
       "kind": "auto",
@@ -7005,7 +7005,7 @@
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
-    "FUN_00109e90": {
+    "matrix4x3_rotation_from_angles": {
       "addr": "0x109e90",
       "end": "0x109f3c",
       "kind": "auto",
@@ -7280,7 +7280,7 @@
       "score": 100.0,
       "source": "src/halo/math/random_math.c"
     },
-    "FUN_0010c510": {
+    "angle_between_vectors3d": {
       "addr": "0x10c510",
       "end": "0x10c5f6",
       "kind": "auto",
@@ -9809,7 +9809,7 @@
       "score": 95.5,
       "source": "src/halo/physics/collision_bsp.c"
     },
-    "FUN_0014df70": {
+    "collision_test_vector": {
       "addr": "0x14df70",
       "end": "0x14e632",
       "kind": "auto",
@@ -15177,7 +15177,7 @@
       "score": 76.6,
       "source": "src/halo/scenario/scenario.c"
     },
-    "FUN_0018f3e0": {
+    "scenario_location_underwater": {
       "addr": "0x18f3e0",
       "end": "0x18f50a",
       "kind": "auto",
@@ -15188,7 +15188,7 @@
       "score": 91.5,
       "source": "src/halo/scenario/scenario.c"
     },
-    "FUN_0018f510": {
+    "scenario_location_water_depth": {
       "addr": "0x18f510",
       "end": "0x18f5fb",
       "kind": "auto",
@@ -64017,7 +64017,7 @@
       "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
-    "scenario_ensure_point_within_world": {
+    "scenario_test_pvs": {
       "addr": "0x18e800",
       "end": "0x18e89c",
       "kind": "auto",
@@ -64215,7 +64215,7 @@
       "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
-    "scenario_location_underwater": {
+    "scenario_ensure_point_within_world": {
       "addr": "0x18f250",
       "end": "0x18f2c4",
       "kind": "auto",
@@ -64259,7 +64259,7 @@
       "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
-    "scenario_test_pvs": {
+    "render_objects": {
       "addr": "0x18c3a0",
       "end": "0x18c453",
       "kind": "auto",

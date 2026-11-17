@@ -80,7 +80,7 @@ static __inline void camera_internal_set_camera_fn(int16_t player,
                                                    void *camera_fn,
                                                    char reset_top_timer)
 {
-  FUN_000865a0(player, (int)camera_fn, reset_top_timer != 0);
+  director_set_camera(player, (int)camera_fn, reset_top_timer != 0);
 }
 
 /* 0x86a50  cycle camera mode (@eax=player, @ebx=mode_table, cdecl: count).
@@ -89,7 +89,7 @@ static __inline void camera_internal_set_camera_fn(int16_t player,
 static __inline void camera_internal_cycle_mode(int player, int16_t *mode_table,
                                                 int16_t count)
 {
-  FUN_00086a50(player, mode_table, count);
+  director_rotate_cameras(player, mode_table, count);
 }
 
 /* 0x86be0  director_choose_game_perspective (@eax=player, @bl=force_flag, no stack).
@@ -106,7 +106,7 @@ static __inline void camera_internal_reevaluate(int16_t player, char force_flag)
 static __inline void camera_internal_integrate(int16_t player,
                                                uint8_t mode_flags, float fwd)
 {
-  FUN_00086670(player, mode_flags, fwd);
+  director_process_variables(player, mode_flags, fwd);
 }
 
 /* 0x87110  build camera input — now ported. */

@@ -805,7 +805,7 @@ void get_shake_matrix(float *matrix /* @<esi> */, float translation_scale,
  *     return with matrix = identity.
  *   - scale clamped to [0, 1], passed to rumble_player_set_scale.
  *   - three random_real_range(-1, 1) draws r1, r2, r3 then
- *     FUN_00109e90(matrix, r3*+0x3d0*s, r2*+0x3d4*s, r1*+0x3d8*s); three more
+ *     matrix4x3_rotation_from_angles(matrix, r3*+0x3d0*s, r2*+0x3d4*s, r1*+0x3d8*s); three more
  *     draws q1, q2, q3 then position = (q3*+0x3c8*s, q2*+0x3c4*s, q1*+0x3cc*s)
  *     (FSTP order [ESI+0x28], [ESI+0x2c], [ESI+0x30]).  Field reads use the
  *     first globals load (EBX = globals+0x3c4).
@@ -898,7 +898,7 @@ void player_effect_get_camera_effect_matrix(int16_t local_player_index,
                                  -1.0f, 1.0f);
     random_c = random_real_range(random_math_get_local_seed_address(),
                                  -1.0f, 1.0f);
-    FUN_00109e90(matrix, random_c * scripted->field_0c[0] * scale,
+    matrix4x3_rotation_from_angles(matrix, random_c * scripted->field_0c[0] * scale,
                  random_b * scripted->field_0c[1] * scale,
                  random_a * scripted->field_0c[2] * scale);
 

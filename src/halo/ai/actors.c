@@ -6899,7 +6899,7 @@ char actor_general_update(int actor_handle)
  *   2. Check biped+0xcc for parent object handle.
  *   3. actor_input_sample_position to populate actor+0x120 block.
  *   4. unit_get_center_of_mass to get biped world position into local_pos[3].
- *   5. FUN_0018f3e0 to resolve BSP location; result → actor+0x15d.
+ *   5. scenario_location_underwater to resolve BSP location; result → actor+0x15d.
  *   6. Extract player-proximity flag from tag: (tag[0] >> 0x15) & 1 →
  * actor+0x99.
  *   7. If parent object is a vehicle (type==1, biped+0x64==1):
@@ -7089,13 +7089,13 @@ void actor_input_update(int actor_handle)
 
   /* Get world position of the biped into local stack buffer (12 bytes).
    * unit_get_center_of_mass(unit_handle, out_pos[3]) writes 3 floats to local_pos.
-   * FUN_0018f3e0(actor+0x144, local_pos, NULL) = scenario_location_from_point:
+   * scenario_location_underwater(actor+0x144, local_pos, NULL) = scenario_location_from_point:
    *   returns byte outdoor flag; cluster stored at actor+0x15d. */
   {
     float local_pos[3];
     unit_get_center_of_mass(((actor_t *)actor)->field_018, local_pos);
     ((actor_t *)actor)->field_15d =
-      FUN_0018f3e0(actor + 0x144, (void *)local_pos, (int16_t *)0);
+      scenario_location_underwater(actor + 0x144, (void *)local_pos, (int16_t *)0);
   }
 
   /* Extract player-proximity tag bit: (actr_tag[0] >> 0x15) & 1 → actor+0x99 */

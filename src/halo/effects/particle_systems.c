@@ -41,10 +41,10 @@ void material_effect_new_from_point(int effect_tag_index, int param_2, void *pos
   direction[1] = down[1] * 0.3f;
   direction[2] = down[2] * 0.3f;
 
-  if (FUN_0014df70(0xc2a0, origin, direction, -1,
+  if (collision_test_vector(0xc2a0, origin, direction, -1,
                    (int16_t *)collision_result)) {
     surface_index =
-      FUN_0018f3e0(collision_result + 0x0c, collision_result + 0x18, NULL) ?
+      scenario_location_underwater(collision_result + 0x0c, collision_result + 0x18, NULL) ?
         0x1c :
         *(int *)(collision_result + 0x34);
     material_effect_new(effect_tag_index, param_2, surface_index,

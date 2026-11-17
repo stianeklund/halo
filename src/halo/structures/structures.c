@@ -6566,7 +6566,7 @@ int16_t structure_clusters_in_cone(int16_t starting_cluster, float *point,
 /* structure_test_vector (0x198cb0)
  *
  * Traces a vector (point + direction) through the BSP, iteratively firing a
- * collision raycast (FUN_0014df70, flags 0x21) from the current working point
+ * collision raycast (collision_test_vector, flags 0x21) from the current working point
  * and, on each hit, asking structure_render_surface_from_point_and_leaf whether
  * the hit surface's material matches.  A matching surface whose collection
  * element (scenario+0x104, stride 0x20) is not the -1 sentinel terminates the
@@ -6576,7 +6576,7 @@ int16_t structure_clusters_in_cone(int16_t starting_cluster, float *point,
  * otherwise the trace ends with 0.
  *
  * Confirmed from disassembly at 0x198cb0:
- *   - Collision result is an 80-byte (0x50) struct written by FUN_0014df70 via
+ *   - Collision result is an 80-byte (0x50) struct written by collision_test_vector via
  *     LEA [EBP-0x54]; read fields: +0x0c leaf/cluster index (dword),
  * +0x18..0x20 hit point (vec3), +0x48 material ref (masked & 0x7fffffff), +0x4c
  * status byte (bit0 = continue-trace).  Sized per hazard #5 / units.c:9411
@@ -6651,7 +6651,7 @@ char structure_test_vector(float *point, float *direction, float *out_point,
     *(int16_t *)0x4761d8 = depth + 1;
     *(int16_t *)(0x5a8c80 + depth * 2) = 0xf;
 
-    if (FUN_0014df70(0x21, out_point, direction, -1,
+    if (collision_test_vector(0x21, out_point, direction, -1,
                      (int16_t *)collision_result) != 0) {
       scenario = scenario_get();
       out_point[0] = *(float *)(collision_result + 0x18);

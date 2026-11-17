@@ -706,7 +706,7 @@ static __inline real_vector3d *point_from_line3d_inline(const real_vector3d *p,
  *  - mass_point->force starts at the memset zero and accumulates all six
  *    contributions (FLD [+0x84]; FADD [+0x118] at 0x151844).
  * 0x32512c global_gravity, 0x31fc50 global_down3d pointer, 0xc0a0 the
- * collision flags pushed to FUN_0014df70 (collision_test_vector). */
+ * collision flags pushed to collision_test_vector (collision_test_vector). */
 void physics_compute_new(
   const struct physics_instance *instance,
   const struct powered_mass_point_datum *powered_mass_points,
@@ -791,7 +791,7 @@ void physics_compute_new(
     compute_ground_plane(instance->object_index, (void *)mass_point_definition,
                          mass_point);
     mass_point->water_depth =
-      FUN_0018f510(mass_point->location, &mass_point->position);
+      scenario_location_water_depth(mass_point->location, &mass_point->position);
 
     ground_normal = (const real_vector3d *)mass_point->ground_plane.normal;
     if (mass_point->ground_depth > 0.0f) {
@@ -1014,7 +1014,7 @@ void physics_compute_new(
                                 mass_point_definition->radius,
                               &probe_vector);
 
-        if (FUN_0014df70(0xc0a0, &probe_point.x, &probe_vector.i,
+        if (collision_test_vector(0xc0a0, &probe_point.x, &probe_vector.i,
                          instance->object_index, (int16_t *)&collision)) {
           real height;
           real alignment;
@@ -1542,7 +1542,7 @@ void rotate_vectors3d_by_angular_velocity(float *forward, float *up,
  *    is pushed straight into the second FUN_00109c70 at 0x15284b.
  *  - 0x4761fa is the debug global debug_physics_disable_penetration_freeze
  *    (hs-global table entry at 0x2f2bf8: name 0x27edc4, type 5, address).
- *  - penetration sweep: FUN_0014df70 flags 0xc0a1 with the object itself as
+ *  - penetration sweep: collision_test_vector flags 0xc0a1 with the object itself as
  *    the ignore handle; the earliest hit (smallest t, FCOMP skip when
  *    best.t <= t) is kept by REP MOVSD 0x14.  The escape fraction is
  *    best.t - (dot != 0 ? 0.0078125 / |dot| : 0.03125) (double constants
@@ -1689,7 +1689,7 @@ void physics_update_new(
                                &target.x);
         vector_from_points3d_inline(&mass_point->position, &target, &sweep);
 
-        if (FUN_0014df70(0xc0a1, &mass_point->position.x, &sweep.i,
+        if (collision_test_vector(0xc0a1, &mass_point->position.x, &sweep.i,
                          instance->object_index, (int16_t *)&collision)) {
           penetration_mask |= 1u << mass_point_index;
 
@@ -1976,7 +1976,7 @@ void physics_update_old(int object_index,
     compute_ground_plane(object_index, (void *)mass_point_definition,
                          mass_point);
     mass_point->water_depth =
-      FUN_0018f510(mass_point->location, &mass_point->position);
+      scenario_location_water_depth(mass_point->location, &mass_point->position);
 
     ground_normal = (const real_vector3d *)mass_point->ground_plane.normal;
     if (mass_point->ground_depth > 0.0f && physics->ground_depth > 0.0f) {
@@ -2186,7 +2186,7 @@ void physics_update_old(int object_index,
                                 mass_point_definition->radius,
                               &probe_vector);
 
-        if (FUN_0014df70(0xc0a0, &probe_point.x, &probe_vector.i, object_index,
+        if (collision_test_vector(0xc0a0, &probe_point.x, &probe_vector.i, object_index,
                          (int16_t *)&collision)) {
           real height;
           real alignment;
@@ -2905,7 +2905,7 @@ int point_physics_update(int flags, int physics_tag_data,
       delta.j = velocity[1] * delta_time;
       delta.k = velocity[2] * delta_time;
 
-      if (!FUN_0014df70(collision_flags, position, &delta.i, -1,
+      if (!collision_test_vector(collision_flags, position, &delta.i, -1,
                         (int16_t *)&collision)) {
         if (collision.location.leaf_index != -1)
           *(struct collision_location *)collision_location = collision.location;

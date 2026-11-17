@@ -1088,7 +1088,7 @@ void matrix_from_forward_and_up(float *out, float *forward, float *up)
 
 /* 0x109e90 — Build a 4x3 rotation matrix from euler angles (yaw, pitch, roll).
  */
-void FUN_00109e90(float *out, float yaw, float pitch, float roll)
+void matrix4x3_rotation_from_angles(float *out, float yaw, float pitch, float roll)
 {
   float cr, sr, sp, cy, sy;
   float sp_cr;
@@ -1119,7 +1119,7 @@ void FUN_00109e90(float *out, float yaw, float pitch, float roll)
 }
 
 /* 0x109f40 — Extract yaw/pitch/roll euler angles from a 4x3 matrix's
- * rotation part (the inverse of FUN_00109e90).
+ * rotation part (the inverse of matrix4x3_rotation_from_angles).
  *
  * Matrix rows (row-major, +0x04..+0x24): row0 (forward) m[1..3],
  * row1 m[4..6], row2 (up) m[7..9]. Output euler[0]=yaw, [1]=pitch,
@@ -1843,7 +1843,7 @@ void vectors3d_from_euler_angles3d(float *forward, float *up, float *angles)
     display_assert("angles", "c:\\halo\\SOURCE\\math\\real_math.c", 0x342, 1);
     system_exit(-1);
   }
-  FUN_00109e90(matrix, angles[0], angles[1], angles[2]);
+  matrix4x3_rotation_from_angles(matrix, angles[0], angles[1], angles[2]);
   matrix4x3_decompose(matrix, local_position, forward, up);
 }
 

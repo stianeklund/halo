@@ -3413,7 +3413,7 @@ void weapon_trigger_fire(int weapon_handle, int trigger_index)
  * tag_block_get_element(tag+0x4f0, that index, 0x70) then
  * weapon_magazine_get(EDI=object, SI=re-read +0x20); a nonzero int16 at the
  * magazine clears the ready flag. Object byte +0x1dc bit 0 also clears it.
- * Confirmed: FUN_0018f3e0(object+0x48, object+0xc, NULL) true -> return; ready
+ * Confirmed: scenario_location_underwater(object+0x48, object+0xc, NULL) true -> return; ready
  *   false -> return; param_3 nonzero -> weapon_trigger_fire(handle, index).
  * Confirmed x87: trigger_defn +0x48 > [0x2533c0] (TEST AH,0x41) selects the
  *   state-2 path; else trigger_defn +0xc4 > [0x2533c0] selects the state-1
@@ -3457,7 +3457,7 @@ void weapon_trigger_begin_firing(int weapon_handle, int16_t trigger_index,
   if (*(unsigned char *)(weapon_obj + 0x1dc) & 1)
     ready = false;
 
-  if (FUN_0018f3e0(weapon_obj + 0x48, weapon_obj + 0xc, (int16_t *)0))
+  if (scenario_location_underwater(weapon_obj + 0x48, weapon_obj + 0xc, (int16_t *)0))
     return;
   if (!ready)
     return;

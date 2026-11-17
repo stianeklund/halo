@@ -585,7 +585,7 @@ void render_scene(int16_t player_index, void *render_cam, void *render_frustum,
     render_sky();
     first_person_weapon_render_update();
     lights_preprocess_scene();
-    scenario_test_pvs();
+    render_objects();
     FUN_001959f0();
     FUN_00195b10();
     FUN_00181a90();

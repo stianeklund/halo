@@ -48,7 +48,7 @@ void path_obstacles_debug_render(void *obstacles, float radius)
   int disc_off;
   float *disc_point;
   bool hit;
-  short collision_result[18]; /* 36-byte buffer for FUN_0014df70 */
+  short collision_result[18]; /* 36-byte buffer for collision_test_vector */
   float plane_scratch[11]; /* scratch/output buffer for FUN_0018a860 */
   float ray_dir[3]; /* {0, 0, dir.z} */
   float point[3]; /* contiguous {x, y, z} */
@@ -80,7 +80,7 @@ void path_obstacles_debug_render(void *obstacles, float radius)
                    *(float *)0x25eeac;
       ray_dir[0] = 0.0f;
       ray_dir[1] = 0.0f;
-      hit = FUN_0014df70(0x21, point, ray_dir, -1, collision_result);
+      hit = collision_test_vector(0x21, point, ray_dir, -1, collision_result);
       if (hit) {
         FUN_0018a860(1, plane_scratch, 2, 1, disc_point,
                      *(float *)((char *)obstacles + disc_off + 0x18),

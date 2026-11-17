@@ -1469,7 +1469,7 @@ void actor_move_calculate_free(char use_3d /* @<al> */,
 #define avoid_ray_avoidance_weights ((const float *)0x255948)
 #define avoid_ray_adjacent_fractions ((const float *)0x255954)
 #define avoid_ray_clear_bias_time 75
-#define angle_between_vectors3d(a, b) FUN_0010c510((float *)(a), (float *)(b))
+#define angle_between_vectors3d(a, b) angle_between_vectors3d((float *)(a), (float *)(b))
 
 #define MIN_FLOAT(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX_FLOAT(a, b) (((a) > (b)) ? (a) : (b))

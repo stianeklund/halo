@@ -123,7 +123,7 @@ void FUN_00190240(float *position, float *out, uint32_t flags,
  * flags bit 2 (0x4) suppresses the position argument to FUN_0018f2d0 and also
  * gates the non-indoor sky override; bit 3 (0x8) suppresses the indoor answer.
  * Confirmed: TEST CL,1 on the fog tag's first byte — the same indoor flag
- * scenario.c's FUN_0018f3e0 reads.
+ * scenario.c's scenario_location_underwater reads.
  *
  * The `(x != 0) - 1` mask at 0x190583 (MOV EAX,0 / SETNZ AL / DEC EAX / AND
  * EAX,EDX) is a branchless select of `position` or NULL; it is written as the

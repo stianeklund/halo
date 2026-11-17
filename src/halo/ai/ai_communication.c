@@ -2134,7 +2134,7 @@ float ai_communication_get_player_rating(int unit_handle, char test_line_of_sigh
                object_get_root_parent(player->unit_handle), -1))
               ->location.cluster_index;
           if (cluster_index != -1 && player_cluster_index != -1 &&
-              !scenario_ensure_point_within_world(cluster_index,
+              !scenario_test_pvs(cluster_index,
                                                   player_cluster_index)) {
             goto next;
           }
@@ -2153,7 +2153,7 @@ float ai_communication_get_player_rating(int unit_handle, char test_line_of_sigh
           vector_from_points3d(&player_position, &position,
                                &line_of_sight_vector);
 
-          blocked = FUN_0014df70(0x27, (float *)&player_position,
+          blocked = collision_test_vector(0x27, (float *)&player_position,
                                  (float *)&line_of_sight_vector, -1, collision);
           if (global_current_collision_user_depth <= 1) {
             display_assert("global_current_collision_user_depth > 1",

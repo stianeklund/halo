@@ -1929,7 +1929,7 @@ short hud_get_nav_point_render_type(int param_1, float *param_2, float *param_3,
   direction[1] = param_3[1] - param_2[1];
   direction[2] = param_3[2] - param_2[2];
 
-  if (FUN_0014df70(0xc2ad, param_2, direction, unit_handle,
+  if (collision_test_vector(0xc2ad, param_2, direction, unit_handle,
                    (short *)collision_result) == '\0' ||
       (*(short *)collision_result == 3 &&
        *(int *)(collision_result + 0x38) == param_4)) {

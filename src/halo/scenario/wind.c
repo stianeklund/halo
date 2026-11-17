@@ -177,7 +177,7 @@ void wind_update(void)
  * must stay inside the argument list.
  *
  * Phase 2 walks node i (0..7) x sub-sample j (1..7) x bank (0..2) and calls
- * FUN_00089a20 with the four wrapped ring neighbours (i-1, i, i+1, i+2 mod 8
+ * uniform_cubic_spline_vector3d with the four wrapped ring neighbours (i-1, i, i+1, i+2 mod 8
  * of the same bank), the abscissa of the first node ((float)(i-1)), the node
  * spacing (1.0f, pushed as the raw immediate 0x3f800000) and the sample
  * abscissa t = (float)j * K + (float)i, where K is the float at 0x268ed0.
@@ -246,7 +246,7 @@ void FUN_00190380(void)
       idx = 0;
       inner_count = 3;
       do {
-        FUN_00089a20(out_ptr, base + (idx + im1) * 0x18, node_i_ptr,
+        uniform_cubic_spline_vector3d(out_ptr, base + (idx + im1) * 0x18, node_i_ptr,
                      base + (idx + ip1) * 0x18, base + (idx + ip2) * 0x18,
                      x_im1, 1.0f, t);
         idx += 8;

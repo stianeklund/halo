@@ -17,7 +17,7 @@ void first_person_camera_new(void *camera)
 /* 0x88c80: the eye position and forward vector of a unit; a seat flagged
  * _unit_seat_first_person_camera_bit takes both from the vehicle's
  * "primary trigger" marker. */
-void FUN_00088c80(int unit_handle, real_point3d *out_position,
+void first_person_camera_deterministic(int unit_handle, real_point3d *out_position,
                   real_vector3d *out_forward)
 {
   unit_data_t *unit;

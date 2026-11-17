@@ -20,7 +20,7 @@ void FUN_000a54b0(void)
   *(int16_t *)(player_data + 0x14) = *(int16_t *)0x506784;
   *(int *)(player_data + 0x10) = *(int *)0x506780;
 
-  *(char *)(player_data + 0x1a) = (char)FUN_0018f3e0(
+  *(char *)(player_data + 0x1a) = (char)scenario_location_underwater(
     player_data + 0x10, (void *)0x506550, (int16_t *)(player_data + 0x18));
 
   palette_index = *(int16_t *)(player_data + 0x18);
@@ -338,7 +338,7 @@ char FUN_000a5830(float *point, void *elem_data, float *arg3, int arg4)
   direction[1] = ((float *)elem_data)[1] - point[1];
   direction[2] = ((float *)elem_data)[2] - point[2];
 
-  if (!FUN_0014df70(0xc2ad, point, direction, ignore_root,
+  if (!collision_test_vector(0xc2ad, point, direction, ignore_root,
                     (int16_t *)collision_result) ||
       (*(int16_t *)collision_result == 3 &&
        object_get_root_parent(collision_result[0x38 / 4]) ==
@@ -845,7 +845,7 @@ char FUN_000a6030(float *cone_spec, float *point, float *direction,
  *   - FUN_000a6030 gets player->unit_handle (0xa6249) and the zero-extended
  *     word at player +0x20 (0xa6236 XOR ECX,ECX / MOV CX,[ESI+0x20]) as its
  *     4th/5th arguments.
- *   - the FUN_0014df70 return is not tested; the hit point (+0x18) is read
+ *   - the collision_test_vector return is not tested; the hit point (+0x18) is read
  *     unconditionally (the callee always fills it).
  *   - player +0x40 = result and player +0x44 = game_time_get() are stored on
  *     every path (0xa6450/0xa6458).
@@ -931,7 +931,7 @@ int player_aim_projectile(int player_index, float *origin, float *forward)
     test_vector.i = camera_forward.i * 128.0f;
     test_vector.j = camera_forward.j * 128.0f;
     test_vector.k = camera_forward.k * 128.0f;
-    FUN_0014df70(0x1000e9, &camera_position.x, &test_vector.i,
+    collision_test_vector(0x1000e9, &camera_position.x, &test_vector.i,
                  player->unit_handle, (int16_t *)&collision);
 
     hit_vector.i = collision.point.x - origin[0];

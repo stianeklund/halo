@@ -1113,7 +1113,7 @@ void update_human_boat_physics(int vehicle_index, void *mass_points,
       rotate_vector3d_by_sincos(&up_relative.i, (float *)forward,
                                 x87_fsin(spin), x87_fcos(spin));
 
-      angle = FUN_0010c510(&up_relative.i, &object->up.x);
+      angle = angle_between_vectors3d(&up_relative.i, &object->up.x);
 
       if (vehicle_dot_product3d(&cross, &up_relative) > 0.0f) {
         angle = -angle;
@@ -1693,7 +1693,7 @@ void create_pelican_effect(int vehicle_handle)
     velocity[1] = direction[1] * speed;
     velocity[2] = direction[2] * speed;
 
-    if (FUN_0014df70(0x61, (float *)(marker + 0x60), velocity, vehicle_handle,
+    if (collision_test_vector(0x61, (float *)(marker + 0x60), velocity, vehicle_handle,
                      collision_result)) {
       marker_forwards[0] = -direction[0];
       marker_forwards[1] = -direction[1];
@@ -1743,7 +1743,7 @@ void create_pelican_effect(int vehicle_handle)
  *   Only hover markers are queried: the jet-marker count is the constant 0.
  *   seed_random_vector_in_cone3d(seed, &marker->matrix.forward, 0.0f,
  *   15.0f (0x41700000), &direction); vector = direction.
- *   FUN_0014df70(0x61, &marker->matrix.position, &vector, vehicle_index,
+ *   collision_test_vector(0x61, &marker->matrix.position, &vector, vehicle_index,
  *   &collision) -> TEST AL,AL.
  *   scale = -forward.k * (1.0f - collision.t) * seat_power[0], clamped to
  *   [0, 1]; a negative scale skips straight to the next marker.
@@ -1796,7 +1796,7 @@ void create_ghost_effect(int vehicle_index)
 
       vector = direction;
 
-      if (FUN_0014df70(0x61, (float *)&marker->matrix.position, &vector.i,
+      if (collision_test_vector(0x61, (float *)&marker->matrix.position, &vector.i,
                        vehicle_index, (int16_t *)&collision)) {
 #define GHOST_WASH_SCALE \
   (-marker->matrix.forward.k * (1.0f - collision.t) * vehicle->unit.seat_power[0])
@@ -1998,7 +1998,7 @@ bool update_suspension(int vehicle_index)
     vector[0] = down[0] * length;
     vector[1] = down[1] * length;
     vector[2] = down[2] * length;
-    FUN_0014df70(0xc0a0, start, vector, vehicle_index, collision_result);
+    collision_test_vector(0xc0a0, start, vector, vehicle_index, collision_result);
     state = (1.0f - *(float *)((char *)collision_result + 0x14)) * 2.0f;
     if (state < 0.0f)
       state = 0.0f;
@@ -2700,7 +2700,7 @@ void update_human_plane_physics(int vehicle_index, void *powered_mass_points,
  * create_ghost_effect spawns the thruster wash.
  *
  * Confirmed from disassembly at 0x1b8570 (cdecl, 4 stack args, frame 0x94):
- *   FUN_0018f510(&object.location (+0x48), &object.position) -> water depth
+ *   scenario_location_water_depth(&object.location (+0x48), &object.position) -> water depth
  *   (float, held in ST0 across the powered-mass-point loop).
  *   magic_force/magic_torque = *global_zero_vector3d ([0x31fc38]).
  *   Loop over physics->powered_mass_points.count: state[i] +0x18 = antigrav,
@@ -2743,7 +2743,7 @@ void update_alien_scout_physics(int vehicle_index, float steering,
     TAG_GROUP_PHYS, definition->physics.tag_index);
   state = (struct powered_mass_point_datum *)powered_mass_points;
 
-  water_depth = FUN_0018f510(&vehicle->unit.object.location,
+  water_depth = scenario_location_water_depth(&vehicle->unit.object.location,
                              &vehicle->unit.object.position);
 
   magic_force = *(real_vector3d *)global_zero_vector_ptr;

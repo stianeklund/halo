@@ -896,7 +896,7 @@ void FUN_0017d1a0(bool param_1)
     *(int16_t *)(0x5a8c80 + depth * 2) = 0x15;
     direction[2] = *(float *)0x5a5bdc * *(float *)0x2af240;
 
-    if (FUN_0014df70(0xfff80, (float *)0x5a5bc8, direction, local_player,
+    if (collision_test_vector(0xfff80, (float *)0x5a5bc8, direction, local_player,
                      (int16_t *)collision_result)) {
       *(int *)0x47e4cc = *(int *)(collision_result + 0x38);
     }

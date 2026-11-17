@@ -142,7 +142,7 @@ void FUN_0019fa20(int unit_handle, void *node_block) {
           delta[0] *= 1.03f; /* 0x2b4b78 */
           delta[1] *= 1.03f;
           delta[2] *= 1.03f;
-          if (FUN_0014df70(0xc0a8, ray_start, delta, unit_handle,
+          if (collision_test_vector(0xc0a8, ray_start, delta, unit_handle,
                            collision_result)) {
             touching[0] = (unsigned char)FUN_0014dab0((int)node_pos,
                                                       0x3cf5c28f);
@@ -4937,7 +4937,7 @@ co(biped_physics, landing_velocity, 0xc4);
  *   0x1a6085 FUN_0014c8e0 | biped+0x44c ; &instance(-0x114) | match
  *   0x1a60b0 FUN_0014cb00 | &result(-0x584) ; &melee ; &position ; 3 ;
  *     &instance | match
- *   0x1a60d8 FUN_0014df70 | &world(-0x164) ; ESI ; &melee ; &position ;
+ *   0x1a60d8 collision_test_vector | &world(-0x164) ; ESI ; &melee ; &position ;
  *     0xc2a0 | match
  *   0x1a6101 vector3d_scale_add | &point(-0x104) ; [-0x57c] ; &melee ;
  *     &position | match
@@ -5393,7 +5393,7 @@ void FUN_001a5300(int unit_handle, unsigned char *state)
       if ((uint8_t)FUN_0014c8e0(instance, *(int *)(biped + 0x44c)) &&
           FUN_0014cb00((int)instance, (void *)3, physics.position,
                        (float *)&melee_vector, (int16_t *)model_result) &&
-          !FUN_0014df70(0xc2a0, physics.position, (float *)&melee_vector,
+          !collision_test_vector(0xc2a0, physics.position, (float *)&melee_vector,
                         unit_handle, (int16_t *)world_collision)) {
         vector3d_scale_add(physics.position, (float *)&melee_vector,
                            *(float *)((char *)model_result + 0x8),

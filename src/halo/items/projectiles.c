@@ -635,7 +635,7 @@ bool projectile_collision_test_line(int projectile_handle, float *new_pos,
 #endif
 
   vector_from_points3d(position, destination, &sweep.ray);
-  if (SWEEP_LOS(FUN_0014df70(0x1000e9, (float *)position, (float *)&sweep.ray,
+  if (SWEEP_LOS(collision_test_vector(0x1000e9, (float *)position, (float *)&sweep.ray,
                              projectile->ignore_object_index, collision_result)) == 0) {
     if (definition->collision_radius < REAL_0_0001_POOL) {
       return false;
@@ -662,7 +662,7 @@ bool projectile_collision_test_line(int projectile_handle, float *new_pos,
 
     vector_from_points3d(&sweep.positive_origin, &sweep.positive_end, &sweep.direction);
 
-    if (SWEEP_LOS(FUN_0014df70(0x89, (float *)&sweep.positive_origin, (float *)&sweep.direction,
+    if (SWEEP_LOS(collision_test_vector(0x89, (float *)&sweep.positive_origin, (float *)&sweep.direction,
                                projectile->ignore_object_index, collision_result)) == 0 &&
         FUN_000130d0(0x89, (float *)&sweep.negative_origin, (float *)&sweep.negative_end,
                      projectile->ignore_object_index, collision_result) == 0) {
@@ -890,7 +890,7 @@ bool projectile_new(int projectile_handle)
   projectile->object.translational_velocity.y += initial_velocity * projectile->object.forward.y;
   projectile->object.translational_velocity.z += initial_velocity * projectile->object.forward.z;
 
-  if (FUN_0018f3e0(&projectile->object.location, &projectile->object.bounding_sphere_center, 0)) {
+  if (scenario_location_underwater(&projectile->object.location, &projectile->object.bounding_sphere_center, 0)) {
     projectile->object.flags |= 0x10u;
   } else {
     projectile->object.flags &= ~0x10u;
@@ -1134,7 +1134,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   {
     float angle_between;
 
-    angle_between = FUN_0010c510(in_velocity, (float *)&collision->normal);
+    angle_between = angle_between_vectors3d(in_velocity, (float *)&collision->normal);
     impact_angle = angle_between - REAL_HALF_PI_POOL + impact_angle;
     /* 0xf9365 FSTP: narrowed before the range test and 0xf981e reload it. */
     HALO_FLT_ROUNDTRIP(impact_angle);

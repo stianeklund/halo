@@ -20,7 +20,7 @@ void flying_camera_new(void *flying_camera)
 }
 
 /* Initialize a flying camera at a position looking along forward (0x89350). */
-void FUN_00089350(void *camera_data, real_point3d *position,
+void flying_camera_new_from_point_and_vector(void *camera_data, real_point3d *position,
                   real_vector3d *forward)
 {
   flying_camera_t *camera = camera_data;
@@ -212,7 +212,7 @@ float uniform_cubic_spline(float f0, float f1, float f2, float f3, float t0,
  * 3-vector (0x89a20). The four input pointers supply the four control values
  * y0..y3 for each component; t0/h/t are shared scalars forwarded unchanged to
  * every component. Results are stored into out[0..2] as each call returns. */
-void FUN_00089a20(float *out, float *p0, float *p1, float *p2, float *p3,
+void uniform_cubic_spline_vector3d(float *out, float *p0, float *p1, float *p2, float *p3,
                   float t0, float h, float t)
 {
   out[0] = uniform_cubic_spline(p0[0], p1[0], p2[0], p3[0], t0, h, t);
@@ -290,7 +290,7 @@ have_track:
   }
 
   index = (int)i;
-  FUN_00089a20(
+  uniform_cubic_spline_vector3d(
     &out->i,
     tag_block_get_element(control_points, index,
                           CAMERA_TRACK_CONTROL_POINT_SIZE),
@@ -306,7 +306,7 @@ have_track:
 /* 0x89c00: unit camera position plus the camera-track offset rotated into the
  * unit's planar facing. The track parameter is asin(forward.k) (inline CRT
  * _CIasin at 0x1da0cc). */
-void FUN_00089c00(int unit_handle, real_point3d *position,
+void following_camera_deterministic(int unit_handle, real_point3d *position,
                   real_vector3d *forward)
 {
   unit_data_t *unit;
@@ -771,7 +771,7 @@ void observer_apply_rotational_displacement(const real_vector3d *rotation,
 /* Cast a collision ray for the observer camera (0x8ab90) from ray_origin to
  * ray_endpoint under collision user 0xc, storing the hit fraction in
  * *out_fraction when something is hit. */
-bool FUN_0008ab90(real *out_fraction, bool indoor, real_point3d *ray_origin,
+bool observer_collision_test_with_t(real *out_fraction, bool indoor, real_point3d *ray_origin,
                   real_point3d *ray_endpoint)
 {
   uint32_t flags;
@@ -795,7 +795,7 @@ bool FUN_0008ab90(real *out_fraction, bool indoor, real_point3d *ray_origin,
 
   vector_from_points3d(ray_origin, ray_endpoint, &direction);
 
-  if (FUN_0014df70(flags, &ray_origin->x, &direction.i, -1,
+  if (collision_test_vector(flags, &ray_origin->x, &direction.i, -1,
                    &collision.type)) {
     *out_fraction = collision.t;
     result = true;
@@ -822,7 +822,7 @@ bool observer_collision_test_differential(real scale, real *out_fraction,
   real_point3d endpoint;
 
   point_from_line3d(point, vector, scale, &endpoint);
-  return FUN_0008ab90(out_fraction, indoor, ray_origin, &endpoint);
+  return observer_collision_test_with_t(out_fraction, indoor, ray_origin, &endpoint);
 }
 
 /* Hand a camera command block to a local player's observer (0x8acb0).
@@ -1203,7 +1203,7 @@ void observer_compute_update(int16_t local_player_index)
  * must be valid perpendicular unit axes; each becomes a rotation matrix and
  * the rotation taking frame 0 to frame 1 is written to result_angular as an
  * axis scaled by its angle. */
-void FUN_0008c030(float *forward1, float *result_angular, float *forward0,
+void observer_rotational_displacement(float *forward1, float *result_angular, float *forward0,
                   float *up0, float *up1)
 {
   real_matrix4x3 matrix0;
@@ -1248,7 +1248,7 @@ void FUN_0008c030(float *forward1, float *result_angular, float *forward0,
  * boundary. Adjusts *focus_distance by blending the initial collision
  * fraction with the refined fraction. If no obstruction is found,
  * *focus_distance is simply scaled by the initial collision fraction. */
-void FUN_0008c150(const real_vector3d *up, real *focus_distance,
+void observer_check_penetration(const real_vector3d *up, real *focus_distance,
                   real near_plane_dist, const real_vector3d *forward,
                   real_point3d *focus_position)
 {
@@ -1266,11 +1266,11 @@ void FUN_0008c150(const real_vector3d *up, real *focus_distance,
   int16_t probe_index;
 
   scenario_location_from_point(&focus_location, focus_position);
-  ignore_media = FUN_0018f3e0(&focus_location, focus_position, NULL);
+  ignore_media = scenario_location_underwater(&focus_location, focus_position, NULL);
 
   point_behind3d(focus_position, forward, *focus_distance + near_plane_dist,
                  &desired_position);
-  FUN_0008ab90(&first_t, ignore_media, focus_position, &desired_position);
+  observer_collision_test_with_t(&first_t, ignore_media, focus_position, &desired_position);
 
   best_t = first_t;
   best_offset = NULL;
@@ -1287,7 +1287,7 @@ void FUN_0008c150(const real_vector3d *up, real *focus_distance,
     real collision_t;
 
     point_from_line3d(&desired_position, offset, sign, &test_position);
-    if (FUN_0008ab90(&collision_t, ignore_media, focus_position,
+    if (observer_collision_test_with_t(&collision_t, ignore_media, focus_position,
                      &test_position) &&
         collision_t < best_t) {
       best_t = collision_t;
@@ -1310,7 +1310,7 @@ void FUN_0008c150(const real_vector3d *up, real *focus_distance,
 
       point_from_line3d(&desired_position, best_offset, middle,
                         &test_position);
-      hit = FUN_0008ab90(&collision_t, ignore_media, focus_position,
+      hit = observer_collision_test_with_t(&collision_t, ignore_media, focus_position,
                          &test_position);
       if (hit && fabs(collision_t - last_hit_t) < 0.1f) {
         upper = middle;
@@ -1332,10 +1332,10 @@ void FUN_0008c150(const real_vector3d *up, real *focus_distance,
 
 /* Displacement from the current observer parameters to the command's
  * (0x8c440): the eight linear parameters subtract directly, then the
- * forward/up pair contributes an angular displacement via FUN_0008c030.
+ * forward/up pair contributes an angular displacement via observer_rotational_displacement.
  * Register args: result @<eax>, state @<ecx>; stack arg: the command
  * parameters. */
-void FUN_0008c440(real *target_parameters, real *displacement,
+void observer_find_displacement(real *target_parameters, real *displacement,
                   real *current_parameters)
 {
   real *position1 = target_parameters;
@@ -1348,7 +1348,7 @@ void FUN_0008c440(real *target_parameters, real *displacement,
   } while (parameter_index < 8);
 
   while (parameter_index < NUMBER_OF_OBSERVER_PARAMETERS) {
-    FUN_0008c030(position1, displacement, position0, position0 + 3,
+    observer_rotational_displacement(position1, displacement, position0, position0 + 3,
                  position1 + 3);
     position0 += 6;
     position1 += 6;
@@ -1491,7 +1491,7 @@ void observer_update_result(int16_t local_player_index)
   if ((observer->last_command.flags &
        FLAG(_observer_command_ignore_obstructions_bit)) == 0 &&
       focus_distance != 0.0f) {
-    FUN_0008c150(up, &focus_distance, 0.02f, forward, &focus_position);
+    observer_check_penetration(up, &focus_distance, 0.02f, forward, &focus_position);
   }
 
   /* Compute result.position = focus_position - focus_distance * forward */
@@ -1520,7 +1520,7 @@ void observer_update_result(int16_t local_player_index)
 
   /* Ground height adjustment */
   {
-    float h = FUN_0018f510(&observer->result.location, &observer->result.position);
+    float h = scenario_location_water_depth(&observer->result.location, &observer->result.position);
     height_diff = h;
     if (fabs(height_diff) < 0.05f) {
       if (height_diff <= 0.0f) {
@@ -1600,7 +1600,7 @@ void observer_compute_velocities(int16_t local_player_index)
                        local_player_index < MAXIMUM_NUMBER_OF_LOCAL_PLAYERS);
 
   observer = observer_data_get(local_player_index);
-  FUN_0008c440(observer->last_command_arrays.parameters,
+  observer_find_displacement(observer->last_command_arrays.parameters,
                observer->displacements.n, observer->parameters);
 }
 

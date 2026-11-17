@@ -1023,7 +1023,7 @@ float signed_angle_between_vectors2d(float *a, float *b)
 /* Compute the angle (radians) between two 2D vectors a and b, in [0, pi].
  * Returns 0.0f if either vector is zero-length.
  *
- * 2D counterpart of FUN_0010c510: uses cos(2*theta) = 2*dot^2 / (|a|^2*|b|^2) - 1
+ * 2D counterpart of angle_between_vectors3d: uses cos(2*theta) = 2*dot^2 / (|a|^2*|b|^2) - 1
  * so no sqrt is needed, clamps it to [-1, 1], and halves the acos.  A negative
  * dot reflects the half angle across pi.
  *
@@ -1072,7 +1072,7 @@ float FUN_0010c440(float *a, float *b)
  *
  * 0x10c510 / random_math.obj
  */
-float FUN_0010c510(float *v1, float *v2)
+float angle_between_vectors3d(float *v1, float *v2)
 {
 #if defined(_MSC_VER) && !defined(__clang__)
   double acos(double x);
@@ -1129,7 +1129,7 @@ void FUN_0010c780(float *v1, float *v2, float t, float *out)
  *
  * The blend is slerp-like:
  *   t = param_3
- *   angle = FUN_0010c510(param_1, param_2)   (angle between the 3-D vectors)
+ *   angle = angle_between_vectors3d(param_1, param_2)   (angle between the 3-D vectors)
  *   if t < 0.5:
  *     rotate param_1 by (angle * t) around cross(param_1, param_2)
  *   else:
@@ -1148,7 +1148,7 @@ void FUN_0010c7d0(float *param_1, float *param_2, float param_3, float *param_4)
   float angle;
   float blend;
 
-  angle = FUN_0010c510(param_1, param_2);
+  angle = angle_between_vectors3d(param_1, param_2);
   if (param_3 < 0.5f) {
     /* Rotate from param_1 side: scale angle by t, axis = cross(param_1,
      * param_2) */

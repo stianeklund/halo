@@ -4537,7 +4537,7 @@ void unit_debug_ninja_rope(int unit_handle)
   global_current_collision_user_depth = depth + 1;
   collision_user_stack[depth] = 0x15;
 
-  if (FUN_0014df70(0x22, origin, direction, unit_handle,
+  if (collision_test_vector(0x22, origin, direction, unit_handle,
                    (int16_t *)collision_result)) {
     /* collision_result + 0x2c = fraction, compare > 0.95 */
     if (*(float *)(collision_result + 0x2c) > 0.95f) {
@@ -4741,7 +4741,7 @@ char unit_get_current_flashlight_state(int unit_handle)
  * Detaches a unit from its parent vehicle. Computes a direction vector
  * from parent to child position, normalizes it, and scales by 0.02f
  * (the eject velocity factor at 0x2b6af4). Detaches the object from
- * its parent, finds a safe spawn location (scenario_location_underwater),
+ * its parent, finds a safe spawn location (scenario_ensure_point_within_world),
  * sets the new position, clears flags, adds the ejection velocity, and
  * recomputes node matrices.
  *
@@ -4790,7 +4790,7 @@ void unit_detach_from_parent(int object_handle)
   child_pos[0] = *(float *)(unit + 0xc);
   child_pos[1] = *(float *)(unit + 0x10);
   child_pos[2] = *(float *)(unit + 0x14);
-  scenario_location_underwater(child_pos);
+  scenario_ensure_point_within_world(child_pos);
   object_set_position(object_handle, child_pos, NULL, NULL);
 
   *(uint32_t *)(unit + 0x4) &= ~0x20u;
@@ -8742,7 +8742,7 @@ void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
   char *unit;
   char *unit_tag;
   int16_t marker_count;
-  /* FUN_0014df70 (collision raycast) writes an 80-byte result struct through
+  /* collision_test_vector (collision raycast) writes an 80-byte result struct through
    * this pointer (stores at +0..+0x4e, derived from disasm). The original
    * allocates 0x50 bytes (lea [ebp-0x68], direction at [ebp-0x18]); a 4-byte
    * buffer here overflowed the saved EBX/EDI/ESI/EBP slots, corrupting the
@@ -8797,7 +8797,7 @@ void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
     direction[1] = melee_pos[1] - position[1];
     direction[2] = melee_pos[2] - position[2];
 
-    coll_hit = (char)FUN_0014df70(0x1000e9, position, direction, -1,
+    coll_hit = (char)collision_test_vector(0x1000e9, position, direction, -1,
                                   (int16_t *)collision_result);
     if (coll_hit != 0) {
       /* collision hit — snap melee position to unit center */
@@ -8969,7 +8969,7 @@ void unit_cause_player_melee_damage(int unit_handle)
       ray_dir[1] = facing[1] * 0.8f + (fi * perp[1] + cross_vec[1] * fj) * 0.1f;
       ray_dir[2] = facing[2] * 0.8f + (fi * perp[2] + fj * cross_vec[2]) * 0.1f;
 
-      hit = FUN_0014df70(0x1000e9, ray_origin, ray_dir, unit_handle,
+      hit = collision_test_vector(0x1000e9, ray_origin, ray_dir, unit_handle,
                          (int16_t *)collision_result);
 
       if (hit != 0) {
@@ -13515,9 +13515,9 @@ char unit_update(int unit_handle)
     }
 
     /* Delta angle + steering byte */
-    FUN_0010c510(aim_vec, saved_aim);
+    angle_between_vectors3d(aim_vec, saved_aim);
     i10 = tag_data;
-    delta_angle = FUN_0010c510(aim_vec, saved_aim);
+    delta_angle = angle_between_vectors3d(aim_vec, saved_aim);
     ratio = delta_angle / (*(float *)(i10 + 0x264) * *(float *)0x2546a4);
     if (ratio < 0.0f) {
       ratio = 0.0f;

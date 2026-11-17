@@ -710,7 +710,7 @@ void antenna_debug_data_simulate_rope(void *rec, void *tag_def,
         offset[1] = *(float *)(te + 0x78);
         offset[2] = *(float *)(te + 0x7c);
 
-        angle = FUN_0010c510(z_axis, delta_vec);
+        angle = angle_between_vectors3d(z_axis, delta_vec);
         cos_a = x87_fcos(angle);
         sin_a = x87_fsin(angle);
         rotate_vector3d_by_sincos(offset, axis, sin_a, cos_a);

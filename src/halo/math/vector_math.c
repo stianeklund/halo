@@ -1006,7 +1006,7 @@ float *FUN_00013090(float *a, float *b, float *out)
 }
 
 /* 0x130d0 — Ray-cast between two points. Computes the direction vector
- * (point_b - point_a) and delegates to FUN_0014df70 for the actual
+ * (point_b - point_a) and delegates to collision_test_vector for the actual
  * collision test along that direction from point_a. */
 bool FUN_000130d0(uint32_t collision_flags, float *point_a, float *point_b,
                   int max_distance, int16_t *collision_result)
@@ -1016,7 +1016,7 @@ bool FUN_000130d0(uint32_t collision_flags, float *point_a, float *point_b,
   direction[0] = point_b[0] - point_a[0];
   direction[1] = point_b[1] - point_a[1];
   direction[2] = point_b[2] - point_a[2];
-  return FUN_0014df70(collision_flags, point_a, direction, max_distance,
+  return collision_test_vector(collision_flags, point_a, direction, max_distance,
                       collision_result);
 }
 

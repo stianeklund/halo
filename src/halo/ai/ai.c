@@ -2289,12 +2289,12 @@ bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin,
  *   ai.c assert lines 0x349 / 0x3f0, pushes user id 2, and also bumps the
  *   word counter 0x5ac65c.  Every ray cast bumps the word counter 0x5ac5d4.
  * Confirmed: if both the bsp word and the param_4 word are not -1 and
- *   scenario_ensure_point_within_world(bsp, param_4) returns 0, the result
+ *   scenario_test_pvs(bsp, param_4) returns 0, the result
  *   is 4.
  * Confirmed: collision flags start at 0xc2a3, or 0x23 when game_connection()
  *   returns 0 and byte 0x5ac9c4 is set; param_6 ORs 0x10 (else 0x4) and
  *   param_8 clears bit 0x200.
- * Confirmed: FUN_0014df70's zero return sets `no_hit` (byte at [EBP+0xf]);
+ * Confirmed: collision_test_vector's zero return sets `no_hit` (byte at [EBP+0xf]);
  *   a nonzero return copies collision_result.t (EBP-0x6c) into `t`.
  *   FUN_0018e690 is called either way with collision_result+4 and +0x18.
  * Confirmed: FUN_0018e690's ST0 result: > 0.8f goes straight to the distance
@@ -2306,7 +2306,7 @@ bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin,
  *   target - 0.1*side and target + 0.1 * *(float**)0x31fc50 back to origin.
  * Confirmed: distance classification (TEST AH,5 / JP senses): dist < 1.0f is
  *   4; dist * t < 1.0f is 2; (1.0f - t) * dist < 4.0f is 3; otherwise 4.
- * Uncertain: `t` is uninitialised on paths where FUN_0014df70 returned 0
+ * Uncertain: `t` is uninitialised on paths where collision_test_vector returned 0
  *   (same in the original, which reads [EBP-0xc] without a store).  It is
  *   zero-initialised here to avoid reading an indeterminate value.
  * Uncertain: collision_result+4 lies inside struct collision_result's
@@ -2348,7 +2348,7 @@ int ai_test_line_of_sight(float *origin, int bsp, float *target, int param_4,
   *(volatile short *)0x4761d8 = depth + 1;
 
   if ((short)bsp != -1 && (short)param_4 != -1 &&
-      !scenario_ensure_point_within_world(bsp, (int16_t)param_4)) {
+      !scenario_test_pvs(bsp, (int16_t)param_4)) {
     result = 4;
     goto done;
   }
@@ -2370,7 +2370,7 @@ int ai_test_line_of_sight(float *origin, int bsp, float *target, int param_4,
   direction[0] = target[0] - origin[0];
   direction[1] = target[1] - origin[1];
   direction[2] = target[2] - origin[2];
-  if (!FUN_0014df70(flags, origin, direction, param_7, (int16_t *)&collision)) {
+  if (!collision_test_vector(flags, origin, direction, param_7, (int16_t *)&collision)) {
     no_hit = 1;
   } else {
     no_hit = 0;

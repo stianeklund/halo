@@ -1077,7 +1077,7 @@ char FUN_0014db10(int param_1, int param_2, int param_3, int param_4)
  * Confirmed: init at 0x14df7d; scenario_get at 0x14dfc5; BSP test at 0x14e054.
  * Confirmed: log_add_call(0)/log_add_call(1) bracketing; atmosphere zone test.
  */
-bool FUN_0014df70(uint32_t collision_flags, float *origin, float *direction,
+bool collision_test_vector(uint32_t collision_flags, float *origin, float *direction,
                   int max_distance, int16_t *collision_result)
 {
   char result;

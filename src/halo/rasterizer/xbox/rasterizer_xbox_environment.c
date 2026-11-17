@@ -1253,7 +1253,7 @@ void FUN_001621c0(int light_index)
                     *(float *)0x255a54;
         real_matrix4x3 rotation;
 
-        FUN_00109e90((float *)&rotation, yaw, pitch, roll);
+        matrix4x3_rotation_from_angles((float *)&rotation, yaw, pitch, roll);
         matrix_transform_vector((float *)&rotation, (float *)&light->forward,
                                 (float *)&gel_matrix.forward);
         matrix_transform_vector((float *)&rotation, (float *)&light->up,

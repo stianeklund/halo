@@ -242,9 +242,9 @@ bool effect_allowed_by_environment(int16_t part_type, void *position, void *effe
   case 0:
     return true;
   case 1:
-    return !FUN_0018f3e0(effect_volumes, position, 0);
+    return !scenario_location_underwater(effect_volumes, position, 0);
   case 2:
-    return FUN_0018f3e0(effect_volumes, position, 0);
+    return scenario_location_underwater(effect_volumes, position, 0);
   case 3:
     return false;
   default:

@@ -1176,7 +1176,7 @@ char *ai_debug_describe_actor(int actor_handle, int object_handle,
  *   plus the PUSH 0 for local_player_get_player_index at 0x49ca2 -- MSVC
  *   coalesced the two cleanups.  The ARG_COUNT hazard on datum_get is a false
  *   positive; it really takes 2 arguments.
- * Confirmed: FUN_0014df70's pushes at 0x49cbb-0x49ceb are ECX(=EBP-0x5c),
+ * Confirmed: collision_test_vector's pushes at 0x49cbb-0x49ceb are ECX(=EBP-0x5c),
  *   EDI(player unit), EDX(=EBP-0xc), ESI(camera), 0x81, so left-to-right the
  *   arguments are (0x81, camera, delta, player_unit, collision_result), and
  *   ADD ESP,0x14 confirms 5 stack args.  Result is tested TEST AL,AL.
@@ -1233,7 +1233,7 @@ int ai_debug_get_this_actor(void)
   delta[1] = camera[9] * *(float *)0x25acf0;
   delta[2] = camera[10] * *(float *)0x25acf0;
 
-  if (!FUN_0014df70(0x81, camera, delta, player_unit,
+  if (!collision_test_vector(0x81, camera, delta, player_unit,
                     (int16_t *)collision_result)) {
     return result;
   }
@@ -2478,7 +2478,7 @@ void ai_debug_update(void)
         dir[0] = fwd[0] * scale;
         dir[1] = fwd[1] * scale;
         dir[2] = fwd[2] * scale;
-        if (FUN_0014df70(0x21, (float *)cam, dir, -1, (int16_t *)hitbuf) != 0) {
+        if (collision_test_vector(0x21, (float *)cam, dir, -1, (int16_t *)hitbuf) != 0) {
           /* hitbuf offsets relative to local_20 (EBP-0x1c):
            * local_58 = EBP-0x58 = local_20 - 0x3c (+0x3c back from
            * local_20); Ghidra shows local_58/54/50/2c.

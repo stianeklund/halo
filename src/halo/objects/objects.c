@@ -4904,7 +4904,7 @@ void object_types_disconnect_from_structure_bsp(void)
  * size) and the palette base index (scenario_get_object_type_scenario_palette);
  *   - if this BSP slot has NOT yet been processed (bit (1<<DAT_00326a0c) clear
  * in DAT_0046f078): for each placement, builds a rotation matrix from the
- *     placement's Euler angles (element+0x14/+0x18/+0x1c via FUN_00109e90),
+ *     placement's Euler angles (element+0x14/+0x18/+0x1c via matrix4x3_rotation_from_angles),
  *     stamps the placement position (element+0x8/+0xc/+0x10) as the matrix
  *     translation, transforms it (matrix_transform_point), then queries cluster
  *     membership (FUN_0018e720) for both the raw position and the transformed
@@ -4977,7 +4977,7 @@ void object_types_place_objects(int do_spawn)
             obj_tag = (int)tag_block_get_element((void *)palette_base,
                                                  (int)*element, 0x30);
             obj_tag = (int)tag_get(0x6f626a65, *(int *)(obj_tag + 0xc));
-            FUN_00109e90((float *)matrix, *(float *)((char *)element + 0x14),
+            matrix4x3_rotation_from_angles((float *)matrix, *(float *)((char *)element + 0x14),
                          *(float *)((char *)element + 0x18),
                          *(float *)((char *)element + 0x1c));
             /* stamp placement position into matrix translation (+0x28..+0x30)
@@ -5268,7 +5268,7 @@ int object_type_synchronize(int param_1, short *param_2, int param_3,
     goto LAB_0013d51f;
   puVar4 = (int *)object_get_and_verify_type(param_1, -1);
   object_activate(param_1);
-  FUN_00109e90(frame.matrix, *(float *)((char *)param_2 + 0x14),
+  matrix4x3_rotation_from_angles(frame.matrix, *(float *)((char *)param_2 + 0x14),
                *(float *)((char *)param_2 + 0x18),
                *(float *)((char *)param_2 + 0x1c));
   cVar2 = valid_real_matrix4x3(frame.matrix);
@@ -12098,7 +12098,7 @@ void object_attach_to_parent(int parent_handle, int child_handle,
  * position.
  *
  * Pushes a collision user stack entry (user=0x13), computes the delta vector
- * (current_pos - target_pos), then calls FUN_0014df70 to perform a collision
+ * (current_pos - target_pos), then calls collision_test_vector to perform a collision
  * test along that ray. If the collision test succeeds or the object has no
  * current cluster placement (field 0x4c == -1), the function checks the
  * collision result for a valid surface. If a valid surface is found, it calls
@@ -12157,7 +12157,7 @@ bool object_try_place(int object_handle, float *position)
   delta[2] = *(float *)(obj + 0x14) - position[2];
 
   /* Cast collision ray from target position along delta direction. */
-  if (FUN_0014df70(0x1000e9, position, delta, -1, collision_result) ||
+  if (collision_test_vector(0x1000e9, position, delta, -1, collision_result) ||
       *(int16_t *)(obj + 0x4c) == -1) {
     /* Collision found or object has no cluster placement. */
     if (*(int16_t *)col_surface_ptr == -1) {

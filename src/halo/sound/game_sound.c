@@ -1406,7 +1406,7 @@ void sound_compute_source_obstruction(int channel_index, void *source,
         direction[1] = *(float *)((char *)source + 0x10) - camera[1];
         direction[2] = *(float *)((char *)source + 0x14) - camera[2];
 
-        if (!FUN_0014df70(0xc0e1, camera, direction, -1, collision_result)) {
+        if (!collision_test_vector(0xc0e1, camera, direction, -1, collision_result)) {
           /* No line of sight — fully occluded. */
           *(float *)new_var = 0.0f;
           *(float *)((char *)source + 0x3c) = 0.0f;

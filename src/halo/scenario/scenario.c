@@ -984,7 +984,7 @@ void FUN_0018c370(void *record)
   }
 }
 
-/* 0x18c3a0 — scenario_test_pvs: per-frame potentially-visible-set debug draw.
+/* 0x18c3a0 — render_objects: per-frame potentially-visible-set debug draw.
  * Optionally brackets the work in a 'render_objects' profile section (when both
  * the global debug-enable byte 0x449ef1 and the section-enable byte 0x325810
  * are set). Resets the sprite/decal draw state (FUN_0017d1a0(0)) and primes the
@@ -997,7 +997,7 @@ void FUN_0018c370(void *record)
  * (first_person_weapon_draw). Finishes via FUN_0016b240 (reloc-verified
  * against the delinked reference; an earlier draft wrongly called
  * FUN_0017cbf0 here). void(void). */
-void scenario_test_pvs(void)
+void render_objects(void)
 {
   char pass;
   short i;
@@ -1363,7 +1363,7 @@ void FUN_0018c5b0(void)
  * * 0x2b1b4c), FUN_0017d1a0(1) selects the sky rasterizer mode, and the
  * model is drawn with unit region scales via the 13-arg render_model,
  * flushed through FUN_0016b240 (the 0x17cbf0 thunk's target, matching the
- * scenario_test_pvs reloc lesson). cdecl, void(void), 0x1658-byte frame via
+ * render_objects reloc lesson). cdecl, void(void), 0x1658-byte frame via
  * _chkstk. */
 void render_sky(void)
 {
@@ -2216,7 +2216,7 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
  *     a rotation taken from atan2(vec_b[1], vec_b[0]) and mode 1.
  * Asserts data/untransformed_origin/untransformed_axis_of_rotation at
  * render_sprite.c:0x286-0x288; param_9 defaults to *(void **)0x2ee6c4.
- * distance = FUN_0010c510(&vec_a, &vec_b) - pi/2 (0x2568bc); fade =
+ * distance = angle_between_vectors3d(&vec_a, &vec_b) - pi/2 (0x2568bc); fade =
  * distance^2 * 0x2b1ef8, clamped to [0, 1] and gated at 0.05 (0x2533e8).
  * The animated frame is (int)fmod(count * 0x2b1bc4 * param_7 + 0.5, count).
  * fmod uses the x87_fmod helper (FPREM) to avoid clang's FPREM1
@@ -2260,7 +2260,7 @@ void FUN_0018dcf0(void *param_1, unsigned int param_2, int param_3, int param_4,
 
   FUN_0018cf10(param_1, (float *)param_5, (float *)param_6,
                (uint8_t)(param_2 & 1), vec_a, vec_b);
-  distance = FUN_0010c510(vec_a, vec_b) - *(float *)0x2568bc;
+  distance = angle_between_vectors3d(vec_a, vec_b) - *(float *)0x2568bc;
   fade = distance * distance * *(float *)0x2b1ef8;
 
   if (fade >= *(float *)0x2533c0) {
@@ -2843,14 +2843,14 @@ void *FUN_0018e7d0(int param_1)
   return NULL;
 }
 
-/* 0x18e800 — scenario_ensure_point_within_world: test whether a cluster is
+/* 0x18e800 — scenario_test_pvs: test whether a cluster is
  * audible/visible by checking bit cluster_index1 in the current structure
  * BSP's per-cluster sound-data bitvector for source cluster_index. Asserts the
  * BSP is loaded (*0x5064e0, scenario.c:0xc5) and that cluster_index1 is in
  * range [0, structure_bsp->clusters.count) (bsp+0x134, scenario.c:0x1d4).
  * Returns the tested bit as 0/1. cdecl, both indices int16_t: callers
  * 0x41768/0x442d7 push the 16-bit registers without extension. */
-bool scenario_ensure_point_within_world(int16_t cluster_index,
+bool scenario_test_pvs(int16_t cluster_index,
                                         int16_t cluster_index1)
 {
   void *bsp;
@@ -3452,7 +3452,7 @@ void FUN_0018f230(void *param_1, void *param_2, void *param_3, void *param_4)
    found). Steps the position up in Z by 0.05 up to 0x96 times until a leaf is
    located. Returns 1 if a leaf was found on the very first probe (position was
    immediately above geometry / "underwater"), 0 otherwise. */
-char scenario_location_underwater(float *position)
+char scenario_ensure_point_within_world(float *position)
 {
   short count;
   uint32_t leaf;
@@ -3561,7 +3561,7 @@ int16_t FUN_0018f2d0(void *location, void *position)
 }
 
 /*
- * FUN_0018f3e0 -- determine whether a position is under indoor fog.
+ * scenario_location_underwater -- determine whether a position is under indoor fog.
  *
  * Given a BSP location and a 3D position, finds the BSP3D node via
  * FUN_0018f2d0, then looks up the corresponding fog tag. Returns true
@@ -3578,7 +3578,7 @@ int16_t FUN_0018f2d0(void *location, void *position)
  * Confirmed: tag_block_get_element(bsp+0x184, node, 0x28) for BSP3D node.
  * Confirmed: tag_block_get_element(bsp+0x134, cluster, 0x68) fallback.
  */
-bool FUN_0018f3e0(void *location, void *position, int16_t *out_sky_index)
+bool scenario_location_underwater(void *location, void *position, int16_t *out_sky_index)
 {
   char *bsp;
   int16_t node_index;
@@ -3636,7 +3636,7 @@ done:
 }
 
 /*
- * FUN_0018f510 -- compute signed fog distance at a BSP location.
+ * scenario_location_water_depth -- compute signed fog distance at a BSP location.
  *
  * Given a BSP location (with cluster_index at offset +4) and a 3D position,
  * looks up the cluster's fog reference from the structure BSP clusters tag
@@ -3661,7 +3661,7 @@ done:
  * (dot - d). Confirmed: FCHS negates the sum before return. Confirmed: 0x2548fc
  * = FLT_MAX (0x7f7fffff). Confirmed: default return = -FLT_MAX (0xff7fffff).
  */
-float FUN_0018f510(void *location, void *position)
+float scenario_location_water_depth(void *location, void *position)
 {
   char *bsp;
   char *cluster;

@@ -4172,7 +4172,7 @@ bool sound_refresh_looping(int sound_tag_index, int looping_sound_index,
  *   - listener+0 (byte) = slot-active flag.  Cleared when
  *     local_player_get_player_index returns -1.
  *   - Otherwise observer_get_camera yields the camera block (asserted
- *     non-NULL, sound_manager.c line 0x4ef).  FUN_0018f3e0(camera+0xc,
+ *     non-NULL, sound_manager.c line 0x4ef).  scenario_location_underwater(camera+0xc,
  *     camera+0, NULL) returns a boolean state for that camera position.  On
  *     a change versus the stored listener+1 byte, a transition sound is
  *     started from the tag block at game_globals_get()+0xf8 (element size
@@ -4239,7 +4239,7 @@ void FUN_001ce9c0(void)
       }
 
       listener->valid = 1;
-      state = FUN_0018f3e0(camera + 3, camera, (int16_t *)0);
+      state = scenario_location_underwater(camera + 3, camera, (int16_t *)0);
 
       if (listener->field_01 != (uint8_t)state) {
         transition_sounds = (int *)((char *)game_globals_get() + 0xf8);

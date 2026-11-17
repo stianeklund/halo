@@ -5074,7 +5074,7 @@ cs(struct point_physics_definition, 0x40);
 co(struct point_physics_definition, density, 0x20);
 co(struct point_physics_definition, elasticity, 0x30);
 
-/* Collision-test result filled by FUN_0014df70 (collision_test_vector),
+/* Collision-test result filled by collision_test_vector (collision_test_vector),
  * size 0x50 (PAL 2342 collisions.h; point_physics_update frame places it at
  * [EBP-0x94] with the next local at [EBP-0x44]).  Offsets observed in
  * point_physics_update (0x154a50): type word at +0x0 compared with 0/2,
@@ -5487,7 +5487,7 @@ co(director_variable_definition_t, has_hyper_scale, 0x18);
 
 /* Per-local-player camera director, 0xf8 bytes (stride of every
  * index * 0xf8 access in director.obj).
- *   +0x04 camera_change_pause  1.0f written by FUN_000865a0 when asked
+ *   +0x04 camera_change_pause  1.0f written by director_set_camera when asked
  *   +0x08 camera_proc          the active camera update function; holds the
  *                              ORIGINAL entry address (see director.c)
  *   +0x0c camera_data          per-mode camera block (following/first-person
@@ -5558,7 +5558,7 @@ typedef struct {
 cs(director_scripting_t, 0x4);
 
 /* Editor (flying) camera globals at 0x335698, 0x7c bytes.  Offsets from the
- * director.obj editor_camera_* functions: +0x01 use_roll byte (FUN_00087ac0),
+ * director.obj editor_camera_* functions: +0x01 use_roll byte (editor_camera_use_roll),
  * +0x02 initialized byte and +0x04 focus (editor_camera_set_focus /
  * _set_position), +0x18 live camera pointer, +0x2c mode word
  * (editor_camera_set_mode), +0x38 two persisted 0x20-byte camera slots. */

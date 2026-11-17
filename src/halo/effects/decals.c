@@ -2379,7 +2379,7 @@ void decal_new(int decal_tag_index, void *origin, void *direction,
 
     collision_user_stack[global_current_collision_user_depth++] = 9;
 
-    if (FUN_0014df70(0x100061, (float *)origin, (float *)direction, -1,
+    if (collision_test_vector(0x100061, (float *)origin, (float *)direction, -1,
                      collision_result) &&
         collision_result[0] != 0 && collision_result[0] == 2) {
       uint8_t *decal_tag = (uint8_t *)tag_get(0x64656361, decal_tag_index);

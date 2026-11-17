@@ -4,7 +4,7 @@
 
 /* Director camera modes: the indices of director_camera_mode_names
  * ("following", "orbiting", "flying", "editor", "first person"), matching the
- * FUN_00086a50 switch arms. */
+ * director_rotate_cameras switch arms. */
 enum {
   _director_camera_mode_following = 0,
   _director_camera_mode_orbiting = 1,
@@ -31,8 +31,7 @@ typedef void (*director_camera_proc)(void *camera_data,
                                      camera_action_t *action,
                                      camera_command_t *command);
 
-/* Record returned by FUN_000cf690 (input_get_mouse_state in player_control.c)
- * that the debug camera reads: yaw and pitch deltas, the wheel delta that
+/* Record returned by input_get_mouse_state that the debug camera reads: yaw and pitch deltas, the wheel delta that
  * becomes action->wheel_delta, and a byte of unproven meaning tested next to
  * the key 0x1e check. */
 typedef struct {

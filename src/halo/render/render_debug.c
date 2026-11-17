@@ -1055,7 +1055,7 @@ void FUN_00189de0(void)
   dir[0] = fwd[0] * *(float *)0x254cb8;
   dir[1] = fwd[1] * *(float *)0x254cb8;
   dir[2] = fwd[2] * *(float *)0x254cb8;
-  if (FUN_0014df70(0x21, (float *)0x506550, dir, -1,
+  if (collision_test_vector(0x21, (float *)0x506550, dir, -1,
                    (short *)collision_result)) {
     snprintf(
       text + csstrlen(text), 0x800 - csstrlen(text),
@@ -1259,7 +1259,7 @@ void FUN_0018a370(void)
 /* Draw encounter/actor firing-position debug markers (0x18a3e0). Gated on the
  * flag at 0x506530. Iterates the scenario's actor-starting-location block
  * (scenario+0x258): for each entry it resolves the actor palette tag, probes a
- * ray from the entry position (FUN_0014df70) built from the entry's two packed
+ * ray from the entry position (collision_test_vector) built from the entry's two packed
  * angle bytes (elem+0xe/+0xf), draws a small sphere at the entry (or, on a
  * surface hit, at the hit point) colored by whether the entry is within its
  * encounter's active squad range, and labels it with the stripped actor tag
@@ -1313,7 +1313,7 @@ void FUN_0018a3e0(void)
     angle_tmp = *(signed char *)((char *)elem + 0xf);
     angles[1] = (float)angle_tmp * *(float *)0x2b1954;
     angles_to_vector(dir, angles);
-    if (FUN_0014df70(0x61, (float *)elem, dir, -1, (short *)collision_result)) {
+    if (collision_test_vector(0x61, (float *)elem, dir, -1, (short *)collision_result)) {
       if (*(short *)((char *)enc + 0xc) == -1 ||
           (int)*(unsigned short *)((char *)enc + 0xe) <=
             i - *(short *)((char *)enc + 0xc)) {

@@ -4074,7 +4074,7 @@ void render_debug_scripting(void)
  *   FUN_00188a90 with a 4-float copy of *[0x2ee6d8] whose first float is
  *   0.15f (0x3e19999a at 0xcbe64).
  *   Label at center = world_extents * 0.5 + position, visibility-tested with
- *   FUN_0014df70(0xc2ad, camera 0x506550, (center-camera)*0.95, -1, 0x50-byte
+ *   collision_test_vector(0xc2ad, camera 0x506550, (center-camera)*0.95, -1, 0x50-byte
  *   result); name drawn from volume+0x04 with color [0x2ee6e0]/[0x2ee6c4].
  */
 void render_debug_trigger_volumes(void)
@@ -4192,7 +4192,7 @@ void render_debug_trigger_volumes(void)
     view_dir.y = (center.y - *(float *)0x506554) * *(float *)0x255ed4;
     view_dir.z = (center.z - *(float *)0x506558) * *(float *)0x255ed4;
 
-    if (!FUN_0014df70(0xc2ad, (float *)0x506550, (float *)&view_dir, -1,
+    if (!collision_test_vector(0xc2ad, (float *)0x506550, (float *)&view_dir, -1,
                       collision_result)) {
       FUN_00189cb0(1, &center, volume + 4,
                    (*bitvector_word & bit_mask) ? *(int *)0x2ee6e0

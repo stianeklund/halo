@@ -22,7 +22,7 @@
 #include "observer.h"
 
 /*
- * FUN_00085a40 (0x85a40) — is there another player on this player's team?
+ * player_has_allies (0x85a40) — is there another player on this player's team?
  *
  * player_handle arrives in EDI (the decompiler reports it as `unaff_EDI`:
  * EDI is read at 0x85a4d/0x85a80 and never written in this function).
@@ -45,7 +45,7 @@
  *
  * 0x85a40 / director.obj
  */
-bool FUN_00085a40(int player_handle)
+bool player_has_allies(int player_handle)
 {
   data_iter_t iter;
   player_data_t *player;
@@ -71,7 +71,7 @@ bool FUN_00085a40(int player_handle)
 }
 
 /*
- * FUN_00085ab0 (0x85ab0) — pick the next eligible player handle after
+ * player_get_next_player_with_a_unit (0x85ab0) — pick the next eligible player handle after
  * `current_handle`, falling back to `current_handle` when none is found.
  *
  * Arguments (0x85ab0..0x85b5d):
@@ -105,7 +105,7 @@ bool FUN_00085a40(int player_handle)
  *
  * 0x85ab0 / director.obj
  */
-uint32_t FUN_00085ab0(char restrict_flag, uint32_t player_handle,
+uint32_t player_get_next_player_with_a_unit(char restrict_flag, uint32_t player_handle,
                       uint32_t current_handle)
 {
   data_iter_t iter;
@@ -282,8 +282,8 @@ void dead_camera_update(void *camera_data, void *control_data,
   camera->switch_timer =
     0.0f > camera->switch_timer ? 0.0f : camera->switch_timer;
   if (camera->switch_timer == 0.0f && !game_time_get_paused()) {
-    match_team = FUN_00085a40(camera->player_index);
-    next_player = FUN_00085ab0((char)match_team, camera->player_index,
+    match_team = player_has_allies(camera->player_index);
+    next_player = player_get_next_player_with_a_unit((char)match_team, camera->player_index,
                                camera->current_player_index);
     camera->current_player_index = next_player;
     if (next_player != NONE) {
@@ -528,13 +528,13 @@ int16_t director_desired_perspective(int unit_handle, int16_t *perspective)
 
 
 /*
- * FUN_000865a0 — install a camera proc for a local player (index in SI),
+ * director_set_camera — install a camera proc for a local player (index in SI),
  * resetting the debug controls; pause_camera_change primes the camera
  * change pause.
  *
  * 0x865a0 / director.obj
  */
-void FUN_000865a0(int16_t local_player_index, int camera_proc,
+void director_set_camera(int16_t local_player_index, int camera_proc,
                   bool pause_camera_change)
 {
   camera_director_t *director;
@@ -591,10 +591,10 @@ void director_init_player_cameras(int16_t local_player_index)
   } while (i != 0);
 }
 
-/* FUN_00086670: input-variable integration used by the flying camera.
+/* director_process_variables: input-variable integration used by the flying camera.
  * 2276 tests the first definition's has_hyper_scale byte (0x2ee610) for
  * every variable; this intentionally preserves that original behavior. */
-void FUN_00086670(int16_t local_player_index, int mode_flags, float fwd)
+void director_process_variables(int16_t local_player_index, int mode_flags, float fwd)
 {
   camera_director_t *director;
   director_variable_definition_t *definition;
@@ -708,9 +708,9 @@ void director_load_camera(void)
     crt_fclose(file);
     director = &director_globals.local_players[0];
     camera = director_flying_camera(director);
-    FUN_00089350(camera, &position, &forward);
+    flying_camera_new_from_point_and_vector(camera, &position, &forward);
     observer_up_from_forward(&forward, &derived_up);
-    camera->roll = FUN_0010c510(&stored_up.i, &derived_up.i);
+    camera->roll = angle_between_vectors3d(&stored_up.i, &derived_up.i);
     if ((derived_up.k * stored_up.j - stored_up.k * derived_up.j) *
             forward.i +
           (forward.j *
@@ -728,9 +728,9 @@ void director_load_camera(void)
   }
 }
 
-/* FUN_00086a50: AX/EBX inputs and signed word table/count are retained in
+/* director_rotate_cameras: AX/EBX inputs and signed word table/count are retained in
  * kb.json. Callback slots retain original VAs for director comparisons. */
-void FUN_00086a50(int local_player_index, int16_t *mode_table, int16_t count)
+void director_rotate_cameras(int local_player_index, int16_t *mode_table, int16_t count)
 {
   camera_director_t *director;
   int16_t camera_mode;
@@ -747,26 +747,26 @@ void FUN_00086a50(int local_player_index, int16_t *mode_table, int16_t count)
   switch (camera_mode) {
   case _director_camera_mode_following:
     following_camera_new(director->camera_data);
-    FUN_000865a0((int16_t)local_player_index, FOLLOWING_CAMERA_UPDATE_ENTRY,
+    director_set_camera((int16_t)local_player_index, FOLLOWING_CAMERA_UPDATE_ENTRY,
                  true);
     break;
   case _director_camera_mode_orbiting:
     orbiting_camera_new(director->camera_data, director->command.depth,
                         &director->command.forward);
-    FUN_000865a0((int16_t)local_player_index, ORBITING_CAMERA_UPDATE_ENTRY,
+    director_set_camera((int16_t)local_player_index, ORBITING_CAMERA_UPDATE_ENTRY,
                  true);
     break;
   case _director_camera_mode_flying:
-    FUN_00089350(director->camera_data, &director->command.position,
+    flying_camera_new_from_point_and_vector(director->camera_data, &director->command.position,
                  &director->command.forward);
-    FUN_000865a0((int16_t)local_player_index, FLYING_CAMERA_UPDATE_ENTRY,
+    director_set_camera((int16_t)local_player_index, FLYING_CAMERA_UPDATE_ENTRY,
                  true);
     break;
   case _director_camera_mode_editor:
     break;
   case _director_camera_mode_first_person:
     first_person_camera_new(director->camera_data);
-    FUN_000865a0((int16_t)local_player_index, FIRST_PERSON_CAMERA_UPDATE_ENTRY,
+    director_set_camera((int16_t)local_player_index, FIRST_PERSON_CAMERA_UPDATE_ENTRY,
                  true);
     break;
   default:
@@ -800,9 +800,9 @@ int16_t director_camera_deterministic(int unit_handle,
   result = director_desired_perspective(unit_handle, &perspective);
 
   if (result == 0) {
-    FUN_00088c80(unit_handle, out_position, out_forward);
+    first_person_camera_deterministic(unit_handle, out_position, out_forward);
   } else {
-    FUN_00089c00(unit_handle, out_position, out_forward);
+    following_camera_deterministic(unit_handle, out_position, out_forward);
   }
 
   return result;
@@ -840,12 +840,12 @@ void director_choose_game_perspective(int16_t local_player_index, char force)
     if (following == 1) {
       if (force || director->camera_proc == FIRST_PERSON_CAMERA_UPDATE_ENTRY) {
         following_camera_new(director->camera_data);
-        FUN_000865a0(local_player_index, FOLLOWING_CAMERA_UPDATE_ENTRY, !force);
+        director_set_camera(local_player_index, FOLLOWING_CAMERA_UPDATE_ENTRY, !force);
       }
     } else if (force ||
                director->camera_proc == FOLLOWING_CAMERA_UPDATE_ENTRY) {
       first_person_camera_new(director->camera_data);
-      FUN_000865a0(local_player_index, FIRST_PERSON_CAMERA_UPDATE_ENTRY,
+      director_set_camera(local_player_index, FIRST_PERSON_CAMERA_UPDATE_ENTRY,
                    !force);
     }
     director->seat_state = perspective;
@@ -861,7 +861,7 @@ void director_choose_game_perspective(int16_t local_player_index, char force)
  * (director.c line 0xb3, the director_get check) and then:
  *
  *   value != 0: install the scripted camera fn (0x853c0) through
- *     FUN_000865a0 with the top-timer flag clear. The reference inlines that
+ *     director_set_camera with the top-timer flag clear. The reference inlines that
  *     helper: fn at slot +0x08, 1.0f at +0xc4, byte clear at +0xc0, each
  *     addressed off EDI = slot + 0xc4 (0x335374 for player 0).
  *
@@ -909,7 +909,7 @@ void director_script_camera(unsigned char value)
 
     if (value != 0) {
       /* Install the scripted camera without priming the top timer. */
-      FUN_000865a0(i, SCRIPTED_CAMERA_UPDATE_ENTRY, 0);
+      director_set_camera(i, SCRIPTED_CAMERA_UPDATE_ENTRY, 0);
     } else {
       /* Forced re-evaluation of the gameplay camera for this player. */
       director_choose_game_perspective(i, 1);
@@ -922,7 +922,7 @@ void director_script_camera(unsigned char value)
 /* Normal-play camera dispatch for one player (mode-0/1, 0x86de0).
  *
  * reset_flag installs a fresh first-person camera (the inlined body of
- * FUN_000865a0 without the change pause).  Otherwise mode_flags cycles the
+ * director_set_camera without the change pause).  Otherwise mode_flags cycles the
  * game camera modes, and unless a script owns the camera the gameplay
  * perspective is re-evaluated; a player with no unit whose +0xaa word is
  * positive gets the dead camera, and leaving the dead camera re-selects the
@@ -974,7 +974,7 @@ void director_set_player_camera_normal(int16_t local_player_index,
   }
 
   if (mode_flags != 0)
-    FUN_00086a50(local_player_index, director_game_camera_modes, 3);
+    director_rotate_cameras(local_player_index, director_game_camera_modes, 3);
 
   if (director_camera_scripted->camera_scripted)
     return;
@@ -986,7 +986,7 @@ void director_set_player_camera_normal(int16_t local_player_index,
       return;
 
     dead_camera_new(director->camera_data, local_player_index, NONE);
-    FUN_000865a0(local_player_index, DEAD_CAMERA_UPDATE_ENTRY, true);
+    director_set_camera(local_player_index, DEAD_CAMERA_UPDATE_ENTRY, true);
     return;
   }
 
@@ -1004,10 +1004,10 @@ void director_set_player_camera_normal(int16_t local_player_index,
 
   if (following == 1) {
     following_camera_new(director->camera_data);
-    FUN_000865a0(local_player_index, FOLLOWING_CAMERA_UPDATE_ENTRY, false);
+    director_set_camera(local_player_index, FOLLOWING_CAMERA_UPDATE_ENTRY, false);
   } else {
     first_person_camera_new(director->camera_data);
-    FUN_000865a0(local_player_index, FIRST_PERSON_CAMERA_UPDATE_ENTRY, false);
+    director_set_camera(local_player_index, FIRST_PERSON_CAMERA_UPDATE_ENTRY, false);
   }
 
   director->seat_state = perspective;
@@ -1015,7 +1015,7 @@ void director_set_player_camera_normal(int16_t local_player_index,
 
 /* Switch player to the editor camera (mode 2 dispatch, 0x86fa0).  Unless it
  * is already installed (or reset_flag forces it), initialize the editor
- * camera and install editor_camera_update with the inlined FUN_000865a0
+ * camera and install editor_camera_update with the inlined director_set_camera
  * stores.
  *
  * Original receives player index in SI and reset_flag as a byte stack arg —
@@ -1049,7 +1049,7 @@ void director_set_player_camera_scripted(int16_t local_player_index,
 }
 
 /* Replay-mode dispatch for one player (0x87050).  reset_flag installs a fresh
- * first-person camera (inlined FUN_000865a0 stores); otherwise mode_flags
+ * first-person camera (inlined director_set_camera stores); otherwise mode_flags
  * cycles the replay camera modes.
  *
  * Original receives reset_flag in AL and player index in SI; reverse-thunked
@@ -1083,7 +1083,7 @@ void director_apply_replay_mode_for_player(char reset_flag,
   }
 
   if (mode_flags != 0)
-    FUN_00086a50(local_player_index, director_replay_camera_modes, 4);
+    director_rotate_cameras(local_player_index, director_replay_camera_modes, 4);
 }
 
 /* Build the per-player camera_action_t for one tick (0x87110).
@@ -1123,11 +1123,11 @@ bool director_compute_camera_input(camera_action_t *action,
   gamepad_index = player->local_player_index;
 
   if (gamepad_index == NONE || input_has_gamepad(gamepad_index) == 0) {
-    director_mouse_state_t *mouse = FUN_000cf690();
+    director_mouse_state_t *mouse = input_get_mouse_state();
     if (mouse != NULL) {
       bool back_pressed;
 
-      mouse = FUN_000cf690();
+      mouse = input_get_mouse_state();
       back_pressed = input_key_is_down(0x1d);
 
       if ((director->camera_proc != FIRST_PERSON_CAMERA_UPDATE_ENTRY &&
@@ -1149,7 +1149,7 @@ bool director_compute_camera_input(camera_action_t *action,
         if (input_key_is_down(0x31))
           mode_flags |= 0x80;
 
-        FUN_00086670(player16, mode_flags, (float)mouse->wheel);
+        director_process_variables(player16, mode_flags, (float)mouse->wheel);
 
         action->facing_delta.yaw = (float)mouse->delta_x * -0.0031415927f;
         action->facing_delta.pitch = (float)mouse->delta_y * -0.0031415927f;
@@ -1208,7 +1208,7 @@ bool director_compute_camera_input(camera_action_t *action,
               0.4f;
 
       action->wheel_delta = wheel;
-      FUN_00086670(player16, mode_flags, wheel);
+      director_process_variables(player16, mode_flags, wheel);
 
       action->facing_delta.yaw = director_stick_yaw_scale *
         ((float)(int)gamepad->stick_rx * director_globals.dtime);
@@ -1231,14 +1231,14 @@ bool director_compute_camera_input(camera_action_t *action,
 }
 
 /*
- * FUN_000874d0 — dispatch the per-player camera setup for the director game
+ * director_choose_camera — dispatch the per-player camera setup for the director game
  * mode: 0/1 normal play, 2 editor camera, 4 replay, anything else a no-op.
  *
  * local_player_index@<ecx>, reset_flag@<eax>, mode_flags@<edx>.
  *
  * 0x874d0 / director.obj
  */
-void FUN_000874d0(int16_t local_player_index, char reset_flag, char mode_flags)
+void director_choose_camera(int16_t local_player_index, char reset_flag, char mode_flags)
 {
   switch (director_globals.game_mode) {
   case 0:
@@ -1446,7 +1446,7 @@ void editor_camera_initialize(void *camera_data, int16_t local_player_index)
 
   /* 0x89350: cdecl(camera_data, position, forward) — the shared
    * ADD ESP,0x14 also retires angles_to_vector's two arguments. */
-  FUN_00089350(camera_data, &editor_camera_globals.focus_position, &forward);
+  flying_camera_new_from_point_and_vector(camera_data, &editor_camera_globals.focus_position, &forward);
 
   if (local_player_index == 0) {
     editor_camera_globals.camera = camera_data;
@@ -1556,10 +1556,10 @@ void editor_camera_set_position(const real_point3d *point,
   camera->facing = *angles;
 }
 
-/* FUN_00087ac0 (0x87ac0) — set editor_camera_globals.use_roll and return its
+/* editor_camera_use_roll (0x87ac0) — set editor_camera_globals.use_roll and return its
  * previous value (left in AL by the original).  Turning it off levels the
  * live editor camera's roll. */
-char FUN_00087ac0(char enabled)
+char editor_camera_use_roll(char enabled)
 {
   char previous;
   flying_camera_t *camera;
@@ -1616,10 +1616,10 @@ void editor_camera_set_mode(int16_t mode)
 }
 
 
-/* FUN_00087c00 (0x87c00) — translate_funcs[1][_translate_to]: entering
+/* translate_flying_to_orbiting (0x87c00) — translate_funcs[1][_translate_to]: entering
  * editor camera mode 1, park the caller's flying camera in
  * persisted_cameras[0] and either restore persisted_cameras[1] (when it was
- * saved by FUN_00088200) or reset the camera to a default view.
+ * saved by translate_orbiting_to_flying) or reset the camera to a default view.
  *
  * Both whole-camera copies are MOV ECX,0x7 / REP MOVSD struct assignments.
  * On the default path the position y constant is loaded into ECX at 0x87c32
@@ -1627,7 +1627,7 @@ void editor_camera_set_mode(int16_t mode)
  * source forward vector; roll and field of view keep the caller's values.
  *
  * The parameter is declared void * to match the kb.json declaration. */
-void FUN_00087c00(void *state)
+void translate_flying_to_orbiting(void *state)
 {
   flying_camera_t *camera = state;
   real position_y;
@@ -1701,7 +1701,7 @@ void editor_camera_set_position_and_roll(const real_point3d *point,
   }
 
   editor_camera_globals.camera->position = *point;
-  FUN_00109e90(&matrix.scale, angles->facing.yaw, angles->facing.pitch,
+  matrix4x3_rotation_from_angles(&matrix.scale, angles->facing.yaw, angles->facing.pitch,
                angles->roll);
   vector_to_angles(&editor_camera_globals.camera->facing.yaw,
                    &matrix.forward.i);
@@ -1715,7 +1715,7 @@ void editor_camera_set_position_and_roll(const real_point3d *point,
   cross_product3d_inline(&pitched, &matrix.up, &cross);
   normalize3d(&cross.i);
   editor_camera_globals.camera->roll =
-    FUN_0010c510(&pitched.i, &matrix.up.i) * dot_product3d(&cross, &forward);
+    angle_between_vectors3d(&pitched.i, &matrix.up.i) * dot_product3d(&cross, &forward);
   if (editor_camera_relative_object_index != NONE) {
     set_real_vector3d_inline(&editor_camera_globals.unit_offset, point->x,
                              point->y, point->z);
@@ -1723,7 +1723,7 @@ void editor_camera_set_position_and_roll(const real_point3d *point,
   editor_camera_globals.reset_all = 1;
 }
 
-/* FUN_00087eb0 (0x87eb0) — record the editor camera relative object and
+/* editor_camera_set_unit_focus (0x87eb0) — record the editor camera relative object and
  * derive editor_camera_globals.unit_offset.
  *
  * param_1 is stored unconditionally (MOV [0x2ee66c],EAX at 0x87ebf).  With a
@@ -1732,7 +1732,7 @@ void editor_camera_set_position_and_roll(const real_point3d *point,
  * FSUB [EAX+0x50]).  For a -1 handle the zero vector is copied as three
  * dwords.  The object is reached through a real_point3d pointer to its
  * bounding_sphere_center; caching the object pointer instead loses 7 bytes. */
-void FUN_00087eb0(int32_t object_index)
+void editor_camera_set_unit_focus(int32_t object_index)
 {
   flying_camera_t *camera;
   object_data_t *object;
@@ -1768,7 +1768,7 @@ void FUN_00087eb0(int32_t object_index)
  * mismatch is in the original and is preserved here.
  *
  * [0x2ee670] is re-loaded for the +0x1c vector (MOV EDX at 0x87f81, MOV ECX
- * at 0x87fa1), so the reload is kept.  FUN_00087eb0 takes one argument: the
+ * at 0x87fa1), so the reload is kept.  editor_camera_set_unit_focus takes one argument: the
  * PUSH EDX at 0x87fba is covered by the single ADD ESP,0xc at 0x87fc6 that
  * also cleans the two vector_to_angles pushes. */
 void editor_camera_update(void *camera_data, camera_action_t *action,
@@ -1795,7 +1795,7 @@ void editor_camera_update(void *camera_data, camera_action_t *action,
     camera->position = source->position;
     vector_to_angles(&camera->facing.yaw,
                      &editor_camera_source->forward.i);
-    FUN_00087eb0(editor_camera_relative_object_index);
+    editor_camera_set_unit_focus(editor_camera_relative_object_index);
 
     if (editor_camera_globals.mode != 0) {
       if (translate_funcs[editor_camera_globals.mode][_translate_from] ==
@@ -1830,9 +1830,9 @@ void editor_camera_update(void *camera_data, camera_action_t *action,
  * Entering (enable != 0): run the _translate_from callback for the current
  * mode, derive the angle pair from the live look vector, hand both the
  * position (*(0x2ee670) + 0x10) and those angles to editor_camera_set_position,
- * then start a camera interpolation through FUN_00085280.  Leaving
+ * then start a camera interpolation through scripted_camera_set_camera_point_relative.  Leaving
  * (enable == 0): copy the live position/angles back into the camera-data
- * block at 0x3356b0, notify FUN_00087eb0, and run the mode callback.
+ * block at 0x3356b0, notify editor_camera_set_unit_focus, and run the mode callback.
  *
  * Both asserts test the _translate_from slot at 0x2ee67c, but the entering
  * path dispatches through 0x2ee67c while the leaving path dispatches through
@@ -1847,12 +1847,12 @@ void editor_camera_update(void *camera_data, camera_action_t *action,
  *  - 0x880d5 editor_camera_set_position: PUSH EAX (= EBP-8) is the last
  *    argument (angles), PUSH ECX (= globals + 0x10) the first (point); the
  *    single ADD ESP,0x10 at 0x880df cleans both calls' four pushes.
- *  - 0x88101 / 0x88128 FUN_00085280 (ADD ESP,0x18, six dwords): first PUSH is
+ *  - 0x88101 / 0x88128 scripted_camera_set_camera_point_relative (ADD ESP,0x18, six dwords): first PUSH is
  *    param_1, so param_6 is the dword at [0x2ee66c] (-1 on the 0x8810e path),
  *    param_5 is 0, param_4 the float immediate 0x3f9c61aa = 1.2217305f.
  *    The two paths differ only in param_1 (0x3356b8 vs globals + 0x10) and
  *    param_6.
- *  - 0x88170 FUN_00087eb0 takes the dword at [0x2ee66c]; ADD ESP,0xc at
+ *  - 0x88170 editor_camera_set_unit_focus takes the dword at [0x2ee66c]; ADD ESP,0xc at
  *    0x8817b cleans it together with the two vector_to_angles pushes.
  *  - 0x881ef console_printf: the message selector is the char * table at
  *    0x2ee694 indexed by the zero-extended parameter.
@@ -1912,7 +1912,7 @@ void editor_camera_set_scripted(unsigned char enable)
 
     vector_to_angles(&camera->facing.yaw,
                      &editor_camera_source->forward.i);
-    FUN_00087eb0(editor_camera_relative_object_index);
+    editor_camera_set_unit_focus(editor_camera_relative_object_index);
 
     if (editor_camera_globals.mode != 0) {
       if (translate_funcs[editor_camera_globals.mode][_translate_from] ==
@@ -1937,17 +1937,17 @@ void editor_camera_set_scripted(unsigned char enable)
   console_printf(0, "%s scripted camera mode", message);
 }
 
-/* FUN_00088200 (0x88200) — translate_funcs[1][_translate_from]: leaving
+/* translate_orbiting_to_flying (0x88200) — translate_funcs[1][_translate_from]: leaving
  * editor camera mode 1, save the caller's flying camera in
  * persisted_cameras[1] (marking it saved), then move the camera to the
  * source position and forward vector.
  *
  * The save is a MOV ECX,0x7 / REP MOVSD struct assignment (same shape as
- * FUN_00087c00).  The original holds source+0x10 in ECX for the three
+ * translate_flying_to_orbiting).  The original holds source+0x10 in ECX for the three
  * position dwords and re-loads the source pointer for the forward vector;
  * roll and field of view keep the caller's values.  One ADD ESP,0xc cleans
- * the vector_to_angles and FUN_00087eb0 pushes. */
-void FUN_00088200(void *state)
+ * the vector_to_angles and editor_camera_set_unit_focus pushes. */
+void translate_orbiting_to_flying(void *state)
 {
   flying_camera_t *camera = state;
   editor_camera_source_t *source;
@@ -1959,7 +1959,7 @@ void FUN_00088200(void *state)
   camera->position = source->position;
   vector_to_angles(&camera->facing.yaw,
                    &editor_camera_source->forward.i);
-  FUN_00087eb0(editor_camera_relative_object_index);
+  editor_camera_set_unit_focus(editor_camera_relative_object_index);
 }
 
 /* editor_camera_orbiting_update (0x887e0) — orbiting-mode entry of the
@@ -1967,7 +1967,7 @@ void FUN_00088200(void *state)
  * control_data [EBP+0xc], result_data [EBP+0x10]).
  *
  * The orbit reuses the editor flying camera: its facing is the orbit angle
- * pair and its position.y holds the orbit distance (FUN_00087c00 seeds it).
+ * pair and its position.y holds the orbit distance (translate_flying_to_orbiting seeds it).
  *
  * The validator reads field_of_view and timer back from the constant pools
  * (FLD [0x2670c8] at 0x88b0c, [0x2670d0] at 0x88b49), not from the result

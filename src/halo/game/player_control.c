@@ -1575,7 +1575,7 @@ void player_control_modify_desired_angles(int16_t local_player_index,
         marker_angles[1] = 0.0f;
         angles_to_vector(forward, marker_angles);
         offset =
-          REAL_HALF_PI - FUN_0010c510(forward, (float *)(unit_obj + 0x30));
+          REAL_HALF_PI - angle_between_vectors3d(forward, (float *)(unit_obj + 0x30));
         pitch_minimum_target -= offset;
         pitch_maximum_target -= offset;
         pitch_target -= offset;
@@ -2011,10 +2011,6 @@ void clear_input_blob(void *blob)
 {
   csmemset(blob, 0, 0x20);
 }
-
-#ifndef input_get_mouse_state
-#define input_get_mouse_state FUN_000cf690
-#endif
 
 /* 0xb70b0 — get_local_player_input_blob
  * Fills action buffer (0x20 bytes, arrives in EBX) with local player input.

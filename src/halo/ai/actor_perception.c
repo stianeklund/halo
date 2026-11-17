@@ -2340,7 +2340,7 @@ void prop_position_refresh(int actor_handle, int prop_handle, void *out_data,
   prop->body_location_leaf_index = *(int32_t *)(object + 0x48);
   *(int32_t *)&prop->body_location_cluster_index = *(int32_t *)(object + 0x4c);
   prop->underwater =
-    FUN_0018f3e0(&prop->body_location_leaf_index, &prop->center_of_mass, 0);
+    scenario_location_underwater(&prop->body_location_leaf_index, &prop->center_of_mass, 0);
   prop->vehicle_index = -1;
   prop->vehicle_gunner = 0;
   prop->dangerous_vehicle_driver = 0;
