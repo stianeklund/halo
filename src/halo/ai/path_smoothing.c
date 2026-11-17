@@ -37,7 +37,7 @@
  *     &disc->point (pfVar1, pointing into the obstacles buffer, where the
  *     three contiguous floats are x, y, radius — z lives at +0x1c and is not
  *     part of that view; the disc renderer only uses x/y + the plane).
- *   - On raycast MISS, the sphere call (FUN_00189540) receives the local
+ *   - On raycast MISS, the sphere call (render_debug_sphere) receives the local
  *     {x,y,z} point copy, which reads z from disc+0x1c.
  */
 void path_obstacles_debug_render(void *obstacles, float radius)
@@ -95,11 +95,11 @@ void path_obstacles_debug_render(void *obstacles, float radius)
                        0.015625f);
         }
       } else {
-        FUN_00189540(1, point, *(float *)((char *)obstacles + disc_off + 0x18),
+        render_debug_sphere(1, point, *(float *)((char *)obstacles + disc_off + 0x18),
                      (char *)0x2c8fb8 +
                        *(short *)((char *)obstacles + disc_off + 10) * 0x10);
         if (*(float *)0x2533c0 < radius) {
-          FUN_00189540(1, point,
+          render_debug_sphere(1, point,
                        radius + *(float *)((char *)obstacles + disc_off + 0x18),
                        (char *)0x2c8fb8 +
                          *(short *)((char *)obstacles + disc_off + 10) * 0x10);
@@ -286,7 +286,7 @@ void FUN_000633b0(unsigned int param_1, int raw_step_count, void *raw_steps,
       collision_surface_project_point2d(
         (int)tag_block_get_element((void *)(*(int *)(param_1 + 0x64) + 0xb0), 0,
                                    0x60),
-        surface_index, 2, 1, origin, (float *)(smoothed + 1));
+        surface_index, 2, 1, (real_point2d *)origin, (real_point3d *)(smoothed + 1));
       *smoothed = surface_index;
       if ((short)count >= 4)
         goto done;
@@ -470,10 +470,10 @@ bool FUN_000638f0(int def, float *point, int surf_a, int surf_b)
 
   block_elem = tag_block_get_element((void *)(def + 0xb0), 0, 0x60);
   if ((surf_a != -1) && (surf_b != -1)) {
-    collision_surface_project_point2d((int)block_elem, surf_a, 2, 1, point,
-                                      out1);
-    collision_surface_project_point2d((int)block_elem, surf_b, 2, 1, point,
-                                      out2);
+    collision_surface_project_point2d((int)block_elem, surf_a, 2, 1, (real_point2d *)point,
+                                      (real_point3d *)out1);
+    collision_surface_project_point2d((int)block_elem, surf_b, 2, 1, (real_point2d *)point,
+                                      (real_point3d *)out2);
     if (fabs(out1[2] - out2[2]) < *(double *)0x25f0c8)
       return 0;
     return 1;

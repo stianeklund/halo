@@ -1108,8 +1108,8 @@ float FUN_00181420(void *param_1 /* @<esi> */, short rotation_fn /* @<di> */)
   case 0:
     break;
   case 1:
-    cross_product3d((float *)&direction, (float *)0x5a5c64, (float *)&plane);
-    cross_product3d((float *)&plane, (float *)&direction, (float *)&plane);
+    cross_product3d(&direction, (real_vector3d *)0x5a5c64, &plane);
+    cross_product3d(&plane, &direction, &plane);
     offset.i = *(float *)0x5a5bd4;
     offset.j = *(float *)0x5a5bd8;
     offset.k = *(float *)0x5a5bdc;
@@ -1127,8 +1127,8 @@ float FUN_00181420(void *param_1 /* @<esi> */, short rotation_fn /* @<di> */)
                *(float *)0x5a5c84 * offset.k);
     break;
   case 3:
-    cross_product3d((float *)&direction, (float *)0x5a5c64, (float *)&plane);
-    cross_product3d((float *)&plane, (float *)&direction, (float *)&plane);
+    cross_product3d(&direction, (real_vector3d *)0x5a5c64, &plane);
+    cross_product3d(&plane, &direction, &plane);
     offset.i = *(float *)((char *)param_1 + 4) - *(float *)0x5a5bc8;
     offset.j = *(float *)((char *)param_1 + 8) - *(float *)0x5a5bcc;
     offset.k = *(float *)((char *)param_1 + 0xc) - *(float *)0x5a5bd0;
@@ -1296,14 +1296,14 @@ void FUN_00181a90(void)
 
         switch (*(short *)(definition + 0x14)) {
         case 0:
-          vector3d_scale_add((float *)(entry + 1), (float *)0x5a5bd4,
-                             -*(float *)(definition + 0x10), (float *)&pos);
+          vector3d_scale_add((real_point3d *)(entry + 1), (real_vector3d *)0x5a5bd4,
+                             -*(float *)(definition + 0x10), (real_point3d *)&pos);
           break;
         case 1:
-          vector3d_scale_add((float *)(entry + 1), (float *)&dir,
+          vector3d_scale_add((real_point3d *)(entry + 1), &dir,
                              *(float *)(definition + 0x10) *
                                *(float *)0x254e68,
-                             (float *)&pos);
+                             (real_point3d *)&pos);
           break;
         case 2:
           pos = *(real_vector3d *)(entry + 1);

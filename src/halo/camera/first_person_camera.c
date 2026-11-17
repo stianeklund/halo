@@ -38,7 +38,7 @@ void first_person_camera_deterministic(int unit_handle, real_point3d *out_positi
       definition =
         tag_get(TAG_GROUP_VEHI, vehicle->tag_index);
       seat = tag_block_get_element(
-        &definition->seats, (short)unit->parent_seat_index, sizeof(unit_seat_t));
+        &definition->seats, unit->parent_seat_index, sizeof(unit_seat_t));
 
       if (seat->flags & FLAG(_unit_seat_first_person_camera_bit)) {
         if (object_get_marker_by_name(unit->object.parent_object_index.value,
@@ -100,7 +100,7 @@ void first_person_camera_for_unit_and_vector(const real_vector3d *vector,
         definition =
           tag_get(TAG_GROUP_VEHI, vehicle->tag_index);
         seat = tag_block_get_element(
-          &definition->seats, (short)unit->parent_seat_index,
+          &definition->seats, unit->parent_seat_index,
           sizeof(unit_seat_t));
         if (seat->flags & FLAG(_unit_seat_first_person_camera_bit)) {
           if (object_get_marker_by_name(unit->object.parent_object_index.value,

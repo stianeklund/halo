@@ -3273,14 +3273,15 @@ return result; }
  *
  * Ref: z computed first, then y, then x; all three FPU results held on the
  * x87 stack before the first FSTP (aliasing safe when b==out). */
-float *cross_product3d(float *a, float *b, float *out)
+real_vector3d *cross_product3d(real_vector3d const *a, real_vector3d const *b,
+                               real_vector3d *out)
 {
-  float z = a[0] * b[1] - a[1] * b[0];
-  float y = a[2] * b[0] - a[0] * b[2];
-  float x = a[1] * b[2] - a[2] * b[1];
-  out[0] = x;
-  out[1] = y;
-  out[2] = z;
+  float k = a->i * b->j - a->j * b->i;
+  float j = a->k * b->i - a->i * b->k;
+  float i = a->j * b->k - a->k * b->j;
+  out->i = i;
+  out->j = j;
+  out->k = k;
   return out;
 }
 
@@ -3359,10 +3360,10 @@ void action_obey_directmovement_update_facing(char *state_data,
     return;
   case 2:
   case 3:
-    cross_product3d(*(float **)0x31fc44, &facing[0], &cross[0]);
+    cross_product3d((real_vector3d *)(*(float **)0x31fc44), (real_vector3d *)&facing[0], (real_vector3d *)&cross[0]);
     if (normalize3d((real_vector3d *)&cross[0]) == 0.0f) {
       obj = (char *)object_get_and_verify_type(object_handle, 0x3);
-      cross_product3d((float *)(obj + 0x30), &facing[0], &cross[0]);
+      cross_product3d((real_vector3d *)(obj + 0x30), (real_vector3d *)&facing[0], (real_vector3d *)&cross[0]);
       if (normalize3d((real_vector3d *)&cross[0]) == 0.0f) {
         cross[0] = *(float *)(*(int *)0x31fc3c);
         cross[1] = *(float *)(*(int *)0x31fc3c + 4);
@@ -3542,10 +3543,10 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx,
           fp_index = random_range(mode, (short)(mode2 + 1));
           if (*(float *)(atom + 2) == *(float *)0x2533c0 &&
               *(float *)(atom + 4) == *(float *)0x2533c0) {
-            radius = FUN_000121e0(*(float *)(actr_def + 0xec),
+            radius = real_random_range(*(float *)(actr_def + 0xec),
                                   *(float *)(actr_def + 0xf0));
           } else {
-            radius = FUN_000121e0(*(float *)(atom + 2), *(float *)(atom + 4));
+            radius = real_random_range(*(float *)(atom + 2), *(float *)(atom + 4));
           }
         }
       }
@@ -3654,7 +3655,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx,
             *(float *)(atom + 4) < *(float *)0x253d50)) {
         break;
       }
-      vector3d_from_angle((float *)(state_data + 0xc),
+      vector3d_from_angle((real_vector3d *)(state_data + 0xc),
                           *(float *)(atom + 4) * *(float *)0x253d4c);
     }
     mode = atom[1];
@@ -3700,7 +3701,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx,
     } else {
       obj = (char *)object_get_and_verify_type(unit_handle, 3);
       if (*(int *)(obj + 0xcc) == -1) {
-        flag = (FUN_00013070((float *)(obj + 0x18), (float *)(obj + 0x24)) >
+        flag = (dot_product3d((real_vector3d *)(obj + 0x18), (real_vector3d *)(obj + 0x24)) >
                 *(float *)0x253d48);
       } else {
         flag = 0;
@@ -3966,7 +3967,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx,
     default:
       break;
     }
-    if (FUN_001ac180(unit_handle, anim_tag, elem, do_flag) == 0) {
+    if (unit_start_user_animation(unit_handle, anim_tag, elem, do_flag) == 0) {
       break;
     }
     obj = (char *)object_try_and_get_and_verify_type(unit_handle, 1);
@@ -4080,7 +4081,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx,
          * same non-unit magnitude and unit_verify_vectors asserted
          * ("unit-preprocess-nodes"). */
         pos[2] = 0.0f;
-        if (normalize2d(pos) == *(float *)0x2533c0) {
+        if (normalize2d((real_vector2d *)pos) == *(float *)0x2533c0) {
           unit_get_facing_vector(unit_handle, pos);
         }
       } else {
@@ -4210,7 +4211,7 @@ bool action_obey_command_perform(int unit_handle, int actor_handle,
         range = actor_destination_tolerance(actor_handle);
         FUN_00012140((float *)(actor + 0x12c), (float *)((char *)command + 8),
                      local_vec);
-        dot = FUN_00012170(local_vec);
+        dot = magnitude_squared3d((real_vector3d *)local_vec);
         if (dot < range * range) {
           result = 1;
         } else if (dot < (range + 0.5f) * (range + 0.5f)) {
@@ -4254,14 +4255,14 @@ bool action_obey_command_perform(int unit_handle, int actor_handle,
            * The original stored diff_x/diff_y in adjacent stack floats
            * ([ebp-8]/[ebp-4]) so both got normalized. Scattered scalar locals
            * made it normalize garbage and leave diff_y raw. */
-          if (normalize2d(diff) > 0.0f) {
+          if (normalize2d((real_vector2d *)diff) > 0.0f) {
             range = diff[1] * ((actor_t *)actor)->input_facing_vector[1];
             local_vec[0] = diff[0];
           }
         } else {
           FUN_00012140((float *)(actor + 0x12c),
                        (float *)((char *)command + 0x1c), local_vec);
-          if (normalize2d(local_vec) > 0.0f) {
+          if (normalize2d((real_vector2d *)local_vec) > 0.0f) {
             range = local_vec[2] * ((actor_t *)actor)->input_facing_vector[2] +
                     local_vec[1] * ((actor_t *)actor)->input_facing_vector[1];
           }
@@ -4722,7 +4723,7 @@ LAB_done:
     if (animation_impulse != -1) {
       tmp_v[1] = ((actor_t *)actor)->control_desired_facing_vector[1];
       tmp_v[0] = ((actor_t *)actor)->control_desired_facing_vector[0];
-      normalize2d(tmp_v); /* normalizes tmp_v[0],tmp_v[1] in place (2D) */
+      normalize2d((real_vector2d *)tmp_v); /* normalizes tmp_v[0],tmp_v[1] in place (2D) */
       (void)actor_move_animation_impulse(
         actor_handle, animation_impulse,
         (int *)tmp_v); /* hazard-ok: intentional-discard (output via pointer
@@ -4761,7 +4762,7 @@ LAB_done:
           !unit_is_busy(((actor_t *)actor)->field_018)) {
         tmp_v[0] = ((actor_t *)actor)->input_facing_vector[0];
         tmp_v[1] = ((actor_t *)actor)->input_facing_vector[1];
-        len_sq = normalize2d(tmp_v);
+        len_sq = normalize2d((real_vector2d *)tmp_v);
         if (len_sq == 0.0f) {
           selected_x = **(int **)0x31fc0c;
           selected_y = *(*(int **)0x31fc0c + 1);
@@ -6518,7 +6519,7 @@ void firing_position_compute_line_of_sight(int actor_handle, void *state,
       ((actor_t *)actor)->field_618 - *(float *)((char *)*(void **)state + 8);
     type = 3;
     direction_ptr = (void *)(actor + 0x5e0);
-    len_sq = normalize2d(diff);
+    len_sq = normalize2d((real_vector2d *)diff);
     if (len_sq <= *(float *)0x2533c0) {
       position_ptr = (float *)(d + 0x174);
     } else {
@@ -8239,7 +8240,7 @@ bool actor_look_valid_look_vector(float *dir, float *vec2, float *limit,
   if (!(tmp[2] * limit[0] + tmp[0] * limit[1] > threshold))
     return 0;
 
-  mag = normalize2d(tmp);
+  mag = normalize2d((real_vector2d *)tmp);
   if (!(mag > 0.0f))
     return 0;
 
@@ -8851,7 +8852,7 @@ static char look_spec_28660_safe(int actor_handle, char *actor,
        -> HALT. Any vector this predicate rejects, 28660 itself rejects (it
        calls the same check), so this is byte-faithful to the release path and
        value-agnostic to whatever garbage the stale slot carries. */
-    if (!valid_real_normal3d(tgt))
+    if (!valid_real_normal3d((real_vector3d *)tgt))
       return 0;
   }
   return actor_look_decode_direction(actor_handle, look_spec, out_vec);
@@ -8915,7 +8916,7 @@ void actor_look_update(int actor_handle)
   desired_facing = (float *)(actor + 0x5a4);
   strict_look = 0;
 
-  if (!valid_real_normal3d(desired_facing)) {
+  if (!valid_real_normal3d((real_vector3d *)desired_facing)) {
     display_assert(
       csprintf(
         error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
@@ -8925,7 +8926,7 @@ void actor_look_update(int actor_handle)
     system_exit(-1);
   }
   desired_aiming = (float *)(actor + 0x5b0);
-  if (!valid_real_normal3d(desired_aiming)) {
+  if (!valid_real_normal3d((real_vector3d *)desired_aiming)) {
     display_assert(
       csprintf(
         error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
@@ -8935,7 +8936,7 @@ void actor_look_update(int actor_handle)
     system_exit(-1);
   }
   desired_looking = (float *)(actor + 0x5bc);
-  if (!valid_real_normal3d(desired_looking)) {
+  if (!valid_real_normal3d((real_vector3d *)desired_looking)) {
     display_assert(
       csprintf(
         error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
@@ -9031,7 +9032,7 @@ void actor_look_update(int actor_handle)
   }
 
   /* Validate primary_vec and secondary_vec */
-  if (look_mode != 0 && look_mode != 1 && !valid_real_normal3d(primary_vec)) {
+  if (look_mode != 0 && look_mode != 1 && !valid_real_normal3d((real_vector3d *)primary_vec)) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
                             "&primary_vector", (double)primary_vec[0],
@@ -9039,7 +9040,7 @@ void actor_look_update(int actor_handle)
                    "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x4ca, 1);
     system_exit(-1);
   }
-  if (secondary_mode != 0 && !valid_real_normal3d(secondary_vec)) {
+  if (secondary_mode != 0 && !valid_real_normal3d((real_vector3d *)secondary_vec)) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
                             "&secondary_vector", (double)secondary_vec[0],
@@ -9349,7 +9350,7 @@ LAB_000297c7:
                             primary_vec))
     goto LAB_00029ccc;
 
-  if (!valid_real_normal3d(primary_vec)) {
+  if (!valid_real_normal3d((real_vector3d *)primary_vec)) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
                             "&idle_major_vector", (double)primary_vec[0],
@@ -9459,7 +9460,7 @@ LAB_00029c00:
                                                desired_facing, constrain_range,
                                                cos_angles);
         if (cVar7) {
-          if (!valid_real_normal3d(primary_vec)) {
+          if (!valid_real_normal3d((real_vector3d *)primary_vec)) {
             display_assert(
               csprintf(error_string_buffer,
                        "%s: assert_valid_real_normal3d(%f, %f, %f)",
@@ -9527,7 +9528,7 @@ LAB_00029e6d:
      * into the body on an unordered compare. */
     if (!(pitch_abs < *(double *)0x2533d0)) {
       ((actor_t *)actor)->control_desired_facing_vector[2] = 0.0f;
-      if (normalize2d(desired_facing) == *(float *)0x2533c0) {
+      if (normalize2d((real_vector2d *)desired_facing) == *(float *)0x2533c0) {
         desired_facing[0] = ((actor_t *)actor)->input_facing_vector[0];
         desired_facing[1] = ((actor_t *)actor)->input_facing_vector[1];
         desired_facing[2] = ((actor_t *)actor)->input_facing_vector[2];
@@ -9591,7 +9592,7 @@ LAB_00029e6d:
       float dot3 = pfv[2] * snap_stored[2] + pfv[1] * snap_stored[1] +
                    pfv[0] * snap_stored[0];
       if (dot3 > snap_cos) {
-        float dot4 = FUN_00013070(desired_facing, snap_stored);
+        float dot4 = dot_product3d((real_vector3d *)desired_facing, (real_vector3d *)snap_stored);
         /* Both arms converge on LAB_0002a09d (0x2a09d):
          *   fcomps -0x2c(%ebp); fnstsw; test $0x41,%ah; je LAB_0002a0c3
          * `je` fires when C0=C3=0, i.e. dot > snap_cos -- the snap is KEPT
@@ -9612,11 +9613,11 @@ LAB_00029e6d:
       dv[1] = desired_facing[1];
       ss[0] = snap_stored[0];
       ss[1] = snap_stored[1];
-      if (normalize2d(sv) == *(float *)0x2533c0)
+      if (normalize2d((real_vector2d *)sv) == *(float *)0x2533c0)
         goto LAB_0002a0a7;
-      if (normalize2d(dv) == *(float *)0x2533c0)
+      if (normalize2d((real_vector2d *)dv) == *(float *)0x2533c0)
         goto LAB_0002a0a7;
-      if (normalize2d(ss) == *(float *)0x2533c0)
+      if (normalize2d((real_vector2d *)ss) == *(float *)0x2533c0)
         goto LAB_0002a0a7;
       if (ss[1] * sv[1] + ss[0] * sv[0] > snap_cos) {
         /* Same LAB_0002a09d comparison as the 3D arm (0x2a04d `jne
@@ -9650,7 +9651,7 @@ LAB_0002a0c3:
 
   actor_unit_control_exact_facing(actor_handle, ((actor_t *)actor)->field_591);
 
-  if (!valid_real_normal3d((float *)(actor + 0x6fc))) {
+  if (!valid_real_normal3d((real_vector3d *)(actor + 0x6fc))) {
     display_assert(
       csprintf(error_string_buffer,
                "%s: assert_valid_real_normal3d(%f, %f, %f)",
@@ -9661,7 +9662,7 @@ LAB_0002a0c3:
       "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c8, 1);
     system_exit(-1);
   }
-  if (!valid_real_normal3d((float *)(actor + 0x708))) {
+  if (!valid_real_normal3d((real_vector3d *)(actor + 0x708))) {
     display_assert(
       csprintf(error_string_buffer,
                "%s: assert_valid_real_normal3d(%f, %f, %f)",
@@ -9672,7 +9673,7 @@ LAB_0002a0c3:
       "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x6c9, 1);
     system_exit(-1);
   }
-  if (!valid_real_normal3d((float *)(actor + 0x714))) {
+  if (!valid_real_normal3d((real_vector3d *)(actor + 0x714))) {
     display_assert(
       csprintf(error_string_buffer,
                "%s: assert_valid_real_normal3d(%f, %f, %f)",

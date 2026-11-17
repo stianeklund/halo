@@ -78,11 +78,12 @@ float arccosine(float x)
 
 /* midpoint3d (0x2a540) — Compute the midpoint of two 3D vectors.
  * out[i] = (a[i] + b[i]) * 0.5f for i in {0,1,2}. */
-float *midpoint3d(float *a, float *b, float *out)
+real_point3d *midpoint3d(const real_point3d *a, const real_point3d *b,
+                         real_point3d *out)
 {
-  out[0] = (a[0] + b[0]) * *(const float *)0x253398;
-  out[1] = (a[1] + b[1]) * *(const float *)0x253398;
-  out[2] = (a[2] + b[2]) * *(const float *)0x253398;
+  out->x = (a->x + b->x) * *(const float *)0x253398;
+  out->y = (a->y + b->y) * *(const float *)0x253398;
+  out->z = (a->z + b->z) * *(const float *)0x253398;
   return out;
 }
 
@@ -112,7 +113,7 @@ char actor_test_destination(int actor_handle)
   return ((actor_t *)actor)->field_484;
 }
 
-static __inline float dot_product3d(const real_vector3d *a, const real_vector3d *b)
+static __inline float dot_product3d_inline(const real_vector3d *a, const real_vector3d *b)
 {
   return a->i * b->i + a->j * b->j + a->k * b->k;
 }
@@ -168,7 +169,7 @@ void actor_get_stopping_distances(int actor_handle, float *param_2,
       tag = (char *)tag_get(0x76656869, *(int *)obj);
       /* disasm 0x2a688: FLD [ESI+0x20]*[ESI+0x2c], FLD [ESI+0x1c]*[ESI+0x28],
        * FADDP, FLD [ESI+0x18]*[ESI+0x24], FADDP */
-      current_speed = dot_product3d((real_vector3d *)(obj + 0x18),
+      current_speed = dot_product3d_inline((real_vector3d *)(obj + 0x18),
                                     (real_vector3d *)(obj + 0x24));
       max_speed = *(float *)(tag + 0x2f8);
       turn_decel = *(float *)(tag + 0x300);
@@ -185,7 +186,7 @@ void actor_get_stopping_distances(int actor_handle, float *param_2,
         /* dot product: velocity [+0x18,+0x1c,+0x20] . facing
          * [+0x24,+0x28,+0x2c] disasm at 0x2a6eb: FLD [ESI+0x20]*[ESI+0x2c], FLD
          * [ESI+0x1c]*[ESI+0x28], FADDP, FLD [ESI+0x24]*[ESI+0x18], FADDP */
-        current_speed = dot_product3d((real_vector3d *)(obj + 0x18),
+        current_speed = dot_product3d_inline((real_vector3d *)(obj + 0x18),
                                       (real_vector3d *)(obj + 0x24));
         /* bit 2 of byte at tag+0x2f4 enables custom movement params */
         if (*(unsigned char *)(tag + 0x2f4) & 4) {
@@ -318,7 +319,7 @@ bool actor_move_force_stop(int actor_handle)
  * Miss (0) => found=1,
  * used_bsp_test=1; if param_4 < FLT_MAX, build a half-clearance segment via
  * vector3d_scale_add(&origin, &direction, 1.0, seg_a) and
- * FUN_00012fb0(*(float**)0x31fc50, param_4, seg_b), retest; a hit there
+ * scale_vector3d(*(float**)0x31fc50, param_4, seg_b), retest; a hit there
  * clears found back to 0 (0x2aab9-0x2ab24).
  * Confirmed: out_flag NULL-checked at 0x2ab2b; *out_flag=used_bsp_test. */
 char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector,
@@ -387,8 +388,8 @@ char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector,
         found = 1;
         used_bsp_test = 1;
         if (param_4 < *(float *)0x2548fc) {
-          vector3d_scale_add(origin, direction, 1.0f, seg_a);
-          FUN_00012fb0(*(float **)0x31fc50, param_4, seg_b);
+          vector3d_scale_add((real_point3d *)origin, (real_vector3d *)direction, 1.0f, (real_point3d *)seg_a);
+          scale_vector3d((real_vector3d *)(*(float **)0x31fc50), param_4, (real_vector3d *)seg_b);
           if (collision_bsp_test_vector(3, bsp, 0, 0, (int)seg_a, (int)seg_b,
                                         3.4028235e+38f, (float *)&col_result) == '\0') {
             found = 0;
@@ -539,7 +540,7 @@ char actor_move_try_evasion_direction(int actor_handle, float *alignment_vector,
  * 0x2ad80-0x2ad82. Confirmed: sqrtf via FSQRT; FSTP [EBP-4] at 0x2ad97-0x2ad99.
  * Confirmed: FCOMP [EBP+0x14] (magnitude vs param_4) at 0x2ada7.
  * Confirmed: TEST AH,0x41; JNZ skip (param_4 >= magnitude → skip) at 0x2adac.
- * Confirmed: FUN_00012fb0(param_5, param_4/magnitude, param_5) at 0x2adbd.
+ * Confirmed: scale_vector3d(param_5, param_4/magnitude, param_5) at 0x2adbd.
  * Confirmed: actor[0x530]=0; return 1 at 0x2adc6-0x2adcf.
  */
 bool actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
@@ -573,8 +574,8 @@ bool actor_aim_jump(int actor_handle, int a2, char param_3, float param_4,
       magnitude = x87_sqrt(param_5[0] * param_5[0] + p1 * p1 + p2 * p2);
       if (cVar3 == 0) {
         if (magnitude > param_4) {
-          FUN_00012fb0(param_5, param_4 / magnitude,
-                       param_5); /* dup-args-ok: in-place scale matches
+          scale_vector3d((real_vector3d *)param_5, param_4 / magnitude,
+                       (real_vector3d *)param_5); /* dup-args-ok: in-place scale matches
                                     confirmed call above. */
         }
       }
@@ -682,11 +683,11 @@ void actor_move_avoidance_setup(int actor_handle)
             if (*marker != 0xffff) {
               matrix = object_get_node_matrix(object_handle, (int16_t)*marker);
               matrix_transform_point((float *)matrix,
-                                     (float *)((char *)marker + 0x10), out);
+                                     (real_point3d *)((char *)marker + 0x10), (real_point3d *)out);
               scale_term = *(float *)((char *)marker + 0x1c) * *(float *)matrix;
             } else {
               matrix_transform_point(world_matrix,
-                                     (float *)((char *)marker + 0x10), out);
+                                     (real_point3d *)((char *)marker + 0x10), (real_point3d *)out);
               scale_term = world_matrix[0] * *(float *)((char *)marker + 0x1c);
             }
             dx = out[0] - center[0];
@@ -1371,7 +1372,7 @@ void actor_move_calculate_free(char use_3d /* @<al> */,
   throttle = (real_vector3d *)out;
 
   if (use_3d != 0) {
-    if (valid_real_normal3d(movement_direction) == 0) {
+    if (valid_real_normal3d((real_vector3d *)movement_direction) == 0) {
       display_assert(
         csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
                  "movement_direction", (double)movement->i,
@@ -1379,7 +1380,7 @@ void actor_move_calculate_free(char use_3d /* @<al> */,
         "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x775, 1);
       system_exit(-1);
     }
-    if (valid_real_normal3d(facing_direction) == 0) {
+    if (valid_real_normal3d((real_vector3d *)facing_direction) == 0) {
       display_assert(
         csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
                  "facing_direction", (double)facing->i,
@@ -1387,8 +1388,8 @@ void actor_move_calculate_free(char use_3d /* @<al> */,
         "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x776, 1);
       system_exit(-1);
     }
-    biped_build_flying_axes(facing_direction, (float *)&left, (float *)&up);
-    throttle->i = dot_product3d(movement, facing);
+    biped_build_flying_axes((real_vector3d *)facing_direction, &left, &up);
+    throttle->i = dot_product3d_inline(movement, facing);
     throttle->j = (left.j * movement->j + left.k * movement->k) + left.i * movement->i;
     throttle->k = (up.j * movement->j + up.k * movement->k) + up.i * movement->i;
     normalize3d((real_vector3d *)out);
@@ -1481,19 +1482,19 @@ static __inline void cross_product3d_inline(const real_vector3d *a, const real_v
   out->k = a->i * b->j - a->j * b->i;
 }
 
-static __inline float magnitude_squared3d(const real_vector3d *v)
+static __inline float magnitude_squared3d_inline(const real_vector3d *v)
 {
   return v->i * v->i + v->j * v->j + v->k * v->k;
 }
 
-static __inline float magnitude3d(const real_vector3d *v)
+static __inline float magnitude3d_inline(const real_vector3d *v)
 {
-  return x87_sqrt(magnitude_squared3d(v));
+  return x87_sqrt(magnitude_squared3d_inline(v));
 }
 
 static __forceinline float normalize3d_inline(real_vector3d *v)
 {
-  float mag = magnitude3d(v);
+  float mag = magnitude3d_inline(v);
   if (x87_fabs(mag) >= *(const double *)0x2533d0) {
     float inv = 1.0f / mag;
     v->i *= inv;
@@ -1685,7 +1686,7 @@ void actor_move_vector_avoidance(int actor_handle /* @<ecx> */, float *facing, f
       }
     }
 
-    angular_speed = magnitude3d(&object->angular_velocity);
+    angular_speed = magnitude3d_inline(&object->angular_velocity);
     debug_info->has_emergency_velocity = 0;
     if (angular_speed > 0.02f) {
       float velocity_weight = MIN_FLOAT((angular_speed - 0.02f) * 12.5f, 1.0f) * 0.8f;
@@ -1694,8 +1695,8 @@ void actor_move_vector_avoidance(int actor_handle /* @<ecx> */, float *facing, f
       float velocity_approximate_weight = 0.0f;
 
       velocity_direction.i = 0.0f;
-      velocity_direction.j = dot_product3d(&avoidance_data.up, &object->angular_velocity);
-      velocity_direction.k = -dot_product3d(&avoidance_data.left, &object->angular_velocity);
+      velocity_direction.j = dot_product3d_inline(&avoidance_data.up, &object->angular_velocity);
+      velocity_direction.k = -dot_product3d_inline(&avoidance_data.left, &object->angular_velocity);
       if (normalize3d_inline(&velocity_direction) > 0.0f &&
           actor_move_vector_avoidance_find_direction(
             (float *)&velocity_direction,
@@ -1709,7 +1710,7 @@ void actor_move_vector_avoidance(int actor_handle /* @<ecx> */, float *facing, f
              direction_index < VECTOR_AVOIDANCE_NUMBER_OF_DIRECTIONS;
              direction_index++) {
           float velocity_dot =
-            dot_product3d(&avoidance_directions[direction_index], &velocity_direction);
+            dot_product3d_inline(&avoidance_directions[direction_index], &velocity_direction);
 
           if (velocity_dot < 0.0f) {
             weights[direction_index] += velocity_dot * velocity_weight;
@@ -1753,9 +1754,9 @@ void actor_move_vector_avoidance(int actor_handle /* @<ecx> */, float *facing, f
     movement_approximate_weight = 0.0f;
     if (normalize3d_inline(&movement_vector) > 0.0f) {
       local_movement_direction.i = 0.0f;
-      forward_dot = dot_product3d(&avoidance_data.forward, &movement_vector);
-      local_movement_direction.j = dot_product3d(&avoidance_data.left, &movement_vector);
-      local_movement_direction.k = dot_product3d(&avoidance_data.up, &movement_vector);
+      forward_dot = dot_product3d_inline(&avoidance_data.forward, &movement_vector);
+      local_movement_direction.j = dot_product3d_inline(&avoidance_data.left, &movement_vector);
+      local_movement_direction.k = dot_product3d_inline(&avoidance_data.up, &movement_vector);
       if (normalize3d_inline(&local_movement_direction) > 0.0f) {
         actor_move_vector_avoidance_find_direction(
           (float *)&local_movement_direction,
@@ -1795,7 +1796,7 @@ void actor_move_vector_avoidance(int actor_handle /* @<ecx> */, float *facing, f
           actor->control_vector_avoidance_sharp_turn_timer < 90) {
         debug_info->debug_mode = 7;
         sharp_turn = 1;
-      } else if (magnitude_squared3d(&object->angular_velocity) > 0.05f * 0.05f) {
+      } else if (magnitude_squared3d_inline(&object->angular_velocity) > 0.05f * 0.05f) {
         if (weight_difference > 2.0f && best_weight > 2.0f) {
           debug_info->debug_mode = 6;
           sharp_turn = 1;
@@ -1838,7 +1839,7 @@ void actor_move_vector_avoidance(int actor_handle /* @<ecx> */, float *facing, f
       actor->control_vector_avoidance_sharp_turn_timer = -1;
       if (forward_dot < 0.5f) {
         if (weight_difference > 1.3f) {
-          float direction_dot = dot_product3d(
+          float direction_dot = dot_product3d_inline(
             &avoidance_directions[best_avoidance_direction],
             &local_movement_direction);
 
@@ -2984,7 +2985,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
     }
   }
 
-  if (!valid_real_normal3d((float *)&facing_vector)) {
+  if (!valid_real_normal3d(&facing_vector)) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
                             "&facing_vector", (double)facing_vector.i,
@@ -3034,12 +3035,12 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
         }
 
         if (test_movement_direction) {
-          if (normalize2d((float *)&movement_direction) > 0.0f) {
+          if (normalize2d((real_vector2d *)&movement_direction) > 0.0f) {
             char collision[28];
             real_point3d test_point;
 
             movement_direction.k = 0.0f;
-            vector3d_scale_add((float *)&actor->body_position, (float *)&movement_direction, 0.4f, (float *)&test_point);
+            vector3d_scale_add(&actor->body_position, &movement_direction, 0.4f, &test_point);
             if (FUN_000639e0((int)scenario_get(), actor->field_376,
                              (float *)&actor->body_position, pathfinding_surface_index,
                              (float *)&test_point, -1, collision)) {
@@ -3296,7 +3297,7 @@ void actor_move_update(int actor_handle)
   arg7 = 0.0f;
   maximum_throttle = 1.0f;
 
-  if (valid_real_normal3d((float *)(actor + 0x174)) == 0) {
+  if (valid_real_normal3d((real_vector3d *)(actor + 0x174)) == 0) {
     display_assert(csprintf((char *)0x5ab100,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
                             (char *)0x255efc,
@@ -3509,7 +3510,7 @@ void actor_move_update(int actor_handle)
           vec_scratch[0] = *(float *)(vehicle + 0x30);
           vec_scratch[1] = *(float *)(vehicle + 0x34);
           vec_scratch[2] = 0.0f;
-          if (*(float *)0x2533c0 < normalize2d(vec_scratch)) {
+          if (*(float *)0x2533c0 < normalize2d((real_vector2d *)vec_scratch)) {
             ((actor_t *)actor)->field_504 = 1;
             crouch = 0;
             *(float *)(actor + 0x518) = vec_scratch[0] * *(float *)0x254644;
@@ -3602,7 +3603,7 @@ seed_fallback:
     ((actor_t *)actor)->field_58d = 0;
   }
 
-  if (valid_real_normal3d((float *)(actor + 0x5a4)) == 0) {
+  if (valid_real_normal3d((real_vector3d *)(actor + 0x5a4)) == 0) {
     display_assert(
       csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
                "&actor->control.desired_facing_vector",
@@ -3645,7 +3646,7 @@ seed_fallback:
       forward[0] = *(float *)(src + 0xe0);
       forward[1] = *(float *)(src + 0xe4);
       handle = *(int *)(src + 0x18);
-      if (normalize2d(forward) == *(float *)0x2533c0) {
+      if (normalize2d((real_vector2d *)forward) == *(float *)0x2533c0) {
         forward[0] = ((actor_t *)actor)->input_facing_vector[0];
         forward[1] = ((actor_t *)actor)->input_facing_vector[1];
       }
@@ -3674,7 +3675,7 @@ seed_fallback:
     if (((actor_t *)actor)->field_442 == '\0') {
       forward[0] = ((actor_t *)actor)->input_facing_vector[0];
       forward[1] = ((actor_t *)actor)->input_facing_vector[1];
-      if (normalize2d(forward) == *(float *)0x2533c0) {
+      if (normalize2d((real_vector2d *)forward) == *(float *)0x2533c0) {
         forward[0] = *(float *)*(int *)0x31fc0c;
         forward[1] = ((float *)*(int *)0x31fc0c)[1];
       }

@@ -1102,15 +1102,15 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
 
       if (node_index0 >= 0) {
         matrix_transform_point((float *)(*skinning + node_index0 * 0x34),
-                               (float *)vertex, point0);
+                               (real_point3d *)vertex, (real_point3d *)point0);
         matrix_scale_transform_vector((float *)(*skinning + node_index0 * 0x34),
-                                      vertex_normal, normal0);
+                                      (real_vector3d *)vertex_normal, (real_vector3d *)normal0);
       }
       if (node_index1 >= 0) {
         matrix_transform_point((float *)(*skinning + node_index1 * 0x34),
-                               (float *)vertex, point1);
+                               (real_point3d *)vertex, (real_point3d *)point1);
         matrix_scale_transform_vector((float *)(*skinning + node_index1 * 0x34),
-                                      vertex_normal, normal1);
+                                      (real_vector3d *)vertex_normal, (real_vector3d *)normal1);
       }
 
       point[0] = point1[0] * node_weight1 + point0[0] * node_weight0;
@@ -1196,10 +1196,10 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
                       k != points[j].vertex_count - 1 ? ',' : ' ');
           csstrcat((char *)0x5ab100, vertex_text);
         }
-        FUN_00189150(0, points[j].position, 0.03125f, *(void **)0x2ee6d0);
-        FUN_00189cb0(0, points[j].position, (void *)0x5ab100, *(int *)0x2ee6e0);
+        render_debug_point(0, (real_point3d *)points[j].position, 0.03125f, *(void **)0x2ee6d0);
+        render_debug_string_at_point(0, points[j].position, (void *)0x5ab100, *(int *)0x2ee6e0);
       } else {
-        FUN_00189150(0, points[j].position, 0.03125f, *(void **)0x2ee6c4);
+        render_debug_point(0, (real_point3d *)points[j].position, 0.03125f, *(void **)0x2ee6c4);
       }
     }
   }

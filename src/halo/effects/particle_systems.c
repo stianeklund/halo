@@ -53,7 +53,7 @@ void material_effect_new_from_point(int effect_tag_index, int param_2, void *pos
     return;
   }
   if (*(char *)0x4557e9 != '\0') {
-    FUN_00189540(0, position, 0.05f, *(void **)0x2ee6d0);
+    render_debug_sphere(0, position, 0.05f, *(void **)0x2ee6d0);
   }
 }
 
@@ -1142,7 +1142,7 @@ void particle_system_render(int particle_system_handle)
               type_def + 0x74, (int)*(short *)(particle + 8), 0x178);
             shader_b = NULL;
             matrix_transform_point((float *)0x5065b4,
-                                   (float *)(particle + 0x1c), origin);
+                                   (real_point3d *)(particle + 0x1c), (real_point3d *)origin);
             matrix_transform_vector((float *)0x5065b4,
                                     (real_vector3d *)(particle + 0x34), (real_vector3d *)direction);
             if (*(short *)(particle + 0xa) == NONE) {

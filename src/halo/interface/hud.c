@@ -482,7 +482,7 @@ void temporary_hud_draw_reticle(float param_1, const void *param_2)
     vertices[i][0] = x87_fcos(angle) * radius;
     vertices[i][1] = x87_fsin(angle) * radius;
 #endif
-    matrix_transform_point((float *)0x5065e8, vertices[i], vertices[i]);
+    matrix_transform_point((float *)0x5065e8, (real_point3d *)vertices[i], (real_point3d *)vertices[i]);
     angle += *(float *)0x26b164;
   }
 
@@ -558,7 +558,7 @@ void hud_draw_friendly_indicator(int player_handle)
   player = datum_get(*(data_t **)0x5aa6d4, player_handle);
   unit_get_head_position(*(int *)((char *)player + 0x34), head_pos);
   head_pos[2] += *(float *)0x2533e4;
-  matrix_transform_point((float *)0x5065b4, head_pos, cam_pos);
+  matrix_transform_point((float *)0x5065b4, (real_point3d *)head_pos, (real_point3d *)cam_pos);
   if (render_camera_view_to_screen((int *)0x506550, (int *)0x5065a4, cam_pos,
                                    screen_xy) == '\0') {
     return;

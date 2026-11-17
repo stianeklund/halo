@@ -102,7 +102,7 @@ float *FUN_00012140(float *a, float *b, float *result)
   return result;
 }
 
-/* 0x12170 — FUN_00012170: squared magnitude of a 3D vector.
+/* 0x12170 — magnitude_squared3d: squared magnitude of a 3D vector.
  *
  * Computes vector[0]^2 + vector[1]^2 + vector[2]^2 and returns it.
  *
@@ -111,9 +111,9 @@ float *FUN_00012140(float *a, float *b, float *result)
  *   FADDP; no globals or calls.
  * Confirmed: returns the accumulated sum in ST0.
  */
-float FUN_00012170(float *vector)
+float magnitude_squared3d(const real_vector3d *vector)
 {
-  return vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2];
+  return vector->i * vector->i + vector->j * vector->j + vector->k * vector->k;
 }
 
 /* 0x121a0 — distance_squared3d: squared distance between two 3D points.
@@ -134,7 +134,7 @@ float distance_squared3d(const float *a, const float *b)
   return sum + dy * dy;
 }
 
-float FUN_000121e0(float min, float max)
+float real_random_range(float min, float max)
 {
   unsigned int *seed = get_global_random_seed_address();
   return random_real_range(seed, min, max);
@@ -174,7 +174,7 @@ float FUN_000121e0(float min, float max)
  *   object_get_and_verify_type(*(int *)(actor+0x18), 3) -> *(int *) deref ->
  *   tag_get('unit', tag_index) -> *(int *)(definition + 0x44).
  * Confirmed: PUSH 1 / PUSH EDI / PUSH EAX / PUSH ECX([ESI+0x18]) /
- *   CALL 0x1ac180 -> FUN_001ac180(unit_handle, animation, element, 1).
+ *   CALL 0x1ac180 -> unit_start_user_animation(unit_handle, animation, element, 1).
  * Confirmed: MOV byte [ESI+0xa6],0 clears the arrival flag on both paths that
  *   reach 0x12336. */
 void action_alert_update(int actor_handle)
@@ -222,7 +222,7 @@ void action_alert_update(int actor_handle)
           definition = (unsigned char *)tag_get(0x756e6974, *object);
           animation = *(int *)(definition + 0x44);
         }
-        FUN_001ac180(((actor_t *)actor)->meta_unit_index, animation, command,
+        unit_start_user_animation(((actor_t *)actor)->meta_unit_index, animation, command,
                      1);
       }
       *(unsigned char *)(actor + 0xa6) = 0;
@@ -430,7 +430,7 @@ short action_alert_next_position(int actor_handle, short param_2, short param_3,
  *   index against the block count at squad+0xc4; the element block base is
  *   squad+0xc4 with element size 0x50.
  * Confirmed: MOV EDX,[ESI+0x18] / MOV EAX,[ESI+0x14] / PUSH EDX / PUSH EAX /
- *   CALL 0x121e0 -> FUN_000121e0(command[5], command[6]) — raw dword pushes
+ *   CALL 0x121e0 -> real_random_range(command[5], command[6]) — raw dword pushes
  *   of two float fields; FMUL [0x253394] (TICKS_PER_SECOND) follows, and the
  *   product stays on the x87 stack across the copy until CALL _ftol2
  *   (0x1d9068) whose AX is stored 16-bit to [EBX+0x9e].
@@ -500,7 +500,7 @@ update_command:
       if (current >= 0 && (int)current < *(int *)((char *)squad + 0xc4)) {
         command = (int *)tag_block_get_element((char *)squad + 0xc4,
                                                (int)current, 0x50);
-        ticks = FUN_000121e0(*(float *)(command + 5), *(float *)(command + 6)) *
+        ticks = real_random_range(*(float *)(command + 5), *(float *)(command + 6)) *
                 TICKS_PER_SECOND;
         *(short *)(actor + 0xa2) = *(short *)(actor + 0xa4);
         *(short *)(actor + 0xa4) = -1;
@@ -898,16 +898,16 @@ float FUN_00012ef0(float *v)
  * Name from PAL 2342 (real_math.c normalize2d); only operates on v[0] and v[1].
  * If magnitude exceeds epsilon, divides each component by it so v becomes
  * a unit vector. Returns the original magnitude, or 0.0f if too small. */
-float normalize2d(float *v)
+float normalize2d(real_vector2d *v)
 {
   float mag;
   float scale;
 
-  mag = sqrtf(v[0] * v[0] + v[1] * v[1]);
+  mag = sqrtf(v->i * v->i + v->j * v->j);
   if (!(x87_fabs(mag) < *(double *)0x2533d0)) {
     scale = 1.0f / mag;
-    v[0] = v[0] * scale;
-    v[1] = v[1] * scale;
+    v->i = v->i * scale;
+    v->j = v->j * scale;
     return mag;
   }
   return 0.0f;
@@ -920,28 +920,31 @@ float FUN_00012f60(float *a, float *b)
 }
 
 /* 0x12f80 — Compute out = base + scale * direction (3-component). */
-float *vector3d_scale_add(float *base, float *direction, float scale,
-                          float *out)
+real_point3d *vector3d_scale_add(const real_point3d *base,
+                                 const real_vector3d *direction, float scale,
+                                 real_point3d *out)
 {
-  out[0] = scale * direction[0] + base[0];
-  out[1] = scale * direction[1] + base[1];
-  out[2] = scale * direction[2] + base[2];
+  out->x = scale * direction->i + base->x;
+  out->y = scale * direction->j + base->y;
+  out->z = scale * direction->k + base->z;
   return out;
 }
 
 /* 0x12fb0 — Scale a 3D vector: out = scale * in. */
-float *FUN_00012fb0(float *in, float scale, float *out)
+real_vector3d *scale_vector3d(real_vector3d const *vector, float scale,
+                            real_vector3d *result)
 {
-  out[0] = scale * in[0];
-  out[1] = scale * in[1];
-  out[2] = scale * in[2];
-  return out;
+  result->i = scale * vector->i;
+  result->j = scale * vector->j;
+  result->k = scale * vector->k;
+  return result;
 }
 
 /* 0x12fe0 — Magnitude of a 3D vector. */
-float FUN_00012fe0(float *v)
+float magnitude3d(real_vector3d const *vector)
 {
-  return sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  return sqrtf(vector->i * vector->i + vector->j * vector->j +
+               vector->k * vector->k);
 }
 
 /* Normalize a 3D vector in-place.
@@ -974,11 +977,11 @@ float normalize3d(real_vector3d *v)
   return 0.0f;
 }
 
-/* FUN_00013070 (0x13070) — Calculate the dot product of two 3D vectors.
+/* dot_product3d (0x13070) — Calculate the dot product of two 3D vectors.
  * Confirmed: cdecl calling convention with two pointer arguments.
  * Confirmed: FPU leaf function.
  * The calculation order is a.z*b.z + a.y*b.y + a.x*b.x. */
-float FUN_00013070(float *a, float *b)
+float dot_product3d(real_vector3d const *a, real_vector3d const *b)
 {
   /* Keep this calculation order. It is necessary for lockstep determinism.
      The original function at 0x13070 calculates ((z*z' + y*y') + x*x').
@@ -993,7 +996,7 @@ float FUN_00013070(float *a, float *b)
      cl.exe reassociates the expression and matches the original instruction
      order. Therefore, this problem is not visible in the VC71 build.
      The shipped build uses Clang, so the explicit order is necessary. */
-  return a[2] * b[2] + a[1] * b[1] + a[0] * b[0];
+  return a->k * b->k + a->j * b->j + a->i * b->i;
 }
 
 /* 0x13090 — Subtract two 3D vectors: out = a - b. */
@@ -1008,7 +1011,7 @@ float *FUN_00013090(float *a, float *b, float *out)
 /* 0x130d0 — Ray-cast between two points. Computes the direction vector
  * (point_b - point_a) and delegates to collision_test_vector for the actual
  * collision test along that direction from point_a. */
-bool FUN_000130d0(uint32_t collision_flags, float *point_a, float *point_b,
+bool collision_test_line(uint32_t collision_flags, float *point_a, float *point_b,
                   int max_distance, int16_t *collision_result)
 {
   float direction[3];
@@ -1208,11 +1211,11 @@ bool action_charge_perform(int actor_index)
     float distance;
 
     *(int *)(debug_info + 0x104) = game_time_get();
-    vector3d_scale_add((float *)(actor + 0x12c), *(float **)0x31fc44, 0.05f,
-                       (float *)(debug_info + 0x108));
+    vector3d_scale_add((real_point3d *)(actor + 0x12c), (real_vector3d *)(*(float **)0x31fc44), 0.05f,
+                       (real_point3d *)(debug_info + 0x108));
     *(real_vector3d *)(debug_info + 0x114) = *(real_vector3d *)(actor + 0x174);
-    vector3d_scale_add((float *)(prop + 0xbc), *(float **)0x31fc44, 0.05f,
-                       (float *)(debug_info + 0x120));
+    vector3d_scale_add((real_point3d *)(prop + 0xbc), (real_vector3d *)(*(float **)0x31fc44), 0.05f,
+                       (real_point3d *)(debug_info + 0x120));
 
     if (*(char *)(actor + 6)) {
       display_assert("!actor->meta.swarm",
@@ -1233,23 +1236,23 @@ bool action_charge_perform(int actor_index)
 
       *(char *)(debug_info + 0x139) = 0;
       lead_fraction = 0.0f;
-      speed = FUN_00012fe0((float *)(prop + 0xd4));
+      speed = magnitude3d((real_vector3d *)(prop + 0xd4));
       if (speed > 0.0f) {
         lead_fraction =
-          (FUN_00013070((float *)(prop + 0xd4), (float *)(prop + 0xe0)) /
+          (dot_product3d((real_vector3d *)(prop + 0xd4), (real_vector3d *)(prop + 0xe0)) /
              speed +
            1.0f) *
           0.5f;
       }
 
-      vector3d_scale_add((float *)(prop + 0xbc), (float *)(prop + 0xd4),
+      vector3d_scale_add((real_point3d *)(prop + 0xbc), (real_vector3d *)(prop + 0xd4),
                          lead_fraction * *(short *)(state + 0x32),
-                         &target_point.i);
+                         (real_point3d *)&target_point);
       direction.i = target_point.i - *(float *)(actor + 0x12c);
       direction.j = target_point.j - *(float *)(actor + 0x130);
       direction.k = target_point.k - *(float *)(actor + 0x134);
-      vector3d_scale_add(&target_point.i, *(float **)0x31fc44, 0.05f,
-                         (float *)(debug_info + 0x13c));
+      vector3d_scale_add((real_point3d *)&target_point, (real_vector3d *)(*(float **)0x31fc44), 0.05f,
+                         (real_point3d *)(debug_info + 0x13c));
 
       if (direction.i * *(float *)(prop + 0xe0) +
             direction.j * *(float *)(prop + 0xe4) +
@@ -1283,9 +1286,9 @@ bool action_charge_perform(int actor_index)
                 (float *)(prop + 0xbc), (int)&target_velocity_minimum,
                 (float *)&definition[0xe5], NULL, 0, &aim_vector.i, NULL, NULL,
                 NULL, &vertical_velocity, &horizontal_velocity)) {
-            if (normalize2d(&aim_vector.i) == 0.0f) {
+            if (normalize2d((real_vector2d *)&aim_vector) == 0.0f) {
               aim_vector = *(real_vector3d *)(actor + 0x174);
-              if (normalize2d(&aim_vector.i) == 0.0f) {
+              if (normalize2d((real_vector2d *)&aim_vector) == 0.0f) {
                 aim_vector = **(real_vector3d **)0x31fc3c;
               }
             }
@@ -1337,7 +1340,7 @@ bool action_charge_perform(int actor_index)
 
       facing_direction[0] = direction.i;
       facing_direction[1] = direction.j;
-      if (normalize2d(facing_direction) > 0.0f) {
+      if (normalize2d((real_vector2d *)facing_direction) > 0.0f) {
         float minimum_alignment = *(char *)(state + 0xb) ? 0.0f : 0.8660254f;
 
         if (FUN_00012f60(facing_direction, (float *)(actor + 0x174)) <
@@ -1357,7 +1360,7 @@ bool action_charge_perform(int actor_index)
 
       melee_direction[0] = direction.i;
       melee_direction[1] = direction.j;
-      if (normalize2d(melee_direction) == 0.0f) {
+      if (normalize2d((real_vector2d *)melee_direction) == 0.0f) {
         melee_direction[0] = *(float *)(actor + 0x174);
         melee_direction[1] = *(float *)(actor + 0x178);
       }
@@ -1497,12 +1500,13 @@ float FUN_000213a0(float *a, float *b)
 }
 
 /* 0x213c0 — Compute out = a + b (3-component). */
-float *vector3d_add(float *a, float *b, float *out)
+real_vector3d *vector3d_add(real_vector3d const *a, real_vector3d const *b,
+                           real_vector3d *result)
 {
-  out[0] = a[0] + b[0];
-  out[1] = a[1] + b[1];
-  out[2] = a[2] + b[2];
-  return out;
+  result->i = a->i + b->i;
+  result->j = a->j + b->j;
+  result->k = a->k + b->k;
+  return result;
 }
 
 /* 0x21410 — Check if a float is valid (not NaN/Inf). */
@@ -1607,9 +1611,9 @@ int FUN_00021f70(float a, float b)
  * Confirmed: FSUB [0x2533c8] subtracts 1.0f.
  * Confirmed: FABS / FCOMP double ptr [0x2549d8] compares against
  * (double)0.001f. */
-bool valid_real_normal3d(float *v)
+bool valid_real_normal3d(const real_vector3d *v)
 {
-  float sq_len = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+  float sq_len = v->i * v->i + v->j * v->j + v->k * v->k;
   float diff = sq_len - 1.0f;
 
   if ((*(unsigned int *)&diff & 0x7f800000) == 0x7f800000) {

@@ -359,7 +359,7 @@ void remove_quitting_players_from_game(void)
         player->quitting = 1;
         if (player->unit_handle != -1) {
           object_get_and_verify_type(player->unit_handle, 3);
-          unit_delete(player->unit_handle);
+          unit_kill_no_statistics(player->unit_handle);
         }
       } else if (quit_at < quit_tick) {
         error(2, "player %x failed to quit, wanted %d is %d", iter.datum_handle,
@@ -945,7 +945,7 @@ void FUN_000b4490(void)
         placement.position_x = flag->position_x;
         placement.position_y = flag->position_y;
         placement.position_z = flag->position_z;
-        vector3d_from_angle((float *)&placement.forward.x, flag->facing);
+        vector3d_from_angle((real_vector3d *)&placement.forward, flag->facing);
         object_new(&placement);
         race_globals.flag_set = 1;
       }
@@ -1881,7 +1881,7 @@ __declspec(noinline) float game_globals_difficulty_scale(int16_t value_type,
   return *(float *)((char *)element + idx * 4);
 }
 
-/* 0xb5590 — FUN_000b5590
+/* 0xb5590 — game_difficulty_get_value
  *
  * Convenience wrapper: fetches the current game difficulty level and
  * returns game_globals_difficulty_scale(value_type, difficulty).
@@ -1892,7 +1892,7 @@ __declspec(noinline) float game_globals_difficulty_scale(int16_t value_type,
  *   at 0xb559d. Confirmed: CALL 0xb54e0 (game_globals_difficulty_scale,
  *   @bx=value_type, @di=difficulty) at 0xb559f.
  */
-float FUN_000b5590(int16_t value_type)
+float game_difficulty_get_value(int16_t value_type)
 {
   int16_t difficulty = game_difficulty_level_get();
   return game_globals_difficulty_scale(value_type, difficulty);

@@ -416,8 +416,8 @@ void render_debug_profile_stall_tick(float *bounds, float *offset, short type,
   p1[2] = p0[2];
   *offset = next + 0.01f;
 
-  matrix_transform_point((float *)0x5065e8, p0, p0);
-  matrix_transform_point((float *)0x5065e8, p1, p1);
+  matrix_transform_point((float *)0x5065e8, (real_point3d *)p0, (real_point3d *)p0);
+  matrix_transform_point((float *)0x5065e8, (real_point3d *)p1, (real_point3d *)p1);
   rasterizer_hud_motion_sensor_blip_begin(p0, p1, &color->red, NULL);
 }
 

@@ -180,8 +180,8 @@ void weapon_play_first_person_weapon_sound(int param_2, int object_handle)
     return;
 
   {
-    float *position = *(float **)0x31fc1c;
-    float *forward = *(float **)0x31fc3c;
+    real_point3d *position = *(real_point3d **)0x31fc1c;
+    real_vector3d *forward = *(real_vector3d **)0x31fc3c;
     object_impulse_sound_new(object_handle, sound_tag_index, -1, position,
                              forward, 1.0f);
   }
@@ -482,7 +482,7 @@ void first_person_weapon_draw(void)
   first_person_interface =
     (char *)tag_block_get_element((char *)game_globals_get() + 0x17c, 0, 0xc0);
   tag_get(0x616e7472, *(int *)(weapon_tag + 0x478));
-  lighting = scenario_leaf_index_from_point(unit_handle, 3.4028235e+38f);
+  lighting = object_get_cached_render_lighting(unit_handle, 3.4028235e+38f);
 
   model_effect.field_1c = 0;
   if ((*(uint8_t *)(unit + 0x1b4) & 0x10) != 0 ||
@@ -816,7 +816,7 @@ void first_person_weapon_build_node_matrices(int16_t local_player_index)
 
   if (*(int16_t *)(fp + 0x16) != -1) {
     anim_node = (char *)tag_block_get_element(antr_tag + 0x74, (int)*(int16_t *)(fp + 0x16), 0xb4);
-    FUN_00121d60(0, anim_node, *(int16_t *)(fp + 0x18), fp + 0x8c);
+    animation_get_frame_orientations(0, anim_node, *(int16_t *)(fp + 0x18), fp + 0x8c);
   } else {
     display_assert(0, "c:\\halo\\SOURCE\\interface\\first_person_weapons.c", 0x50e, 1);
     system_exit(-1);
@@ -1579,8 +1579,8 @@ void first_person_weapon_update(int16_t local_player_index)
     if (triggered_sound_index != NONE &&
         director_get_perspective(local_player_index) == 0) {
       *(int *)(fp + 0x1e98) = object_impulse_sound_new(
-        *(int *)(fp + 8), triggered_sound_index, -1, *(float **)0x31fc1c,
-        *(float **)0x31fc3c, 1.0f);
+        *(int *)(fp + 8), triggered_sound_index, -1, *(real_point3d **)0x31fc1c,
+        *(real_vector3d **)0x31fc3c, 1.0f);
       *(int16_t *)(fp + 0x1e9c) = *(int16_t *)(fp + 0xc);
     }
 

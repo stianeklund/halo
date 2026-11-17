@@ -183,7 +183,7 @@ char FUN_0001ada0(int actor_handle /*@<eax>*/, int vehicle_handle /*@<esi>*/,
         /* Ref 0x1ade1: param_6 skips the tilt test but still runs the speed
          * gate below -- it does NOT return early. */
         if (param_6 == 0) {
-          if (FUN_00012170((float *)(vehicle + 0x18)) > *(float *)0x253f2c)
+          if (magnitude_squared3d((real_vector3d *)(vehicle + 0x18)) > *(float *)0x253f2c)
             result = 0;
         }
       }
@@ -395,7 +395,7 @@ void matrix4x3_identity_with_position(float *out, float *position)
 
 /* 0x1092d0 — build a 4x3 Rodrigues rotation matrix from an axis and
  * precomputed sine/cosine values. */
-void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
+void matrix4x3_rotation_from_axis_and_angle(float *out_matrix, const real_vector3d *axis, float sine, float cosine)
 {
   float xx;
   float yy;
@@ -411,30 +411,30 @@ void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
 
   out = (volatile float *)out_matrix;
 
-  xx = axis[0] * axis[0];
-  yy = axis[1] * axis[1];
-  zz = axis[2] * axis[2];
-  sine_x = sine * axis[0];
-  sine_y = sine * axis[1];
-  sine_z = sine * axis[2];
+  xx = axis->i * axis->i;
+  yy = axis->j * axis->j;
+  zz = axis->k * axis->k;
+  sine_x = sine * axis->i;
+  sine_y = sine * axis->j;
+  sine_z = sine * axis->k;
 
   out_matrix[0] = 1.0f;
   out_matrix[1] = (1.0f - xx) * cosine + xx;
 
   one_minus_cosine = 1.0f - cosine;
-  xy_term = axis[1] * axis[0] * one_minus_cosine;
+  xy_term = axis->j * axis->i * one_minus_cosine;
   out[2] = xy_term;
   out[4] = xy_term - sine_z;
   out[2] = sine_z + out[2];
   out_matrix[5] = (1.0f - yy) * cosine + yy;
 
-  xz_term = axis[2] * axis[0] * one_minus_cosine;
+  xz_term = axis->k * axis->i * one_minus_cosine;
   out[3] = xz_term;
   out[7] = xz_term + sine_y;
   out[3] = out[3] - sine_y;
   out_matrix[9] = (1.0f - zz) * cosine + zz;
 
-  yz_term = axis[2] * axis[1] * one_minus_cosine;
+  yz_term = axis->k * axis->j * one_minus_cosine;
   out[6] = yz_term;
   out[8] = yz_term - sine_x;
   out[6] = sine_x + out[6];
@@ -447,7 +447,7 @@ void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine)
 /* 0x1093b0 — Convert a quaternion to a 3x3 rotation matrix (inside a 4x3
  * frame). Sets scale=1.0 and translation=0. Original keeps sq0 (s*q[0]) in
  * 80-bit FPU while sq1/sq2 spill to float32. */
-void FUN_001093b0(float *out, float *q)
+void matrix4x3_rotation_from_quaternion(float *out, float *q)
 {
   /* ref 0x1093c4-0x1093d8 accumulates q0-first and never narrows norm/s */
   x87_wide_t norm = (x87_wide_t)q[0] * q[0] + (x87_wide_t)q[1] * q[1] +
@@ -498,10 +498,10 @@ void FUN_001093b0(float *out, float *q)
   out[9] = 1.0f - (yy + xx);
 }
 
-void component_vectors_from_normal3d(float *out_matrix, float *position,
+void matrix4x3_from_point_and_quaternion(float *out_matrix, float *position,
                                      float *basis_data)
 {
-  FUN_001093b0(out_matrix, basis_data);
+  matrix4x3_rotation_from_quaternion(out_matrix, basis_data);
   out_matrix[10] = position[0];
   out_matrix[11] = position[1];
   out_matrix[12] = position[2];
@@ -511,7 +511,7 @@ void component_vectors_from_normal3d(float *out_matrix, float *position,
  * param_2 layout: [quat(4), pos(3), scale(1)] at offsets 0..0x1c. */
 void FUN_00109500(float *out, float *qsp)
 {
-  FUN_001093b0(out, qsp);
+  matrix4x3_rotation_from_quaternion(out, qsp);
   out[0] = qsp[7];
   out[10] = qsp[4];
   out[11] = qsp[5];
@@ -541,11 +541,12 @@ __declspec(noinline) void matrix4x3_decompose(float *matrix, float *out_pos,
  * out = rotation * (scale * in) + translation.
  * Matrix layout: [scale +0x00][3x3 rotation +0x04..+0x24][translation
  * +0x28..+0x30]. */
-float *matrix_transform_point(float *matrix, float *in, float *out)
+real_point3d *matrix_transform_point(float *matrix, const real_point3d *in,
+                                     real_point3d *out)
 {
-  float x = in[0];
-  float y = in[1];
-  float z = in[2];
+  float x = in->x;
+  float y = in->y;
+  float z = in->z;
 
   if (*(int *)matrix != 0x3f800000) {
     x = x * *matrix;
@@ -553,15 +554,15 @@ float *matrix_transform_point(float *matrix, float *in, float *out)
     z = z * *matrix;
   }
 
-  out[0] = z * *(float *)((char *)matrix + 0x1c) +
+  out->x = z * *(float *)((char *)matrix + 0x1c) +
            y * *(float *)((char *)matrix + 0x10) +
            x * *(float *)((char *)matrix + 0x04) +
            *(float *)((char *)matrix + 0x28);
-  out[1] = z * *(float *)((char *)matrix + 0x20) +
+  out->y = z * *(float *)((char *)matrix + 0x20) +
            y * *(float *)((char *)matrix + 0x14) +
            x * *(float *)((char *)matrix + 0x08) +
            *(float *)((char *)matrix + 0x2c);
-  out[2] = z * *(float *)((char *)matrix + 0x24) +
+  out->z = z * *(float *)((char *)matrix + 0x24) +
            y * *(float *)((char *)matrix + 0x18) +
            x * *(float *)((char *)matrix + 0x0c) +
            *(float *)((char *)matrix + 0x30);
@@ -570,21 +571,24 @@ float *matrix_transform_point(float *matrix, float *in, float *out)
 
 /* 0x109610 — Scale-transform a vector by a 4x3 matrix.
  * If matrix scale != 1.0, scales the input vector components first. */
-float * matrix_scale_transform_vector(float *matrix, float *in, float *out)
+real_vector3d *matrix_scale_transform_vector(float *matrix,
+                                             const real_vector3d *in,
+                                             real_vector3d *out)
 {
-  float x = in[0];
-  float y = in[1];
-  float z = in[2];
+  float x = in->i;
+  float y = in->j;
+  float z = in->k;
 
   if (*(uint32_t *)&matrix[0] != 0x3f800000) {
     x = x * matrix[0];
     y = y * matrix[0];
     z = z * matrix[0];
   }
-  out[0] = z * matrix[7] + y * matrix[4] + x * matrix[1];
-  out[1] = z * matrix[8] + y * matrix[5] + x * matrix[2];
-  out[2] = z * matrix[9] + y * matrix[6] + x * matrix[3];
-return out; }
+  out->i = z * matrix[7] + y * matrix[4] + x * matrix[1];
+  out->j = z * matrix[8] + y * matrix[5] + x * matrix[2];
+  out->k = z * matrix[9] + y * matrix[6] + x * matrix[3];
+  return out;
+}
 
 /* Transform a 3D vector by a 3x3 rotation matrix (stored at matrix+0x4).
  * out[i] = dot(in, column_i of matrix).
@@ -882,9 +886,9 @@ float FUN_001099a0(float *m)
 
 /* 0x1099f0 — Transpose a 3x3 matrix. Supports src == dst (in-place).
  * Returns dst: both exits leave MOV EAX,[EBP+0xc] (0x1099f6) in EAX, and
- * physics_update_new pushes that EAX straight into FUN_00109c70 at
+ * physics_update_new pushes that EAX straight into matrix3x3_multiply at
  * 0x15284b. */
-float *FUN_001099f0(float *src, float *dst)
+float *matrix3x3_transpose(float *src, float *dst)
 {
   float t;
   uint32_t *s = (uint32_t *)src;
@@ -1018,7 +1022,7 @@ void FUN_00109ba0(float *out, float *axis, float sine, float cosine)
 }
 
 /* 0x109c70 — Multiply two 3x3 matrices: out = a * b. Supports aliasing. */
-float * FUN_00109c70(float *a, float *b, float *out)
+float * matrix3x3_multiply(float *a, float *b, float *out)
 {
   float scratch[9];
 
@@ -1160,7 +1164,7 @@ void FUN_00109f40(float *matrix, float *euler)
 
 /* Convert a 4x3 matrix rotation part to a unit quaternion (Shepperd's method).
  * Output quaternion layout: [x, y, z, w]. */
-void FUN_00109fc0(float *matrix4x3, float *out_quat4)
+void matrix4x3_rotation_to_quaternion(float *matrix4x3, float *out_quat4)
 {
   static const int16_t nxt[3] = { 1, 2, 0 };
   float *m = (float *)((char *)matrix4x3 + 4);
@@ -1228,8 +1232,8 @@ void vector_from_matrices4x3(const real_matrix4x3 *matrix0,
 
   matrix_inverse((float *)matrix1, local_inv);
   matrix4x3_multiply((float *)matrix0, local_inv, local_product);
-  FUN_00109fc0(local_product, local_quat);
-  FUN_0010caf0(local_quat, &local_angle, (float *)result);
+  matrix4x3_rotation_to_quaternion(local_product, local_quat);
+  quaternion_to_angle_and_vector((real_quaternion *)local_quat, &local_angle, (real_vector3d *)result);
   result->i = local_angle * result->i;
   result->j = local_angle * result->j;
   result->k = local_angle * result->k;
@@ -1240,7 +1244,7 @@ void vector_from_matrices4x3(const real_matrix4x3 *matrix0,
  * part, and the distance (in_plane[3]) is recomputed from the original
  * distance scaled by matrix[0] plus the dot product of the transformed normal
  * with the matrix's translation (matrix[10..12]). */
-float *FUN_0010a1c0(float *matrix, float *in_plane, float *out_plane)
+float *matrix4x3_transform_plane(float *matrix, float *in_plane, float *out_plane)
 {
   float nx = in_plane[0];
   float ny = in_plane[1];
@@ -1277,7 +1281,7 @@ void FUN_0010a240(float *matrix, float *plane, int out)
 
 /* 0x10a2c0 — Build a 3x3 basis matrix from forward and up vectors.
  * Row 0 = forward, row 1 = cross(forward, up), row 2 = up. */
-void FUN_0010a2c0(float *out, float *forward, float *up)
+void matrix3x3_from_forward_and_up(float *out, float *forward, float *up)
 {
   out[0] = forward[0];
   out[1] = forward[1];
@@ -1292,7 +1296,7 @@ void FUN_0010a2c0(float *out, float *forward, float *up)
 
 /* Convert a 3x3 rotation matrix to a unit quaternion [x,y,z,w].
  * Uses the Shepperd method for numerical stability. */
-void FUN_0010a330(float *m, float *quat)
+void matrix3x3_rotation_to_quaternion(float *m, float *quat)
 {
   float trace;
   float s;
@@ -1335,7 +1339,7 @@ int FUN_0010a480(int p)
 {
   char valid;
 
-  valid = (char)valid_real_normal3d((float *)p);
+  valid = (char)valid_real_normal3d((real_vector3d *)p);
   if (valid != '\0' && (*(uint32_t *)(p + 0xc) & 0x7f800000) != 0x7f800000) {
     return 1;
   }
@@ -1348,7 +1352,7 @@ void FUN_0010a4c0(int out_matrix, float *plane)
   float axis[3];
   float point[3];
 
-  if (!valid_real_normal3d(plane) ||
+  if (!valid_real_normal3d((real_vector3d *)plane) ||
       (*(unsigned int *)&plane[3] & 0x7f800000) == 0x7f800000) {
     display_assert("valid_real_plane3d(plane)",
                    "c:\\halo\\SOURCE\\math\\matrix_math.c", 0x172, 1);
@@ -1785,22 +1789,22 @@ void scalars_interpolate_and_clamp_0_to_1(float a, float b, float t, float *out)
 
 /* 0x10b8a0 — Project a vector onto an axis: parallel = dot(v,axis)*axis,
  * perpendicular = v - parallel. Either output can be NULL. */
-void FUN_0010b8a0(float *v, float *axis, float *parallel, float *perpendicular)
+void component_vectors_from_normal3d(const real_vector3d *v, const real_vector3d *axis, real_vector3d *parallel, real_vector3d *perpendicular)
 {
   float dot;
-  float local[3];
+  real_vector3d local;
 
-  dot = v[0] * axis[0] + axis[2] * v[2] + v[1] * axis[1];
-  if (parallel == (float *)0) {
-    parallel = local;
+  dot = v->i * axis->i + axis->k * v->k + v->j * axis->j;
+  if (parallel == (real_vector3d *)0) {
+    parallel = &local;
   }
-  parallel[0] = dot * axis[0];
-  parallel[1] = dot * axis[1];
-  parallel[2] = dot * axis[2];
-  if (perpendicular != (float *)0) {
-    perpendicular[0] = v[0] - parallel[0];
-    perpendicular[1] = v[1] - parallel[1];
-    perpendicular[2] = v[2] - parallel[2];
+  parallel->i = dot * axis->i;
+  parallel->j = dot * axis->j;
+  parallel->k = dot * axis->k;
+  if (perpendicular != (real_vector3d *)0) {
+    perpendicular->i = v->i - parallel->i;
+    perpendicular->j = v->j - parallel->j;
+    perpendicular->k = v->k - parallel->k;
   }
 }
 
@@ -1851,8 +1855,10 @@ void vectors3d_from_euler_angles3d(float *forward, float *up, float *angles)
 /* Test whether a line segment intersects a sphere. Returns true if
    the segment origin is inside the sphere or if the segment crosses
    the sphere boundary within t in [0,1]. */
-bool fast_vector_intersects_sphere(float *line_start, float *line_end,
-                                   float *sphere_center, float sphere_radius)
+bool fast_vector_intersects_sphere(real_point3d const *point,
+                                   real_vector3d const *vector,
+                                   real_point3d const *sphere_center,
+                                   float sphere_radius)
 {
   float dx, dy, dz, c;
   volatile float dir_x;
@@ -1874,9 +1880,9 @@ bool fast_vector_intersects_sphere(float *line_start, float *line_end,
   volatile float disc_narrow;
 #endif
 
-  dx = line_start[0] - sphere_center[0];
-  dy = line_start[1] - sphere_center[1];
-  dz = line_start[2] - sphere_center[2];
+  dx = point->x - sphere_center->x;
+  dy = point->y - sphere_center->y;
+  dz = point->z - sphere_center->z;
   /* reference accumulates all three dot products z-first (MSVC never
    * reassociates FP adds — z-first in the binary proves z-first source) */
   c = dz * dz + dy * dy + dx * dx - sphere_radius * sphere_radius;
@@ -1888,9 +1894,9 @@ bool fast_vector_intersects_sphere(float *line_start, float *line_end,
   if (c < *(float *)0x2533c0)
     return true;
 
-  dir_x = line_end[0];
-  dir_y = line_end[1];
-  dir_z = line_end[2];
+  dir_x = vector->i;
+  dir_y = vector->j;
+  dir_z = vector->k;
   b = dir_z * dz + dir_y * dy + dir_x * dx;
 
   if (!(b >= *(float *)0x2533c0)) {
@@ -2130,36 +2136,38 @@ float angle_between_normals3d(float *a, float *b)
 
 /* 0x10c690 — Update v1 = scale1 * cross(axis, v1) + scale2 * v1.
  * Uses temporaries for aliasing safety. */
-void yaw_vectors(float *v1, float *axis, float scale1, float scale2)
+void yaw_vectors(real_vector3d *vector, real_vector3d const *axis, float sine,
+                 float cosine)
 {
-  float cross0;
-  float cross1;
-  float cross2;
+  float cross_i;
+  float cross_j;
+  float cross_k;
 
-  cross0 = axis[1] * v1[2] - v1[1] * axis[2];
-  cross1 = v1[0] * axis[2] - axis[0] * v1[2];
-  cross2 = v1[1] * axis[0] - v1[0] * axis[1];
-  v1[0] = cross0 * scale1 + scale2 * v1[0];
-  v1[2] = cross2 * scale1 + scale2 * v1[2];
-  v1[1] = cross1 * scale1 + scale2 * v1[1];
+  cross_i = axis->j * vector->k - vector->j * axis->k;
+  cross_j = vector->i * axis->k - axis->i * vector->k;
+  cross_k = vector->j * axis->i - vector->i * axis->j;
+  vector->i = cross_i * sine + cosine * vector->i;
+  vector->k = cross_k * sine + cosine * vector->k;
+  vector->j = cross_j * sine + cosine * vector->j;
 }
 
 /* 0x10c700 — Rotate two 3D vectors around an axis: rotate v1 toward v2 and v2
  * away from v1 by (scale1, scale2). Uses temporaries to allow aliasing. */
-void FUN_0010c700(float *v1, float *v2, float scale1, float scale2)
+void pitch_vectors(real_vector3d *v1, real_vector3d *v2, float scale1,
+                   float scale2)
 {
   float temp[3];
 
-  temp[0] = -v1[0];
-  temp[1] = -v1[1];
-  temp[2] = -v1[2];
+  temp[0] = -v1->i;
+  temp[1] = -v1->j;
+  temp[2] = -v1->k;
 
-  v1[0] = scale2 * v1[0] + scale1 * v2[0];
-  v1[1] = scale2 * v1[1] + scale1 * v2[1];
-  v1[2] = scale2 * v1[2] + scale1 * v2[2];
-  v2[0] = scale2 * v2[0] + temp[0] * scale1;
-  v2[1] = temp[1] * scale1 + scale2 * v2[1];
-  v2[2] = scale2 * v2[2] + temp[2] * scale1;
+  v1->i = scale2 * v1->i + scale1 * v2->i;
+  v1->j = scale2 * v1->j + scale1 * v2->j;
+  v1->k = scale2 * v1->k + scale1 * v2->k;
+  v2->i = scale2 * v2->i + temp[0] * scale1;
+  v2->j = temp[1] * scale1 + scale2 * v2->j;
+  v2->k = scale2 * v2->k + temp[2] * scale1;
 }
 
 /* Normalize a quaternion [x,y,z,w] in place.
@@ -2208,17 +2216,18 @@ void quaternion_from_angle_and_vector(float *out, float angle, float *axis)
 /* Convert a unit quaternion [x,y,z,w] to axis-angle representation.
  * Extracts the rotation axis (normalized) and the angle in radians.
  * If the angle exceeds pi, flips to the shorter equivalent rotation. */
-void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3)
+void quaternion_to_angle_and_vector(real_quaternion const *quaternion,
+                                    float *out_angle, real_vector3d *out_axis)
 {
-  float w = in_quat4[3];
+  float w = quaternion->w;
   float magnitude;
   float angle;
 
-  out_axis3[0] = in_quat4[0];
-  out_axis3[1] = in_quat4[1];
-  out_axis3[2] = in_quat4[2];
+  out_axis->i = quaternion->v.i;
+  out_axis->j = quaternion->v.j;
+  out_axis->k = quaternion->v.k;
 
-  magnitude = normalize3d((real_vector3d *)out_axis3);
+  magnitude = normalize3d(out_axis);
 #if defined(_MSC_VER) && !defined(__clang__)
   angle = x87_fatan2f(magnitude, w);
   angle = angle + angle;
@@ -2228,9 +2237,9 @@ void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3)
   *out_angle = angle;
 
   if (angle > *(float *)0x256980) { /* pi */
-    out_axis3[0] = -out_axis3[0];
-    out_axis3[1] = -out_axis3[1];
-    out_axis3[2] = -out_axis3[2];
+    out_axis->i = -out_axis->i;
+    out_axis->j = -out_axis->j;
+    out_axis->k = -out_axis->k;
     /* Ref 0x10cb5f reloads the stored angle (FSUBS [ECX]), not the ST copy. */
     *out_angle = *(float *)0x255a54 - *out_angle;
   }
@@ -2296,12 +2305,12 @@ real_vector3d *angles_to_vector(real_vector3d *out,
 
 /* Convert an angle to a 2D direction vector stored as (cos, sin, 0) (0x10cc70).
  */
-void vector3d_from_angle(float *out, float angle)
+void vector3d_from_angle(real_vector3d *out, float angle)
 {
   float c = x87_fcos(angle);
-  out[2] = 0.0f;
-  out[0] = c;
-  out[1] = x87_fsin(angle);
+  out->k = 0.0f;
+  out->i = c;
+  out->j = x87_fsin(angle);
 }
 
 /* 0x10cc90 — Test if a 2D circle intersects a line segment.
@@ -2535,7 +2544,7 @@ __declspec(noinline) char sphere_test_vector3d(float *p1, float p2, float *p3,
       dot = -(sqrtf(disc) + dot);
       if (dot <= a) {
         *out_t = dot / a;
-        FUN_0010c2e0(vector3d_scale_add(offset, p4, *out_t, out_normal));
+        FUN_0010c2e0((float *)vector3d_scale_add((real_point3d *)offset, (real_vector3d *)p4, *out_t, (real_point3d *)out_normal));
         return 1;
       }
     }
@@ -3106,11 +3115,15 @@ bool vector_intersects_pill3d(float *start_a, float *dir_a, float *start_b,
 
   point_segment_checks:
     if (s_oob) {
-      if (fast_vector_intersects_sphere(start_b, dir_b, closest_a, radius))
+      if (fast_vector_intersects_sphere((real_point3d *)start_b,
+                                        (real_vector3d *)dir_b,
+                                        (real_point3d *)closest_a, radius))
         return 1;
     }
     if (t_oob) {
-      if (fast_vector_intersects_sphere(start_a, dir_a, closest_b, radius))
+      if (fast_vector_intersects_sphere((real_point3d *)start_a,
+                                        (real_vector3d *)dir_a,
+                                        (real_point3d *)closest_b, radius))
         return 1;
     }
     return 0;
@@ -3351,7 +3364,7 @@ char vector_intersects_triangle3d(float *p1, float *p2, float *p3, float *p4, fl
   if (!(t <= 1.0f))
     return 0;
 
-  cross_product3d(origin_to_v0, p2, scratch);
+  cross_product3d((real_vector3d *)origin_to_v0, (real_vector3d *)p2, (real_vector3d *)scratch);
   u = (e2[0] * scratch[0] + scratch[1] * e2[1] + scratch[2] * e2[2]) * inv_det;
   if (!(u >= 0.0f))
     return 0;
@@ -3504,7 +3517,8 @@ char sphere_intersects_triangle3d(float *center, float radius, float *v0,
   if (0.0f < (e01[1] * d0[2] - d0[1] * e01[2]) * n[0] +
                (d0[0] * e01[2] - e01[0] * d0[2]) * n[1] +
                n[2] * (e01[0] * d0[1] - e01[1] * d0[0])) {
-    if (fast_vector_intersects_sphere(v0, e01, center, radius))
+    if (fast_vector_intersects_sphere((real_point3d *)v0, (real_vector3d *)e01,
+                                      (real_point3d *)center, radius))
       return 1;
     result = 0;
   }
@@ -3514,7 +3528,8 @@ char sphere_intersects_triangle3d(float *center, float radius, float *v0,
   if (0.0f <
       c12[0] * n[0] + c12[1] * n[1] +
         n[2] * (e12[1] * (center[0] - v1[0]) - e12[0] * (center[1] - v1[1]))) {
-    if (fast_vector_intersects_sphere(v1, e12, center, radius))
+    if (fast_vector_intersects_sphere((real_point3d *)v1, (real_vector3d *)e12,
+                                      (real_point3d *)center, radius))
       return 1;
     result = 0;
   }
@@ -3527,7 +3542,8 @@ char sphere_intersects_triangle3d(float *center, float radius, float *v0,
   if (e12[0] * n[0] + e12[1] * n[1] +
         n[2] * (c20[1] * (center[0] - v2[0]) - c20[0] * (center[1] - v2[1])) <
       0.0f) {
-    if (fast_vector_intersects_sphere(v2, c20, center, radius))
+    if (fast_vector_intersects_sphere((real_point3d *)v2, (real_vector3d *)c20,
+                                      (real_point3d *)center, radius))
       return 1;
     result = 0;
   }
@@ -3981,8 +3997,8 @@ __declspec(noinline) char accelerate_to_position(float *pos, float *vel,
  * FPU-LIFO reorder).  The axis is a contiguous float[3] because it is passed
  * by address to normalize3d (which reads v[0..2]).
  * Constants: 0x2533c0 = 0.0f, 0x2533c8 = 1.0f. */
-void angular_accelerate_to_position(float *facing, float *target_facing,
-                                    float *ang_vel, float max_ang_speed,
+void angular_accelerate_to_position(real_vector3d *facing, const real_vector3d *target_facing,
+                                    real_vector3d *ang_vel, float max_ang_speed,
                                     float ang_accel)
 {
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -4005,19 +4021,19 @@ void angular_accelerate_to_position(float *facing, float *target_facing,
 
   ref = *(float **)0x31fc38;
   if (max_ang_speed <= *(float *)0x2533c0 && ang_accel <= *(float *)0x2533c0) {
-    ang_vel[0] = ref[0];
-    ang_vel[1] = ref[1];
-    ang_vel[2] = ref[2];
-    facing[0] = target_facing[0];
-    facing[1] = target_facing[1];
-    facing[2] = target_facing[2];
+    ang_vel->i = ref[0];
+    ang_vel->j = ref[1];
+    ang_vel->k = ref[2];
+    facing->i = target_facing->i;
+    facing->j = target_facing->j;
+    facing->k = target_facing->k;
     return;
   }
 
   /* dot(facing, target_facing), clamped to [lower, 1.0].  Term order matches
    * the disassembly accumulation: t[2]*f[2] + f[0]*t[0] + t[1]*f[1]. */
-  cos_theta = target_facing[2] * facing[2] + facing[0] * target_facing[0] +
-              target_facing[1] * facing[1];
+  cos_theta = target_facing->k * facing->k + facing->i * target_facing->i +
+              target_facing->j * facing->j;
   if (cos_theta < *(float *)0x00255e94) {
     cos_theta = -1.0f;
   } else if (cos_theta > *(float *)0x002533c8) {
@@ -4042,51 +4058,51 @@ void angular_accelerate_to_position(float *facing, float *target_facing,
   }
 
   /* axis = cross(facing, target_facing) */
-  axis[0] = target_facing[2] * facing[1] - facing[2] * target_facing[1];
-  axis[1] = facing[2] * target_facing[0] - target_facing[2] * facing[0];
-  axis[2] = facing[0] * target_facing[1] - target_facing[0] * facing[1];
+  axis[0] = target_facing->k * facing->j - facing->k * target_facing->j;
+  axis[1] = facing->k * target_facing->i - target_facing->k * facing->i;
+  axis[2] = facing->i * target_facing->j - target_facing->i * facing->j;
   normalize3d((real_vector3d *)axis);
 
   /* scale axis by speed (in place), then measure distance to current ang_vel */
   axis[0] = axis[0] * speed;
   axis[1] = axis[1] * speed;
   axis[2] = axis[2] * speed;
-  dx = axis[0] - ang_vel[0];
-  dy = axis[1] - ang_vel[1];
-  dz = axis[2] - ang_vel[2];
+  dx = axis[0] - ang_vel->i;
+  dy = axis[1] - ang_vel->j;
+  dz = axis[2] - ang_vel->k;
   mag_sq = dz * dz + dy * dy + dx * dx;
   /* disasm squares 0x18(%ebp) (ang_accel) here and divides by it below; the
    * prior lift had ang_accel and max_ang_speed swapped at both clamp sites. */
   if (ang_accel * ang_accel <= mag_sq) {
     /* nudge ang_vel toward target axis by ang_accel */
     scale = ang_accel / sqrtf(mag_sq);
-    ang_vel[0] = dx * scale + ang_vel[0];
-    ang_vel[1] = dy * scale + ang_vel[1];
-    ang_vel[2] = dz * scale + ang_vel[2];
+    ang_vel->i = dx * scale + ang_vel->i;
+    ang_vel->j = dy * scale + ang_vel->j;
+    ang_vel->k = dz * scale + ang_vel->k;
   } else {
     if (speed < *(float *)0x0025ac64) {
       /* essentially aligned: snap facing to target, reset ang_vel */
-      ang_vel[0] = ref[0];
-      ang_vel[1] = ref[1];
-      ang_vel[2] = ref[2];
-      facing[0] = target_facing[0];
-      facing[1] = target_facing[1];
-      facing[2] = target_facing[2];
+      ang_vel->i = ref[0];
+      ang_vel->j = ref[1];
+      ang_vel->k = ref[2];
+      facing->i = target_facing->i;
+      facing->j = target_facing->j;
+      facing->k = target_facing->k;
       return;
     }
-    ang_vel[0] = axis[0];
-    ang_vel[1] = axis[1];
-    ang_vel[2] = axis[2];
+    ang_vel->i = axis[0];
+    ang_vel->j = axis[1];
+    ang_vel->k = axis[2];
   }
 
   /* rotate facing about ang_vel by its magnitude */
-  axis[0] = ang_vel[0];
-  axis[1] = ang_vel[1];
-  axis[2] = ang_vel[2];
+  axis[0] = ang_vel->i;
+  axis[1] = ang_vel->j;
+  axis[2] = ang_vel->k;
   angle = normalize3d((real_vector3d *)axis);
   if (angle != *(float *)0x2533c0) {
-    rotate_vector3d_by_sincos((real_vector3d *)facing, (real_vector3d *)axis, x87_fsin(angle), x87_fcos(angle));
-    normalize3d((real_vector3d *)facing);
+    rotate_vector3d_by_sincos(facing, (real_vector3d *)axis, x87_fsin(angle), x87_fcos(angle));
+    normalize3d(facing);
   }
 }
 
@@ -4347,14 +4363,14 @@ char pin_normal_to_cone3d(float *normal, float *direction, float sin_half_angle,
   float dot;
   float mag;
 
-  if (!valid_real_normal3d(normal)) {
+  if (!valid_real_normal3d((real_vector3d *)normal)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "normal", (double)normal[0], (double)normal[1], (double)normal[2]);
     display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\math\\real_math.c",
                    0x203, 1);
     system_exit(-1);
   }
-  if (!valid_real_normal3d(direction)) {
+  if (!valid_real_normal3d((real_vector3d *)direction)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "direction", (double)direction[0], (double)direction[1],
              (double)direction[2]);
@@ -4387,7 +4403,7 @@ char pin_normal_to_cone3d(float *normal, float *direction, float sin_half_angle,
   result[2] = direction[2];
   rotate_vector3d_by_sincos((real_vector3d *)result, (real_vector3d *)axis, sin_half_angle, cos_half_angle);
 
-  if (!valid_real_normal3d(result)) {
+  if (!valid_real_normal3d((real_vector3d *)result)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "result", (double)result[0], (double)result[1], (double)result[2]);
     display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\math\\real_math.c",

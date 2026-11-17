@@ -100,7 +100,7 @@ int action_vehicle_find_best_seat(int actor_handle, int vehicle_handle, float *o
  * The vehicle is then qualified. It is disqualified outright when object+0xb6
  * bit 2 (0x4) is set. Otherwise the vehicle's world position minus the actor's
  * position at actor+0x12c is taken, and the vehicle qualifies only when that
- * squared distance is below radius_b squared AND FUN_00012170(object+0x18)
+ * squared distance is below radius_b squared AND magnitude_squared3d(object+0x18)
  * (a magnitude/dot over the object's orientation vector) is at or below
  * *0x253f2c. Independently, object+0x38 must be at or above *0x253398.
  *
@@ -167,7 +167,7 @@ char action_vehicle_setup_impromptu(int actor_handle, int vehicle_handle,
       dz = delta[2] - ((actor_t *)actor_pos)->field_134;
       if (dx * dx + dy * dy + dz * dz < radius_b * radius_b) {
         qualified = 1;
-        if (FUN_00012170((float *)(object + 0x18)) > *(const float *)0x253f2c) {
+        if (magnitude_squared3d((real_vector3d *)(object + 0x18)) > *(const float *)0x253f2c) {
           qualified = 0;
         }
       }
@@ -1978,7 +1978,7 @@ char actor_action_handle_surprise(int actor_handle, short type)
   if (((actor_t *)actor)->field_2f8 != '\0') {
     direction[0] = *(float *)(actor + 0x2fc);
     direction[1] = *(float *)(actor + 0x300);
-    normalize2d(direction);
+    normalize2d((real_vector2d *)direction);
     dot = direction[1] * ((actor_t *)actor)->control_desired_facing_vector[1] +
           direction[0] * ((actor_t *)actor)->control_desired_facing_vector[0];
     if (!(dot >= 0.0f)) {
@@ -1989,7 +1989,7 @@ char actor_action_handle_surprise(int actor_handle, short type)
     }
   } else {
     direction[0] = ((actor_t *)actor)->input_facing_vector[0]; direction[1] = ((actor_t *)actor)->input_facing_vector[1];
-    normalize2d(direction);
+    normalize2d((real_vector2d *)direction);
     anim_type = 4;
   }
 
@@ -2429,7 +2429,7 @@ char actor_action_handle_active_cover_seeking(int actor_handle, char param2,
  *    action_charge_setup(4).
  * Otherwise decides between charging (want/force flags from actor+0x375,
  * 'actr' flag 0x1000000, action-10 sub-state 2/3/4/5 flags, and for state 4
- * the vehicle ram distances vehi+0x394 / FUN_00013070 >= 0.5f) and falling
+ * the vehicle ram distances vehi+0x394 / dot_product3d >= 0.5f) and falling
  * back to fight (action_fight_setup + actor_action_change(3)). Ends with a
  * state-consistency assert ladder (actions.c lines 0x87b-0x892).
  * FPU compares verified against disassembly: berserk timer uses
@@ -2503,8 +2503,8 @@ char actor_action_handle_combat_selection(int actor_handle)
         delay = 0.0f;
       else
         delay = *(float *)(actr_tag + 0x378);
-      delay = FUN_000b5590(0x15) * delay;
-      delay = FUN_000b5590(0x14) + delay;
+      delay = game_difficulty_get_value(0x15) * delay;
+      delay = game_difficulty_get_value(0x14) + delay;
       threshold = melee_preferred != '\0' ? *(float *)(actv_tag + 0x170) :
                                             *(float *)(actv_tag + 0x160);
       if ((((actor_t *)actor)->field_37c == -1 ||
@@ -2608,8 +2608,8 @@ decide_charge:
           } else if (*(float *)(vehi_tag + 0x394) +
                          *(float *)(vehi_tag + 0x394) >
                        distance &&
-                     FUN_00013070((float *)(actor + 0x174),
-                                  (float *)(prop + 0xe0)) <
+                     dot_product3d((real_vector3d *)(actor + 0x174),
+                                  (real_vector3d *)(prop + 0xe0)) <
                        *(float *)0x253398) {
             want_charge = 0;
           }
@@ -3268,7 +3268,7 @@ char actor_action_try_to_throw_grenade(int actor_handle, char flag)
         ((actor_t *)actor)->field_6a8 - ((actor_t *)actor)->field_12c;
       delta[1] =
         ((actor_t *)actor)->field_6ac - ((actor_t *)actor)->field_130;
-      if (normalize2d(delta) > *(float *)0x2533c0 &&
+      if (normalize2d((real_vector2d *)delta) > *(float *)0x2533c0 &&
           !(delta[0] * ((actor_t *)actor)->input_facing_vector[0] +
               delta[1] * ((actor_t *)actor)->input_facing_vector[1] <
             *(float *)0x2533dc)) {
@@ -3353,7 +3353,7 @@ char actor_action_consider_grenade(int actor_handle)
  *
  * Reads the attractor direction (2D vector at prop+0xe0) and measures its
  * alignment with the actor's facing (actor+0x174/0x178). When actr_tag flag
- * 0x200000 is set the alignment is a 3-component dot (FUN_00013070); otherwise
+ * 0x200000 is set the alignment is a 3-component dot (dot_product3d); otherwise
  * the attractor vector is copied, normalized (normalize2d), and dotted in 2D.
  * A zero-length attractor vector skips the alignment gate. The alignment must
  * exceed 0.4f (0x253524) to proceed.
@@ -3399,11 +3399,11 @@ char actor_action_try_to_evade(int actor_handle)
 
   attractor_vec = (float *)(prop + 0xe0);
   if ((*actr_tag & 0x200000) != 0) {
-    dot = FUN_00013070(attractor_vec, (float *)((char *)actor + 0x174));
+    dot = dot_product3d((real_vector3d *)attractor_vec, (real_vector3d *)((char *)actor + 0x174));
   } else {
     scratch[0] = attractor_vec[0];
     scratch[1] = attractor_vec[1];
-    if (!(normalize2d(scratch) > *(float *)0x2533c0)) {
+    if (!(normalize2d((real_vector2d *)scratch) > *(float *)0x2533c0)) {
       goto do_evade;
     }
     dot = scratch[1] * actor->input_facing_vector[1] +
@@ -3415,7 +3415,7 @@ do_evade:
   alignment_vec[0] = attractor_vec[0];
   alignment_vec[1] = attractor_vec[1];
   evade_dir_ref = 4;
-  normalize2d(alignment_vec);
+  normalize2d((real_vector2d *)alignment_vec);
   if (actor_move_try_evasion_direction(actor_handle, alignment_vec,
                                        *(float *)(unit_tag + 0x234),
                                        (unsigned short *)&evade_dir_ref, 0.0f,

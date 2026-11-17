@@ -1944,7 +1944,7 @@ void ai_communication_update_speech_timers(int unit_handle, int16_t param_2,
                                            int16_t dialogue_type_index,
                                            int16_t reply_table_index)
 {
-  char *unit;
+  unit_data_t *unit;
   void *actor;
   int base_ticks;
   int ticks;
@@ -1957,22 +1957,22 @@ void ai_communication_update_speech_timers(int unit_handle, int16_t param_2,
   char *definition;
   const char *speech_kind;
 
-  unit = (char *)object_get_and_verify_type(unit_handle, 3);
-  if (*(int32_t *)(unit + 0x1a4) == -1) {
+  unit = object_get_and_verify_type(unit_handle, _object_mask_unit);
+  if (unit->actor_index.value == -1) {
     actor = NULL;
   } else {
-    actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)(unit + 0x1a4));
+    actor = datum_get(*(data_t **)0x6325a4, unit->actor_index.value);
   }
   base_ticks = game_time_get();
-  delay = (int)*(int16_t *)(unit + 0x3aa) - 0x2d;
+  delay = (int16_t)unit->speech_sound_timer - 0x2d;
   if (delay < 0) {
     delay = 0;
   }
   ticks = base_ticks + delay;
-  *(int32_t *)(unit + 0x3a0) = ticks;
+  unit->last_speech_finished_time = ticks;
   if (actor != NULL) {
-    actor_reset_idle_vocalization_timer(*(int32_t *)(unit + 0x1a4));
-    actor = datum_get(*(data_t **)0x6325a4, *(int32_t *)(unit + 0x1a4));
+    actor_reset_idle_vocalization_timer(unit->actor_index.value);
+    actor = datum_get(*(data_t **)0x6325a4, unit->actor_index.value);
     communication_flags =
       actor_type_get_race((int16_t) * (uint16_t *)((char *)actor + 4));
     if ((communication_flags & 2) != 0) {
@@ -2115,7 +2115,7 @@ float ai_communication_get_player_rating(int unit_handle, char test_line_of_sigh
       any_players = 1;
       unit_get_head_position(player->unit_handle, (float *)&player_position);
       vector_from_points3d(&player_position, &position, &vector);
-      distance_squared = magnitude_squared3d(&vector);
+      distance_squared = magnitude_squared3d_inline(&vector);
 
 
 
@@ -2185,7 +2185,7 @@ float ai_communication_get_player_rating(int unit_handle, char test_line_of_sigh
           }
           if (distance > 0.0001f /* _real_epsilon, 0x253f44 */) {
             unit_get_aiming_vector(player->unit_handle, &aiming_vector);
-            facing = dot_product3d(&aiming_vector, &vector) / distance;
+            facing = dot_product3d_inline(&aiming_vector, &vector) / distance;
 
 
 

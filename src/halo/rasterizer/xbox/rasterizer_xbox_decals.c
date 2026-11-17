@@ -1664,7 +1664,7 @@ void FUN_001595c0(void)
  *     (vs const block, register -0x54), then installs the active-camouflage
  *     pixel shader and draws.
  *   - intensity < 1.0f (partially fading in/out): a first pass that renders
- *     the model geometry (FUN_0017cbc0) so the silhouette shows through,
+ *     the model geometry (rasterizer_model_draw) so the silhouette shows through,
  *     followed by the common distortion pass.
  * Both regimes finish with the "common" second pass which uploads the
  * screen-space distortion matrix derived from the active camera/view-params
@@ -1705,7 +1705,7 @@ typedef struct {
 void FUN_00159900(void *group)
 {
   char *grp = (char *)group;
-  shader_model *pv; /* FUN_001906b0(shader, _shader_type_model): resolved shader params base (edi) */
+  shader_model *pv; /* shader_get_and_verify_type(shader, _shader_type_model): resolved shader params base (edi) */
   char *cam; /* *(char **)0x476204: active camera / view-parameters block */
   int cull; /* computed CullMode select */
   float fv; /* 1.0f - group->effect fade (+0x1c) */
@@ -1756,7 +1756,7 @@ void FUN_00159900(void *group)
     return;
   }
 
-  pv = (shader_model *)FUN_001906b0(*(void **)(grp + 0xc), _shader_type_model);
+  pv = (shader_model *)shader_get_and_verify_type(*(void **)(grp + 0xc), _shader_type_model);
 
   /* --- debug asserts (source lines 0xa4..0xa5) --- */
   if (*(char *)0x476ac1 == 0) {
@@ -1866,7 +1866,7 @@ void FUN_00159900(void *group)
     rasterizer_psuedo_dynamic_screen_quad_draw(0);
     FUN_0017d1a0(0);
     FUN_0017cbb0(&desc, 1);
-    FUN_0017cbc0(*(int *)(grp + 0xc), *(unsigned short *)(grp + 0x10),
+    rasterizer_model_draw(*(int *)(grp + 0xc), *(unsigned short *)(grp + 0x10),
                  *(int *)(grp + 0x48), *(int *)(grp + 0x44),
                  *(int *)(grp + 0x50), *(int *)(grp + 0x58),
                  *(int *)(grp + 0x54));

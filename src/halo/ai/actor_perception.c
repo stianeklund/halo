@@ -2295,7 +2295,7 @@ void prop_position_refresh(int actor_handle, int prop_handle, void *out_data,
       goto update_actor_to_prop;
     if ((*(unsigned char *)(unit + 0xb6) & 4) != 0 &&
         *(int16_t *)(unit + 0x3d0) == 0 && prop->perception == 0 &&
-        FUN_00012170((float *)(unit + 0x18)) < *(float *)0x255d1c)
+        magnitude_squared3d((real_vector3d *)(unit + 0x18)) < *(float *)0x255d1c)
       corpse_stopped = 1;
     else
       corpse_stopped = 0;
@@ -2354,7 +2354,7 @@ void prop_position_refresh(int actor_handle, int prop_handle, void *out_data,
         *(int *)(object + 0x2d8) == prop->unit_index || prop->type == 0xf;
       prop->dangerous_vehicle_driver =
         *(int *)(object + 0x2d4) == prop->unit_index &&
-        vehicle_hover(prop->vehicle_index);
+        vehicle_causes_collision_damage(prop->vehicle_index);
     } else if (((1 << *(char *)(object + 0x64)) & 3) != 0) {
       prop->attached_to_unit_index = *(int *)(unit + 0xcc);
     }
@@ -2589,7 +2589,7 @@ void actor_perception_refresh_danger_zone(int actor_handle)
     char ignore_visibility;
 
       tag = (char *)tag_get(0x76656869, *(int *)object);
-      if (FUN_00012170((float *)(object + 0x18)) < *(float *)0x256240 ||
+      if (magnitude_squared3d((real_vector3d *)(object + 0x18)) < *(float *)0x256240 ||
           *(float *)(tag + 4) + *(float *)0x253f34 < *(float *)(actor + 0x2d4)) {
         *(short *)(actor + 0x280) = 0;
         break;
@@ -3067,14 +3067,14 @@ void actor_emotion_update(int actor_handle)
             }
             if ((*(unsigned int *)actr_tag & 0x80000000) != 0 &&
                 *(char *)(prop + 0x12e) != 0 && *(char *)(prop + 0x12f) != 0 &&
-                FUN_00012170((float *)&blockage_vector) < *(float *)0x2533c8 &&
+                magnitude_squared3d(&blockage_vector) < *(float *)0x2533c8 &&
                 (*(char *)(actor + 0x504) != 0 ||
                  *(short *)(actor + 0x360) > 0)) {
               direction = *(real_vector3d *)(actor + 0x518);
               if (normalize3d(&direction) > *(float *)0x2533c0) {
-                vector3d_scale_add((float *)(actor + 0x12c),
-                                   (float *)&direction, 0.4f,
-                                   (float *)&scaled_position);
+                vector3d_scale_add((real_point3d *)(actor + 0x12c),
+                                   &direction, 0.4f,
+                                   (real_point3d *)&scaled_position);
                 blocked2 = actor_perception_aiming_vector_test_blockage(
                   (float *)(prop + 0xbc), (float *)&friend_position,
                   (int)&scaled_position, 0);
@@ -3085,7 +3085,7 @@ void actor_emotion_update(int actor_handle)
                   dot = direction.k * blockage_vector.k +
                         direction.j * blockage_vector.j +
                         direction.i * blockage_vector.i;
-                  if (FUN_00012170((float *)&blockage_vector) <
+                  if (magnitude_squared3d(&blockage_vector) <
                       *(float *)0x25337c) {
                     threshold = *(float *)0x2533c0;
                   } else {

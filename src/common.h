@@ -130,24 +130,87 @@ static const int _scenario_type_main_menu = 2;
 #define REAL_2_0_POOL (*(float *)0x253f40) /* 2.0f */
 #define REAL_ZERO_POOL (*(float *)0x2533c0) /* 0.0f */
 #define REAL_HALF_PI_POOL (*(float *)0x2568bc) /* 1.5707964f */
+#define REAL_ONE_POOL (*(float *)0x2533c8) /* 1.0f */
+#define REAL_NEGATIVE_ONE_POOL (*(float *)0x255e94) /* -1.0f */
+#define REAL_0_5_POOL (*(float *)0x253398) /* 0.5f */
+#define REAL_0_6_POOL (*(float *)0x253f3c) /* 0.6f */
+#define REAL_0_4_POOL (*(float *)0x253524) /* 0.4f */
+#define REAL_0_2_POOL (*(float *)0x2549d4) /* 0.2f */
+#define REAL_0_1_POOL (*(float *)0x25496c) /* 0.1f */
+#define REAL_NEG_0_1_POOL (*(float *)0x25e884) /* -0.1f */
+#define REAL_0_05_POOL (*(float *)0x2533e8) /* 0.05f */
+#define REAL_ONE_THIRTIETH_POOL (*(float *)0x2546a4) /* 0.033333335f */
+#define REAL_ONE_OVER_24_POOL (*(float *)0x28af18) /* 0.041666668f */
+#define REAL_ONE_NINETIETH_POOL (*(float *)0x26f2e0) /* 0.011111111f */
+#define REAL_ONE_OVER_120_POOL (*(float *)0x28ac20) /* 0.008333334f */
+#define REAL_ONE_OVER_128_POOL (*(float *)0x25f0d0) /* 0.0078125f */
+#define REAL_ONE_OVER_255_POOL (*(float *)0x261518) /* 0.003921569f */
+#define REAL_ONE_OVER_900_POOL (*(float *)0x25620c) /* 0.0011111111f */
+#define REAL_QUARTER_PI_POOL (*(float *)0x254a58) /* 0.7853982f */
+#define REAL_TWO_PI_POOL (*(float *)0x255a54) /* 6.2831855f */
+#define REAL_MAX_POOL (*(float *)0x2548fc) /* 3.4028235e38f */
+#define REAL_0_25_POOL (*(float *)0x25337c) /* 0.25f */
+#define REAL_0_3_POOL (*(float *)0x2533e4) /* 0.3f */
+#define REAL_0_8_POOL (*(float *)0x2533f0) /* 0.8f */
+#define REAL_1_5_POOL (*(float *)0x2533ec) /* 1.5f */
+#define REAL_3_0_POOL (*(float *)0x254644) /* 3.0f */
+#define REAL_4_0_POOL (*(float *)0x2533d8) /* 4.0f */
+#define REAL_0_0001_POOL (*(float *)0x253f44) /* 0.0001f */
+#define REAL_PI_POOL (*(float *)0x256980) /* 3.1415927f */
+#define REAL_NEGATIVE_PI_POOL (*(float *)0x26e280) /* -3.1415927f */
+#define REAL_0_01_POOL (*(float *)0x255d1c) /* 0.01f */
+#define REAL_0_01_25BB10_POOL (*(float *)0x25bb10) /* 0.01f */
+#define REAL_30_POOL (*(float *)0x253394) /* 30.0f */
+#define REAL_ONE_OVER_3600_POOL (*(float *)0x253f2c) /* 0.00027777778f */
+#define REAL_6_0_POOL (*(float *)0x254640) /* 6.0f */
+#define REAL_5_0_POOL (*(float *)0x254cc4) /* 5.0f */
+#define REAL_TEN_THIRDS_POOL (*(float *)0x254e6c) /* 3.3333333f */
+#define REAL_ONE_TWELFTH_POOL (*(float *)0x255960) /* 0.083333336f */
+#define REAL_NEG_0_5_POOL (*(float *)0x255964) /* -0.5f */
+#define REAL_NEG_ONE_THIRTIETH_POOL (*(float *)0x256348) /* -0.033333335f */
+#define REAL_0_04_POOL (*(float *)0x25bb0c) /* 0.04f */
+#define REAL_255_POOL (*(float *)0x2602c8) /* 255.0f */
+#define REAL_ONE_SIXTH_POOL (*(float *)0x2647d4) /* 0.16666667f */
+#define REAL_THREE_DEGREES_POOL (*(float *)0x26e2ec) /* 0.05235988f */
+#define REAL_NEG_2000_POOL (*(float *)0x2b4d1c) /* -2000.0f */
+#define REAL_1800_POOL (*(float *)0x2b4ee0) /* 1800.0f */
+#define REAL_60_POOL (*(float *)0x2b4ee4) /* 60.0f */
+#define REAL_FIVE_SEVENTHS_POOL (*(float *)0x2b4fbc) /* 0.71428573f */
+#define REAL_1E_8_POOL (*(float *)0x2b5098) /* 1e-8f */
+#define REAL_0_053333_POOL (*(float *)0x2b509c) /* 0.053333335f */
+#define REAL_0_02_POOL (*(float *)0x2b6af4) /* 0.02f */
+#define REAL_1_2_DEGREES_POOL (*(float *)0x2b7248) /* 0.020943951f */
+#define REAL_NEG_1_2_DEGREES_POOL (*(float *)0x2b724c) /* -0.020943951f */
+#define REAL_100_OVER_TWO_PI_POOL (*(float *)0x2b7250) /* 15.915494f */
+#define REAL_12_DEGREES_POOL (*(float *)0x2b7254) /* 0.20943952f */
+#define REAL_4_2441316_POOL (*(float *)0x2b7258) /* 4.2441316f */
+#define REAL_20_OVER_17_POOL (*(float *)0x2b7d40) /* 1.1764706f */
 
 /* Tag group four-character codes.  Each literal spells its own name in ASCII
  * (0x77656170 == 'weap'), so the code IS the evidence — nothing is inferred.
  * Defined in the two force-included headers (clang -include src/common.h,
  * VC71 /FI src/xdk_common.h) rather than in a .c: a definition added above an
  * assert_halt would shift __FILE__/__LINE__ and move .text. */
-#define TAG_GROUP_DECAL 0x64656361 /* 'deca' */
+#define TAG_GROUP_ANTR  0x616e7472 /* 'antr' */
+#define TAG_GROUP_BIPD  0x62697064 /* 'bipd' */
 #define TAG_GROUP_BITM  0x6269746d /* 'bitm' */
+#define TAG_GROUP_DECAL 0x64656361 /* 'deca' */
 #define TAG_GROUP_ELEC 0x656c6563 /* 'elec' */
+#define TAG_GROUP_EQIP  0x65716970 /* 'eqip' */
 #define TAG_GROUP_FONT 0x666f6e74 /* 'font' */
 #define TAG_GROUP_GLW  0x676c7721 /* 'glw!' */
 #define TAG_GROUP_HUDG 0x68756467 /* 'hudg' */
 #define TAG_GROUP_ITEM 0x6974656d /* 'item' */
 #define TAG_GROUP_ITMC 0x69746d63 /* 'itmc' */
+#define TAG_GROUP_JPT   0x6a707421 /* 'jpt!' */
 #define TAG_GROUP_LIGH 0x6c696768 /* 'ligh' */
+#define TAG_GROUP_MACH  0x6d616368 /* 'mach' */
+#define TAG_GROUP_MODE  0x6d6f6465 /* 'mode' */
+#define TAG_GROUP_OBJE  0x6f626a65 /* 'obje' */
 #define TAG_GROUP_PHYS 0x70687973 /* 'phys' */
 #define TAG_GROUP_SHDR 0x73686472 /* 'shdr' */
 #define TAG_GROUP_SND  0x736e6421 /* 'snd!' */
+#define TAG_GROUP_UDLG  0x75646c67 /* 'udlg' */
 #define TAG_GROUP_UNIT 0x756e6974 /* 'unit' */
 #define TAG_GROUP_VEHI 0x76656869 /* 'vehi' */
 #define TAG_GROUP_WEAP 0x77656170 /* 'weap' */

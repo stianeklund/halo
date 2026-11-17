@@ -2002,7 +2002,7 @@ void custom_render_nav_point(int param_1, float *param_2, short param_3, short p
                  *(double *)0x281e18) +
       *(float *)0x253398;
   }
-  matrix_transform_point((float *)0x5065b4, l_30, l_30);
+  matrix_transform_point((float *)0x5065b4, (real_point3d *)l_30, (real_point3d *)l_30);
   s7 = param_4;
   if (s7 == 1 || (c5 = render_camera_view_to_screen(
                        (int *)0x506550, (int *)0x5065a4, l_30, screen_pos),

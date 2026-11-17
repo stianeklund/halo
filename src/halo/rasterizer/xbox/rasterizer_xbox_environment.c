@@ -103,7 +103,7 @@ void _rasterizer_dynamic_lit_geometry_draw(void)
  *                     accumulator, and the accumulator fed by
  *                     rasterizer_frame_statistics_count_static_vertices.
  *
- * Shader-data offsets (from FUN_001906b0(shader, 3)); all four are read
+ * Shader-data offsets (from shader_get_and_verify_type(shader, 3)); all four are read
  * directly in the disassembly:
  *   +0x138 / +0x13c  the two animated values written into constant row 0
  *   +0x2d4           float compared against 1.0f and passed to FUN_00159070
@@ -161,7 +161,7 @@ void FUN_001609b0(void *shader, int a2, int vertices_per_primitive, int a4,
       system_exit(-1);
     }
 
-    shader_data = FUN_001906b0(shader, 3);
+    shader_data = shader_get_and_verify_type(shader, 3);
 
     if ((*(float *)((char *)shader_data + 0x2f4) > *(float *)0x2533c0 ||
          *(float *)((char *)shader_data + 0x2f8) > *(float *)0x2533c0) &&
@@ -462,7 +462,7 @@ void FUN_00160dc0(int bitmap_data)
  *                     otherwise at +0
  *   0x47dc98  float3  precomputed color used by lighting variants 2 and 3
  *   0x2533c0  float   0.0f literal pool
- *   0x2533c8  float   1.0f literal pool. The two 1.0f-scaled FUN_00012fb0
+ *   0x2533c8  float   1.0f literal pool. The two 1.0f-scaled scale_vector3d
  *                     calls at the end of the illumination block push an
  *                     immediate 0x3f800000 instead, hence the plain 1.0f
  *                     literals there.
@@ -757,7 +757,7 @@ void FUN_00160f50(void *shader, int frame_index, int vertices_per_primitive,
     system_exit(-1);
   }
 
-  shader_data = FUN_001906b0(shader, 3);
+  shader_data = shader_get_and_verify_type(shader, 3);
   FUN_00178b40(0x10, *(uint16_t *)vertex_buffer,
                shader_get_vertex_shader_permutation(shader));
 
@@ -863,16 +863,16 @@ void FUN_00160f50(void *shader, int frame_index, int vertices_per_primitive,
       (*(float *)0x5a5e18 + *(float *)((char *)shader_data + 0x234)) /
         *(float *)((char *)shader_data + 0x230));
 
-    FUN_00012fb0((float *)((char *)shader_data + 0x1a8),
-                 *(float *)0x2533c8 - scale_primary, vector_primary);
-    FUN_00012fb0((float *)((char *)shader_data + 0x1e4),
-                 *(float *)0x2533c8 - scale_secondary, vector_secondary);
-    vector3d_scale_add(vector_primary, (float *)((char *)shader_data + 0x19c),
-                       scale_primary, vector_primary);
-    vector3d_scale_add(vector_secondary, (float *)((char *)shader_data + 0x1d8),
-                       scale_secondary, vector_secondary);
-    FUN_00012fb0((float *)((char *)shader_data + 0x214), 1.0f, plasma_a);
-    FUN_00012fb0((float *)((char *)shader_data + 0x220), 1.0f, plasma_b);
+    scale_vector3d((real_vector3d *)((char *)shader_data + 0x1a8),
+                 *(float *)0x2533c8 - scale_primary, (real_vector3d *)vector_primary);
+    scale_vector3d((real_vector3d *)((char *)shader_data + 0x1e4),
+                 *(float *)0x2533c8 - scale_secondary, (real_vector3d *)vector_secondary);
+    vector3d_scale_add((real_point3d *)vector_primary, (real_vector3d *)((char *)shader_data + 0x19c),
+                       scale_primary, (real_point3d *)vector_primary);
+    vector3d_scale_add((real_point3d *)vector_secondary, (real_vector3d *)((char *)shader_data + 0x1d8),
+                       scale_secondary, (real_point3d *)vector_secondary);
+    scale_vector3d((real_vector3d *)((char *)shader_data + 0x214), 1.0f, (real_vector3d *)plasma_a);
+    scale_vector3d((real_vector3d *)((char *)shader_data + 0x220), 1.0f, (real_vector3d *)plasma_b);
 
     csmemset((void *)0x5a5ac0, 0, 0xf0);
     *(uint32_t *)0x5a5b28 = 0xc00;
@@ -1337,7 +1337,7 @@ void FUN_001621c0(int light_index)
  *                     accumulator, and the accumulator fed by
  *                     rasterizer_frame_statistics_count_static_vertices.
  *
- * Shader-data offsets (from FUN_001906b0(shader, 3)); all read directly in
+ * Shader-data offsets (from shader_get_and_verify_type(shader, 3)); all read directly in
  * the disassembly:
  *   +0x28            flag byte; bit 1 set means "no bitmap" (tag index -1)
  *   +0x134           bitmap tag index bound to stage 0 when bit 1 is clear
@@ -1390,9 +1390,9 @@ void FUN_00162560(void *shader, int frame_index, int vertices_per_primitive,
       system_exit(-1);
     }
 
-    shader_data = FUN_001906b0(shader, 3);
+    shader_data = shader_get_and_verify_type(shader, 3);
 
-    /* The vertex_buffer assert follows the FUN_001906b0 call in the
+    /* The vertex_buffer assert follows the shader_get_and_verify_type call in the
      * reference (MOV EBX,[EBP+0x1c] is issued after CALL 0x1906b0). */
     if (vertex_buffer == 0) {
       display_assert(
@@ -1548,7 +1548,7 @@ void FUN_00162790(void)
  * tail-call wrapper FUN_0017cd30 (PUSH EBP / MOV EBP,ESP / POP EBP /
  * JMP 0x162920), so the arguments are forwarded unchanged. The slot roles
  * mirror the sibling FUN_00162560: [EBP+8] shader (asserted "shader",
- * handed to FUN_001906b0 and shader_get_vertex_shader_permutation),
+ * handed to shader_get_and_verify_type and shader_get_vertex_shader_permutation),
  * [EBP+0xc] frame_index (every rasterizer_set_texture call),
  * [EBP+0x10]/[EBP+0x14]/[EBP+0x18] forwarded to
  * rasterizer_draw_dynamic_triangles_static_vertices and
@@ -1568,7 +1568,7 @@ void FUN_00162790(void)
  *   0x5a5468 / 0x5a5464 / 0x5a5460  batch / triangle / static-vertex
  *             counters
  *
- * Shader-data offsets (FUN_001906b0(shader, 3)):
+ * Shader-data offsets (shader_get_and_verify_type(shader, 3)):
  *   +0x2a short  shader type (0/1/2, else assert 0x479)
  *   +0x6c bit 0  scale stages 1-3 by stage-0 bitmap size ratios
  *   +0x94 / +0xc4 / +0xd8 / +0x108  bitmap tag indices, stages 0..3
@@ -1627,7 +1627,7 @@ void FUN_00162920(int shader_arg, int frame_index_arg,
       0x3d5, true);
     system_exit(-1);
   }
-  shader_data = FUN_001906b0((void *)shader_arg, 3);
+  shader_data = shader_get_and_verify_type((void *)shader_arg, 3);
   if ((void *)vertex_buffer_arg == 0) {
     display_assert(
       "vertex_buffer",
@@ -2300,7 +2300,7 @@ void FUN_00163910(void *shader, int frame_index, int vertices_per_primitive,
       system_exit(-1);
     }
 
-    shader_data = FUN_001906b0(shader, 3);
+    shader_data = shader_get_and_verify_type(shader, 3);
 
     if (*(float *)((char *)shader_data + 0x290) > *(float *)0x2533c0 &&
         *(float *)0x47dca8 > *(float *)0x2533c0) {
@@ -2625,7 +2625,7 @@ void FUN_00163fe0(void *bitmap_data)
  *                     accumulator, and the accumulator fed by
  *                     rasterizer_frame_statistics_count_static_vertices.
  *
- * Shader-data offsets (from FUN_001906b0(shader, 3)); all read directly in
+ * Shader-data offsets (from shader_get_and_verify_type(shader, 3)); all read directly in
  * the disassembly:
  *   +0x28            flag byte, bit 1 selects the 0x5a5b48/0x5a5b4c/0x5a5b7c
  *                    triple
@@ -2679,7 +2679,7 @@ void FUN_001640d0(void *shader, int frame_index, int vertices_per_primitive,
       system_exit(-1);
     }
 
-    shader_data = FUN_001906b0(shader, 3);
+    shader_data = shader_get_and_verify_type(shader, 3);
 
     if (*(float *)((char *)shader_data + 0x290) > *(float *)0x2533c0 &&
         (*(uint8_t *)((char *)shader_data + 0x27c) & 4) != 0) {
@@ -2956,7 +2956,7 @@ void FUN_00164590(void *bitmap_data)
  *                     clamp); addressed as memory operands, matching the
  *                     reference's FMUL/FSUBR/FCOM memory forms.
  *
- * Shader-data offsets (from FUN_001906b0(shader, 3)); all read directly in
+ * Shader-data offsets (from shader_get_and_verify_type(shader, 3)); all read directly in
  * the disassembly:
  *   +0x28            flag byte, bit 1 selects the 0x5a5ae4 word
  *   +0x134           bitmap tag index bound to stage 0; the value -1 (no
@@ -3023,7 +3023,7 @@ void FUN_00164690(void *shader, int frame_index, int vertices_per_primitive,
       system_exit(-1);
     }
 
-    shader_data = FUN_001906b0(shader, 3);
+    shader_data = shader_get_and_verify_type(shader, 3);
 
     if ((*(uint8_t *)((char *)shader_data + 0x2d0) & 1) != 0 &&
         (*(float *)((char *)shader_data + 0x2f4) > *(float *)0x2533c0 ||
@@ -3235,7 +3235,7 @@ void FUN_00164cf0(void *shader, int frame_index, int vertices_per_primitive,
     system_exit(-1);
   }
 
-  shader_data = FUN_001906b0(shader, 3);
+  shader_data = shader_get_and_verify_type(shader, 3);
 
   reflection_type = *(int16_t *)((char *)shader_data + 0x2d2);
   if (reflection_type == 0 || reflection_type == 2) {
@@ -3668,7 +3668,7 @@ void FUN_00165420(void *shader, int16_t a2, int a3, int vertices_per_primitive,
   if (*(int16_t *)((char *)shader + 0x24) == 7) {
     FUN_001792C0(1);
     if (*(int16_t *)((char *)shader + 0x24) == 7) {
-      shader_data = FUN_001906b0(shader, 7);
+      shader_data = shader_get_and_verify_type(shader, 7);
       if ((*(uint8_t *)((char *)shader_data + 0x28) & 8) != 0) {
         if (no_queue != 0) {
           display_assert(

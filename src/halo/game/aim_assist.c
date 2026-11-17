@@ -400,7 +400,7 @@ void object_compute_autoaim_target(float *point, float *direction,
   real gy;
   real gz;
 
-  biped_get_autoaim_pill(object_index, &base.x, &axis.i, (int *)&radius);
+  biped_get_autoaim_pill(object_index, &base, &axis, (int *)&radius);
 
   cross.i = axis.j * direction[2] - axis.k * direction[1];
   cross.j = axis.k * direction[0] - axis.i * direction[2];
@@ -765,7 +765,7 @@ int16_t FUN_000a5f00(float *cone_spec, int16_t starting_cluster, float *point,
  *
  * Confirmed from the disassembly at 0xa6030:
  *   - param2 ([EBP+0xc], held in EBX) is the point: it is the sole argument to
- *     bsp3d_find_leaf_point (FUN_0018e720) at 0xa603f/0xa6053, and is
+ *     bsp3d_find_leaf_point (scenario_leaf_index_from_point) at 0xa603f/0xa6053, and is
  *     forwarded unchanged to FUN_000a5f00 (0xa6097) and FUN_000a5830
  *     (0xa60ea) -- so FUN_000a5830's first parameter is that same point, not
  *     an object handle.
@@ -795,11 +795,11 @@ char FUN_000a6030(float *cone_spec, float *point, float *direction,
   int16_t i;
   aim_assist_record_t candidates[0x40];
 
-  if (FUN_0018e720((int)point) != -1) {
+  if (scenario_leaf_index_from_point((int)point) != -1) {
     cluster_index =
       *(int16_t *)((char *)tag_block_get_element(
                      (char *)scenario_get() + 0xe0,
-                     FUN_0018e720((int)point) & 0x7fffffff, 0x10) +
+                     scenario_leaf_index_from_point((int)point) & 0x7fffffff, 0x10) +
                    8);
     if (cluster_index != -1) {
       count = (int16_t)FUN_000a5f00(cone_spec, cluster_index, point, direction,
@@ -877,7 +877,7 @@ int player_aim_projectile(int player_index, float *origin, float *forward)
   player = (player_data_t *)datum_get(player_data, player_index);
   aiming_unit_index = unit_get_aiming_unit_index(player->unit_handle);
 
-  if (!valid_real_normal3d(forward)) {
+  if (!valid_real_normal3d((real_vector3d *)forward)) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
                             "direction", (double)forward[0], (double)forward[1],

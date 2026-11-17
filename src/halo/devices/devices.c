@@ -655,8 +655,8 @@ void device_effect_new(int object_handle, int tag_index)
       }
 
       object_impulse_sound_new(object_handle, tag_index, -1,
-                               *(float **)0x31fc1c, global_forward_vector_ptr,
-                               1.0f);
+                               *(real_point3d **)0x31fc1c,
+                               (real_vector3d *)global_forward_vector_ptr, 1.0f);
       return;
     }
 

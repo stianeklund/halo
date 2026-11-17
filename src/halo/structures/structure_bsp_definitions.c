@@ -93,7 +93,7 @@ float normalize_three_dee(float *vector)
     vector[0] *= inverse_length;
     vector[1] *= inverse_length;
     vector[2] *= inverse_length;
-    if (valid_real_normal3d(vector)) {
+    if (valid_real_normal3d((real_vector3d *)vector)) {
       return length;
     }
   }

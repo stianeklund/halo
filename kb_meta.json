@@ -330,7 +330,7 @@
       "status": "ported",
       "inferred": [
         "28-case switch dispatcher (~1280 instructions); VC71 best score reached 63.5% with raw function-pointer casts for 0x1ac180/0x1a68d0/0x1a6ef0/0xcb9a0/0x936b0/0x95640 and full case coverage.",
-        "Key callees for future lift: FUN_001ac180 is (char)(int actor, int anim_tag, void *entry, int do_flag); FUN_001a68d0 is (short)(int actor, int mode, int a3, int a4, int a5, short *seat_out, int *obj_out); FUN_001a6ef0 is (void)(int actor, short count, void *comm_buf).",
+        "Key callees for future lift: unit_start_user_animation is (char)(int actor, int anim_tag, void *entry, int do_flag); FUN_001a68d0 is (short)(int actor, int mode, int a3, int a4, int a5, short *seat_out, int *obj_out); FUN_001a6ef0 is (void)(int actor, short count, void *comm_buf).",
         "Final lift uses named kb.json callees for all six previously-raw-cast targets (0x1ac180, 0x1a68d0, 0x1a6ef0, 0xcb9a0, 0x936b0, 0x95640), reaching 89.7% VC71 (1253/1269) after two permuter-validated scheduling hoists (elem[2] copy before the cmd_param store burst in cases 1/2, and bipd NULL test computed before the FUN_00012140 call in case 0x1b)."
       ],
       "uncertain": [
@@ -2629,12 +2629,12 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "FUN_000494e0 renders the stored debug line-of-sight ray as one line (FUN_00189270) plus one sphere per recorded hit (FUN_00189860); the name is left as FUN_000494e0 because the function contains no __FILE__ string.",
+        "FUN_000494e0 renders the stored debug line-of-sight ray as one line (FUN_00189270) plus one sphere per recorded hit (render_debug_pill); the name is left as FUN_000494e0 because the function contains no __FILE__ string.",
         "The per-hit debug arrays are parallel and hold 16 entries: uint8 flag at 0x5acad8 stride 1, float[3] point A at 0x5acae8 stride 0xc, float[3] point B at 0x5acba8 stride 0xc, float radius at 0x5acc68 stride 4; the 16-entry capacity is deduced from the 0xc0 byte gap between the two point arrays, which the original addresses as EDI+0xc0 off a single walking pointer."
       ],
       "uncertain": [
         "The residual VC71 gap at 94.9 percent is a single scratch-register allocation difference: the reference loads the 0x5acab9 flag byte into AL and lets the following colour load clobber EAX, while our build uses CL; instruction count and order match exactly at 59 of 59.",
-        "The meaning of the second per-hit vector passed to FUN_00189860 as point plus 0xc0 is not established and is treated as an opaque vector rather than named."
+        "The meaning of the second per-hit vector passed to render_debug_pill as point plus 0xc0 is not established and is treated as an opaque vector rather than named."
       ]
     },
     "0x495b0": {
@@ -10090,7 +10090,7 @@
         "The EBP-4 slot is modelled as a volatile unsigned int because the original pre-zeroes the full dword at 0xbf021, stores only AL, then re-reads all 32 bits; this mirrors sibling FUN_000bef80's 16-bit slot in the same TU and reproduces the zero-extension without a movzx."
       ],
       "uncertain": [
-        "FUN_001ac180's four evaluated-argument fields are typed from its kb.json decl (actor, anim_tag, entry, do_flag) only; the HaloScript builtin this dispatcher binds is unidentified, so the semantics of record fields +0x00/+0x04/+0x08/+0x0c and of the returned AL flag are unproven."
+        "unit_start_user_animation's four evaluated-argument fields are typed from its kb.json decl (actor, anim_tag, entry, do_flag) only; the HaloScript builtin this dispatcher binds is unidentified, so the semantics of record fields +0x00/+0x04/+0x08/+0x0c and of the returned AL flag are unproven."
       ]
     },
     "0xbf060": {
@@ -12968,7 +12968,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "The word written at header+0x6 is the object list's entry count: FUN_000ce200 zeroes it, FUN_000ce2b0 increments it on every add, and FUN_000ce420 reads it back."
+        "The word written at header+0x6 is the object list's entry count: object_list_new zeroes it, object_list_add increments it on every add, and FUN_000ce420 reads it back."
       ]
     },
     "0xce240": {
@@ -15573,12 +15573,12 @@
       "inferred": [
         "FUN_000f7110 (0xf7110) is not void(void): it takes one stack arg plus three register args, declared as void FUN_000f7110(float *param_1@<eax>, float *param_2@<esi>, int param_3@<ebx>, float *param_4), proven by two call sites inside item_update where the ADD ESP is 4 while EAX/ESI/EBX are loaded immediately before the CALL.",
         "item_update returns 1 in AL (MOV AL,0x1 immediately before the epilogue at 0xf7c6a), so its declaration is bool item_update(int object_index) rather than the void __cdecl item_update(void) that Ghidra reported.",
-        "The collision_result buffer passed to FUN_000130d0 is 80 bytes (0x50) here, derived from the frame arithmetic: 0xc8 total locals minus the 28-byte marker buffer, 52-byte matrix scratch, and 44 bytes of scalars/vectors leaves exactly 0x50 between EBP-0xac and EBP-0x5c.",
+        "The collision_result buffer passed to collision_test_line is 80 bytes (0x50) here, derived from the frame arithmetic: 0xc8 total locals minus the 28-byte marker buffer, 52-byte matrix scratch, and 44 bytes of scalars/vectors leaves exactly 0x50 between EBP-0xac and EBP-0x5c.",
         "Return type inferred as bool from MOV AL,0x1 at 0xf7c6a immediately before the epilogue; no callers were found in the cached context so the return value's meaning is unverified.",
         "FUN_000f7110 (0xf7110) register-arg signature inferred from both call sites (0xf76cb, 0xf7a00): EBX=item_handle, ESI=vector3d, EAX=point-or-NULL, plus one stack point; the semantic role of the EAX slot is unknown.",
         "Return type is bool: the sole non-noreturn exit at 0xf7c6a executes MOV AL,0x1 immediately before MOV ESP,EBP; POP EBP; RET, so item_update returns true. No direct caller xref exists (dispatched through an object update table), so the consumer of the return value is unverified.",
-        "The 0x6c-byte ground-point marker record and the collision result written by FUN_000130d0 share one stack slot because VC7.1 packs their disjoint lifetimes; the collision record begins at marker_buf+0x1c and the marker real_matrix4x3 at marker_buf+0x38, so the lift uses a single marker_buf and offsets rather than two locals.",
-        "The 0x6c-byte marker buffer and the 0x50-byte FUN_000130d0 collision result share stack space in the original (disjoint lifetimes, both ending at the same address); the collision result begins 0x1c bytes into the marker buffer, and the 52-byte block copied out of marker_buf+0x38 is the marker's real_matrix4x3 (scale, forward, left, up, position), corroborated by item_set_position already reading the ground normal at marker_buf+0x54.",
+        "The 0x6c-byte ground-point marker record and the collision result written by collision_test_line share one stack slot because VC7.1 packs their disjoint lifetimes; the collision record begins at marker_buf+0x1c and the marker real_matrix4x3 at marker_buf+0x38, so the lift uses a single marker_buf and offsets rather than two locals.",
+        "The 0x6c-byte marker buffer and the 0x50-byte collision_test_line collision result share stack space in the original (disjoint lifetimes, both ending at the same address); the collision result begins 0x1c bytes into the marker buffer, and the 52-byte block copied out of marker_buf+0x38 is the marker's real_matrix4x3 (scale, forward, left, up, position), corroborated by item_set_position already reading the ground normal at marker_buf+0x54.",
         "FUN_000f7110 (0xf7110) takes three register arguments plus one stack pointer: EAX = a point (NULL at the at-rest call site), ESI = a vector, EBX = the item handle, with the stack argument pushed immediately before; kb decl updated to void FUN_000f7110(float *hit_point, float *point@<eax>, float *normal@<esi>, int item_handle@<ebx>).",
         "Ghidra split ONE 0x6c-byte object_marker buffer (EBP-0xcc) and ONE 0x50-byte collision_result (EBP-0xb0) into a dozen independent local_XX slots; MSVC packed the two aggregates on top of each other because their live ranges are disjoint, and the lift declares them separately (collision +0x00 short type, +0x0c location, +0x18 point3d, +0x24 normal, +0x34 short, +0x38 hit handle, +0x44 surface index).",
         "The 13-dword rep-movsd in the spin block copies marker_buf+0x38 (the marker world real_matrix4x3: scale, forward, left, up, position = 52 bytes) into a local matrix, and the sound block at the +0x264 tag field builds a separate 0x2c-byte location struct (point, normal, global forward at 0x31fc38, object leaf/cluster from obj+0x48/+0x4c).",
@@ -15593,9 +15593,9 @@
         "The resting-surface dispatch at 0xf773a was lifted as a C switch because MOVSX/SUB 2/JZ/DEC/JZ is MSVC switch codegen; an if-else chain would emit CMP, but the case-body layout order was not independently confirmed.",
         "The collision result (0x50 bytes at EBP-0xac) and the object-marker buffer (0x6c bytes at EBP-0xc8) overlap in the original MSVC frame; they are declared as separate locals here because their live ranges are disjoint and no field is read across them, but the original source's declaration scoping is unknown.",
         "Two dot-product expressions (0xf76d0, 0xf766f) were written in the exact FLD order emitted by the binary rather than natural x,y,z order; the original source order is unknown and the two associations differ only below float rounding.",
-        "When FUN_000130d0 reports no collision the lift still passes marker_buf+0x28 as object_translate's location argument, exactly as the original does; whether that slot is initialized on the no-collision path is unverified.",
+        "When collision_test_line reports no collision the lift still passes marker_buf+0x28 as object_translate's location argument, exactly as the original does; whether that slot is initialized on the no-collision path is unverified.",
         "Argument 3 of object_translate is assumed to be the address collision+0x0c because the corresponding argument 6 of FUN_0009f430 is provably a LEA of that slot; the object_translate push itself was not read from disassembly, so it could be the dword value at that address instead.",
-        "The 0x6c-byte object marker record at EBP-0xc8 and the collision result returned by FUN_000130d0 at EBP-0xac share one stack slot in the original frame; the lift reproduces the overlap by indexing the collision fields at marker_buf+0x1c, which is correct only because the two are never live simultaneously.",
+        "The 0x6c-byte object marker record at EBP-0xc8 and the collision result returned by collision_test_line at EBP-0xac share one stack slot in the original frame; the lift reproduces the overlap by indexing the collision fields at marker_buf+0x1c, which is correct only because the two are never live simultaneously.",
         "The bounce impulse uses two distinct adjacent .rdata floats (0x25686c for the normal.x term, 0x256870 for the normal.y and normal.z terms), which is consistent with MSVC folding a leading negation into a separate pooled constant for -(dot)*k, but the exact source-level expression was not recovered; VC71 emits the three fmuls in the opposite operand order regardless of how the multiplication is associated in C, leaving a persistent FPU-WARN.",
         "FUN_000f7110 (0xf7110) was re-declared with three register arguments (EAX, ESI, EBX) plus one stack argument based purely on the two call sites inside item_update (0xf76b9-0xf76cb passes hit_point on the stack with EAX=&target, ESI=&hit_normal, EBX=object_index; 0xf79f2-0xf7a00 passes &target on the stack with EAX=0, ESI=obj+0x1c8, EBX=object_index); the callee body was not decompiled, so the parameter semantics and types are unverified.",
         "VC71 reports an [FPU-WARN] on the bounce-impulse block claiming the reference multiplies by the constant at 0x25686c before the velocity component, but the pristine disassembly at 0xf7809-0xf7812 is FLD normal.x, FMUL [EBP-0x18], FMUL [0x25686c]; the warning is believed to be a block-index misalignment caused by our three extra instructions."
@@ -16892,7 +16892,7 @@
       "kind": "function",
       "status": "ported",
       "comments": {
-        "summary": "Builds a 4x3 matrix from basis_data via FUN_001093b0, then overwrites translation with the provided position vector."
+        "summary": "Builds a 4x3 matrix from basis_data via matrix4x3_rotation_from_quaternion, then overwrites translation with the provided position vector."
       }
     },
     "0x109540": {
@@ -16970,7 +16970,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "Computes rotation difference between two 4x3 matrices as axis-angle: inverts mat1, multiplies by mat0, extracts quaternion via FUN_00109fc0, converts to axis-angle via FUN_0010caf0, then scales output axis by the angle."
+        "Computes rotation difference between two 4x3 matrices as axis-angle: inverts mat1, multiplies by mat0, extracts quaternion via matrix4x3_rotation_to_quaternion, converts to axis-angle via quaternion_to_angle_and_vector, then scales output axis by the angle."
       ],
       "uncertain": [
         "Semantic name is uncertain: could be matrix4x3_angular_delta, matrix_rotation_difference_as_axis_angle, or similar; the name was inferred from the observer caller context."
@@ -18216,7 +18216,7 @@
       "kind": "function",
       "status": "ported",
       "comments": {
-        "summary": "Seat-enter matrix bridge: decodes one animation node into an 0x800-byte stack buffer via FUN_00121d60, then converts the decoded basis+position slice into an output matrix via FUN_001094d0."
+        "summary": "Seat-enter matrix bridge: decodes one animation node into an 0x800-byte stack buffer via animation_get_frame_orientations, then converts the decoded basis+position slice into an output matrix via FUN_001094d0."
       }
     },
     "0x1234b0": {
@@ -20913,14 +20913,14 @@
       "status": "ported",
       "inferred": [
         "The type-mask test at 0x14dd1d reads the WORD at object+0x64 and adds 8, while the branch-select at 0x14dd59 reads only the BYTE at object+0x64 for its shift; both operand widths are preserved verbatim in the lift because the binary uses two different widths at the same offset.",
-        "The FUN_0014cb00 out struct based at EBP-0x484 is 0x420 bytes (the frame gap up to the EBP-0x64 branch-A context); only fields +0x00,+0x02,+0x04,+0x08,+0x0c,+0x10,+0x14,+0x18,+0x19,+0x1a are read back by this function, the tail is filled by collision_bsp_test_vector.",
+        "The collision_model_test_vector out struct based at EBP-0x484 is 0x420 bytes (the frame gap up to the EBP-0x64 branch-A context); only fields +0x00,+0x02,+0x04,+0x08,+0x0c,+0x10,+0x14,+0x18,+0x19,+0x1a are read back by this function, the tail is filled by collision_bsp_test_vector.",
         "FUN_00150b60 at 0x150b60 has the real signature char FUN_00150b60(void *ctx, void *origin, void *direction, void *out): the call site at 0x14dd9e pushes four dwords, cleans with ADD ESP,0x10 and tests AL, so the previous kb decl void FUN_00150b60(void) was wrong and has been corrected.",
         "The 20-byte FUN_00150b60 output record at EBP-0x18 holds the hit distance at +0x00 and a four-dword plane at +0x04..+0x10, which are copied to collision_result+0x14 and +0x24..+0x30 respectively.",
         "Object field +0xc4 is the next-sibling object handle that drives the do/while chain walk and +0xc8 is the first-child handle that drives the recursive call at 0x14df43, both terminated by the -1 sentinel."
       ],
       "uncertain": [
         "kb.json declared FUN_00150b60 as void(void) but the call site at 0x14dd9e pushes four arguments (ADD ESP,0x10) and reads AL; the corrected declaration char FUN_00150b60(int *ctx, float *origin, float *direction, float *out) is inferred from push order and the 0x18-byte out buffer at EBP-0x18, and has not been confirmed by decompiling FUN_00150b60 itself.",
-        "The 1056-byte size of the FUN_0014cb00 output buffer at EBP-0x484 is inferred from frame arithmetic (0x484 total minus the 60-byte FUN_001509c0 context, the 16-byte FUN_0014c8e0 context, the 20-byte FUN_00150b60 result and the 4-byte return slot) rather than from decompiling FUN_0014cb00; only the first 0x1c bytes are ever read back by this function.",
+        "The 1056-byte size of the collision_model_test_vector output buffer at EBP-0x484 is inferred from frame arithmetic (0x484 total minus the 60-byte physics_instance_new context, the 16-byte collision_model_instance_new context, the 20-byte FUN_00150b60 result and the 4-byte return slot) rather than from decompiling collision_model_test_vector; only the first 0x1c bytes are ever read back by this function.",
         "The original loads the FUN_0014da80 index argument as a dword at buffer+0x1a (MOV EAX at 0x14dea8) while storing the same offset as a word to collision_result+0x4e; the lift passes the int16_t that the existing kb decl for FUN_0014da80 declares, which is the identical value on little-endian but does not reproduce the dword-load instruction shape."
       ]
     },
@@ -20928,8 +20928,8 @@
       "kind": "function",
       "status": "unknown",
       "inferred": [
-        "The 1056-byte size of the FUN_0014cb00 output record at EBP-0x448 is inferred from the frame arithmetic (0x448 minus the 0x28 of locals above it), not from a decompiled FUN_0014cb00; only the first 0x1c bytes are read back here.",
-        "The second argument to FUN_0014cb00 is the literal 1 (PUSH 1 at 0x14e6ca); the structurally twin bsp branch in FUN_0014dce0 forwards its own param_3 into the same slot, so the parameter's meaning is only known to be an integer selector."
+        "The 1056-byte size of the collision_model_test_vector output record at EBP-0x448 is inferred from the frame arithmetic (0x448 minus the 0x28 of locals above it), not from a decompiled collision_model_test_vector; only the first 0x1c bytes are read back here.",
+        "The second argument to collision_model_test_vector is the literal 1 (PUSH 1 at 0x14e6ca); the structurally twin bsp branch in FUN_0014dce0 forwards its own param_3 into the same slot, so the parameter's meaning is only known to be an integer selector."
       ],
       "uncertain": [
         "The FUN_0014da80 index argument is loaded by the original as MOV EDX, dword [EBP-0x42e] with no widening, while the field is elsewhere read as a word (MOV CX, word [EBP-0x42e] at 0x14e78a); it is lifted as the int16_t the callee's kb declaration specifies, which costs at most one instruction if the source field was in fact wider.",
@@ -21039,9 +21039,9 @@
       "status": "ported",
       "inferred": [
         "The byte at 0x4761fa is debug_physics_disable_penetration_freeze, identified through its hs-global table entry at 0x2f2bf8 (name string 0x27edc4, type 5).",
-        "physics_definition+0x5c is a tag_block with 0x24-byte 3x3 matrix elements whose element 1 is used as the body-space inertia tensor inverse; the meaning is inferred from the rotation-conjugation sequence FUN_00109c70/FUN_001099f0/FUN_00109c70.",
+        "physics_definition+0x5c is a tag_block with 0x24-byte 3x3 matrix elements whose element 1 is used as the body-space inertia tensor inverse; the meaning is inferred from the rotation-conjugation sequence matrix3x3_multiply/matrix3x3_transpose/matrix3x3_multiply.",
         "The dword written to object+0x478 after the penetration loop is a per-mass-point bitmask of points whose sweep collided (bit i set on hit); no field name is assigned.",
-        "FUN_001099f0 returns its dst pointer in EAX (MOV EAX,[EBP+0xc] at 0x1099f6), which this function consumes at 0x15284b as the second FUN_00109c70 argument."
+        "matrix3x3_transpose returns its dst pointer in EAX (MOV EAX,[EBP+0xc] at 0x1099f6), which this function consumes at 0x15284b as the second matrix3x3_multiply argument."
       ],
       "uncertain": [
         "Flag bits 2 and 3 of object->flags are both set from in_water_count>0 in the binary; whether bit 2 was meant to use a different count in source cannot be determined.",
@@ -22742,13 +22742,13 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "The intermediate pointer named diffuse in the assert strings is shader+0x6c: the disassembly rebases once with ADD ESI,0x6c after the FUN_001906b0(shader,3) downcast and reads every animation field off that pointer, so the lift keeps the same +0x6c base and +0xe4..+0xf8 offsets.",
+        "The intermediate pointer named diffuse in the assert strings is shader+0x6c: the disassembly rebases once with ADD ESI,0x6c after the shader_get_and_verify_type(shader,3) downcast and reads every animation field off that pointer, so the lift keeps the same +0x6c base and +0xe4..+0xf8 offsets.",
         "Only u_animation_period (+0xe8 from diffuse) and v_animation_period (+0xf4) have names proven by the assert strings; the int16 selectors at +0xe4/+0xf0 and the float scales at +0xec/+0xf8 are role-inferred from their use as FUN_0010a5e0's function_type argument and the final FMUL, so the offsets stay raw.",
         "Argument order for the two FUN_0010a5e0 calls is (int16 animation function selector, time/period) recovered from the push-then-fstp idiom (PUSH ECX dummy slot then FSTP [ESP]), not from the decompiler's rendering of the dummy push."
       ],
       "uncertain": [
         "VC71 match is capped at 86.2 percent by an fucompp-versus-fcomps codegen difference: VC71 compiles the two float inequality asserts as flds constant plus fucompp and then materialises a bool with mov eax 1 / xor eax eax, while the reference uses fcomps against the 0.0f constant at 0x2533c0 and branches directly with test ah 0x44 / jp; rewriting the condition as !(period == 0.0f) produced byte-identical output and a 100-attempt permuter run found nothing above baseline.",
-        "The shader_environment definition layout behind the FUN_001906b0(shader,3) checked downcast is unrecovered, so the six animation fields at +0x150..+0x164 are read through raw casts and only their offsets and widths are proven; the u/v period field names come from the assert strings and the remaining four names are inferred by position."
+        "The shader_environment definition layout behind the shader_get_and_verify_type(shader,3) checked downcast is unrecovered, so the six animation fields at +0x150..+0x164 are read through raw casts and only their offsets and widths are proven; the u/v period field names come from the assert strings and the remaining four names are inferred by position."
       ]
     },
     "0x190be0": {
@@ -23877,7 +23877,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "Signature is void biped_render_debug(int unit_handle); debug visualization of biped camera height/offset (gated by global 0x5054fe) and autoaim pill (gated by 0x5054fd), rendering points (FUN_00189540) or arrows (FUN_00189860) with render contexts from 0x2ee6c4 and 0x2ee6d0."
+        "Signature is void biped_render_debug(int unit_handle); debug visualization of biped camera height/offset (gated by global 0x5054fe) and autoaim pill (gated by 0x5054fd), rendering points (render_debug_sphere) or arrows (render_debug_pill) with render contexts from 0x2ee6c4 and 0x2ee6d0."
       ]
     },
     "0x1a1a10": {
@@ -23927,7 +23927,7 @@
       "kind": "function",
       "status": "unknown",
       "inferred": [
-        "Signature is void FUN_001a25e0(int unit_handle @ecx) confirmed by MOV EDI,ECX after the _chkstk prologue; selects the BSP surface most directly below the biped camera point via collision_bsp_test_sphere then min signed-plane-distance, storing the winning surface index at unit+0x430 and the oriented 4-component plane normal at unit+0x46c (4 floats) and unit+0x30 (3 floats).",
+        "Signature is void biped_find_nearby_support_surface(int unit_handle @ecx) confirmed by MOV EDI,ECX after the _chkstk prologue; selects the BSP surface most directly below the biped camera point via collision_bsp_test_sphere then min signed-plane-distance, storing the winning surface index at unit+0x430 and the oriented 4-component plane normal at unit+0x46c (4 floats) and unit+0x30 (3 floats).",
         "Collision radius (camera_height + global 0x2533e8) is passed through collision_bsp_test_sphere's int radius parameter via a float bit-cast to follow the shared codebase signature; the original caller emits push-then-fstp (float formal) while the int-decl form emits a plain push, a minor instruction-shape divergence that cannot be changed without breaking the other committed collision_bsp_test_sphere callers."
       ],
       "uncertain": [
@@ -23988,9 +23988,9 @@
         "Surface-walk Gram-Schmidt projection branches (submode!=0 at 0x1a329e and ground-plane else at 0x1a33ed) re-verified instruction-by-instruction against disassembly and confirmed byte-faithful; gp=physics+0x20 float-index equals byte +0x80 ground plane normal; no projection edits were made because the suspected bugs were already fixed by prior re-lift commits."
       ],
       "uncertain": [
-        "Signature resolved but intentionally left unlifted (5.3KB, structural ceiling). Sole arg is ESI (@<esi>): caller FUN_001a5300 at 0x1a5e01 does LEA ESI,[EBP-0xe4]; CALL with no pushes; ESI is read-before-write (mov ax,[esi+4]). Returns void (caller does not consume EAX). ESI = biped physics/movement struct: +4 flags(u16), +8 position[3] (assert physics->position), +0x2c velocity (assert physics->velocity), writes new_position/new_velocity at ESI+0x2b.. and step distance at ESI[0x32]. Resolved decl for follow-up lift: void FUN_001a2f40(void *physics /* @esi */). kb.json decl deliberately left as void(void) to avoid the unimplemented @<reg> thunk-recursion hazard until a body is written.",
-        "Structural section map for follow-up: (1) prologue validate position+velocity asserts, read flags=*(u16)(ESI+4); (2) movement-mode dispatch on flags bit 0x10 -> FUN_001a2d90 flying path, bit 0x20 (0x10 clear) -> simple velocity copy, else ground path via FUN_000178d0/normalize3d/FUN_00012f80; (3) LAB_001a36a4 recompute flags + collision-material select + optional debug draw (DAT_004e4cf2/f0 -> FUN_00150550); (4) ESI[0x24]-indexed surface walk loop (tag_block_get_element) for contact resolution; (5) ground-point selection loop over local_36c (0xb-dword stride); (6) epilogue writes new_position/new_velocity, step-down via FUN_0014ec30/FUN_0014c4b0, final asserts. Capped <88% by x87 ST0-chaining (float10 normalize3d returns compared directly) + static 44KB frame (no _chkstk). Decompiler output polluted (return-address pushes modeled as struct stores; type propagation not settling) - body must be reconstructed from disassembly, with each callee arg resolved per cdecl-misgroup (FUN_00012f80/12f10/121a0/12170/12fe0/178d0/a16b0/84a10/99640/14ec30/14c4b0/150550/18e3f0/13d640).",
-        "Only the front half (prologue, two input asserts, and the three movement-mode branches 0x10/0x20/0x01 that compute new_velocity) is reconstructed; the default surface-walk mode and the entire back half (0x1a36a4-0x1a4409: debug-draw setup, FUN_00150550 collision query, three loops over a 16-entry 0x2c-stride result array, biped step-down, the +0xac/+0xc8 writeback, and the two NaN asserts at lines 0xee2/0xee3) are not reconstructed because three live x87 values are held across the material-select branch at 0x1a34c0 and tag-field semantics are unconfirmable.",
+        "Signature resolved but intentionally left unlifted (5.3KB, structural ceiling). Sole arg is ESI (@<esi>): caller biped_update_moving at 0x1a5e01 does LEA ESI,[EBP-0xe4]; CALL with no pushes; ESI is read-before-write (mov ax,[esi+4]). Returns void (caller does not consume EAX). ESI = biped physics/movement struct: +4 flags(u16), +8 position[3] (assert physics->position), +0x2c velocity (assert physics->velocity), writes new_position/new_velocity at ESI+0x2b.. and step distance at ESI[0x32]. Resolved decl for follow-up lift: void biped_update_physics(void *physics /* @esi */). kb.json decl deliberately left as void(void) to avoid the unimplemented @<reg> thunk-recursion hazard until a body is written.",
+        "Structural section map for follow-up: (1) prologue validate position+velocity asserts, read flags=*(u16)(ESI+4); (2) movement-mode dispatch on flags bit 0x10 -> FUN_001a2d90 flying path, bit 0x20 (0x10 clear) -> simple velocity copy, else ground path via FUN_000178d0/normalize3d/FUN_00012f80; (3) LAB_001a36a4 recompute flags + collision-material select + optional debug draw (DAT_004e4cf2/f0 -> collision_move_pill); (4) ESI[0x24]-indexed surface walk loop (tag_block_get_element) for contact resolution; (5) ground-point selection loop over local_36c (0xb-dword stride); (6) epilogue writes new_position/new_velocity, step-down via collision_get_features_in_sphere/collision_features_test_vector, final asserts. Capped <88% by x87 ST0-chaining (float10 normalize3d returns compared directly) + static 44KB frame (no _chkstk). Decompiler output polluted (return-address pushes modeled as struct stores; type propagation not settling) - body must be reconstructed from disassembly, with each callee arg resolved per cdecl-misgroup (FUN_00012f80/12f10/121a0/12170/12fe0/178d0/a16b0/84a10/99640/14ec30/14c4b0/150550/18e3f0/13d640).",
+        "Only the front half (prologue, two input asserts, and the three movement-mode branches 0x10/0x20/0x01 that compute new_velocity) is reconstructed; the default surface-walk mode and the entire back half (0x1a36a4-0x1a4409: debug-draw setup, collision_move_pill collision query, three loops over a 16-entry 0x2c-stride result array, biped step-down, the +0xac/+0xc8 writeback, and the two NaN asserts at lines 0xee2/0xee3) are not reconstructed because three live x87 values are held across the material-select branch at 0x1a34c0 and tag-field semantics are unconfirmable.",
         "In the mode-0x01 branch the original passes local_44/40/3c to normalize2d but never writes local_3c (tang[2]) first, reading a stale stack slot; this is fixed to 0.0f in the lift since it affects only the clamp length test, not an output field.",
         "new_position writeback (+0xac) representation: original at 0x1a4160 integer-copies a per-mode carried stack vector rather than recomputing los_dir-los_dir2; current source recomputes (float). Whether the VALUE diverges is unresolved (fn dormant, no equivalence run); flagged as latent-bug risk in the back-half writeback."
       ]
@@ -24167,7 +24167,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "OR byte ptr [EAX+0xb6],0x20 confirmed from disassembly \u2014 sets bit 5 of byte at object_data_t+0xb6, one byte before unk_183 (0xb7) used by unit_delete."
+        "OR byte ptr [EAX+0xb6],0x20 confirmed from disassembly \u2014 sets bit 5 of byte at object_data_t+0xb6, one byte before unk_183 (0xb7) used by unit_kill_no_statistics."
       ]
     },
     "0x1a7fa0": {
@@ -24271,7 +24271,7 @@
       "kind": "function",
       "status": "ported",
       "inferred": [
-        "console_warning receives 3 actual format args: tag_name_strip_path result, animation state name from FUN_001205f0 table at 0x322148, and type_block pointer (printed as string, likely a tag name embedded at block+0); the remaining iVar5/iVar6 stack slots are format string overflow that never get consumed."
+        "console_warning receives 3 actual format args: tag_name_strip_path result, animation state name from animation_list_get_string table at 0x322148, and type_block pointer (printed as string, likely a tag name embedded at block+0); the remaining iVar5/iVar6 stack slots are format string overflow that never get consumed."
       ]
     },
     "0x1a8ce0": {
@@ -25142,7 +25142,7 @@
         "Vehicle, unit and definition field meanings (+0x424 flags, +0x42c speed, +0x430 slide, +0x434 turn, +0x2f4 vehicle type) are taken from PAL 2342 units/vehicles.c; offsets and control flow are confirmed from the binary."
       ],
       "uncertain": [
-        "FUN_001b56b0 receives an extra pushed powered_mass_points stack argument that its body never reads; the lift calls it with only its two register args."
+        "compute_airborne_ticks receives an extra pushed powered_mass_points stack argument that its body never reads; the lift calls it with only its two register args."
       ]
     },
     "0x1b9890": {

@@ -2823,7 +2823,7 @@
       "notes": ""
     },
     "0x1092d0": {
-      "name": "FUN_001092d0",
+      "name": "matrix4x3_rotation_from_axis_and_angle",
       "obj": "real_math.obj",
       "addr": "0x1092d0",
       "category": "scratch_divergence",
@@ -2844,7 +2844,7 @@
       "notes": ""
     },
     "0x1093b0": {
-      "name": "FUN_001093b0",
+      "name": "matrix4x3_rotation_from_quaternion",
       "obj": "real_math.obj",
       "addr": "0x1093b0",
       "category": "scratch_divergence",
@@ -2929,7 +2929,7 @@
       "notes": ""
     },
     "0x109fc0": {
-      "name": "FUN_00109fc0",
+      "name": "matrix4x3_rotation_to_quaternion",
       "obj": "real_math.obj",
       "addr": "0x109fc0",
       "category": "scratch_divergence",
@@ -2950,7 +2950,7 @@
       "notes": ""
     },
     "0x10a1c0": {
-      "name": "FUN_0010a1c0",
+      "name": "matrix4x3_transform_plane",
       "obj": "real_math.obj",
       "addr": "0x10a1c0",
       "category": "scratch_divergence",
@@ -3145,7 +3145,7 @@
       "notes": ""
     },
     "0x10c8e0": {
-      "name": "FUN_0010c8e0",
+      "name": "reflect_vector3d",
       "obj": "random_math.obj",
       "addr": "0x10c8e0",
       "category": "scratch_divergence",
@@ -3916,7 +3916,7 @@
       "resolved_in": "2026-09-13"
     },
     "0x146a90": {
-      "name": "FUN_00146a90",
+      "name": "breakable_surface_damage",
       "obj": "breakable_surfaces.obj",
       "addr": "0x146a90",
       "category": "assert_metadata",
@@ -4003,7 +4003,7 @@
       "resolved_in": "2026-09-13"
     },
     "0x14f2c0": {
-      "name": "FUN_0014f2c0",
+      "name": "collision_move_point",
       "obj": "collision_usage.obj",
       "addr": "0x14f2c0",
       "category": "stack_divergence",
@@ -4046,7 +4046,7 @@
       "notes": ""
     },
     "0x154750": {
-      "name": "FUN_00154750",
+      "name": "physics_variable_position_update_seek",
       "obj": "point_physics.obj",
       "addr": "0x154750",
       "category": "stub_residual",
@@ -4326,7 +4326,7 @@
       "notes": ""
     },
     "0x189860": {
-      "name": "FUN_00189860",
+      "name": "render_debug_pill",
       "obj": "render_debug.obj",
       "addr": "0x189860",
       "category": "scratch_divergence",

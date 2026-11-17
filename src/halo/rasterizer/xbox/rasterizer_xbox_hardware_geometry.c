@@ -326,7 +326,7 @@ bool FUN_00169200(float *point, float radius, float *out_extent,
     viewport_width = *(short *)0x5a5bfa - *(short *)0x5a5bf6;
     viewport_extent = *(int *)0x5a5bf8 - *(int *)0x5a5bf4;
 
-    matrix_transform_point((float *)0x5a5c2c, point, view_point);
+    matrix_transform_point((float *)0x5a5c2c, (real_point3d *)point, (real_point3d *)view_point);
 
     proj_y = *(float *)0x5a5d64 * view_point[0] +
              *(float *)0x5a5d74 * view_point[1] +

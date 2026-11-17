@@ -246,8 +246,8 @@ void FUN_000a6930(int records, unsigned short count)
   player = (char *)datum_get(player_data, player_handle);
   object_get_and_verify_type(*(int *)(player + 0x34), 3);
   object_get_world_position(*(int *)(player + 0x34), &position);
-  object_get_orientation(*(int *)(player + 0x34), (float *)&forward,
-                         (float *)&up);
+  object_get_orientation(*(int *)(player + 0x34), (real_vector3d *)&forward,
+                         (real_vector3d *)&up);
   if ((short)count <= 0)
     return;
   i = 0;

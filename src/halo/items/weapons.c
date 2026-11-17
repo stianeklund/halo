@@ -53,7 +53,7 @@ void weapons_dispose(void)
  */
 
 /* Forward declaration for unported function at 0x21fb0 — valid_real_normal3d */
-extern bool valid_real_normal3d(float *vec);
+extern bool valid_real_normal3d(const real_vector3d *vec);
 
 int weapon_place(int weapon_handle, void *placement)
 {
@@ -820,8 +820,8 @@ int weapon_effect_new(int trigger_effect, float scale, float param_3,
       return (int)effect_new_from_object(
         trigger_effect, object_handle, parent_handle, -1, scale, param_3, 0, 0);
     case 0x736e6421: {
-      float *position = *(float **)0x31fc1c;
-      float *forward = *(float **)0x31fc3c;
+      real_point3d *position = *(real_point3d **)0x31fc1c;
+      real_vector3d *forward = *(real_vector3d **)0x31fc3c;
       object_impulse_sound_new(object_handle, trigger_effect, -1, position,
                                forward, scale);
       return -1;
@@ -2773,7 +2773,7 @@ bool weapon_aim(int weapon_handle, int16_t trigger_index, void *param_3,
                                       param_5, param_6, 0, param_7, param_8,
                                       param_9);
 
-  if (!valid_real_normal3d(param_6)) {
+  if (!valid_real_normal3d((real_vector3d *)param_6)) {
     display_assert(csprintf((char *)0x5ab100,
                             "%s: assert_valid_real_normal3d(%f, %f, %f)",
                             "result_aim_vector", (double)param_6[0],
@@ -3061,9 +3061,9 @@ void trigger_create_projectiles(int weapon_handle, int16_t trigger_index)
 
         if (!(*(uint32_t *)trig_def & 0x400) || !(*(uint8_t *)(weapon + 0x1e0) & 0x40)) {
           /* hazard-ok: in-place cone perturbation, both pointers are &placement.forward at 0xfdaad/0xfdab6 */
-          seed_random_vector_in_cone3d(get_global_random_seed_address(), &placement.forward.x,
+          seed_random_vector_in_cone3d(get_global_random_seed_address(), (real_vector3d *)&placement.forward,
                                        *(float *)(trig_def + 0x78), error_angle,
-                                       &placement.forward.x); /* dup-args-ok */
+                                       (real_vector3d *)&placement.forward); /* dup-args-ok */
         }
 
         if (i == 0) {
@@ -3106,7 +3106,7 @@ void trigger_create_projectiles(int weapon_handle, int16_t trigger_index)
         if (projectile != -1) {
           if (place_at_camera) {
             unit_get_camera_position(parent_unit_handle, (real_point3d *)camera_position);
-            object_try_place(projectile, camera_position);
+            object_try_place(projectile, (real_point3d *)camera_position);
           }
           if (target_object != -1) {
             projectile_set_target_object_index(projectile, target_object);

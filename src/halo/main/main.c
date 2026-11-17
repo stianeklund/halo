@@ -5309,8 +5309,8 @@ void FUN_00103e80(float *p0, float *p1, float *color)
     system_exit(-1);
   }
   if (FUN_00103d30()) {
-    matrix_transform_point((float *)0x31fb08, p0, &pt[0]);
-    matrix_transform_point((float *)0x31fb08, p1, &pt[3]);
+    matrix_transform_point((float *)0x31fb08, (real_point3d *)p0, (real_point3d *)&pt[0]);
+    matrix_transform_point((float *)0x31fb08, (real_point3d *)p1, (real_point3d *)&pt[3]);
     crt_fprintf(*(void **)0x46e394, "Separator\n{\n");
     crt_fprintf(*(void **)0x46e394,
                 "\tCoordinate3 { point[%f %f %f, %f %f %f] }\n",
@@ -5389,9 +5389,9 @@ void FUN_00104040(float *p0, float *p1, float *p2, float *color)
     system_exit(-1);
   }
   if (FUN_00103d30()) {
-    matrix_transform_point((float *)0x31fb08, p0, &pt[0]);
-    matrix_transform_point((float *)0x31fb08, p1, &pt[3]);
-    matrix_transform_point((float *)0x31fb08, p2, &pt[6]);
+    matrix_transform_point((float *)0x31fb08, (real_point3d *)p0, (real_point3d *)&pt[0]);
+    matrix_transform_point((float *)0x31fb08, (real_point3d *)p1, (real_point3d *)&pt[3]);
+    matrix_transform_point((float *)0x31fb08, (real_point3d *)p2, (real_point3d *)&pt[6]);
     crt_fprintf(*(void **)0x46e394, "Separator\n{\n");
     crt_fprintf(*(void **)0x46e394,
                 "\tCoordinate3 { point[%f %f %f, %f %f %f, %f %f %f] }\n",
@@ -5471,7 +5471,7 @@ void FUN_00104240(int point_count, float *points, float *color)
         pt = points;
         n = (unsigned int)(unsigned short)count;
         do {
-          matrix_transform_point((float *)0x31fb08, pt, p);
+          matrix_transform_point((float *)0x31fb08, (real_point3d *)pt, (real_point3d *)p);
           sep = ", ";
           if (i >= last)
             sep = "] }\n";
@@ -5584,7 +5584,7 @@ void FUN_00104430(int polygon_count, short *point_counts, float *points,
           if (*pc > 0) {
             pt = points + vertex_index * 3;
             do {
-              matrix_transform_point((float *)0x31fb08, pt, p);
+              matrix_transform_point((float *)0x31fb08, (real_point3d *)pt, (real_point3d *)p);
               crt_fprintf(*(void **)0x46e394, "\t\t\t%f %f %f,\n",
                           p[0] * *(float *)0x253f00, p[1] * *(float *)0x253f00,
                           p[2] * *(float *)0x253f00);

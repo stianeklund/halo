@@ -568,7 +568,7 @@ void ai_debug_lineoffire_success(char success)
  *   0x49543 FUN_00189270, ADD ESP,0x10 (4 dwords).  Pushes, in reverse order:
  *     color, LEA EBP-0xc (endpoint), 0x5acabc (start), 1 -> C order
  *     (1, (float *)0x5acabc, endpoint, color)  [match]
- *   0x49581 FUN_00189860, ADD ESP,0x14 (5 dwords).  Pushes, in reverse order:
+ *   0x49581 render_debug_pill, ADD ESP,0x14 (5 dwords).  Pushes, in reverse order:
  *     color, [ESI*4+0x5acc68], EDI+0xc0, EDI, 1 -> C order
  *     (1, point, point + 0xc0, radius, color)  [match]
  *   The radius push is a plain dword MOV of a float slot.  Ghidra prints a
@@ -616,7 +616,7 @@ void ai_debug_render_lineoffire(void)
         if (((uint8_t *)0x5acad8)[i] == 0) {
           color = *(void **)0x2ee6d8;
         }
-        FUN_00189860(1, point, point + 48, ((float *)0x5acc68)[i], color);
+        render_debug_pill(1, point, point + 48, ((float *)0x5acc68)[i], color);
         i++;
         point += 3;
       } while (i < *(int32_t *)0x5acad4);
@@ -641,15 +641,15 @@ void ai_debug_render_lineoffire(void)
  * pt[i]..pt[i+1])
  *
  * Call-site verification (all cdecl, caller-cleaned; first PUSH = last C arg):
- *   0x495d0 FUN_00189150.  PUSH EAX([0x2ee6e0]); PUSH 0x3dcccccd (0.1f as a
+ *   0x495d0 render_debug_point.  PUSH EAX([0x2ee6e0]); PUSH 0x3dcccccd (0.1f as a
  *     raw dword, no FLD); PUSH 0x5f8cb8; PUSH 1 -> (1, 0x5f8cb8, 0.1f, colour)
  *     [match]
- *   0x495ed FUN_00189320.  PUSH ECX([0x2ee6e0]); PUSH 0x3f800000 (1.0f);
+ *   0x495ed render_debug_vector.  PUSH ECX([0x2ee6e0]); PUSH 0x3f800000 (1.0f);
  *     PUSH 0x5f8cc4; PUSH 0x5f8cb8; PUSH 1 ->
  *     (1, 0x5f8cb8, 0x5f8cc4, 1.0f, colour)  [match]
  *     ADD ESP,0x24 at 0x495f7 is the *combined* deferred cleanup for both
  *     calls (4 + 5 = 9 dwords); it is not a nine-argument call.
- *   0x49635 FUN_00189860, ADD ESP,0x14.  PUSH EDX([0x2ee6d8]); PUSH
+ *   0x49635 render_debug_pill, ADD ESP,0x14.  PUSH EDX([0x2ee6d8]); PUSH
  *     EAX([EAX*4+0x5f8e54]); PUSH EDX(ECX+0x5f8d94); PUSH EAX(ECX+0x5f8cd4);
  *     PUSH 1 -> (1, centre+i*12, endpoint+i*12, radius[i], colour)  [match]
  *   0x4969c FUN_00189270, ADD ESP,0x10.  PUSH ECX(colour); PUSH
@@ -690,8 +690,8 @@ void ai_debug_render_ballistic_lineoffire(void)
 
   new_var = (int32_t *)0x5f8e94;
   if (*(uint8_t *)0x5f8cb4 != 0) {
-    FUN_00189150(1, (float *)0x5f8cb8, 0.1f, *(void **)0x2ee6e0);
-    FUN_00189320(1, (float *)0x5f8cb8, (float *)0x5f8cc4, 1.0f,
+    render_debug_point(1, (real_point3d *)0x5f8cb8, 0.1f, *(void **)0x2ee6e0);
+    render_debug_vector(1, (real_point3d *)0x5f8cb8, (real_vector3d *)0x5f8cc4, 1.0f,
                  *(void **)0x2ee6e0);
 
     counter = 0;
@@ -699,7 +699,7 @@ void ai_debug_render_ballistic_lineoffire(void)
       i = 0;
       do {
         off = i * 12;
-        FUN_00189860(1, (char *)0x5f8cd4 + off, (char *)0x5f8d94 + off,
+        render_debug_pill(1, (char *)0x5f8cd4 + off, (char *)0x5f8d94 + off,
                      ((float *)0x5f8e54)[i], *(void **)0x2ee6d8);
         counter++;
         i = counter;
@@ -1000,7 +1000,7 @@ void ai_debug_render_lineofsight(void)
       if (0xc < color_index) {
         color_index = 0xc;
       }
-      FUN_00189cb0(1, point, (void *)0x5ab100, (int)*colors[color_index]);
+      render_debug_string_at_point(1, point, (void *)0x5ab100, (int)*colors[color_index]);
       i = i + 1;
       point = point + 3;
     } while (i < *(int32_t *)0x5accac);
@@ -2179,7 +2179,7 @@ void ai_debug_idle_look_addprop(int index, float value)
  * prop+0xe0 by [0x2555d0].  Colour is [0x2ee6e0] when actor+0x55c is set,
  * actor+0x56c == 1 and actor+0x570 equals the prop index, else [0x2ee6c4].
  * The colour is pushed before csprintf's args, so csprintf is nested as
- * argument 3 of FUN_00189cb0 (0x4a87a). */
+ * argument 3 of render_debug_string_at_point (0x4a87a). */
 void ai_debug_render_idle_look(void)
 {
   char *actor;
@@ -2214,7 +2214,7 @@ void ai_debug_render_idle_look(void)
           } else {
             color = *(int *)0x2ee6c4;
           }
-          FUN_00189cb0(
+          render_debug_string_at_point(
             1, position,
             csprintf((char *)0x5ab100, "%.2f", (double)((float *)0x632460)[i]),
             color);
@@ -2247,14 +2247,14 @@ void ai_debug_render_idle_look(void)
  * by actors.c:3555 and actor_looking.c:835.
  *
  * Call-site verification (all cdecl, ADD ESP,0x10 after each):
- *   0x4a955 FUN_00189540: PUSH EBX(color) / PUSH 0x3e4ccccd(0.2f) /
+ *   0x4a955 render_debug_sphere: PUSH EBX(color) / PUSH 0x3e4ccccd(0.2f) /
  *           PUSH ESI(=EDI+4, position) / PUSH 1  -> (1, pos, 0.2f, color)
  *   0x4a9a6 csprintf:     PUSH EAX(game_time-timestamp) / PUSH ECX(count) /
  *           PUSH 0x25aed0("c%d t%d") / PUSH 0x5ab100(static buffer)
- *   0x4a9b5 FUN_00189cb0: PUSH EBX(color) at 0x4a96e — BEFORE csprintf's own
+ *   0x4a9b5 render_debug_string_at_point: PUSH EBX(color) at 0x4a96e — BEFORE csprintf's own
  *           pushes — then PUSH EAX(csprintf result) / PUSH EDX(&text_position)
  *           / PUSH 1.  The hoisted colour push proves the csprintf call is
- *           NESTED as argument 3 of FUN_00189cb0, not assigned to a temp.
+ *           NESTED as argument 3 of render_debug_string_at_point, not assigned to a temp.
  *           EBX is reloaded with [EDI+0x10] (timestamp) right after its push.
  *
  * Store-offset table (text_position, EBP-0x20 .. EBP-0x18, passed by
@@ -2302,12 +2302,12 @@ void ai_debug_render_spatial_effects(void)
       if (type >= 0 && type < 3) {
         color = *color_table[type];
       }
-      FUN_00189540(1, pos, 0.2f, color);
+      render_debug_sphere(1, pos, 0.2f, color);
       up = *(float **)0x31fc44;
       text_position[0] = up[0] * 0.3f + pos[0];
       text_position[1] = up[1] * 0.3f + pos[1];
       text_position[2] = up[2] * 0.3f + pos[2];
-      FUN_00189cb0(1, text_position,
+      render_debug_string_at_point(1, text_position,
                    csprintf((char *)0x5ab100, "c%d t%d",
                             (int)*(int16_t *)(entry + 2),
                             game_time - *(int32_t *)(entry + 0x10)),
@@ -3000,21 +3000,21 @@ float *ai_debug_drawstack(void)
  *   0x4b6d6 biped_get_camera_height_and_offset(object_handle, (vector3_t*)
  *           center, &height_offset, &camera_height) — argument order fixed
  *           by push order (EDI pushed last = arg1).
- *   0x4b6e3/0x4b6f3 FCOMP+FNSTSW+TEST AH,0x41/JNZ: branch-B (FUN_00189540) is
+ *   0x4b6e3/0x4b6f3 FCOMP+FNSTSW+TEST AH,0x41/JNZ: branch-B (render_debug_sphere) is
  *           taken when draw_flag==0 OR height_offset<=*(float*)0x2533c0;
- *           branch-A (FUN_00189860) only when draw_flag!=0 AND
+ *           branch-A (render_debug_pill) only when draw_flag!=0 AND
  *           height_offset>that threshold. This matches the decompile's
  *           `(flag=='\0') || (height_offset<=FLOAT_002533c0)` predicate.
- *   0x4b718 FUN_00189860(1, center, height_vec, camera_height, color) where
+ *   0x4b718 render_debug_pill(1, center, height_vec, camera_height, color) where
  *           height_vec = {0.0f, 0.0f, height_offset} is built in-place
  *           (EBP-0x20/-0x1c/-0x18) right before the call; radius arg is the
  *           unscaled camera_height (no FMUL on this path).
- *   0x4b736 FUN_00189540(1, center, camera_height * *(float*)0x25afcc,
+ *   0x4b736 render_debug_sphere(1, center, camera_height * *(float*)0x25afcc,
  *           color) — PUSH ECX is a dummy slot immediately overwritten by
  *           FSTP [ESP] with the FMUL result (FPU_ARG hazard already
  *           resolved: the real float arg is the FSTP value, not the pushed
  *           dummy register).
- *   0x4b759 (only if draw_flag!=0) FUN_00189150(1, center, camera_height *
+ *   0x4b759 (only if draw_flag!=0) render_debug_point(1, center, camera_height *
  *           *(float*)0x255154, color) — same FSTP-over-dummy shape.
  *
  * Uncertain: no __FILE__ string/assert anchor for this function; kept as
@@ -3048,16 +3048,16 @@ void ai_debug_highlight_unit(int object_handle, void *color, char draw_flag)
   }
 
   if (draw_flag == 0 || height_offset <= *(float *)0x2533c0) {
-    FUN_00189540(1, center, camera_height * *(float *)0x25afcc, color);
+    render_debug_sphere(1, center, camera_height * *(float *)0x25afcc, color);
   } else {
     height_vec[0] = 0.0f;
     height_vec[1] = 0.0f;
     height_vec[2] = height_offset;
-    FUN_00189860(1, center, height_vec, camera_height, color);
+    render_debug_pill(1, center, height_vec, camera_height, color);
   }
 
   if (draw_flag != 0) {
-    FUN_00189150(1, center, camera_height * *(float *)0x255154, color);
+    render_debug_point(1, (real_point3d *)center, camera_height * *(float *)0x255154, color);
   }
 }
 
@@ -3188,7 +3188,7 @@ void ai_debug_render_vehicles_enterable(void)
       position[1] = up[1] * *(float *)0x253398 + position[1];
       position[2] = up[2] * *(float *)0x253398 + position[2];
       ai_debug_drawstack_setup(position);
-      FUN_00189cb0(1, ai_debug_drawstack(),
+      render_debug_string_at_point(1, ai_debug_drawstack(),
                    csprintf((char *)0x5ab100, "enterable: dist %.1f",
                             (double)*(float *)(entry + 4)),
                    *(int *)0x2ee6e8);
@@ -3221,7 +3221,7 @@ void ai_debug_render_vehicles_enterable(void)
         *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
         *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
         *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
-        FUN_00189cb0(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
+        render_debug_string_at_point(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
       }
 
       if (*(int16_t *)(entry + 0xa) != 0) {
@@ -3258,7 +3258,7 @@ void ai_debug_render_vehicles_enterable(void)
         *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
         *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
         *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
-        FUN_00189cb0(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
+        render_debug_string_at_point(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
       }
 
       if (*(int16_t *)(entry + 0xc) > 0) {
@@ -3279,7 +3279,7 @@ void ai_debug_render_vehicles_enterable(void)
         *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
         *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
         *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
-        FUN_00189cb0(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
+        render_debug_string_at_point(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
       }
     }
   }
@@ -3343,7 +3343,7 @@ void ai_debug_render_speech(void)
         *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
         *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
         *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
-        FUN_00189cb0(1, (void *)0x5ac9a0,
+        render_debug_string_at_point(1, (void *)0x5ac9a0,
                      csprintf((char *)0x5ab100, "variant %d dialogue %d %s",
                               (int)*(int16_t *)(object + 0x6e),
                               (int)dialogue_index, variant_name),
@@ -3372,7 +3372,7 @@ void ai_debug_render_speech(void)
         *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
         *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
         *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
-        FUN_00189cb0(
+        render_debug_string_at_point(
           1, (void *)0x5ac9a0,
           csprintf((char *)0x5ab100, "%s %s %s (%d %d)",
                    unit_get_speech_priority_name(*(int16_t *)(object + 0x338)),
@@ -3401,7 +3401,7 @@ void ai_debug_render_speech(void)
         *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
         *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
         *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
-        FUN_00189cb0(
+        render_debug_string_at_point(
           1, (void *)0x5ac9a0,
           csprintf((char *)0x5ab100, "%s %s %s",
                    unit_get_speech_priority_name(*(int16_t *)(object + 0x368)),
@@ -3426,7 +3426,7 @@ void ai_debug_render_speech(void)
           color = *(int *)0x2ee6c4;
           break;
         }
-        FUN_00189cb0(
+        render_debug_string_at_point(
           1, ai_debug_drawstack(),
           unit_describe_speech(iter.last_handle, 0, 0x200, speech_string),
           color);
@@ -3586,13 +3586,13 @@ void ai_debug_change_selected_actor(int param)
  * EBP-0x1c) before the global_structure_bsp_index_get call.
  *
  * Calls, traced from the disassembly:
- *   0x4c695 FUN_00189cb0(1, ai_debug_drawstack(), csprintf(0x5ab100,
+ *   0x4c695 render_debug_string_at_point(1, ai_debug_drawstack(), csprintf(0x5ab100,
  *           "%s / %s (%d)", traverse, build, game_time_get() - +0x4), color)
  *           with color = [0x2ee6d4] when both results are 5 ("success"),
  *           else [0x2ee6d0]; the color is pushed before game_time_get.
  *   If byte 0x5acaa4: if byte +0x60, FUN_00189450 (+0x28 -> +0x64,
- *           [0x2ee6e8], 0.1f), FUN_00189150(+0x64, 0.3f, [0x2ee6d4]),
- *           FUN_00189540(+0x64, +0x74, [0x2ee6d4]) only when
+ *           [0x2ee6e8], 0.1f), render_debug_point(+0x64, 0.3f, [0x2ee6d4]),
+ *           render_debug_sphere(+0x64, +0x74, [0x2ee6d4]) only when
  *           [0x2533c0] < +0x74 (FCOMP + TEST AH,0x41 + JNZ skip), and
  *           ai_debug_render_surface(+0x78 @<eax>, +0x70, 0.05f, [0x2ee6d4])
  *           when +0x70 != -1 and the record's int16 +0xe equals the current
@@ -3656,7 +3656,7 @@ void ai_debug_render_path_storage(void *entry /* @<esi> */)
   } else {
     color = *(void **)0x2ee6d0;
   }
-  FUN_00189cb0(1, ai_debug_drawstack(),
+  render_debug_string_at_point(1, ai_debug_drawstack(),
                csprintf((char *)0x5ab100, "%s / %s (%d)",
                         traverse_names[*(int16_t *)(path + 0x10)],
                         build_names[*(int16_t *)(path + 0x12)],
@@ -3666,9 +3666,9 @@ void ai_debug_render_path_storage(void *entry /* @<esi> */)
     if (*(char *)(path + 0x60) != 0) {
       FUN_00189450(1, (float *)(path + 0x28), (float *)(path + 0x64),
                    *(void **)0x2ee6e8, 0.1f);
-      FUN_00189150(1, (float *)(path + 0x64), 0.3f, *(void **)0x2ee6d4);
+      render_debug_point(1, (real_point3d *)(path + 0x64), 0.3f, *(void **)0x2ee6d4);
       if (*(float *)(path + 0x74) > *(float *)0x2533c0) {
-        FUN_00189540(1, path + 0x64, *(float *)(path + 0x74),
+        render_debug_sphere(1, path + 0x64, *(float *)(path + 0x74),
                      *(void **)0x2ee6d4);
       }
       if (*(int32_t *)(path + 0x70) != -1 && on_current_bsp) {
@@ -3677,7 +3677,7 @@ void ai_debug_render_path_storage(void *entry /* @<esi> */)
                                 *(void **)0x2ee6d4);
       }
     } else {
-      FUN_00189cb0(1, ai_debug_drawstack(), "undirected", *(int *)0x2ee6d4);
+      render_debug_string_at_point(1, ai_debug_drawstack(), "undirected", *(int *)0x2ee6d4);
     }
   }
   if (*(char *)0x5aca9d != 0) {
@@ -3843,7 +3843,7 @@ void ai_debug_render_paths_failed(void)
       position[2] = up[2] + *(float *)(entry + 0x30);
       ai_debug_drawstack_setup(position);
       ai_debug_describe_actor(*(int *)entry, -1, 1, buf, 0x100);
-      FUN_00189cb0(1, ai_debug_drawstack(), buf, *(int *)0x2ee6d0);
+      render_debug_string_at_point(1, ai_debug_drawstack(), buf, *(int *)0x2ee6d0);
       ai_debug_render_path_storage(entry);
     }
     offset += 0x1ca7c;

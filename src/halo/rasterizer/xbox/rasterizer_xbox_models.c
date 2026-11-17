@@ -20,7 +20,7 @@ typedef struct {
  * Names: PAL 2342 rasterizer_xbox_models.c enums (T2). Values: the 2276
  * operands at the use sites in rasterizer_model_draw_environment_shader. */
 enum {
-  _shader_type_environment = 3 /* PUSH 0x3 to FUN_001906b0 (0x16b344) */
+  _shader_type_environment = 3 /* PUSH 0x3 to shader_get_and_verify_type (0x16b344) */
 };
 
 enum {
@@ -270,7 +270,7 @@ co(rasterizer_models_frame_statistics_t, pushbuffer_words, 0x15c);
 co(rasterizer_models_frame_statistics_t, vertex_shader_work_accumulated, 0x168);
 
 /* shader_environment_definition (PAL 2342, T2), as returned by
- * FUN_001906b0(shader, _shader_type_environment). Flattened prefix: PAL's
+ * shader_get_and_verify_type(shader, _shader_type_environment). Flattened prefix: PAL's
  * environment.diffuse / .specular / .reflection sub-blocks are inlined and only
  * the fields this TU reads are named. PAL declares flags as a word; 2276 only
  * reads its low byte here. */
@@ -682,7 +682,7 @@ void rasterizer_model_draw_environment_shader(void *shader,
     system_exit(-1);
   }
 
-  shader_environment = (shader_environment_definition_t *)FUN_001906b0(
+  shader_environment = (shader_environment_definition_t *)shader_get_and_verify_type(
     shader, _shader_type_environment);
 
   camera_to_model.i = rasterizer_models_globals.parameters->centroid.x -
@@ -1204,7 +1204,7 @@ profile_done:
  *
  * Two shader predicates are computed up front from the shader's base.type
  * (the int16 at +0x24; type 4 is the one that owns the extra data block
- * fetched by FUN_001906b0):
+ * fetched by shader_get_and_verify_type):
  *   - is_decal: type-4 shader whose byte at +0x28 has bit 0x8 set. When set,
  *     the part is dropped entirely: the caller's out block is reset to
  *     {NULL, NULL, 0xffff} and the function returns NULL.
@@ -1268,7 +1268,7 @@ void *FUN_0016c090(void *shader, short param_2, int param_3, int param_4,
   }
 
   if (shader != NULL && *(short *)((char *)shader + 0x24) == 4 &&
-      (*(char *)((char *)FUN_001906b0(shader, 4) + 0x28) & 8) != 0) {
+      (*(char *)((char *)shader_get_and_verify_type(shader, 4) + 0x28) & 8) != 0) {
     is_decal = true;
   } else {
     is_decal = false;
@@ -1276,7 +1276,7 @@ void *FUN_0016c090(void *shader, short param_2, int param_3, int param_4,
 
   if (*(short *)0x47e000 != 1 ||
       (shader != NULL && *(short *)((char *)shader + 0x24) == 4 &&
-       *(short *)((char *)FUN_001906b0(shader, 4) + 0x28) != 0)) {
+       *(short *)((char *)shader_get_and_verify_type(shader, 4) + 0x28) != 0)) {
     use_pool = true;
   } else {
     use_pool = false;
@@ -1553,7 +1553,7 @@ void FUN_0016c5a0(int param_1, int param_2, int param_3, int param_4,
     intensity_exponent_source = -1;
     if (*(short *)((char *)effect_shader + 0x24) == 10) {
       intensity_exponent_source =
-        *(short *)((char *)FUN_001906b0(effect_shader, 10) + 0x2c);
+        *(short *)((char *)shader_get_and_verify_type(effect_shader, 10) + 0x2c);
     }
 
     animation_values = *(float **)(*(char **)0x47dff8 + 0xb0);
@@ -1580,7 +1580,7 @@ void FUN_0016c5a0(int param_1, int param_2, int param_3, int param_4,
         true);
       system_exit(-1);
     }
-    FUN_0017cbd0(shader, (short)param_2, param_3, param_4, param_5, param_6,
+    rasterizer_model_transparent_geometry_submit(shader, (short)param_2, param_3, param_4, param_5, param_6,
                  param_7, (float *)(*(char **)0x47dff8 + 0xb4), NULL);
     FUN_001592e0(1);
     return;
@@ -1597,7 +1597,7 @@ void FUN_0016c5a0(int param_1, int param_2, int param_3, int param_4,
                                              (void *)param_3, param_4, param_5,
                                              (void *)param_6, param_7);
   } else {
-    shader_model = (char *)FUN_001906b0(shader, 4);
+    shader_model = (char *)shader_get_and_verify_type(shader, 4);
     alpha_blended_decal =
       ((*(unsigned char *)(shader_model + 0x28) >> 3) & 1) != 0;
 
@@ -1716,8 +1716,8 @@ void FUN_0016c5a0(int param_1, int param_2, int param_3, int param_4,
       FUN_0010a5e0(*(int16_t *)(shader_model + 0x72),
                    *(float *)0x5a5e18 / *(float *)(shader_model + 0x74) +
                      self_illumination_phase);
-    vector3d_scale_add((float *)(shader_model + 0x78), color_delta,
-                       self_illumination_fraction, self_illumination_color);
+    vector3d_scale_add((real_point3d *)(shader_model + 0x78), (real_vector3d *)color_delta,
+                       self_illumination_fraction, (real_point3d *)self_illumination_color);
 
     if (!(self_illumination_color[0] >= 0.0f &&
           self_illumination_color[0] <= 1.0f)) {

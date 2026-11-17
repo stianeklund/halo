@@ -108,7 +108,7 @@ static __inline void render_debug_point_physics_inline(
   if (!TEST_FLAG(definition->flags, _point_physics_structure_collisions_bit))
     color = *(void **)0x2ee6d4;
 
-  FUN_00189150(1, position, radius, color);
+  render_debug_point(1, (real_point3d *)position, radius, color);
 }
 
 static __inline real_vector3d *
@@ -189,7 +189,7 @@ float pin_fraction(float value, float begin, float end)
 }
 
 /* 0x150790 — model-collision sphere pass: walk the collision-sphere tag block
- * of a FUN_001509c0 model context, transform each sphere centre into world
+ * of a physics_instance_new model context, transform each sphere centre into world
  * space through the context matrix, and feed the transformed point plus the
  * scaled sphere radius to collision_features_from_point.
  *
@@ -237,7 +237,7 @@ int FUN_00150790(int param_1, int param_2, float param_3, int param_4,
       element =
         tag_block_get_element((void *)(base + 0x74), element_index, 0x80);
       matrix_transform_point((float *)(param_1 + 8),
-                             (float *)((char *)element + 0x38), point);
+                             (real_point3d *)((char *)element + 0x38), (real_point3d *)point);
       radius = *(float *)((char *)element + 0x68) * *(float *)(param_1 + 8) +
                *(float *)&param_5;
       pRadius = &radius;
@@ -329,16 +329,16 @@ void FUN_001508b0(int *state)
   obje_tag = tag_get(0x6f626a65 /* 'obje' */, *object);
 
   matrix = (float *)(state + 2);
-  matrix_transform_point(matrix, (float *)(state[1] + 0xc), local_1c);
+  matrix_transform_point(matrix, (real_point3d *)(state[1] + 0xc), (real_point3d *)local_1c);
   FUN_0018a990(1, local_1c, (float *)(state + 3), (float *)(state + 9),
                *(float *)((char *)obje_tag + 0x4));
 
   for (i = 0; i < *(int *)(state[1] + 0x74); i++) {
     elem = tag_block_get_element((void *)(state[1] + 0x74), i, 0x80);
-    matrix_transform_point(matrix, (float *)((char *)elem + 0x38), local_10);
+    matrix_transform_point(matrix, (real_point3d *)((char *)elem + 0x38), (real_point3d *)local_10);
     matrix_transform_vector(matrix, (real_vector3d *)((char *)elem + 0x44), (real_vector3d *)local_34);
     matrix_transform_vector(matrix, (real_vector3d *)((char *)elem + 0x50), (real_vector3d *)local_28);
-    FUN_00189540(1, local_10, *(float *)((char *)elem + 0x68),
+    render_debug_sphere(1, local_10, *(float *)((char *)elem + 0x68),
                  *(void **)0x2ee6c4);
     FUN_0018a990(1, local_10, local_34, local_28,
                  *(float *)((char *)elem + 0x68) * *(const float *)0x253398);
@@ -350,7 +350,7 @@ void FUN_001508b0(int *state)
  * CMP ECX,-0x1 at 0x1509e8), building its world matrix and moving the matrix
  * origin to the negated centre of mass.  Returns FALSE (XOR AL,AL) when the
  * object has no physics. */
-boolean FUN_001509c0(void *instance_data, int object_index)
+boolean physics_instance_new(void *instance_data, int object_index)
 {
   struct physics_instance *instance;
   object_datum_t *object;
@@ -368,8 +368,8 @@ boolean FUN_001509c0(void *instance_data, int object_index)
 
     instance->world_matrix.scale = 1.0f;
     object_get_world_position(object_index, &instance->world_matrix.position);
-    object_get_orientation(object_index, &instance->world_matrix.forward.i,
-                           &instance->world_matrix.up.i);
+    object_get_orientation(object_index, &instance->world_matrix.forward,
+                           &instance->world_matrix.up);
     cross_product3d_inline(
       (const real_vector3d *)&instance->world_matrix.up,
       (const real_vector3d *)&instance->world_matrix.forward,
@@ -380,8 +380,8 @@ boolean FUN_001509c0(void *instance_data, int object_index)
                             -instance->physics->center_of_mass.y,
                             -instance->physics->center_of_mass.z);
     matrix_transform_point(
-      (float *)&instance->world_matrix, &center_of_mass.x,
-      &center_of_mass.x); /* dup-args-ok: 0x150a40/0x150a47 */
+      (float *)&instance->world_matrix, &center_of_mass,
+      &center_of_mass); /* dup-args-ok: 0x150a40/0x150a47 */
     instance->world_matrix.position = center_of_mass;
 
     return true;
@@ -441,7 +441,7 @@ boolean FUN_00150b60(void *instance_data, void *point, void *vector,
   }
 
   if (hit)
-    FUN_0010a1c0(
+    matrix4x3_transform_plane(
       (float *)&instance->world_matrix, (float *)&result->plane,
       (float *)&result->plane); /* dup-args-ok: PUSH ESI x2 @0x150c5e */
 
@@ -451,7 +451,7 @@ boolean FUN_00150b60(void *instance_data, void *point, void *vector,
 /* 0x150c80 — recompute a mass point's ground plane from a downward collision
  * test.  `mass_point` arrives in ECX (MOV EBX,ECX at 0x150c94); the two stack
  * parameters are the collision-test ignore handle ([EBP+8], forwarded as
- * FUN_0014ec30's param6) and the per-point definition element ([EBP+0xc],
+ * collision_get_features_in_sphere's param6) and the per-point definition element ([EBP+0xc],
  * whose float at +0x68 is the point radius — same field FUN_001508b0 draws the
  * debug sphere with).
  * mass_point layout used here (offsets from disassembly 0x150c80-0x150dcd):
@@ -463,7 +463,7 @@ boolean FUN_00150b60(void *instance_data, void *point, void *vector,
  * 0x32513c..0x325148 is the default (flat, downward) plane constant, copied as
  * four dwords exactly as the reference does (MOV EDX,[0x32513c] / MOV
  * [ECX],EDX). x87 addend order at 0x150cc2-0x150ceb is per-site: (k*z + j*y) +
- * i*x, then FSUB plane_d, then FSUBR radius. FUN_0014ec30's search_radius and
+ * i*x, then FSUB plane_d, then FSUBR radius. collision_get_features_in_sphere's search_radius and
  * dist_a are the SAME value in the reference (MOV ECX,[EAX+0x68]; PUSH ECX;
  * PUSH 0; MOV EDX,ECX; PUSH EDX) — the repeated argument is binary-confirmed,
  * not a transcription slip. hit_info (0x2c bytes at EBP-0x30) fields consumed:
@@ -498,7 +498,7 @@ void compute_ground_plane(int ignore_object_handle, void *point_definition,
                                     *(float *)(plane + 0x0) * position[0]) -
                                    *(float *)(plane + 0xc));
 
-  if (FUN_0014ec30(0xc0a0, position,
+  if (collision_get_features_in_sphere(0xc0a0, (real_point3d *)position,
                    *(float *)((char *)point_definition + 0x68), 0.0f,
                    *(float *)((char *)point_definition + 0x68),
                    ignore_object_handle, los_scratch) &&
@@ -563,17 +563,17 @@ void friction_evaluate(short friction_type, float parallel_scale,
 
   switch (friction_type) {
   case 1:
-    FUN_0010b8a0(&friction->friction.i, forward, &friction->parallel.i,
-                 &friction->perpendicular.i);
+    component_vectors_from_normal3d(&friction->friction, (real_vector3d *)forward, &friction->parallel,
+                 &friction->perpendicular);
     break;
   case 2:
-    cross_product3d(up, forward, &left.i);
-    FUN_0010b8a0(&friction->friction.i, &left.i, &friction->parallel.i,
-                 &friction->perpendicular.i);
+    cross_product3d((real_vector3d *)up, (real_vector3d *)forward, &left);
+    component_vectors_from_normal3d(&friction->friction, &left, &friction->parallel,
+                 &friction->perpendicular);
     break;
   case 3:
-    FUN_0010b8a0(&friction->friction.i, up, &friction->parallel.i,
-                 &friction->perpendicular.i);
+    component_vectors_from_normal3d(&friction->friction, (real_vector3d *)up, &friction->parallel,
+                 &friction->perpendicular);
     break;
   default:
     display_assert(NULL, "c:\\halo\\SOURCE\\physics\\physics.c", 0x17f, 1);
@@ -581,7 +581,7 @@ void friction_evaluate(short friction_type, float parallel_scale,
     break;
   }
 
-  /* In-place scales: scale_vector3d(v, s, v). */
+  /* In-place scales: scale_vector3d_inline(v, s, v). */
   scale_vector3d_inline(&friction->parallel, parallel_scale,
                         &friction->parallel); /* dup-args-ok */
   scale_vector3d_inline(&friction->perpendicular, perpendicular_scale,
@@ -600,7 +600,7 @@ static __inline real_vector3d *set_real_vector3d_inline(real_vector3d *v,
   return v;
 }
 
-/* dot_product3d with the addend order the 2276 physics_compute_new
+/* dot_product3d_inline with the addend order the 2276 physics_compute_new
  * sites use: (k + j) + i (e.g. 0x1511bc-0x1511d5, 0x15129b-0x1512b2).
  * The collision-normal dot at 0x1517ce-0x1517eb is (j + k) + i and is
  * spelled out at its site. */
@@ -610,7 +610,7 @@ static __inline real dot_product3d_kji_inline(const real_vector3d *a,
   return a->k * b->k + a->j * b->j + a->i * b->i;
 }
 
-/* magnitude_squared3d as inlined at 0x151656-0x15167e: the three
+/* magnitude_squared3d_inline as inlined at 0x151656-0x15167e: the three
  * components are loaded once (FLD k/j/i) and squared from the FPU stack. */
 static __inline real magnitude_squared3d_inline(const real_vector3d *v)
 {
@@ -622,7 +622,7 @@ static __inline real magnitude_squared3d_inline(const real_vector3d *v)
 }
 
 /* normalize3d as inlined twice in physics_update_old (0x153f3b-0x153f89,
- * 0x153fbf-0x15400a): magnitude_squared3d form (components loaded once),
+ * 0x153fbf-0x15400a): magnitude_squared3d_inline form (components loaded once),
  * FSQRT, then the double epsilon at 0x2533d0 (1e-4) and inverse * component
  * (FDIVR 1.0f; FMUL [v]).  The magnitude is discarded. */
 static __inline void normalize3d_squared_inline(real_vector3d *v)
@@ -653,7 +653,7 @@ static __inline boolean valid_real_vector3d_inline(const real_vector3d *v)
 }
 
 /* assert_valid_real_vector3d_axes2 predicate as inlined at 0x15412f-0x1541fb:
- * |forward|^2 - 1, |up|^2 - 1 (magnitude_squared3d form) and the k,j,i dot
+ * |forward|^2 - 1, |up|^2 - 1 (magnitude_squared3d_inline form) and the k,j,i dot
  * must each be a valid real with magnitude below the double 0.001 at
  * 0x2549d8. */
 static __inline boolean valid_real_near_zero_inline(real value)
@@ -757,8 +757,8 @@ void physics_compute_new(
 
     mass_point->flags = 0;
     matrix_transform_point((float *)&instance->world_matrix,
-                           (float *)&mass_point_definition->position,
-                           &mass_point->position.x);
+                           &mass_point_definition->position,
+                           &mass_point->position);
     if (powered_mass_point) {
       real_matrix4x3 powered_matrix;
 
@@ -804,7 +804,7 @@ void physics_compute_new(
       real normal_velocity;
       real ground_scale;
 
-      material = (const struct material_definition *)FUN_0018e500(
+      material = (const struct material_definition *)scenario_material_definition_get(
         mass_point->ground_material_type);
       ground_friction = material->physics_ground_friction_scale > 0.0f &&
                             physics->mass <= 7500.0f ?
@@ -1144,16 +1144,16 @@ boolean physics_compute_biped_collision(int *instance, int biped_index)
                          &acceleration); /* dup-args-ok: in-place */
     scale_vector3d_inline(&acceleration, 0.5f,
                           &acceleration); /* dup-args-ok: in-place */
-    FUN_001a4a70(biped_index, &acceleration.i);
+    biped_accelerate(biped_index, &acceleration.i);
 
     base.x += acceleration.i * 2.0f;
     base.y += acceleration.j * 2.0f;
     base.z += acceleration.k * 2.0f;
 
-    if (FUN_0014f020(0x20c3a0, &base.x, width * 2.0f, height, width,
+    if (collision_fix_pill(0x20c3a0, &base.x, width * 2.0f, height, width,
                      biped_index, &new_position.x)) {
       new_position.z -= width;
-      object_translate(biped_index, &new_position.x, NULL);
+      object_translate(biped_index, &new_position, NULL);
 
       cause_damage =
         (*instance != *(int *)(biped + 0x2dc) ||
@@ -1264,7 +1264,7 @@ physics_compute_vehicle_collision(const struct physics_instance *instance0,
     short mass_point1_index;
 
     matrix_transform_point((float *)&instance0->world_matrix,
-                           (float *)&mass_point0->position, &point0.x);
+                           &mass_point0->position, &point0);
 
     for (mass_point1_index = 0;
          mass_point1_index < instance1->physics->mass_points.count;
@@ -1279,7 +1279,7 @@ physics_compute_vehicle_collision(const struct physics_instance *instance0,
       real distance;
 
       matrix_transform_point((float *)&instance1->world_matrix,
-                             (float *)&mass_point1->position, &point1.x);
+                             &mass_point1->position, &point1);
       vector_from_points3d_inline(&point0, &point1, &direction);
       distance = normalize3d_inline(&direction);
 
@@ -1354,15 +1354,15 @@ physics_compute_vehicle_collision(const struct physics_instance *instance0,
  * Stack frame (0x2094 via _chkstk), derived from the EBP displacements at
  * 0x152350-0x1524c2:
  *   EBP-0x2094 (0x2000)  int found[0x800]      object_find_in_radius output
- *   EBP-0x94   (0x3c)    FUN_001509c0 context for this unit  (state_self)
- *   EBP-0x58   (0x3c)    FUN_001509c0 context for the other object
- *   EBP-0x1c   (0x10)    FUN_0014c8e0 collision-bsp context  (a_ctx)
+ *   EBP-0x94   (0x3c)    physics_instance_new context for this unit  (state_self)
+ *   EBP-0x58   (0x3c)    physics_instance_new context for the other object
+ *   EBP-0x1c   (0x10)    collision_model_instance_new collision-bsp context  (a_ctx)
  *   EBP-0xc / -0x8       loop counter / cursor
- *   EBP-0x1              byte result of FUN_0014c8e0 (AL only)
+ *   EBP-0x1              byte result of collision_model_instance_new (AL only)
  * The 0x3c / 0x10 context sizes match the same two callees' contexts already
  * documented in collision_bsp.c (EBP-0x64 = 60 bytes, EBP-0x28 = 16 bytes).
  *
- * FUN_0014c8e0's result is consumed as a byte (MOV [EBP-0x1],AL) and reused
+ * collision_model_instance_new's result is consumed as a byte (MOV [EBP-0x1],AL) and reused
  * twice: as object_find_in_radius' type_mask (XOR EAX,EAX / SETNZ AL / ADD
  * EAX,2 -> 2 or 3) and as the "model_instance_valid" assert predicate.
  *
@@ -1403,9 +1403,9 @@ void physics_compute_unit_collisions(int unit_index)
   int state_other[15];
   int found[0x800];
 
-  has_model = (char)FUN_0014c8e0(a_ctx, unit_index);
+  has_model = (char)collision_model_instance_new(a_ctx, unit_index);
 
-  if (FUN_001509c0(state_self, unit_index) == 0) {
+  if (physics_instance_new(state_self, unit_index) == 0) {
     return;
   }
 
@@ -1441,7 +1441,7 @@ void physics_compute_unit_collisions(int unit_index)
       break;
     case 1:
       if (other_index != (unsigned int)unit_index &&
-          FUN_001509c0(state_other, (int)other_index) != 0) {
+          physics_instance_new(state_other, (int)other_index) != 0) {
         other = object_get_and_verify_type((int)other_index, 2);
         if ((int)(other_index & 0xffff) <
               (int)((unsigned int)unit_index & 0xffff) ||
@@ -1491,10 +1491,10 @@ void rotate_vectors3d_by_angular_velocity(float *forward, float *up,
     real_matrix4x3 rotation;
     float dot;
 
-    FUN_001092d0((float *)&rotation, &axis.i, x87_fsin(magnitude),
+    matrix4x3_rotation_from_axis_and_angle((float *)&rotation, &axis, x87_fsin(magnitude),
                  x87_fcos(magnitude));
-    matrix_scale_transform_vector((float *)&rotation, forward, rotated_forward);
-    matrix_scale_transform_vector((float *)&rotation, up, rotated_up);
+    matrix_scale_transform_vector((float *)&rotation, (real_vector3d *)forward, (real_vector3d *)rotated_forward);
+    matrix_scale_transform_vector((float *)&rotation, (real_vector3d *)up, (real_vector3d *)rotated_up);
     normalize3d((real_vector3d *)rotated_forward);
 
     dot = rotated_up[2] * rotated_forward[2];
@@ -1536,10 +1536,10 @@ void rotate_vectors3d_by_angular_velocity(float *forward, float *up,
  *    &linear_acceleration 0x3de, &linear_velocity 0x3e2,
  *    &angular_acceleration 0x3f0 and &angular_velocity 0x3f4.
  *  - powered_mass_points ([EBP+0xc]) is never read.
- *  - world inverse inertia = R * I^-1 * R^T: FUN_0010a2c0 builds R from the
+ *  - world inverse inertia = R * I^-1 * R^T: matrix3x3_from_forward_and_up builds R from the
  *    object's forward/up, element 1 of the 0x24-byte block at physics+0x5c
- *    is I^-1, and FUN_001099f0's EAX (the transposed matrix, MOV EAX,[EBP+0xc])
- *    is pushed straight into the second FUN_00109c70 at 0x15284b.
+ *    is I^-1, and matrix3x3_transpose's EAX (the transposed matrix, MOV EAX,[EBP+0xc])
+ *    is pushed straight into the second matrix3x3_multiply at 0x15284b.
  *  - 0x4761fa is the debug global debug_physics_disable_penetration_freeze
  *    (hs-global table entry at 0x2f2bf8: name 0x27edc4, type 5, address).
  *  - penetration sweep: collision_test_vector flags 0xc0a1 with the object itself as
@@ -1611,12 +1611,12 @@ void physics_update_new(
     float frame[9];
     float world_inverse_inertia[9];
 
-    FUN_0010a2c0(frame, &object->forward.i, &object->up.i);
-    FUN_00109c70(frame,
+    matrix3x3_from_forward_and_up(frame, &object->forward.i, &object->up.i);
+    matrix3x3_multiply(frame,
                  (float *)tag_block_get_element(
                    (void *)&instance->physics->field_5c, 1, sizeof(frame)),
                  world_inverse_inertia);
-    FUN_00109c70(world_inverse_inertia, FUN_001099f0(frame, frame),
+    matrix3x3_multiply(world_inverse_inertia, matrix3x3_transpose(frame, frame),
                  world_inverse_inertia);
     FUN_00109d90(world_inverse_inertia, (float *)&total_torque->i,
                  &angular_acceleration.i);
@@ -1668,8 +1668,8 @@ void physics_update_new(
                               -instance->physics->center_of_mass.x,
                               -instance->physics->center_of_mass.y,
                               -instance->physics->center_of_mass.z);
-      matrix_transform_point((float *)&world_matrix, &center_of_mass.x,
-                             &center_of_mass.x); /* dup-args-ok: in-place */
+      matrix_transform_point((float *)&world_matrix, &center_of_mass,
+                             &center_of_mass); /* dup-args-ok: in-place */
       world_matrix.position = *(vector3_t *)&center_of_mass;
 
       for (mass_point_index = 0;
@@ -1685,8 +1685,8 @@ void physics_update_new(
         struct collision_result collision;
 
         matrix_transform_point((float *)&world_matrix,
-                               (float *)&mass_point_definition->position,
-                               &target.x);
+                               &mass_point_definition->position,
+                               &target);
         vector_from_points3d_inline(&mass_point->position, &target, &sweep);
 
         if (collision_test_vector(0xc0a1, &mass_point->position, &sweep,
@@ -1877,7 +1877,7 @@ void physics_update_old(int object_index,
       struct powered_mass_point_datum *powered_mass_point =
         powered_mass_points + powered_mass_point_index;
 
-      FUN_001093b0((float *)&powered_mass_point->rotation_matrix,
+      matrix4x3_rotation_from_quaternion((float *)&powered_mass_point->rotation_matrix,
                    powered_mass_point->rotation);
       FUN_00109120((float *)&powered_mass_point->rotation_matrix);
     }
@@ -1942,8 +1942,8 @@ void physics_update_old(int object_index,
     vector_from_points3d_inline(&physics->center_of_mass,
                                 &mass_point_definition->position,
                                 (real_vector3d *)&local_position);
-    matrix_transform_point((float *)&world_matrix, &local_position.x,
-                           &mass_point->position.x);
+    matrix_transform_point((float *)&world_matrix, &local_position,
+                           &mass_point->position);
     if (powered_mass_point) {
       real_matrix4x3 powered_matrix;
 
@@ -2343,7 +2343,7 @@ void physics_update_old(int object_index,
                          (real_vector3d *)&new_position);
     FUN_0018f230(new_location, (char *)object + 0x48 /* location */,
                  &object->position, &new_position);
-    object_translate(object_index, &new_position.x, new_location);
+    object_translate(object_index, &new_position, new_location);
   }
 
   {
@@ -2421,7 +2421,7 @@ void physics_update_old(int object_index,
  * 0x10e/0x114; the shared 0x26ae40 format literal really reads
  * "assert_valid_real_vector2d" (Bungie typo, sic). */
 void physics_update(int object_index, void *powered_mass_points,
-                    void *mass_points, float *magic_force, float *magic_torque)
+                    void *mass_points, const real_vector3d *magic_force, const real_vector3d *magic_torque)
 {
   object_datum_t *object;
   char *object_definition;
@@ -2439,12 +2439,12 @@ void physics_update(int object_index, void *powered_mass_points,
 
   if (physics->radius > 0.0f) {
     physics_update_old(object_index, powered_mass_points, mass_points,
-                       (const real_vector3d *)magic_force,
-                       (const real_vector3d *)magic_torque);
+                       magic_force,
+                       magic_torque);
     return;
   }
 
-  FUN_001509c0(&instance, object_index);
+  physics_instance_new(&instance, object_index);
   if (powered_mass_points) {
     for (powered_mass_point_index = 0;
          powered_mass_point_index < physics->powered_mass_points.count;
@@ -2453,7 +2453,7 @@ void physics_update(int object_index, void *powered_mass_points,
         (struct powered_mass_point_datum *)powered_mass_points +
         powered_mass_point_index;
 
-      FUN_001093b0((float *)&powered_mass_point->rotation_matrix,
+      matrix4x3_rotation_from_quaternion((float *)&powered_mass_point->rotation_matrix,
                    powered_mass_point->rotation);
       FUN_00109120((float *)&powered_mass_point->rotation_matrix);
     }
@@ -2482,30 +2482,30 @@ void physics_update(int object_index, void *powered_mass_points,
   }
 
   if (magic_force) {
-    if (!(boolean)real_vector3d_valid((real_vector3d *)magic_force)) {
+    if (!(boolean)real_vector3d_valid(magic_force)) {
       display_assert(csprintf((char *)0x5ab100,
                               "%s: assert_valid_real_vector2d(%f, %f, %f)",
-                              "magic_force", (double)magic_force[0],
-                              (double)magic_force[1], (double)magic_force[2]),
+                              "magic_force", (double)magic_force->i,
+                              (double)magic_force->j, (double)magic_force->k),
                      "c:\\halo\\SOURCE\\physics\\physics.c", 0x10e, 1);
       system_exit(-1);
     }
-    total_force.i += magic_force[0];
-    total_force.j += magic_force[1];
-    total_force.k += magic_force[2];
+    total_force.i += magic_force->i;
+    total_force.j += magic_force->j;
+    total_force.k += magic_force->k;
   }
   if (magic_torque) {
-    if (!(boolean)real_vector3d_valid((real_vector3d *)magic_torque)) {
+    if (!(boolean)real_vector3d_valid(magic_torque)) {
       display_assert(csprintf((char *)0x5ab100,
                               "%s: assert_valid_real_vector2d(%f, %f, %f)",
-                              "magic_torque", (double)magic_torque[0],
-                              (double)magic_torque[1], (double)magic_torque[2]),
+                              "magic_torque", (double)magic_torque->i,
+                              (double)magic_torque->j, (double)magic_torque->k),
                      "c:\\halo\\SOURCE\\physics\\physics.c", 0x114, 1);
       system_exit(-1);
     }
-    total_torque.i += magic_torque[0];
-    total_torque.j += magic_torque[1];
-    total_torque.k += magic_torque[2];
+    total_torque.i += magic_torque->i;
+    total_torque.j += magic_torque->j;
+    total_torque.k += magic_torque->k;
   }
 
   physics_update_new(&instance, powered_mass_points, mass_points, &total_force,
@@ -2644,7 +2644,7 @@ float FUN_001546f0(float position, boolean wrap, float target, float *limits)
  * [EBP-4] + JP falls through (returns 0) only when the two results are equal.
  * The [EBP+0x10] slot is forwarded verbatim to both callees (float arg 2 of
  * FUN_001546f0, char param_3 of FUN_001544d0), same as FUN_001547d0. */
-char FUN_00154750(float *out_pos, void *point_phys, boolean wrap,
+char physics_variable_position_update_seek(float *out_pos, void *point_phys, boolean wrap,
                   float target_pos, float scale)
 {
   float remaining;
@@ -2759,7 +2759,7 @@ void FUN_00154a20(void *obj, float *point, float val)
     color = *(void **)0x2ee6d4;
   }
 
-  FUN_00189150(1, point, val, color);
+  render_debug_point(1, (real_point3d *)point, val, color);
 }
 
 /* 0x154a50 — point_physics_update (point_physics.c): integrate a
@@ -2928,8 +2928,8 @@ int point_physics_update(int flags, int physics_tag_data,
       if (surface_index_out)
         *surface_index_out = collision.material_type;
 
-      FUN_0010b8a0(velocity, collision.plane.normal, &parallel.i,
-                   &perpendicular.i);
+      component_vectors_from_normal3d((real_vector3d *)velocity, (real_vector3d *)collision.plane.normal, &parallel,
+                   &perpendicular);
       velocity[0] = (1.0f - ((const struct point_physics_definition *)physics_tag_data)->contact_friction) * perpendicular.i -
                     parallel.i * ((const struct point_physics_definition *)physics_tag_data)->elasticity;
       velocity[1] = (1.0f - ((const struct point_physics_definition *)physics_tag_data)->contact_friction) * perpendicular.j -

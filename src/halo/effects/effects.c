@@ -569,7 +569,7 @@ bool dangerous_effects_near_player(void)
           }
           /* transform local position to world space via node matrix */
           matrix_transform_point(
-            (float *)matrix, (float *)((char *)location + 0x30), position);
+            (float *)matrix, (real_point3d *)((char *)location + 0x30), (real_point3d *)position);
         }
 
         /* squared-distance check against player bounding sphere */
@@ -916,7 +916,7 @@ void effect_generate_particles(void *effect)
                   random_seed_get_direction3d(seed, random_dir);
 
                   matrix_scale_transform_vector(
-                    (float *)(location + 8), (float *)(part + 0x14), scaled_dir);
+                    (float *)(location + 8), (real_vector3d *)(part + 0x14), (real_vector3d *)scaled_dir);
 
                   spawn_params.fields.position[0] = random_dir[0] * random_distance +
                                                      *(float *)(location + 0x30) + scaled_dir[0];
@@ -938,8 +938,8 @@ void effect_generate_particles(void *effect)
                   (float *)(location + 8), (real_vector3d *)spawn_params.fields.direction,
                   (real_vector3d *)spawn_params.fields.direction); /* dup-args-ok: in-place transform */
                 matrix_scale_transform_vector(
-                  (float *)(location + 8), spawn_params.fields.velocity,
-                  spawn_params.fields.velocity); /* dup-args-ok: in-place transform */
+                  (float *)(location + 8), (real_vector3d *)spawn_params.fields.velocity,
+                  (real_vector3d *)spawn_params.fields.velocity); /* dup-args-ok: in-place transform */
 
                 {
                   uint16_t node_idx = *(uint16_t *)(location + 2);
@@ -964,13 +964,13 @@ void effect_generate_particles(void *effect)
                       node_matrix = (float *)object_get_node_matrix(
                         *(int *)(ef + 0x3c), (int16_t)(node_idx & 0x7fff));
                     }
-                    matrix_transform_point(node_matrix, spawn_params.fields.position,
-                                           world_pos);
+                    matrix_transform_point(node_matrix, (real_point3d *)spawn_params.fields.position,
+                                           (real_point3d *)world_pos);
                     matrix_transform_vector(node_matrix, (real_vector3d *)spawn_params.fields.direction,
                                             (real_vector3d *)dir_world);
                     matrix_scale_transform_vector(node_matrix,
-                                                  spawn_params.fields.velocity,
-                                                  vel_world);
+                                                  (real_vector3d *)spawn_params.fields.velocity,
+                                                  (real_vector3d *)vel_world);
                   }
                 }
 
@@ -1208,7 +1208,7 @@ void effect_generate_part(float *position, void *effect, void *location, void *p
     *(float *)(damage_params + 0x38) = forward[1];
     *(float *)(damage_params + 0x3c) = forward[2];
 
-    FUN_00138e30(damage_params, -1);
+    area_of_effect_cause_damage(damage_params, -1);
     break;
   }
 
@@ -1277,8 +1277,8 @@ void effect_generate_part(float *position, void *effect, void *location, void *p
       int marker = (loc_node == 0xffff) ? -1 : (int)(loc_node & 0x7fff);
 
       object_impulse_sound_new(*(int *)(ef + 0x3c), *(int *)(loc_entry + 0x24),
-                               (int16_t)marker, (float *)(loc + 0x30),
-                               (float *)(loc + 0xc), scale);
+                               (int16_t)marker, (real_point3d *)(loc + 0x30),
+                               (real_vector3d *)(loc + 0xc), scale);
     } else {
       struct {
         float pos[3];
@@ -1393,7 +1393,7 @@ void effect_marker_list_get_marker(void *output, int16_t marker_index /* @<ax> *
   offset = (int)marker_index * 12;
   forwards_ptr = (float *)(*(int *)((char *)creation_info + 0x14) + offset);
 
-  if (!valid_real_normal3d(forwards_ptr)) {
+  if (!valid_real_normal3d((real_vector3d *)forwards_ptr)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&marker_list->forwards[effect_marker_index]",
              (double)forwards_ptr[0], (double)forwards_ptr[1],
@@ -1421,7 +1421,7 @@ void effect_marker_list_get_marker(void *output, int16_t marker_index /* @<ax> *
     local_forward[2] = forwards_ptr[2];
   }
 
-  if (!valid_real_normal3d(local_forward)) {
+  if (!valid_real_normal3d((real_vector3d *)local_forward)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&forward", (double)local_forward[0], (double)local_forward[1],
              (double)local_forward[2]);
@@ -1496,8 +1496,8 @@ void effect_generate_parts(void *effect)
                 *(int *)(ef + 0x3c),
                 (int16_t)(node_designator & 0x7fff));
             }
-            matrix_transform_point(node_matrix, (float *)(location + 0x30),
-                                   position);
+            matrix_transform_point(node_matrix, (real_point3d *)(location + 0x30),
+                                   (real_point3d *)position);
             matrix_transform_vector(node_matrix, (real_vector3d *)(location + 0xc),
                                     (real_vector3d *)forward);
             matrix_transform_vector(node_matrix, (real_vector3d *)(location + 0x24),
@@ -2183,7 +2183,7 @@ void material_effect_new(int param_1, short param_2, short param_3, void *param_
   }
 
   if (*(char *)0x4557e9 != '\0') {
-    FUN_00189540(0, param_4, 0.05f, *(void **)0x2ee6dc);
+    render_debug_sphere(0, param_4, 0.05f, *(void **)0x2ee6dc);
   }
 }
 

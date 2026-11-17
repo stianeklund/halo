@@ -79,7 +79,7 @@ void scenery_dispose_from_old_map(void)
  * Confirmed: CALL 0x13d870; ADD ESP,0x8 -> cdecl, two stack args.
  * Unknown: the concrete meaning of both parameters; names follow the existing
  *   kb.json decl of the callee (object_add_scenario_permutation(int unit_handle, void *data)).
- *   Same shape as biped_place/vehicle_causes_collision_damage, which forward
+ *   Same shape as biped_place/vehicle_place, which forward
  *   placement data at +0x28 to this same callee.
  */
 void FUN_00145560(int unit_handle, void *data)
@@ -1211,7 +1211,7 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
 /* 0x146a90 — Apply breakable-surface damage: reduces surface health based on
  * the damage effect tag's range/modifier and material vitality. Clears the
  * surface bit and fires the destruction callback if health reaches zero. */
-void FUN_00146a90(int surface_id, void *damage_params, int unknown)
+void breakable_surface_damage(int surface_id, void *damage_params, int unknown)
 {
   float *health_ptr;
   char *material_data;
@@ -1238,7 +1238,7 @@ void FUN_00146a90(int surface_id, void *damage_params, int unknown)
     return;
 
   material_type = (int)*(short *)((char *)damage_params + 0x4c);
-  material_data = (char *)FUN_0018e500((short)material_type);
+  material_data = (char *)scenario_material_definition_get((short)material_type);
   if (material_data == NULL)
     return;
   if (*(float *)(material_data + 0x2d4) <= 0.0f)
@@ -1247,7 +1247,7 @@ void FUN_00146a90(int surface_id, void *damage_params, int unknown)
   jpt_tag = (char *)tag_get(0x6a707421, *(int *)damage_params);
 
   damage =
-    FUN_000121e0(*(float *)(jpt_tag + 0x1d4), *(float *)(jpt_tag + 0x1d8));
+    real_random_range(*(float *)(jpt_tag + 0x1d4), *(float *)(jpt_tag + 0x1d8));
   damage = (damage - *(float *)(jpt_tag + 0x1d0)) *
              *(float *)((char *)damage_params + 0x40) +
            *(float *)(jpt_tag + 0x1d0);

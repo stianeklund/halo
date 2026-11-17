@@ -1807,7 +1807,7 @@ bool machine_update(int machine_index)
             new_position.x = elevator_offset.i + *(float *)(biped + 0x0c);
             new_position.y = elevator_offset.j + *(float *)(biped + 0x10);
             new_position.z = elevator_offset.k + *(float *)(biped + 0x14);
-            object_translate(*object_index, &new_position.x, NULL);
+            object_translate(*object_index, &new_position, NULL);
           }
           object_index++;
         } while (--remaining_object_count);
@@ -1817,7 +1817,7 @@ bool machine_update(int machine_index)
   }
 
   if ((*(unsigned char *)(machine + 0x1a4) & 4) != 0) {
-    object_translate(machine_index, (float *)(machine + 0x0c), NULL);
+    object_translate(machine_index, (real_point3d *)(machine + 0x0c), NULL);
     *(unsigned int *)(machine + 0x1a4) &= ~4u;
   }
 

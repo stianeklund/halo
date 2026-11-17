@@ -1,7 +1,10 @@
 extern float normalize3d(float *v);
-extern float *vector3d_scale_add(float *base, float *direction, float scale,
-                                 float *out);
-extern float *matrix_transform_point(float *matrix, float *in, float *out);
+extern real_point3d *vector3d_scale_add(const real_point3d *base,
+                                        const real_vector3d *direction,
+                                        float scale, real_point3d *out);
+extern real_point3d *matrix_transform_point(float *matrix,
+                                            const real_point3d *in,
+                                            real_point3d *out);
 extern void perpendicular3d(float *in, float *out);
 extern real_vector3d *angles_to_vector(real_vector3d *out, const real_euler_angles2d *angles);
 
@@ -23,7 +26,7 @@ extern void set_random_seed(int seed);
 extern float random_math_real(unsigned int *seed);
 
 extern float normalize2d(float *v);
-extern float FUN_00013070(float *a, float *b);
+extern float dot_product3d(float *a, float *b);
 extern void points_interpolate(float *a, float *b, float blend, float *out);
 extern void scalars_interpolate(float a, float b, float blend, float *out);
 extern void scalars_interpolate_and_clamp_0_to_1(float a, float b, float t,
@@ -958,10 +961,10 @@ void run_tests(void)
     passed += check("normalize2d y", *(uint32_t *)&v[1], 0x3F4CCCCD, buf);
   }
 
-  /* FUN_001a2f40 ground-tangent no-clamp restore lock.
+  /* biped_update_physics ground-tangent no-clamp restore lock.
    *
    * Locks the "no-clamp ground-tangent" fix in src/halo/units/bipeds.c
-   * (FUN_001a2f40, mode flags&1 branch). That branch computes raw tangent
+   * (biped_update_physics, mode flags&1 branch). That branch computes raw tangent
    * deltas (raw0/raw1), copies them into tang[], then calls normalize2d
    * (0x12f10), which NORMALIZES tang IN PLACE and returns the
    * pre-normalize length. When the length does NOT exceed the clamp
@@ -1021,7 +1024,7 @@ void run_tests(void)
     physics[0x12] = 0.0f; /* +0x48 friction -> damp = 1.0 */
     physics[0x14] = 10.0f; /* +0x50 clamp (large -> no clamp) */
 
-    FUN_001a2f40(physics);
+    biped_update_physics(physics);
 
     dump_values[0] = physics[0x2e]; /* +0xb8 new_velocity.x */
     dump_values[1] = physics[0x2f]; /* +0xbc new_velocity.y */
@@ -1053,7 +1056,7 @@ void run_tests(void)
     physics[0x12] = 0.0f;
     physics[0x14] = 0.05f; /* +0x50 clamp (small -> clamp branch) */
 
-    FUN_001a2f40(physics);
+    biped_update_physics(physics);
 
     dump_values[0] = physics[0x2e];
     dump_values[1] = physics[0x2f];
@@ -1073,7 +1076,7 @@ void run_tests(void)
 
     /* ---- at-rest blocker bit (physics+0xa0 bit 0x10) regression lock ----
      *
-     * Locks the BSP-contact fix in loop A of FUN_001a2f40 (XBE
+     * Locks the BSP-contact fix in loop A of biped_update_physics (XBE
      * 0x1a3e78..0x1a3eae).  The original tests three things in sequence, each
      * with its own branch:
      *
@@ -1086,7 +1089,7 @@ void run_tests(void)
      *
      * A lift that folds the flags test and the handle test into one `&&`
      * condition sets the bit on every BSP contact.  physics+0xa0 is
-     * FUN_001a5300's [ebp-0x44]; with bit 0x10 set, 0x1a6216 always branches
+     * biped_update_moving's [ebp-0x44]; with bit 0x10 set, 0x1a6216 always branches
      * to 0x1a6251 (and eax,0xffffffdf), so object+0x4 bit 0x20 (at-rest) is
      * never set for a biped resting on world geometry.
      * biped_start_limp_body_physics then early-outs at 0x1a09ab and
@@ -1120,7 +1123,7 @@ void run_tests(void)
       physics[0xf] = 1.0f; /* +0x3c control.x */
       physics[0x14] = 10.0f; /* +0x50 clamp (no clamp) */
 
-      FUN_001a2f40(physics);
+      biped_update_physics(physics);
 
       mark = (unsigned char)(*(unsigned char *)((char *)physics + 0xa0) & 0x10);
       mark_dump[0] = (uint32_t)mark;
@@ -1135,13 +1138,13 @@ void run_tests(void)
     *dbg_stub = saved_stub;
   }
 
-  /* FUN_00013070 (dot_product3d) */
+  /* dot_product3d (dot_product3d_inline) */
   {
     float a[3] = { 1.5f, -2.0f, 3.0f };
     float b[3] = { -0.5f, 1.5f, 2.0f };
-    float dot = FUN_00013070(a, b);
+    float dot = dot_product3d(a, b);
     total += 1;
-    passed += check("FUN_00013070 dot", *(uint32_t *)&dot, 0x40100000, buf);
+    passed += check("dot_product3d dot", *(uint32_t *)&dot, 0x40100000, buf);
   }
 
   /* points_interpolate (interpolate_vector3d) */

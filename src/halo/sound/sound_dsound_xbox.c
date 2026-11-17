@@ -1650,7 +1650,7 @@ void dsound_channel_set_location(short channel_index, char spatialized,
         *(char *)0x4fdbc0 != 0)) {
     assert_halt_msg_at("valid_real_normal3d(&location->forward)",
                        "c:\\halo\\SOURCE\\sound\\sound_dsound_xbox.c", 0x3a5,
-                       valid_real_normal3d(&location[3]));
+                       valid_real_normal3d((real_vector3d *)&location[3]));
     result = IDirectSoundStream_SetConeOrientation(
       *(void **)(channel + 0x70), location[3], location[5], location[4], 1);
     if (result < 0) {

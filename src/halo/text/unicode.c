@@ -1460,8 +1460,8 @@ wchar_t *FUN_0019f4f0(int errnum)
   return (wchar_t *)0x4d9be8;
 }
 
-/* FUN_0019f530 (0x19f530) — returns constant 0x14; parameter is unused. */
-int FUN_0019f530(int unit_handle)
+/* biped_limp_noodle_get_max_relaxation_iterations (0x19f530) — returns constant 0x14; parameter is unused. */
+int biped_limp_noodle_get_max_relaxation_iterations(int unit_handle)
 {
   (void)unit_handle;
   return 0x14;

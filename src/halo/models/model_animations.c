@@ -363,7 +363,7 @@ void *FUN_00120500(void *animation, short frame_index)
   return (void *)(data + (int)((animation_t *)anim)->frame_size * (int)frame_index);
 }
 
-/* FUN_00120590 (0x120590) — Resolve a pointer to a specific animation frame's
+/* animation_get_frame_info (0x120590) — Resolve a pointer to a specific animation frame's
  * raw data block via tag_data_get_pointer.
  *
  * Given an animation structure pointer, a frame_index, and the per-frame
@@ -387,7 +387,7 @@ void *FUN_00120500(void *animation, short frame_index)
  * Source: c:\halo\SOURCE\models\model_animation_definitions.c, line 0x48e
  * (1166).
  */
-void *FUN_00120590(void *animation, short frame_index, short frame_size)
+void *animation_get_frame_info(void *animation, short frame_index, short frame_size)
 {
   char *anim;
   int offset;
@@ -407,9 +407,9 @@ void *FUN_00120590(void *animation, short frame_index, short frame_size)
   return tag_data_get_pointer(anim + 0x48, offset, size);
 }
 
-/* FUN_001205f0 (0x1205f0) — look up a string in an indexed string table.
+/* animation_list_get_string (0x1205f0) — look up a string in an indexed string table.
  * Returns "#<invalid>" if the index is out of range or the entry is NULL. */
-const char *FUN_001205f0(void *string_table, int16_t index)
+const char *animation_list_get_string(void *string_table, int16_t index)
 {
   int16_t *table = (int16_t *)string_table;
   const char *result;
@@ -484,7 +484,7 @@ short build_damage_animation_index(short damage_type, short damage_direction,
  * capture that running total at one specific frame (tick_index).
  *
  * anim_entry+0x22 = frame_count (int16; same field asserted
- * "animation->frame_count" by FUN_00120500/FUN_00120590 above). anim_entry+
+ * "animation->frame_count" by FUN_00120500/animation_get_frame_info above). anim_entry+
  * 0x26 = translation-record discriminator (int16; same field
  * animation_frame_get_xy_translation below checks against 1), selecting a
  * per-frame stride of 2/3/4 floats (0x8/0xc/0x10 bytes); any other value
@@ -493,7 +493,7 @@ short build_damage_animation_index(short damage_type, short damage_direction,
  * which stores this same anim_tag+0x34 into *out_tick_count). anim_entry+
  * 0x54 = float* to the raw per-frame translation stream — accessed only
  * here, meaning otherwise unproven (not the tag_data_get_pointer path
- * FUN_00120590 uses via +0x48).
+ * animation_get_frame_info uses via +0x48).
  *
  * Confirmed: cdecl, 3 args. Confirmed: FLD [0x2533c0] (the global 0.0f
  * constant used throughout this codebase, e.g. actor_combat.c) initializes
@@ -655,7 +655,7 @@ void quaternion_decompress_8byte(short *src, float *dest)
  * interleaved bit manipulation, sign-extends each to int, converts to float,
  * and multiplies by (1.0f / 32767.0f). Used to decompress compressed
  * quaternion rotation data in animation frames (compressed path in
- * FUN_00121d60).
+ * animation_get_frame_orientations).
  *
  * Confirmed: cdecl, 2 args (compressed_data ushort ptr, dest floats ptr).
  * Confirmed: Leaf function, no callees.
@@ -691,7 +691,7 @@ void quaternion_decompress_6byte(void *compressed_data, float *dest)
  * dest in place via sphere_intersects_rectangle3d (misnamed at 0x10ca30 —
  * see its kb.json decl `float *quaternion`; it is the same renormalize call
  * inlined right after quaternion_decompress_6byte at 0x121e89/0x121e8f in
- * FUN_00121d60).
+ * animation_get_frame_orientations).
  *
  * Confirmed: cdecl, 2 args (compressed_data ptr, dest float ptr), void
  * return, leaf wrapper (no locals beyond saved ESI).
@@ -1055,8 +1055,8 @@ short FUN_00120d10(unsigned short *keyframe_frame_indices,
  * this path (discriminator == 1), else return (0, 0).
  *
  * If *(short *)(animation+0x26) == 1, resolves the frame's raw data block
- * via FUN_00120590(animation, frame_index, 8) and copies the block's first
- * two dwords (x, y) into *out_translation. FUN_00120590 returns that pointer
+ * via animation_get_frame_info(animation, frame_index, 8) and copies the block's first
+ * two dwords (x, y) into *out_translation. animation_get_frame_info returns that pointer
  * in EAX (see its confirmed void-EAX-return note above); the two MOVs here
  * are a straight dword bit-copy, not FPU math, matching the original's plain
  * MOV/MOV pair. Otherwise zero-fills *out_translation.
@@ -1076,7 +1076,7 @@ void animation_frame_get_xy_translation(void *animation, short frame_index,
   void *frame_data;
 
   if (((animation_t *)anim)->field_26 == 1) {
-    frame_data = FUN_00120590(animation, frame_index, 8);
+    frame_data = animation_get_frame_info(animation, frame_index, 8);
     out_translation[0] = *(float *)frame_data;
     out_translation[1] = *(float *)((char *)frame_data + 4);
     return;
@@ -1760,7 +1760,7 @@ int animation_update_internal(int update_kind, int animation_graph_tag_index,
   return 1;
 }
 
-/* FUN_00121d60 (0x121d60) — Decode a single animation frame into per-node
+/* animation_get_frame_orientations (0x121d60) — Decode a single animation frame into per-node
  * rotation/translation/scale data.
  *
  * For each node in the animation (animation+0x2c count), decodes rotation
@@ -1797,7 +1797,7 @@ int animation_update_internal(int update_kind, int animation_graph_tag_index,
  * at 0x121f78 (5 args: animation, frame_float, count, node, out). Confirmed:
  * CALL FUN_00123aa0 at 0x12204a (2 args: mode_tag, out_node_data).
  */
-void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
+void animation_get_frame_orientations(void *mode_tag, void *animation, int animation_index,
                   void *out_node_data)
 {
   int param_1;
@@ -1944,7 +1944,7 @@ void FUN_00121d60(void *mode_tag, void *animation, int animation_index,
  * animation's per-node rotation/translation/scale channels onto a node
  * transform array.
  *
- * Structural sibling of FUN_00121d60, restricted to animations whose type
+ * Structural sibling of animation_get_frame_orientations, restricted to animations whose type
  * (animation+0x20) is 2 and to a frame_index inside [0, animation+0x22).
  * For each node the three per-channel bitmask arrays are reloaded every 32
  * nodes and consumed one bit at a time:
@@ -2516,7 +2516,7 @@ void overlay_animation_apply_continuous(void *animation, float real_frame_index,
  * (3 floats) into the output node_data array (stride 0x20 per node).
  * Sets scale to 1.0f for each node.
  *
- * This is the fallback path used by FUN_00121d60 when the animation type is
+ * This is the fallback path used by animation_get_frame_orientations when the animation type is
  * nonzero or the mode_tag node count doesn't match the animation.
  *
  * Confirmed: cdecl, 2 args (mode_tag ptr, out_node_data ptr).
@@ -2578,7 +2578,7 @@ void FUN_00123aa0(void *mode_tag, void *out_node_data)
  *            global_up_vector_ptr.
  * Confirmed: node tag_block is mode_tag+0xb8, element stride 0x9c — the same
  *            block/stride pair as FUN_00123aa0 and animation_get_root_matrix.
- * Confirmed: CALL 0x1094d0 component_vectors_from_normal3d pushes
+ * Confirmed: CALL 0x1094d0 matrix4x3_from_point_and_quaternion pushes
  *            LEA[EBX+0x34], LEA[EBX+0x28], LEA[EBP-0x40] (0x123b86..0x123b8e)
  *            so out=local matrix, position=node+0x28, basis=node+0x34. The
  *            ADD ESP,0x18 at 0x123b94 is the COMBINED cleanup for
@@ -2623,7 +2623,7 @@ void model_get_node_matrices(void *mode_tag, float *node_matrices,
     node_index = node_indices[(short)read_index];
     read_index = read_index + 1;
     node = (char *)tag_block_get_element(node_block, (int)node_index, 0x9c);
-    component_vectors_from_normal3d(node_matrix, (float *)(node + 0x28),
+    matrix4x3_from_point_and_quaternion(node_matrix, (float *)(node + 0x28),
                                     (float *)(node + 0x34));
     if (node_index == 0) {
       matrix4x3_from_forward_up_position(
@@ -2995,14 +2995,14 @@ void render_model(int model_ref, float distance, void *node_matrices,
                 instance[1]) {
               real_matrix4x3 marker_matrix;
 
-              component_vectors_from_normal3d((float *)&marker_matrix,
+              matrix4x3_from_point_and_quaternion((float *)&marker_matrix,
                                               (float *)(instance + 4),
                                               (float *)(instance + 0x10));
               matrix4x3_multiply(
                 (float *)((char *)node_matrices + instance[2] * 0x34),
                 (float *)&marker_matrix, (float *)&marker_matrix);
               FUN_001894d0(0, (float *)&marker_matrix, 0.05f);
-              FUN_00189cb0(0, &marker_matrix.position, marker,
+              render_debug_string_at_point(0, &marker_matrix.position, marker,
                            (int)global_real_argb_white);
             }
           }
@@ -3137,7 +3137,7 @@ void render_model(int model_ref, float distance, void *node_matrices,
             point[0] = *(float *)centroid;
             point[1] = *((float *)centroid + 1);
             point[2] = screen_offset + *((float *)centroid + 2);
-            FUN_00189cb0(0, point, text, (int)color);
+            render_debug_string_at_point(0, point, text, (int)color);
           }
         }
       }
@@ -3706,14 +3706,14 @@ void aiming_screen_apply(int animation, float *blend_params, float direction,
  *
  * Computes the delta position between frame param_3 and frame (param_3-1)
  * of an animation. Uses _chkstk for 0x1000 bytes of stack.
- * Two 0x800-byte node data buffers are filled via FUN_00121d60.
+ * Two 0x800-byte node data buffers are filled via animation_get_frame_orientations.
  * The translation component (offset 0x10 from each buffer base) is
- * subtracted to produce the frame delta in param_4[0..2].
+ * subtracted to produce the frame delta in out_delta.
  *
  * Confirmed: 4 cdecl params, void return. _chkstk 0x1000 frame.
  */
 void animation_get_root_velocity(void *mode_tag, void *animation, int frame_index,
-                  float *out_delta)
+                  real_vector3d *out_delta)
 {
   uint8_t frame_data[0x800];
   uint8_t prev_frame_data[0x800];
@@ -3730,14 +3730,14 @@ void animation_get_root_velocity(void *mode_tag, void *animation, int frame_inde
     frame = 1;
   }
 
-  FUN_00121d60(mode_tag, animation, frame, frame_data);
-  FUN_00121d60(mode_tag, animation, frame - 1, prev_frame_data);
+  animation_get_frame_orientations(mode_tag, animation, frame, frame_data);
+  animation_get_frame_orientations(mode_tag, animation, frame - 1, prev_frame_data);
 
-  out_delta[0] =
+  out_delta->i =
     *(float *)(frame_data + 0x10) - *(float *)(prev_frame_data + 0x10);
-  out_delta[1] =
+  out_delta->j =
     *(float *)(frame_data + 0x14) - *(float *)(prev_frame_data + 0x14);
-  out_delta[2] =
+  out_delta->k =
     *(float *)(frame_data + 0x18) - *(float *)(prev_frame_data + 0x18);
 }
 

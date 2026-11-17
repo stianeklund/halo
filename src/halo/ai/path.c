@@ -1189,10 +1189,10 @@ float closest_available_point_on_surface(void *structure_bsp, float *point,
   float dz;
 
   bsp = (int)tag_block_get_element((char *)structure_bsp + 0xb0, 0, 0x60);
-  collision_surface_find_closest_point2d(bsp, surface_index, 2, 1, point,
-                                         closest2d);
-  collision_surface_project_point2d(bsp, surface_index, 2, 1, closest2d,
-                                    out_point);
+  collision_surface_find_closest_point2d(bsp, surface_index, 2, 1, (real_point2d *)point,
+                                         (real_point2d *)closest2d);
+  collision_surface_project_point2d(bsp, surface_index, 2, 1, (real_point2d *)closest2d,
+                                    (real_point3d *)out_point);
   dx = out_point[0] - point[0];
   dy = out_point[1] - point[1];
   dz = out_point[2] - point[2];
@@ -2395,19 +2395,19 @@ void FUN_000609e0(void *path)
   if (0 < *(short *)(base + 0x2c)) {
     bsp = tag_block_get_element((void *)(*(int *)(base + 0xc) + 0xb0), 0, 0x60);
     collision_surface_project_point2d((int)bsp, *(int *)(base + 0x38), 2, 1,
-                                      (float *)(base + 0x30), point_a);
+                                      (real_point2d *)(base + 0x30), (real_point3d *)point_a);
     collision_surface_project_point2d((int)bsp, *(int *)(base + 0x18), 2, 1,
-                                      (float *)(base + 0x10), point_b);
+                                      (real_point2d *)(base + 0x10), (real_point3d *)point_b);
     color = *(void **)0x2ee6c4;
     if (*(short *)(base + 0x1e) == -1) {
       color = *(void **)0x2ee6e0;
     }
-    FUN_00189150(1, point_a, 0.125f, color);
+    render_debug_point(1, (real_point3d *)point_a, 0.125f, color);
     color = *(void **)0x2ee6c4;
     if (*(short *)(base + 0x1e) == -1) {
       color = *(void **)0x2ee6e0;
     }
-    FUN_00189150(1, point_b, 0.125f, color);
+    render_debug_point(1, (real_point3d *)point_b, 0.125f, color);
     step_index = *(short *)(base + 0x1e);
     csmemset(chain_bits, 0, ((*(short *)(base + 0x2c) + 0x1f) >> 5) << 2);
     while (step_index != -1) {
@@ -2444,9 +2444,9 @@ void FUN_000609e0(void *path)
         }
         next_step = base + 0x30 + next_index * 0x28;
         collision_surface_project_point2d((int)bsp, *(int *)(next_step + 8), 2,
-                                          1, (float *)next_step, point_a);
+                                          1, (real_point2d *)next_step, (real_point3d *)point_a);
         collision_surface_project_point2d((int)bsp, *(int *)(step + 8), 2, 1,
-                                          (float *)step, point_b);
+                                          (real_point2d *)step, (real_point3d *)point_b);
         if ((chain_bits[i >> 5] & (1 << (i & 0x1f))) != 0) {
           color = *(void **)0x2ee6c4;
         } else {

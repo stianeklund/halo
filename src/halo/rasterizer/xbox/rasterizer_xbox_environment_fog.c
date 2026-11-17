@@ -442,7 +442,7 @@ void FUN_00165cb0(void *shader, int arg2, int arg3, int arg4, int arg5,
       display_assert("shader", kFogFile, 0x1ae, 1);
       system_exit(-1);
     }
-    FUN_001906b0(shader, _shader_type_environment);
+    shader_get_and_verify_type(shader, _shader_type_environment);
     if (!vertex_buffer) {
       display_assert("vertex_buffer", kFogFile, 0x1b3, 1);
       system_exit(-1);
@@ -644,7 +644,7 @@ void rasterizer_environment_fog_screen_wind_update(void *screen_data,
     acceleration_weight = screen->wind_acceleration_weight;
     wind->direction.i += acceleration_weight * target_direction->i;
     wind->direction.j += acceleration_weight * target_direction->j;
-    if (normalize2d(&wind->direction.i) == 0.0f) {
+    if (normalize2d(&wind->direction) == 0.0f) {
       wind->direction.i = 1.0f;
       wind->direction.j = 0.0f;
     }
@@ -668,7 +668,7 @@ void rasterizer_environment_fog_screen_wind_update(void *screen_data,
         (1.0f - weight) * wind->direction.i + perpendicular.i;
       target_direction->j =
         (1.0f - weight) * wind->direction.j + perpendicular.j;
-      if (normalize2d(&target_direction->i) == 0.0f) {
+      if (normalize2d(target_direction) == 0.0f) {
         target_direction->i = 1.0f;
         target_direction->j = 0.0f;
       }
@@ -1058,7 +1058,7 @@ void FUN_00166890(int16_t pass)
         vector[0] = 0.0f;
         vector[1] = 0.0f;
         vector[2] = -z;
-        matrix_transform_point(matrix, vector, vector);
+        matrix_transform_point(matrix, (real_point3d *)vector, (real_point3d *)vector);
         window->layers[index].u -= (vector[1] * sine + vector[0] * cosine) *
                                    screen->strafing_multiplier *
                                    projection_scale;
@@ -1222,7 +1222,7 @@ void FUN_00166890(int16_t pass)
         fog_model_skinning_parameters skinning;
 
         if (shader->type == _shader_type_transparent_chicago &&
-            !((chicago = (fog_shader_transparent_chicago *)FUN_001906b0(
+            !((chicago = (fog_shader_transparent_chicago *)shader_get_and_verify_type(
                  shader, _shader_type_transparent_chicago))
                 ->flags &
               _shader_transparent_chicago_no_fog_flag)) {

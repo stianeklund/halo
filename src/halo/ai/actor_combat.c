@@ -89,7 +89,7 @@ void actor_combat_get_weapon_vector(int actor_handle /* @<eax> */,
 
   object_get_and_verify_type(handle, 3);
   unit_get_aiming_vector(handle, weapon_vector);
-  unit_clip_to_aiming_bounds(handle, weapon_vector, 1);
+  unit_clip_to_aiming_bounds(handle, (real_vector3d *)weapon_vector, 1);
 }
 
 char *actor_combat_get_firing_variant_definition(int actor_handle)
@@ -302,7 +302,7 @@ char actor_combat_compute_ballistic_solution(int actor_handle, int param_2)
    * (an MSVC stack-overlap). Our clang stack layout does not guarantee that
    * overlap, so write the speed component explicitly. */
   ground[2] = speed;
-  if (normalize2d(ground) <= *(float *)0x2533c0) {
+  if (normalize2d((real_vector2d *)ground) <= *(float *)0x2533c0) {
     return 0;
   }
 
@@ -980,7 +980,7 @@ void actor_combat_retarget_grenade(int actor_handle /* @<ebx> */,
  * reg-vs-stack -1 init), and byte/dword compare idioms (jle/jl, testl/testb).
  * The display_assert(...,0x749,1) is present and aligned; no FPU operand swap.
  * Verified 2026-06-23 [[project_sub80_vc71_audit_2026-06-23]]. */
-int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
+int actor_aim_grenade(int actor_handle, void *aim_params, real_vector3d *out_aim_vector)
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
   float aim_x, aim_y, aim_z; /* [ebp-0x24/-0x20/-0x1c] chosen aim vector  */
@@ -1026,7 +1026,7 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
   if (((actor_t *)actor)->field_158 == -1) {
     planar[0] = aim_x;
     planar[1] = aim_y;
-    if (normalize2d(planar) > *(float *)0x2533c0 &&
+    if (normalize2d((real_vector2d *)planar) > *(float *)0x2533c0 &&
         planar[0] * ((actor_t *)actor)->input_facing_vector[0] +
             planar[1] * ((actor_t *)actor)->input_facing_vector[1] <
           *(float *)0x2533dc) {
@@ -1053,7 +1053,7 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
       planar_mag = (float)x87_sqrt(aim_x * aim_x + aim_y * aim_y);
       nrm[0] = nrm[0] * planar_mag;
       nrm[1] = planar_mag * nrm[1];
-      if (!valid_real_normal3d(nrm)) {
+      if (!valid_real_normal3d((real_vector3d *)nrm)) {
         csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
                  "&new_aim_vector", (double)nrm[0], (double)nrm[1],
                  (double)aim_z);
@@ -1068,9 +1068,9 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
   }
 
   speed = ((actor_t *)actor)->field_6c8;
-  out_aim_vector[0] = aim_x * speed;
-  out_aim_vector[1] = aim_y * speed;
-  out_aim_vector[2] = speed * aim_z;
+  out_aim_vector->i = aim_x * speed;
+  out_aim_vector->j = aim_y * speed;
+  out_aim_vector->k = speed * aim_z;
   return result;
 }
 
@@ -1358,7 +1358,7 @@ void actor_combat_update(int actor_handle)
       if (special_fire &&
           (unsigned char)actor_combat_check_mode(
             actor_handle, firing_variant_definition->special_fire_situation)) {
-        real special_fire_delay = FUN_000121e0(0.0f, 1.5f) +
+        real special_fire_delay = real_random_range(0.0f, 1.5f) +
                                   firing_variant_definition->special_fire_delay;
         real special_fire_random =
           random_math_real((unsigned int *)get_global_random_seed_address());
@@ -1676,9 +1676,9 @@ void actor_combat_update(int actor_handle)
 
           FUN_00012140(&actor->control_burst_initial_position.x,
                        &prop->center_of_mass.x, &tracking_vector.i);
-          vector3d_scale_add(&actor->control_burst_origin.x, &tracking_vector.i,
+          vector3d_scale_add(&actor->control_burst_origin, &tracking_vector,
                              firing_variant_definition->target_track_fraction,
-                             &actor->control_burst_origin.x);
+                             &actor->control_burst_origin);
         }
         actor_debug_info->burst_tracked_position = actor->control_burst_origin;
 
@@ -1695,9 +1695,9 @@ void actor_combat_update(int actor_handle)
           lead_vector.j = time_to_target * prop->velocity.j;
           lead_vector.k = time_to_target * prop->velocity.k;
           actor_debug_info->burst_lead_vector = lead_vector;
-          vector3d_scale_add(&actor->control_burst_origin.x, &lead_vector.i,
+          vector3d_scale_add(&actor->control_burst_origin, &lead_vector,
                              firing_variant_definition->target_lead_fraction,
-                             &actor->control_burst_origin.x);
+                             &actor->control_burst_origin);
         }
       } else {
         assert_halt_msg_at("actor->control.current_fire_target_type == "
@@ -1731,17 +1731,17 @@ void actor_combat_update(int actor_handle)
         real_vector3d *gun_offset = NULL;
 
         if (actor->control_crouching) {
-          if (FUN_00012170(&firing_variant_definition->gun_offset_crouch.i) >
+          if (magnitude_squared3d(&firing_variant_definition->gun_offset_crouch) >
               0.0001f)
             gun_offset = &firing_variant_definition->gun_offset_crouch;
-          else if (FUN_00012170(&actor_definition->gun_offset_crouch.i) >
+          else if (magnitude_squared3d(&actor_definition->gun_offset_crouch) >
                    0.0001f)
             gun_offset = &actor_definition->gun_offset_crouch;
         } else {
-          if (FUN_00012170(&firing_variant_definition->gun_offset_stand.i) >
+          if (magnitude_squared3d(&firing_variant_definition->gun_offset_stand) >
               0.0001f)
             gun_offset = &firing_variant_definition->gun_offset_stand;
-          else if (FUN_00012170(&actor_definition->gun_offset_stand.i) >
+          else if (magnitude_squared3d(&actor_definition->gun_offset_stand) >
                    0.0001f)
             gun_offset = &actor_definition->gun_offset_stand;
         }
@@ -1754,7 +1754,7 @@ void actor_combat_update(int actor_handle)
           facing.i = actor->body_position.x - actor->control_burst_target.x;
           facing.j = actor->body_position.y - actor->control_burst_target.y;
           facing.k = actor->body_position.z - actor->control_burst_target.z;
-          if (normalize2d(&facing.i) > 0.0f) {
+          if (normalize2d((real_vector2d *)&facing) > 0.0f) {
             facing.k = 0.0f;
           } else {
             facing.i = actor->input_facing_vector[0];
@@ -1775,7 +1775,7 @@ void actor_combat_update(int actor_handle)
                    actor->control_burst_aim_vector, 0, NULL, &linear);
       assert_halt_msg_at("aiming_success", ACTOR_COMBAT_SOURCE_FILE, 0x310,
                          aiming_success);
-      if (!valid_real_normal3d(actor->control_burst_aim_vector)) {
+      if (!valid_real_normal3d((real_vector3d *)actor->control_burst_aim_vector)) {
         display_assert(csprintf(error_string_buffer,
                                 "%s: assert_valid_real_normal3d(%f, %f, %f)",
                                 "&actor->control.burst_aim_vector",

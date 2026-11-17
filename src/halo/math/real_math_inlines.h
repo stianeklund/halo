@@ -27,10 +27,10 @@
  * too short to normalize.  The inlined copy of normalize3d. */
 static __inline real normalize3d_inline(real_vector3d *v)
 {
-  real magnitude = sqrtf(magnitude_squared3d(v));
+  real magnitude = sqrtf(magnitude_squared3d_inline(v));
 
   if (fabs(magnitude) >= 0.0001f) {
-    scale_vector3d(v, 1.0f / magnitude, v);
+    scale_vector3d_inline(v, 1.0f / magnitude, v);
   } else {
     magnitude = 0.0f;
   }

@@ -187,7 +187,7 @@ int FUN_00136890(int object_index)
 /* object_can_take_damage (0x1368e0) — Clear bit 3 of object+0xb7 flags byte for
  * all children/widgets of a given parent handle.
  *
- * Iterates using FUN_000ce450 (first) / FUN_000ce320 (next) to enumerate
+ * Iterates using object_list_get_first (first) / object_list_get_next (next) to enumerate
  * associated objects. For each, clears bit 3 (AND 0xf7) of the flags byte
  * at offset 0xb7. This is the same byte modified by
  * object_set_ranged_attack_inhibited (bit 0) and
@@ -196,8 +196,8 @@ int FUN_00136890(int object_index)
  * Confirmed: cdecl, single stack param at [EBP+0x8].
  * Confirmed: object_get_and_verify_type(index, -1) at CALL 0x13d680.
  * Confirmed: AND byte [EAX+0xb7],0xf7 at 0x136908.
- * Confirmed: FUN_000ce450 (first child) at CALL 0xce450.
- * Confirmed: FUN_000ce320 (next child) at CALL 0xce320.
+ * Confirmed: object_list_get_first (first child) at CALL 0xce450.
+ * Confirmed: object_list_get_next (next child) at CALL 0xce320.
  */
 void object_can_take_damage(int player_handle)
 {
@@ -205,11 +205,11 @@ void object_can_take_damage(int player_handle)
   int object_index;
   char *obj;
 
-  object_index = FUN_000ce450(player_handle, &iter_state);
+  object_index = object_list_get_first(player_handle, &iter_state);
   while (object_index != -1) {
     obj = (char *)object_get_and_verify_type(object_index, -1);
     *(unsigned char *)(obj + 0xb7) &= 0xf7;
-    object_index = FUN_000ce320(player_handle, &iter_state);
+    object_index = object_list_get_next(player_handle, &iter_state);
   }
 }
 
@@ -217,14 +217,14 @@ void object_can_take_damage(int player_handle)
  * byte for all children/widgets of a given parent handle.
  *
  * Complement of object_can_take_damage which clears the same bit. Iterates
- * using FUN_000ce450 (first) / FUN_000ce320 (next) to enumerate associated
+ * using object_list_get_first (first) / object_list_get_next (next) to enumerate associated
  * objects. For each, sets bit 3 (OR 0x8) of the flags byte at offset 0xb7.
  *
  * Confirmed: cdecl, single stack param at [EBP+0x8].
  * Confirmed: object_get_and_verify_type(index, -1) at CALL 0x13d680.
  * Confirmed: OR byte [EAX+0xb7],0x8 at 0x136958.
- * Confirmed: FUN_000ce450 (first child) at CALL 0xce450.
- * Confirmed: FUN_000ce320 (next child) at CALL 0xce320.
+ * Confirmed: object_list_get_first (first child) at CALL 0xce450.
+ * Confirmed: object_list_get_next (next child) at CALL 0xce320.
  */
 void object_cannot_take_damage(int player_handle)
 {
@@ -232,11 +232,11 @@ void object_cannot_take_damage(int player_handle)
   int object_index;
   char *obj;
 
-  object_index = FUN_000ce450(player_handle, &iter_state);
+  object_index = object_list_get_first(player_handle, &iter_state);
   while (object_index != -1) {
     obj = (char *)object_get_and_verify_type(object_index, -1);
     *(unsigned char *)(obj + 0xb7) |= 0x8;
-    object_index = FUN_000ce320(player_handle, &iter_state);
+    object_index = object_list_get_next(player_handle, &iter_state);
   }
 }
 
@@ -604,7 +604,7 @@ void FUN_00136bc0(int current_object_handle, void *collision_model,
       body_amount = body_amount - shield_amount;
       HALO_FLT_ROUNDTRIP(body_amount); /* FSTP [EBP-0xc] at 0x136d33 */
       if ((*flags & 0x10) != 0 && (*flags & 0x20) != 0) {
-        difficulty_scale = FUN_000b5590(0);
+        difficulty_scale = game_difficulty_get_value(0);
         if (difficulty_scale > 0.0f) {
           shield_amount = shield_amount / difficulty_scale;
           HALO_FLT_ROUNDTRIP(shield_amount); /* FSTP [EBP-8] at 0x136d58 */
@@ -708,7 +708,7 @@ void FUN_00136bc0(int current_object_handle, void *collision_model,
  *   jpt_tag+0x1f4 * obje+0x20 * (1/30.0f)
  *
  * Switches on the object type (obj+0x64):
- *   case 0 (biped):   calls FUN_001a4a70 (biped acceleration)
+ *   case 0 (biped):   calls biped_accelerate (biped acceleration)
  *   case 1 (vehicle): optionally doubles velocity if jpt+0x1c8 flag set,
  *                     calls vehicle_accelerate (vehicle acceleration)
  *   case 2,3,4 (items): calls item_accelerate with flag based on
@@ -780,16 +780,16 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
 
     switch (obj_type) {
     case 5:
-      projectile_accelerate(object_handle, velocity);
+      projectile_accelerate(object_handle, (real_vector3d *)velocity);
       break;
     case 2:
     case 3:
     case 4:
       if (*(float *)(dd + 0x40) > 0.5f &&
           (*(unsigned char *)(jpt_tag + 0x1c8) & 0x20) != 0) {
-        item_accelerate(object_handle, velocity, 1);
+        item_accelerate(object_handle, (real_vector3d *)velocity, 1);
       } else {
-        item_accelerate(object_handle, velocity, 0);
+        item_accelerate(object_handle, (real_vector3d *)velocity, 0);
       }
       break;
     case 0:
@@ -797,14 +797,14 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
       if (*(float *)(jpt_tag + 0x1f4) > 0.0001f &&
           (*(unsigned int *)((char *)obj + 0x1b4) & 0x800000) == 0) {
         if (obj_type == 0) {
-          FUN_001a4a70(object_handle, velocity);
+          biped_accelerate(object_handle, velocity);
         } else if (obj_type == 1) {
           if ((*(unsigned char *)(jpt_tag + 0x1c8) & 0x20) != 0) {
             velocity[0] = velocity[0] + velocity[0];
             velocity[1] = velocity[1] + velocity[1];
             velocity[2] = velocity[2] + velocity[2];
           }
-          vehicle_accelerate(object_handle, velocity);
+          vehicle_accelerate(object_handle, (real_vector3d *)velocity);
         }
       }
       break;
@@ -1295,7 +1295,7 @@ void object_damage_body(int object_handle, int region_index, int node_index,
       /* 0x1378b6 FST [EBP+0x34]: this arm reloads the narrowed copy
        * (FDIVR / FLD [EBP+0x34]); the other arm keeps ST(0) wide. */
       HALO_FLT_ROUNDTRIP(applied);
-      distance_scale = FUN_000b5590(0);
+      distance_scale = game_difficulty_get_value(0);
       if (distance_scale > 0.0f) {
         applied = applied / distance_scale;
       }
@@ -1473,7 +1473,7 @@ void object_damage_body(int object_handle, int region_index, int node_index,
  * 2 cdecl args. Confirmed: ai_adjust_damage(player_index, damage_params,
  * &scale) at 0x137e19, 3 args. Confirmed:
  * game_allegiance_get_team_is_friendly(team_a, team_b) at 0x137e54. Confirmed:
- * FUN_000b5590(0) at 0x137e62, returns float on FPU. Confirmed: object parent
+ * game_difficulty_get_value(0) at 0x137e62, returns float on FPU. Confirmed: object parent
  * chain walk via +0xcc at 0x137ec6. Confirmed:
  * object_get_and_verify_type(handle, -1) at 0x137eec. Confirmed:
  * tag_get(0x6f626a65, *obj) at 0x137efb for object definition. Confirmed:
@@ -1491,7 +1491,7 @@ void object_damage_body(int object_handle, int region_index, int node_index,
  */
 /* impact_direction is a POINTER, not a bitmask.  Callers pass either a surface
  * plane's normal (unit_cause_continuous_melee_damage melee lunge, via
- * FUN_0010a1c0 + plane_negate) or a normalized velocity (projectiles.c area
+ * matrix4x3_transform_plane + plane_negate) or a normalized velocity (projectiles.c area
  * damage, col_result+0x24), and NULL when there is no impact direction to
  * report.  It is forwarded untouched to FUN_001377d0 and ends up as the damage
  * effect's forward vector, which effects.c:0x461 validates with
@@ -1620,7 +1620,7 @@ void object_cause_damage(void *damage_params, int object_handle,
       game_allegiance_get_team_is_friendly(*(short *)((char *)dp + 0x10), 1);
     if (cVar == 0)
       goto after_modifier;
-    modifier = FUN_000b5590(0);
+    modifier = game_difficulty_get_value(0);
     was_modified = 1;
   }
   damage_scale = modifier * damage_scale;
@@ -2004,7 +2004,7 @@ after_modifier:
  * Confirmed: FCOMP [0x2533c0] compares magnitude with 0.0f.
  * Confirmed: FMUL [0x255e94] multiplies by -1.0f for negative incident.
  * Confirmed: object_get_world_position at CALL 0x1412f0 =
- * object_get_world_position. Confirmed: FUN_0010c8e0 at CALL 0x10c8e0 = reflect
+ * object_get_world_position. Confirmed: reflect_vector3d at CALL 0x10c8e0 = reflect
  * vector. Confirmed: CMP ESI,-1 at 0x1372f9 + CMP AX,0xffff at 0x137303 gate
  *            between effect_new_attached_from_markers and
  * effect_new_unattached_from_markers. Confirmed: 12 pushes + ADD ESP,0x30 for
@@ -2083,14 +2083,14 @@ void FUN_00137170(float *incident_direction, float *surface_normal,
     forward_vectors[1] = direction[1];
     forward_vectors[2] = direction[2];
     /* Reflect normal about direction */
-    FUN_0010c8e0(normal, direction, &forward_vectors[9]);
+    reflect_vector3d(normal, direction, &forward_vectors[9]);
   } else {
     /* forward[0] = surface normal ("normal") */
     forward_vectors[0] = surface_normal[0];
     forward_vectors[1] = surface_normal[1];
     forward_vectors[2] = surface_normal[2];
     /* Reflect normal about surface normal */
-    FUN_0010c8e0(normal, surface_normal, &forward_vectors[9]);
+    reflect_vector3d(normal, surface_normal, &forward_vectors[9]);
   }
 
   /* Fill all 5 marker positions with the same impact position */
@@ -2357,7 +2357,7 @@ stun_body:
  *    explosion origin to the object gates the damage.
  *  - Falloff fraction: clamp(1 - (distance - jpt_min)/(jpt_max - jpt_min),
  *    0, 1); 1.0f when jpt_max <= jpt_min.
- *  - A probabilistic "jostle" adjustment (FUN_000b5590(8) vs
+ *  - A probabilistic "jostle" adjustment (game_difficulty_get_value(8) vs
  *    random_math_real) is evaluated when the target is a unit
  *    (unit_tag+0x17c bit 0x80000) and not the damage owner.
  * Uncertain: the exact game-design intent of the jpt+0x1c8 bit0 (self
@@ -2513,7 +2513,7 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
               object_handle != *(int *)((char *)damage_params + 0xc)) {
             float jostle_chance;
 
-            jostle_chance = FUN_000b5590(8);
+            jostle_chance = game_difficulty_get_value(8);
             may_apply_damage = 1;
             if ((jostle_chance > *(float *)0x2533c0 ||
                  (*(unsigned int *)(jpt_tag + 0x1c8) & 0x400) != 0) &&
@@ -2598,7 +2598,7 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
  * effect radius via object_find_in_radius, applies damage to each via
  * area_of_effect_cause_damage_to_object, then processes breakable surfaces
  * via FUN_00146be0. */
-void FUN_00138e30(void *damage_params, int target_index)
+void area_of_effect_cause_damage(void *damage_params, int target_index)
 {
   char *tag;
   int16_t count;

@@ -540,7 +540,7 @@ void render_camera_screen_to_world(camera_t *camera, float *frustum,
 
   *world_point = camera->field_00;
 
-  matrix_scale_transform_vector(frustum + 17, view_vector, world_vector);
+  matrix_scale_transform_vector(frustum + 17, (real_vector3d *)view_vector, (real_vector3d *)world_vector);
 }
 
 /* Compute the adjusted FOV tangent for the render camera.
@@ -934,7 +934,7 @@ char render_camera_world_to_screen(void *camera, float *frustum,
   assert_halt_at("c:\\halo\\SOURCE\\render\\render_cameras.c", 0x3c4,
                  screen_point);
 
-  matrix_transform_point(frustum + 4, world_point, view_point);
+  matrix_transform_point(frustum + 4, (real_point3d *)world_point, (real_point3d *)view_point);
   return render_camera_view_to_screen((int *)camera, (int *)frustum, view_point,
                                       screen_point);
 }
@@ -978,8 +978,8 @@ void render_camera_debug_frustum(camera_t *camera, void *frustum)
         points[j + 1][i + 1].y = (real)i * tangent;
         points[j + 1][i + 1].z = -1.0f;
         matrix_transform_point((float *)&((render_frustum_t *)frustum)->field_44,
-                               (float *)&points[j + 1][i + 1],
-                               (float *)&points[j + 1][i + 1]);
+                               (real_point3d *)&points[j + 1][i + 1],
+                               (real_point3d *)&points[j + 1][i + 1]);
       }
     }
 
@@ -1046,10 +1046,10 @@ void render_camera_mirror(camera_t *camera, render_mirror_t *mirror,
       adjusted_plane = plane;
     }
 
-    FUN_0010c8e0((float *)&camera->field_0c, adjusted_plane.normal,
-                 (float *)&result->field_0c);
-    FUN_0010c8e0((float *)&camera->field_18, adjusted_plane.normal,
-                 (float *)&result->field_18);
+    reflect_vector3d((real_vector3d *)&camera->field_0c, (real_vector3d *)adjusted_plane.normal,
+                 (real_vector3d *)&result->field_0c);
+    reflect_vector3d((real_vector3d *)&camera->field_18, (real_vector3d *)adjusted_plane.normal,
+                 (real_vector3d *)&result->field_18);
 
     assert_halt_msg_at("valid_real_vector3d(&result->forward)",
                        "c:\\halo\\SOURCE\\render\\render_cameras.c", 0xd9,
@@ -1240,7 +1240,7 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   normalize3d((real_vector3d *)&plane_normal);
   plane3d_from_point_and_normal_inline(&view_plane, global_origin3d,
                                        &plane_normal);
-  FUN_0010a1c0(&fr->field_44.scale, view_plane.normal, fr->field_78[0].normal);
+  matrix4x3_transform_plane(&fr->field_44.scale, view_plane.normal, fr->field_78[0].normal);
 
   plane_normal.x = projection_x_scale;
   plane_normal.y = 0.0f;
@@ -1248,7 +1248,7 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   normalize3d((real_vector3d *)&plane_normal);
   plane3d_from_point_and_normal_inline(&view_plane, global_origin3d,
                                        &plane_normal);
-  FUN_0010a1c0(&fr->field_44.scale, view_plane.normal, fr->field_78[1].normal);
+  matrix4x3_transform_plane(&fr->field_44.scale, view_plane.normal, fr->field_78[1].normal);
 
   plane_normal.x = 0.0f;
   plane_normal.y = -projection_y_scale;
@@ -1257,7 +1257,7 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   normalize3d((real_vector3d *)&plane_normal);
   plane3d_from_point_and_normal_inline(&view_plane, global_origin3d,
                                        &plane_normal);
-  FUN_0010a1c0(&fr->field_44.scale, view_plane.normal, fr->field_78[2].normal);
+  matrix4x3_transform_plane(&fr->field_44.scale, view_plane.normal, fr->field_78[2].normal);
 
   plane_normal.x = 0.0f;
   plane_normal.y = projection_y_scale;
@@ -1265,19 +1265,19 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   normalize3d((real_vector3d *)&plane_normal);
   plane3d_from_point_and_normal_inline(&view_plane, global_origin3d,
                                        &plane_normal);
-  FUN_0010a1c0(&fr->field_44.scale, view_plane.normal, fr->field_78[3].normal);
+  matrix4x3_transform_plane(&fr->field_44.scale, view_plane.normal, fr->field_78[3].normal);
 
   view_plane.normal[0] = 0.0f;
   view_plane.normal[1] = 0.0f;
   view_plane.normal[2] = 1.0f;
   view_plane.d = -camera->z_near;
-  FUN_0010a1c0(&fr->field_44.scale, view_plane.normal, fr->field_78[4].normal);
+  matrix4x3_transform_plane(&fr->field_44.scale, view_plane.normal, fr->field_78[4].normal);
 
   view_plane.normal[0] = 0.0f;
   view_plane.normal[1] = 0.0f;
   view_plane.normal[2] = -1.0f;
   view_plane.d = camera->z_far;
-  FUN_0010a1c0(&fr->field_44.scale, view_plane.normal, fr->field_78[5].normal);
+  matrix4x3_transform_plane(&fr->field_44.scale, view_plane.normal, fr->field_78[5].normal);
 
   fr->field_d8 = camera->z_near;
   fr->field_dc = camera->z_far;
@@ -1294,29 +1294,29 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   view_point.x = far_left;
   view_point.y = far_bottom;
   view_point.z = -camera->z_far;
-  matrix_transform_point(&fr->field_44.scale, &view_point.x,
-                         &fr->field_e0[0].x);
+  matrix_transform_point(&fr->field_44.scale, &view_point,
+                         &fr->field_e0[0]);
   view_point.x = far_right;
   view_point.y = far_bottom;
   view_point.z = -camera->z_far;
-  matrix_transform_point(&fr->field_44.scale, &view_point.x,
-                         &fr->field_e0[1].x);
+  matrix_transform_point(&fr->field_44.scale, &view_point,
+                         &fr->field_e0[1]);
   view_point.x = far_left;
   view_point.y = far_top;
   view_point.z = -camera->z_far;
-  matrix_transform_point(&fr->field_44.scale, &view_point.x,
-                         &fr->field_e0[2].x);
+  matrix_transform_point(&fr->field_44.scale, &view_point,
+                         &fr->field_e0[2]);
   view_point.x = far_right;
   view_point.y = far_top;
   view_point.z = -camera->z_far;
-  matrix_transform_point(&fr->field_44.scale, &view_point.x,
-                         &fr->field_e0[3].x);
+  matrix_transform_point(&fr->field_44.scale, &view_point,
+                         &fr->field_e0[3]);
 
   fr->field_e0[4] = camera->field_00;
   view_point.x = -(inverse_projection_x_scale * half_z * bounds_center_x);
   view_point.y = -(inverse_projection_y_scale * half_z * bounds_center_y);
   view_point.z = -half_z;
-  matrix_transform_point(&fr->field_44.scale, &view_point.x, &fr->field_11c.x);
+  matrix_transform_point(&fr->field_44.scale, &view_point, &fr->field_11c);
 
   /* World AABB: x0,x1,y0,y1,z0,z1. */
   fr->field_128[0] = fr->field_128[1] = fr->field_e0[0].x;
@@ -1345,7 +1345,7 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
     real projection_scale;
 
     if (camera->z_near == 0.0f) {
-      FUN_0010a1c0(&fr->field_10.scale, camera->field_44, view_plane.normal);
+      matrix4x3_transform_plane(&fr->field_10.scale, camera->field_44, view_plane.normal);
     } else {
       view_plane.normal[0] = 0.0f;
       view_plane.normal[1] = 0.0f;
@@ -1732,7 +1732,7 @@ void render_contrail(void *contrail_datum, void *contrail_definition,
             perpendicular[0] = point->position.y - next_point->position.y;
             perpendicular[1] = next_point->position.x - point->position.x;
           }
-          normalize2d(perpendicular);
+          normalize2d((real_vector2d *)perpendicular);
           vertices[0].point.x =
             point->position.x - perpendicular[0] * half_width;
           vertices[0].point.y =

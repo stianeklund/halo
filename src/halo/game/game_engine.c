@@ -4733,7 +4733,7 @@ void game_engine_player_update_netgame_flag(int player_handle)
     candidate_pos[1] = ((netgame_flag *)next_goal_entry)->position_y;
     candidate_pos[2] = ((netgame_flag *)next_goal_entry)->position_z;
 
-    if (FUN_0014ec30(0x200380, candidate_pos, distance_a * 2.0f + distance_b,
+    if (collision_get_features_in_sphere(0x200380, (real_point3d *)candidate_pos, distance_a * 2.0f + distance_b,
                      distance_b, distance_a, -1, los_scratch) &&
         collision_features_test_los(los_scratch, candidate_pos, hit_info)) {
       int hit_object = *(int *)(hit_info + 0x20);
@@ -7921,9 +7921,9 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
     char is_transparent =
       shader_type_is_transparent(*(int16_t *)(shader + 0x24));
     if (is_transparent == 0)
-      FUN_0017cbc0(shader, 0, 0, widget_a, 2, 0, local_8);
+      rasterizer_model_draw(shader, 0, 0, widget_a, 2, 0, local_8);
     else
-      FUN_0017cbd0((void *)shader, 0, 0, widget_a, 2, 0, local_8, centroid,
+      rasterizer_model_transparent_geometry_submit((void *)shader, 0, 0, widget_a, 2, 0, local_8, centroid,
                    NULL);
   }
   FUN_0016b1c0();

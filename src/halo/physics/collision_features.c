@@ -14,7 +14,7 @@ void collision_features_init(void *features)
 /* 0x14ad60 — Render a collision sphere with the supplied debug color */
 void render_debug_collision_sphere(void *sphere, void *color)
 {
-  FUN_00189540(1, (char *)sphere + 0x0c, *(float *)((char *)sphere + 0x18),
+  render_debug_sphere(1, (char *)sphere + 0x0c, *(float *)((char *)sphere + 0x18),
                color);
 }
 
@@ -161,7 +161,7 @@ void collision_features_from_line(float *param_1, float *param_2, float param_3,
       *(int *)(iVar9 + 0x24) = param_4;
     }
     perpendicular2d(param_2, perp);
-    if (normalize2d(perp) != 0.0f) {
+    if (normalize2d((real_vector2d *)perp) != 0.0f) {
       /* build 4 vertices; pts[0..2]=start, pts[3..5]=end, pts[6..8]=end_low,
        * pts[9..11]=start_low */
       pts[0] = param_1[0];
@@ -373,7 +373,7 @@ void collision_features_from_vertex(int param_1, int param_2, int param_3,
   }
 
   if (param_3 != 0) {
-    matrix_transform_point((float *)param_3, (float *)elem, local_10);
+    matrix_transform_point((float *)param_3, (real_point3d *)elem, (real_point3d *)local_10);
     elem = local_10;
   }
 
@@ -431,11 +431,11 @@ void collision_features_from_polygon(int param_1, int object_handle,
 
     if ((uVar1 & 0x7fffffff) != (uVar2 & 0x7fffffff)) {
       if ((int)local_5 == (int)((*puVar4 & 0x80000000) != 0)) {
-        if (triple_product3d((float *)local_14, (float *)uVar6, local_24) <=
+        if (triple_product3d((real_vector3d *)local_14, (real_vector3d *)uVar6, (real_vector3d *)local_24) <=
             -1.0e-4f)
           return;
       } else {
-        if (triple_product3d((float *)local_14, (float *)uVar6, local_24) >=
+        if (triple_product3d((real_vector3d *)local_14, (real_vector3d *)uVar6, (real_vector3d *)local_24) >=
             1.0e-4f)
           return;
       }
@@ -450,11 +450,11 @@ void collision_features_from_polygon(int param_1, int object_handle,
       pfVar5 = local_24;
     } else {
       matrix_scale_transform_vector(
-        (float *)param_3, local_24,
-        local_24); /* dup-args-ok: in-place transform, confirmed LEA [EBP-0x24]
+        (float *)param_3, (real_vector3d *)local_24,
+        (real_vector3d *)local_24); /* dup-args-ok: in-place transform, confirmed LEA [EBP-0x24]
                       pushed twice */
       pfVar5 = local_24;
-      matrix_transform_point((float *)param_3, pfVar7, local_34);
+      matrix_transform_point((float *)param_3, (real_point3d *)pfVar7, (real_point3d *)local_34);
       pfVar7 = local_34;
     }
 
@@ -491,12 +491,12 @@ void FUN_0014b620(int param_1, int param_2, int param_3, int param_4,
       unsigned int n = (unsigned short)(short)point_count_packed;
       float *p = points;
       do {
-        matrix_transform_point((float *)param_3, p, p);
+        matrix_transform_point((float *)param_3, (real_point3d *)p, (real_point3d *)p);
         p += 3;
         n--;
       } while (n != 0);
     }
-    FUN_0010a1c0((float *)param_3, plane,
+    matrix4x3_transform_plane((float *)param_3, plane,
                  plane); /* dup-args-ok: in-place transform, confirmed LEA
                             [EBP-0x14] pushed twice */
   }
@@ -899,7 +899,7 @@ char collision_sphere_test_vector(void *feature, float *point, float *vector,
  * *t_out = t0 and the plane through the hit point perpendicular to the axis
  * ({1,0,0} when degenerate), plane[3] = dot(base, normal) + radius.
  * Confirmed: cdecl, 5 args; returns AL; 0x2533c8 = 1.0f; FUN_00012f80 =
- *   vector3d_scale_add(base, dir, scale, out); FUN_00013070(a, b) is a
+ *   vector3d_scale_add(base, dir, scale, out); dot_product3d(a, b) is a
  *   float-returning 3-vector product used as dot(base, normal).
  * Status: dormant (ported=false). */
 char collision_cylinder_test_vector(void *feature, float *point, float *vector,
@@ -982,18 +982,18 @@ char collision_cylinder_test_vector(void *feature, float *point, float *vector,
   }
 
   *t_out = t0;
-  vector3d_scale_add(d, vector, t0, hit);
+  vector3d_scale_add((real_point3d *)d, (real_vector3d *)vector, t0, (real_point3d *)hit);
   vector3d_scale_add(
-    hit, axis,
+    (real_point3d *)hit, (real_vector3d *)axis,
     -((hit[1] * axis[1] + hit[2] * axis[2] + hit[0] * axis[0]) / axis_sq),
-    plane_out);
+    (real_point3d *)plane_out);
   if (normalize3d((real_vector3d *)plane_out) == *(float *)0x2533c0) {
     plane_out[0] = 1.0f;
     plane_out[1] = 0.0f;
     plane_out[2] = 0.0f;
   }
   plane_out[3] =
-    FUN_00013070((float *)(cyl + 0x0c), plane_out) + *(float *)(cyl + 0x24);
+    dot_product3d((real_vector3d *)(cyl + 0x0c), (real_vector3d *)plane_out) + *(float *)(cyl + 0x24);
   return 1;
 }
 
@@ -1121,7 +1121,8 @@ char collision_prism_test_vector(void *feature, float *point, float *vector,
  * (+0x10.. untouched); returns 1 otherwise.
  * Confirmed: best t starts at 0x7f7fffff (FLT_MAX); strict t < best.
  * Status: dormant (ported=false). */
-char FUN_0014c4b0(int arg1, float *arg2, float *arg3, void *out_result)
+char collision_features_test_vector(int arg1, real_point3d const *point,
+                                    real_vector3d const *vector, void *out_result)
 {
   char *features = (char *)arg1;
   float *result = (float *)out_result;
@@ -1142,18 +1143,21 @@ char FUN_0014c4b0(int arg1, float *arg2, float *arg3, void *out_result)
   for (type = 0; type < 3; type++) {
     for (i = 0; i < *(short *)(features + type * 2); i++) {
       if (type == 0)
-        hit = collision_sphere_test_vector(features + 8 + i * 0x1c, arg2, arg3,
+        hit = collision_sphere_test_vector(features + 8 + i * 0x1c,
+                                           (float *)point, (float *)vector,
                                            &t, plane);
       else if (type == 1)
-        hit = collision_cylinder_test_vector(features + 0x1c08 + i * 0x28, arg2,
-                                             arg3, &t, plane);
+        hit = collision_cylinder_test_vector(features + 0x1c08 + i * 0x28,
+                                             (float *)point, (float *)vector,
+                                             &t, plane);
       else if (type == 2)
-        hit = collision_prism_test_vector(features + 0x4408 + i * 0x68, arg2,
-                                          arg3, &t, plane);
+        hit = collision_prism_test_vector(features + 0x4408 + i * 0x68,
+                                          (float *)point, (float *)vector,
+                                          &t, plane);
       else
         continue;
       if (hit && best_t > t &&
-          plane[1] * arg3[1] + plane[2] * arg3[2] + plane[0] * arg3[0] <
+          plane[1] * vector->j + plane[2] * vector->k + plane[0] * vector->i <
             *(float *)0x26a810) {
         best_t = t;
         best_type = type;
@@ -1168,16 +1172,16 @@ char FUN_0014c4b0(int arg1, float *arg2, float *arg3, void *out_result)
 
   if (best_type == -1) {
     *(int *)&result[0] = 0x3f800000;
-    result[1] = arg2[0] + arg3[0];
-    result[2] = arg2[1] + arg3[1];
-    result[3] = arg2[2] + arg3[2];
+    result[1] = point->x + vector->i;
+    result[2] = point->y + vector->j;
+    result[3] = point->z + vector->k;
     return 0;
   }
 
   result[0] = best_t;
-  result[1] = best_t * arg3[0] + arg2[0];
-  result[2] = best_t * arg3[1] + arg2[1];
-  result[3] = best_t * arg3[2] + arg2[2];
+  result[1] = best_t * vector->i + point->x;
+  result[2] = best_t * vector->j + point->y;
+  result[3] = best_t * vector->k + point->z;
   *(int *)&result[4] = *(int *)&best_plane[0];
   *(int *)&result[5] = *(int *)&best_plane[1];
   *(int *)&result[6] = *(int *)&best_plane[2];

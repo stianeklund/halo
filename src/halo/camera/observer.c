@@ -143,7 +143,7 @@ unit_camera_t *unit_camera_get(int unit_handle /* @<eax> */)
       vehicle_definition =
         tag_get('vehi', vehicle->tag_index);
       seat = tag_block_get_element(
-        &vehicle_definition->seats, (int)(int16_t)unit->parent_seat_index,
+        &vehicle_definition->seats, (int)unit->parent_seat_index,
         sizeof(unit_seat_t));
       if ((seat->flags & 0x15) != 0) {
         seat_camera = &seat->camera;
@@ -371,7 +371,7 @@ void following_camera_update(void *camera_data, void *control_data,
   camera->seat_index = info.seat_index;
   if (info.camera != NULL) {
     unit = object_get_and_verify_type(info.unit_index, 3);
-    crouched = (unit->unk_440 & 1) || (unit->unk_440 & 2);
+    crouched = (unit->control_flags & 1) || (unit->control_flags & 2);
     if (crouched != camera->crouched) {
       result->field_4c[1] = 1;
       result->field_54[1] =
@@ -402,8 +402,8 @@ void following_camera_update(void *camera_data, void *control_data,
       "magnitude3d(&result->forward) > 0.9999f && "
       "magnitude3d(&result->forward) < 1.0001f",
       "c:\\halo\\SOURCE\\camera\\following_camera.c", 0xd4,
-      (real)x87_sqrtd(magnitude_squared3d(&result->forward)) > 0.999899983f &&
-        (real)x87_sqrtd(magnitude_squared3d(&result->forward)) < 1.00010002f);
+      (real)x87_sqrtd(magnitude_squared3d_inline(&result->forward)) > 0.999899983f &&
+        (real)x87_sqrtd(magnitude_squared3d_inline(&result->forward)) < 1.00010002f);
     camera_track_splut(info.camera, facing.pitch, &track_offset);
     depth = (real)x87_sqrtd(track_offset.i * track_offset.i +
                             track_offset.j * track_offset.j +
@@ -1284,8 +1284,8 @@ void observer_check_penetration(const real_vector3d *up, real *focus_distance,
   step = *focus_distance * observer_near_plane_scale;
   perturbations[0] = *up;
   cross_product3d_inline(up, forward, &perturbations[1]);
-  scale_vector3d(&perturbations[0], step, &perturbations[0]); /* dup-args-ok: in-place */
-  scale_vector3d(&perturbations[1], step, &perturbations[1]); /* dup-args-ok: in-place */
+  scale_vector3d_inline(&perturbations[0], step, &perturbations[0]); /* dup-args-ok: in-place */
+  scale_vector3d_inline(&perturbations[1], step, &perturbations[1]); /* dup-args-ok: in-place */
 
   for (probe_index = 0; probe_index < 4; probe_index++) {
     real sign = (probe_index & 2) ? 1.0f : -1.0f;

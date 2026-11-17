@@ -331,7 +331,7 @@ group_allocated:
 
   if (shader_base->shader_type == 1) {
     effect_shader = (rasterizer_dynavobgeom_effect_shader_t *)
-      FUN_001906b0(shader, 1);
+      shader_get_and_verify_type(shader, 1);
     if ((effect_shader->flags & 1) != 0) {
       group->z_sort += *(const real *)0x25337c;
     }

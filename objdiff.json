@@ -2928,7 +2928,7 @@
    }
   },
   {
-   "name": "halo/FUN_0017cbc0",
+   "name": "halo/rasterizer_model_draw",
    "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/decals.c.obj",
    "base_path": "delinked/functions/0017cbc0.obj",
    "metadata": {
@@ -2936,7 +2936,7 @@
    }
   },
   {
-   "name": "halo/FUN_0017cbd0",
+   "name": "halo/rasterizer_model_transparent_geometry_submit",
    "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/decals.c.obj",
    "base_path": "delinked/functions/0017cbd0.obj",
    "metadata": {
@@ -2984,7 +2984,7 @@
    }
   },
   {
-   "name": "halo/FUN_0017ccd0",
+   "name": "halo/rasterizer_shadow_model_draw",
    "target_path": "build/CMakeFiles/halo.dir/src/halo/effects/decals.c.obj",
    "base_path": "delinked/functions/0017ccd0.obj",
    "metadata": {

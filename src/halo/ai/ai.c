@@ -14,7 +14,7 @@
  * The squad word is passed as a full dword slot in the original (upper half
  * left from the spawn_tag argument slot). Returns the number of actors
  * created (MOV AX,DI). */
-int16_t FUN_0003f350(int unit_handle, int spawn_tag, int16_t count, float radius)
+int16_t actors_spawn_from_unit(int unit_handle, int spawn_tag, int16_t count, float radius)
 {
   char *unit;
   char *actv;
@@ -54,7 +54,7 @@ int16_t FUN_0003f350(int unit_handle, int spawn_tag, int16_t count, float radius
           angle = random_real_range(get_global_random_seed_address(), 0.0f,
                                     2.f * _pi);
           object_placement_data_new(&placement, *(int *)(actv + 0x20), NONE);
-          vector3d_from_angle((float *)&placement.forward, angle);
+          vector3d_from_angle((real_vector3d *)&placement.forward, angle);
           object_get_world_position(unit_handle,
                                     (vector3_t *)&placement.position_x);
           placement.position_x =
@@ -89,7 +89,7 @@ int16_t FUN_0003f350(int unit_handle, int spawn_tag, int16_t count, float radius
                 velocity[1] = placement.forward.y * speed * radius;
                 velocity[2] = vertical_speed * radius;
                 if (*(int16_t *)(spawned + 0x64) == 0) {
-                  FUN_001a4a70(spawned_handle, velocity);
+                  biped_accelerate(spawned_handle, velocity);
                 }
               }
               created++;
@@ -257,9 +257,9 @@ void ai_globals_grenades_enabled(char param_1)
  *   random_chance — the probability [0,1] fetched from game globals difficulty
  *
  * Force-type mapping (from assert string: "force_major && is_random &&
- * random_chance"): 1 (default): is_random=1, random_chance=FUN_000b5590(0x1c)
- * (normal random) 2:           is_random=1, random_chance=FUN_000b5590(0x1d)
- * (variant 1) 3:           is_random=1, random_chance=FUN_000b5590(0x1e)
+ * random_chance"): 1 (default): is_random=1, random_chance=game_difficulty_get_value(0x1c)
+ * (normal random) 2:           is_random=1, random_chance=game_difficulty_get_value(0x1d)
+ * (variant 1) 3:           is_random=1, random_chance=game_difficulty_get_value(0x1e)
  * (variant 2) 4:           is_random=0, force_major=0  (non-random, non-major)
  *   5:           is_random=0, force_major=1  (non-random, major)
  *
@@ -268,7 +268,7 @@ void ai_globals_grenades_enabled(char param_1)
  * Confirmed: MOVSX EAX, word [EBP+8]; DEC EAX; CMP EAX,3; JA default (jump
  * table 1-4). Confirmed: ESI=[EBP+0x10]=is_random, EDI=[EBP+0xc]=force_major,
  * EBX=[EBP+0x14]=random_chance. Confirmed: case 1 at 0x3f8b2: MOV [ESI],1; PUSH
- * 0x1d; CALL FUN_000b5590; FSTP [EBX]. Confirmed: case 2 at 0x3f8c6: MOV
+ * 0x1d; CALL game_difficulty_get_value; FSTP [EBX]. Confirmed: case 2 at 0x3f8c6: MOV
  * [ESI],1; PUSH 0x1e; CALL; FSTP [EBX]. Confirmed: case 3 at 0x3f89c: MOV
  * [ESI],0; MOV [EDI],0. Confirmed: case 4 at 0x3f8a7: MOV [ESI],0; MOV [EDI],1.
  * Confirmed: default at 0x3f8da: MOV [ESI],1; PUSH 0x1c; CALL; FSTP [EBX].
@@ -292,15 +292,15 @@ void ai_get_major_upgrade_chance(int16_t param_1, char *force_major,
     return;
   case 1:
     *is_random = 1;
-    *random_chance = FUN_000b5590(0x1d);
+    *random_chance = game_difficulty_get_value(0x1d);
     return;
   case 2:
     *is_random = 1;
-    *random_chance = FUN_000b5590(0x1e);
+    *random_chance = game_difficulty_get_value(0x1e);
     return;
   default:
     *is_random = 1;
-    *random_chance = FUN_000b5590(0x1c);
+    *random_chance = game_difficulty_get_value(0x1c);
     return;
   }
 }
@@ -1105,7 +1105,7 @@ void ai_update_team_status(void)
  * [EBP+10]=velocity_ptr (ignored). The third arg is pushed by
  * biped_bumped_object but never accessed by this function.
  */
-void ai_handle_bump(int param_1, int param_2, float *velocity_ptr)
+void ai_handle_bump(int param_1, int param_2, real_vector3d *velocity_ptr)
 {
   void *obj2;
   void *obj1;
@@ -2247,7 +2247,9 @@ bool ai_test_line_of_fire(int actor_handle, int excluded_handle, float *origin,
            * FSTP [ESP] after PUSH ECX (dummy). Confirmed at 0x41600:
            * FLD [EBP+EAX+0xfffffb1c]; PUSH ECX; FSTP [ESP]. */
           hit =
-            fast_vector_intersects_sphere(origin, offset, e->vec_a, e->radius);
+            fast_vector_intersects_sphere(
+              (real_point3d *)origin, (real_vector3d *)offset,
+              (real_point3d *)e->vec_a, e->radius);
         } else {
           hit = vector_intersects_pill3d(origin, offset, e->vec_a, e->vec_b,
                                          e->scalar_a);
@@ -2415,21 +2417,21 @@ int ai_test_line_of_sight(float *origin, int bsp, float *target, int param_4,
     ++*(short *)0x5ac5d4;
     side[2] = origin[2] - scaled_z;
     if (no_hit) {
-      if (FUN_000130d0(flags, point_a, target, param_7,
+      if (collision_test_line(flags, point_a, target, param_7,
                        (int16_t *)&collision)) {
         goto visible;
       }
       ++*(short *)0x5ac5d4;
-      if (FUN_000130d0(flags, side, target, param_7, (int16_t *)&collision)) {
+      if (collision_test_line(flags, side, target, param_7, (int16_t *)&collision)) {
         goto visible;
       }
     } else {
-      if (!FUN_000130d0(flags, point_a, target, param_7,
+      if (!collision_test_line(flags, point_a, target, param_7,
                         (int16_t *)&collision)) {
         goto visible;
       }
       ++*(short *)0x5ac5d4;
-      if (!FUN_000130d0(flags, side, target, param_7, (int16_t *)&collision)) {
+      if (!collision_test_line(flags, side, target, param_7, (int16_t *)&collision)) {
         goto visible;
       }
     }
@@ -2439,19 +2441,19 @@ int ai_test_line_of_sight(float *origin, int bsp, float *target, int param_4,
   if (!no_hit) {
     goto distance_test;
   }
-  vector3d_scale_add(target, side, 0.1f, point_a);
-  vector3d_scale_add(target, side, -0.1f, point_b);
-  vector3d_scale_add(target, *(float **)0x31fc50, 0.1f, side);
+  vector3d_scale_add((real_point3d *)target, (real_vector3d *)side, 0.1f, (real_point3d *)point_a);
+  vector3d_scale_add((real_point3d *)target, (real_vector3d *)side, -0.1f, (real_point3d *)point_b);
+  vector3d_scale_add((real_point3d *)target, (real_vector3d *)(*(float **)0x31fc50), 0.1f, (real_point3d *)side);
   ++*(short *)0x5ac5d4;
-  if (FUN_000130d0(flags, point_a, origin, param_7, (int16_t *)&collision)) {
+  if (collision_test_line(flags, point_a, origin, param_7, (int16_t *)&collision)) {
     goto visible;
   }
   ++*(short *)0x5ac5d4;
-  if (FUN_000130d0(flags, point_b, origin, param_7, (int16_t *)&collision)) {
+  if (collision_test_line(flags, point_b, origin, param_7, (int16_t *)&collision)) {
     goto visible;
   }
   ++*(short *)0x5ac5d4;
-  if (FUN_000130d0(flags, side, origin, param_7, (int16_t *)&collision)) {
+  if (collision_test_line(flags, side, origin, param_7, (int16_t *)&collision)) {
     goto visible;
   }
 

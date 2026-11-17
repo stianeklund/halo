@@ -7,14 +7,49 @@
 #include "../../common.h"
 #include "../../x87_math.h"
 #include "halo/math/rng_trace.h"
+#include "bipeds.h"
+#include "unit_definitions.h"
+#include "units_globals.h"
+#include "biped_definitions.h"
+#include "game_globals_definitions.h"
 
-/* FUN_0019fa20 (0x19fa20) — limp-noodle joint relaxation (dormant)
+/* animation_graph_t::nodes element (stride 0x40). */
+typedef struct animation_graph_node_t {
+  uint8_t pad_00[0x20];
+  int16_t next_sibling_node_index;            /* +0x20 */
+  int16_t first_child_node_index;             /* +0x22 */
+  int16_t parent_node_index;                  /* +0x24 */
+  uint8_t pad_26[2];
+  uint32_t flags;                             /* +0x28 */
+  uint8_t pad_2c[0x14];
+} animation_graph_node_t;
+cs(animation_graph_node_t, 0x40);
+co(animation_graph_node_t, next_sibling_node_index, 0x20);
+co(animation_graph_node_t, parent_node_index, 0x24);
+co(animation_graph_node_t, flags, 0x28);
+
+/* 'mode' tag definition; only the nodes block is modelled (size unproven). */
+typedef struct model_definition_t {
+  uint8_t pad_00[0xb8];
+  tag_block nodes;                            /* +0xb8 */
+} model_definition_t;
+co(model_definition_t, nodes, 0xb8);
+
+/* model_definition_t::nodes element (stride 0x9c). */
+typedef struct model_node_t {
+  uint8_t pad_00[0x44];
+  real node_distance_from_parent;             /* +0x44 */
+  uint8_t pad_48[0x54];
+} model_node_t;
+cs(model_node_t, 0x9c);
+co(model_node_t, node_distance_from_parent, 0x44);
+
+/* biped_limp_noodle_move_relax_and_constrain_positions (0x19fa20) — limp-noodle joint relaxation (dormant)
  *
  * Debug assertion path: c:\halo\SOURCE\units\biped_limp_noodle.c (lines
  * 0x13f / 0x212). Pushes collision user 0x12, clamps the animation-graph
  * noodle radius (antr+0x60) to 0.03 when |r| < 1e-4, r < 0 or r > 0.07, then
- * runs four passes of a breadth-first walk over the antr node block (+0x68,
- * 0x40-byte elements: +0x20 first child, +0x22 next sibling, +0x24 parent).
+ * runs four passes of a breadth-first walk over the animation graph nodes.
  * Every non-root node is pushed out of collision along a parent->node ray and
  * pulled back toward its mode-tag rest length (mode node block +0xb8, 0x9c
  * stride, +0x44).
@@ -22,31 +57,34 @@
  * Confirmed: early returns at biped+0x47d == 0, biped+0x47d >= 30 and
  * |frac| < 1e-4 skip the collision-user pop (original-binary behaviour; the
  * JBE/JNC/JNP all target the epilogue at 0x1a01bc, not the pop at 0x1a018b).
- * Confirmed: FUN_0014dab0 callers push 3 dwords (pos, radius, unit) but the
+ * Confirmed: collision_test_sphere callers push 3 dwords (pos, radius, unit) but the
  * callee only reads [EBP+8]/[EBP+0xc]; the unit handle is an ignored extra.
  * Confirmed: 0x19f540 receives the proposed position in ESI (LEA ESI,[-0xc8]).
  * Confirmed: the |cur| >= 1e-4 test is evaluated twice (0x19ffbf FCOM then
  * 0x19fff7 FCOMP of the same ST0) — kept as in the binary.
  */
-void FUN_0019fa20(int unit_handle, void *node_block) {
+void biped_limp_noodle_move_relax_and_constrain_positions(int unit_handle, void *node_block) {
   int16_t queue[64];               /* [EBP-0x148] */
   char collisions[0x1b8];          /* [EBP-0x300] */
-  float new_pos[3];                /* [EBP-0xc8] */
-  float new_vel[3];                /* [EBP-0xb4] */
+  real_point3d new_pos;                /* [EBP-0xc8] */
+  real_vector3d new_vel;                /* [EBP-0xb4] */
   unsigned long bits[2];           /* [EBP-0xbc] */
-  float ray_start[3];              /* [EBP-0xa8] */
-  int16_t collision_result[40];    /* [EBP-0x9c] */
-  float delta[3];                  /* [EBP-0x18] */
+  real_point3d ray_start;          /* [EBP-0xa8] */
+  struct collision_result collision; /* [EBP-0x9c] */
+  real_vector3d delta;             /* [EBP-0x18] */
   float step[3];                   /* [EBP-0x2c] */
   float dist[2];                   /* [EBP-0x38] */
   unsigned char touching[2];       /* [EBP-0x1c] */
-  char *biped;
+  real_matrix4x3 *node_matrices = node_block;
+  biped_data_t *biped;
   char *bipd;
-  char *antr;
-  char *node;
+  animation_graph_t *animation_graph;
+  animation_graph_node_t *node;
+  model_definition_t *model;
+  model_node_t *model_node;
   float *node_pos;
   float *parent_pos;
-  float *plane;
+  real_plane3d *plane;
   float *p;
   float radius;
   float frac;
@@ -64,42 +102,42 @@ void FUN_0019fa20(int unit_handle, void *node_block) {
   union {
     float f;
     int i;
-  } radius_bits; /* FUN_0014dab0 kb decl types the radius as int */
+  } radius_bits; /* collision_test_sphere kb decl types the radius as int */
 
-  biped = (char *)object_get_and_verify_type(unit_handle, 1);
-  bipd = (char *)tag_get(0x62697064, *(int *)biped);
-  antr = (char *)tag_get(0x616e7472, *(int *)(bipd + 0x44));
-  radius = *(float *)(antr + 0x60);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  bipd = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
+  animation_graph = tag_get(TAG_GROUP_ANTR, object_definition_animation_graph_index(bipd));
+  radius = animation_graph_definition_field_60(animation_graph);
 
-  if (*(int16_t *)0x4761d8 >= 0x20) {
+  if (global_current_collision_user_depth >= 0x20) {
     display_assert("global_current_collision_user_depth < "
                    "MAXIMUM_COLLISION_USER_STACK_DEPTH",
                    "c:\\halo\\SOURCE\\units\\biped_limp_noodle.c", 0x13f, 1);
     system_exit(-1);
   }
   {
-    int depth = (int)*(int16_t *)0x4761d8;
-    *(int16_t *)0x4761d8 += 1;
-    *(int16_t *)(0x5a8c80 + depth * 2) = 0x12;
+    int depth = (int)global_current_collision_user_depth;
+    global_current_collision_user_depth += 1;
+    collision_user_stack[depth] = 0x12;
   }
 
-  if (fabs(radius) < *(double *)0x2533d0 || radius < 0.0f ||
+  if (fabs(radius) < REAL_EPSILON_DOUBLE_POOL || radius < 0.0f ||
       radius > 0.07f) {
     radius = 0.03f; /* 0x3cf5c28f */
   }
 
-  tick_count = *(unsigned char *)(biped + 0x47d);
+  tick_count = biped->limp_body_max_relaxation_iterations;
   if (tick_count == 0 || tick_count >= 0x1e)
     return;
-  tick = *(unsigned char *)(biped + 0x47c);
+  tick = biped->limp_body_current_relaxation_iterations;
   frac = (float)((int)tick + 1) / (float)(int)tick_count;
-  if (fabs(frac) < *(double *)0x2533d0)
+  if (fabs(frac) < REAL_EPSILON_DOUBLE_POOL)
     return;
 
   radius_bits.f = radius;
   if (tick < tick_count) {
-    FUN_0014ec30(0xc0a8, (float *)(biped + 0xc),
-                 *(float *)(biped + 0x5c) + 0.0625f, 0.0f, radius,
+    collision_get_features_in_sphere(0xc0a8, &biped->unit.object.position,
+                 biped->unit.object.unk_92 + 0.0625f, 0.0f, radius,
                  unit_handle, (void *)0x4d9de8);
     csmemset(bits, 0, 8);
 
@@ -110,53 +148,57 @@ void FUN_0019fa20(int unit_handle, void *node_block) {
       do {
         node_index = queue[(int16_t)head];
         head++;
-        node = (char *)tag_block_get_element(antr + 0x68, node_index, 0x40);
+        node = tag_block_get_element(&animation_graph->nodes, node_index,
+                                     sizeof(animation_graph_node_t));
         if (node_index != 0) {
           step[0] = 0.0f;
           step[1] = 0.0f;
           step[2] = frac * -0.032086614f; /* 0x2b4b7c */
-          node_pos = (float *)((char *)node_block + node_index * 0x34 + 0x28);
-          parent_pos = (float *)((char *)node_block +
-                                 *(int16_t *)(node + 0x24) * 0x34 + 0x28);
-          delta[0] = node_pos[0] - parent_pos[0];
-          delta[1] = node_pos[1] - parent_pos[1];
-          delta[2] = node_pos[2] - parent_pos[2];
+          node_pos = &node_matrices[node_index].position.x;
+          parent_pos =
+            &node_matrices[node->parent_node_index].position.x;
+          delta.i = node_pos[0] - parent_pos[0];
+          delta.j = node_pos[1] - parent_pos[1];
+          delta.k = node_pos[2] - parent_pos[2];
 
-          if (pass == 0 && !FUN_0014dab0((int)node_pos, radius_bits.i)) {
-            FUN_0014f2c0(node_pos, step, (short *)0x4d9de8, new_pos, new_vel,
+          if (pass == 0 && !collision_test_sphere((int)node_pos, radius_bits.i)) {
+            collision_move_point(node_pos, step, (short *)0x4d9de8, (float *)&new_pos, (float *)&new_vel,
                          3, (int)collisions);
-            if (fabs(new_vel[0]) < *(double *)0x2533d0 &&
-                fabs(new_vel[1]) < *(double *)0x2533d0) {
+            if (fabs(new_vel.i) < REAL_EPSILON_DOUBLE_POOL &&
+                fabs(new_vel.j) < REAL_EPSILON_DOUBLE_POOL) {
               biped_limp_noodle_valid_joint_rotation(
-                  new_pos, unit_handle, node_index, node_block, node_pos,
+                  (float *)&new_pos, unit_handle, node_index, node_block, node_pos,
                   bits);
             }
           }
 
-          delta[0] = node_pos[0] - parent_pos[0];
-          delta[1] = node_pos[1] - parent_pos[1];
-          delta[2] = node_pos[2] - parent_pos[2];
-          ray_start[0] = parent_pos[0] - delta[0] * 0.015f; /* 0x25abcc */
-          ray_start[1] = parent_pos[1] - delta[1] * 0.015f;
-          ray_start[2] = parent_pos[2] - delta[2] * 0.015f;
-          delta[0] *= 1.03f; /* 0x2b4b78 */
-          delta[1] *= 1.03f;
-          delta[2] *= 1.03f;
-          if (collision_test_vector(0xc0a8, (real_point3d *)ray_start, (real_vector3d *)delta, unit_handle,
-                           collision_result)) {
-            touching[0] = (unsigned char)FUN_0014dab0((int)node_pos,
+          delta.i = node_pos[0] - parent_pos[0];
+          delta.j = node_pos[1] - parent_pos[1];
+          delta.k = node_pos[2] - parent_pos[2];
+          ray_start.x = parent_pos[0] - delta.i * 0.015f; /* 0x25abcc */
+          ray_start.y = parent_pos[1] - delta.j * 0.015f;
+          ray_start.z = parent_pos[2] - delta.k * 0.015f;
+          delta.i *= 1.03f; /* 0x2b4b78 */
+          delta.j *= 1.03f;
+          delta.k *= 1.03f;
+          if (collision_test_vector(0xc0a8, &ray_start, &delta, unit_handle,
+                           (int16_t *)&collision)) {
+            touching[0] = (unsigned char)collision_test_sphere((int)node_pos,
                                                       0x3cf5c28f);
-            touching[1] = (unsigned char)FUN_0014dab0((int)parent_pos,
+            touching[1] = (unsigned char)collision_test_sphere((int)parent_pos,
                                                       0x3cf5c28f);
             if ((int)touching[0] + (int)touching[1] != 0) {
-              plane = (float *)((char *)collision_result + 0x24);
+              plane = &collision.plane;
               if ((int)touching[0] + (int)touching[1] == 2) {
-                nn = plane[1] * plane[1] + plane[2] * plane[2] +
-                     plane[0] * plane[0];
+                nn = plane->normal[1] * plane->normal[1] +
+                     plane->normal[2] * plane->normal[2] +
+                     plane->normal[0] * plane->normal[0];
                 for (k = 0; k < 2; k++) {
                   p = (k == 0) ? node_pos : parent_pos;
-                  dist[k] = -((plane[1] * p[1] + plane[2] * p[2] +
-                               plane[0] * p[0] - plane[3]) / nn);
+                  dist[k] =
+                    -((plane->normal[1] * p[1] + plane->normal[2] * p[2] +
+                       plane->normal[0] * p[0] - plane->d) /
+                      nn);
                   if (dist[k] != 0.0f)
                     dist[k] = radius * 2.5f + dist[k];
                 }
@@ -164,10 +206,12 @@ void FUN_0019fa20(int unit_handle, void *node_block) {
                 for (k = 0; k < 2; k++) {
                   if (touching[k]) {
                     p = (k == 0) ? node_pos : parent_pos;
-                    dist[k] = -((plane[1] * p[1] + plane[2] * p[2] +
-                                 plane[0] * p[0] - plane[3]) /
-                                (plane[1] * plane[1] + plane[2] * plane[2] +
-                                 plane[0] * plane[0]));
+                    dist[k] =
+                      -((plane->normal[1] * p[1] + plane->normal[2] * p[2] +
+                         plane->normal[0] * p[0] - plane->d) /
+                        (plane->normal[1] * plane->normal[1] +
+                         plane->normal[2] * plane->normal[2] +
+                         plane->normal[0] * plane->normal[0]));
                     if (dist[k] != 0.0f)
                       dist[k] = radius * 2.5f + dist[k];
                   } else {
@@ -176,26 +220,24 @@ void FUN_0019fa20(int unit_handle, void *node_block) {
                 }
               }
               for (k = 0; k < 2; k++) {
-                if (!(fabs(dist[k]) < *(double *)0x2533d0)) {
+                if (!(fabs(dist[k]) < REAL_EPSILON_DOUBLE_POOL)) {
                   p = (k == 0) ? node_pos : parent_pos;
                   s = frac * dist[k];
-                  p[0] = plane[0] * s + p[0];
-                  p[1] = plane[1] * s + p[1];
-                  p[2] = plane[2] * s + p[2];
+                  p[0] = plane->normal[0] * s + p[0];
+                  p[1] = plane->normal[1] * s + p[1];
+                  p[2] = plane->normal[2] * s + p[2];
                 }
               }
             }
           }
 
-          delta[0] = node_pos[0] - parent_pos[0];
-          delta[1] = node_pos[1] - parent_pos[1];
-          delta[2] = node_pos[2] - parent_pos[2];
-          rest = *(float *)((char *)tag_block_get_element(
-                                (char *)tag_get(0x6d6f6465,
-                                                *(int *)(bipd + 0x34)) +
-                                    0xb8,
-                                node_index, 0x9c) +
-                            0x44);
+          delta.i = node_pos[0] - parent_pos[0];
+          delta.j = node_pos[1] - parent_pos[1];
+          delta.k = node_pos[2] - parent_pos[2];
+          model = tag_get(TAG_GROUP_MODE, object_definition_model_index(bipd));
+          model_node = tag_block_get_element(&model->nodes, node_index,
+                                             sizeof(model_node_t));
+          rest = model_node->node_distance_from_parent;
           {
             float dx = parent_pos[0] - node_pos[0];
             float dy = parent_pos[1] - node_pos[1];
@@ -204,51 +246,51 @@ void FUN_0019fa20(int unit_handle, void *node_block) {
           }
           /* rest <= 0 fails; NaN rest passes (TEST AH,0x41 / JNP). */
           if (!(rest <= 0.0f) && !(rest > 10.0f) && cur >= 0.0f &&
-              cur < 20.0f && !(fabs(cur) < *(double *)0x2533d0) &&
-              !(fabs(rest) < *(double *)0x2533d0) && rest != cur &&
-              !(fabs(cur) < *(double *)0x2533d0)) {
+              cur < 20.0f && !(fabs(cur) < REAL_EPSILON_DOUBLE_POOL) &&
+              !(fabs(rest) < REAL_EPSILON_DOUBLE_POOL) && rest != cur &&
+              !(fabs(cur) < REAL_EPSILON_DOUBLE_POOL)) {
             float f = (rest - cur) / cur;
-            if (*(int16_t *)(node + 0x24) != 0) {
+            if (node->parent_node_index != 0) {
               float h = f * 0.5f; /* 0x253398 */
-              step[0] = delta[0] * -h;
-              step[1] = delta[1] * -h;
-              step[2] = delta[2] * -h;
-              FUN_0014f2c0(parent_pos, step, (short *)0x4d9de8, parent_pos,
+              step[0] = delta.i * -h;
+              step[1] = delta.j * -h;
+              step[2] = delta.k * -h;
+              collision_move_point(parent_pos, step, (short *)0x4d9de8, parent_pos,
                            step, 3, (int)collisions);
-              step[0] = delta[0] * h;
-              step[1] = delta[1] * h;
-              step[2] = delta[2] * h;
-              FUN_0014f2c0(node_pos, step, (short *)0x4d9de8, node_pos, step,
+              step[0] = delta.i * h;
+              step[1] = delta.j * h;
+              step[2] = delta.k * h;
+              collision_move_point(node_pos, step, (short *)0x4d9de8, node_pos, step,
                            3, (int)collisions);
             } else {
-              step[0] = delta[0] * f;
-              step[1] = delta[1] * f;
-              step[2] = delta[2] * f;
-              if (!FUN_0014dab0((int)node_pos, radius_bits.i)) {
-                FUN_0014f2c0(node_pos, step, (short *)0x4d9de8, node_pos,
+              step[0] = delta.i * f;
+              step[1] = delta.j * f;
+              step[2] = delta.k * f;
+              if (!collision_test_sphere((int)node_pos, radius_bits.i)) {
+                collision_move_point(node_pos, step, (short *)0x4d9de8, node_pos,
                              step, 3, (int)collisions);
               }
             }
           }
         }
-        if (*(int16_t *)(node + 0x20) != -1) {
-          queue[(int16_t)tail] = *(int16_t *)(node + 0x20);
+        if (node->next_sibling_node_index != -1) {
+          queue[(int16_t)tail] = node->next_sibling_node_index;
           tail++;
         }
-        if (*(int16_t *)(node + 0x22) != -1) {
-          queue[(int16_t)tail] = *(int16_t *)(node + 0x22);
+        if (node->first_child_node_index != -1) {
+          queue[(int16_t)tail] = node->first_child_node_index;
           tail++;
         }
       } while ((int16_t)head != (int16_t)tail);
     }
   }
 
-  if (*(int16_t *)0x4761d8 <= 1) {
+  if (global_current_collision_user_depth <= 1) {
     display_assert("global_current_collision_user_depth > 1",
                    "c:\\halo\\SOURCE\\units\\biped_limp_noodle.c", 0x212, 1);
     system_exit(-1);
   }
-  *(int16_t *)0x4761d8 -= 1;
+  global_current_collision_user_depth -= 1;
 }
 
 
@@ -266,7 +308,8 @@ void FUN_0019fa20(int unit_handle, void *node_block) {
  * Cross products: left = up x forward, up = forward x left, left = up x forward
  * (operand order transcribed from disassembly).
  */
-void validate_real_vector3d_axes3(float *forward, float *left, float *up)
+void validate_real_vector3d_axes3(real_vector3d *forward, real_vector3d *left,
+                                  real_vector3d *up)
 {
   float lc0;
   float lc1;
@@ -288,147 +331,104 @@ void validate_real_vector3d_axes3(float *forward, float *left, float *up)
     system_exit(-1);
   }
 
-  if (normalize3d((real_vector3d *)forward) == 0.0f) {
-    forward[0] = global_forward_vector_ptr[0];
-    forward[1] = global_forward_vector_ptr[1];
-    forward[2] = global_forward_vector_ptr[2];
+  if (normalize3d(forward) == 0.0f) {
+    forward->i = global_forward_vector_ptr[0];
+    forward->j = global_forward_vector_ptr[1];
+    forward->k = global_forward_vector_ptr[2];
   }
-  if (normalize3d((real_vector3d *)up) == 0.0f) {
-    up[0] = global_up_vector_ptr[0];
-    up[1] = global_up_vector_ptr[1];
-    up[2] = global_up_vector_ptr[2];
+  if (normalize3d(up) == 0.0f) {
+    up->i = global_up_vector_ptr[0];
+    up->j = global_up_vector_ptr[1];
+    up->k = global_up_vector_ptr[2];
   }
 
   /* left = up x forward. All three components are computed before any store
    * (the original cannot assume left[] doesn't alias forward[]/up[], so it
    * batches the cross product onto the x87 stack, then stores [0],[1],[2]). */
-  lc2 = forward[1] * up[0] - up[1] * forward[0];
-  lc1 = up[2] * forward[0] - forward[2] * up[0];
-  lc0 = up[1] * forward[2] - up[2] * forward[1];
-  left[0] = lc0;
-  left[1] = lc1;
-  left[2] = lc2;
-  if (normalize3d((real_vector3d *)left) == 0.0f) {
-    left[0] = global_left_vector_ptr[0];
-    left[1] = global_left_vector_ptr[1];
-    left[2] = global_left_vector_ptr[2];
+  lc2 = forward->j * up->i - up->j * forward->i;
+  lc1 = up->k * forward->i - forward->k * up->i;
+  lc0 = up->j * forward->k - up->k * forward->j;
+  left->i = lc0;
+  left->j = lc1;
+  left->k = lc2;
+  if (normalize3d(left) == 0.0f) {
+    left->i = global_left_vector_ptr[0];
+    left->j = global_left_vector_ptr[1];
+    left->k = global_left_vector_ptr[2];
   }
 
   /* up = forward x left */
-  lc2 = left[1] * forward[0] - forward[1] * left[0];
-  lc1 = forward[2] * left[0] - forward[0] * left[2];
-  lc0 = forward[1] * left[2] - left[1] * forward[2];
-  up[0] = lc0;
-  up[1] = lc1;
-  up[2] = lc2;
-  if (normalize3d((real_vector3d *)up) == 0.0f) {
-    up[0] = global_up_vector_ptr[0];
-    up[1] = global_up_vector_ptr[1];
-    up[2] = global_up_vector_ptr[2];
+  lc2 = left->j * forward->i - forward->j * left->i;
+  lc1 = forward->k * left->i - forward->i * left->k;
+  lc0 = forward->j * left->k - left->j * forward->k;
+  up->i = lc0;
+  up->j = lc1;
+  up->k = lc2;
+  if (normalize3d(up) == 0.0f) {
+    up->i = global_up_vector_ptr[0];
+    up->j = global_up_vector_ptr[1];
+    up->k = global_up_vector_ptr[2];
   }
 
   /* left = up x forward */
-  lc2 = forward[1] * up[0] - up[1] * forward[0];
-  lc1 = up[2] * forward[0] - forward[2] * up[0];
-  lc0 = up[1] * forward[2] - up[2] * forward[1];
-  left[0] = lc0;
-  left[1] = lc1;
-  left[2] = lc2;
-  if (normalize3d((real_vector3d *)left) == 0.0f) {
-    left[0] = global_left_vector_ptr[0];
-    left[1] = global_left_vector_ptr[1];
-    left[2] = global_left_vector_ptr[2];
+  lc2 = forward->j * up->i - up->j * forward->i;
+  lc1 = up->k * forward->i - forward->k * up->i;
+  lc0 = up->j * forward->k - up->k * forward->j;
+  left->i = lc0;
+  left->j = lc1;
+  left->k = lc2;
+  if (normalize3d(left) == 0.0f) {
+    left->i = global_left_vector_ptr[0];
+    left->j = global_left_vector_ptr[1];
+    left->k = global_left_vector_ptr[2];
   }
 }
 
 /* biped_limp_noodle_adjust_orientations (0x1a03c0)
  *
- * Biped limp-noodle (ragdoll) node orientation updater.
- * Called once per frame to update the orientation (forward/left/up basis) of
- * each biped antenna/hair node using the current world-space positions.
- *
- * Register args (confirmed from caller 0x1a0680):
- *   unit_handle  EAX  — datum handle of the biped unit
- *   nodes        EDI  — pointer to node-state array; each entry is 0x34 bytes:
- *                         +0x00  position (vec3, 3 floats)
- *                         +0x04 .. +0x0f  (gaps/unused in this function)
- *                         +0x10  up vector (vec3, 3 floats)
- *                         +0x1c  ??? (vec3, 3 floats)
- *                         +0x28  position mirror? (vec3, 3 floats)
- *                         +0x30  (float*) pointer to current pos [EBP-0x10]
- *
- * Stack args:
- *   node_count   [EBP+0x08]  — dead param (body uses tag count instead)
- *   positions    [EBP+0x0c]  — pointer to position array; each entry 0x0c bytes
- *                              (vec3 stride 0x0c)
- *
- * For each antenna node i (skipping i==0):
- *   - Computes delta vectors A (positions delta) and B (nodes delta) from the
- *     parent node.
- *   - Normalizes both deltas.
- *   - Computes cross_axis = cross(A, B) and normalizes it.
- *   - Computes dot = dot(A, B).
- *   - If |dot - 1.0f| >= epsilon (not co-linear), computes angle = acos(dot).
- *   - If epsilon <= |angle| < max_angle, rotates the node's forward/up vectors
- *     around cross_axis by (sin(angle), cos(angle)), rebuilding the basis.
- *
- * Confirmed offsets (from disassembly):
- *   node stride:       0x34
- *   node +0x04:        forward vector (rotated by rotate_vector3d_by_sincos)
- *   node +0x10:        left   vector
- *   node +0x1c:        up     vector (rotated by rotate_vector3d_by_sincos)
- *   node +0x28:        position delta base (3 floats)
- *   positions stride:  0x0c
- *   tag block @[tag+0x68]: antenna block count+ptr
- *   element[i]+0x24:   short parent_node_index
- *   element[i]+0x28:   flags byte (bit 2 = skip-rotation)
- *
- * Globals: 0x2533c8 = 1.0f, 0x2533d0 = epsilon (~1e-6), 0x25b3f0 = max_angle
- *
- * Inferred: positions[0] is unused (loop body guarded by local_1c != 0).
- * Uncertain: exact semantics of node +0x10 and +0x1c fields.
+ * unit_handle arrives in EAX and the node matrices in EDI; node_count is a
+ * dead parameter (the body uses the animation graph node count). For each
+ * non-root node whose parent is not flagged (flags bit 2), rotates the
+ * parent's matrix basis by the angle between the relaxed position delta and
+ * the current node delta, then re-validates the basis.
  */
 void biped_limp_noodle_adjust_orientations(int unit_handle, int node_count,
                                            float *positions, void *nodes)
 {
-  /* unit_handle passed in EAX; nodes passed in EDI — see kb.json decl.
-   * node_count ([EBP+8]) is a dead parameter; the body uses the tag count. */
-  void *unit_data;
+  biped_data_t *biped;
   void *bipd_tag;
-  void *antr_tag;
-  int *block; /* antenna tag_block: [0]=count                       */
+  animation_graph_t *animation_graph;
+  tag_block *block;
   int i;
   float *pfx; /* &positions[i].z  (EBX in original, +0x0c/iter)     */
-  float *nfx; /* &nodes[i]+0x30   (local_14, +0x34/iter)            */
-  char *elem;
-  char *parent_elem;
-  float A[3]; /* pos delta  — [EBP-0x38], normalized in-place */
-  float B[3]; /* node delta — [EBP-0x2c], normalized in-place */
-  float cross[3]; /* cross(A,B) — [EBP-0x44], normalized in-place */
+  float *nfx; /* &node_matrices[i].position.z */
+  animation_graph_node_t *elem;
+  animation_graph_node_t *parent_elem;
+  real_vector3d A; /* pos delta  — [EBP-0x38], normalized in-place */
+  real_vector3d B; /* node delta — [EBP-0x2c], normalized in-place */
+  real_vector3d cross; /* cross(A,B) — [EBP-0x44], normalized in-place */
   float dot_val; /* [EBP-0x4] */
   float angle; /* [EBP-0x14] */
   float sin_a;
-  char *nodes_bytes;
-  char *base; /* nodes + parent_idx*0x34 */
+  real_matrix4x3 *node_matrices;
+  real_matrix4x3 *base;
   char axis_ok;
   float *saved_pfx; /* local_10 = [EBP-0xc] */
 
-  nodes_bytes = (char *)nodes;
+  node_matrices = nodes;
 
-  unit_data = object_get_and_verify_type(unit_handle, 1);
-  bipd_tag = tag_get(0x62697064, *(int *)unit_data);
-  antr_tag = tag_get(0x616e7472, *(int *)((char *)bipd_tag + 0x44));
-  block = (int *)((char *)antr_tag + 0x68);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  bipd_tag = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
+  animation_graph = tag_get(TAG_GROUP_ANTR, object_definition_animation_graph_index(bipd_tag));
+  block = &animation_graph->nodes;
 
-  if (block[0] <= 0) {
+  if (block->count <= 0) {
     return;
   }
 
-  /* pfx = positions+8 (points to .z of slot 0, pfx[-2]=.x pfx[-1]=.y)
-   * nfx = nodes+0x30  (nfx[-2]=.x nfx[-1]=.y nfx[0]=.z of pos-mirror at +0x28)
-   * Both advance by their respective strides each iteration. */
+  /* pfx/nfx point at the z of slot 0 and advance by their strides. */
   pfx = (float *)((char *)positions + 8);
-  nfx = (float *)(nodes_bytes + 0x30);
+  nfx = &node_matrices[0].position.z;
 
   i = 0;
   do {
@@ -438,102 +438,92 @@ void biped_limp_noodle_adjust_orientations(int unit_handle, int node_count,
 
       saved_pfx = pfx;
 
-      elem = (char *)tag_block_get_element(block, i, 0x40);
-      parent_elem = (char *)tag_block_get_element(
-        block, (int)(*(short *)(elem + 0x24)), 0x40);
+      elem = tag_block_get_element(block, i, sizeof(animation_graph_node_t));
+      parent_elem = tag_block_get_element(block, elem->parent_node_index,
+                                          sizeof(animation_graph_node_t));
 
-      if ((*(unsigned char *)(parent_elem + 0x28) & 4) == 0) {
+      if (((uint8_t)parent_elem->flags & 4) == 0) {
         parent_pos =
-          (float *)((char *)positions + (int)(*(short *)(elem + 0x24)) * 0x0c);
-        parent_nod28 =
-          (float *)(nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34 + 0x28);
+          (float *)((char *)positions + elem->parent_node_index * 0x0c);
+        parent_nod28 = &node_matrices[elem->parent_node_index].position.x;
 
         /* pos delta A = positions[i] - positions[parent] */
-        A[0] = pfx[-2] - parent_pos[0];
-        A[1] = pfx[-1] - parent_pos[1];
-        A[2] = *pfx - parent_pos[2];
+        A.i = pfx[-2] - parent_pos[0];
+        A.j = pfx[-1] - parent_pos[1];
+        A.k = *pfx - parent_pos[2];
 
         /* nod delta B = nodes[i]+0x28 - nodes[parent]+0x28 */
-        B[0] = nfx[-2] - parent_nod28[0];
-        B[1] = nfx[-1] - parent_nod28[1];
-        B[2] = nfx[0] - parent_nod28[2];
+        B.i = nfx[-2] - parent_nod28[0];
+        B.j = nfx[-1] - parent_nod28[1];
+        B.k = nfx[0] - parent_nod28[2];
 
-        normalize3d((real_vector3d *)A);
-        normalize3d((real_vector3d *)B);
+        normalize3d(&A);
+        normalize3d(&B);
 
         /* cross(A,B) — operand order verified from FSUBP sequence:
-         *   [0]: B[2]*A[1] - B[1]*A[2] = cross(A,B)[0]
-         *   [1]: A[2]*B[0] - B[2]*A[0] = cross(A,B)[1]
-         *   [2]: B[1]*A[0] - A[1]*B[0] = cross(A,B)[2]   */
-        cross[0] = B[2] * A[1] - B[1] * A[2];
-        cross[1] = A[2] * B[0] - B[2] * A[0];
-        cross[2] = B[1] * A[0] - A[1] * B[0];
+         *   [0]: B.k*A.j - B.j*A.k = cross(A,B)[0]
+         *   [1]: A.k*B.i - B.k*A.i = cross(A,B)[1]
+         *   [2]: B.j*A.i - A.j*B.i = cross(A,B)[2]   */
+        cross.i = B.k * A.j - B.j * A.k;
+        cross.j = A.k * B.i - B.k * A.i;
+        cross.k = B.j * A.i - A.j * B.i;
 
-        normalize3d((real_vector3d *)cross);
+        normalize3d(&cross);
 
-        /* dot(A,B) — FPU order: A[2]*B[2] + A[1]*B[1] + A[0]*B[0] */
-        dot_val = A[2] * B[2] + A[1] * B[1] + A[0] * B[0];
+        /* dot(A,B) — FPU order: A.k*B.k + A.j*B.j + A.i*B.i */
+        dot_val = A.k * B.k + A.j * B.j + A.i * B.i;
 
         /* if !(fabs(dot - 1.0f) < epsilon) */
-        if (!(fabs(dot_val - *(float *)0x2533c8) < *(double *)0x2533d0)) {
+        if (!(fabs(dot_val - REAL_ONE_POOL) < REAL_EPSILON_DOUBLE_POOL)) {
           angle = acosf(dot_val);
 
           /* if !(fabs(angle) < epsilon) && fabs(angle) < max_angle */
-          if (!(fabs(angle) < *(double *)0x2533d0) &&
-              fabs(angle) < *(double *)0x25b3f0) {
-            /* Original re-reads *(short*)(elem+0x24) and recomputes
-             * parent_idx*0x34 + nodes + offset at EVERY call site.
-             * Reproduce that re-read pattern faithfully. */
+          if (!(fabs(angle) < REAL_EPSILON_DOUBLE_POOL) &&
+              fabs(angle) < REAL_QUARTER_PI_DOUBLE_POOL) {
+            /* The parent index is re-read at every call site. */
 
             /* First valid_real_vector3d_axes3 / validate_real_vector3d_axes3
              * block */
-            base = nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34;
-            axis_ok = valid_real_vector3d_axes3((float *)(base + 0x4),
-                                                (float *)(base + 0x10),
-                                                (float *)(base + 0x1c));
+            base = &node_matrices[elem->parent_node_index];
+            axis_ok = valid_real_vector3d_axes3(&base->forward,
+                                                &base->left,
+                                                &base->up);
             if (!axis_ok) {
-              validate_real_vector3d_axes3((float *)(base + 0x4),
-                                           (float *)(base + 0x10),
-                                           (float *)(base + 0x1c));
+              validate_real_vector3d_axes3(&base->forward,
+                                           &base->left,
+                                           &base->up);
             }
 
             sin_a = x87_fsin(angle);
 
-            /* rotate fwd and up — each re-reads *(short*)(elem+0x24) */
+            /* rotate forward and up */
             rotate_vector3d_by_sincos(
-              (real_vector3d *)((nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34 +
-                        0x4)),
-              (real_vector3d *)cross, sin_a, dot_val);
+              &node_matrices[elem->parent_node_index].forward,
+              &cross, sin_a, dot_val);
             rotate_vector3d_by_sincos(
-              (real_vector3d *)((nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34 +
-                        0x1c)),
-              (real_vector3d *)cross, sin_a, dot_val);
+              &node_matrices[elem->parent_node_index].up,
+              &cross, sin_a, dot_val);
 
-            normalize3d((real_vector3d *)((nodes_bytes +
-                                  (int)(*(short *)(elem + 0x24)) * 0x34 + 0x4)));
-            normalize3d((real_vector3d *)((nodes_bytes +
-                                  (int)(*(short *)(elem + 0x24)) * 0x34 +
-                                  0x1c)));
+            normalize3d(&node_matrices[elem->parent_node_index].forward);
+            normalize3d(&node_matrices[elem->parent_node_index].up);
 
             /* cross_product3d(up, fwd, left) — uses single base */
-            base = nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34;
-            cross_product3d((float *)(base + 0x1c), (float *)(base + 0x4),
-                            (float *)(base + 0x10));
+            base = &node_matrices[elem->parent_node_index];
+            cross_product3d(&base->up, &base->forward,
+                            &base->left);
 
-            normalize3d((real_vector3d *)((nodes_bytes +
-                                  (int)(*(short *)(elem + 0x24)) * 0x34 +
-                                  0x10)));
+            normalize3d(&node_matrices[elem->parent_node_index].left);
 
             /* Second valid_real_vector3d_axes3 / validate_real_vector3d_axes3
              * block */
-            base = nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34;
-            axis_ok = valid_real_vector3d_axes3((float *)(base + 0x4),
-                                                (float *)(base + 0x10),
-                                                (float *)(base + 0x1c));
+            base = &node_matrices[elem->parent_node_index];
+            axis_ok = valid_real_vector3d_axes3(&base->forward,
+                                                &base->left,
+                                                &base->up);
             if (!axis_ok) {
-              validate_real_vector3d_axes3((float *)(base + 0x4),
-                                           (float *)(base + 0x10),
-                                           (float *)(base + 0x1c));
+              validate_real_vector3d_axes3(&base->forward,
+                                           &base->left,
+                                           &base->up);
               pfx = saved_pfx;
             }
             pfx = saved_pfx;
@@ -544,8 +534,8 @@ void biped_limp_noodle_adjust_orientations(int unit_handle, int node_count,
 
     i++;
     pfx = pfx + 3; /* +0x0c bytes (3 floats per position) */
-    nfx = nfx + (0x34 / 4); /* +0x34 bytes (13 floats per node)    */
-  } while (i < block[0]);
+    nfx = nfx + sizeof(real_matrix4x3) / sizeof(float);
+  } while (i < block->count);
 }
 
 /* biped_limp_noodle_relax_nodes_onto_environment (0x1a0680)
@@ -556,7 +546,7 @@ void biped_limp_noodle_adjust_orientations(int unit_handle, int node_count,
  * offset object+0x1a0 (the node transform block). Returns 1 if the current
  * node step count (byte at biped_obj+0x47c) >= the maximum step count (byte
  * at biped_obj+0x47d); otherwise copies node positions into the scratch buffer
- * at 0x4e49f0, calls FUN_0019fa20 to process limp-noodle physics, calls
+ * at 0x4e49f0, calls biped_limp_noodle_move_relax_and_constrain_positions to process limp-noodle physics, calls
  * biped_limp_noodle_adjust_orientations to apply the updated positions back,
  * increments the step counter (capped at 0x7f), and returns 0.
  *
@@ -573,31 +563,31 @@ void biped_limp_noodle_adjust_orientations(int unit_handle, int node_count,
  */
 char biped_limp_noodle_relax_nodes_onto_environment(int unit_handle)
 {
-  char *biped_obj;
+  biped_data_t *biped;
   char *bipd_tag;
-  char *antr_tag;
+  animation_graph_t *animation_graph;
   void *node_block;
-  char *obj_base;
+  object_data_t *object;
   int count;
   int i;
   int *src_node;
   int *scratch;
   char result;
 
-  biped_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  bipd_tag = (char *)tag_get(0x62697064, *(int *)biped_obj);
-  antr_tag = (char *)tag_get(0x616e7472, *(int *)(bipd_tag + 0x44));
-  obj_base = (char *)object_get_and_verify_type(unit_handle, -1);
-  node_block = object_header_block_reference_get(unit_handle, obj_base + 0x1a0);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  bipd_tag = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
+  animation_graph = tag_get(TAG_GROUP_ANTR, object_definition_animation_graph_index(bipd_tag));
+  object = object_get_and_verify_type(unit_handle, _object_mask_all);
+  node_block = object_header_block_reference_get(unit_handle, &object->unk_416);
 
   /* CMP [ESI+0x47c],[ESI+0x47d]; SBB CL,CL; INC CL */
-  result = (char)(*(unsigned char *)(biped_obj + 0x47c) >=
-                  *(unsigned char *)(biped_obj + 0x47d));
+  result = (char)(biped->limp_body_current_relaxation_iterations >=
+                  biped->limp_body_max_relaxation_iterations);
   if (result != '\0') {
     return result;
   }
 
-  count = *(int *)((char *)antr_tag + 0x68);
+  count = animation_graph->nodes.count;
   if (count > 0) {
     scratch = (int *)0x4e49f0;
     src_node = (int *)((char *)node_block + 0x28);
@@ -612,15 +602,15 @@ char biped_limp_noodle_relax_nodes_onto_environment(int unit_handle)
     } while (i < count);
   }
 
-  FUN_0019fa20(unit_handle, node_block);
+  biped_limp_noodle_move_relax_and_constrain_positions(unit_handle, node_block);
   /* @<eax>=unit_handle, node_count, positions=scratch buf, @<edi>=node_block */
   biped_limp_noodle_adjust_orientations(unit_handle,
-                                        *(int *)((char *)antr_tag + 0x68),
+                                        animation_graph->nodes.count,
                                         (float *)0x4e49f0, node_block);
 
-  if (*(unsigned char *)(biped_obj + 0x47c) < 0x7f) {
-    *(unsigned char *)(biped_obj + 0x47c) =
-      *(unsigned char *)(biped_obj + 0x47c) + 1;
+  if (biped->limp_body_current_relaxation_iterations < 0x7f) {
+    biped->limp_body_current_relaxation_iterations =
+      biped->limp_body_current_relaxation_iterations + 1;
   }
   return result;
 }
@@ -680,23 +670,23 @@ void biped_place(int unit_handle, void *placement)
  */
 void biped_reset(int unit_handle)
 {
-  char *obj;
+  biped_data_t *biped;
   int *dst;
   int tmp0;
   int tmp1;
   int tmp2;
   int tmp3;
 
-  obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  csmemset(obj + 0x424, 0, 0x5c);
-  tmp0 = *(int *)0x32513c;
-  dst = (int *)(obj + 0x46c);
-  tmp1 = *(int *)0x325140;
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  csmemset(&biped->flags, 0, 0x5c);
+  tmp0 = DEPTHS_OF_HELL_PLANE_NORMAL_I_BITS;
+  dst = (int *)&biped->ground_plane;
+  tmp1 = DEPTHS_OF_HELL_PLANE_NORMAL_J_BITS;
   dst[0] = tmp0;
-  tmp2 = *(int *)0x325144;
+  tmp2 = DEPTHS_OF_HELL_PLANE_NORMAL_K_BITS;
   dst[1] = tmp1;
-  tmp3 = *(int *)0x325148;
-  *(int *)(obj + 0x450) = -1;
+  tmp3 = DEPTHS_OF_HELL_PLANE_D_BITS;
+  biped->last_falling_communication_time = NONE;
   dst[2] = tmp2;
   dst[3] = tmp3;
 }
@@ -712,12 +702,12 @@ void biped_reset(int unit_handle)
  */
 void biped_disconnect_from_structure_bsp(int unit_handle)
 {
-  char *obj;
+  biped_data_t *biped;
 
-  obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  *(int *)(obj + 0x430) = -1;
-  *(int *)(obj + 0x434) = -1;
-  *(int *)(obj + 0x448) = -1;
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  biped->support_surface_index = NONE;
+  biped->pathfinding_surface_index = NONE;
+  biped->last_pathfinding_surface_index = NONE;
 }
 
 /* biped_get_camera_height_and_offset (0x1a0890)
@@ -738,38 +728,39 @@ void biped_get_camera_height_and_offset(int unit_handle, vector3_t *out_pos,
                                         float *out_height_offset,
                                         float *out_camera_height)
 {
-  char *unit_obj;
-  char *biped_tag;
+  biped_data_t *biped;
+  biped_definition_t *biped_tag;
   float camera_height;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  biped_tag = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
   object_get_world_position(unit_handle, out_pos);
 
   /* Add camera height to Z position unless flag bit 3 is set */
-  if ((*(uint8_t *)(biped_tag + 0x2f4) & 0x8) == 0) {
-    out_pos->z = *(float *)(biped_tag + 0x42c) + out_pos->z;
+  if (((uint8_t)biped_tag->biped_flags & 0x8) == 0) {
+    out_pos->z = biped_definition_collision_radius(biped_tag) + out_pos->z;
   }
 
   /* Calculate height offset based on crouch state */
-  if ((*(uint8_t *)(biped_tag + 0x2f4) & 0x10) == 0 &&
-      (*(int *)(unit_obj + 0x1c8) != -1 ||
-       (*(uint32_t *)(unit_obj + 0x4) & 0x400000) != 0)) {
+  if (((uint8_t)biped_tag->biped_flags & 0x10) == 0 &&
+      (biped->unit.player_index.value != NONE ||
+       (biped->unit.object.flags & 0x400000) != 0)) {
     /* Unit has actor or is player-controlled: interpolate based on crouch.
      * Memory-access order matches the original: standing/crouching heights and
      * crouch fraction are read inline; camera_height is cached once so the
      * doubling compiles to FADD ST0,ST0; out_camera_height re-reads [0x42c]. */
-    camera_height = *(float *)(biped_tag + 0x42c);
-    *out_height_offset =
-      (*(float *)(biped_tag + 0x428) - *(float *)(biped_tag + 0x424)) *
-        *(float *)(unit_obj + 0x464) +
-      *(float *)(biped_tag + 0x424) - (camera_height + camera_height);
-    *out_camera_height = *(float *)(biped_tag + 0x42c);
+    camera_height = biped_definition_collision_radius(biped_tag);
+    *out_height_offset = (biped_definition_collision_height_crouching(biped_tag) -
+                          biped_definition_collision_height_standing(biped_tag)) *
+                           biped->crouch +
+                         biped_definition_collision_height_standing(biped_tag) -
+                         (camera_height + camera_height);
+    *out_camera_height = biped_definition_collision_radius(biped_tag);
   } else {
     /* No actor and not player-controlled: zero offset */
     *out_height_offset = 0.0f;
-    *out_camera_height = *(float *)(biped_tag + 0x42c);
+    *out_camera_height = biped_definition_collision_radius(biped_tag);
   }
 }
 
@@ -786,11 +777,12 @@ void biped_get_camera_height_and_offset(int unit_handle, vector3_t *out_pos,
  */
 void biped_stop_melee_attack(int unit_handle)
 {
-  char *obj;
+  biped_data_t *biped;
 
-  obj = (char *)object_try_and_get_and_verify_type(unit_handle, 1);
-  if (obj != NULL) {
-    *(uint8_t *)(obj + 0x45d) = 0;
+  biped =
+    object_try_and_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  if (biped != NULL) {
+    biped->player_melee_ticks = 0;
   }
 }
 
@@ -816,35 +808,35 @@ void biped_stop_melee_attack(int unit_handle)
  */
 void biped_start_limp_body_physics(int unit_handle)
 {
-  char *obj;
-  char *biped_tag;
-  uint8_t type_const;
-  uint32_t flags4;
-  uint32_t flags424;
+  biped_data_t *biped;
+  biped_definition_t *definition;
+  uint8_t max_iterations;
+  uint32_t object_flags;
+  uint32_t biped_flags;
 
-  obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)obj);
-  if (*(uint8_t *)0x4e4cf3 != 0) {
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
+  if (DEBUG_BIPED_LIMP_BODY_DISABLE_BYTE != 0) {
     return;
   }
-  if ((*(uint32_t *)(biped_tag + 0x2f4) >> 9 & 1) == 0) {
+  if ((definition->biped_flags >> 9 & 1) == 0) {
     return;
   }
-  if ((*(uint8_t *)(obj + 0x4) & 0x20) == 0) {
+  if (((uint8_t)biped->unit.object.flags & 0x20) == 0) {
     return;
   }
-  if ((*(uint8_t *)(obj + 0x424) & 0x21) != 0) {
+  if (((uint8_t)biped->flags & 0x21) != 0) {
     return;
   }
-  *(uint8_t *)(obj + 0x47c) = 0;
-  type_const = (uint8_t)FUN_0019f530(unit_handle);
-  *(uint8_t *)(obj + 0x47d) = type_const;
-  flags4 = *(uint32_t *)(obj + 0x4);
-  flags424 = *(uint32_t *)(obj + 0x424);
-  flags4 |= 0x800000;
-  flags424 |= 0x20;
-  *(uint32_t *)(obj + 0x4) = flags4;
-  *(uint32_t *)(obj + 0x424) = flags424;
+  biped->limp_body_current_relaxation_iterations = 0;
+  max_iterations = (uint8_t)biped_limp_noodle_get_max_relaxation_iterations(unit_handle);
+  biped->limp_body_max_relaxation_iterations = max_iterations;
+  object_flags = biped->unit.object.flags;
+  biped_flags = biped->flags;
+  object_flags |= 0x800000;
+  biped_flags |= 0x20;
+  biped->unit.object.flags = object_flags;
+  biped->flags = biped_flags;
 }
 
 /* biped_stop_limp_body_physics (0x1a09f0)
@@ -861,26 +853,26 @@ void biped_start_limp_body_physics(int unit_handle)
  */
 void biped_stop_limp_body_physics(int unit_handle)
 {
-  char *obj;
-  char *biped_tag;
-  uint32_t tag_flags;
-  uint32_t flags4;
-  uint32_t flags424;
+  biped_data_t *biped;
+  biped_definition_t *definition;
+  uint32_t definition_flags;
+  uint32_t object_flags;
+  uint32_t biped_flags;
 
-  obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)obj);
-  tag_flags = *(uint32_t *)(biped_tag + 0x2f4);
-  if ((tag_flags & 0x200) == 0) {
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
+  definition_flags = definition->biped_flags;
+  if ((definition_flags & 0x200) == 0) {
     return;
   }
-  flags424 = *(uint32_t *)(obj + 0x424);
-  if ((flags424 & 0x20) == 0) {
+  biped_flags = biped->flags;
+  if ((biped_flags & 0x20) == 0) {
     return;
   }
-  flags4 = *(uint32_t *)(obj + 0x4) & 0xff7fffff;
-  flags424 = flags424 & 0xffffffdf;
-  *(uint32_t *)(obj + 0x4) = flags4;
-  *(uint32_t *)(obj + 0x424) = flags424;
+  object_flags = biped->unit.object.flags & 0xff7fffff;
+  biped_flags = biped_flags & 0xffffffdf;
+  biped->unit.object.flags = object_flags;
+  biped->flags = biped_flags;
 }
 
 /* biped_bumped_object (0x1a0a40)
@@ -888,7 +880,7 @@ void biped_stop_limp_body_physics(int unit_handle)
  * Per-frame melee-contact/bump handler for bipeds. Tracks a timer (obj+0x458)
  * and triggers AI bump notification and optional player-unit reassignment.
  *
- * Register args (confirmed from caller FUN_001a5300 at 0x1a61ba/0x1a61c4):
+ * Register args (confirmed from caller biped_update_moving at 0x1a61ba/0x1a61c4):
  *   @edi  unit_handle  — biped datum handle
  *   @ebx  biped_obj    — pointer to biped object data (pre-fetched by caller)
  * Stack arg:
@@ -919,56 +911,57 @@ void biped_stop_limp_body_physics(int unit_handle)
  * checked == 0. Inferred: 0xf1 timer value = "reset/cleared" sentinel.
  */
 void biped_bumped_object(int contact_handle /* @edi */,
-                         int unit_handle /* @ebx */, float *velocity_ptr)
+                         int unit_handle /* @ebx */, real_vector3d *velocity_ptr)
 {
-  char *obj;
-  char *contact_obj;
+  biped_data_t *biped;
+  biped_data_t *contact;
   int8_t timer;
-  int16_t player_idx;
+  int16_t player_index;
 
-  obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  tag_get(0x62697064, *(int *)obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  timer = *(int8_t *)(obj + 0x458);
+  timer = biped->bump_ticks;
   if (timer < 0) {
-    if (contact_handle == -1) {
-      *(int8_t *)(obj + 0x458) = timer + 1;
+    if (contact_handle == NONE) {
+      biped->bump_ticks = timer + 1;
       return;
     }
   } else {
-    if (contact_handle == -1) {
+    if (contact_handle == NONE) {
       return;
     }
-    contact_obj = (char *)object_get_and_verify_type(contact_handle, -1);
+    /* Any object type; bump_ticks is only written once it is a biped. */
+    contact = object_get_and_verify_type(contact_handle, _object_mask_all);
     ai_handle_bump(unit_handle, contact_handle, velocity_ptr);
-    if ((*(int *)(obj + 0x1c8) == -1) &&
+    if ((biped->unit.player_index.value == NONE) &&
         (recorded_animation_controlling_unit(unit_handle) == 0)) {
       return;
     }
-    if (*(int *)(obj + 0x454) != contact_handle) {
-      *(int *)(obj + 0x454) = contact_handle;
-      *(int8_t *)(obj + 0x458) = 0;
+    if (biped->bump_object_index != contact_handle) {
+      biped->bump_object_index = contact_handle;
+      biped->bump_ticks = 0;
       return;
     }
-    timer = *(int8_t *)(obj + 0x458);
+    timer = biped->bump_ticks;
     timer++;
-    *(int8_t *)(obj + 0x458) = timer;
+    biped->bump_ticks = timer;
     if (timer <= 3) {
       return;
     }
-    if ((*(int16_t *)(contact_obj + 0x64) == 0) &&
-        (*(uint8_t *)0x5aa893 != 0)) {
-      player_idx = unit_get_local_player_index(unit_handle);
-      if (player_idx != -1) {
-        *(uint8_t *)(contact_obj + 0x458) = 0xf1;
-        players_set_local_player_unit(player_idx, unit_handle);
+    if ((contact->unit.object.type == _object_type_biped) &&
+        (CHEAT_BUMP_POSSESSION != 0)) {
+      player_index = unit_get_local_player_index(unit_handle);
+      if (player_index != NONE) {
+        contact->bump_ticks = (int8_t)0xf1;
+        players_set_local_player_unit(player_index, unit_handle);
       }
     }
   }
-  *(uint8_t *)(obj + 0x458) = 0xf1;
+  biped->bump_ticks = (int8_t)0xf1;
 }
 
-/* FUN_001a0b30 (0x1a0b30)
+/* biped_check_discard (0x1a0b30)
  *
  * Checks whether a biped is stuck in an unreachable (bad) position and erases
  * it if so. Triggered once per update frame from the biped update loop.
@@ -997,155 +990,143 @@ void biped_bumped_object(int contact_handle /* @edi */,
  * Inferred: function name from warning message "biped %s (%s) is in a bad
  * place".
  */
-char FUN_001a0b30(int unit_handle /* @edi */)
+char biped_check_discard(int unit_handle /* @edi */)
 {
-  char *obj;
+  biped_data_t *biped;
   int actor_handle;
   const char *actor_desc;
 
-  obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
   if (game_engine_running() != 0) {
     return 0;
   }
-  if ((*(uint32_t *)(obj + 0x4) & 0x200000) == 0 &&
-      *(int16_t *)(obj + 0x4c) != -1) {
+  if ((biped->unit.object.flags & 0x200000) == 0 &&
+      biped->unit.object.location.cluster_index != NONE) {
     return 0;
   }
-  if (!(*(float *)(obj + 0x14) < *(float *)0x2b4d1c)) {
+  if (!(biped->unit.object.position.z < REAL_NEG_2000_POOL)) {
     return 0;
   }
-  actor_handle = *(int *)(obj + 0x1a8);
-  if (actor_handle == -1) {
-    actor_handle = *(int *)(obj + 0x1a4);
+  actor_handle = biped->unit.swarm_actor_index.value;
+  if (actor_handle == NONE) {
+    actor_handle = biped->unit.actor_index.value;
   }
   actor_desc = ai_debug_describe_actor(actor_handle, unit_handle, 1,
                                        (char *)0x5ab100, 0x100);
   /* The binary passes actor_desc after the three coordinates (argument
    * order differs from the format string); reproduced as compiled. */
   error(2, "WARNING: biped %s (%s) is in a bad place (%.1f %.1f %.1f), erasing",
-        tag_name_strip_path(tag_get_name(*(int *)obj)),
-        (double)*(float *)(obj + 0xc), (double)*(float *)(obj + 0x10),
-        (double)*(float *)(obj + 0x14), actor_desc);
+        tag_name_strip_path(tag_get_name(biped->unit.object.tag_index)),
+        (double)biped->unit.object.position.x,
+        (double)biped->unit.object.position.y,
+        (double)biped->unit.object.position.z, actor_desc);
   object_delete(unit_handle);
   return 0;
 }
 
+/* Game globals falling_damage block element (globals +0x188, element size
+ * 0x98). */
+typedef struct game_globals_falling_damage_t {
+  uint8_t pad_00[0x10];
+  tag_reference falling_damage;               /* +0x10 */
+  uint8_t pad_20[0x0c];
+  tag_reference maximum_distance_damage;      /* +0x2c */
+  uint8_t pad_3c[0x50];
+  real runtime_maximum_falling_velocity;      /* +0x8c */
+  real runtime_minimum_damage_velocity;       /* +0x90 */
+  real runtime_maximum_damage_velocity;       /* +0x94 */
+} game_globals_falling_damage_t;
+cs(game_globals_falling_damage_t, 0x98);
+co(game_globals_falling_damage_t, falling_damage, 0x10);
+co(game_globals_falling_damage_t, maximum_distance_damage, 0x2c);
+co(game_globals_falling_damage_t, runtime_maximum_falling_velocity, 0x8c);
+co(game_globals_falling_damage_t, runtime_minimum_damage_velocity, 0x90);
+co(game_globals_falling_damage_t, runtime_maximum_damage_velocity, 0x94);
+
 /* biped_falling_damage (0x1a0be0)
  *
- * Per-frame biped world-boundary check. If the biped falls outside the world
- * or below the kill-volume threshold, applies damage and/or erases the biped.
- *
- * Register arg (confirmed from caller FUN_001a5300 at 0x1a61d1):
- *   @edi  unit_handle  — biped datum handle
- * Stack arg:
- *   vertical_speed  [EBP+0x8]  — current vertical speed (float, from local_24
- *     in caller = camera Z delta or velocity component)
- *
- * Logic summary:
- *   1. Get biped object and tag. Get game_globals physics block element [0].
- *   2. Compute bVar1 (= "is_protected"): set true if obj+0x1b4 bit 0x1000 set
- *      OR tag+0x2f4 bit 7 (0x80) set.
- *   3. If multiplayer-engine running (DAT_5aa891) AND obj+0x1c8 != -1: skip.
- *   4. If vertical_speed > physics[0x90] (kill-height threshold):
- *      - If not protected: build damage params from physics[0x1c] tag ref,
- *        call damage_data_new + object_cause_damage.
- *      - Compute t = clamp01((speed - low) / (high - low)) and return.
- *   5. Else (below threshold):
- *      - Check tag flag bit 2 (0x4) at tag+0x2f4 and vertical speed.
- *      - If not flying and falling fast: possibly apply damage, then erase.
- *
- * Confirmed: tag_block_get_element(game_globals+0x188, 0, 0x98).
- * Confirmed: TEST AH,0x10 checks obj+0x1b4 bit 0x1000.
- * Confirmed: physics block offsets 0x8c (fall speed), 0x90 (jump height),
- *   0x94 (climb height), 0x38/0x1c (damage tag refs).
- * Confirmed: damage_data_new, object_cause_damage call arg counts from disasm.
- * Confirmed: clamp01 via FCOMP+FNSTSW+TEST pattern.
- * Confirmed: erasing path = player_index_from_unit_index +
- * ai_debug_describe_actor
- *   + error("fell outside world") + object_delete.
- * Inferred: vertical_speed param meaning (from call site local_24 in 0x1a5300).
- * Uncertain: exact semantics of obj+0x1b4 bit 0x1000 (possibly "in vehicle" or
- *   "has shield").
+ * unit_handle arrives in EDI; landing_velocity is the landing velocity pushed by
+ * biped_update_moving. Above the minimum damage velocity the biped takes
+ * scaled falling damage; a biped falling faster than the maximum falling
+ * velocity takes maximum-distance damage and, outside a game engine, is
+ * erased with a "fell outside world" warning.
  */
-void biped_falling_damage(float vertical_speed, int unit_handle /* @edi */)
+void biped_falling_damage(float landing_velocity, int unit_handle /* @edi */)
 {
-  char *obj;
-  char *biped_tag;
-  char *physics;
-  char damage_params[0x58];
+  biped_data_t *biped;
+  biped_definition_t *definition;
+  game_globals_falling_damage_t *falling_damage;
+  struct damage_data damage;
   float t;
   int actor_handle;
-  int player_idx;
+  int player_index;
   const char *tag_name;
   const char *actor_desc;
-  char is_protected;
+  char no_falling_damage;
 
-  obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)obj);
-  physics =
-    (char *)tag_block_get_element((char *)game_globals_get() + 0x188, 0, 0x98);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
+  falling_damage =
+    tag_block_get_element(&game_globals_falling_damage(game_globals_get()), 0,
+                          sizeof(game_globals_falling_damage_t));
 
-  /* is_protected = obj has special flag OR tag marks it protected */
-  if ((*(uint32_t *)(obj + 0x1b4) & 0x1000) != 0 ||
-      *(int8_t *)(biped_tag + 0x2f4) < 0) {
-    is_protected = 1;
+  if ((biped->unit.flags & 0x1000) != 0 ||
+      (int8_t)definition->biped_flags < 0) {
+    no_falling_damage = 1;
   } else {
-    is_protected = 0;
+    no_falling_damage = 0;
   }
 
-  /* In multiplayer with a vehicle: skip all checks */
-  if (*(uint8_t *)0x5aa891 != 0 && *(int *)(obj + 0x1c8) != -1) {
+  if (CHEAT_JETPACK_BYTE != 0 && biped->unit.player_index.value != NONE) {
     return;
   }
 
-  if (vertical_speed > *(float *)(physics + 0x90)) {
-    /* Above jump-height threshold: if protected return early, else damage +
-     * return */
-    if (is_protected) {
+  if (landing_velocity > falling_damage->runtime_minimum_damage_velocity) {
+    if (no_falling_damage) {
       return;
     }
-    damage_data_new(damage_params, *(int *)(physics + 0x1c));
-    /* Compute lerp t = clamp01((speed - low) / (high - low)) */
-    t = (vertical_speed - *(float *)(physics + 0x90)) /
-        (*(float *)(physics + 0x94) - *(float *)(physics + 0x90));
-    *(float *)(damage_params + 0x40) = t;
+    damage_data_new(&damage, falling_damage->falling_damage.tag_index);
+    t = (landing_velocity - falling_damage->runtime_minimum_damage_velocity) /
+        (falling_damage->runtime_maximum_damage_velocity -
+         falling_damage->runtime_minimum_damage_velocity);
+    damage.scale = t;
     if (t < 0.0f) {
-      *(float *)(damage_params + 0x40) = 0.0f;
+      damage.scale = 0.0f;
     } else if (t > 1.0f) {
-      *(float *)(damage_params + 0x40) = 1.0f;
+      damage.scale = 1.0f;
     }
-    object_cause_damage(damage_params, unit_handle, -1, -1, -1, (float *)0);
+    object_cause_damage(&damage, unit_handle, -1, -1, -1, (float *)0);
     return;
   }
 
-  /* Below threshold — check for fall/erase conditions */
-  if ((*(uint8_t *)(biped_tag + 0x2f4) & 0x4) != 0) {
+  if (((uint8_t)definition->biped_flags & 0x4) != 0) {
     return;
   }
-  if (!(*(float *)(obj + 0x20) < -(*(float *)(physics + 0x8c)))) {
+  if (!(biped->unit.object.translational_velocity.k <
+        -(falling_damage->runtime_maximum_falling_velocity))) {
     return;
   }
-  if (!is_protected && (*(uint8_t *)(obj + 0xb6) & 0x4) == 0) {
-    damage_data_new(damage_params, *(int *)(physics + 0x38));
-    object_cause_damage(damage_params, unit_handle, -1, -1, -1, (float *)0);
+  if (!no_falling_damage && (biped->unit.object.damage_flags & 0x4) == 0) {
+    damage_data_new(&damage, falling_damage->maximum_distance_damage.tag_index);
+    object_cause_damage(&damage, unit_handle, -1, -1, -1, (float *)0);
   }
   if (game_engine_running() != 0) {
     return;
   }
-  if ((*(uint32_t *)(obj + 0x4) & 0x200000) == 0) {
+  if ((biped->unit.object.flags & 0x200000) == 0) {
     return;
   }
-  player_idx = player_index_from_unit_index(unit_handle);
-  if (player_idx != -1) {
+  player_index = player_index_from_unit_index(unit_handle);
+  if (player_index != NONE) {
     return;
   }
-  actor_handle = *(int *)(obj + 0x1a8);
-  if (actor_handle == -1) {
-    actor_handle = *(int *)(obj + 0x1a4);
+  actor_handle = biped->unit.swarm_actor_index.value;
+  if (actor_handle == NONE) {
+    actor_handle = biped->unit.actor_index.value;
   }
   actor_desc = ai_debug_describe_actor(actor_handle, unit_handle, 1,
                                        (char *)0x5ab100, 0x100);
-  tag_name = tag_get_name(*(int *)obj);
+  tag_name = tag_get_name(biped->unit.object.tag_index);
   tag_name = tag_name_strip_path(tag_name);
   error(2, "WARNING: biped %s (%s) fell outside world and was erased", tag_name,
         actor_desc);
@@ -1165,16 +1146,15 @@ void biped_falling_damage(float vertical_speed, int unit_handle /* @edi */)
  */
 int biped_flying_through_air(int unit_handle)
 {
-  char *unit_obj;
-  char *biped_tag;
+  biped_data_t *biped;
+  biped_definition_t *definition;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-
-  if (*(char *)(unit_obj + 0x459) > 3 &&
-      (((*(unsigned char *)(biped_tag + 0x2f4) & 4) == 0) ||
-       ((*(unsigned char *)(unit_obj + 0xb6) & 4) != 0))) {
+  if (biped->airborne_ticks > 3 &&
+      ((((uint8_t)definition->biped_flags & 4) == 0) ||
+       ((biped->unit.object.damage_flags & 4) != 0))) {
     return 1;
   }
   return 0;
@@ -1182,142 +1162,119 @@ int biped_flying_through_air(int unit_handle)
 
 /* biped_start_landing (0x1a0e00)
  *
- * Advances a biped animation/transition phase based on an elapsed-time
- * threshold. The biped tag stores three phase boundaries (in ticks) at
- * tag+0x3dc/0x3e0/0x3e4, converted to seconds via *(1/30). Given the elapsed
- * time `threshold`, selects which phase the biped is in, computes a normalized
- * progress t (clamped to [0,1]) across that phase, and writes:
- *   unit+0x460 (uint16) = phase flag (0 = first phase, 1 = second phase)
- *   unit+0x428 (byte)   = 0
- *   unit+0x429 (byte)   = (char)(int)(phase_rate * t)
- * where phase_rate = tag[0x3d4 or 0x3d8] * TICKS_PER_SECOND.
- *
- * unit_handle is passed in EAX (register arg); `threshold` is the cdecl stack
- * arg. _ftol2 (0x1d9068) is the MSVC float->int intrinsic — written as (int).
- * Constant 0x2546a4 = seconds-per-tick (1/30); 0x253394 = TICKS_PER_SECOND.
+ * unit_handle arrives in EAX; landing_velocity is the cdecl stack argument.
+ * Tag +0x3dc/+0x3e0/+0x3e4 hold the soft/hard/maximum landing velocities
+ * (per second) and +0x3d4/+0x3d8 the soft/hard landing times (seconds).
  */
-void biped_start_landing(float threshold, int unit_handle)
+void biped_start_landing(float landing_velocity, int unit_handle)
 {
-  char *unit_obj;
+  biped_data_t *biped;
   char *biped_tag;
-  float fVar1;
-  float fVar2;
-  float range;
-  float offset;
-  float base;
-  float scaled;
+  float minimum_soft_landing_velocity;
+  float minimum_hard_landing_velocity;
+  float velocity_range;
+  float velocity;
+  float recovery_time;
+  float scaled_recovery_time;
   float t;
-  int flag;
+  int landing_type;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  biped_tag = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  fVar1 = *(float *)(biped_tag + 0x3dc) * *(float *)0x2546a4;
-  fVar2 = *(float *)(biped_tag + 0x3e0) * *(float *)0x2546a4;
+  minimum_soft_landing_velocity =
+    biped_definition_minimum_soft_landing_velocity(biped_tag) * REAL_ONE_THIRTIETH_POOL;
+  minimum_hard_landing_velocity =
+    biped_definition_minimum_hard_landing_velocity(biped_tag) * REAL_ONE_THIRTIETH_POOL;
 
-  if (threshold < fVar1) {
+  if (landing_velocity < minimum_soft_landing_velocity) {
     return;
   }
 
-  if (threshold < fVar2) {
-    offset = threshold - fVar1;
-    range = fVar2 - fVar1;
-    base = *(float *)(biped_tag + 0x3d4);
-    flag = 0;
+  if (landing_velocity < minimum_hard_landing_velocity) {
+    velocity = landing_velocity - minimum_soft_landing_velocity;
+    velocity_range =
+      minimum_hard_landing_velocity - minimum_soft_landing_velocity;
+    recovery_time = biped_definition_maximum_soft_landing_time(biped_tag);
+    landing_type = 0;
   } else {
-    range = *(float *)(biped_tag + 0x3e4) * *(float *)0x2546a4 - fVar2;
-    offset = threshold;
-    base = *(float *)(biped_tag + 0x3d8);
-    flag = 1;
+    velocity_range = biped_definition_maximum_hard_landing_velocity(biped_tag) * REAL_ONE_THIRTIETH_POOL -
+                     minimum_hard_landing_velocity;
+    velocity = landing_velocity;
+    recovery_time = biped_definition_maximum_hard_landing_time(biped_tag);
+    landing_type = 1;
   }
-  scaled = base * *(float *)0x253394;
-  if (range > *(float *)0x2533c0) {
-    t = offset / range;
-    if (t < *(float *)0x2533c0) {
-      t = *(float *)0x2533c0;
-    } else if (t > *(float *)0x2533c8) {
-      t = *(float *)0x2533c8;
+  scaled_recovery_time = recovery_time * REAL_30_POOL;
+  if (velocity_range > REAL_ZERO_POOL) {
+    t = velocity / velocity_range;
+    if (t < REAL_ZERO_POOL) {
+      t = REAL_ZERO_POOL;
+    } else if (t > REAL_ONE_POOL) {
+      t = REAL_ONE_POOL;
     }
-    *(uint16_t *)(unit_obj + 0x460) = (uint16_t)flag;
-    *(unsigned char *)(unit_obj + 0x428) = 0;
-    *(unsigned char *)(unit_obj + 0x429) = (unsigned char)(int)(scaled * t);
+    biped->landing = (int16_t)landing_type;
+    biped->landing_recovery_counter = 0;
+    biped->landing_recovery_time = (int8_t)(int)(scaled_recovery_time * t);
   }
 }
 
+/* Biped definition contact_points element (stride 0x40). */
+typedef struct biped_contact_point_t {
+  uint8_t pad_00[0x20];
+  char marker_name[0x20];                     /* +0x20 */
+} biped_contact_point_t;
+cs(biped_contact_point_t, 0x40);
+co(biped_contact_point_t, marker_name, 0x20);
+
 /* biped_make_footstep (0x1a0f10)
  *
- * Spawns a biped contact/footstep effect from one entry of the biped tag's
- * contact-point block. Looks up the biped tag ('bipd') from the unit, brackets
- * the work in the collision-user-depth stack (global 0x4761d8 / stack 0x5a8c80,
- * marker 7), asserting depth < 0x20 on entry (line 0xf4f) and > 1 on exit
- * (line 0xf60). If the requested contact index (register BX) is in range of the
- * tag's contact-point block at tag+0x4e8 AND the effect tag reference at
- * tag+0x398 is valid (!= -1), and the object's animation/contact gate
- * material_effect_visible(object+0x50) passes, it fetches contact-point element
- * BX (element size 0x40), resolves the named marker (name at element+0x20) on
- * the object via object_get_marker_by_name (one marker, into a 108-byte result
- * buffer), and on success spawns the effect (tag+0x398) at the marker's world
- * position (buffer+0x60) via material_effect_new_from_point.
- *
- * Confirmed (disasm): cdecl, 2 stack params [EBP+8]=unit_handle, [EBP+0xc];
- *   index is register-passed in BX (MOVSX EBX,BX at 0x1a0f73 reads BX before
- *   any write; callers 0x1a2440 load EBX immediately before each CALL). void
- *   return. The marker-result buffer is one contiguous region: Ghidra split it
- *   into local_74[96]+local_14[12], but object_get_marker_by_name writes
- *   to offset 0x6c (108 bytes) and material_effect_new_from_point reads the
- * position at +0x60 (LEA [EBP-0x70] vs LEA [EBP-0x10] differ by exactly 0x60).
- * Inferred: 'bipd' contact-point footstep-effect spawn semantics from the
- *   tag-block index + effect-tag + marker-position spawn shape.
- * Uncertain: precise meaning of param_2 (forwarded unchanged to
- * material_effect_new_from_point); callers pass 3 or 4 (region/permutation
- * selector). Layout of the 108-byte marker-result buffer beyond "transform copy
- * at +0x38..0x6c, position at +0x60" is opaque (no named struct in headers
- * yet).
+ * Spawns the biped's footstep material effect (tag +0x398) at the marker
+ * named by contact point `index` (tag contact_points block at +0x4e8),
+ * bracketed by collision user 7. index arrives in BX (MOVSX EBX,BX at
+ * 0x1a0f73); param_2 is forwarded unchanged to
+ * material_effect_new_from_point (callers pass 3 or 4).
  */
 void biped_make_footstep(int unit_handle, int param_2, short index /* @bx */)
 {
-  unsigned int *object;
-  int biped_tag;
-  int depth;
-  void *contact_elem;
-  /* One contiguous marker-result buffer. object_get_marker_by_name
-   * writes up to offset 0x6c (108 bytes); material_effect_new_from_point reads
-   * the marker world position at +0x60. Sized so the MSVC frame totals 0x70
-   * with the 4-byte object pointer (do not split into separate locals). */
-  char marker_buf[0x6c];
+  biped_data_t *biped;
+  char *biped_tag;
+  int16_t depth;
+  biped_contact_point_t *contact_point;
+  object_marker marker;
 
-  object = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (int)tag_get(0x62697064, *object); /* 'bipd' */
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  biped_tag = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  if (*(int16_t *)0x4761d8 >= 0x20) {
+  if (global_current_collision_user_depth >= 0x20) {
     display_assert("global_current_collision_user_depth < "
                    "MAXIMUM_COLLISION_USER_STACK_DEPTH",
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0xf4f, true);
     system_exit(-1);
   }
-  depth = *(int16_t *)0x4761d8;
-  *(int16_t *)0x4761d8 = (int16_t)(depth + 1);
-  *(int16_t *)(0x5a8c80 + depth * 2) = 7;
+  depth = global_current_collision_user_depth;
+  collision_user_stack[depth] = 7;
+  global_current_collision_user_depth = depth + 1;
 
-  if (((int)index < *(int *)(biped_tag + 0x4e8)) &&
-      (*(int *)(biped_tag + 0x398) != -1)) {
-    if (material_effect_visible((char *)object + 0x50) != false) {
-      contact_elem =
-        tag_block_get_element((void *)(biped_tag + 0x4e8), (int)index, 0x40);
-      if (object_get_marker_by_name(unit_handle, (char *)contact_elem + 0x20,
-                                    marker_buf, 1) != 0) {
-        material_effect_new_from_point(*(int *)(biped_tag + 0x398), param_2,
-                                       marker_buf + 0x60, 0);
+  if (((int)index < biped_definition_contact_points(biped_tag).count) &&
+      (biped_definition_material_effects_index(biped_tag) != -1)) {
+    if (material_effect_visible(&biped->unit.object.bounding_sphere_center) !=
+        false) {
+      contact_point = tag_block_get_element(
+        &biped_definition_contact_points(biped_tag), (int)index, sizeof(biped_contact_point_t));
+      if (object_get_marker_by_name(unit_handle, contact_point->marker_name,
+                                    &marker, 1) != 0) {
+        material_effect_new_from_point(biped_definition_material_effects_index(biped_tag), param_2,
+                                       &marker.matrix.position, 0);
       }
     }
   }
 
-  if (*(int16_t *)0x4761d8 <= 1) {
+  if (global_current_collision_user_depth <= 1) {
     display_assert("global_current_collision_user_depth > 1",
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0xf60, true);
     system_exit(-1);
   }
-  *(int16_t *)0x4761d8 = (int16_t)(*(int16_t *)0x4761d8 - 1);
+  global_current_collision_user_depth = (int16_t)(global_current_collision_user_depth - 1);
 }
 
 /* biped_adjust_placement (0x1a1020)
@@ -1332,26 +1289,21 @@ void biped_make_footstep(int unit_handle, int param_2, short index /* @bx */)
  */
 void biped_adjust_placement(int unit_handle, char *placement)
 {
-  char *unit_obj;
-  char *biped_tag;
+  object_placement_data *data = (object_placement_data *)placement;
+  biped_data_t *biped;
+  biped_definition_t *biped_tag;
   unsigned int flags;
   float camera_height;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  biped_tag = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  flags = *(unsigned int *)(biped_tag + 0x2f4);
+  flags = biped_tag->biped_flags;
   if ((flags & 8) != 0 && (flags & 4) == 0) {
-    camera_height = *(float *)(biped_tag + 0x42c);
-    *(float *)(placement + 0x18) =
-      camera_height * *(float *)(placement + 0x40) +
-      *(float *)(placement + 0x18);
-    *(float *)(placement + 0x1c) =
-      camera_height * *(float *)(placement + 0x44) +
-      *(float *)(placement + 0x1c);
-    *(float *)(placement + 0x20) =
-      camera_height * *(float *)(placement + 0x48) +
-      *(float *)(placement + 0x20);
+    camera_height = biped_definition_collision_radius(biped_tag);
+    data->position_x = camera_height * data->up.x + data->position_x;
+    data->position_y = camera_height * data->up.y + data->position_y;
+    data->position_z = camera_height * data->up.z + data->position_z;
   }
 }
 
@@ -1370,28 +1322,28 @@ void biped_adjust_placement(int unit_handle, char *placement)
  */
 void biped_export_function_values(int unit_handle)
 {
-  char *unit_obj;
+  biped_data_t *biped;
   char *biped_tag;
   short *type_ptr;
   float *out_ptr;
-  float *vel;
+  real_vector3d *vel;
   float val;
   int count;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  biped_tag = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  type_ptr = (short *)(biped_tag + 0x30c);
-  out_ptr = (float *)(unit_obj + 0xd4);
+  type_ptr = biped_definition_function_modes(biped_tag);
+  out_ptr = &biped->unit.object.field_d0[1];
   count = 4;
   do {
     if (*type_ptr != 0) {
       val = 0.0f;
       switch (*type_ptr) {
       case 1:
-        vel = (float *)(unit_obj + 0x18);
-        val = sqrtf(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]) /
-              (*(float *)(biped_tag + 0x334) * *(float *)0x2546a4);
+        vel = &biped->unit.object.translational_velocity;
+        val = sqrtf(vel->i * vel->i + vel->j * vel->j + vel->k * vel->k) /
+              (biped_definition_flying_velocity(biped_tag) * REAL_ONE_THIRTIETH_POOL);
         if (val < 0.0f) {
           val = 0.0f;
         } else if (val > 1.0f) {
@@ -1424,7 +1376,7 @@ void biped_export_function_values(int unit_handle)
  * Confirmed: CALL 0x1ba140 (tag_get) with 'bipd' signature.
  * Confirmed: CALL 0x1412f0 (object_get_world_position) for mode 0.
  * Confirmed: CALL 0x8d9f0 (display_assert) with bipeds.c path.
- * Confirmed: Tag offsets 0x400 (crouching height), 0x404 (standing height).
+ * Confirmed: Tag offsets 0x400 (standing height), 0x404 (crouching height).
  * Confirmed: Unit offset 0x464 (crouch fraction).
  * Confirmed: Globals 0x2533c0 (0.0f), 0x2533c8 (1.0f).
  */
@@ -1434,15 +1386,15 @@ void biped_estimate_position(int unit_handle, int16_t estimate_mode,
                              vector3_t *desired_gun_offset,
                              vector3_t *out_position)
 {
-  char *unit_obj;
+  biped_data_t *biped;
   char *biped_tag;
   float crouch_value;
   float neg_facing_y;
   float facing_x;
   float gun_y;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  biped_tag = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
   /* Assert: if estimate_mode != 0, must have estimated_body_position */
   if (estimate_mode != 0 && estimated_body_position == NULL) {
@@ -1509,20 +1461,20 @@ height_adjustment:
    * unit's actual crouch fraction). */
   switch (estimate_mode) {
   case 1:
-    crouch_value = 0.0f; /* Crouching */
+    crouch_value = 0.0f; /* Standing */
     break;
   case 2:
-    crouch_value = 1.0f; /* Standing */
+    crouch_value = 1.0f; /* Crouching */
     break;
   default:
-    crouch_value = *(float *)(unit_obj + 0x464); /* Actual crouch fraction */
+    crouch_value = biped->crouch;
     break;
   }
 
   /* Interpolate height between crouching and standing based on crouch value.
-   * Order matches the original FPU sequence: (1-cv)*crouching + cv*standing. */
-  out_position->z = (1.0f - crouch_value) * *(float *)(biped_tag + 0x400) +
-                    crouch_value * *(float *)(biped_tag + 0x404) +
+   * Order matches the original FPU sequence: (1-cv)*standing + cv*crouching. */
+  out_position->z = (1.0f - crouch_value) * biped_definition_standing_camera_height(biped_tag) +
+                    crouch_value * biped_definition_crouching_camera_height(biped_tag) +
                     out_position->z;
 }
 
@@ -1540,54 +1492,54 @@ height_adjustment:
  *
  * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd', ...);
  * object_get_node_matrix (node matrix +0x28 = position); midpoint3d (0x2a540);
- * 0.5f = *(float*)0x253398; axis = marker1 - marker0 (FSUB order from disasm).
+ * 0.5f = REAL_0_5_POOL; axis = marker1 - marker0 (FSUB order from disasm).
  */
-void biped_get_autoaim_pill(int unit_handle, float *out_pos, float *out_axis,
+void biped_get_autoaim_pill(int unit_handle, real_point3d *out_pos, real_vector3d *out_axis,
                             int *out_value)
 {
-  char *unit_obj;
-  char *biped_tag;
-  char *marker0;
-  char *marker1;
+  biped_data_t *biped;
+  biped_definition_t *biped_tag;
+  real_matrix4x3 *marker0;
+  real_matrix4x3 *marker1;
   float height_offset;
   float camera_height;
   float half;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  biped_tag = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  if (*(short *)(biped_tag + 0x4e4) != -1 &&
-      *(short *)(biped_tag + 0x4e6) != -1) {
-    marker0 = (char *)object_get_node_matrix(unit_handle,
-                                             *(short *)(biped_tag + 0x4e4));
-    marker1 = (char *)object_get_node_matrix(unit_handle,
-                                             *(short *)(biped_tag + 0x4e6));
-    if ((*(unsigned char *)(biped_tag + 0x2f4) & 0x10) != 0) {
-      midpoint3d((float *)(marker0 + 0x28), (float *)(marker1 + 0x28), out_pos);
-      out_axis[0] = global_zero_vector_ptr[0];
-      out_axis[1] = global_zero_vector_ptr[1];
-      out_axis[2] = global_zero_vector_ptr[2];
-      *out_value = *(int *)(biped_tag + 0x458);
+  if (biped_definition_runtime_pelvis_node_index(biped_tag) != -1 &&
+      biped_definition_runtime_head_node_index(biped_tag) != -1) {
+    marker0 = object_get_node_matrix(unit_handle,
+                                     biped_definition_runtime_pelvis_node_index(biped_tag));
+    marker1 = object_get_node_matrix(unit_handle,
+                                     biped_definition_runtime_head_node_index(biped_tag));
+    if (((uint8_t)biped_tag->biped_flags & 0x10) != 0) {
+      midpoint3d(&marker0->position, &marker1->position, out_pos);
+      out_axis->i = global_zero_vector_ptr[0];
+      out_axis->j = global_zero_vector_ptr[1];
+      out_axis->k = global_zero_vector_ptr[2];
+      *out_value = *(int *)&biped_definition_autoaim_width(biped_tag);
       return;
     }
-    out_pos[0] = *(float *)(marker0 + 0x28);
-    out_pos[1] = *(float *)(marker0 + 0x2c);
-    out_pos[2] = *(float *)(marker0 + 0x30);
-    out_axis[0] = *(float *)(marker1 + 0x28) - *(float *)(marker0 + 0x28);
-    out_axis[1] = *(float *)(marker1 + 0x2c) - *(float *)(marker0 + 0x2c);
-    out_axis[2] = *(float *)(marker1 + 0x30) - *(float *)(marker0 + 0x30);
-    *out_value = *(int *)(biped_tag + 0x458);
+    out_pos->x = marker0->position.x;
+    out_pos->y = marker0->position.y;
+    out_pos->z = marker0->position.z;
+    out_axis->i = marker1->position.x - marker0->position.x;
+    out_axis->j = marker1->position.y - marker0->position.y;
+    out_axis->k = marker1->position.z - marker0->position.z;
+    *out_value = *(int *)&biped_definition_autoaim_width(biped_tag);
     return;
   }
 
-  biped_get_camera_height_and_offset(unit_handle, (vector3_t *)out_pos,
+  biped_get_camera_height_and_offset(unit_handle, out_pos,
                                      &height_offset, &camera_height);
-  half = height_offset * *(float *)0x253398;
-  out_pos[2] = half + out_pos[2];
-  out_axis[0] = half * global_up_vector_ptr[0];
-  out_axis[1] = half * global_up_vector_ptr[1];
-  out_axis[2] = half * global_up_vector_ptr[2];
-  *out_value = *(int *)(biped_tag + 0x458);
+  half = height_offset * REAL_0_5_POOL;
+  out_pos->z = half + out_pos->z;
+  out_axis->i = half * global_up_vector_ptr[0];
+  out_axis->j = half * global_up_vector_ptr[1];
+  out_axis->k = half * global_up_vector_ptr[2];
+  *out_value = *(int *)&biped_definition_autoaim_width(biped_tag);
 }
 
 /* biped_fix_position (0x1a1430)
@@ -1598,9 +1550,9 @@ void biped_get_autoaim_pill(int unit_handle, float *out_pos, float *out_axis,
  * estimated camera/standing position when NULL), it walks a fixed table of
  * displacement directions at 0x2b4b80 (stride 3 floats), scaling each by
  * `scale`. For each candidate it (1) finds the BSP3D leaf, rejecting points
- * outside the BSP; (2) runs a battery of collision tests (FUN_0014f020 sphere
- * fit, FUN_0014e7d0 vector-to-surface, and when a seat is involved the
- * FUN_0014cc80 / FUN_000130d0 line-of-sight checks against both objects). The
+ * outside the BSP; (2) runs a battery of collision tests (collision_fix_pill sphere
+ * fit, collision_test_pill vector-to-surface, and when a seat is involved the
+ * collision_model_test_pill / collision_test_line line-of-sight checks against both objects). The
  * first candidate that passes all gates becomes the fixed location: the biped
  * object's position (obj+0xc) is updated, children are re-parented, and the
  * object is translated to the new location (unless dont_teleport). The final
@@ -1638,25 +1590,25 @@ char biped_fix_position(int unit_handle, int seat_handle,
   int from_seat;
   int collision_flags;
   int leaf_index;
-  int bsp;
-  int leaf_elem;
+  void *bsp;
+  void *leaf_elem;
   float *src_pos;
   float *basis; /* biped_obj as float[] — basis-matrix rows at +0x24..0x38 */
-  float position[3]; /* local_2c/28/24 */
+  real_point3d position; /* local_2c/28/24 */
   float camera_height; /* local_18 ([EBP-0x18], 1a0890 arg4) */
   float height_offset; /* local_1c ([EBP-0x1c], 1a0890 arg3) */
-  float offset_vec[3]; /* local_4c/48/44 */
-  float cross[3]; /* local_40/3c/38 */
+  real_vector3d offset_vec; /* local_4c/48/44 */
+  real_vector3d cross; /* local_40/3c/38 */
   float fx, fy;
-  float candidate[3]; /* local_14: candidate.x; local_10/c/8 below */
-  float cand[3]; /* local_10/c/8 — the BSP query point */
+  real_point3d candidate; /* local_14: candidate.x; local_10/c/8 below */
+  real_point3d cand; /* local_10/c/8 — the BSP query point */
   /* Out buffers passed to collision callees. Sized per each callee's writes;
    * preserve sizes to keep the original 0x538 frame layout. */
-  char center[12]; /* local_64 — 1aae0 sphere center / 130d0 args */
+  real_point3d center; /* local_64 — 1aae0 sphere center / 130d0 args */
   char box[16]; /* local_74 — 14c8e0 out, reused as 14cc80 arg1 */
-  char location[16]; /* local_58/54/50 — scenario_location_from_point */
-  char surf_result[80]; /* local_114 — 14e7d0 result */
-  char los_result[80]; /* local_c4 — 130d0 result; +0x38 = hit handle.
+  location_t location;
+  collision_test_result surf_result; /* local_114 — 14e7d0 result */
+  collision_test_result los_result; /* local_c4 — 130d0 result; +0x38 = hit handle.
                         * 130d0 delegates to 14df70, which writes an 0x50-byte
                         * result (units.c:9404, projectiles.c collision_result
                         * [0x50]); original frame gap local_c4..local_74 is
@@ -1671,15 +1623,15 @@ char biped_fix_position(int unit_handle, int seat_handle,
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0x37d, true);
     system_exit(-1);
   }
-  if (*(int16_t *)0x4761d8 >= 0x20) {
+  if (COLLISION_USER_STACK_DEPTH >= 0x20) {
     display_assert("global_current_collision_user_depth < "
                    "MAXIMUM_COLLISION_USER_STACK_DEPTH",
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0x37f, true);
     system_exit(-1);
   }
-  depth = *(int16_t *)0x4761d8;
-  *(int16_t *)0x4761d8 = (int16_t)(depth + 1);
-  *(int16_t *)(0x5a8c80 + depth * 2) = 7;
+  depth = COLLISION_USER_STACK_DEPTH;
+  COLLISION_USER_STACK_DEPTH = (int16_t)(depth + 1);
+  COLLISION_USER_STACK[depth] = 7;
 
   /* Branch structure preserved from disasm (0x1a14aa): call
    * object_get_bounding_sphere only when a seat is involved, jumping straight
@@ -1692,7 +1644,7 @@ char biped_fix_position(int unit_handle, int seat_handle,
   }
   if (seat_handle != -1) {
   call_aae0:
-    object_get_bounding_sphere(seat_handle, (float *)center,
+    object_get_bounding_sphere(seat_handle, (float *)&center,
                                (float *)&from_seat);
   }
   {
@@ -1703,17 +1655,17 @@ char biped_fix_position(int unit_handle, int seat_handle,
     biped_obj = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
     biped_tag = (int)tag_get(0x62697064, *biped_obj); /* 'bipd' */
     collision_flags =
-      (-(int)((*(unsigned int *)(biped_tag + 0x2f4) & 0x20) != 0) &
+      (-(int)((biped_definition_flags(biped_tag) & 0x20) != 0) &
        0xffdfff00) +
       0x20c3a0;
 
     if (initial_position == (float *)0) {
-      src_pos = &position[0];
+      src_pos = (float *)&position;
     } else {
-      position[0] = initial_position[0];
-      position[1] = initial_position[1];
-      position[2] = initial_position[2];
-      src_pos = &offset_vec[0];
+      position.x = initial_position[0];
+      position.y = initial_position[1];
+      position.z = initial_position[2];
+      src_pos = (float *)&offset_vec;
     }
     biped_get_camera_height_and_offset(unit_handle, (vector3_t *)src_pos,
                                        &height_offset, &camera_height);
@@ -1722,19 +1674,19 @@ char biped_fix_position(int unit_handle, int seat_handle,
     }
     loop_limit = (short)(0x1b - ((keep_basis != '\0') - 1 & 9));
     if (seat_handle != -1) {
-      FUN_0014c8e0((int *)box, seat_handle);
+      collision_model_instance_new((int *)box, seat_handle);
     }
-    /* cross = right_axis(obj+0x24) x up_axis(obj+0x30); normalize. The basis
+    /* &cross = right_axis(obj+0x24) x up_axis(obj+0x30); normalize. The basis
      * rows at obj+0x24..0x38 are floats; load them as floats (FLD), not via
      * int->float conversion. FSUBP order preserved exactly from disasm. */
     basis = (float *)biped_obj;
-    cross[0] = basis[0xe] * basis[0xa] - basis[0xb] * basis[0xd];
-    cross[1] = basis[0xb] * basis[0xc] - basis[9] * basis[0xe];
-    cross[2] = basis[9] * basis[0xd] - basis[0xc] * basis[0xa];
-    normalize3d((real_vector3d *)&cross[0]);
-    offset_vec[0] = height_offset * global_up_vector_ptr[0];
-    offset_vec[1] = height_offset * global_up_vector_ptr[1];
-    offset_vec[2] = height_offset * global_up_vector_ptr[2];
+    cross.i = basis[0xe] * basis[0xa] - basis[0xb] * basis[0xd];
+    cross.j = basis[0xb] * basis[0xc] - basis[9] * basis[0xe];
+    cross.k = basis[9] * basis[0xd] - basis[0xc] * basis[0xa];
+    normalize3d(&cross);
+    offset_vec.i = height_offset * global_up_vector_ptr[0];
+    offset_vec.j = height_offset * global_up_vector_ptr[1];
+    offset_vec.k = height_offset * global_up_vector_ptr[2];
     if (scale_by_height != '\0') {
       scale = camera_height * scale;
     }
@@ -1743,64 +1695,64 @@ char biped_fix_position(int unit_handle, int seat_handle,
     while ((short)i < loop_limit) {
       leaf_index = (int)(short)i;
       if (keep_basis == '\0') {
-        cand[0] = scale * ((float *)0x2b4b80)[leaf_index * 3] + position[0];
-        cand[1] = scale * ((float *)0x2b4b84)[leaf_index * 3] + position[1];
-        cand[2] = scale * ((float *)0x2b4b88)[leaf_index * 3] + position[2];
+        cand.x = scale * FUDGE_VECTORS_I[leaf_index * 3] + position.x;
+        cand.y = scale * FUDGE_VECTORS_J[leaf_index * 3] + position.y;
+        cand.z = scale * FUDGE_VECTORS_K[leaf_index * 3] + position.z;
       } else {
-        fx = scale * ((float *)0x2b4b80)[leaf_index * 3];
-        fy = scale * ((float *)0x2b4b84)[leaf_index * 3];
-        candidate[2] = scale * ((float *)0x2b4b88)[leaf_index * 3];
-        cand[0] = candidate[2] * basis[0xc] + cross[0] * fy + fx * basis[9] +
-                  position[0];
-        cand[1] = candidate[2] * basis[0xd] + cross[1] * fy + fx * basis[0xa] +
-                  position[1];
-        cand[2] = candidate[2] * basis[0xe] + cross[2] * fy + fx * basis[0xb] +
-                  position[2];
+        fx = scale * FUDGE_VECTORS_I[leaf_index * 3];
+        fy = scale * FUDGE_VECTORS_J[leaf_index * 3];
+        candidate.z = scale * FUDGE_VECTORS_K[leaf_index * 3];
+        cand.x = candidate.z * basis[0xc] + cross.i * fy + fx * basis[9] +
+                  position.x;
+        cand.y = candidate.z * basis[0xd] + cross.j * fy + fx * basis[0xa] +
+                  position.y;
+        cand.z = candidate.z * basis[0xe] + cross.k * fy + fx * basis[0xb] +
+                  position.z;
       }
 
-      if (FUN_0018e720((int)&cand[0]) != -1) {
-        leaf_index = FUN_0018e720((int)&cand[0]) & 0x7fffffff;
-        bsp = (int)scenario_get();
+      if (scenario_leaf_index_from_point((int)&cand) != -1) {
+        leaf_index = scenario_leaf_index_from_point((int)&cand) & 0x7fffffff;
+        bsp = scenario_get();
         leaf_elem =
-          (int)tag_block_get_element((void *)(bsp + 0xe0), leaf_index, 0x10);
-        if ((*(short *)(leaf_elem + 8) != -1) &&
-            (FUN_0014f020((uint32_t)collision_flags, &cand[0],
+          tag_block_get_element(&structure_bsp_leaves(bsp), leaf_index, 0x10);
+        if ((structure_leaf_cluster_index(leaf_elem) != -1) &&
+            (collision_fix_pill((uint32_t)collision_flags, (float *)&cand,
                           camera_height + camera_height, height_offset,
-                          camera_height, unit_handle, &cand[0]) != '\0') &&
-            (FUN_0014e7d0((uint32_t)collision_flags, &cand[0], &offset_vec[0],
-                          camera_height, unit_handle, surf_result) == '\0') &&
+                          camera_height, unit_handle, (float *)&cand) != '\0') &&
+            (collision_test_pill((uint32_t)collision_flags, (float *)&cand, (float *)&offset_vec,
+                          camera_height, unit_handle, &surf_result) == '\0') &&
             ((seat_handle == -1) ||
-             ((FUN_0014cc80((int)box, (int)&cand[0], (int)&offset_vec[0],
+             ((collision_model_test_pill((int)box, (int)&cand, (int)&offset_vec,
                             camera_height, (int16_t *)obstruction) == '\0') &&
-              ((FUN_000130d0((uint32_t)collision_flags, &cand[0],
-                             (float *)center, unit_handle,
-                             (int16_t *)los_result) == 0) ||
-               (*(int *)(los_result + 0x38) == seat_handle)) &&
-              ((FUN_000130d0((uint32_t)collision_flags, (float *)center,
-                             &cand[0], seat_handle,
-                             (int16_t *)los_result) == 0) ||
-               (*(int *)(los_result + 0x38) == unit_handle))))) {
+              ((collision_test_line((uint32_t)collision_flags, (float *)&cand,
+                             (float *)&center, unit_handle,
+                             (int16_t *)&los_result) == 0) ||
+               (los_result.object_index == seat_handle)) &&
+              ((collision_test_line((uint32_t)collision_flags, (float *)&center,
+                             (float *)&cand, seat_handle,
+                             (int16_t *)&los_result) == 0) ||
+               (los_result.object_index == unit_handle))))) {
           biped_tag = (int)tag_get(0x62697064, *biped_obj);
-          scenario_location_from_point(location, &cand[0]);
-          if (*(short *)(location + 4) == -1) {
+          scenario_location_from_point(&location, &cand);
+          if (location.cluster_index == -1) {
             display_assert("fixed_location.cluster_index!=NONE",
                            "c:\\halo\\SOURCE\\units\\bipeds.c", 0x41e, true);
             system_exit(-1);
           }
-          if ((*(unsigned char *)(biped_tag + 0x2f4) & 8) == 0) {
-            cand[2] = cand[2] - *(float *)(biped_tag + 0x42c);
+          if ((*(unsigned char *)&biped_definition_flags(biped_tag) & 8) == 0) {
+            cand.z = cand.z - biped_definition_collision_radius(biped_tag);
           }
           if ((unit_handle != -1) && (dont_teleport == '\0')) {
-            biped_obj[3] = *(unsigned int *)&cand[0];
-            biped_obj[4] = *(unsigned int *)&cand[1];
-            biped_obj[5] = *(unsigned int *)&cand[2];
+            biped_obj[3] = REAL_BITS(cand.x);
+            biped_obj[4] = REAL_BITS(cand.y);
+            biped_obj[5] = REAL_BITS(cand.z);
             object_update_children_recursive(unit_handle);
-            object_translate(unit_handle, &cand[0], location);
+            object_translate(unit_handle, &cand, &location);
           }
           if (final_position != (float *)0) {
-            final_position[0] = cand[0];
-            final_position[1] = cand[1];
-            final_position[2] = cand[2];
+            final_position[0] = cand.x;
+            final_position[1] = cand.y;
+            final_position[2] = cand.z;
           }
           success = 1;
         }
@@ -1813,12 +1765,12 @@ char biped_fix_position(int unit_handle, int seat_handle,
   }
 
 epilogue:
-  if (*(int16_t *)0x4761d8 < 2) {
+  if (COLLISION_USER_STACK_DEPTH < 2) {
     display_assert("global_current_collision_user_depth > 1",
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0x438, true);
     system_exit(-1);
   }
-  *(int16_t *)0x4761d8 = (int16_t)(*(int16_t *)0x4761d8 - 1);
+  COLLISION_USER_STACK_DEPTH = (int16_t)(COLLISION_USER_STACK_DEPTH - 1);
   return (char)success;
 }
 
@@ -1827,8 +1779,8 @@ epilogue:
  * Debug-visualization for a biped's camera/aim geometry, gated by two debug
  * globals. When 0x5054fe is set, draws the camera height/offset: if the height
  * offset is at/below the small threshold (0x2533c0), renders a point
- * (FUN_00189540); otherwise scales the world-up vector by the height offset and
- * renders a vector arrow (FUN_00189860). When 0x5054fd is set, fetches the
+ * (render_debug_sphere); otherwise scales the world-up vector by the height offset and
+ * renders a vector arrow (render_debug_pill). When 0x5054fd is set, fetches the
  * autoaim pill (biped_get_autoaim_pill) and renders the axis as an arrow if its
  * squared length exceeds the threshold, else a point. Render context pointers
  * come from [0x2ee6c4] (camera) and [0x2ee6d0] (autoaim).
@@ -1842,31 +1794,31 @@ epilogue:
 void biped_render_debug(int unit_handle)
 {
   vector3_t out_pos;
-  float scaled[3];
+  real_vector3d scaled;
   float height_offset;
   float camera_height;
 
-  if (*(char *)0x5054fe != '\0') {
+  if (DEBUG_OBJECTS_BIPED_PHYSICS_PILLS != '\0') {
     biped_get_camera_height_and_offset(unit_handle, &out_pos, &height_offset,
                                        &camera_height);
-    if (height_offset > *(float *)0x2533c0) {
-      scaled[0] = height_offset * global_up_vector_ptr[0];
-      scaled[1] = height_offset * global_up_vector_ptr[1];
-      scaled[2] = height_offset * global_up_vector_ptr[2];
-      FUN_00189860(1, &out_pos, scaled, camera_height, *(void **)0x2ee6c4);
+    if (height_offset > REAL_ZERO_POOL) {
+      scaled.i = height_offset * global_up_vector_ptr[0];
+      scaled.j = height_offset * global_up_vector_ptr[1];
+      scaled.k = height_offset * global_up_vector_ptr[2];
+      render_debug_pill(1, &out_pos, &scaled, camera_height, GLOBAL_REAL_ARGB_WHITE);
     } else {
-      FUN_00189540(1, &out_pos, camera_height, *(void **)0x2ee6c4);
+      render_debug_sphere(1, &out_pos, camera_height, GLOBAL_REAL_ARGB_WHITE);
     }
   }
-  if (*(char *)0x5054fd != '\0') {
-    biped_get_autoaim_pill(unit_handle, (float *)&out_pos, scaled,
+  if (DEBUG_OBJECTS_BIPED_AUTOAIM_PILLS != '\0') {
+    biped_get_autoaim_pill(unit_handle, &out_pos, &scaled,
                            (int *)&camera_height);
-    if (scaled[2] * scaled[2] + scaled[1] * scaled[1] + scaled[0] * scaled[0] >
-        *(float *)0x2533c0) {
-      FUN_00189860(1, &out_pos, scaled, camera_height, *(void **)0x2ee6d0);
+    if (scaled.k * scaled.k + scaled.j * scaled.j + scaled.i * scaled.i >
+        REAL_ZERO_POOL) {
+      render_debug_pill(1, &out_pos, &scaled, camera_height, GLOBAL_REAL_ARGB_RED);
       return;
     }
-    FUN_00189540(1, &out_pos, camera_height, *(void **)0x2ee6d0);
+    render_debug_sphere(1, &out_pos, camera_height, GLOBAL_REAL_ARGB_RED);
   }
 }
 
@@ -1903,75 +1855,77 @@ void biped_render_debug(int unit_handle)
  *   (scale); full layout of the 0x414-byte collision-result buffer beyond the
  *   three fields read here.
  */
-int biped_find_ground_surface(float scale, float *out_point, void *out_vec,
-                              float *direction /* @eax */,
+int biped_find_ground_surface(float scale, real_point3d *out_point, void *out_vec,
+                              const real_vector3d *direction /* @eax */,
                               int unit_handle /* @edi */)
 {
   /* One contiguous collision-result buffer (frame base EBP-0x434). Sized to
    * cover collision_bsp_test_vector's full record (mirrors path.c's
    * local_438[264]); we read t at +0, a surface-record pointer at +4, and the
    * hit index at +8. Do NOT split into separate locals. */
-  float collision_result[264];
+  collision_bsp_test_vector_result_t collision_result;
   int result_index;
   int depth;
   void *bsp;
   float *offset_vec;
   float *surface_record;
   float t;
-  float origin[3];
-  float scaled_dir[3];
+  real_point3d origin;
+  real_vector3d scaled_dir;
   float dir0;
 
   object_get_and_verify_type(unit_handle, 1);
   bsp = global_collision_bsp_get();
   result_index = -1;
-  dir0 = direction[0];
+  dir0 = direction->i;
 
-  if (*(int16_t *)0x4761d8 >= 0x20) {
+  /* global_current_collision_user_depth by raw address: the named global
+   * compiles 6 bytes shorter than the original here. */
+  if (COLLISION_USER_STACK_DEPTH >= 0x20) {
     display_assert("global_current_collision_user_depth < "
                    "MAXIMUM_COLLISION_USER_STACK_DEPTH",
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0x47a, true);
     system_exit(-1);
   }
-  depth = *(int16_t *)0x4761d8;
-  *(int16_t *)0x4761d8 = (int16_t)(depth + 1);
-  *(int16_t *)(0x5a8c80 + depth * 2) = 7;
+  depth = COLLISION_USER_STACK_DEPTH;
+  COLLISION_USER_STACK_DEPTH = (int16_t)(depth + 1);
+  COLLISION_USER_STACK[depth] = 7;
 
-  object_get_world_position(unit_handle, (vector3_t *)origin);
+  object_get_world_position(unit_handle, &origin);
 
-  offset_vec = *(float **)0x31fc44;
-  origin[0] = offset_vec[0] * *(float *)0x253524 + origin[0];
-  origin[1] = offset_vec[1] * *(float *)0x253524 + origin[1];
-  origin[2] = offset_vec[2] * *(float *)0x253524 + origin[2];
+  offset_vec = global_up_vector_ptr;
+  origin.x = offset_vec[0] * REAL_0_4_POOL + origin.x;
+  origin.y = offset_vec[1] * REAL_0_4_POOL + origin.y;
+  origin.z = offset_vec[2] * REAL_0_4_POOL + origin.z;
 
-  scaled_dir[0] = scale * dir0;
-  scaled_dir[1] = scale * direction[1];
-  scaled_dir[2] = scale * direction[2];
+  scaled_dir.i = scale * dir0;
+  scaled_dir.j = scale * direction->j;
+  scaled_dir.k = scale * direction->k;
 
-  if ((char)collision_bsp_test_vector(1, (int)bsp, 0, 0, (int)origin,
-                                      (int)scaled_dir, 3.4028235e+38f,
-                                      collision_result) != 0) {
-    t = collision_result[0];
-    if (out_point != (float *)0) {
-      out_point[0] = scaled_dir[0] * t + origin[0];
-      out_point[1] = scaled_dir[1] * t + origin[1];
-      out_point[2] = scaled_dir[2] * t + origin[2];
+  if ((char)collision_bsp_test_vector(1, (int)bsp, 0, 0, (int)&origin,
+                                      (int)&scaled_dir, 3.4028235e+38f,
+                                      (float *)&collision_result) != 0) {
+    t = collision_result.t;
+    if (out_point != (real_point3d *)0) {
+      out_point->x = scaled_dir.i * t + origin.x;
+      out_point->y = scaled_dir.j * t + origin.y;
+      out_point->z = scaled_dir.k * t + origin.z;
     }
-    result_index = *(int *)((char *)collision_result + 8);
+    result_index = collision_result.surface_index;
     if (out_vec != (void *)0) {
-      surface_record = *(float **)((char *)collision_result + 4);
+      surface_record = (float *)collision_result.plane;
       ((int *)out_vec)[0] = ((int *)surface_record)[0];
       ((int *)out_vec)[1] = ((int *)surface_record)[1];
       ((int *)out_vec)[2] = ((int *)surface_record)[2];
     }
   }
 
-  if (*(int16_t *)0x4761d8 <= 1) {
+  if (COLLISION_USER_STACK_DEPTH <= 1) {
     display_assert("global_current_collision_user_depth > 1",
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0x490, true);
     system_exit(-1);
   }
-  *(int16_t *)0x4761d8 = (int16_t)(*(int16_t *)0x4761d8 - 1);
+  COLLISION_USER_STACK_DEPTH = (int16_t)(COLLISION_USER_STACK_DEPTH - 1);
   return result_index;
 }
 
@@ -1983,15 +1937,15 @@ int biped_find_ground_surface(float scale, float *out_point, void *out_vec,
  * collision-result index is returned unchanged in EAX (-1 = no hit). out_point,
  * when non-NULL, receives the hit point.
  *
- * Confirmed (disasm 0x1a1b90): keystone direction@<eax> = *(float**)0x31fc50;
+ * Confirmed (disasm 0x1a1b90): keystone direction@<eax> = GLOBAL_DOWN3D;
  * unit_handle@<edi> = param_1; cdecl pushes scale=2.0f (0x40000000),
  * out_point=param_2, out_vec=NULL; ADD ESP,0xc. No MOV EAX after CALL, so the
  * keystone return flows through (caller 0x56c60 tests the result == -1).
  */
 int biped_approximate_surface_index(int unit_handle, float *out_point)
 {
-  return biped_find_ground_surface(2.0f, out_point, (void *)0,
-                                   *(float **)0x31fc50, unit_handle);
+  return biped_find_ground_surface(2.0f, (real_point3d *)out_point, (void *)0,
+                                   GLOBAL_DOWN3D, unit_handle);
 }
 
 /* biped_find_pathfinding_surface_index (0x1a1bc0)
@@ -2010,63 +1964,63 @@ int biped_approximate_surface_index(int unit_handle, float *out_point)
  *
  * Confirmed (disasm 0x1a1bc0): object_get_and_verify_type(unit_handle,1);
  * tag_get('bipd', obj[0]); game_time_get; global_collision_bsp_get; keystone
- * direction@<eax>=*(float**)0x31fc50, unit_handle@<edi>=unit_handle, push
+ * direction@<eax>=GLOBAL_DOWN3D, unit_handle@<edi>=unit_handle, push
  * scale=2.0f,&pos_buf,NULL. collision_surface helper arg counts from disasm
  * (test_point2d=5 args ret char, find_closest/project=6 args). Position vec3 at
  * EBP-0x14, 2D scratch at EBP-0x8. display_assert at :0x4e7 if pos==NULL.
  *
- * Unit field offsets (dword index in the disasm): 0x430=last_good_surface
- * (0x10c), 0x434=cached_surface_index (0x10d), 0x438=cached_position[3]
- * (0x10e/0x10f/0x110), 0x444=cache_timestamp (0x111), 0x448=last_result_surface
- * (0x112).
  */
 int biped_find_pathfinding_surface_index(int unit_handle, vector3_t *pos)
 {
-  int *unit_obj;
-  int tag;
+  biped_data_t *biped;
+  biped_definition_t *definition;
   int game_time;
   void *bsp;
-  float position[3]; /* EBP-0x14: snapshot/output position vec3 */
-  float proj2d[2]; /* EBP-0x8: 2D projected scratch point */
+  real_point3d position; /* EBP-0x14: snapshot/output position vec3 */
+  real_point2d proj2d; /* EBP-0x8: 2D projected scratch point */
   char projected;
 
-  unit_obj = (int *)object_get_and_verify_type(unit_handle, 1);
-  tag = (int)tag_get(0x62697064, *unit_obj);
-  if (((*(unsigned char *)(tag + 0x2f4) & 4) != 0) &&
-      ((*(unsigned char *)((char *)unit_obj + 0xb6) & 4) == 0)) {
-    unit_obj[0x10d] = -1;
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
+  if ((((uint8_t)definition->biped_flags & 4) != 0) &&
+      ((biped->unit.object.damage_flags & 4) == 0)) {
+    biped->pathfinding_surface_index = NONE;
     object_get_world_position(unit_handle, pos);
-  } else if ((unit_obj[0x10d] == -1) &&
-             (game_time = game_time_get(), game_time > unit_obj[0x111])) {
+  } else if ((biped->pathfinding_surface_index == NONE) &&
+             (game_time = game_time_get(),
+              game_time > biped->last_pathfinding_attempt_time)) {
     bsp = global_collision_bsp_get();
-    position[0] = ((float *)(unit_obj + 0x10e))[0];
-    position[1] = ((float *)(unit_obj + 0x10e))[1];
-    position[2] = ((float *)(unit_obj + 0x10e))[2];
-    unit_obj[0x111] = game_time;
-    if (unit_obj[0x10c] != -1) {
+    position.x = biped->pathfinding_point.x;
+    position.y = biped->pathfinding_point.y;
+    position.z = biped->pathfinding_point.z;
+    biped->last_pathfinding_attempt_time = game_time;
+    if (biped->support_surface_index != NONE) {
       collision_surface_find_closest_point2d(
-        (int)bsp, unit_obj[0x10c], 2, 1, (float *)(unit_obj + 0x10e), proj2d);
-      collision_surface_project_point2d((int)bsp, unit_obj[0x10c], 2, 1, proj2d,
-                                        position);
-      unit_obj[0x10d] = unit_obj[0x10c];
-    } else if ((unit_obj[0x112] != -1) &&
+        (int)bsp, biped->support_surface_index, 2, 1,
+        (real_point2d *)&biped->pathfinding_point, &proj2d);
+      collision_surface_project_point2d((int)bsp, biped->support_surface_index,
+                                        2, 1, &proj2d, &position);
+      biped->pathfinding_surface_index = biped->support_surface_index;
+    } else if ((biped->last_pathfinding_surface_index != NONE) &&
                (projected = (char)collision_surface_test_point2d(
-                  (int)bsp, unit_obj[0x112], 2, 1, (float *)(unit_obj + 0x10e)),
+                  (int)bsp, biped->last_pathfinding_surface_index, 2, 1,
+                  (real_point2d *)&biped->pathfinding_point),
                 projected != 0)) {
-      unit_obj[0x10d] = unit_obj[0x112];
-      collision_surface_project_point2d((int)bsp, unit_obj[0x112], 2, 1,
-                                        (float *)(unit_obj + 0x10e), position);
-      unit_obj[0x10d] = unit_obj[0x112];
+      biped->pathfinding_surface_index = biped->last_pathfinding_surface_index;
+      collision_surface_project_point2d(
+        (int)bsp, biped->last_pathfinding_surface_index, 2, 1,
+        (real_point2d *)&biped->pathfinding_point, &position);
+      biped->pathfinding_surface_index = biped->last_pathfinding_surface_index;
     }
-    if (unit_obj[0x10d] == -1) {
-      unit_obj[0x10d] = biped_find_ground_surface(
-        2.0f, position, (void *)0, *(float **)0x31fc50, unit_handle);
+    if (biped->pathfinding_surface_index == NONE) {
+      biped->pathfinding_surface_index = biped_find_ground_surface(
+        2.0f, &position, (void *)0, GLOBAL_DOWN3D, unit_handle);
     }
-    if (unit_obj[0x10d] != -1) {
-      ((float *)(unit_obj + 0x10e))[0] = position[0];
-      ((float *)(unit_obj + 0x10e))[1] = position[1];
-      ((float *)(unit_obj + 0x10e))[2] = position[2];
-      unit_obj[0x112] = unit_obj[0x10d];
+    if (biped->pathfinding_surface_index != NONE) {
+      biped->pathfinding_point.x = position.x;
+      biped->pathfinding_point.y = position.y;
+      biped->pathfinding_point.z = position.z;
+      biped->last_pathfinding_surface_index = biped->pathfinding_surface_index;
     }
   }
 
@@ -2075,10 +2029,8 @@ int biped_find_pathfinding_surface_index(int unit_handle, vector3_t *pos)
                    0x4e7, true);
     system_exit(-1);
   }
-  ((int *)pos)[0] = unit_obj[0x10e];
-  ((int *)pos)[1] = unit_obj[0x10f];
-  ((int *)pos)[2] = unit_obj[0x110];
-  return unit_obj[0x10d];
+  *pos = biped->pathfinding_point;
+  return biped->pathfinding_surface_index;
 }
 
 /* biped_exit_seat_end (0x1a1d80)
@@ -2098,31 +2050,31 @@ int biped_find_pathfinding_surface_index(int unit_handle, vector3_t *pos)
  */
 void biped_exit_seat_end(int unit_handle, int seat_handle)
 {
-  char *unit_obj;
-  float center[3];
+  biped_data_t *biped;
+  real_point3d center;
   float radius;
   char fixed;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  tag_get(0x62697064, *(int *)unit_obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  *(int *)(unit_obj + 0x2c) = 0;
-  if (normalize3d((real_vector3d *)(unit_obj + 0x24)) == 0.0f) {
-    *(float *)(unit_obj + 0x24) = global_forward_vector_ptr[0];
-    *(float *)(unit_obj + 0x28) = global_forward_vector_ptr[1];
-    *(float *)(unit_obj + 0x2c) = global_forward_vector_ptr[2];
+  biped->unit.object.forward.k = 0.0f;
+  if (normalize3d(&biped->unit.object.forward) == 0.0f) {
+    biped->unit.object.forward.i = global_forward_vector_ptr[0];
+    biped->unit.object.forward.j = global_forward_vector_ptr[1];
+    biped->unit.object.forward.k = global_forward_vector_ptr[2];
   }
-  *(float *)(unit_obj + 0x30) = global_up_vector_ptr[0];
-  *(float *)(unit_obj + 0x34) = global_up_vector_ptr[1];
-  *(float *)(unit_obj + 0x38) = global_up_vector_ptr[2];
-  *(int *)(unit_obj + 0x424) |= 1;
+  biped->unit.object.up.i = global_up_vector_ptr[0];
+  biped->unit.object.up.j = global_up_vector_ptr[1];
+  biped->unit.object.up.k = global_up_vector_ptr[2];
+  biped->flags |= 1;
 
   fixed =
     biped_fix_position(unit_handle, seat_handle, (float *)0, 0, 2.0f, 1, 0, 1);
   if (fixed == 0) {
-    object_get_bounding_sphere(seat_handle, center, &radius);
+    object_get_bounding_sphere(seat_handle, (float *)&center, &radius);
     fixed =
-      biped_fix_position(unit_handle, seat_handle, center, 0, radius, 1, 0, 0);
+      biped_fix_position(unit_handle, seat_handle, (float *)&center, 0, radius, 1, 0, 0);
     if (fixed == 0) {
       error(2, "couldn't teleport the biped out far enough from the vehicle"
                "...");
@@ -2130,7 +2082,7 @@ void biped_exit_seat_end(int unit_handle, int seat_handle)
   }
 }
 
-/* FUN_001a1e70 (0x1a1e70)
+/* biped_falling_danger (0x1a1e70)
  *
  * Per-tick "is this biped stuck falling / off a ledge?" check for AI bipeds.
  * After a battery of eligibility gates (not in a vehicle, tag flags clear,
@@ -2139,53 +2091,56 @@ void biped_exit_seat_end(int unit_handle, int seat_handle)
  * 6.0-length probe from the biped along the global direction at [0x31fc50].
  * If the probe misses, OR (after fetching the biped's world position) the
  * biped's clearance field (obj+0x20) is small and the vertical drop to the
- * probe point exceeds the physics fall threshold (physics+0x94 squared), it
+ * probe point exceeds the maximum damage velocity (squared), it
  * triggers the recovery path unit_scream(unit_handle, 0).
  *
  * Confirmed (disasm 0x1a1e70): cdecl unit_handle at [EBP+8] (caller 0x1a6350
  * PUSH EDI; ADD ESP,4); object_get_and_verify_type(unit,1); tag_get('bipd');
  * game_time_get; tag_block_get_element(game_globals_get()+0x188, 0, 0x98);
- * keystone direction@<eax>=*(float**)0x31fc50, unit@<edi>, scale=6.0f
+ * keystone direction@<eax>=GLOBAL_DOWN3D, unit@<edi>, scale=6.0f
  * (0x40c00000); object_get_world_position; unit_scream(unit,0). Return
  * discarded (void).
  *
- * Inferred: obj+0x20 = clearance/height float; physics+0x94 = fall-distance
- * threshold; DAT_0032512c gravity-related scalar. Probe hit point and world
+ * Inferred: obj+0x20 = clearance/height float; DAT_0032512c gravity-related scalar. Probe hit point and world
  * position are separate 3-float stack buffers.
  */
-void FUN_001a1e70(int unit_handle)
+void biped_falling_danger(int unit_handle)
 {
-  int *unit_obj;
-  int tag;
+  biped_data_t *biped;
+  biped_definition_t *definition;
   int game_time;
-  int physics;
+  game_globals_falling_damage_t *falling_damage;
   float fall_term;
-  float probe_hit[3];
-  float world_pos[3];
-  float *dir_ptr;
+  real_point3d probe_hit;
+  real_point3d world_pos;
+  real_vector3d *dir_ptr;
 
-  unit_obj = (int *)object_get_and_verify_type(unit_handle, 1);
-  tag = (int)tag_get(0x62697064, *unit_obj);
-  if (((*(unsigned char *)((char *)unit_obj + 0xb6) & 4) == 0) &&
-      ((*(unsigned char *)(tag + 0x2f4) & 0x84) == 0) &&
-      ((unit_obj[0x6d] & 0x1000) == 0) && (unit_obj[0x69] != -1) &&
-      (*(char *)((char *)unit_obj + 0x253) != 0x1d)) {
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
+  if (((biped->unit.object.damage_flags & 4) == 0) &&
+      (((uint8_t)definition->biped_flags & 0x84) == 0) &&
+      ((biped->unit.flags & 0x1000) == 0) &&
+      (biped->unit.actor_index.value != NONE) &&
+      ((char)biped->unit.animation_state != 0x1d)) {
     game_time = game_time_get();
-    if ((*(char *)((char *)unit_obj + 0x459) > 0x1e) &&
-        ((unit_obj[0x114] == -1) || (unit_obj[0x114] + 0xf < game_time))) {
-      physics =
-        (int)tag_block_get_element((char *)game_globals_get() + 0x188, 0, 0x98);
-      unit_obj[0x114] = game_time;
-      dir_ptr = *(float **)0x31fc50;
-      if ((biped_find_ground_surface(6.0f, probe_hit, (void *)0, dir_ptr,
+    if ((biped->airborne_ticks > 0x1e) &&
+        ((biped->last_falling_communication_time == NONE) ||
+         (biped->last_falling_communication_time + 0xf < game_time))) {
+      falling_damage =
+        tag_block_get_element(&game_globals_falling_damage(game_globals_get()), 0,
+                              sizeof(game_globals_falling_damage_t));
+      biped->last_falling_communication_time = game_time;
+      dir_ptr = GLOBAL_DOWN3D;
+      if ((biped_find_ground_surface(6.0f, &probe_hit, (void *)0, dir_ptr,
                                      unit_handle) == -1) ||
-          (object_get_world_position(unit_handle, (vector3_t *)world_pos),
-           !(*(float *)((char *)unit_obj + 0x20) > *(float *)0x2533c0) &&
-             (fall_term = (world_pos[2] - probe_hit[2]) * *(float *)0x32512c,
-              !(*(float *)((char *)unit_obj + 0x20) *
-                    *(float *)((char *)unit_obj + 0x20) +
+          (object_get_world_position(unit_handle, &world_pos),
+           !(biped->unit.object.translational_velocity.k > REAL_ZERO_POOL) &&
+             (fall_term = (world_pos.z - probe_hit.z) * GLOBAL_GRAVITY,
+              !(biped->unit.object.translational_velocity.k *
+                    biped->unit.object.translational_velocity.k +
                   (fall_term + fall_term) <
-                *(float *)(physics + 0x94) * *(float *)(physics + 0x94))))) {
+                falling_damage->runtime_maximum_damage_velocity *
+                  falling_damage->runtime_maximum_damage_velocity)))) {
         unit_scream(unit_handle, 0);
       }
     }
@@ -2194,7 +2149,7 @@ void FUN_001a1e70(int unit_handle)
 
 /* biped_vehicle_speech (0x1a1fb0)
  *
- * Vehicle-rider variant of the stuck/ejection check (mirrors FUN_001a1e70 for a
+ * Vehicle-rider variant of the stuck/ejection check (mirrors biped_falling_danger for a
  * biped riding a vehicle seat). Gates on the vehicle tag flag (vehi+0x17c bit
  * 6), the biped having a seat (obj+0x1a4 != -1), not in scream state 0x1d, a
  * recheck throttle field (obj+0x2d2 > 'x'), the vehicle settle counter
@@ -2209,7 +2164,7 @@ void FUN_001a1e70(int unit_handle)
  * Confirmed (disasm 0x1a1fb0): register arg unit_handle@<eax> (MOV EDI,EAX at
  * 0x1a1fb9; caller 0x1a6350 MOV EAX,EDI; CALL with no stack arg). vehi =
  * object_get_and_verify_type(object_get_and_verify_type(unit,1)->[0xcc], 2);
- * tag_get('vehi'). keystone: 1st call direction@<eax>=*(float**)0x31fc50,
+ * tag_get('vehi'). keystone: 1st call direction@<eax>=GLOBAL_DOWN3D,
  * scale=8.0f, out_point=0, out_vec=0; 2nd call direction@<eax>=&scaled_vel,
  * scale=8.0f, out_point=0, out_vec=&probe_vec. unit@<edi> on both.
  * ai_communication_event args: 7 pushes (reason, EDI=unit, -1,-1,-1,-1, 0).
@@ -2222,45 +2177,49 @@ void FUN_001a1e70(int unit_handle)
  */
 void biped_vehicle_speech(int unit_handle /* @eax */)
 {
-  int *unit_obj;
-  int *vehi_obj;
-  int tag;
+  biped_data_t *biped;
+  vehicle_data_t *vehicle;
+  unit_definition_t *definition;
   int game_time;
   int probe_vec[3]; /* EBP-0x18: 2nd keystone out_vec */
-  float scaled_vel[3]; /* EBP-0xc: scaled vehicle velocity */
+  real_vector3d scaled_vel; /* EBP-0xc: scaled vehicle velocity */
 
-  unit_obj = (int *)object_get_and_verify_type(unit_handle, 1);
-  vehi_obj = (int *)object_get_and_verify_type(unit_obj[0x33], 2);
-  tag = (int)tag_get(0x76656869, *vehi_obj);
-  if (((*(unsigned char *)(tag + 0x17c) & 0x40) != 0) &&
-      (unit_obj[0x69] != -1) && (*(char *)((char *)unit_obj + 0x253) != 0x1d) &&
-      (*(char *)((char *)unit_obj + 0x2d2) > 0x78)) {
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  vehicle = object_get_and_verify_type(
+    biped->unit.object.parent_object_index.value, OBJECT_MASK_VEHICLE);
+  definition = tag_get(TAG_GROUP_VEHI, vehicle->unit.object.tag_index);
+  if ((((uint8_t)definition->flags & 0x40) != 0) &&
+      (biped->unit.actor_index.value != NONE) &&
+      ((char)biped->unit.animation_state != 0x1d) &&
+      ((char)biped->unit.gunner_inactive_ticks > 0x78)) {
     game_time = game_time_get();
-    if ((*(unsigned char *)((char *)vehi_obj + 0x428) > 0x1e) &&
-        ((unit_obj[0x114] == -1) || (unit_obj[0x114] + 0xf < game_time))) {
-      unit_obj[0x114] = game_time;
-      if (biped_find_ground_surface(8.0f, (float *)0, (void *)0,
-                                    *(float **)0x31fc50, unit_handle) == -1) {
-        scaled_vel[0] =
-          *(float *)((char *)vehi_obj + 0x18) * *(float *)0x2b4ee4;
-        scaled_vel[1] =
-          *(float *)((char *)vehi_obj + 0x1c) * *(float *)0x2b4ee4;
-        scaled_vel[2] =
-          *(float *)((char *)vehi_obj + 0x20) * *(float *)0x2b4ee4 -
-          *(float *)0x32512c * *(float *)0x2b4ee0;
-        if (normalize3d((real_vector3d *)scaled_vel) <= *(float *)0x2533c0) {
+    if ((vehicle->airborne_ticks > 0x1e) &&
+        ((biped->last_falling_communication_time == NONE) ||
+         (biped->last_falling_communication_time + 0xf < game_time))) {
+      biped->last_falling_communication_time = game_time;
+      if (biped_find_ground_surface(8.0f, (real_point3d *)0, (void *)0,
+                                    GLOBAL_DOWN3D, unit_handle) == -1) {
+        scaled_vel.i =
+          vehicle->unit.object.translational_velocity.i * REAL_60_POOL;
+        scaled_vel.j =
+          vehicle->unit.object.translational_velocity.j * REAL_60_POOL;
+        scaled_vel.k =
+          vehicle->unit.object.translational_velocity.k * REAL_60_POOL -
+          GLOBAL_GRAVITY * REAL_1800_POOL;
+        if (normalize3d(&scaled_vel) <= REAL_ZERO_POOL) {
           ai_communication_event(0x28, unit_handle, -1, -1, -1, -1, 0);
           return;
         }
-        if ((biped_find_ground_surface(8.0f, (float *)0, probe_vec, scaled_vel,
+        if ((biped_find_ground_surface(8.0f, (real_point3d *)0, probe_vec, &scaled_vel,
                                        unit_handle) == -1) ||
-            (*(float *)&probe_vec[2] <= *(float *)0x2533e4)) {
+            (*(float *)&probe_vec[2] <= REAL_0_3_POOL)) {
           ai_communication_event(0x28, unit_handle, -1, -1, -1, -1, 0);
           return;
         }
       }
-      if (*(float *)0x253f3c < *(float *)((char *)vehi_obj + 0x38)) {
-        if (FUN_00012fe0((float *)(vehi_obj + 0xf)) < *(float *)0x26e2ec) {
+      if (REAL_0_6_POOL < vehicle->unit.object.up.k) {
+        if (magnitude3d(&vehicle->unit.object.angular_velocity) <
+            REAL_THREE_DEGREES_POOL) {
           ai_communication_event(0x26, unit_handle, -1, -1, -1, -1, 0);
           return;
         }
@@ -2270,7 +2229,7 @@ void biped_vehicle_speech(int unit_handle /* @eax */)
   }
 }
 
-/* FUN_001a2160 (0x1a2160)
+/* biped_apply_rotation (0x1a2160)
  *
  * Rotates a biped's forward/up axes (unit+0x24 fwd, unit+0x30 up) about the
  * axis stored at unit+0x3c by the angle equal to that axis vector's length.
@@ -2283,23 +2242,23 @@ void biped_vehicle_speech(int unit_handle /* @eax */)
  * rotate_vector3d_by_sincos (0x10b6e0); x87 FCOS/FSIN; globals 0x31fc3c fwd,
  * 0x31fc44 up. Cross operand order transcribed from disassembly.
  */
-void FUN_001a2160(int unit_handle)
+void biped_apply_rotation(int unit_handle)
 {
-  char *unit_obj;
+  object_data_t *object;
   real_vector3d axis;
   real_vector3d up_rot;
-  float t[3];
+  real_vector3d t;
   float angle;
   float cos_a;
   float sin_a;
-  float *fwd;
-  float *up_ptr;
+  real_vector3d *forward;
+  real_vector3d *up;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  object = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
 
-  axis = *(real_vector3d *)(unit_obj + 0x3c);
+  axis = object->angular_velocity;
   angle = normalize3d(&axis);
-  fwd = (float *)(unit_obj + 0x24);
+  forward = &object->forward;
 #if defined(_MSC_VER) && !defined(__clang__)
   cos_a = (float)cos((double)angle);
   sin_a = (float)sin((double)angle);
@@ -2307,29 +2266,55 @@ void FUN_001a2160(int unit_handle)
   cos_a = x87_fcos(angle);
   sin_a = x87_fsin(angle);
 #endif
-  rotate_vector3d_by_sincos((real_vector3d *)fwd, &axis, sin_a, cos_a);
-  normalize3d((real_vector3d *)fwd);
+  rotate_vector3d_by_sincos(forward, &axis, sin_a, cos_a);
+  normalize3d(forward);
 
-  up_ptr = (float *)(unit_obj + 0x30);
-  up_rot = *(real_vector3d *)up_ptr;
+  up = &object->up;
+  up_rot = *up;
   rotate_vector3d_by_sincos(&up_rot, &axis, sin_a, cos_a);
 
-  t[0] = up_rot.k * fwd[1] - up_rot.j * fwd[2];
-  t[1] = up_rot.i * fwd[2] - up_rot.k * fwd[0];
-  t[2] = up_rot.j * fwd[0] - up_rot.i * fwd[1];
-  /* up = cross(temp, fwd) — FPU LIFO: computed z,y,x, stored x,y,z */
-  up_ptr[0] = t[1] * fwd[2] - t[2] * fwd[1];
-  up_ptr[1] = t[2] * fwd[0] - t[0] * fwd[2];
-  up_ptr[2] = t[0] * fwd[1] - t[1] * fwd[0];
-  if (normalize3d((real_vector3d *)up_ptr) == 0.0f) {
-    fwd[0] = global_forward_vector_ptr[0];
-    fwd[1] = global_forward_vector_ptr[1];
-    fwd[2] = global_forward_vector_ptr[2];
-    up_ptr[0] = global_up_vector_ptr[0];
-    up_ptr[1] = global_up_vector_ptr[1];
-    up_ptr[2] = global_up_vector_ptr[2];
+  t.i = up_rot.k * forward->j - up_rot.j * forward->k;
+  t.j = up_rot.i * forward->k - up_rot.k * forward->i;
+  t.k = up_rot.j * forward->i - up_rot.i * forward->j;
+  /* up = cross(temp, forward) — FPU LIFO: computed z,y,x, stored x,y,z */
+  up->i = t.j * forward->k - t.k * forward->j;
+  up->j = t.k * forward->i - t.i * forward->k;
+  up->k = t.i * forward->j - t.j * forward->i;
+  if (normalize3d(up) == 0.0f) {
+    forward->i = global_forward_vector_ptr[0];
+    forward->j = global_forward_vector_ptr[1];
+    forward->k = global_forward_vector_ptr[2];
+    up->i = global_up_vector_ptr[0];
+    up->j = global_up_vector_ptr[1];
+    up->k = global_up_vector_ptr[2];
   }
 }
+
+/* Game globals player_information block element (globals +0x170, element
+ * size 0xf4). */
+typedef struct game_globals_player_information_t {
+  uint8_t pad_00[0x2c];
+  real walking_speed;                         /* +0x2c */
+  real double_speed_multiplier;               /* +0x30 */
+  real run_forward_speed;                     /* +0x34 */
+  real run_backward_speed;                    /* +0x38 */
+  real run_sideways_speed;                    /* +0x3c */
+  real run_acceleration;                      /* +0x40 */
+  real sneak_forward_speed;                   /* +0x44 */
+  real sneak_backward_speed;                  /* +0x48 */
+  real sneak_sideways_speed;                  /* +0x4c */
+  real sneak_acceleration;                    /* +0x50 */
+  real airborne_acceleration;                 /* +0x54 */
+  uint8_t pad_58[0x28];
+  real stun_movement_penalty;                 /* +0x80 */
+  real field_84;                              /* +0x84 stun penalty on jump speed */
+  uint8_t pad_88[0x6c];
+} game_globals_player_information_t;
+cs(game_globals_player_information_t, 0xf4);
+co(game_globals_player_information_t, walking_speed, 0x2c);
+co(game_globals_player_information_t, airborne_acceleration, 0x54);
+co(game_globals_player_information_t, stun_movement_penalty, 0x80);
+co(game_globals_player_information_t, field_84, 0x84);
 
 /* biped_jump (0x1a2290)
  *
@@ -2348,10 +2333,10 @@ void FUN_001a2160(int unit_handle)
  */
 char biped_jump(int unit_handle)
 {
-  char *unit_obj;
+  biped_data_t *biped;
   char *biped_tag;
-  char *physics;
-  float *vel_ptr;
+  game_globals_player_information_t *player_information;
+  real_vector3d *vel_ptr;
   int actor_handle;
   int zero_idx;
   float max_speed;
@@ -2361,47 +2346,46 @@ char biped_jump(int unit_handle)
   char success;
   char aim_flag;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  biped_tag = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
   zero_idx = 0;
-  if ((*(unsigned char *)(unit_obj + 0x424) & 1) == 0 &&
-      *(short *)(unit_obj + 0x460) != 1) {
-    max_speed = *(float *)(biped_tag + 0x3b4);
+  if (((uint8_t)biped->flags & 1) == 0 && biped->landing != 1) {
+    max_speed = biped_definition_jump_velocity(biped_tag);
     vel0_ptr = &vel[0];
     success = 1;
-    if (*(int *)(unit_obj + 0x1c8) != -1) {
-      physics = (char *)tag_block_get_element(
-        (char *)game_globals_get() + 0x170, 0, 0xf4);
-      max_speed = (*(float *)0x2533c8 -
-                   *(float *)(unit_obj + 0x3d4) * *(float *)(physics + 0x84)) *
+    if (biped->unit.player_index.value != NONE) {
+      player_information =
+        tag_block_get_element(&game_globals_player_information(game_globals_get()), 0,
+                              sizeof(game_globals_player_information_t));
+      max_speed = (REAL_ONE_POOL -
+                   biped->unit.body_stun * player_information->field_84) *
                   max_speed;
     }
-    if (*(char *)0x5aa894 != '\0' && *(int *)(unit_obj + 0x1c8) != -1) {
-      max_speed = max_speed * *(float *)0x2533d8;
+    if (CHEAT_SUPER_JUMP != '\0' && biped->unit.player_index.value != NONE) {
+      max_speed = max_speed * REAL_4_0_POOL;
     }
 
-    vel_ptr = (float *)(unit_obj + 0x18);
-    vel[0] = vel_ptr[0];
-    vel[1] = vel_ptr[1];
-    vel[2] = vel_ptr[2];
-    dot = vel[1] * *(float *)(unit_obj + 0x34) +
-          vel[2] * *(float *)(unit_obj + 0x38) +
-          vel[zero_idx] * *(float *)(unit_obj + 0x30);
+    vel_ptr = &biped->unit.object.translational_velocity;
+    vel[0] = vel_ptr->i;
+    vel[1] = vel_ptr->j;
+    vel[2] = vel_ptr->k;
+    dot = vel[1] * biped->unit.object.up.j + vel[2] * biped->unit.object.up.k +
+          vel[zero_idx] * biped->unit.object.up.i;
     if (dot < max_speed) {
       dot = max_speed - dot;
-      vel[zero_idx] = dot * *(float *)(unit_obj + 0x30) + *vel0_ptr;
-      vel[1] = dot * *(float *)(unit_obj + 0x34) + vel[1];
-      vel[2] = dot * *(float *)(unit_obj + 0x38) + vel[2];
+      vel[zero_idx] = dot * biped->unit.object.up.i + *vel0_ptr;
+      vel[1] = dot * biped->unit.object.up.j + vel[1];
+      vel[2] = dot * biped->unit.object.up.k + vel[2];
     }
 
-    actor_handle = *(int *)(unit_obj + 0x1a8);
-    if (actor_handle == -1) {
-      actor_handle = *(int *)(unit_obj + 0x1a4);
+    actor_handle = biped->unit.swarm_actor_index.value;
+    if (actor_handle == NONE) {
+      actor_handle = biped->unit.actor_index.value;
     }
-    if (actor_handle != -1) {
-      aim_flag = (*(char *)(unit_obj + 0x253) == 0x27 ||
-                  *(char *)(unit_obj + 0x253) == 0x28) ?
+    if (actor_handle != NONE) {
+      aim_flag = ((char)biped->unit.animation_state == 0x27 ||
+                  (char)biped->unit.animation_state == 0x28) ?
                    1 :
                    0;
       success = (char)actor_aim_jump(actor_handle, unit_handle, aim_flag,
@@ -2411,12 +2395,12 @@ char biped_jump(int unit_handle)
       }
     }
 
-    vel_ptr[0] = vel[0];
-    vel_ptr[1] = vel[1];
-    vel_ptr[2] = vel[2];
-    *(int *)(unit_obj + 0x424) |= 1;
-    *(unsigned char *)(unit_obj + 0x45c) = zero_idx;
-    *(int *)(unit_obj + 0x430) = -1;
+    vel_ptr->i = vel[0];
+    vel_ptr->j = vel[1];
+    vel_ptr->k = vel[2];
+    biped->flags |= 1;
+    biped->jump_recovery_timer = (int8_t)zero_idx;
+    biped->support_surface_index = NONE;
     biped_make_footstep(unit_handle, 4, 0);
     biped_make_footstep(unit_handle, 4, 1);
     return success;
@@ -2456,19 +2440,20 @@ char biped_jump(int unit_handle)
  */
 void biped_try_to_make_footsteps(int unit_handle /* @edi */)
 {
-  unsigned int *object;
-  char *anim_elem;
+  biped_data_t *biped;
+  animation_graph_t *animation_graph;
+  char *animation;
   char is_walking;
   char is_fast;
   char matched_second;
   char counter;
 
-  object = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
-  tag_get(0x62697064, (int)object[0]); /* 'bipd' */
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
   is_walking = 0;
   is_fast = 0;
-  switch (*(char *)((int)object + 0x253)) {
+  switch ((char)biped->unit.animation_state) {
   case 2:
   case 3:
     is_walking = 1;
@@ -2477,10 +2462,10 @@ void biped_try_to_make_footsteps(int unit_handle /* @edi */)
   case 5:
   case 6:
   case 7:
-    if (*(float *)(object + 0x8a) * *(float *)(object + 0x8a) +
-          *(float *)(object + 0x8b) * *(float *)(object + 0x8b) +
-          *(float *)(object + 0x8c) * *(float *)(object + 0x8c) >
-        *(float *)0x25337c) {
+    if (biped->unit.throttle.x * biped->unit.throttle.x +
+          biped->unit.throttle.y * biped->unit.throttle.y +
+          biped->unit.throttle.z * biped->unit.throttle.z >
+        REAL_0_25_POOL) {
       is_fast = 1;
     }
     break;
@@ -2488,34 +2473,33 @@ void biped_try_to_make_footsteps(int unit_handle /* @edi */)
     break;
   }
 
-  if (*(short *)((int)object + 0x80) != -1) {
-    anim_elem = (char *)tag_get(0x616e7472, (int)object[0x1f]); /* 'antr' */
-    anim_elem = (char *)tag_block_get_element(
-      anim_elem + 0x74, (int)*(short *)((int)object + 0x80), 0xb4);
+  if (biped->unit.object.unk_128 != NONE) {
+    animation_graph = tag_get(TAG_GROUP_ANTR, biped->unit.object.unk_124);
+    animation = tag_block_get_element(&animation_graph->animations,
+                                      (int)biped->unit.object.unk_128, 0xb4);
     if (is_walking) {
-      if (*(short *)((int)object + 0x82) == 0) {
+      if (biped->unit.object.unk_130 == 0) {
         biped_make_footstep(unit_handle, 3, 0);
         biped_make_footstep(unit_handle, 3, 1);
       }
-    } else if (is_fast && ((anim_elem[0x40] != 0) || (anim_elem[0x41] != 0)) &&
-               ((*(short *)((int)object + 0x82) ==
-                 (unsigned char)anim_elem[0x40]) ||
-                (*(short *)((int)object + 0x82) ==
-                 (unsigned char)anim_elem[0x41]))) {
+    } else if (is_fast && ((animation[0x40] != 0) || (animation[0x41] != 0)) &&
+               ((biped->unit.object.unk_130 == (unsigned char)animation[0x40]) ||
+                (biped->unit.object.unk_130 ==
+                 (unsigned char)animation[0x41]))) {
       matched_second =
-        (*(short *)((int)object + 0x82) != (unsigned char)anim_elem[0x40]);
-      biped_make_footstep(unit_handle, (*(char *)((int)object + 0x257) == 2),
+        (biped->unit.object.unk_130 != (unsigned char)animation[0x40]);
+      biped_make_footstep(unit_handle, ((char)biped->unit.base_seat_index == 2),
                           matched_second);
     }
   }
 
-  switch (*(char *)((int)object + 0x42a)) {
+  switch ((char)biped->state) {
   case 0:
-    if (*(char *)((int)object + 0x45b) < 1) {
+    if (biped->stop_ticks < 1) {
       return;
     }
-    counter = (char)(*(char *)((int)object + 0x45b) + 1);
-    *(char *)((int)object + 0x45b) = counter;
+    counter = (char)(biped->stop_ticks + 1);
+    biped->stop_ticks = counter;
     if (counter < 4) {
       return;
     }
@@ -2523,13 +2507,13 @@ void biped_try_to_make_footsteps(int unit_handle /* @edi */)
     biped_make_footstep(unit_handle, 3, 1);
     break;
   case 1:
-    *(char *)((int)object + 0x45b) = 1;
+    biped->stop_ticks = 1;
     return;
   }
-  *(char *)((int)object + 0x45b) = 0;
+  biped->stop_ticks = 0;
 }
 
-/* FUN_001a25e0 (0x1a25e0)
+/* biped_find_nearby_support_surface (0x1a25e0)
  *
  * Finds the BSP surface most directly under the biped's camera point and
  * records it on the unit. Gets the biped camera position, sphere-tests the
@@ -2553,7 +2537,7 @@ void biped_try_to_make_footsteps(int unit_handle /* @edi */)
  * semantics from the stores into
  * unit+0x430/ 0x46c/0x30 and the min-distance selection.
  */
-void FUN_001a25e0(int unit_handle /* @ecx */)
+void biped_find_nearby_support_surface(int unit_handle /* @ecx */)
 {
   int results[1028]; /* 0x1010 bytes: results[0]=count, results[1+i]=surface idx
                       */
@@ -2561,7 +2545,7 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
   vector3_t *cam_ptr;
   float height_offset;
   float camera_height;
-  char *unit_obj;
+  biped_data_t *biped;
   char *surface_data;
   void *bsp;
   int16_t depth;
@@ -2572,28 +2556,28 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
   int plane_index;
   int best_index;
   float best_dist;
-  float n[4];
-  float best_n[4];
+  real_plane3d n;
+  real_plane3d best_n;
   float dist;
   float radius;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
   bsp = global_collision_bsp_get();
   biped_get_camera_height_and_offset(unit_handle, &cam_pos, &height_offset,
                                      &camera_height);
 
-  if (*(int16_t *)0x4761d8 >= 0x20) {
+  if (global_current_collision_user_depth >= 0x20) {
     display_assert("collision_user_depth<NUMBER_OF_COLLISION_USERS",
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0xf71, true);
     system_exit(-1);
   }
-  depth = *(int16_t *)0x4761d8;
-  *(int16_t *)0x4761d8 = (int16_t)(depth + 1);
-  *(int16_t *)(0x5a8c80 + depth * 2) = 7;
+  depth = global_current_collision_user_depth;
+  collision_user_stack[depth] = 7;
+  global_current_collision_user_depth = (int16_t)(depth + 1);
 
   cam_ptr = &cam_pos;
   surface_data = (char *)breakable_surfaces_get_bsp_surface_data();
-  radius = camera_height + *(float *)0x2533e8;
+  radius = camera_height + REAL_0_05_POOL;
   if ((char)collision_bsp_test_sphere((int)bsp, 0x100, (int)surface_data,
                                       (int)cam_ptr, *(int *)&radius,
                                       results) != 0) {
@@ -2609,47 +2593,47 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
         plane = (float *)tag_block_get_element((void *)((char *)bsp + 0xc),
                                                plane_index & 0x7fffffff, 0x10);
         if (plane_index < 0) {
-          n[0] = -plane[0];
-          n[1] = -plane[1];
-          n[2] = -plane[2];
-          n[3] = -plane[3];
+          n.normal[0] = -plane[0];
+          n.normal[1] = -plane[1];
+          n.normal[2] = -plane[2];
+          n.d = -plane[3];
         } else {
-          n[0] = plane[0];
-          n[1] = plane[1];
-          n[2] = plane[2];
-          n[3] = plane[3];
+          n.normal[0] = plane[0];
+          n.normal[1] = plane[1];
+          n.normal[2] = plane[2];
+          n.d = plane[3];
         }
-        dist = (cam_pos.z * n[2] + n[0] * cam_pos.x + cam_pos.y * n[1]) - n[3];
+        dist = (cam_pos.z * n.normal[2] + n.normal[0] * cam_pos.x + cam_pos.y * n.normal[1]) - n.d;
         if (dist < best_dist) {
           best_index = results[1 + i];
-          best_n[0] = n[0];
-          best_n[1] = n[1];
-          best_n[2] = n[2];
-          best_n[3] = n[3];
+          best_n.normal[0] = n.normal[0];
+          best_n.normal[1] = n.normal[1];
+          best_n.normal[2] = n.normal[2];
+          best_n.d = n.d;
           best_dist = dist;
         }
         i = (int)(int16_t)(i + 1);
       } while (i < count);
 
       if (best_index != -1) {
-        *(int *)(unit_obj + 0x430) = best_index;
-        *(float *)(unit_obj + 0x46c) = best_n[0];
-        *(float *)(unit_obj + 0x470) = best_n[1];
-        *(float *)(unit_obj + 0x474) = best_n[2];
-        *(float *)(unit_obj + 0x478) = best_n[3];
-        *(float *)(unit_obj + 0x30) = best_n[0];
-        *(float *)(unit_obj + 0x34) = best_n[1];
-        *(float *)(unit_obj + 0x38) = best_n[2];
+        biped->support_surface_index = best_index;
+        biped->ground_plane.normal[0] = best_n.normal[0];
+        biped->ground_plane.normal[1] = best_n.normal[1];
+        biped->ground_plane.normal[2] = best_n.normal[2];
+        biped->ground_plane.d = best_n.d;
+        biped->unit.object.up.i = best_n.normal[0];
+        biped->unit.object.up.j = best_n.normal[1];
+        biped->unit.object.up.k = best_n.normal[2];
       }
     }
   }
 
-  if (*(int16_t *)0x4761d8 <= 1) {
+  if (global_current_collision_user_depth <= 1) {
     display_assert("collision_user_depth>0",
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0xf94, true);
     system_exit(-1);
   }
-  *(int16_t *)0x4761d8 = (int16_t)(*(int16_t *)0x4761d8 - 1);
+  global_current_collision_user_depth = (int16_t)(global_current_collision_user_depth - 1);
 }
 
 /* biped_verify_object_vectors (0x1a2800)
@@ -2672,27 +2656,27 @@ void FUN_001a25e0(int unit_handle /* @ecx */)
 void biped_verify_object_vectors(int unit_handle /* @eax */,
                                  const char *failure_kind)
 {
-  char *unit_obj;
-  char *biped_tag;
+  biped_data_t *biped;
+  biped_definition_t *definition;
   const char *limp_str;
   const char *dead_str;
   const char *mode_str;
   uint32_t flags;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  if (valid_real_normal3d_perpendicular((real_vector3d *)(unit_obj + 0x24),
-                                        (real_vector3d *)(unit_obj + 0x30)) == 0) {
-    biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  if (valid_real_normal3d_perpendicular(&biped->unit.object.forward,
+                                        &biped->unit.object.up) == 0) {
+    definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
     limp_str = "/limping";
-    if ((*(unsigned char *)(unit_obj + 0x424) & 0x20) == 0) {
+    if (((uint8_t)biped->flags & 0x20) == 0) {
       limp_str = "";
     }
     dead_str = "/dead";
-    if ((*(unsigned char *)(unit_obj + 0xb6) & 4) == 0) {
+    if ((biped->unit.object.damage_flags & 4) == 0) {
       dead_str = "";
     }
-    flags = *(uint32_t *)(biped_tag + 0x2f4);
+    flags = definition->biped_flags;
     if ((flags & 4) != 0) {
       mode_str = "flying";
     } else if ((flags & 2) != 0) {
@@ -2706,11 +2690,11 @@ void biped_verify_object_vectors(int unit_handle /* @eax */,
     csprintf(
       (char *)0x5ab100,
       "biped %s (%s%s%s): %s vector failure: (%f, %f, %f) / (%f, %f, %f)",
-      tag_name_strip_path(tag_get_name(*(int *)unit_obj)), mode_str, dead_str,
-      limp_str, failure_kind, (double)*(float *)(unit_obj + 0x24),
-      (double)*(float *)(unit_obj + 0x28), (double)*(float *)(unit_obj + 0x2c),
-      (double)*(float *)(unit_obj + 0x30), (double)*(float *)(unit_obj + 0x34),
-      (double)*(float *)(unit_obj + 0x38));
+      tag_name_strip_path(tag_get_name(biped->unit.object.tag_index)), mode_str,
+      dead_str, limp_str, failure_kind, (double)biped->unit.object.forward.i,
+      (double)biped->unit.object.forward.j, (double)biped->unit.object.forward.k,
+      (double)biped->unit.object.up.i, (double)biped->unit.object.up.j,
+      (double)biped->unit.object.up.k);
     display_assert((const char *)0x5ab100, "c:\\halo\\SOURCE\\units\\bipeds.c",
                    0x55d, true);
     system_exit(-1);
@@ -2730,7 +2714,7 @@ void biped_verify_object_vectors(int unit_handle /* @eax */,
  *     is degenerate (length <= 0x2533c0), uses a fully random yaw in [0, 2pi)
  *     to build the facing axis; otherwise uses the computed horizontal facing.
  *   - Scales the facing by the random pitch and adds it into object+0x3c
- *     (vector3d_scale_add), then runs the airborne aim helper FUN_001a2160.
+ *     (vector3d_scale_add), then runs the airborne aim helper biped_apply_rotation.
  * Asserts the biped is airborne (object+0x424 bit 0). Writes the airborne
  * landing-prep state into *state (0x28 for states 0x27/0x28, 0x14 for state
  * 0x14 or when aiming control was active) and emits the "post-airborne" marker.
@@ -2741,51 +2725,50 @@ void biped_verify_object_vectors(int unit_handle /* @eax */,
  * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd',...);
  * biped_flying_through_air (0x1a0db0); random_real_range over global seed
  * (0x10b0d0) with min/max 0x3d567750/0x3db2b8c2; cross_product3d(object+0x30,
- * world_up, tmp); normalize3d (0x13010); FUN_000121e0(0, 2pi) random yaw;
+ * world_up, tmp); normalize3d (0x13010); real_random_range(0, 2pi) random yaw;
  * vector3d_from_angle (0x10cc70); vector3d_scale_add (0x12f80) into
  * object+0x3c.
  */
 void biped_update_airborne(int unit_handle, char *state)
 {
-  unsigned int *object;
-  int biped_tag;
+  biped_data_t *biped;
+  biped_definition_t *definition;
   char aim_control;
   char move_state;
   float pitch;
-  float facing[3];
+  real_vector3d facing;
 
-  object = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (int)tag_get(0x62697064, (int)object[0]); /* 'bipd' */
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
   aim_control = 0;
   if ((biped_flying_through_air(unit_handle) != 0) &&
-      (aim_control = 1, (*(unsigned int *)(biped_tag + 0x2f4) & 0x100) != 0)) {
-    move_state = *(char *)((int)object + 0x253);
+      (aim_control = 1, (definition->biped_flags & 0x100) != 0)) {
+    move_state = (char)biped->unit.animation_state;
     if ((move_state != 0x1f) && (move_state != 0x29)) {
       pitch = random_real_range(get_global_random_seed_address(), 0.05235988f,
                                 0.08726646f);
-      if (*(float *)(object + 0xe) /* +0x38 */ < *(float *)0x2533f0) {
-        cross_product3d((float *)(object + 0xc) /* +0x30 */,
-                        *(float **)0x31fc44 /* world up */, facing);
-        if (normalize3d((real_vector3d *)facing) > *(float *)0x2533c0) {
+      if (biped->unit.object.up.k < REAL_0_8_POOL) {
+        cross_product3d(&biped->unit.object.up, (real_vector3d *)global_up_vector_ptr, &facing);
+        if (normalize3d(&facing) > REAL_ZERO_POOL) {
           goto have_facing;
         }
       }
-      vector3d_from_angle(facing, FUN_000121e0(0.0f, 2.f * _pi));
+      vector3d_from_angle(&facing, real_random_range(0.0f, 2.f * _pi));
     have_facing:
-      vector3d_scale_add((float *)(object + 0xf) /* +0x3c */, facing, pitch,
-                         (float *)(object + 0xf));
+      vector3d_scale_add((real_point3d *)&biped->unit.object.angular_velocity, &facing, pitch,
+                         (real_point3d *)&biped->unit.object.angular_velocity);
     }
-    FUN_001a2160(unit_handle);
+    biped_apply_rotation(unit_handle);
   }
 
-  if ((*(unsigned char *)(object + 0x109) /* +0x424 */ & 1) == 0) {
+  if (((uint8_t)biped->flags & 1) == 0) {
     display_assert("TEST_FLAG(biped->biped.flags, _biped_airborne_bit)",
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0xa61, true);
     system_exit(-1);
   }
 
-  move_state = *(char *)((int)object + 0x253);
+  move_state = (char)biped->unit.animation_state;
   if ((move_state == 0x27) || (move_state == 0x28)) {
     *state = 0x28;
   } else if ((move_state == 0x14) || (aim_control)) {
@@ -2817,30 +2800,30 @@ void biped_update_airborne(int unit_handle, char *state)
  */
 void biped_update_landing(int unit_handle /* @edi */, char *state)
 {
-  unsigned char *object;
+  biped_data_t *biped;
   char counter;
 
-  object = (unsigned char *)object_get_and_verify_type(unit_handle, 1);
-  tag_get(0x62697064, *(int *)object); /* 'bipd' */
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  counter = (char)(object[0x428] + 1);
-  object[0x428] = (unsigned char)counter;
-  if (counter >= (char)object[0x429]) {
-    *(short *)(object + 0x460) = -1;
+  counter = (char)(biped->landing_recovery_counter + 1);
+  biped->landing_recovery_counter = counter;
+  if (counter >= biped->landing_recovery_time) {
+    biped->landing = NONE;
   }
 
   if ((cinematic_in_progress() == 0) &&
-      (((char)object[0x428] == 2) ||
-       ((*(short *)(object + 0x460) == -1) && ((char)object[0x429] < 2)))) {
+      ((biped->landing_recovery_counter == 2) ||
+       ((biped->landing == NONE) && (biped->landing_recovery_time < 2)))) {
     biped_make_footstep(unit_handle, 5, 0);
     biped_make_footstep(unit_handle, 5, 1);
   }
 
-  *state = (char)((*(short *)(object + 0x460) == 1) + 0x15);
+  *state = (char)((biped->landing == 1) + 0x15);
   biped_verify_object_vectors(unit_handle, "post-landing");
 }
 
-/* FUN_001a2b10 (0x1a2b10) — post-slipping update step
+/* biped_update_slipping (0x1a2b10) — post-slipping update step
  *
  * Step in the biped update dispatcher (biped_update). If the biped's slipping
  * counter (object+0x45a) has exceeded 3 ticks AND the object's linear velocity
@@ -2859,19 +2842,19 @@ void biped_update_landing(int unit_handle /* @edi */, char *state)
  * velocity sum-of-squares at +0x18/+0x1c/+0x20 vs threshold 0x25620c;
  * biped_make_footstep(unit, 2, idx) with idx routed to BX (0 then 1).
  */
-void FUN_001a2b10(int unit_handle /* @edi */)
+void biped_update_slipping(int unit_handle /* @edi */)
 {
-  unsigned int *object;
-  float *velocity;
+  biped_data_t *biped;
+  real_vector3d *velocity;
 
-  object = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
-  tag_get(0x62697064, (int)object[0]); /* 'bipd' */
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  velocity = (float *)(object + 6); /* +0x18: linear velocity vec3 */
-  if ((*(char *)((int)object + 0x45a) > 3) &&
-      (velocity[2] * velocity[2] + velocity[1] * velocity[1] +
-         velocity[0] * velocity[0] >
-       *(float *)0x25620c)) {
+  velocity = &biped->unit.object.translational_velocity;
+  if ((biped->slipping_ticks > 3) &&
+      (velocity->k * velocity->k + velocity->j * velocity->j +
+         velocity->i * velocity->i >
+       REAL_ONE_OVER_900_POOL)) {
     biped_make_footstep(unit_handle, 2, 0);
     biped_make_footstep(unit_handle, 2, 1);
   }
@@ -2879,114 +2862,110 @@ void FUN_001a2b10(int unit_handle /* @edi */)
   biped_verify_object_vectors(unit_handle, "post-slipping");
 }
 
-/* biped_update_jumping (0x1a2b90) — airborne aim / landing-rumble update step
+/* Rumble definition record passed to rumble_player_impulse (0x3c bytes; the
+ * callee copies all of it and reads +0x00/+0x04/+0x14/+0x18/+0x28). */
+typedef struct biped_rumble_definition {
+  real field_00;
+  real field_04;
+  int16_t field_08;
+  byte pad_0a[0x14 - 0x0a];
+  real field_14;
+  real field_18;
+  byte pad_1c[0x28 - 0x1c];
+  real field_28;
+  byte pad_2c[0x3c - 0x2c];
+} biped_rumble_definition;
+cs(biped_rumble_definition, 0x3c);
+co(biped_rumble_definition, field_08, 0x08);
+co(biped_rumble_definition, field_14, 0x14);
+co(biped_rumble_definition, field_28, 0x28);
+
+/* biped_update_jumping (0x1a2b90)
  *
- * Step in the biped update dispatcher (FUN_001a5300). When the biped is not
- * yet airborne (object+0x424 bit 0 clear) and its landing index (object+0x460)
- * isn't 1, advances the airborne-frame counter (object+0x45c, capped at 0x7f);
- * if the biped has the relevant control flag (object+0x1b8 bit 1) and the
- * counter exceeds 5, runs biped_jump.
+ * While grounded, advances jump_recovery_timer (capped at 0x7f) and jumps once
+ * the jump control bit is held and the timer exceeds 5. For a player-driven
+ * biped with control bits 0x800 and 0x2000 both set, steers the translational
+ * velocity toward the aiming vector, marks the biped airborne and plays a
+ * rumble impulse; with only bit 0 set while airborne it damps the velocity.
  *
- * If a controlling unit (player) is bound (global 0x5aa891 set, object+0x1c8 is
- * a valid datum) it fetches the player record (datum_get) and, depending on
- * object+0x1b8 flags:
- *   - bits 0x800 AND 0x2000 set: re-orients the biped's aim vector
- *     (object+0x18). Computes the dot of the aim (object+0x18) with the desired
- *     aim (object+0x1ec); when that dot is below epsilon (0x2533c0) it derives
- *     an angle via FUN_00013070, otherwise uses epsilon. A blend weight is
- *     formed (0x2b4fbc * angle) and saturated to [0,1]. The aim is rotated
- *     toward the desired aim via three vector3d_scale_add steps and the
- *     airborne flag (object+0x424 bit 0) is set.
- *   - only bit 1 (and already airborne): damps the aim vector by -0.2
- *     (FUN_00012fb0).
- * Finally, if the aim was re-oriented this tick and the player has a valid
- * controller index (player+2), triggers a landing rumble (rumble_player_impulse
- * with a 0x3c-byte rumble definition: scale 1.0, 0.3, type 3).
- *
- * unit_handle arrives in EAX (register parameter). The caller also pushes its
- * update-state pointer, but this function never reads it.
- *
- * Confirmed: object_get_and_verify_type(unit_handle, 1); tag_get('bipd',...);
- * biped_jump (@edi=unit_handle); datum_get(0x5aa6d4, object+0x1c8);
- * FUN_00013070 dot/angle of object+0x18 and object+0x1ec; vector3d_scale_add
- * (0x12f80) x3; FUN_00012fb0 damp; csmemset+rumble_player_impulse (0xb9bc0).
+ * unit_handle arrives in EAX. The caller also pushes its update-state pointer,
+ * which this function never reads.
  */
 void biped_update_jumping(int unit_handle /* @eax */)
 {
-  unsigned int *object;
-  int player;
+  biped_data_t *biped;
+  player_data_t *player;
   unsigned int flags;
   char aim_reoriented;
   float angle;
   float weight;
   float scale;
-  float tmp[3];
-  float rumble_def[15]; /* 0x3c bytes */
+  real_vector3d tmp;
+  biped_rumble_definition rumble_def;
 
-  object = (unsigned int *)object_get_and_verify_type(unit_handle, 1);
-  tag_get(0x62697064, (int)object[0]); /* 'bipd' */
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  if (((*(unsigned char *)((int)object + 0x424) & 1) == 0) &&
-      (*(short *)((int)object + 0x460) != 1)) {
-    if (*(char *)((int)object + 0x45c) < 0x7f) {
-      *(char *)((int)object + 0x45c) =
-        (char)(*(char *)((int)object + 0x45c) + 1);
+  if ((((uint8_t)biped->flags & 1) == 0) && (biped->landing != 1)) {
+    if (biped->jump_recovery_timer < 0x7f) {
+      biped->jump_recovery_timer = (int8_t)(biped->jump_recovery_timer + 1);
     }
-    if (((*(unsigned char *)((int)object + 0x1b8) & 2) != 0) &&
-        (*(char *)((int)object + 0x45c) > 5)) {
+    if ((((uint8_t)biped->unit.control_flags & 2) != 0) &&
+        (biped->jump_recovery_timer > 5)) {
       biped_jump(unit_handle);
     }
   }
 
-  if ((*(char *)0x5aa891 != 0) && ((int)object[0x72] != -1)) {
-    player = (int)datum_get(*(void **)0x5aa6d4, (int)object[0x72]);
-    flags = object[0x6e]; /* +0x1b8 */
+  if ((CHEAT_JETPACK != 0) && (biped->unit.player_index.value != NONE)) {
+    player = datum_get(PLAYER_DATA_VOID, biped->unit.player_index.value);
+    flags = biped->unit.control_flags;
     aim_reoriented = 0;
     if (((flags & 0x800) == 0) || ((flags & 0x2000) == 0)) {
-      if (((flags & 1) != 0) &&
-          ((*(unsigned char *)((int)object + 0x424) & 1) != 0)) {
-        FUN_00012fb0((float *)(object + 6), -0.2f, (float *)(object + 6));
+      if (((flags & 1) != 0) && (((uint8_t)biped->flags & 1) != 0)) {
+        scale_vector3d(&biped->unit.object.translational_velocity, -0.2f,
+                     &biped->unit.object.translational_velocity);
       }
     } else {
-      /* Dot of aim (object+0x18) with desired aim (object+0x1ec); z,y,x order
-       * matches the original FLD sequence. The FLD/FMUL operand assignment for
-       * each commutative product is an MSVC scheduling choice (a*b == b*a, so
-       * bit-identical); vc71 flags it as an FPU operand-order diff but the
-       * value is provably the same. */
-      if (*(float *)(object + 8) * *(float *)(object + 0x7d) +
-            *(float *)(object + 7) * *(float *)(object + 0x7c) +
-            *(float *)(object + 6) * *(float *)(object + 0x7b) >=
-          *(float *)0x2533c0) {
-        angle = FUN_00013070((float *)(object + 6), (float *)(object + 0x7b));
+      /* z,y,x dot order matches the original FLD sequence. */
+      if (biped->unit.object.translational_velocity.k *
+              biped->unit.aiming_vector.k +
+            biped->unit.object.translational_velocity.j *
+              biped->unit.aiming_vector.j +
+            biped->unit.object.translational_velocity.i *
+              biped->unit.aiming_vector.i >=
+          REAL_ZERO_POOL) {
+        angle = dot_product3d(&biped->unit.object.translational_velocity,
+                             &biped->unit.aiming_vector);
       } else {
-        angle = *(float *)0x2533c0;
+        angle = REAL_ZERO_POOL;
       }
-      weight = *(float *)0x2b4fbc * angle;
-      if (weight < *(float *)0x2533c0) {
-        scale = 0.0f; /* clamp below epsilon -> 0 */
-      } else if (weight > *(float *)0x2533c8) {
-        scale = 1.0f; /* clamp above 1.0 -> 1.0 */
+      weight = REAL_FIVE_SEVENTHS_POOL * angle;
+      if (weight < REAL_ZERO_POOL) {
+        scale = 0.0f;
+      } else if (weight > REAL_ONE_POOL) {
+        scale = 1.0f;
       } else {
         scale = weight;
       }
-      vector3d_scale_add((float *)(object + 6), (float *)(object + 0x7b),
-                         -angle, tmp);
-      vector3d_scale_add((float *)(object + 6), tmp, -0.2f,
-                         (float *)(object + 6));
-      vector3d_scale_add((float *)(object + 6), (float *)(object + 0x7b),
-                         scale * *(float *)0x25bb0c -
-                           scale * scale * *(float *)0x2533e8 +
-                           *(float *)0x25bb10,
-                         (float *)(object + 6));
-      object[0x109] |= 1; /* +0x424 bit 0 */
+      vector3d_scale_add((real_point3d *)&biped->unit.object.translational_velocity,
+                         &biped->unit.aiming_vector, -angle, (real_point3d *)&tmp);
+      vector3d_scale_add((real_point3d *)&biped->unit.object.translational_velocity, &tmp,
+                         -0.2f, (real_point3d *)&biped->unit.object.translational_velocity);
+      vector3d_scale_add((real_point3d *)&biped->unit.object.translational_velocity,
+                         &biped->unit.aiming_vector,
+                         scale * REAL_0_04_POOL -
+                           scale * scale * REAL_0_05_POOL +
+                           REAL_0_01_25BB10_POOL,
+                         (real_point3d *)&biped->unit.object.translational_velocity);
+      biped->flags |= 1;
       aim_reoriented = 1;
     }
-    if ((*(short *)(player + 2) != -1) && (aim_reoriented)) {
-      csmemset(rumble_def, 0, 0x3c);
-      *(unsigned int *)&rumble_def[0] = 0x3f800000; /* 1.0 */
-      *(unsigned int *)&rumble_def[1] = 0x3e99999a; /* 0.3 */
-      *(short *)&rumble_def[2] = 3;
-      rumble_player_impulse(*(short *)(player + 2), rumble_def, 1.0f, 1.0f);
+    if ((player->local_player_index != -1) && (aim_reoriented)) {
+      csmemset(&rumble_def, 0, sizeof(rumble_def));
+      rumble_def.field_00 = 1.0f;
+      rumble_def.field_04 = 0.3f;
+      rumble_def.field_08 = 3;
+      rumble_player_impulse(player->local_player_index, &rumble_def.field_00, 1.0f, 1.0f);
     }
   }
 }
@@ -3002,7 +2981,7 @@ void biped_update_jumping(int unit_handle /* @eax */)
  * valid_real_vector3d_axes3 (0xf6c40); cross operand order from disassembly.
  * Asserts at bipeds.c:0xb93 (null args) and :0xba2 (invalid axes).
  */
-void biped_build_flying_axes(float *forward, float *left, float *up)
+void biped_build_flying_axes(const real_vector3d *forward, real_vector3d *left, real_vector3d *up)
 {
   float lc0;
   float lc1;
@@ -3014,72 +2993,121 @@ void biped_build_flying_axes(float *forward, float *left, float *up)
     system_exit(-1);
   }
 
-  up[0] = global_up_vector_ptr[0];
-  up[1] = global_up_vector_ptr[1];
-  up[2] = global_up_vector_ptr[2];
+  up->i = global_up_vector_ptr[0];
+  up->j = global_up_vector_ptr[1];
+  up->k = global_up_vector_ptr[2];
 
   /* left = up x forward (batched: all components before any store) */
-  lc2 = forward[1] * up[0] - up[1] * forward[0];
-  lc1 = up[2] * forward[0] - forward[2] * up[0];
-  lc0 = up[1] * forward[2] - up[2] * forward[1];
-  left[0] = lc0;
-  left[1] = lc1;
-  left[2] = lc2;
-  if (normalize3d((real_vector3d *)left) == *(float *)0x2533c0) {
-    up[0] = global_forward_vector_ptr[0];
-    up[1] = global_forward_vector_ptr[1];
-    up[2] = global_forward_vector_ptr[2];
-    lc2 = forward[1] * up[0] - up[1] * forward[0];
-    lc1 = up[2] * forward[0] - forward[2] * up[0];
-    lc0 = up[1] * forward[2] - up[2] * forward[1];
-    left[0] = lc0;
-    left[1] = lc1;
-    left[2] = lc2;
-    normalize3d((real_vector3d *)left);
+  lc2 = forward->j * up->i - up->j * forward->i;
+  lc1 = up->k * forward->i - forward->k * up->i;
+  lc0 = up->j * forward->k - up->k * forward->j;
+  left->i = lc0;
+  left->j = lc1;
+  left->k = lc2;
+  if (normalize3d(left) == REAL_ZERO_POOL) {
+    up->i = global_forward_vector_ptr[0];
+    up->j = global_forward_vector_ptr[1];
+    up->k = global_forward_vector_ptr[2];
+    lc2 = forward->j * up->i - up->j * forward->i;
+    lc1 = up->k * forward->i - forward->k * up->i;
+    lc0 = up->j * forward->k - up->k * forward->j;
+    left->i = lc0;
+    left->j = lc1;
+    left->k = lc2;
+    normalize3d(left);
   }
 
   /* up = forward x left */
-  lc2 = left[1] * forward[0] - forward[1] * left[0];
-  lc1 = forward[2] * left[0] - forward[0] * left[2];
-  lc0 = forward[1] * left[2] - left[1] * forward[2];
-  up[0] = lc0;
-  up[1] = lc1;
-  up[2] = lc2;
-  normalize3d((real_vector3d *)up);
+  lc2 = left->j * forward->i - forward->j * left->i;
+  lc1 = forward->k * left->i - forward->i * left->k;
+  lc0 = forward->j * left->k - left->j * forward->k;
+  up->i = lc0;
+  up->j = lc1;
+  up->k = lc2;
+  normalize3d(up);
 
   if (valid_real_vector3d_axes3(forward, left, up) == 0) {
     display_assert(
       csprintf(error_string_buffer,
                "%s, %s, %s: assert_valid_real_vector3d_axes3(%f, %f, %f / %f, "
                "%f, %f / %f, %f, %f)",
-               "forward_vector", "left_vector", "up_vector", (double)forward[0],
-               (double)forward[1], (double)forward[2], (double)up[0],
-               (double)up[1], (double)up[2], (double)left[0], (double)left[1],
-               (double)left[2]),
+               "forward_vector", "left_vector", "up_vector", (double)forward->i,
+               (double)forward->j, (double)forward->k, (double)up->i,
+               (double)up->j, (double)up->k, (double)left->i, (double)left->j,
+               (double)left->k),
       "c:\\halo\\SOURCE\\units\\bipeds.c", 0xba2, true);
     system_exit(-1);
   }
 }
 
 /* Collision/line-of-sight query result entry (0x2c bytes), as filled by
- * FUN_00150550 into a 16-element local array. Offsets confirmed from the
- * back-half access patterns (EDI walks the array at stride 0x2c):
- *   +0x00 point[3] (also used as plane normal source)
- *   +0x04 normal.y (EDI+0x4, used in the ground-plane height test)
- *   +0x0c object datum handle (EDI+0xc, compared to -1, fed to datum_get)
- *   +0x14 flags byte (EDI+0x14, tested &8 / &4) and +0x28 plane reference.
- * The decompiler models the array as scattered local_358/local_35c/local_36c
- * char* locals at stride 0xb; this struct preserves the same 0x2c layout. */
+ * collision_move_pill into a 16-element local array (stride 0x2c). The
+ * back-half loops walk it with EDI = entry+0x14, so EDI+0x14 is flags (+0x28). */
 typedef struct biped_collision_result {
   float point[4]; /* +0x00 .. +0x0c */
-  float normal[3]; /* +0x10 .. +0x18 */
-  float plane_d; /* +0x1c */
+  real_plane3d plane; /* +0x10 */
   int object_handle; /* +0x20 */
   int surface_handle; /* +0x24 */
-  int flags; /* +0x28 */
+  uint8_t flags; /* +0x28 tested &4 / &8 as a byte */
+  uint8_t field_29;
+  int16_t field_2a;
 } biped_collision_result;
+cs(biped_collision_result, 0x2c);
+co(biped_collision_result, plane, 0x10);
+co(biped_collision_result, flags, 0x28);
+co(biped_collision_result, field_29, 0x29);
+co(biped_collision_result, field_2a, 0x2a);
 
-/* FUN_001a2f40 (0x1a2f40) — biped ground/movement physics step.
+/* Movement request built by biped_update_moving at [EBP-0xe4] and handed to
+ * biped_update_physics in ESI. */
+typedef struct biped_physics {
+  int biped_index; /* +0x00  = unit_handle */
+  uint16_t in_flags; /* +0x04  OR-built from biped+0x424/+0xb6, tag+0x2f4 */
+  uint8_t pad_06[2];
+  real_point3d position; /* +0x08  biped_get_camera_height_and_offset out_pos */
+  real_vector3d forward; /* +0x14  biped+0x24, or biped+0x1d4 (player path) */
+  real_vector3d aiming; /* +0x20  biped+0x24 or unit_get_aiming_vector */
+  real_vector3d velocity; /* +0x2c  biped+0x18; passed to biped_bumped_object */
+  float crouch_velocity; /* +0x38 */
+  real_vector3d movement_desired; /* +0x3c */
+  float movement_penalty; /* +0x48 */
+  float acceleration_maximum; /* +0x4c */
+  float airborne_acceleration_maximum; /* +0x50 */
+  float height; /* +0x54  out_height_offset of 0x1a0890 */
+  float width; /* +0x58  out_camera_height of 0x1a0890; subtracted from z */
+  float ground_tangential_velocity_max; /* +0x5c  FLT_MAX / 0.1 */
+  float ground_tangential_angle; /* +0x60  0 / 0.5 */
+  float minimum_normal_k; /* +0x64  tag+0x4d0 */
+  float downhill_k0; /* +0x68  tag+0x4d4 */
+  float downhill_k1; /* +0x6c  tag+0x4d8 */
+  float downhill_velocity_scale; /* +0x70  tag+0x364 */
+  float uphill_k0; /* +0x74  tag+0x4dc */
+  float uphill_k1; /* +0x78  tag+0x4e0 */
+  float uphill_velocity_scale; /* +0x7c  tag+0x370 */
+  real_plane3d ground_plane; /* +0x80  biped+0x46c in, copied back out */
+  int existing_support_surface_index; /* +0x90  biped+0x430 */
+  uint8_t pad_94[4];
+  int bumped_object_index; /* +0x98  -> biped_bumped_object @<edi> */
+  int elevator_object_index; /* +0x9c  -> biped+0x42c / +0x42b ticks */
+  uint16_t out_flags; /* +0xa0  bits 1/2/4/0x10 read here */
+  uint8_t pad_a2[2];
+  int support_surface_index; /* +0xa4  -> biped+0x430 */
+  int field_a8; /* +0xa8  written by biped_update_physics, unread here */
+  real_point3d new_position; /* +0xac */
+  real_vector3d new_velocity; /* +0xb8 */
+  float landing_velocity; /* +0xc4 */
+  float field_c8; /* +0xc8  written by biped_update_physics, unread here */
+} biped_physics;
+cs(biped_physics, 0xcc);
+co(biped_physics, in_flags, 0x04);
+co(biped_physics, movement_desired, 0x3c);
+co(biped_physics, ground_plane, 0x80);
+co(biped_physics, bumped_object_index, 0x98);
+co(biped_physics, out_flags, 0xa0);
+co(biped_physics, new_position, 0xac);
+co(biped_physics, landing_velocity, 0xc4);
+
+/* biped_update_physics (0x1a2f40) — biped ground/movement physics step.
  *
  * Largest function in bipeds.obj (~5.3 KB, ~1613 instructions). The Ghidra
  * decompiler output for this routine is heavily polluted ("type propagation
@@ -3090,9 +3118,9 @@ typedef struct biped_collision_result {
  * cross-checked against the raw disassembly.
  *
  * ABI (Confirmed): single register argument in ESI (read-before-write at the
- *   prologue; caller FUN_001a5300 does `LEA ESI,[EBP-0xe4]; CALL` with no
+ *   prologue; caller biped_update_moving does `LEA ESI,[EBP-0xe4]; CALL` with no
  *   pushes and discards EAX). Returns void. Huge _chkstk frame (0xafac) for a
- *   ~44 KB debug-draw scratch buffer passed to FUN_0014ec30.
+ *   ~44 KB debug-draw scratch buffer passed to collision_get_features_in_sphere.
  *
  * `physics` (ESI) is a biped movement/physics state struct accessed as a flat
  * float array. Field map (index = byte offset / 4), all Confirmed:
@@ -3105,10 +3133,10 @@ typedef struct biped_collision_result {
  *   +0x2c  velocity[3] (physics[0xb..0xd])  [NOTE: aliases ground-plane d]
  *   +0x38  step-height offset (physics[0xe])
  *   +0x3c  control direction (physics[0xf..0x11])
- *   +0x48  friction (used as 1.0 - friction; 1.0f = *(float*)0x2533c8)
+ *   +0x48  friction (used as 1.0 - friction; 1.0f = REAL_ONE_POOL)
  *   +0x4c  max-speed clamp (mode 0x10, physics[0x13])
  *   +0x50  max-speed clamp (mode 0x01, physics[0x14])
- *   +0x54/0x58  line-of-sight direction/origin args to FUN_00150550
+ *   +0x54/0x58  line-of-sight direction/origin args to collision_move_pill
  *   +0x60..0x7c slope-response material curve breakpoints (physics[0x18..0x1f])
  *   +0x80  ground-plane struct (physics+0x80 = physics[0x20..0x23])
  *   +0xa0  result/state word (mixed u16/byte access to the SAME field)
@@ -3130,30 +3158,30 @@ typedef struct biped_collision_result {
  * Status: dormant (ported=false). This is a faithful full reconstruction kept
  * dead-code while iterating; the orchestrator flips the port toggle.
  */
-void FUN_001a2f40(void *physics_arg /* @esi */)
+void biped_update_physics(void *physics_arg /* @esi */)
 {
-  float *physics;
-  float *velocity; /* physics + 0xb (EBX = ESI+0x2c) */
-  float *position; /* physics + 2  (EDI = ESI+0x8)  */
+  biped_physics *physics;
+  real_vector3d *velocity; /* EBX */
+  real_point3d *position; /* EDI */
   unsigned short flags;
   unsigned int flags_word; /* full flags promoted [EBP-0x48] */
-  float damp; /* 1.0 - friction (physics[0x12]) */
+  float damp; /* 1.0 - friction (physics->movement_penalty) */
   float length3;
   float clamp;
 
   /* --- back-half locals --- */
-  char debug_scratch[44040]; /* local_afb0: ~44 KB FUN_0014ec30 buffer (forces
+  char debug_scratch[44040]; /* local_afb0: ~44 KB collision_get_features_in_sphere buffer (forces
                               * the _chkstk prologue the original uses) */
-  char surface_result[44]; /* local_3a8: FUN_0014c4b0 out-result */
-  biped_collision_result results[16]; /* local_378 base; FUN_00150550 array */
-  int result_count; /* local_40: u16 count from FUN_00150550 */
+  char surface_result[44]; /* local_3a8: collision_features_test_vector out-result */
+  biped_collision_result results[16]; /* local_378 base; collision_move_pill array */
+  int result_count; /* local_40: u16 count from collision_move_pill */
   int draw_color; /* pcVar10: debug-draw colour code */
   float gx, gy; /* local_5c, local_60: carried planar normal */
   float pos_world[3]; /* local_34/30: position copy */
-  float new_pos[3]; /* local_9c/98/94: new_position+step */
-  float los_dir[3]; /* local_7c/78/74: line-of-sight out point */
-  float surf[3]; /* local_6c/68/64: projected surface point */
-  float disp[3]; /* local_58/54/50: clamp scratch vec3 */
+  real_vector3d new_pos; /* local_9c/98/94: new_position+step */
+  real_vector3d los_dir; /* local_7c/78/74: line-of-sight out point */
+  real_point3d surf; /* local_6c/68/64: projected surface point */
+  real_vector3d disp; /* local_58/54/50: clamp scratch vec3 */
   float best_t; /* local_4c */
   int best_index; /* local_3c */
   int tval;
@@ -3162,45 +3190,45 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
   x87_wide_t planar_scale;
   void *obj;
   void *tag;
-  float los_dir2[3]; /* local_18: second LOS out point */
+  real_point3d los_dir2; /* local_18: second LOS out point */
   unsigned int isnan_tmp;
   char material_local; /* [EBP-0x31]: (flags>>9)&1 material flag */
-  physics = (float *)physics_arg;
-  velocity = physics + 0xb; /* +0x2c */
-  position = physics + 2; /* +0x08 */
+  physics = physics_arg;
+  velocity = &physics->velocity;
+  position = &physics->position;
 
 #ifdef HALO_RNG_TRACE
   RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_PHYSICS_ENTRY,
-               *(unsigned short *)((char *)physics + 4),
-               *(unsigned int *)physics);
+               physics->in_flags,
+               *(unsigned int *)&physics->biped_index);
 #endif
 
   gx = 0.0f; /* local_5c = 0.0 (prologue) */
   gy = 0.0f; /* local_60 = 0.0 (prologue) */
-  material_local = (char)((*(unsigned short *)((char *)physics + 4) >> 9) & 1);
+  material_local = (char)((physics->in_flags >> 9) & 1);
 
   /* assert_valid_real_point3d(&physics->position) */
-  if (valid_real_point3d(position) == 0) {
+  if (valid_real_point3d((float *)position) == 0) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_point3d(%f, %f, %f)",
-                            "&physics->position", (double)position[0],
-                            (double)position[1], (double)position[2]),
+                            "&physics->position", (double)position->x,
+                            (double)position->y, (double)position->z),
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0xbae, true);
     system_exit(-1);
   }
   /* assert_valid_real_vector2d(&physics->velocity) */
-  if (real_vector3d_valid((real_vector3d *)velocity) == 0) {
+  if (real_vector3d_valid(velocity) == 0) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_vector2d(%f, %f, %f)",
-                            "&physics->velocity", (double)velocity[0],
-                            (double)velocity[1], (double)velocity[2]),
+                            "&physics->velocity", (double)velocity->i,
+                            (double)velocity->j, (double)velocity->k),
                    "c:\\halo\\SOURCE\\units\\bipeds.c", 0xbaf, true);
     system_exit(-1);
   }
 
-  flags = *(unsigned short *)((char *)physics + 4);
+  flags = physics->in_flags;
   flags_word = flags;
-  *(unsigned short *)((char *)physics + 0xa0) = 0;
+  physics->out_flags = 0;
 
   if ((flags & 0x10) != 0) {
     /* ---- mode 0x10 (0x1a3037..0x1a3149): oriented/flying movement ----
@@ -3208,41 +3236,44 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
      * and a unit copy (local_54..); normalize3d destroys the unit copy in
      * place; the clamp branch scales the unit, the no-clamp branch reads back
      * the raw. Modelling that as two vec3s reproduces the movl/movl pairs. */
-    float left[3];
-    float up[3];
+    real_vector3d left;
+    real_vector3d up;
     float t0, t1, t2;
     float dx, dy, dz;
 
-    biped_build_flying_axes(physics + 5, left, up);
+    biped_build_flying_axes(&physics->forward, &left, &up);
 
-    t0 = left[0] * physics[0x10] + up[0] * physics[0x11] +
-         physics[0xf] * physics[5];
-    t1 = physics[6] * physics[0xf] + left[1] * physics[0x10] +
-         up[1] * physics[0x11];
-    t2 = physics[7] * physics[0xf] + left[2] * physics[0x10] +
-         up[2] * physics[0x11];
+    t0 = left.i * physics->movement_desired.j +
+         up.i * physics->movement_desired.k +
+         physics->movement_desired.i * physics->forward.i;
+    t1 = physics->forward.j * physics->movement_desired.i +
+         left.j * physics->movement_desired.j +
+         up.j * physics->movement_desired.k;
+    t2 = physics->forward.k * physics->movement_desired.i +
+         left.k * physics->movement_desired.j +
+         up.k * physics->movement_desired.k;
 
-    damp = *(float *)0x2533c8 - physics[0x12];
+    damp = REAL_ONE_POOL - physics->movement_penalty;
 
-    dx = damp * t0 - velocity[0];
-    dy = damp * t1 - physics[0xc];
-    dz = damp * t2 - physics[0xd];
+    dx = damp * t0 - velocity->i;
+    dy = damp * t1 - physics->velocity.j;
+    dz = damp * t2 - physics->velocity.k;
 
-    disp[0] = dx;
-    disp[1] = dy;
-    disp[2] = dz;
-    length3 = normalize3d((real_vector3d *)disp);
-    if (length3 > physics[0x13]) {
-      clamp = physics[0x13];
-      dx = disp[0] * clamp;
-      dy = disp[1] * clamp;
-      dz = disp[2] * clamp;
+    disp.i = dx;
+    disp.j = dy;
+    disp.k = dz;
+    length3 = normalize3d(&disp);
+    if (length3 > physics->acceleration_maximum) {
+      clamp = physics->acceleration_maximum;
+      dx = disp.i * clamp;
+      dy = disp.j * clamp;
+      dz = disp.k * clamp;
     }
-    physics[0x2e] = dx + velocity[0];
-    physics[0x2f] = dy + physics[0xc];
-    physics[0x30] = dz + physics[0xd];
-    *(unsigned short *)((char *)physics + 0xa0) =
-      (unsigned short)((*(unsigned short *)((char *)physics + 0xa0) & 0xfffd) |
+    physics->new_velocity.i = dx + velocity->i;
+    physics->new_velocity.j = dy + physics->velocity.j;
+    physics->new_velocity.k = dz + physics->velocity.k;
+    physics->out_flags =
+      (unsigned short)((physics->out_flags & 0xfffd) |
                        1);
     goto LAB_001a36a4;
   }
@@ -3252,10 +3283,14 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
      * new_velocity.xy = rotate(control.xy) by the forward axis; z carried as a
      * raw 32-bit copy. gx/gy double-store to both new_velocity and the carried
      * planar normal (fsts + fstps). */
-    gx = physics[0x2e] = physics[0xf] * physics[5] - physics[6] * physics[0x10];
-    *(int *)((char *)physics + 0xc0) =
-      *(int *)&physics[0x11]; /* +0xc0 int mov */
-    gy = physics[0x2f] = physics[0xf] * physics[6] + physics[0x10] * physics[5];
+    gx = physics->new_velocity.i =
+      physics->movement_desired.i * physics->forward.i -
+      physics->forward.j * physics->movement_desired.j;
+    *(int *)&physics->new_velocity.k =
+      *(int *)&physics->movement_desired.k; /* +0xc0 int mov */
+    gy = physics->new_velocity.j =
+      physics->movement_desired.i * physics->forward.j +
+      physics->movement_desired.j * physics->forward.i;
     goto LAB_001a36a4;
   }
 
@@ -3272,33 +3307,35 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
                 * 0x1a31ce reloads it; damp*c1 (0x1a31c8..0x1a31e2) stays
                 * in ST(0). */
 
-    c0 = physics[0xf] * physics[5] - physics[6] * physics[0x10];
-    c1 = physics[0xf] * physics[6] + physics[0x10] * physics[5];
-    damp = *(float *)0x2533c8 - physics[0x12];
+    c0 = physics->movement_desired.i * physics->forward.i -
+         physics->forward.j * physics->movement_desired.j;
+    c1 = physics->movement_desired.i * physics->forward.j +
+         physics->movement_desired.j * physics->forward.i;
+    damp = REAL_ONE_POOL - physics->movement_penalty;
 
     dc0 = damp * c0;
     HALO_FLT_ROUNDTRIP(dc0);
-    raw0 = dc0 - velocity[0];
-    raw1 = damp * c1 - physics[0xc];
+    raw0 = dc0 - velocity->i;
+    raw1 = damp * c1 - physics->velocity.j;
     tang[0] = raw0;
     tang[1] = raw1;
     /* normalize2d at 0x12f10 is the 2D normalize helper; it only reads/writes
      * tang[0]/tang[1]. Keep tang[2] zero for a complete local vec3. */
     tang[2] = 0.0f;
 
-    length3 = normalize2d(tang);
-    if (length3 > physics[0x14]) {
-      clamp = physics[0x14];
+    length3 = normalize2d((real_vector2d *)tang);
+    if (length3 > physics->airborne_acceleration_maximum) {
+      clamp = physics->airborne_acceleration_maximum;
       tang[0] = tang[0] * clamp;
       tang[1] = tang[1] * clamp;
     } else {
       tang[0] = raw0;
       tang[1] = raw1;
     }
-    physics[0x2e] = tang[0] + velocity[0];
-    physics[0x2f] = tang[1] + physics[0xc];
-    physics[0x30] = physics[0xd] - *(float *)0x32512c;
-    *(unsigned short *)((char *)physics + 0xa0) =
+    physics->new_velocity.i = tang[0] + velocity->i;
+    physics->new_velocity.j = tang[1] + physics->velocity.j;
+    physics->new_velocity.k = physics->velocity.k - GLOBAL_GRAVITY;
+    physics->out_flags =
       (unsigned short)((unsigned char)flags_word & 2);
     goto LAB_001a36a4;
   }
@@ -3310,85 +3347,100 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
   {
     float magnitude; /* local_40 (-0x3c): control-direction magnitude */
     short submode; /* local_38: flags & 0x200 */
-    float vecA[3]; /* local_30/2c/28 */
-    float vecB[3]; /* local_24/20/1c */
-    float d[3]; /* local_18/14/10: must be contiguous for normalize3d(&d[0]) */
+    real_vector3d plane_left; /* local_30/2c/28 */
+    real_vector3d plane_forward; /* local_24/20/1c */
+    real_vector3d direction; /* local_18/14/10 */
     float curve_scale; /* fVar1: slope-response result */
     float damp2;
     char curve_flag; /* local_1: secondary state byte */
-    float *gp; /* EDI = physics + 0x20 ground-plane normal */
+    real_vector3d *ground_normal; /* EDI */
 
     magnitude =
-      sqrtf(physics[0xf] * physics[0xf] + physics[0x10] * physics[0x10] +
-            physics[0x11] * physics[0x11]); /* 0x1a327d..0x1a328f */
+      sqrtf(physics->movement_desired.i * physics->movement_desired.i +
+            physics->movement_desired.j * physics->movement_desired.j +
+            physics->movement_desired.k *
+              physics->movement_desired.k); /* 0x1a327d..0x1a328f */
     submode = (short)(flags_word & 0x200);
 
     if (submode != 0) {
       /* ---- 0x1a329e: in-plane axis recovery via cross products ---- */
-      gp = physics + 0x20;
-      vecB[0] = physics[8];
-      vecB[1] = physics[9];
-      vecB[2] = physics[10];
-      cross_product3d(gp, vecB, vecA);
-      if (normalize3d((real_vector3d *)vecA) == 0.0f) {
-        cross_product3d(gp, (float *)(*(int *)0x31fc44), vecA);
-        if (normalize3d((real_vector3d *)vecA) == 0.0f) {
-          cross_product3d(gp, (float *)(*(int *)0x31fc3c), vecA);
-          normalize3d((real_vector3d *)vecA);
+      ground_normal = (real_vector3d *)physics->ground_plane.normal;
+      plane_forward.i = physics->aiming.i;
+      plane_forward.j = physics->aiming.j;
+      plane_forward.k = physics->aiming.k;
+      cross_product3d(ground_normal, &plane_forward, &plane_left);
+      if (normalize3d(&plane_left) == 0.0f) {
+        cross_product3d(ground_normal, (real_vector3d *)global_up_vector_ptr, &plane_left);
+        if (normalize3d(&plane_left) == 0.0f) {
+          cross_product3d(ground_normal, (real_vector3d *)global_forward_vector_ptr, &plane_left);
+          normalize3d(&plane_left);
         }
       }
-      cross_product3d(vecA, gp, vecB);
-      normalize3d((real_vector3d *)vecB);
-      d[0] = vecB[0] * physics[0xf] + vecA[0] * physics[0x10];
-      d[1] = vecB[1] * physics[0xf] + vecA[1] * physics[0x10];
-      d[2] = vecB[2] * physics[0xf] + vecA[2] * physics[0x10] + physics[0x11];
-      normalize3d((real_vector3d *)d); /* submode normalizes here, JMP 0x34f6 skips below */
+      cross_product3d(&plane_left, ground_normal, &plane_forward);
+      normalize3d(&plane_forward);
+      direction.i = plane_forward.i * physics->movement_desired.i +
+             plane_left.i * physics->movement_desired.j;
+      direction.j = plane_forward.j * physics->movement_desired.i +
+             plane_left.j * physics->movement_desired.j;
+      direction.k = plane_forward.k * physics->movement_desired.i +
+             plane_left.k * physics->movement_desired.j +
+             physics->movement_desired.k;
+      normalize3d(&direction); /* submode normalizes here, JMP 0x34f6 skips below */
     } else {
       /* else-if and else share the normalize at 0x34ea; only else has
        * the material multiply. */
-      /* Routing (0x1a3?: flds physics[0x22]; fcomps threshold; test 0x41/jne
-       * 0x1a33ed): the JUMP taken when physics[0x22] <= threshold goes to the
+      /* Routing (0x1a3?: flds physics->ground_plane.normal[2]; fcomps threshold; test 0x41/jne
+       * 0x1a33ed): the JUMP taken when physics->ground_plane.normal[2] <= threshold goes to the
        * full-projection body (0x1a33ed, else below); the fall-through
-       * (physics[0x22] > threshold) runs the single-component solve at
+       * (physics->ground_plane.normal[2] > threshold) runs the single-component solve at
        * 0x1a339b. The lift had this inverted (`<=`), so steep planes
-       * (physics[0x22] ~ 0) hit the divide-by-physics[0x22] below -> 0/0 NaN
+       * (physics->ground_plane.normal[2] ~ 0) hit the divide-by-physics->ground_plane.normal[2] below -> 0/0 NaN
        * (new_position.z = -1.#IND) and broken slope movement; full projection
        * (cross-product/Gram-Schmidt) is the steep-plane path. */
-      if (physics[0x22] > *(float *)0x253f44) {
-        /* ---- 0x1a339b: solve d[2] via the dominant (z) normal component ----
+      if (physics->ground_plane.normal[2] > REAL_0_0001_POOL) {
+        /* ---- 0x1a339b: solve direction.k via the dominant (z) normal component ----
          */
-        gp = physics + 0x20;
-        d[0] = physics[0xf] * physics[5] - physics[6] * physics[0x10];
-        gx = d[0];
-        d[1] = physics[0x10] * physics[5] + physics[0xf] * physics[6];
-        gy = d[1];
-        d[2] = (d[1] * physics[0x21] + d[0] * gp[0]) / physics[0x22];
-        d[2] = physics[0x11] - d[2];
+        ground_normal = (real_vector3d *)physics->ground_plane.normal;
+        direction.i = physics->movement_desired.i * physics->forward.i -
+               physics->forward.j * physics->movement_desired.j;
+        gx = direction.i;
+        direction.j = physics->movement_desired.j * physics->forward.i +
+               physics->movement_desired.i * physics->forward.j;
+        gy = direction.j;
+        direction.k = (direction.j * physics->ground_plane.normal[1] + direction.i * ground_normal->i) /
+               physics->ground_plane.normal[2];
+        direction.k = physics->movement_desired.k - direction.k;
       } else {
         /* ---- 0x1a33ed: full ground-plane projection ---- */
-        gp = physics + 0x20;
-        vecB[0] = physics[8];
-        vecB[1] = physics[9];
-        vecB[2] = physics[10];
-        cross_product3d((float *)(*(int *)0x31fc44), vecB, vecA);
-        normalize3d((real_vector3d *)vecA);
+        ground_normal = (real_vector3d *)physics->ground_plane.normal;
+        plane_forward.i = physics->aiming.i;
+        plane_forward.j = physics->aiming.j;
+        plane_forward.k = physics->aiming.k;
+        cross_product3d((real_vector3d *)global_up_vector_ptr, &plane_forward, &plane_left);
+        normalize3d(&plane_left);
         vector3d_scale_add(
-          vecB, gp, -(vecB[0] * gp[0] + vecB[1] * gp[1] + vecB[2] * gp[2]),
-          vecB);
+          (real_point3d *)&plane_forward, ground_normal, -(plane_forward.i * ground_normal->i + plane_forward.j * ground_normal->j + plane_forward.k * ground_normal->k),
+          (real_point3d *)&plane_forward);
         vector3d_scale_add(
-          vecA, gp, -(vecA[0] * gp[0] + vecA[1] * gp[1] + vecA[2] * gp[2]),
-          vecA);
-        gx = physics[0xf] * physics[5] - physics[6] * physics[0x10];
-        gy = physics[0x10] * physics[5] + physics[0xf] * physics[6];
-        d[0] = vecB[0] * physics[0xf] + vecA[0] * physics[0x10];
-        d[1] = vecB[1] * physics[0xf] + vecA[1] * physics[0x10];
-        d[2] = vecB[2] * physics[0xf] + vecA[2] * physics[0x10] + physics[0x11];
-        /* material gate: multiply d[2] when material_local == 0 */
+          (real_point3d *)&plane_left, ground_normal, -(plane_left.i * ground_normal->i + plane_left.j * ground_normal->j + plane_left.k * ground_normal->k),
+          (real_point3d *)&plane_left);
+        gx = physics->movement_desired.i * physics->forward.i -
+             physics->forward.j * physics->movement_desired.j;
+        gy = physics->movement_desired.j * physics->forward.i +
+             physics->movement_desired.i * physics->forward.j;
+        direction.i = plane_forward.i * physics->movement_desired.i +
+               plane_left.i * physics->movement_desired.j;
+        direction.j = plane_forward.j * physics->movement_desired.i +
+               plane_left.j * physics->movement_desired.j;
+        direction.k = plane_forward.k * physics->movement_desired.i +
+               plane_left.k * physics->movement_desired.j +
+               physics->movement_desired.k;
+        /* material gate: multiply direction.k when material_local == 0 */
         if (material_local == 0) {
-          d[2] = d[2] * *(float *)0x254cc4;
+          direction.k = direction.k * REAL_5_0_POOL;
         }
       }
-      normalize3d((real_vector3d *)d); /* shared normalize at 0x34ea */
+      normalize3d(&direction); /* shared normalize at 0x34ea */
     }
 
     /* ---- slope-response curve (0x1a34f6..0x1a358f) ---- */
@@ -3405,86 +3457,87 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
       if (submode != 0) {
         /* 0x1a34fd: submode != 0 -> JNZ 0x358c, curve = magnitude */
         curve_scale = magnitude;
-      } else if (!(d[2] > physics[0x1b])) {
-        curve_scale = magnitude * physics[0x1c];
-      } else if (d[2] < physics[0x1a]) {
-        curve_scale =
-          ((physics[0x1c] - *(float *)0x2533c8) * (d[2] - physics[0x1a]) /
-             (physics[0x1b] - physics[0x1a]) +
-           *(float *)0x2533c8) *
-          magnitude;
-      } else if (d[2] >= physics[0x1e]) {
-        curve_scale = magnitude * physics[0x1f];
-      } else if (d[2] <= physics[0x1d]) {
+      } else if (!(direction.k > physics->downhill_k1)) {
+        curve_scale = magnitude * physics->downhill_velocity_scale;
+      } else if (direction.k < physics->downhill_k0) {
+        curve_scale = ((physics->downhill_velocity_scale - REAL_ONE_POOL) *
+                         (direction.k - physics->downhill_k0) /
+                         (physics->downhill_k1 - physics->downhill_k0) +
+                       REAL_ONE_POOL) *
+                      magnitude;
+      } else if (direction.k >= physics->uphill_k1) {
+        curve_scale = magnitude * physics->uphill_velocity_scale;
+      } else if (direction.k <= physics->uphill_k0) {
         curve_scale = magnitude;
       } else {
-        curve_scale =
-          ((physics[0x1f] - *(float *)0x2533c8) * (d[2] - physics[0x1d]) /
-             (physics[0x1e] - physics[0x1d]) +
-           *(float *)0x2533c8) *
-          magnitude;
+        curve_scale = ((physics->uphill_velocity_scale - REAL_ONE_POOL) *
+                         (direction.k - physics->uphill_k0) /
+                         (physics->uphill_k1 - physics->uphill_k0) +
+                       REAL_ONE_POOL) *
+                      magnitude;
       }
 
-      damp2 = (*(float *)0x2533c8 - physics[0x12]) * curve_scale;
+      damp2 = (REAL_ONE_POOL - physics->movement_penalty) * curve_scale;
       /* Save the pre-normalize displacement before normalize3d() unit-
        * normalizes disp in place: the keep-raw branch below needs the
        * ORIGINAL (un-normalized) vector, not the unit vector. The original
-       * computes each component into vecB's stack slots (local_24/20/1c,
+       * computes each component into plane_forward's stack slots (local_24/20/1c,
        * reused here) and copies to the working disp slots (local_54/50/4c).
        * Collapsing the two into one disp[] dropped the save, so the keep-raw
        * branch returned a unit-length (magnitude 1.0) displacement on every
        * sub-max-speed frame -> "slow then suddenly fast" biped movement. */
-      vecB[0] = d[0] * damp2 - velocity[0];
-      disp[0] = vecB[0];
-      vecB[1] = d[1] * damp2 - physics[0xc];
-      disp[1] = vecB[1];
-      vecB[2] = d[2] * damp2 - physics[0xd];
-      disp[2] = vecB[2];
-      length3 = normalize3d((real_vector3d *)disp); /* 0x1a35e2; ST0 -> compare */
-      if (length3 <= physics[0x13]) {
-        /* 0x1a361f: keep raw (pre-normalize) disp -> restore saved vecB */
-        disp[0] = vecB[0];
-        disp[1] = vecB[1];
-        disp[2] = vecB[2];
+      plane_forward.i = direction.i * damp2 - velocity->i;
+      disp.i = plane_forward.i;
+      plane_forward.j = direction.j * damp2 - physics->velocity.j;
+      disp.j = plane_forward.j;
+      plane_forward.k = direction.k * damp2 - physics->velocity.k;
+      disp.k = plane_forward.k;
+      length3 = normalize3d(&disp); /* 0x1a35e2; ST0 -> compare */
+      if (length3 <= physics->acceleration_maximum) {
+        /* 0x1a361f: keep raw (pre-normalize) disp -> restore saved plane_forward */
+        disp.i = plane_forward.i;
+        disp.j = plane_forward.j;
+        disp.k = plane_forward.k;
         curve_flag = 0;
       } else {
         if (submode == 0) {
           curve_flag =
             (char)(((unsigned char)flags_word >> 1) & 1); /* 0x1a35fb */
         }
-        clamp = physics[0x13];
-        disp[0] = disp[0] * clamp; /* 0x1a360a */
-        disp[1] = disp[1] * clamp;
-        disp[2] = disp[2] * clamp;
+        clamp = physics->acceleration_maximum;
+        disp.i = disp.i * clamp; /* 0x1a360a */
+        disp.j = disp.j * clamp;
+        disp.k = disp.k * clamp;
       }
 
       /* new_velocity = disp - ground_normal*0x25f0d0 + velocity (0x1a3637..) */
-      gp = physics + 0x20;
-      r = physics[0x20] * *(float *)0x25f0d0; /* gp[0] */
-      t = physics[0x21] * *(float *)0x25f0d0;
-      fdist = physics[0x22] * *(float *)0x25f0d0;
-      *(unsigned short *)((char *)physics + 0xa0) =
+      ground_normal = (real_vector3d *)physics->ground_plane.normal;
+      r = physics->ground_plane.normal[0] * REAL_ONE_OVER_128_POOL; /* ground_normal->i */
+      t = physics->ground_plane.normal[1] * REAL_ONE_OVER_128_POOL;
+      fdist = physics->ground_plane.normal[2] * REAL_ONE_OVER_128_POOL;
+      physics->out_flags =
         (unsigned short)(-(unsigned short)(curve_flag != 0) & 2); /* 0x1a364d */
-      physics[0x2e] = (disp[0] - r) + velocity[0]; /* 0x1a3672 */
-      physics[0x2f] = (disp[1] - t) + physics[0xc]; /* 0x1a3676 */
-      z_delta = disp[2] - fdist; /* 0x1a366d: FSTP dword [ebp-0x28] */
+      physics->new_velocity.i = (disp.i - r) + velocity->i; /* 0x1a3672 */
+      physics->new_velocity.j = (disp.j - t) + physics->velocity.j; /* 0x1a3676 */
+      z_delta = disp.k - fdist; /* 0x1a366d: FSTP dword [ebp-0x28] */
       HALO_FLT_ROUNDTRIP(z_delta);
-      physics[0x30] = z_delta + physics[0xd]; /* 0x1a3681 */
+      physics->new_velocity.k = z_delta + physics->velocity.k; /* 0x1a3681 */
 #ifdef HALO_RNG_TRACE
       RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_PRE_QUERY_Y,
-                   RNG_TRACE_BITS(physics[0x2f]), *(unsigned int *)physics);
+                   RNG_TRACE_BITS(physics->new_velocity.j),
+                   *(unsigned int *)&physics->biped_index);
 #endif
-      if ((*(unsigned char *)((char *)physics + 0xa0) & 2) == 0) {
+      if ((*(uint8_t *)&physics->out_flags & 2) == 0) {
         goto LAB_001a36a4;
       }
-      physics[0x30] =
-        physics[0x30] - *(float *)0x32512c; /* 0x1a3692 step-down */
+      physics->new_velocity.k =
+        physics->new_velocity.k - GLOBAL_GRAVITY; /* 0x1a3692 step-down */
     }
   }
 
 LAB_001a36a4:
   /* ---- debug-draw colour select (0x1a36a4..0x1a36d2) ---- */
-  flags = *(unsigned short *)((char *)physics + 4);
+  flags = physics->in_flags;
   if ((flags & 0x40) != 0) {
     draw_color = 0;
   } else if ((char)flags < 0) {
@@ -3495,109 +3548,106 @@ LAB_001a36a4:
   }
 
   /* position copy (local_34/30/2c) and ray endpoint (local_9c/98/94). The
-   * endpoint z carries the step-height offset physics[0xe]. (0x1a36d2..) */
-  pos_world[0] = physics[2];
-  pos_world[1] = physics[3];
-  pos_world[2] = physics[4];
-  new_pos[0] = physics[0x2e];
-  new_pos[1] = physics[0x2f];
-  new_pos[2] = physics[0x30] + physics[0xe];
+   * endpoint z carries the step-height offset physics->crouch_velocity. (0x1a36d2..) */
+  pos_world[0] = physics->position.x;
+  pos_world[1] = physics->position.y;
+  pos_world[2] = physics->position.z;
+  new_pos.i = physics->new_velocity.i;
+  new_pos.j = physics->new_velocity.j;
+  new_pos.k = physics->new_velocity.k + physics->crouch_velocity;
 
   /* ---- collision/line-of-sight query (0x1a36d2..0x1a3803) ---- */
-  if (*(char *)0x4e4cf2 == '\0') {
+  if (DEBUG_BIPED_SKIP_COLLISION == '\0') {
     /* live path: 10-arg query. Arg order matches the push sequence at
      * 0x1a37ce..0x1a37f6 (last push = first C arg):
-     *   draw_color, &pos_world, &new_pos, physics[0x15], physics[0x16],
-     *   physics[0], &los_dir2, &los_dir, 0x10, results. */
+     *   draw_color, &pos_world, &new_pos, physics->height, physics->width,
+     *   physics->biped_index, &los_dir2, &los_dir, 0x10, results. */
 #ifdef HALO_RNG_TRACE
     RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_POS_WORLD_XY,
                  RNG_TRACE_BITS(pos_world[0]), RNG_TRACE_BITS(pos_world[1]));
     RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_POS_WORLD_Z_NEW_POS_X,
-                 RNG_TRACE_BITS(pos_world[2]), RNG_TRACE_BITS(new_pos[0]));
+                 RNG_TRACE_BITS(pos_world[2]), RNG_TRACE_BITS(new_pos.i));
     RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_NEW_POS_YZ,
-                 RNG_TRACE_BITS(new_pos[1]), RNG_TRACE_BITS(new_pos[2]));
+                 RNG_TRACE_BITS(new_pos.j), RNG_TRACE_BITS(new_pos.k));
 #endif
-    result_count = FUN_00150550(
-      (void *)draw_color, pos_world, new_pos, physics[0x15], physics[0x16],
-      *(int *)&physics[0], &los_dir2[0], &los_dir[0], 0x10, results);
+    result_count = collision_move_pill(
+      (void *)draw_color, (real_point3d *)pos_world, &new_pos, physics->height, physics->width,
+      physics->biped_index, &los_dir2, &los_dir, 0x10, results);
 #ifdef HALO_RNG_TRACE
-    RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_OUT_Y, RNG_TRACE_BITS(los_dir2[1]),
-                 *(unsigned int *)physics);
-    RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_OUT_XY, RNG_TRACE_BITS(los_dir2[0]),
-                 RNG_TRACE_BITS(los_dir2[1]));
+    RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_OUT_Y, RNG_TRACE_BITS(los_dir2.y),
+                 *(unsigned int *)&physics->biped_index);
+    RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_OUT_XY, RNG_TRACE_BITS(los_dir2.x),
+                 RNG_TRACE_BITS(los_dir2.y));
     RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_OUT_Z_HANDLE,
-                 RNG_TRACE_BITS(los_dir2[2]), *(unsigned int *)physics);
+                 RNG_TRACE_BITS(los_dir2.z),
+                 *(unsigned int *)&physics->biped_index);
 #endif
   } else {
     /* debug-draw line record (0x1a3721..0x1a37cc): no query runs, count stays
-     * 1. Builds results[0] (point/normal/plane_d/handles) from the position
+     * 1. Builds results[0] (point/plane/handles) from the position
      * and the basis at *0x31fc44, plus the los_dir endpoints. Dead in normal
      * play (gated on debug global 0x4e4cf2); objdump offsets 0x7e1..0x889
      * show los_dir (later new_velocity) is bare new_pos.xy/0, while los_dir2
-     * (later new_position) is pos_world.xy + new_pos.xy and pos_world.z. */
-    results[0].point[1] = physics[2];
-    results[0].point[2] = physics[3];
-    results[0].point[3] = physics[4];
-    results[0].normal[0] = *(float *)(*(int *)0x31fc44);
+     * (later new_position) is pos_world.xy + new_pos.xy and pos_world[2]. */
+    results[0].point[1] = physics->position.x;
+    results[0].point[2] = physics->position.y;
+    results[0].point[3] = physics->position.z;
+    results[0].plane.normal[0] = global_up_vector_ptr[0];
     results[0].point[0] = 0.0f;
-    results[0].normal[1] = *(float *)(*(int *)0x31fc44 + 4);
-    results[0].normal[2] = *(float *)(*(int *)0x31fc44 + 8);
-    results[0].plane_d = -physics[4];
-    los_dir[0] = new_pos[0];
+    results[0].plane.normal[1] = global_up_vector_ptr[1];
+    results[0].plane.normal[2] = global_up_vector_ptr[2];
+    results[0].plane.d = -physics->position.z;
+    los_dir.i = new_pos.i;
     results[0].surface_handle = -1;
-    /* flags is 0xffff0000, NOT -1.  The original writes the field in three
-     * pieces: `mov word [ebp-0x34e], cx` (0x1a3796, cx = 0xffff -> +0x2a, the
-     * HIGH half) and two explicit byte zeroes, `mov byte [ebp-0x350], 0`
-     * (0x1a37b4 -> +0x28) and `mov byte [ebp-0x34f], 0` (0x1a37bb -> +0x29).
-     * Writing -1 sets the low half too, which flips `flags & 4` (loop A's
-     * `want`) and `flags & 8` (the cannot-come-to-rest mark).  The synthetic
-     * edge contact further down uses this same 0xffff0000 value. */
-    results[0].flags = (int)0xffff0000;
-    los_dir[1] = new_pos[1];
-    *(int *)&results[0].object_handle = *(int *)&physics[0];
-    los_dir2[0] = pos_world[0] + new_pos[0];
-    los_dir2[1] = pos_world[1] + new_pos[1];
-    los_dir2[2] = pos_world[2];
-    los_dir[2] = 0.0f;
+    /* 0x1a3796 word +0x2a = -1; 0x1a37b4/0x1a37bb bytes +0x28/+0x29 = 0. */
+    results[0].field_2a = -1;
+    results[0].flags = 0;
+    results[0].field_29 = 0;
+    los_dir.j = new_pos.j;
+    *(int *)&results[0].object_handle = physics->biped_index;
+    los_dir2.x = pos_world[0] + new_pos.i;
+    los_dir2.y = pos_world[1] + new_pos.j;
+    los_dir2.z = pos_world[2];
+    los_dir.k = 0.0f;
     result_count = 1;
   }
 
   /* ---- debug-draw stub (0x1a3803..0x1a3880) ---- */
-  if (*(char *)0x4e4cf0 != '\0') {
-    obj = object_get_and_verify_type(*(int *)&physics[0], -1);
-    if (*(int *)((char *)obj + 0x70) != -1) {
-      *(float *)0x5a8d00 = pos_world[0];
-      *(int *)0x5a8d04 = *(int *)&pos_world[1];
-      *(int *)0x5a8d08 = *(int *)&pos_world[2];
-      *(int *)0x5a8d1c = 1;
-      *(float *)0x5a8cf0 = new_pos[0];
-      *(float *)0x5a8cf4 = new_pos[1];
-      *(float *)0x5a8cf8 = new_pos[2];
-      *(int *)0x324fc4 = 0x3f800000;
-      *(float *)0x4761b8 = physics[0x16];
-      *(float *)0x4761bc = physics[0x15];
+  if (DEBUG_BIPED_PHYSICS != '\0') {
+    obj = object_get_and_verify_type(physics->biped_index, -1);
+    if (((object_data_t *)obj)->owner_player_index != -1) {
+      COLLISION_DEBUG_POINT_X = pos_world[0];
+      COLLISION_DEBUG_POINT_Y_BITS = *(int *)&pos_world[1];
+      COLLISION_DEBUG_POINT_Z_BITS = *(int *)&pos_world[2];
+      COLLISION_DEBUG_REPEAT_DWORD = 1;
+      COLLISION_DEBUG_VECTOR_I = new_pos.i;
+      COLLISION_DEBUG_VECTOR_J = new_pos.j;
+      COLLISION_DEBUG_VECTOR_K = new_pos.k;
+      COLLISION_DEBUG_LENGTH_BITS = 0x3f800000;
+      COLLISION_DEBUG_WIDTH = physics->width;
+      COLLISION_DEBUG_HEIGHT = physics->height;
     }
   }
 
   /* the query count (low 16 bits) drives the result-walk and a state bit */
   if ((unsigned short)result_count < 0x10) {
-    *(unsigned char *)((char *)physics + 0xa0) &= 0xf7;
+    *(uint8_t *)&physics->out_flags &= 0xf7;
   } else {
-    *(unsigned char *)((char *)physics + 0xa0) |= 8;
+    *(uint8_t *)&physics->out_flags |= 8;
   }
 
   /* ---- nearest 'mach' surface-plane refinement (0x1a3899..0x1a3d32) ----
-   * Only when the count==0 AND a valid mach-surface block (physics[0x24]) is
+   * Only when the count==0 AND a valid mach-surface block (physics->existing_support_surface_index) is
    * present. Walks the surface block's edge list, projecting the new_velocity
    * (physics+0xb8) onto each candidate plane and keeping the nearest in-range
    * hit, then snaps the ground plane / +0xc4 to it. Held FPU values across the
    * named calls (bsp3d_get_plane / distance helpers) are kept in C scalars. */
-  *(int *)((char *)physics + 0xa8) = 0xffffffff; /* physics[0x2a] = none */
+  physics->field_a8 = 0xffffffff; /* physics->field_a8 = none */
   /* note: the entry test reuses the count==0 ZF from the >0x10 compare */
   if ((unsigned short)result_count == 0 &&
-      *(int *)((char *)physics + 0x90) != -1) {
+      physics->existing_support_surface_index != -1) {
     int surf_block; /* EDI = global_collision_bsp_get() */
-    int surf_index; /* physics[0x24] index */
+    int surf_index; /* physics->existing_support_surface_index index */
     int best_edge; /* local_38 */
     float best_dist; /* local_48 */
     float nrm_d; /* local_8 */
@@ -3605,21 +3655,21 @@ LAB_001a36a4:
     float plane0[4]; /* local_8c/88/84/80 (from bsp3d_get_plane) */
     float planeN[4]; /* local_58/54/4c projected plane */
     char edge_swap; /* local_1 */
-    float bestN[4]; /* local_ac/a8/a4/a0 region: ff58/5c/60/64 */
+    real_plane3d bestN; /* local_ac/a8/a4/a0 region: ff58/5c/60/64 */
     int sel_edge;
     int edge0, edge1;
     void *ce; /* current edge element */
     float *pa, *pb;
 
     surf_block = (int)global_collision_bsp_get();
-    surf_index = *(int *)((char *)physics + 0x90);
+    surf_index = physics->existing_support_surface_index;
     best_edge = 0xffffffff;
     *(unsigned int *)&best_dist = 0x7f7fffff;
-    if (surf_index >= 0 && surf_index < *(int *)(surf_block + 0x3c)) {
-      void *surf =
+    if (surf_index >= 0 && surf_index < ((collision_bsp_t *)surf_block)->surfaces.count) {
+      collision_surface_t *surf =
         tag_block_get_element((void *)(surf_block + 0x3c), surf_index, 0xc);
-      edge0 = *(int *)surf;
-      edge1 = *(int *)((char *)surf + 4);
+      edge0 = surf->plane;
+      edge1 = surf->first_edge;
       bsp3d_get_plane_from_designator(surf_block, edge0, plane0);
       /* DEVIATION-FIX 2026-06-17: this count==0 mach-edge block operates on the
        * collision-query swept out-points, NOT physics+0xb8. The original keeps
@@ -3632,20 +3682,20 @@ LAB_001a36a4:
        * distance los_dir  (EBP-0x78) = query out-point-2 -> new_velocity
        * (+0xb8): side dot, face dot, in-place scale_add nrm_d / proj-base read
        * los_dir2 (disasm 0x9cc..0xa14). */
-      nrm_d = -(plane0[0] * los_dir2[0] + plane0[1] * los_dir2[1] +
-                plane0[2] * los_dir2[2] - plane0[3]);
-      proj[0] = plane0[0] * nrm_d + los_dir2[0];
-      proj[1] = plane0[1] * nrm_d + los_dir2[1];
-      proj[2] = plane0[2] * nrm_d + los_dir2[2];
+      nrm_d = -(plane0[0] * los_dir2.x + plane0[1] * los_dir2.y +
+                plane0[2] * los_dir2.z - plane0[3]);
+      proj[0] = plane0[0] * nrm_d + los_dir2.x;
+      proj[1] = plane0[1] * nrm_d + los_dir2.y;
+      proj[2] = plane0[2] * nrm_d + los_dir2.z;
       ce = (void *)edge1;
       do {
-        void *edge =
+        collision_edge_t *edge =
           tag_block_get_element((void *)(surf_block + 0x48), (int)ce, 0x18);
-        surf_index = *(int *)((char *)physics + 0x90);
-        edge_swap = (char)(surf_index == *(int *)((char *)edge + 0x14));
-        sel_edge = *(int *)((char *)edge + 0x10 + (edge_swap == 0 ? 4 : 0));
+        surf_index = physics->existing_support_surface_index;
+        edge_swap = (char)(surf_index == edge->right_surface);
+        sel_edge = COLLISION_EDGE_PAIR_SELECT(edge->left_surface, edge_swap == 0);
         if (sel_edge != -1) {
-          void *e2 =
+          collision_surface_t *e2 =
             tag_block_get_element((void *)(surf_block + 0x3c), sel_edge, 0xc);
           /* 0x1a39ab: TEST byte ptr [ESI+5], 2  (bytes f6 46 05 02 -- the only
            * occurrence in the XBE; ESI is the @<esi> physics pointer).  The
@@ -3653,37 +3703,37 @@ LAB_001a36a4:
            * bipd_tag+0x2f4 & 0x40.  This previously read physics+0x14, which is
            * forward.x -- i.e. it tested the low byte of a float, admitting or
            * rejecting mach edges essentially at random. */
-          if ((*(unsigned char *)((char *)physics + 5) & 2) != 0 ||
-              (*(unsigned char *)((char *)e2 + 8) & 4) != 0) {
+          if ((((uint8_t *)&physics->in_flags)[1] & 2) != 0 ||
+              (e2->flags & 4) != 0) {
             float side;
-            bsp3d_get_plane_from_designator(surf_block, *(int *)e2, plane0);
+            bsp3d_get_plane_from_designator(surf_block, e2->plane, plane0);
             /* side dots plane0 with los_dir (out-point-2), disasm 0xa8b */
-            side = plane0[0] * los_dir[0] + plane0[1] * los_dir[1] +
-                   plane0[2] * los_dir[2];
+            side = plane0[0] * los_dir.i + plane0[1] * los_dir.j +
+                   plane0[2] * los_dir.k;
             nrm_d = side;
-            if (!(*(float *)0x2533c0 < side) &&
-                physics[0x16] * *(float *)0x255964 <
-                  (plane0[0] * los_dir2[0] + plane0[1] * los_dir2[1] +
-                   plane0[2] * los_dir2[2] - plane0[3])) {
+            if (!(REAL_ZERO_POOL < side) &&
+                physics->width * REAL_NEG_0_5_POOL <
+                  (plane0[0] * los_dir2.x + plane0[1] * los_dir2.y +
+                   plane0[2] * los_dir2.z - plane0[3])) {
               void *v0 = tag_block_get_element((void *)(surf_block + 0x54),
-                                               *(int *)edge, 0x10);
+                                               edge->start_vertex, 0x10);
               void *v1 = tag_block_get_element(
-                (void *)(surf_block + 0x54), *(int *)((char *)edge + 4), 0x10);
-              float ev[3], t2, dist;
+                (void *)(surf_block + 0x54), edge->end_vertex, 0x10);
+              real_vector3d ev; float t2, dist;
               pa = (float *)v0;
               pb = (float *)v1;
-              ev[0] = pb[0] - pa[0];
-              ev[1] = pb[1] - pa[1];
-              ev[2] = pb[2] - pa[2];
-              t2 = ((proj[0] - pa[0]) * ev[0] + (proj[1] - pa[1]) * ev[1] +
-                    (proj[2] - pa[2]) * ev[2]) /
-                   (ev[0] * ev[0] + ev[1] * ev[1] + ev[2] * ev[2]);
-              if (!(*(float *)0x2533c0 < t2)) {
+              ev.i = pb[0] - pa[0];
+              ev.j = pb[1] - pa[1];
+              ev.k = pb[2] - pa[2];
+              t2 = ((proj[0] - pa[0]) * ev.i + (proj[1] - pa[1]) * ev.j +
+                    (proj[2] - pa[2]) * ev.k) /
+                   (ev.i * ev.i + ev.j * ev.j + ev.k * ev.k);
+              if (!(REAL_ZERO_POOL < t2)) {
                 planeN[0] = pa[0];
                 planeN[1] = pa[1];
                 planeN[2] = pa[2];
-              } else if (t2 <= *(float *)0x2533c8) {
-                vector3d_scale_add(pa, ev, t2, planeN);
+              } else if (t2 <= REAL_ONE_POOL) {
+                vector3d_scale_add((real_point3d *)pa, &ev, t2, (real_point3d *)planeN);
               } else {
                 planeN[0] = pb[0];
                 planeN[1] = pb[1];
@@ -3693,43 +3743,44 @@ LAB_001a36a4:
               if (dist < best_dist) {
                 best_dist = dist;
                 best_edge = sel_edge;
-                bestN[0] = plane0[0];
-                bestN[1] = plane0[1];
-                bestN[2] = plane0[2];
-                bestN[3] = plane0[3];
+                bestN.normal[0] = plane0[0];
+                bestN.normal[1] = plane0[1];
+                bestN.normal[2] = plane0[2];
+                bestN.d = plane0[3];
                 nrm_d = side;
               }
             }
           }
         }
-        ce = (void *)*(int *)((char *)edge + 8 + (edge_swap != 0 ? 4 : 0));
+        ce = (void *)COLLISION_EDGE_PAIR_SELECT(edge->forward_edge, edge_swap != 0);
       } while (ce != (void *)edge1);
 
       if (best_edge != -1 &&
-          (physics[0x16] + physics[0x16]) * (physics[0x16] + physics[0x16]) >=
+          (physics->width + physics->width) *
+              (physics->width + physics->width) >=
             best_dist &&
-          nrm_d <= *(float *)0x2b509c) {
+          nrm_d <= REAL_0_053333_POOL) {
         /* depth dots bestN with los_dir2 (out-point-1), disasm 0xc83 */
-        float depth = (bestN[0] * los_dir2[0] + bestN[1] * los_dir2[1] +
-                       bestN[2] * los_dir2[2]) -
-                      (bestN[3] + physics[0x16]);
+        float depth = (bestN.normal[0] * los_dir2.x + bestN.normal[1] * los_dir2.y +
+                       bestN.normal[2] * los_dir2.z) -
+                      (bestN.d + physics->width);
         if ((depth < 0.0f ? -depth : depth) <=
-            physics[0x16] * *(float *)0x253398) {
+            physics->width * REAL_0_5_POOL) {
           /* face dots bestN with los_dir (out-point-2), disasm 0xcc8 */
-          float face = bestN[0] * los_dir[0] + bestN[2] * los_dir[2] +
-                       bestN[1] * los_dir[1];
+          float face = bestN.normal[0] * los_dir.i + bestN.normal[2] * los_dir.k +
+                       bestN.normal[1] * los_dir.j;
           /* push-out de-penetrates los_dir2 (-> new_position), disasm 0xcec */
           float pushv = -best_dist;
-          los_dir2[0] = bestN[0] * pushv + los_dir2[0];
-          los_dir2[1] = bestN[1] * pushv + los_dir2[1];
-          los_dir2[2] = bestN[2] * pushv + los_dir2[2];
-          if (*(float *)0x256348 < face) {
+          los_dir2.x = bestN.normal[0] * pushv + los_dir2.x;
+          los_dir2.y = bestN.normal[1] * pushv + los_dir2.y;
+          los_dir2.z = bestN.normal[2] * pushv + los_dir2.z;
+          if (REAL_NEG_ONE_THIRTIETH_POOL < face) {
             /* In-place adjust of the swept out-point (new_velocity source):
              * los_dir += -(face+k)*bestN. Original (0x1a3c65..0x1a3c8b) aliases
              * base==out==EBP-0x78 (= los_dir); scale_add is component-wise so
              * in-place is safe. */
-            vector3d_scale_add(los_dir, bestN, -(face + *(float *)0x2546a4),
-                               los_dir);
+            vector3d_scale_add((real_point3d *)&los_dir, (real_vector3d *)&bestN, -(face + REAL_ONE_THIRTIETH_POOL),
+                               (real_point3d *)&los_dir);
           }
           /* build a draw record from the plane (0x1a3c8f..0x1a3dce).
            * Original synthetic-contact layout (verified vs disasm):
@@ -3740,28 +3791,30 @@ LAB_001a36a4:
            *   movl $0x1,-0x3c) so the refinement loop below actually processes
            *   this synthetic edge contact (prior lift left result_count==0, so
            *   the loop skipped it and the ground-plane snap never ran). */
-          pushv = -physics[0x16];
-          results[0].normal[0] = bestN[0];
-          results[0].normal[1] = bestN[1];
-          results[0].normal[2] = bestN[2];
-          results[0].plane_d = bestN[3];
+          pushv = -physics->width;
+          results[0].plane.normal[0] = bestN.normal[0];
+          results[0].plane.normal[1] = bestN.normal[1];
+          results[0].plane.normal[2] = bestN.normal[2];
+          results[0].plane.d = bestN.d;
           results[0].point[0] = 0.0f; /* +0x00 */
-          results[0].point[1] = bestN[0] * pushv + los_dir2[0]; /* +0x04 X */
-          results[0].point[2] = bestN[1] * pushv + los_dir2[1]; /* +0x08 Y */
-          results[0].point[3] = bestN[2] * pushv + los_dir2[2]; /* +0x0c Z */
+          results[0].point[1] = bestN.normal[0] * pushv + los_dir2.x; /* +0x04 X */
+          results[0].point[2] = bestN.normal[1] * pushv + los_dir2.y; /* +0x08 Y */
+          results[0].point[3] = bestN.normal[2] * pushv + los_dir2.z; /* +0x0c Z */
           results[0].object_handle = -1; /* +0x20 */
           results[0].surface_handle = best_edge; /* +0x24 */
-          results[0].flags = (int)0xffff0000; /* +0x28 */
+          results[0].flags = 0;
+          results[0].field_29 = 0;
+          results[0].field_2a = -1;
           /* BISECT 2026-06-18: `result_count = 1;` (orig 0xd92) intentionally
            * omitted. Setting it un-gates the edge-snap
            * (physics+0xa4=best_edge), Loop B/C, and metric loop in the count==0
            * path — which correlates with an MP-load decals.c:479 cluster_index
-           * crash (FUN_001a2f40 not on the crash stack => persistent/global
+           * crash (biped_update_physics not on the crash stack => persistent/global
            * state via an unverified best_edge). Re-enable only after best_edge
            * is re-derived from the mach-edge fallback disasm. */
-          *(int *)((char *)physics + 0xa8) = best_edge;
-          *(unsigned char *)((char *)physics + 0xb1) = 0;
-          *(unsigned char *)((char *)physics + 0xb2) = 0;
+          physics->field_a8 = best_edge;
+          ((uint8_t *)&physics->new_position.y)[1] = 0; /* LIFT BUG (kept): 0x1a3d07 clears results[0] +0x29/+0x2a */
+          ((uint8_t *)&physics->new_position.y)[2] = 0;
         }
       }
     }
@@ -3769,8 +3822,8 @@ LAB_001a36a4:
 
   /* ---- planar-normal clamp (0x1a3d34..0x1a3d69) ---- */
   r = gx * gx + gy * gy;
-  if (*(float *)0x2b5098 < r) {
-    planar_scale = *(double *)0x2573d8 / sqrtf(r);
+  if (REAL_1E_8_POOL < r) {
+    planar_scale = REAL_ONE_DOUBLE_POOL / sqrtf(r);
     gy = gy * planar_scale;
     gx = planar_scale * gx;
   }
@@ -3788,7 +3841,7 @@ LAB_001a36a4:
     loop_flag1 = 0;
     *(unsigned int *)&loop_best = 0xff7fffff;
     *(unsigned int *)&loop_metric = 0xff7fffff;
-    if ((*(unsigned short *)((char *)physics + 4) & 0x10) != 0) {
+    if ((physics->in_flags & 0x10) != 0) {
       goto LAB_001a401e;
     }
     if ((short)(unsigned short)result_count <= 0) {
@@ -3799,7 +3852,7 @@ LAB_001a36a4:
       char want, same;
       float metric;
       e = &results[n];
-      if ((char)*(unsigned char *)((char *)physics + 4) < 0 ||
+      if ((char)*(uint8_t *)&physics->in_flags < 0 ||
           (material_local == 0 && (e->flags & 4) == 0)) {
         want = 0;
       } else {
@@ -3810,15 +3863,16 @@ LAB_001a36a4:
        * cmp [ebp+ecx-0x354],eax with buffer base ebp-0x378 and ecx=n*0x2c =>
        * entry+0x24 = surface_handle. The 2026-06-18 bisect wrongly used .flags
        * (+0x28); restored to match the binary (see +0xa4 fix below). */
-      if (*(int *)((char *)physics + 0xa8) != -1 &&
-          *(int *)((char *)physics + 0xa8) ==
+      if (physics->field_a8 != -1 &&
+          physics->field_a8 ==
             results[(short)best_index].surface_handle) {
         same = 1;
       } else {
         same = 0;
       }
-      metric = -(physics[0x2e] * e->normal[0] + e->normal[2] * physics[0x30] +
-                 physics[0x2f] * e->normal[1]);
+      metric = -(physics->new_velocity.i * e->plane.normal[0] +
+                 e->plane.normal[2] * physics->new_velocity.k +
+                 physics->new_velocity.j * e->plane.normal[1]);
       if (want == 0) {
         /* 0x1a3f13: FCOMP normal[2] (flds 0x4(%edi)) vs loop_best, test
          * 0x41/jne
@@ -3828,12 +3882,12 @@ LAB_001a36a4:
          * lets a vertical wall (normal ~= +/-Y, Z~=0) win as "ground", so the
          * biped is projected along/up the wall after a high-velocity contact.
          */
-        if (loop_flag9 == 0 && e->normal[2] > loop_best) {
+        if (loop_flag9 == 0 && e->plane.normal[2] > loop_best) {
           goto loopA_take;
         }
       } else if ((material_local != 0 ||
-                  gx * e->normal[0] + gy * e->normal[1] <=
-                    *(float *)0x253398) &&
+                  gx * e->plane.normal[0] + gy * e->plane.normal[1] <=
+                    REAL_0_5_POOL) &&
                  (loop_flag9 == 0 || same ||
                   (loop_flag1 == 0 && loop_metric < metric))) {
       loopA_take:
@@ -3841,10 +3895,10 @@ LAB_001a36a4:
         best_index = n;
         loop_flag1 = same;
         loop_best =
-          e->normal[2]; /* 0x1a3f26: mov 0x4(%edi) = normal[2] (Z/up) */
+          e->plane.normal[2]; /* 0x1a3f26: mov 0x4(%edi) = normal[2] (Z/up) */
         loop_metric = metric;
       }
-      if ((*(unsigned char *)((char *)physics + 0xa0) & 0x10) == 0) {
+      if ((*(uint8_t *)&physics->out_flags & 0x10) == 0) {
         if ((e->flags & 8) == 0) {
           /* 0x1a3e8a-0x1a3e8d: `mov eax,[edi+0xc]; cmp eax,-1; je 0x1a3eb5` --
            * a BSP-surface contact (object_handle == NONE) leaves the
@@ -3868,13 +3922,13 @@ LAB_001a36a4:
           if (e->object_handle == -1) {
             goto loopA_nomark;
           }
-          if (((1 << ((char *)datum_get(*(data_t **)0x5a8d50,
+          if (((1 << ((char *)datum_get(OBJECT_HEADER_DATA,
                                         e->object_handle))[3]) &
                0x40) != 0) {
             goto loopA_nomark;
           }
         }
-        *(unsigned char *)((char *)physics + 0xa0) |= 0x10;
+        *(uint8_t *)&physics->out_flags |= 0x10;
       loopA_nomark:;
       }
     }
@@ -3884,22 +3938,24 @@ LAB_001a36a4:
     e = &results[(short)best_index];
     /* selected entry: compute the result normal dot (local_3c) */
     /* 0x1a3ef6-0x1a3f24: (n1*p1 + n2*p2) + n0*p0 */
-    best_t = -(e->normal[1] * new_pos[1] + e->normal[2] * new_pos[2] +
-               e->normal[0] * new_pos[0]);
+    best_t = -(e->plane.normal[1] * new_pos.j + e->plane.normal[2] * new_pos.k +
+               e->plane.normal[0] * new_pos.i);
     if (loop_flag9 == 0 && loop_flag1 == 0) {
       /* 0x1a3ff8: flds -0x48(%ebp) = loop_best (the selected entry's normal[2],
-       * Z/up), compared against physics[0x19] (stand-on-slope threshold). */
-      if (loop_best < physics[0x19]) {
+       * Z/up), compared against physics->minimum_normal_k (stand-on-slope threshold). */
+      if (loop_best < physics->minimum_normal_k) {
         goto LAB_001a401e;
       }
-      if ((*(unsigned short *)((char *)physics + 4) & 1) != 0 &&
-          physics[0x17] < *(float *)0x2548fc) {
+      if ((physics->in_flags & 1) != 0 &&
+          physics->ground_tangential_velocity_max < REAL_MAX_POOL) {
         float slen;
-        vector3d_scale_add(&new_pos[0], &e->normal[0], best_t, surf);
-        slen = FUN_00012170(surf);
-        if (physics[0x17] * physics[0x17] < slen) {
-          float md = FUN_00012fe0(&new_pos[0]);
-          if (best_t / md < physics[0x18]) {
+        vector3d_scale_add((real_point3d *)&new_pos, (real_vector3d *)&e->plane.normal[0], best_t, &surf);
+        slen = magnitude_squared3d((real_vector3d *)&surf);
+        if (physics->ground_tangential_velocity_max *
+              physics->ground_tangential_velocity_max <
+            slen) {
+          float md = magnitude3d(&new_pos);
+          if (best_t / md < physics->ground_tangential_angle) {
             goto LAB_001a401e;
           }
         }
@@ -3920,38 +3976,35 @@ LAB_001a36a4:
        * collision_surface_find_closest_point2d and asserted (tag_groups.c:3089)
        * on AI-spawned bipeds. Restored to match the binary. */
       int sel_surface = e->surface_handle;
-      *(unsigned char *)((char *)physics + 0xa0) &= 0xfe;
-      *(int *)((char *)physics + 0x80) = *(int *)&e->normal[0];
-      *(int *)((char *)physics + 0x84) = *(int *)&e->normal[1];
-      *(int *)((char *)physics + 0x88) = *(int *)&e->normal[2];
-      *(int *)((char *)physics + 0x8c) = *(int *)&e->plane_d;
-      *(int *)((char *)physics + 0xa4) = sel_surface;
+      *(uint8_t *)&physics->out_flags &= 0xfe;
+      *(int *)&physics->ground_plane.normal[0] = *(int *)&e->plane.normal[0];
+      *(int *)&physics->ground_plane.normal[1] = *(int *)&e->plane.normal[1];
+      *(int *)&physics->ground_plane.normal[2] = *(int *)&e->plane.normal[2];
+      *(int *)&physics->ground_plane.d = *(int *)&e->plane.d;
+      physics->support_surface_index = sel_surface;
       if (sel_surface != -1 &&
-          sel_surface == *(int *)((char *)physics + 0xa8)) {
-        *(int *)((char *)physics + 0xc4) = 0;
+          sel_surface == physics->field_a8) {
+        *(int *)&physics->landing_velocity = 0;
         goto LAB_001a4062;
       }
-      /* 0x1a40b6: -(new_pos . ground_normal); new_pos[i] pairs with
-       * physics[0x20+i] (i.e. +0x80+4i). The prior lift swapped x/y
-       * (new_pos[0]*[0x21] + new_pos[1]*[0x20]), corrupting the +0xc4 signed
-       * plane distance used by downstream positioning. */
       /* 0x1a3ff6-0x1a4012: (p1*n1 + p2*n2) + p0*n0 */
-      physics[0x31] =
-        -(new_pos[1] * physics[0x21] + new_pos[2] * physics[0x22] +
-          new_pos[0] * physics[0x20]);
+      physics->landing_velocity =
+        -(new_pos.j * physics->ground_plane.normal[1] +
+          new_pos.k * physics->ground_plane.normal[2] +
+          new_pos.i * physics->ground_plane.normal[0]);
       goto LAB_001a4062;
     }
   }
   goto LAB_001a4062_done;
 
 LAB_001a401e:
-  *(unsigned char *)((char *)physics + 0xa0) |= 1;
-  *(int *)((char *)physics + 0x80) = *(int *)0x32513c;
-  *(int *)((char *)physics + 0x84) = *(int *)0x325140;
-  *(int *)((char *)physics + 0x88) = *(int *)0x325144;
-  *(int *)((char *)physics + 0x8c) = *(int *)0x325148;
-  *(int *)((char *)physics + 0xa4) = 0xffffffff;
-  physics[0x31] = 0.0f;
+  *(uint8_t *)&physics->out_flags |= 1;
+  *(int *)&physics->ground_plane.normal[0] = DEPTHS_OF_HELL_PLANE_NORMAL_I_BITS;
+  *(int *)&physics->ground_plane.normal[1] = DEPTHS_OF_HELL_PLANE_NORMAL_J_BITS;
+  *(int *)&physics->ground_plane.normal[2] = DEPTHS_OF_HELL_PLANE_NORMAL_K_BITS;
+  *(int *)&physics->ground_plane.d = DEPTHS_OF_HELL_PLANE_D_BITS;
+  physics->support_surface_index = 0xffffffff;
+  physics->landing_velocity = 0.0f;
 
 LAB_001a4062:
 LAB_001a4062_done:
@@ -3975,22 +4028,22 @@ LAB_001a4062_done:
           /* Faithful: original CALL 0x13d680 object_get_and_verify_type
            * (asserting, mask -1). Result used directly, NO NULL check
            * (orig 0x1a408a: mov ecx,eax; flds [ecx+0x18]). The inner datum_get
-           * asserts/HALTs on a stale handle — which only occurs if FUN_0014f2c0
+           * asserts/HALTs on a stale handle — which only occurs if collision_move_point
            * returns a count larger than the filled records. Loop C below stays
            * object_try_and_get_and_verify_type (0x13d640) — that IS faithful.
            */
           o = object_get_and_verify_type(*eh, -1);
-          ddx = *(float *)((char *)o + 0x18) - los_dir[0];
-          ddy = *(float *)((char *)o + 0x1c) - los_dir[1];
-          ddz = *(float *)((char *)o + 0x20) - los_dir[2];
+          ddx = ((object_data_t *)o)->translational_velocity.i - los_dir.i;
+          ddy = ((object_data_t *)o)->translational_velocity.j - los_dir.j;
+          ddz = ((object_data_t *)o)->translational_velocity.k - los_dir.k;
           d2 = ddx * ddx + ddy * ddy + ddz * ddz;
           if (near_obj == -1) {
             goto loopB_take;
           }
           if ((short)near_type == 1) {
-            if (*(short *)((char *)o + 0x64) != 1)
+            if (((object_data_t *)o)->type != 1)
               goto loopB_next;
-          } else if (*(short *)((char *)o + 0x64) == 1) {
+          } else if (((object_data_t *)o)->type == 1) {
             goto loopB_take;
           }
           if (d2 < near_dist) {
@@ -4001,18 +4054,18 @@ LAB_001a4062_done:
           near_dist = d2;
           near_obj = *eh;
           near_type = (near_type & 0xffff0000) |
-                      (unsigned short)*(short *)((char *)o + 0x64);
+                      (unsigned short)((object_data_t *)o)->type;
         }
       loopB_next:
         eh = (int *)((char *)eh + 0x2c);
         n--;
       } while (n != 0);
     }
-    *(int *)((char *)physics + 0x98) = near_obj;
+    physics->bumped_object_index = near_obj;
   }
 
   /* ---- loop C: 'mach' tag scan (0x1a40f2..0x1a4160). Pointer-walk. ---- */
-  *(int *)((char *)physics + 0x9c) = 0xffffffff;
+  physics->elevator_object_index = 0xffffffff;
   if ((short)(unsigned short)result_count > 0) {
     int n = (unsigned short)result_count;
     int *eh = &results[0].object_handle;
@@ -4022,9 +4075,9 @@ LAB_001a4062_done:
         void *t2obj = object_try_and_get_and_verify_type(handle, 0x80);
         if (t2obj != (void *)0) {
           void *mtag = tag_get(0x6d616368, *(int *)t2obj);
-          if ((*(unsigned char *)((char *)mtag + 0x292) & 4) != 0 &&
-              *(short *)((char *)mtag + 0x2ea) != -1) {
-            *(int *)((char *)physics + 0x9c) = handle;
+          if ((machine_definition_field_292(mtag) & 4) != 0 &&
+              machine_definition_field_2ea(mtag) != -1) {
+            physics->elevator_object_index = handle;
           }
         }
       }
@@ -4045,49 +4098,51 @@ LAB_001a4062_done:
    * copies los_dir2 into new_position and takes the step magnitude from
    * (los_dir - new_pos). ---- */
   {
-    float d0 = los_dir[0] - new_pos[0];
-    float d1 = los_dir[1] - new_pos[1];
-    float d2 = los_dir[2] - new_pos[2];
-    *(int *)&physics[0x2b] = *(int *)&los_dir2[0]; /* +0xac new_position */
-    *(int *)&physics[0x2c] = *(int *)&los_dir2[1];
-    *(int *)&physics[0x2d] = *(int *)&los_dir2[2];
-    *(int *)&physics[0x2e] = *(int *)&los_dir[0]; /* +0xb8 new_velocity */
-    *(int *)&physics[0x2f] = *(int *)&los_dir[1];
-    *(int *)&physics[0x30] = *(int *)&los_dir[2];
+    float d0 = los_dir.i - new_pos.i;
+    float d1 = los_dir.j - new_pos.j;
+    float d2 = los_dir.k - new_pos.k;
+    REAL_BITS(physics->new_position.x) = REAL_BITS(los_dir2.x); /* +0xac new_position */
+    REAL_BITS(physics->new_position.y) = REAL_BITS(los_dir2.y);
+    REAL_BITS(physics->new_position.z) = REAL_BITS(los_dir2.z);
+    REAL_BITS(physics->new_velocity.i) = REAL_BITS(los_dir.i); /* +0xb8 new_velocity */
+    REAL_BITS(physics->new_velocity.j) = REAL_BITS(los_dir.j);
+    REAL_BITS(physics->new_velocity.k) = REAL_BITS(los_dir.k);
 #ifdef HALO_RNG_TRACE
     RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_WRITEBACK_Y,
-                 RNG_TRACE_BITS(physics[0x2c]), *(unsigned int *)physics);
+                 RNG_TRACE_BITS(physics->new_position.y),
+                 *(unsigned int *)&physics->biped_index);
 #endif
     /* 0x1a4194-0x1a41bf: (d2*d2 + d1*d1) + d0*d0 */
-    physics[0x32] = sqrtf(d2 * d2 + d1 * d1 + d0 * d0); /* +0xc8 step */
+    physics->field_c8 = sqrtf(d2 * d2 + d1 * d1 + d0 * d0); /* +0xc8 step */
   }
-  physics[0x30] = physics[0x30] - physics[0xe];
+  physics->new_velocity.k = physics->new_velocity.k - physics->crouch_velocity;
 
   /* ---- biped step-down (0x1a41de..0x1a42da) ---- */
-  flags = *(unsigned short *)((char *)physics + 4);
+  flags = physics->in_flags;
   if ((flags & 4) != 0 && (flags & 8) != 0) {
-    obj = object_get_and_verify_type(*(int *)&physics[0], 1);
-    if (*(int *)((char *)obj + 0x1c8) != -1) {
+    obj = object_get_and_verify_type(physics->biped_index, 1);
+    if (((unit_data_t *)obj)->player_index.value != -1) {
       tag = tag_get(0x62697064, *(int *)obj);
-      if ((*(unsigned char *)((char *)tag + 0x2f4) & 0x18) == 0) {
-        float half = *(float *)((char *)tag + 0x424) * *(float *)0x253398;
-        *(int *)&surf[0] = *(int *)&physics[0x2b]; /* movl copies (0x1a4239) */
-        *(int *)&surf[1] = *(int *)&physics[0x2c];
-        surf[2] = physics[0x2d] + half;
-        if (FUN_0014ec30(
+      if ((*(unsigned char *)&biped_definition_flags(tag) & 0x18) == 0) {
+        float half = biped_definition_collision_height_standing(tag) * REAL_0_5_POOL;
+        REAL_BITS(surf.x) = REAL_BITS(physics->new_position.x); /* movl copies (0x1a4239) */
+        REAL_BITS(surf.y) = REAL_BITS(physics->new_position.y);
+        surf.z = physics->new_position.z + half;
+        if (collision_get_features_in_sphere(
               (int)((-(unsigned int)((flags & 0x80) != 0) & 0xffdffd00) +
                     0x20c3a0),
-              surf, half, 0.0f, *(float *)((char *)tag + 0x42c),
-              *(int *)&physics[0], debug_scratch)) {
+              &surf, half, 0.0f, biped_definition_collision_radius(tag),
+              physics->biped_index, debug_scratch)) {
           float fr =
-            *(float *)((char *)tag + 0x424) -
-            (*(float *)((char *)tag + 0x42c) + *(float *)((char *)tag + 0x42c));
-          disp[0] = fr * *(float *)(*(int *)0x31fc44);
-          disp[1] = fr * *(float *)(*(int *)0x31fc44 + 4);
-          disp[2] = fr * *(float *)(*(int *)0x31fc44 + 8);
-          if (FUN_0014c4b0((int)debug_scratch, &physics[0x2b], disp,
-                           surface_result)) {
-            *(unsigned char *)((char *)physics + 0xa0) |= 4;
+            biped_definition_collision_height_standing(tag) -
+            (biped_definition_collision_radius(tag) + biped_definition_collision_radius(tag));
+          disp.i = fr * global_up_vector_ptr[0];
+          disp.j = fr * global_up_vector_ptr[1];
+          disp.k = fr * global_up_vector_ptr[2];
+          if (collision_features_test_vector((int)debug_scratch,
+                                             &physics->new_position, &disp,
+                                             surface_result)) {
+            *(uint8_t *)&physics->out_flags |= 4;
           }
         }
       }
@@ -4101,30 +4156,32 @@ LAB_001a4062_done:
    * exponent-mask test. Model with pointer-indexed reads so MSVC reproduces
    * the [EDI]/[EDI+4]/[EDI+8] addressing and the per-component temp store. */
   {
-    unsigned int *np = (unsigned int *)&physics[0x2b];
+    unsigned int *np = (unsigned int *)&physics->new_position;
     isnan_tmp = np[0];
     if ((isnan_tmp & 0x7f800000) == 0x7f800000 ||
         ((isnan_tmp = np[1]), (isnan_tmp & 0x7f800000) == 0x7f800000) ||
         ((isnan_tmp = np[2]), (isnan_tmp & 0x7f800000) == 0x7f800000)) {
-      display_assert(csprintf(error_string_buffer,
-                              "%s: assert_valid_real_point3d(%f, %f, %f)",
-                              "&physics->new_position", (double)physics[0x2b],
-                              (double)physics[0x2c], (double)physics[0x2d]),
-                     "c:\\halo\\SOURCE\\units\\bipeds.c", 0xee2, true);
+      display_assert(
+        csprintf(
+          error_string_buffer, "%s: assert_valid_real_point3d(%f, %f, %f)",
+          "&physics->new_position", (double)physics->new_position.x,
+          (double)physics->new_position.y, (double)physics->new_position.z),
+        "c:\\halo\\SOURCE\\units\\bipeds.c", 0xee2, true);
       system_exit(-1);
     }
   }
   {
-    unsigned int *nv = (unsigned int *)&physics[0x2e];
+    unsigned int *nv = (unsigned int *)&physics->new_velocity;
     isnan_tmp = nv[0];
     if ((isnan_tmp & 0x7f800000) == 0x7f800000 ||
         ((isnan_tmp = nv[1]), (isnan_tmp & 0x7f800000) == 0x7f800000) ||
         ((isnan_tmp = nv[2]), (isnan_tmp & 0x7f800000) == 0x7f800000)) {
-      display_assert(csprintf(error_string_buffer,
-                              "%s: assert_valid_real_vector2d(%f, %f, %f)",
-                              "&physics->new_velocity", (double)physics[0x2e],
-                              (double)physics[0x2f], (double)physics[0x30]),
-                     "c:\\halo\\SOURCE\\units\\bipeds.c", 0xee3, true);
+      display_assert(
+        csprintf(
+          error_string_buffer, "%s: assert_valid_real_vector2d(%f, %f, %f)",
+          "&physics->new_velocity", (double)physics->new_velocity.i,
+          (double)physics->new_velocity.j, (double)physics->new_velocity.k),
+        "c:\\halo\\SOURCE\\units\\bipeds.c", 0xee3, true);
       system_exit(-1);
     }
   }
@@ -4184,129 +4241,129 @@ LAB_001a4062_done:
  */
 void biped_snap_facing(int biped_index)
 {
-  char *biped;
-  char *definition;
-  float *forward;
-  float *up;
+  biped_data_t *biped;
+  biped_definition_t *definition;
+  real_vector3d *forward;
+  real_vector3d *up;
 
-  biped = (char *)object_get_and_verify_type(biped_index, 1);
-  definition = (char *)tag_get(0x62697064, *(int *)biped);
+  biped = object_get_and_verify_type(biped_index, 1 << _object_type_biped);
+  definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  if ((*(uint32_t *)(definition + 0x2f4) & 0x4) != 0 &&
-      (*(uint8_t *)(biped + 0xb6) & 0x4) == 0) {
-    vector3_t left;
-    vector3_t up_vector;
+  if ((definition->biped_flags & 0x4) != 0 &&
+      (biped->unit.object.damage_flags & 0x4) == 0) {
+    real_vector3d left;
+    real_vector3d up_vector;
     float sine;
     float cosine;
 
-    forward = (float *)(biped + 0x24);
+    forward = &biped->unit.object.forward;
     if (!valid_real_normal3d(forward)) {
       display_assert(csprintf((char *)0x5ab100,
                               "%s: assert_valid_real_normal3d(%f, %f, %f)",
-                              "&biped->object.forward", (double)forward[0],
-                              (double)forward[1], (double)forward[2]),
+                              "&biped->object.forward", (double)forward->i,
+                              (double)forward->j, (double)forward->k),
                      "c:\\halo\\SOURCE\\units\\bipeds.c", 0xfa5, 1);
       system_exit(-1);
     }
 
-    left.x = global_up_vector_ptr[2] * forward[1] -
-             global_up_vector_ptr[1] * forward[2];
-    left.y = global_up_vector_ptr[0] * forward[2] -
-             forward[0] * global_up_vector_ptr[2];
-    left.z = forward[0] * global_up_vector_ptr[1] -
-             global_up_vector_ptr[0] * forward[1];
-    up_vector.x = left.y * forward[2] - left.z * forward[1];
-    up_vector.y = left.z * forward[0] - left.x * forward[2];
-    up_vector.z = left.x * forward[1] - left.y * forward[0];
-    if (normalize3d((real_vector3d *)&up_vector) == 0.0f) {
-      up_vector = *(vector3_t *)global_forward_vector_ptr;
-      left = *(vector3_t *)global_left_vector_ptr;
+    left.i = global_up_vector_ptr[2] * forward->j -
+             global_up_vector_ptr[1] * forward->k;
+    left.j = global_up_vector_ptr[0] * forward->k -
+             forward->i * global_up_vector_ptr[2];
+    left.k = forward->i * global_up_vector_ptr[1] -
+             global_up_vector_ptr[0] * forward->j;
+    up_vector.i = left.j * forward->k - left.k * forward->j;
+    up_vector.j = left.k * forward->i - left.i * forward->k;
+    up_vector.k = left.i * forward->j - left.j * forward->i;
+    if (normalize3d(&up_vector) == 0.0f) {
+      up_vector = *(real_vector3d *)global_forward_vector_ptr;
+      left = *(real_vector3d *)global_left_vector_ptr;
     }
 
-    cosine = x87_fcos(*(float *)(biped + 0x468));
-    sine = x87_fsin(*(float *)(biped + 0x468));
-    up_vector.x = up_vector.x * cosine;
-    up_vector.y = up_vector.y * cosine;
-    up_vector.z = up_vector.z * cosine;
-    normalize3d((real_vector3d *)&left);
-    *(float *)(biped + 0x30) = left.x * sine + up_vector.x;
-    *(float *)(biped + 0x34) = left.y * sine + up_vector.y;
-    *(float *)(biped + 0x38) = left.z * sine + up_vector.z;
+    cosine = x87_fcos(biped->bank);
+    sine = x87_fsin(biped->bank);
+    up_vector.i = up_vector.i * cosine;
+    up_vector.j = up_vector.j * cosine;
+    up_vector.k = up_vector.k * cosine;
+    normalize3d(&left);
+    biped->unit.object.up.i = left.i * sine + up_vector.i;
+    biped->unit.object.up.j = left.j * sine + up_vector.j;
+    biped->unit.object.up.k = left.k * sine + up_vector.k;
 
     biped_verify_object_vectors(biped_index, "post-bank-snapfacing");
-  } else if ((*(uint32_t *)(definition + 0x2f4) & 0x40) != 0 &&
-             (*(uint8_t *)(biped + 0xb6) & 0x4) == 0) {
-    vector3_t normal;
-    vector3_t vector;
-    vector3_t axis;
-    vector3_t new_forward;
+  } else if ((definition->biped_flags & 0x40) != 0 &&
+             (biped->unit.object.damage_flags & 0x4) == 0) {
+    real_vector3d normal;
+    real_vector3d vector;
+    real_vector3d axis;
+    real_vector3d new_forward;
 
-    up = (float *)(biped + 0x30);
-    if (*(int *)(biped + 0x430) == NONE) {
-      normal = *(vector3_t *)up;
+    up = &biped->unit.object.up;
+    if (biped->support_surface_index == NONE) {
+      normal = *up;
     } else {
       bool tilt_toward_surface = true;
 
-      normal = *(vector3_t *)(biped + 0x46c);
-      cross_product3d(up, (float *)&normal, (float *)&axis);
-      if (normalize3d((real_vector3d *)&axis) == 0.0f) {
-        if (normal.y * up[1] + normal.z * up[2] + normal.x * up[0] > 0.0f)
+      normal = *(real_vector3d *)biped->ground_plane.normal;
+      cross_product3d(up, &normal, &axis);
+      if (normalize3d(&axis) == 0.0f) {
+        if (normal.j * up->j + normal.k * up->k + normal.i * up->i > 0.0f)
           tilt_toward_surface = false;
         else
-          axis = *(vector3_t *)(biped + 0x24);
+          axis = biped->unit.object.forward;
       }
 
       if (tilt_toward_surface) {
-        vector3_t tilted_up = *(vector3_t *)up;
+        real_vector3d tilted_up = *up;
 
 #if defined(_MSC_VER) && !defined(__clang__)
-        rotate_vector3d_by_sincos((float *)&tilted_up, (float *)&axis,
+        rotate_vector3d_by_sincos(&tilted_up, &axis,
                                   (float)sin(0.17453292012214661),
                                   (float)cos(0.17453292012214661));
 #else
-        rotate_vector3d_by_sincos((real_vector3d *)&tilted_up, (real_vector3d *)&axis,
+        rotate_vector3d_by_sincos(&tilted_up, &axis,
                                   (float)x87_fsin_d(0.17453292012214661),
                                   (float)x87_fcos_d(0.17453292012214661));
 #endif
-        cross_product3d((float *)&tilted_up, (float *)&normal,
-                        (float *)&vector);
-        if (vector.z * axis.z + vector.y * axis.y + vector.x * axis.x > 0.0f)
+        cross_product3d(&tilted_up, &normal,
+                        &vector);
+        if (vector.k * axis.k + vector.j * axis.j + vector.i * axis.i > 0.0f)
           normal = tilted_up;
       }
     }
 
-    forward = (float *)(biped + 0x24);
-    vector.x = normal.z * forward[1] - normal.y * forward[2];
-    vector.y = normal.x * forward[2] - normal.z * forward[0];
-    vector.z = normal.y * forward[0] - normal.x * forward[1];
-    new_forward.x = vector.z * normal.y - vector.y * normal.z;
-    new_forward.y = normal.z * vector.x - vector.z * normal.x;
-    new_forward.z = vector.y * normal.x - normal.y * vector.x;
-    if (normalize3d((real_vector3d *)&new_forward) == 0.0f) {
-      cross_product3d((float *)&normal, up, (float *)&vector);
-      cross_product3d((float *)&normal, (float *)&vector,
-                      (float *)&new_forward);
-      if (normalize3d((real_vector3d *)&new_forward) == 0.0f) {
-        normal = *(vector3_t *)global_up_vector_ptr;
-        new_forward = *(vector3_t *)global_forward_vector_ptr;
+    forward = &biped->unit.object.forward;
+    vector.i = normal.k * forward->j - normal.j * forward->k;
+    vector.j = normal.i * forward->k - normal.k * forward->i;
+    vector.k = normal.j * forward->i - normal.i * forward->j;
+    new_forward.i = vector.k * normal.j - vector.j * normal.k;
+    new_forward.j = normal.k * vector.i - vector.k * normal.i;
+    new_forward.k = vector.j * normal.i - normal.j * vector.i;
+    if (normalize3d(&new_forward) == 0.0f) {
+      cross_product3d(&normal, up, &vector);
+      cross_product3d(&normal, &vector,
+                      &new_forward);
+      if (normalize3d(&new_forward) == 0.0f) {
+        normal = *(real_vector3d *)global_up_vector_ptr;
+        new_forward = *(real_vector3d *)global_forward_vector_ptr;
       }
     }
 
-    *(vector3_t *)forward = new_forward;
-    *(vector3_t *)up = normal;
+    *forward = new_forward;
+    *up = normal;
 
     biped_verify_object_vectors(biped_index, "post-climb-snapfacing");
-  } else if ((*(uint8_t *)(biped + 0xb6) & 0x4) != 0 &&
-             (*(uint8_t *)(biped + 0x424) & 0x1) == 0) {
-    float *ground_normal;
+  } else if ((biped->unit.object.damage_flags & 0x4) != 0 &&
+             ((uint8_t)biped->flags & 0x1) == 0) {
+    real_vector3d *ground_normal;
     float cosine_of_angle;
 
     biped_verify_object_vectors(biped_index, "pre-deadplane-snapfacing");
 
-    ground_normal = (float *)(biped + 0x46c);
-    up = (float *)(biped + 0x30);
-    cosine_of_angle = ground_normal[2] * up[2] + ground_normal[1] * up[1] +
-                      up[0] * ground_normal[0];
+    ground_normal = (real_vector3d *)biped->ground_plane.normal;
+    up = &biped->unit.object.up;
+    cosine_of_angle = ground_normal->k * up->k + ground_normal->j * up->j +
+                      up->i * ground_normal->i;
     if (!((double)x87_fabs(cosine_of_angle - 1.0f) < (double)0.0001f)) {
       float angle;
 
@@ -4319,29 +4376,29 @@ void biped_snap_facing(int biped_index)
       angle = acosf(cosine_of_angle);
 #endif
       if (angle != 0.0f) {
-        vector3_t axis;
+        real_vector3d axis;
 
-        cross_product3d(up, ground_normal, (float *)&axis);
-        if (normalize3d((real_vector3d *)&axis) != 0.0f) {
+        cross_product3d(up, ground_normal, &axis);
+        if (normalize3d(&axis) != 0.0f) {
           float cosine = x87_fcos(angle);
           float sine = x87_fsin(angle);
 
-          forward = (float *)(biped + 0x24);
-          rotate_vector3d_by_sincos((real_vector3d *)up, (real_vector3d *)&axis, sine, cosine);
-          rotate_vector3d_by_sincos((real_vector3d *)forward, (real_vector3d *)&axis, sine, cosine);
-          normalize3d((real_vector3d *)up);
-          normalize3d((real_vector3d *)forward);
+          forward = &biped->unit.object.forward;
+          rotate_vector3d_by_sincos(up, &axis, sine, cosine);
+          rotate_vector3d_by_sincos(forward, &axis, sine, cosine);
+          normalize3d(up);
+          normalize3d(forward);
         }
       }
     }
 
     biped_verify_object_vectors(biped_index, "post-deadplane-snapfacing");
   } else {
-    forward = (float *)(biped + 0x24);
-    forward[2] = 0.0f;
-    if (normalize3d((real_vector3d *)forward) == 0.0f)
-      *(vector3_t *)forward = *(vector3_t *)global_forward_vector_ptr;
-    *(vector3_t *)(biped + 0x30) = *(vector3_t *)global_up_vector_ptr;
+    forward = &biped->unit.object.forward;
+    forward->k = 0.0f;
+    if (normalize3d(forward) == 0.0f)
+      *forward = *(real_vector3d *)global_forward_vector_ptr;
+    biped->unit.object.up = *(real_vector3d *)global_up_vector_ptr;
 
     biped_verify_object_vectors(biped_index, "post-normal-snapfacing");
   }
@@ -4354,7 +4411,7 @@ void biped_snap_facing(int biped_index)
  * (obj+0x46c..0x478) from the same globals used by biped_reset
  * (0x32513c..0x325148), sets a state byte and several BSP/contact datum
  * handles to -1, re-samples world position into obj+0x438..0x444,
- * conditionally invokes FUN_001a25e0 (bit 0x40 of the tag flags at +0x2f4
+ * conditionally invokes biped_find_nearby_support_surface (bit 0x40 of the tag flags at +0x2f4
  * -- the same bit referenced at 0x1a39ab, gating a physics "mach edge"
  * flag), then unconditionally calls biped_snap_facing and clears two more
  * state fields. Always returns 1.
@@ -4380,37 +4437,35 @@ void biped_snap_facing(int biped_index)
  */
 char biped_new(int unit_handle)
 {
-  char *unit_obj;
-  char *biped_tag;
-  vector3_t *out_position;
+  biped_data_t *biped;
+  biped_definition_t *definition;
 
-  unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  *(int *)(unit_obj + 0x46c) = *(int *)0x32513c;
-  *(int *)(unit_obj + 0x470) = *(int *)0x325140;
-  *(int *)(unit_obj + 0x474) = *(int *)0x325144;
-  *(int *)(unit_obj + 0x478) = *(int *)0x325148;
+  *(int *)&biped->ground_plane.normal[0] = DEPTHS_OF_HELL_PLANE_NORMAL_I_BITS;
+  *(int *)&biped->ground_plane.normal[1] = DEPTHS_OF_HELL_PLANE_NORMAL_J_BITS;
+  *(int *)&biped->ground_plane.normal[2] = DEPTHS_OF_HELL_PLANE_NORMAL_K_BITS;
+  *(int *)&biped->ground_plane.d = DEPTHS_OF_HELL_PLANE_D_BITS;
 
-  *(uint8_t *)(unit_obj + 0x45c) = 0x7f;
-  *(int *)(unit_obj + 0x430) = -1;
-  *(int *)(unit_obj + 0x434) = -1;
+  biped->jump_recovery_timer = 0x7f;
+  biped->support_surface_index = NONE;
+  biped->pathfinding_surface_index = NONE;
 
-  out_position = (vector3_t *)(unit_obj + 0x438);
-  object_get_world_position(unit_handle, out_position);
+  object_get_world_position(unit_handle, &biped->pathfinding_point);
 
-  *(int *)(unit_obj + 0x448) = -1;
-  *(int *)(unit_obj + 0x444) = -1;
-  *(int *)(unit_obj + 0x44c) = -1;
+  biped->last_pathfinding_surface_index = NONE;
+  biped->last_pathfinding_attempt_time = NONE;
+  biped->impact_target_object_index = NONE;
 
-  if ((*(uint8_t *)(biped_tag + 0x2f4) & 0x40) != 0) {
-    FUN_001a25e0(unit_handle);
+  if (((uint8_t)definition->biped_flags & 0x40) != 0) {
+    biped_find_nearby_support_surface(unit_handle);
   }
 
   biped_snap_facing(unit_handle);
 
-  *(int *)(unit_obj + 0x42c) = -1;
-  *(uint8_t *)(unit_obj + 0x42b) = 0;
+  biped->elevator_object_index = NONE;
+  biped->elevator_ticks = 0;
 
   return 1;
 }
@@ -4437,7 +4492,7 @@ void biped_preprocess_node_orientations(int unit_handle)
   biped_verify_object_vectors(unit_handle, "preprocess-nodes");
 }
 
-/* FUN_001a4a70 (0x1a4a70..0x1a4c47) — biped_accelerate: apply a velocity
+/* biped_accelerate (0x1a4a70..0x1a4c47) — biped_accelerate: apply a velocity
  * impulse to a biped (grenade/explosion launch, point-physics push).
  *
  * cdecl (biped_index, real_vector3d *acceleration); callers: damage.c impulse
@@ -4462,8 +4517,6 @@ enum {
   _object_at_rest_bit = 5,
   _object_dead_bit = 2,
   _unit_is_special_bit = 20,
-  _biped_airborne_bit = 0,
-  _biped_slipping_bit = 1,
   _biped_flying_bit = 2,
   _biped_climbs_anything_bit = 6
 };
@@ -4477,7 +4530,7 @@ enum {
              ((flags) &= (unsigned)~FLAG(bit)))
 #endif
 
-void FUN_001a4a70(int biped_index, float *acceleration_vector)
+void biped_accelerate(int biped_index, float *acceleration_vector)
 {
   real_vector3d *acceleration = (real_vector3d *)acceleration_vector;
   biped_datum_t *biped;
@@ -4552,21 +4605,19 @@ void FUN_001a4a70(int biped_index, float *acceleration_vector)
   }
 }
 
-/* FUN_001a4c50 (0x1a4c50..0x1a5300) — biped turning update
+/* biped_update_turning (0x1a4c50..0x1a5300) — biped turning update
  *
  * Only caller: biped_update (0x1a65b3), bracketed by the "pre-turning" /
  * "post-turning" markers and skipped when biped+0xb6 bit 2 (dead) is set.
  * cdecl, two pushes (unit_handle, &state[0]); state is the caller's 2-byte
- * animation pair, only state[0] is written here. Structure matches PAL 2342
- * biped_update_turning (bipeds.c 3193) and the three internal markers
- * "post-fly-turn" (0x2b51b4), "post-moving-turn" (0x2b518c) and
- * "post-standing-turn" (0x2b51a0) confirm it (name not applied yet).
+ * animation pair, only state[0] is written here. Internal markers
+ * "post-fly-turn", "post-moving-turn" and "post-standing-turn".
  *
  * Confirmed (disassembly, not decompiler):
  *   - flying arm when tag+0x2f4 bit 2 && !(biped+0xb6 bit 2). Nearly
  *     stationary = |+0x18|^2 < 1/3600 && |+0x3c|^2 < 1.3538552e-6 (both
- *     inlined) && FUN_00012170(+0x228) < 0.010000001 && dot(+0x1d4,+0x24)
- *     (FUN_00013070) > threshold (0.99 if +0x1b8 bit 0x20, else tag+0x4c8).
+ *     inlined) && magnitude_squared3d(+0x228) < 0.010000001 && dot(+0x1d4,+0x24)
+ *     (dot_product3d) > threshold (0.99 if +0x1b8 bit 0x20, else tag+0x4c8).
  *   - pitch = tag+0x330 * +0x230 stays on the x87 stack; turn axis
  *     forward x up is never stored; turn rate uses (z+y)+x association,
  *     * 10/3 (0x254e6c) * +0x228 - +0x22c, clamped to 1.5.
@@ -4583,48 +4634,29 @@ void FUN_001a4a70(int biped_index, float *acceleration_vector)
  *   - the overshoot snap re-reads tag+0x2f4 bit 0x40 from the tag
  *     (MOV CL,[EAX+0x2f4] at 0x1a5271) instead of the cached flags.
  *   - state[0] = turn_right ? 3 : 2 (SETNE; ADD DL,2 at 0x1a518b).
- *
- * Call-site verification (first PUSH is the last argument):
- *   0x1a4c5f object_get_and_verify_type | 1 ; [EBP+8] | match
- *   0x1a4c6e tag_get | [ESI] ; 'bipd' | match
- *   0x1a4cfa FUN_00012170 | ESI+0x228 | match
- *   0x1a4d38 FUN_00013070 | EBX=+0x24 ; EDI=+0x1d4 -> (desired, forward)
- *   0x1a4da3 normalize3d | &target(-0x20) | match
- *   0x1a4f32 unit_euler_aiming_update | accel(-0x10) ; vel(-0xc) ;
- *     &bounds(-0x30) ; ESI+0x3c ; &target ; ECX=+0x24 ; 0 | match
- *   0x1a4f3e biped_snap_facing | [EBP+8] | match
- *   0x1a4f4a/0x1a519b/0x1a52f1 biped_verify_object_vectors | EAX=[EBP+8]
- *   0x1a4fec normalize3d | &axis(-0x20) | match
- *   0x1a5083 normalize2d | &axis(-0x20) | match
- *   0x1a51f7 rotate_vector3d_by_sincos | cos ; sin ; EBX=+0x30 ; EDI=+0x24
- *   0x1a5205 cross_product3d | &cross(-0x2c) ; EDI ; &axis | match
- *   0x1a5288 cross_product3d | &rot(-0x2c) ; &axis ; ESI=+0x30 | match
- *   0x1a5291 normalize3d | &rot | match
- *   0x1a52ac cross_product3d | EDI=+0x24 ; ESI=+0x30 ; &rot | match
- *   0x1a52df normalize3d | EDI=+0x24 | result discarded (FSTP ST0)
  */
-void FUN_001a4c50(int unit_handle, unsigned char *state)
+void biped_update_turning(int unit_handle, unsigned char *state)
 {
-  char *biped;
-  char *definition;
+  biped_data_t *biped;
+  biped_definition_t *definition;
   uint32_t flags;
-  float *forward;
-  float *up;
-  float *desired;
+  real_vector3d *forward;
+  real_vector3d *up;
+  real_vector3d *desired;
 
-  biped = (char *)object_get_and_verify_type(unit_handle, 1);
-  definition = (char *)tag_get(0x62697064, *(int *)biped);
-  flags = *(uint32_t *)(definition + 0x2f4);
-  forward = (float *)(biped + 0x24);
-  up = (float *)(biped + 0x30);
-  desired = (float *)(biped + 0x1d4);
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
+  flags = definition->biped_flags;
+  forward = &biped->unit.object.forward;
+  up = &biped->unit.object.up;
+  desired = (real_vector3d *)&biped->unit.desired_facing_vector;
 
-  if ((flags & 0x4) != 0 && (*(uint8_t *)(biped + 0xb6) & 0x4) == 0) {
+  if ((flags & 0x4) != 0 && (biped->unit.object.damage_flags & 0x4) == 0) {
     char nearly_stationary = 0;
-    float *velocity = (float *)(biped + 0x18);
-    float *angular_velocity = (float *)(biped + 0x3c);
-    vector3_t target_facing;
-    float aiming_bounds[4];
+    real_vector3d *velocity = &biped->unit.object.translational_velocity;
+    real_vector3d *angular_velocity = &biped->unit.object.angular_velocity;
+    real_vector3d target_facing;
+    real_rectangle2d aiming_bounds;
     float turn_rate;
     float target_bank;
     float bank_blend;
@@ -4632,50 +4664,51 @@ void FUN_001a4c50(int unit_handle, unsigned char *state)
     float angular_velocity_limit;
     float angular_acceleration_limit;
 
-    if (velocity[0] * velocity[0] + velocity[1] * velocity[1] +
-            velocity[2] * velocity[2] <
+    if (velocity->i * velocity->i + velocity->j * velocity->j +
+            velocity->k * velocity->k <
           0.00027777778f &&
-        angular_velocity[0] * angular_velocity[0] +
-            angular_velocity[1] * angular_velocity[1] +
-            angular_velocity[2] * angular_velocity[2] <
+        angular_velocity->i * angular_velocity->i +
+            angular_velocity->j * angular_velocity->j +
+            angular_velocity->k * angular_velocity->k <
           0.0000013538552f &&
-        FUN_00012170((float *)(biped + 0x228)) < 0.010000001f) {
+        magnitude_squared3d((real_vector3d *)&biped->unit.throttle) < 0.010000001f) {
       float stationary_turning_threshold;
 
-      if ((*(uint8_t *)(biped + 0x1b8) & 0x20) != 0)
+      if (((uint8_t)biped->unit.control_flags & 0x20) != 0)
         stationary_turning_threshold = 0.99000001f;
       else
-        stationary_turning_threshold = *(float *)(definition + 0x4c8);
+        stationary_turning_threshold = biped_definition_runtime_cosine_stationary_turning_threshold(definition);
 
-      if (FUN_00013070(desired, forward) > stationary_turning_threshold)
+      if (dot_product3d(desired, forward) > stationary_turning_threshold)
         nearly_stationary = 1;
     }
 
     if (nearly_stationary) {
-      target_facing = *(vector3_t *)forward;
+      target_facing = *forward;
     } else {
-      float pitch = *(float *)(definition + 0x330) * *(float *)(biped + 0x230);
+      float pitch =
+        biped_definition_flying_pitch_amount(definition) * biped->unit.throttle.z;
 
-      target_facing = *(vector3_t *)desired;
+      target_facing = *desired;
       if (pitch != 0.0f) {
-        target_facing.z = target_facing.z + pitch;
-        if (normalize3d((real_vector3d *)&target_facing) == 0.0f)
-          target_facing = *(vector3_t *)desired;
+        target_facing.k = target_facing.k + pitch;
+        if (normalize3d(&target_facing) == 0.0f)
+          target_facing = *desired;
       }
     }
 
     /* (forward x up) . desired, association (z + y) + x as in the binary */
-    turn_rate = ((forward[0] * up[1] - forward[1] * up[0]) * desired[2] +
-                 (forward[2] * up[0] - up[2] * forward[0]) * desired[1] +
-                 (up[2] * forward[1] - up[1] * forward[2]) * desired[0]) *
-                  3.3333333f * *(float *)(biped + 0x228) -
-                *(float *)(biped + 0x22c);
+    turn_rate = ((forward->i * up->j - forward->j * up->i) * desired->k +
+                 (forward->k * up->i - up->k * forward->i) * desired->j +
+                 (up->k * forward->j - up->j * forward->k) * desired->i) *
+                  3.3333333f * biped->unit.throttle.x -
+                biped->unit.throttle.y;
     if (turn_rate > 1.5f)
       turn_rate = 1.5f;
 
-    target_bank = turn_rate * *(float *)(definition + 0x324);
-    if (target_bank * *(float *)(biped + 0x468) > 0.0f) {
-      float bank_ratio = *(float *)(biped + 0x468) / target_bank;
+    target_bank = turn_rate * biped_definition_flying_bank_amount(definition);
+    if (target_bank * biped->bank > 0.0f) {
+      float bank_ratio = biped->bank / target_bank;
 
       if (bank_ratio > 1.0f)
         bank_ratio = 1.0f;
@@ -4684,139 +4717,141 @@ void FUN_001a4c50(int unit_handle, unsigned char *state)
       bank_blend = 1.0f;
     }
 
-    bank_time = (1.0f - bank_blend) * *(float *)(definition + 0x32c) +
-                bank_blend * *(float *)(definition + 0x328);
+    bank_time = (1.0f - bank_blend) * biped_definition_flying_bank_decay_time(definition) +
+                bank_blend * biped_definition_flying_bank_apply_time(definition);
     if (bank_time > 0.0f) {
-      *(float *)(biped + 0x468) =
-        (target_bank - *(float *)(biped + 0x468)) / (bank_time * 30.0f) +
-        *(float *)(biped + 0x468);
+      biped->bank =
+        (target_bank - biped->bank) / (bank_time * 30.0f) + biped->bank;
     } else {
-      *(float *)(biped + 0x468) = target_bank;
+      biped->bank = target_bank;
     }
 
-    aiming_bounds[0] = -_pi;
-    aiming_bounds[1] = _pi;
-    aiming_bounds[2] = -1.57079633f;
-    aiming_bounds[3] = 1.57079633f;
-    angular_velocity_limit = *(float *)(definition + 0x344) * 0.033333335f;
-    angular_acceleration_limit = *(float *)(definition + 0x348) * 0.0011111111f;
+    aiming_bounds.x0 = -_pi;
+    aiming_bounds.x1 = _pi;
+    aiming_bounds.y0 = -(_pi / 2);
+    aiming_bounds.y1 = _pi / 2;
+    angular_velocity_limit =
+      biped_definition_flying_angular_velocity(definition) * 0.033333335f;
+    angular_acceleration_limit =
+      biped_definition_flying_angular_acceleration(definition) * 0.0011111111f;
     if (angular_acceleration_limit == 0.0f) {
-      *(vector3_t *)forward = target_facing;
+      *forward = target_facing;
     } else {
       unit_euler_aiming_update(
-        0, forward, (float *)&target_facing, angular_velocity, aiming_bounds,
+        0, forward, &target_facing, angular_velocity, (float *)&aiming_bounds,
         angular_velocity_limit, angular_acceleration_limit);
     }
 
     biped_snap_facing(unit_handle);
     biped_verify_object_vectors(unit_handle, "post-fly-turn");
-  } else if (*(uint8_t *)(biped + 0x257) != 0) {
+  } else if (biped->unit.base_seat_index != 0) {
     char flaming = 0;
     char turn_right;
-    vector3_t turn_axis;
+    real_vector3d turn_axis;
     float turn_error;
     float facing_alignment;
     uint8_t biped_state;
 
-    if (*(uint8_t *)(biped + 0x257) == 5)
+    if (biped->unit.base_seat_index == 5)
       flaming = 1;
 
     if ((flags & 0x40) != 0) {
-      float cross_x = desired[2] * up[1] - desired[1] * up[2];
-      float cross_y = desired[0] * up[2] - up[0] * desired[2];
-      float cross_z = up[0] * desired[1] - desired[0] * up[1];
+      float cross_x = desired->k * up->j - desired->j * up->k;
+      float cross_y = desired->i * up->k - up->i * desired->k;
+      float cross_z = up->i * desired->j - desired->i * up->j;
 
-      turn_axis.x = cross_y * up[2] - cross_z * up[1];
-      turn_axis.y = cross_z * up[0] - cross_x * up[2];
-      turn_axis.z = cross_x * up[1] - cross_y * up[0];
-      if (normalize3d((real_vector3d *)&turn_axis) == 0.0f)
-        turn_axis = *(vector3_t *)forward;
+      turn_axis.i = cross_y * up->k - cross_z * up->j;
+      turn_axis.j = cross_z * up->i - cross_x * up->k;
+      turn_axis.k = cross_x * up->j - cross_y * up->i;
+      if (normalize3d(&turn_axis) == 0.0f)
+        turn_axis = *forward;
 
       /* (turn_axis x forward) . up, association (z + y) + x */
       turn_error =
-        (turn_axis.x * forward[1] - turn_axis.y * forward[0]) * up[2] +
-        (turn_axis.z * forward[0] - turn_axis.x * forward[2]) * up[1] +
-        (turn_axis.y * forward[2] - turn_axis.z * forward[1]) * up[0];
-      facing_alignment = turn_axis.y * forward[1] + turn_axis.z * forward[2] +
-                         turn_axis.x * forward[0];
+        (turn_axis.i * forward->j - turn_axis.j * forward->i) * up->k +
+        (turn_axis.k * forward->i - turn_axis.i * forward->k) * up->j +
+        (turn_axis.j * forward->k - turn_axis.k * forward->j) * up->i;
+      facing_alignment = turn_axis.j * forward->j + turn_axis.k * forward->k +
+                         turn_axis.i * forward->i;
     } else {
-      turn_axis = *(vector3_t *)desired;
-      turn_axis.z = 0.0f;
-      if (normalize2d((float *)&turn_axis) == 0.0f)
-        turn_axis = *(vector3_t *)forward;
+      turn_axis = *desired;
+      turn_axis.k = 0.0f;
+      if (normalize2d((real_vector2d *)&turn_axis) == 0.0f)
+        turn_axis = *forward;
 
-      turn_error = turn_axis.x * forward[1] - turn_axis.y * forward[0];
-      facing_alignment = turn_axis.y * forward[1] + turn_axis.x * forward[0];
+      turn_error = turn_axis.i * forward->j - turn_axis.j * forward->i;
+      facing_alignment = turn_axis.j * forward->j + turn_axis.i * forward->i;
     }
 
     turn_right = 1;
     if (!(turn_error > 0.0f))
       turn_right = 0;
     if (facing_alignment < -0.89999998f) {
-      if (*(uint8_t *)(biped + 0x253) == 3)
+      if (biped->unit.animation_state == 3)
         turn_right = 1;
-      else if (*(uint8_t *)(biped + 0x253) == 2)
+      else if (biped->unit.animation_state == 2)
         turn_right = 0;
     }
 
-    biped_state = *(uint8_t *)(biped + 0x42a);
+    biped_state = biped->state;
     if (biped_state == 1 || (flags & 0x1) != 0) {
-      if ((*(uint32_t *)(biped + 0x1b8) & 0x100) == 0) {
+      if ((biped->unit.control_flags & 0x100) == 0) {
         float cosine =
-          x87_fcos_mul(*(float *)(definition + 0x2f0), 0.033333335f);
-        float sine = x87_fsin_mul(*(float *)(definition + 0x2f0), 0.033333335f);
+          x87_fcos_mul(biped_definition_moving_turning_speed(definition), 0.033333335f);
+        float sine =
+          x87_fsin_mul(biped_definition_moving_turning_speed(definition), 0.033333335f);
         float progress;
 
         if (turn_right)
           sine = -sine;
 
         if ((flags & 0x40) != 0) {
-          vector3_t cross;
+          real_vector3d cross;
 
-          rotate_vector3d_by_sincos((real_vector3d *)forward, (real_vector3d *)up, sine, cosine);
-          cross_product3d((float *)&turn_axis, forward, (float *)&cross);
-          progress = cross.y * up[1] + cross.z * up[2] + cross.x * up[0];
+          rotate_vector3d_by_sincos(forward, up, sine, cosine);
+          cross_product3d(&turn_axis, forward, &cross);
+          progress = cross.j * up->j + cross.k * up->k + cross.i * up->i;
         } else {
-          float forward_x = forward[0];
-          float forward_y = forward[1];
+          float forward_x = forward->i;
+          float forward_y = forward->j;
           float rotated_y = sine * forward_x + cosine * forward_y;
 
-          forward[0] = cosine * forward_x - sine * forward_y;
-          forward[1] = rotated_y;
-          progress = turn_axis.x * forward[1] - turn_axis.y * forward[0];
+          forward->i = cosine * forward_x - sine * forward_y;
+          forward->j = rotated_y;
+          progress = turn_axis.i * forward->j - turn_axis.j * forward->i;
         }
 
         if (turn_right ? progress < 0.0f : progress > 0.0f) {
-          if ((*(uint8_t *)(definition + 0x2f4) & 0x40) != 0) {
-            vector3_t rotation_axis;
+          if (((uint8_t)definition->biped_flags & 0x40) != 0) {
+            real_vector3d rotation_axis;
 
-            cross_product3d(up, (float *)&turn_axis, (float *)&rotation_axis);
-            if (normalize3d((real_vector3d *)&rotation_axis) > 0.0f)
-              cross_product3d((float *)&rotation_axis, up, forward);
+            cross_product3d(up, &turn_axis, &rotation_axis);
+            if (normalize3d(&rotation_axis) > 0.0f)
+              cross_product3d(&rotation_axis, up, forward);
           } else {
-            forward[0] = turn_axis.x;
-            forward[1] = turn_axis.y;
-            forward[2] = 0.0f;
-            *(vector3_t *)up = *(vector3_t *)global_up_vector_ptr;
+            forward->i = turn_axis.i;
+            forward->j = turn_axis.j;
+            forward->k = 0.0f;
+            *up = *(real_vector3d *)global_up_vector_ptr;
           }
 
-          normalize3d((real_vector3d *)forward);
+          normalize3d(forward);
         }
 
         biped_verify_object_vectors(unit_handle, "post-moving-turn");
       }
     } else if (biped_state == 0 && !flaming &&
-               (*(uint32_t *)(biped + 0x1b4) & 0x4000) == 0 &&
-               (*(uint32_t *)(biped + 0x1b8) & 0x100) == 0) {
+               (biped->unit.flags & 0x4000) == 0 &&
+               (biped->unit.control_flags & 0x100) == 0) {
       float stationary_turning_threshold;
 
-      if ((*(uint32_t *)(biped + 0x1b8) & 0x20) != 0)
+      if ((biped->unit.control_flags & 0x20) != 0)
         stationary_turning_threshold = 0.99000001f;
       else
-        stationary_turning_threshold = *(float *)(definition + 0x4c8);
+        stationary_turning_threshold = biped_definition_runtime_cosine_stationary_turning_threshold(definition);
 
       if (facing_alignment < stationary_turning_threshold &&
-          (*(uint32_t *)(definition + 0x17c) & 0x100000) == 0)
+          (definition->unit.flags & 0x100000) == 0)
         *state = (unsigned char)((turn_right != 0) + 2);
 
       biped_verify_object_vectors(unit_handle, "post-standing-turn");
@@ -4824,430 +4859,326 @@ void FUN_001a4c50(int unit_handle, unsigned char *state)
   }
 }
 
-/* Movement/physics request block built on FUN_001a5300's stack at
- * [EBP-0xe4] and handed to FUN_001a2f40 in ESI. Offsets are Confirmed from
- * the stores/loads in 0x1a5300..0x1a627d; field names follow the matching
- * PAL 2342 struct biped_physics members that are filled from the same
- * sources (biped/tag offsets listed). Size 0xcc: the next local up the frame
- * is the velocity pointer at [EBP-0x18]. */
-typedef struct biped_physics {
-  int biped_index; /* +0x00  = unit_handle */
-  uint16_t in_flags; /* +0x04  OR-built from biped+0x424/+0xb6, tag+0x2f4 */
-  uint8_t pad_06[2];
-  float position[3]; /* +0x08  biped_get_camera_height_and_offset out_pos */
-  float forward[3]; /* +0x14  biped+0x24, or biped+0x1d4 (player path) */
-  float aiming[3]; /* +0x20  biped+0x24 or unit_get_aiming_vector */
-  float velocity[3]; /* +0x2c  biped+0x18; passed to biped_bumped_object */
-  float crouch_velocity; /* +0x38 */
-  float movement_desired[3]; /* +0x3c */
-  float movement_penalty; /* +0x48 */
-  float acceleration_maximum; /* +0x4c */
-  float airborne_acceleration_maximum; /* +0x50 */
-  float height; /* +0x54  out_height_offset of 0x1a0890 */
-  float width; /* +0x58  out_camera_height of 0x1a0890; subtracted from z */
-  float ground_tangential_velocity_max; /* +0x5c  FLT_MAX / 0.1 */
-  float ground_tangential_angle; /* +0x60  0 / 0.5 */
-  float minimum_normal_k; /* +0x64  tag+0x4d0 */
-  float downhill_k0; /* +0x68  tag+0x4d4 */
-  float downhill_k1; /* +0x6c  tag+0x4d8 */
-  float downhill_velocity_scale; /* +0x70  tag+0x364 */
-  float uphill_k0; /* +0x74  tag+0x4dc */
-  float uphill_k1; /* +0x78  tag+0x4e0 */
-  float uphill_velocity_scale; /* +0x7c  tag+0x370 */
-  float ground_plane[4]; /* +0x80  biped+0x46c in, copied back out */
-  int existing_support_surface_index; /* +0x90  biped+0x430 */
-  uint8_t pad_94[4];
-  int bumped_object_index; /* +0x98  -> biped_bumped_object @<edi> */
-  int elevator_object_index; /* +0x9c  -> biped+0x42c / +0x42b ticks */
-  uint16_t out_flags; /* +0xa0  bits 1/2/4/0x10 read here */
-  uint8_t pad_a2[2];
-  int support_surface_index; /* +0xa4  -> biped+0x430 */
-  int field_a8; /* +0xa8  written by FUN_001a2f40, unread here */
-  float new_position[3]; /* +0xac */
-  float new_velocity[3]; /* +0xb8 */
-  float landing_velocity; /* +0xc4 */
-  float field_c8; /* +0xc8  written by FUN_001a2f40, unread here */
-} biped_physics;
-cs(biped_physics, 0xcc);
-co(biped_physics, in_flags, 0x04);
-co(biped_physics, movement_desired, 0x3c);
-co(biped_physics, ground_plane, 0x80);
-co(biped_physics, bumped_object_index, 0x98);
-co(biped_physics, out_flags, 0xa0);
-co(biped_physics, new_position, 0xac);
-co(biped_physics, landing_velocity, 0xc4);
+/* Collision model instance filled by collision_model_instance_new. */
+typedef struct collision_model_instance_t {
+  uint8_t pad_00[0x0c];
+  real_matrix4x3 *node_matrices;              /* +0x0c */
+} collision_model_instance_t;
+cs(collision_model_instance_t, 0x10);
+co(collision_model_instance_t, node_matrices, 0x0c);
 
-/* FUN_001a5300 (0x1a5300..0x1a627d) — biped movement update
+/* biped_update_moving (0x1a5300)
  *
- * Only caller: biped_update (0x1a65cc), followed by the "post-moving" marker.
- * cdecl, two pushes (unit_handle, &state[0]); state[0] is the desired
- * animation state, state[1] the crouching byte. Structure matches PAL 2342
- * biped_update_moving (bipeds.c 3479) with these binary-proven differences:
- *   - no cinematic / "old player physics" override in the player path;
- *   - the alert-seat test compares base seat +0x257 with 1, the user
- *     animation state compared against +0x253 is 0x1c;
- *   - MIN(magnitude3d(throttle), 1) evaluates the magnitude twice: an
- *     inlined sqrt((z*z + x*x) + y*y) for the compare and FUN_00012fe0 for
- *     the value;
- *   - the default frame-info arm keeps dy = movement_desired.j (FLD
- *     [EBP-0xa4] at 0x1a5758), i.e. the zero-vector copy;
- *   - every "/ TICKS_PER_SECOND" is a multiply by 1/30 (0x2546a4).
- *
- * Confirmed ABI details:
- *   - FUN_001a2f40 takes &physics in ESI (LEA ESI,[EBP-0xe4] at 0x1a5dfb).
- *   - biped_update_jumping gets unit_handle in EAX and the caller still
- *     pushes state (ADD ESP,4); the callee never reads it (see its lift).
- *   - biped_start_landing: EAX = unit_handle, pushed landing_velocity.
- *   - biped_bumped_object: EDI = physics.bumped_object_index, EBX = unit.
- *   - biped_falling_damage: EDI = unit, pushed landing_velocity.
- *   - unit_impact_melee_damage args 3..5 are DWORD loads at model result
- *     +0x00, +0x02 (misaligned) and +0x1a, transcribed as such.
- *
- * Call-site verification (first PUSH is the last argument):
- *   0x1a5311 object_get_and_verify_type | 1 ; ESI=[EBP+8] | match
- *   0x1a5347 tag_get | [EDI] ; 'bipd' | match
- *   0x1a53ae unit_get_aiming_vector | &aiming(-0xc4) ; ESI | match
- *   0x1a540a biped_get_camera_height_and_offset | &width(-0x8c) ;
- *     &height(-0x90) ; &position(-0xdc) ; ESI | match
- *   0x1a54e0 FUN_000b5590 | 8 | match
- *   0x1a568d tag_get | tag+0x34 ; 'mode' | result discarded
- *   0x1a569b tag_get | biped+0x7c ; 'antr' | match
- *   0x1a56b1 tag_block_get_element | 0xb4 ; movsx +0x80 ; antr+0x74
- *   0x1a56de/5715/5743 FUN_00120590 | 0x10/0xc/8 ; movzx +0x82 ; anim
- *   0x1a57cb rotate_vector3d_by_sincos | cos ; sin ; ESI=+0x30 ; &rot(-0x10)
- *   0x1a57fe FUN_00013070 | +0x24 ; +0x1d4 -> (desired, forward) | match
- *   0x1a5829 cross_product3d | &old(-0xf4) ; +0x24 ; +0x1d4 | match
- *   0x1a5840 cross_product3d | &new(-0x104) ; &rot ; +0x1d4 | match
- *   0x1a58b2 unit_abort_animation | [EBP+8] | match
- *   0x1a58d0 biped_snap_facing | [EBP+8] | match
- *   0x1a592a FUN_00012fe0 | ESI=+0x228 | match
- *   0x1a5a67 game_globals_get | (0 ; 0xf4 pushed for the next call)
- *   0x1a5a72 tag_block_get_element | 0xf4 ; 0 ; globals+0x170 | match
- *   0x1a5a97 datum_get | biped+0x1c8 ; [0x5aa6d4] player_data | match
- *   0x1a5bea game_players_are_double_speed | - | match
- *   0x1a5c65 actor_is_leaping | biped+0x1a4 | match
- *   0x1a5e01 FUN_001a2f40 | ESI=&physics | match
- *   0x1a5ec0 object_translate | 0 ; &new_position(-0x10) ; ESI | match
- *   0x1a5fa1 biped_start_landing | EAX=ESI ; [-0x20] | match
- *   0x1a5fb7 biped_update_jumping | EAX=ESI ; (state) | match
- *   0x1a5fde object_get_and_verify_type | -1 ; biped+0x44c | match
- *   0x1a6003/0x1a61a4 display_assert | 1 ; 0x86d/0x898 ; path ; expr
- *   0x1a6067 fast_vector_intersects_sphere | [target+0x5c] ; target+0x50 ;
- *     &melee(-0x10) ; &position | match
- *   0x1a6085 FUN_0014c8e0 | biped+0x44c ; &instance(-0x114) | match
- *   0x1a60b0 FUN_0014cb00 | &result(-0x584) ; &melee ; &position ; 3 ;
- *     &instance | match
- *   0x1a60d8 collision_test_vector | &world(-0x164) ; ESI ; &melee ; &position ;
- *     0xc2a0 | match
- *   0x1a6101 vector3d_scale_add | &point(-0x104) ; [-0x57c] ; &melee ;
- *     &position | match
- *   0x1a6127 FUN_0010a1c0 | &plane(-0xf8) ; [-0x578] ;
- *     [-0x108] + movsx[-0x584]*0x34 | match
- *   0x1a6147 plane_negate | &plane ; &plane | match
- *   0x1a6181 unit_impact_melee_damage | &world+0xc ; &plane ; &point ;
- *     [-0x56a] ; [-0x582] ; [-0x584] ; biped+0x44c ; ESI | match
- *   0x1a61c6 biped_bumped_object | EDI=[-0x4c] ; EBX=ESI ; &velocity(-0xb8)
- *   0x1a61d1 biped_falling_damage | EDI=ESI ; [-0x20] | match
+ * state[0] is the desired animation state, state[1] the crouching byte.
+ *   - MIN(magnitude3d(throttle), 1) evaluates the magnitude twice: an inlined
+ *     sqrt for the compare and magnitude3d for the value;
+ *   - the default frame-info arm keeps dy = movement_desired.j (the zero
+ *     vector copy);
+ *   - every per-tick scale is a multiply by 1/30.
+ *   - biped_update_jumping gets unit_handle in EAX; the caller still pushes
+ *     state, which the callee never reads.
+ *   - unit_impact_melee_damage args 3..5 are dword loads at model result
+ *     +0x00, +0x02 (misaligned) and +0x1a.
  */
-void FUN_001a5300(int unit_handle, unsigned char *state)
+void biped_update_moving(int unit_handle, unsigned char *state)
 {
-  char *biped;
-  char *definition;
-  float *velocity;
+  biped_data_t *biped;
+  biped_definition_t *definition;
+  real_vector3d *velocity;
   biped_physics physics;
   float movement_scale;
   vector3_t new_position;
 
-  biped = (char *)object_get_and_verify_type(unit_handle, 1);
-  if ((*(uint8_t *)(biped + 0x4) & 0x20) != 0 &&
-      (*(uint8_t *)(biped + 0xb6) & 0x4) != 0 &&
-      (*(uint8_t *)(biped + 0x248) & 0x4) != 0)
+  biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
+  if (((uint8_t)biped->unit.object.flags & 0x20) != 0 &&
+      (biped->unit.object.damage_flags & 0x4) != 0 &&
+      (biped->unit.animation_flags & 0x4) != 0)
     return;
 
-  definition = (char *)tag_get(0x62697064, *(int *)biped);
+  definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
   physics.biped_index = unit_handle;
   physics.in_flags = 0;
-  *(vector3_t *)physics.forward = *(vector3_t *)(biped + 0x24);
-  if ((*(uint32_t *)(definition + 0x17c) & 0x800) != 0)
-    *(vector3_t *)physics.aiming = *(vector3_t *)(biped + 0x24);
+  physics.forward = biped->unit.object.forward;
+  if ((definition->unit.flags & 0x800) != 0)
+    physics.aiming = biped->unit.object.forward;
   else
-    unit_get_aiming_vector(unit_handle, physics.aiming);
+    unit_get_aiming_vector(unit_handle, &physics.aiming);
 
-  velocity = (float *)(biped + 0x18);
-  *(vector3_t *)physics.velocity = *(vector3_t *)velocity;
+  velocity = &biped->unit.object.translational_velocity;
+  physics.velocity = *velocity;
   physics.crouch_velocity = 0.0f;
   physics.acceleration_maximum = 0.0053333333f;
   physics.airborne_acceleration_maximum = 0.0f;
-  biped_get_camera_height_and_offset(unit_handle, (vector3_t *)physics.position,
+  biped_get_camera_height_and_offset(unit_handle, &physics.position,
                                      &physics.height, &physics.width);
-  physics.minimum_normal_k = *(float *)(definition + 0x4d0);
-  physics.downhill_k0 = *(float *)(definition + 0x4d4);
-  physics.downhill_k1 = *(float *)(definition + 0x4d8);
-  physics.downhill_velocity_scale = *(float *)(definition + 0x364);
-  physics.uphill_k0 = *(float *)(definition + 0x4dc);
-  physics.uphill_k1 = *(float *)(definition + 0x4e0);
-  physics.uphill_velocity_scale = *(float *)(definition + 0x370);
-  physics.ground_plane[0] = *(float *)(biped + 0x46c);
-  physics.ground_plane[1] = *(float *)(biped + 0x470);
-  physics.ground_plane[2] = *(float *)(biped + 0x474);
-  physics.ground_plane[3] = *(float *)(biped + 0x478);
+  physics.minimum_normal_k = biped_definition_runtime_minimum_normal_k(definition);
+  physics.downhill_k0 = biped_definition_runtime_downhill_k0(definition);
+  physics.downhill_k1 = biped_definition_runtime_downhill_k1(definition);
+  physics.downhill_velocity_scale = biped_definition_downhill_velocity_scale(definition);
+  physics.uphill_k0 = biped_definition_runtime_uphill_k0(definition);
+  physics.uphill_k1 = biped_definition_runtime_uphill_k1(definition);
+  physics.uphill_velocity_scale = biped_definition_uphill_velocity_scale(definition);
+  physics.ground_plane.normal[0] = biped->ground_plane.normal[0];
+  physics.ground_plane.normal[1] = biped->ground_plane.normal[1];
+  physics.ground_plane.normal[2] = biped->ground_plane.normal[2];
+  physics.ground_plane.d = biped->ground_plane.d;
   physics.ground_tangential_velocity_max = 3.4028235e38f;
   physics.ground_tangential_angle = 0.0f;
-  physics.existing_support_surface_index = *(int *)(biped + 0x430);
+  physics.existing_support_surface_index = biped->support_surface_index;
 
-  if (*(int16_t *)(biped + 0x460) == 1) {
-    physics.movement_desired[0] = 0.0f;
-    physics.movement_desired[1] = 0.0f;
-    physics.movement_desired[2] = 0.0f;
+  if (biped->landing == 1) {
+    physics.movement_desired.i = 0.0f;
+    physics.movement_desired.j = 0.0f;
+    physics.movement_desired.k = 0.0f;
     physics.movement_penalty = 1.0f;
   } else {
     movement_scale = 1.0f;
-    if ((*(uint32_t *)(definition + 0x2f4) & 0x800) != 0 &&
-        *(uint8_t *)(biped + 0x238) == 0) {
-      float difficulty = FUN_000b5590(8);
+    if ((definition->biped_flags & 0x800) != 0 &&
+        biped->unit.aiming_speed == 0) {
+      float difficulty = game_difficulty_get_value(8);
       unsigned long stagger_ordinal = (unsigned long)unit_handle % 137;
 
       movement_scale =
         difficulty * ((float)stagger_ordinal * 0.00729927f) + 1.0f;
     }
 
-    if ((*(uint32_t *)(definition + 0x2f4) & 0x4) != 0 &&
-        (*(uint8_t *)(biped + 0xb6) & 0x4) == 0) {
+    if ((definition->biped_flags & 0x4) != 0 &&
+        (biped->unit.object.damage_flags & 0x4) == 0) {
       state[0] = 0;
-    } else if (*(float *)(biped + 0x228) != 0.0f ||
-               *(float *)(biped + 0x22c) != 0.0f ||
-               *(float *)(biped + 0x230) != 0.0f) {
+    } else if (biped->unit.throttle.x != 0.0f ||
+               biped->unit.throttle.y != 0.0f ||
+               biped->unit.throttle.z != 0.0f) {
       char stunned;
 
-      if (*(float *)(biped + 0x3d4) > 0.2f)
+      if (biped->unit.body_stun > 0.2f)
         stunned = 1;
       else
         stunned = 0;
-      if (*(float *)(definition + 0x240) > 0.0f &&
-          *(float *)(biped + 0xa8) > *(float *)(definition + 0x240))
+      if (unit_definition_stunned_movement_threshold(definition) > 0.0f &&
+          biped->unit.object.unk_168 > unit_definition_stunned_movement_threshold(definition))
         stunned = 1;
 
       /* FCOMPP |y| vs |x|; JNE on C0|C3 selects the x arm */
-      if (!(x87_fabs(*(float *)(biped + 0x22c)) >
-            x87_fabs(*(float *)(biped + 0x228)))) {
-        if (*(float *)(biped + 0x228) < 0.0f)
+      if (!(x87_fabs(biped->unit.throttle.y) >
+            x87_fabs(biped->unit.throttle.x))) {
+        if (biped->unit.throttle.x < 0.0f)
           state[0] = (unsigned char)((stunned != 0) * 4 + 5);
         else
           state[0] = (unsigned char)((stunned != 0) * 4 + 4);
       } else {
-        if (*(float *)(biped + 0x22c) < 0.0f)
+        if (biped->unit.throttle.y < 0.0f)
           state[0] = (unsigned char)((stunned != 0) * 4 + 7);
         else
           state[0] = (unsigned char)((stunned != 0) * 4 + 6);
       }
     }
 
-    *(vector3_t *)physics.movement_desired =
-      *(vector3_t *)global_zero_vector_ptr;
-    if (*(int16_t *)(biped + 0x80) != -1 &&
-        ((*(uint8_t *)(biped + 0xb6) & 0x4) != 0 ||
-         (*(uint8_t *)(definition + 0x2f4) & 0x4) == 0) &&
-        (*(uint8_t *)(biped + 0x248) & 0x4) == 0) {
-      char *animation_graph;
-      char *animation;
+    physics.movement_desired = *(real_vector3d *)global_zero_vector_ptr;
+    if (biped->unit.object.unk_128 != NONE &&
+        ((biped->unit.object.damage_flags & 0x4) != 0 ||
+         ((uint8_t)definition->biped_flags & 0x4) == 0) &&
+        (biped->unit.animation_flags & 0x4) == 0) {
+      animation_graph_t *animation_graph;
+      animation_t *animation;
       float dy;
       float dyaw = 0.0f;
       float *frame_info;
 
-      tag_get(0x6d6f6465, *(int *)(definition + 0x34));
-      animation_graph = (char *)tag_get(0x616e7472, *(int *)(biped + 0x7c));
-      animation = (char *)tag_block_get_element(
-        animation_graph + 0x74, *(int16_t *)(biped + 0x80), 0xb4);
-      switch (*(int16_t *)(animation + 0x26)) {
+      tag_get(TAG_GROUP_MODE, object_definition_model_index(definition));
+      animation_graph = tag_get(TAG_GROUP_ANTR, biped->unit.object.unk_124);
+      animation = tag_block_get_element(&animation_graph->animations,
+                                        biped->unit.object.unk_128, 0xb4);
+      switch (animation->field_26) {
       case 1:
-        frame_info = (float *)FUN_00120590(
-          animation, (short)*(uint16_t *)(biped + 0x82), 8);
-        physics.movement_desired[0] = frame_info[0];
+        frame_info = animation_get_frame_info(animation, biped->unit.object.unk_130, 8);
+        physics.movement_desired.i = frame_info[0];
         dy = frame_info[1];
         break;
       case 2:
-        frame_info = (float *)FUN_00120590(
-          animation, (short)*(uint16_t *)(biped + 0x82), 0xc);
-        physics.movement_desired[0] = frame_info[0];
+        frame_info = animation_get_frame_info(animation, biped->unit.object.unk_130, 0xc);
+        physics.movement_desired.i = frame_info[0];
         dy = frame_info[1];
         dyaw = frame_info[2];
         break;
       case 3:
-        frame_info = (float *)FUN_00120590(
-          animation, (short)*(uint16_t *)(biped + 0x82), 0x10);
-        physics.movement_desired[0] = frame_info[0];
+        frame_info = animation_get_frame_info(animation, biped->unit.object.unk_130, 0x10);
+        physics.movement_desired.i = frame_info[0];
         dy = frame_info[1];
-        physics.movement_desired[2] = frame_info[2];
+        physics.movement_desired.k = frame_info[2];
         dyaw = frame_info[3];
         break;
       default:
-        dy = physics.movement_desired[1];
+        dy = physics.movement_desired.j;
         break;
       }
 
-      physics.movement_desired[0] =
-        physics.movement_desired[0] * movement_scale;
-      physics.movement_desired[1] = dy * movement_scale;
-      physics.movement_desired[2] =
-        physics.movement_desired[2] * movement_scale;
+      physics.movement_desired.i =
+        physics.movement_desired.i * movement_scale;
+      physics.movement_desired.j = dy * movement_scale;
+      physics.movement_desired.k =
+        physics.movement_desired.k * movement_scale;
 
       if (!((double)x87_fabs(dyaw) < (double)0.0001f)) {
-        vector3_t rotated_forward;
-        float *up = (float *)(biped + 0x30);
-        float *forward = (float *)(biped + 0x24);
-        float *desired = (float *)(biped + 0x1d4);
+        real_vector3d rotated_forward;
+        real_vector3d *up = &biped->unit.object.up;
+        real_vector3d *forward = &biped->unit.object.forward;
+        real_vector3d *desired = (real_vector3d *)&biped->unit.desired_facing_vector;
 
-        rotated_forward = *(vector3_t *)forward;
-        rotate_vector3d_by_sincos((real_vector3d *)&rotated_forward, (real_vector3d *)up, x87_fsin(dyaw),
+        rotated_forward = *forward;
+        rotate_vector3d_by_sincos(&rotated_forward, up, x87_fsin(dyaw),
                                   x87_fcos(dyaw));
-        if ((*(uint8_t *)(biped + 0x1b8) & 0x20) != 0 &&
-            (*(uint8_t *)(biped + 0x253) == 2 ||
-             *(uint8_t *)(biped + 0x253) == 3) &&
-            FUN_00013070(desired, forward) > 0.5f) {
-          vector3_t old_cross;
-          vector3_t new_cross;
+        if (((uint8_t)biped->unit.control_flags & 0x20) != 0 &&
+            (biped->unit.animation_state == 2 ||
+             biped->unit.animation_state == 3) &&
+            dot_product3d(desired, forward) > 0.5f) {
+          real_vector3d old_cross;
+          real_vector3d new_cross;
 
-          cross_product3d(desired, forward, (float *)&old_cross);
-          cross_product3d(desired, (float *)&rotated_forward,
-                          (float *)&new_cross);
-          if ((old_cross.y * up[1] + old_cross.z * up[2] +
-               old_cross.x * up[0]) *
-                (new_cross.y * up[1] + new_cross.z * up[2] +
-                 new_cross.x * up[0]) <=
+          cross_product3d(desired, forward, &old_cross);
+          cross_product3d(desired, &rotated_forward,
+                          &new_cross);
+          if ((old_cross.j * up->j + old_cross.k * up->k +
+               old_cross.i * up->i) *
+                (new_cross.j * up->j + new_cross.k * up->k +
+                 new_cross.i * up->i) <=
               0.0f) {
-            rotated_forward = *(vector3_t *)desired;
+            rotated_forward = *desired;
             unit_abort_animation(unit_handle);
           }
         }
 
-        *(vector3_t *)forward = rotated_forward;
+        *forward = rotated_forward;
         biped_snap_facing(unit_handle);
       }
     }
 
-    if ((*(uint32_t *)(definition + 0x2f4) & 0x4) != 0 &&
-        (*(uint8_t *)(biped + 0xb6) & 0x4) == 0) {
-      float *throttle = (float *)(biped + 0x228);
+    if ((definition->biped_flags & 0x4) != 0 &&
+        (biped->unit.object.damage_flags & 0x4) == 0) {
+      real_vector3d *throttle = (real_vector3d *)&biped->unit.throttle;
       float throttle_magnitude;
       float deceleration_scale;
       float crouch_modifier = 1.0f;
       float acceleration;
 
-      if (x87_sqrtd((double)throttle[2] * throttle[2] +
-                    (double)throttle[0] * throttle[0] +
-                    (double)throttle[1] * throttle[1]) < 1.0)
-        throttle_magnitude = FUN_00012fe0(throttle);
+      if (x87_sqrtd((double)throttle->k * throttle->k +
+                    (double)throttle->i * throttle->i +
+                    (double)throttle->j * throttle->j) < 1.0)
+        throttle_magnitude = magnitude3d(throttle);
       else
         throttle_magnitude = 1.0f;
       deceleration_scale = 1.0f - throttle_magnitude;
 
-      if (*(float *)(definition + 0x34c) > 0.0f) {
-        if (*(float *)(biped + 0x464) == 1.0f)
-          crouch_modifier = *(float *)(definition + 0x34c);
-        else if (*(float *)(biped + 0x464) > 0.0f)
-          crouch_modifier = (*(float *)(definition + 0x34c) - 1.0f) *
-                              *(float *)(biped + 0x464) +
-                            1.0f;
+      if (biped_definition_flying_crouch_velocity_modifier(definition) > 0.0f) {
+        if (biped->crouch == 1.0f)
+          crouch_modifier = biped_definition_flying_crouch_velocity_modifier(definition);
+        else if (biped->crouch > 0.0f)
+          crouch_modifier =
+            (biped_definition_flying_crouch_velocity_modifier(definition) - 1.0f) * biped->crouch +
+            1.0f;
       }
 
-      physics.movement_desired[0] =
-        crouch_modifier * *(float *)(definition + 0x334) * movement_scale;
-      physics.movement_desired[1] =
-        movement_scale * crouch_modifier * *(float *)(definition + 0x338);
-      physics.movement_desired[2] =
-        movement_scale * crouch_modifier * *(float *)(definition + 0x338);
+      physics.movement_desired.i = crouch_modifier *
+                                   biped_definition_flying_velocity(definition) *
+                                   movement_scale;
+      physics.movement_desired.j = movement_scale * crouch_modifier *
+                                   biped_definition_flying_sidestep_velocity(definition);
+      physics.movement_desired.k = movement_scale * crouch_modifier *
+                                   biped_definition_flying_sidestep_velocity(definition);
       acceleration =
-        (1.0f - deceleration_scale) * *(float *)(definition + 0x33c) +
-        deceleration_scale * *(float *)(definition + 0x340);
+        (1.0f - deceleration_scale) * biped_definition_flying_acceleration(definition) +
+        deceleration_scale * biped_definition_flying_deceleration(definition);
       acceleration = acceleration * crouch_modifier * movement_scale;
-      physics.movement_desired[0] =
-        physics.movement_desired[0] * throttle[0] * 0.033333335f;
-      physics.movement_desired[1] =
-        physics.movement_desired[1] * *(float *)(biped + 0x22c) * 0.033333335f;
-      physics.movement_desired[2] =
-        physics.movement_desired[2] * *(float *)(biped + 0x230) * 0.033333335f;
+      physics.movement_desired.i =
+        physics.movement_desired.i * throttle->i * 0.033333335f;
+      physics.movement_desired.j =
+        physics.movement_desired.j * biped->unit.throttle.y * 0.033333335f;
+      physics.movement_desired.k =
+        physics.movement_desired.k * biped->unit.throttle.z * 0.033333335f;
       physics.acceleration_maximum = acceleration * 0.033333335f;
       physics.airborne_acceleration_maximum = physics.acceleration_maximum;
-    } else if ((*(uint32_t *)(definition + 0x2f4) & 0x2) != 0 &&
-               *(uint8_t *)(biped + 0x253) != 0x1c) {
-      char *player_information;
+    } else if ((definition->biped_flags & 0x2) != 0 &&
+               biped->unit.animation_state != 0x1c) {
+      game_globals_player_information_t *player_information;
       float body_stun_scale;
       float stun_scale;
       float crouch;
       float uncrouch;
       float forward_speed;
 
-      player_information = (char *)tag_block_get_element(
-        (char *)game_globals_get() + 0x170, 0, 0xf4);
+      player_information = tag_block_get_element(
+        &game_globals_player_information(game_globals_get()), 0,
+        sizeof(game_globals_player_information_t));
       body_stun_scale = 1.0f;
-      if (*(int *)(biped + 0x1c8) != -1)
-        body_stun_scale =
-          *(float *)((char *)datum_get(player_data, *(int *)(biped + 0x1c8)) +
-                     0x6c);
+      if (biped->unit.player_index.value != NONE) {
+        player_data_t *player =
+          datum_get(player_data, biped->unit.player_index.value);
 
-      stun_scale = body_stun_scale *
-                   (1.0f - *(float *)(player_information + 0x80) *
-                             *(float *)(biped + 0x3d4)) *
-                   movement_scale;
-      crouch = *(float *)(biped + 0x464);
-      uncrouch = 1.0f - crouch;
-      if (*(float *)(biped + 0x228) > 0.0f)
-        physics.movement_desired[0] =
-          uncrouch * *(float *)(player_information + 0x34) +
-          *(float *)(player_information + 0x44) * crouch;
-      else
-        physics.movement_desired[0] =
-          uncrouch * *(float *)(player_information + 0x38) +
-          *(float *)(player_information + 0x48) * crouch;
-      physics.movement_desired[2] = 0.0f;
-      physics.movement_desired[1] =
-        uncrouch * *(float *)(player_information + 0x3c) +
-        *(float *)(player_information + 0x4c) * crouch;
-      physics.acceleration_maximum =
-        uncrouch * *(float *)(player_information + 0x40) +
-        *(float *)(player_information + 0x50) * crouch;
-
-      if (*(uint8_t *)(biped + 0x257) == 1) {
-        if (*(float *)(biped + 0x228) > 0.0f)
-          forward_speed = *(float *)(player_information + 0x2c);
-        else
-          forward_speed = 0.0f;
-        physics.movement_desired[1] = 0.0f;
-      } else {
-        forward_speed = physics.movement_desired[0];
+        body_stun_scale = player->speed_multiplier;
       }
 
-      physics.movement_desired[0] =
-        stun_scale * forward_speed * *(float *)(biped + 0x228) * 0.033333335f;
-      physics.movement_desired[1] = stun_scale * *(float *)(biped + 0x22c) *
-                                    physics.movement_desired[1] * 0.033333335f;
+      stun_scale = body_stun_scale *
+                   (1.0f - player_information->stun_movement_penalty *
+                             biped->unit.body_stun) *
+                   movement_scale;
+      crouch = biped->crouch;
+      uncrouch = 1.0f - crouch;
+      if (biped->unit.throttle.x > 0.0f)
+        physics.movement_desired.i =
+          uncrouch * player_information->run_forward_speed +
+          player_information->sneak_forward_speed * crouch;
+      else
+        physics.movement_desired.i =
+          uncrouch * player_information->run_backward_speed +
+          player_information->sneak_backward_speed * crouch;
+      physics.movement_desired.k = 0.0f;
+      physics.movement_desired.j =
+        uncrouch * player_information->run_sideways_speed +
+        player_information->sneak_sideways_speed * crouch;
+      physics.acceleration_maximum =
+        uncrouch * player_information->run_acceleration +
+        player_information->sneak_acceleration * crouch;
+
+      if (biped->unit.base_seat_index == 1) {
+        if (biped->unit.throttle.x > 0.0f)
+          forward_speed = player_information->walking_speed;
+        else
+          forward_speed = 0.0f;
+        physics.movement_desired.j = 0.0f;
+      } else {
+        forward_speed = physics.movement_desired.i;
+      }
+
+      physics.movement_desired.i =
+        stun_scale * forward_speed * biped->unit.throttle.x * 0.033333335f;
+      physics.movement_desired.j = stun_scale * biped->unit.throttle.y *
+                                    physics.movement_desired.j * 0.033333335f;
       physics.acceleration_maximum =
         physics.acceleration_maximum * 0.033333335f;
       physics.airborne_acceleration_maximum =
-        *(float *)(player_information + 0x54) * 0.033333335f;
-      if ((*(uint32_t *)(biped + 0x1b8) & 0x100) == 0)
-        *(vector3_t *)physics.forward = *(vector3_t *)(biped + 0x1d4);
+        player_information->airborne_acceleration * 0.033333335f;
+      if ((biped->unit.control_flags & 0x100) == 0)
+        physics.forward = *(real_vector3d *)&biped->unit.desired_facing_vector;
 
       if (game_players_are_double_speed()) {
-        float double_speed_multiplier = *(float *)(player_information + 0x30);
+        float double_speed_multiplier =
+          player_information->double_speed_multiplier;
 
-        physics.movement_desired[0] =
-          physics.movement_desired[0] * double_speed_multiplier;
-        physics.movement_desired[1] =
-          physics.movement_desired[1] * double_speed_multiplier;
-        physics.movement_desired[2] =
-          double_speed_multiplier * physics.movement_desired[2];
+        physics.movement_desired.i =
+          physics.movement_desired.i * double_speed_multiplier;
+        physics.movement_desired.j =
+          physics.movement_desired.j * double_speed_multiplier;
+        physics.movement_desired.k =
+          double_speed_multiplier * physics.movement_desired.k;
       }
-    } else if ((*(uint8_t *)(biped + 0x424) & 0x3) == 0) {
-      velocity[0] = physics.movement_desired[0];
-      velocity[1] = physics.movement_desired[1];
+    } else if (((uint8_t)biped->flags & 0x3) == 0) {
+      velocity->i = physics.movement_desired.i;
+      velocity->j = physics.movement_desired.j;
       physics.acceleration_maximum = 3.4028235e38f;
     }
 
-    if ((*(uint8_t *)(biped + 0x424) & 0x1) != 0 &&
-        *(signed char *)(biped + 0x459) < 0x16 &&
-        *(int *)(biped + 0x1a4) != -1 &&
-        actor_is_leaping(*(int *)(biped + 0x1a4))) {
+    if (((uint8_t)biped->flags & 0x1) != 0 && biped->airborne_ticks < 0x16 &&
+        biped->unit.actor_index.value != NONE &&
+        actor_is_leaping(biped->unit.actor_index.value)) {
       physics.ground_tangential_velocity_max = 0.1f;
       physics.ground_tangential_angle = 0.5f;
     }
@@ -5258,116 +5189,115 @@ void FUN_001a5300(int unit_handle, unsigned char *state)
   {
     float crouch_delta;
 
-    if (*(uint8_t *)(biped + 0x257) == 3) {
-      crouch_delta = 1.0f - *(float *)(biped + 0x464);
-      if (crouch_delta > *(float *)(definition + 0x4cc)) {
-        *(float *)(biped + 0x464) =
-          *(float *)(biped + 0x464) + *(float *)(definition + 0x4cc);
-        crouch_delta = *(float *)(definition + 0x4cc);
+    if (biped->unit.base_seat_index == 3) {
+      crouch_delta = 1.0f - biped->crouch;
+      if (crouch_delta > biped_definition_runtime_crouch_transition_velocity(definition)) {
+        biped->crouch = biped->crouch + biped_definition_runtime_crouch_transition_velocity(definition);
+        crouch_delta = biped_definition_runtime_crouch_transition_velocity(definition);
       } else {
-        *(float *)(biped + 0x464) = 1.0f;
+        biped->crouch = 1.0f;
       }
     } else {
-      crouch_delta = -*(float *)(biped + 0x464);
-      if (crouch_delta < -*(float *)(definition + 0x4cc)) {
-        *(float *)(biped + 0x464) =
-          *(float *)(biped + 0x464) - *(float *)(definition + 0x4cc);
-        crouch_delta = -*(float *)(definition + 0x4cc);
+      crouch_delta = -biped->crouch;
+      if (crouch_delta < -biped_definition_runtime_crouch_transition_velocity(definition)) {
+        biped->crouch = biped->crouch - biped_definition_runtime_crouch_transition_velocity(definition);
+        crouch_delta = -biped_definition_runtime_crouch_transition_velocity(definition);
       } else {
-        *(float *)(biped + 0x464) = 0.0f;
+        biped->crouch = 0.0f;
       }
     }
 
     if ((double)x87_fabs(crouch_delta) > (double)0.01f &&
-        (*(uint8_t *)(biped + 0x424) & 0x1) != 0)
-      physics.crouch_velocity =
-        (*(float *)(definition + 0x424) - *(float *)(definition + 0x428)) *
-        crouch_delta;
+        ((uint8_t)biped->flags & 0x1) != 0)
+      physics.crouch_velocity = (biped_definition_collision_height_standing(definition) -
+                                 biped_definition_collision_height_crouching(definition)) *
+                                crouch_delta;
   }
 
-  if (*(float *)(biped + 0x464) != 0.0f) {
+  if (biped->crouch != 0.0f) {
     physics.in_flags |= 0x4;
     if (state[1] == 0)
       physics.in_flags |= 0x8;
   }
-  if ((*(uint32_t *)(biped + 0x424) & 0x1) != 0)
+  if ((biped->flags & 0x1) != 0)
     physics.in_flags |= 0x1;
-  if ((*(uint32_t *)(biped + 0x424) & 0x2) != 0)
+  if ((biped->flags & 0x2) != 0)
     physics.in_flags |= 0x2;
-  if ((*(uint32_t *)(biped + 0x424) & 0x4) != 0)
+  if ((biped->flags & 0x4) != 0)
     physics.in_flags |= 0x20;
-  if ((*(uint32_t *)(biped + 0x424) & 0x8) != 0)
+  if ((biped->flags & 0x8) != 0)
     physics.in_flags |= 0x40;
-  if ((*(uint16_t *)(biped + 0xb6) & 0x4) != 0)
+  if ((biped->unit.object.damage_flags & 0x4) != 0)
     physics.in_flags |= 0x80;
-  if ((*(uint8_t *)(definition + 0x2f4) & 0x4) != 0 &&
-      (*(uint16_t *)(biped + 0xb6) & 0x4) == 0)
+  if (((uint8_t)definition->biped_flags & 0x4) != 0 &&
+      (biped->unit.object.damage_flags & 0x4) == 0)
     physics.in_flags |= 0x10;
-  if ((*(uint8_t *)(definition + 0x2f4) & 0x20) != 0)
+  if (((uint8_t)definition->biped_flags & 0x20) != 0)
     physics.in_flags |= 0x100;
-  if ((*(uint8_t *)(definition + 0x2f4) & 0x40) != 0 &&
-      (*(uint16_t *)(biped + 0xb6) & 0x4) == 0)
+  if (((uint8_t)definition->biped_flags & 0x40) != 0 &&
+      (biped->unit.object.damage_flags & 0x4) == 0)
     physics.in_flags |= 0x200;
 
-  FUN_001a2f40(&physics);
+  biped_update_physics(&physics);
 
-  if (physics.elevator_object_index != -1) {
-    *(uint8_t *)(biped + 0x42b) = 0x3c;
-    *(int *)(biped + 0x42c) = physics.elevator_object_index;
-  } else if (*(signed char *)(biped + 0x42b) > 0) {
-    *(signed char *)(biped + 0x42b) =
-      (signed char)(*(signed char *)(biped + 0x42b) - 1);
+  if (physics.elevator_object_index != NONE) {
+    biped->elevator_ticks = 0x3c;
+    biped->elevator_object_index = physics.elevator_object_index;
+  } else if (biped->elevator_ticks > 0) {
+    biped->elevator_ticks = (int8_t)(biped->elevator_ticks - 1);
   } else {
-    *(int *)(biped + 0x42c) = -1;
+    biped->elevator_object_index = NONE;
   }
 
-  if ((*(uint32_t *)(biped + 0x1b4) & 0x1000000) != 0) {
-    *(vector3_t *)physics.new_velocity = *(vector3_t *)global_zero_vector_ptr;
+  if ((biped->unit.flags & 0x1000000) != 0) {
+    physics.new_velocity = *(real_vector3d *)global_zero_vector_ptr;
     physics.out_flags &= ~0x1;
-    *(vector3_t *)physics.velocity = *(vector3_t *)physics.new_velocity;
-    *(vector3_t *)physics.new_position = *(vector3_t *)physics.position;
+    physics.velocity = physics.new_velocity;
+    physics.new_position = physics.position;
   }
 
-  new_position = *(vector3_t *)physics.new_position;
-  if ((*(uint8_t *)(definition + 0x2f4) & 0x8) == 0)
-    new_position.z = physics.new_position[2] - physics.width;
-  object_translate(unit_handle, (float *)&new_position, 0);
+  new_position = physics.new_position;
+  if (((uint8_t)definition->biped_flags & 0x8) == 0)
+    new_position.z = physics.new_position.z - physics.width;
+  object_translate(unit_handle, &new_position, 0);
 
-  *(vector3_t *)velocity = *(vector3_t *)physics.new_velocity;
-  *(int *)(biped + 0x430) = physics.support_surface_index;
-  *(vector3_t *)(biped + 0x438) = new_position;
-  *(int *)(biped + 0x434) = -1;
+  *velocity = physics.new_velocity;
+  biped->support_surface_index = physics.support_surface_index;
+  biped->pathfinding_point = new_position;
+  biped->pathfinding_surface_index = NONE;
   if (state[1] == 0 && (physics.out_flags & 0x4) != 0)
     state[1] = 1;
 
   if ((physics.out_flags & 0x1) != 0)
-    *(uint32_t *)(biped + 0x424) |= 0x1;
+    biped->flags |= 0x1;
   else
-    *(uint32_t *)(biped + 0x424) &= ~0x1u;
+    biped->flags &= ~0x1u;
   if ((physics.out_flags & 0x2) != 0)
-    *(uint32_t *)(biped + 0x424) |= 0x2;
+    biped->flags |= 0x2;
   else
-    *(uint32_t *)(biped + 0x424) &= ~0x2u;
-  if ((*(uint8_t *)(definition + 0x2f4) & 0x20) != 0)
-    *(uint32_t *)(biped + 0x424) |= 0x10;
+    biped->flags &= ~0x2u;
+  if (((uint8_t)definition->biped_flags & 0x20) != 0)
+    biped->flags |= 0x10;
   else
-    *(uint32_t *)(biped + 0x424) &= ~0x10u;
+    biped->flags &= ~0x10u;
 
-  *(float *)(biped + 0x46c) = physics.ground_plane[0];
-  *(float *)(biped + 0x470) = physics.ground_plane[1];
-  *(float *)(biped + 0x474) = physics.ground_plane[2];
-  *(float *)(biped + 0x478) = physics.ground_plane[3];
+  biped->ground_plane.normal[0] = physics.ground_plane.normal[0];
+  biped->ground_plane.normal[1] = physics.ground_plane.normal[1];
+  biped->ground_plane.normal[2] = physics.ground_plane.normal[2];
+  biped->ground_plane.d = physics.ground_plane.d;
   if (physics.landing_velocity > 0.0f)
     biped_start_landing(physics.landing_velocity, unit_handle);
   if ((physics.out_flags & 0x4) == 0)
     biped_update_jumping(unit_handle);
 
-  if (*(uint8_t *)(biped + 0x239) == 3 && *(int *)(biped + 0x44c) != -1) {
-    char *target;
+  if (biped->unit.melee_attack_state == 3 &&
+      biped->impact_target_object_index != NONE) {
+    object_data_t *target;
     int16_t depth;
-    vector3_t melee_vector;
+    real_vector3d melee_vector;
 
-    target = (char *)object_get_and_verify_type(*(int *)(biped + 0x44c), -1);
+    target = object_get_and_verify_type(biped->impact_target_object_index,
+                                        _object_mask_all);
     if (global_current_collision_user_depth >= 0x20) {
       display_assert("global_current_collision_user_depth < "
                      "MAXIMUM_COLLISION_USER_STACK_DEPTH",
@@ -5378,36 +5308,39 @@ void FUN_001a5300(int unit_handle, unsigned char *state)
     global_current_collision_user_depth = (int16_t)(depth + 1);
     collision_user_stack[depth] = 8;
 
-    melee_vector.x = physics.new_position[0] - physics.position[0];
-    melee_vector.y = physics.new_position[1] - physics.position[1];
-    melee_vector.z = physics.new_position[2] - physics.position[2];
-    if (fast_vector_intersects_sphere(physics.position, (float *)&melee_vector,
-                                      (float *)(target + 0x50),
-                                      *(float *)(target + 0x5c))) {
-      int instance[4]; /* [EBP-0x114]; +0x0c = node matrix array */
-      int model_result[0x108]; /* [EBP-0x584], 0x420 bytes up to world */
-      int world_collision[0x14]; /* [EBP-0x164], 0x50 bytes */
-      float impact_point[3];
-      float impact_plane[4];
+    melee_vector.i = physics.new_position.x - physics.position.x;
+    melee_vector.j = physics.new_position.y - physics.position.y;
+    melee_vector.k = physics.new_position.z - physics.position.z;
+    if (fast_vector_intersects_sphere(
+          &physics.position, &melee_vector,
+          &target->bounding_sphere_center, target->unk_92)) {
+      collision_model_instance_t instance;
+      collision_model_vector_result model_result; /* [EBP-0x584] */
+      struct collision_result world_collision;
+      real_point3d impact_point;
+      real_plane3d impact_plane;
 
-      if ((uint8_t)FUN_0014c8e0(instance, *(int *)(biped + 0x44c)) &&
-          FUN_0014cb00((int)instance, (void *)3, physics.position,
-                       (float *)&melee_vector, (int16_t *)model_result) &&
-          !collision_test_vector(0xc2a0, (real_point3d *)physics.position, (real_vector3d *)&melee_vector,
-                        unit_handle, (int16_t *)world_collision)) {
-        vector3d_scale_add(physics.position, (float *)&melee_vector,
-                           *(float *)((char *)model_result + 0x8),
-                           impact_point);
-        FUN_0010a1c0((float *)(*(char **)((char *)instance + 0xc) +
-                               *(int16_t *)model_result * 0x34),
-                     *(float **)((char *)model_result + 0xc), impact_plane);
-        if (*(int *)((char *)model_result + 0x14) < 0)
-          plane_negate(impact_plane, impact_plane);
+      if ((uint8_t)collision_model_instance_new(
+            (int *)&instance, biped->impact_target_object_index) &&
+          collision_model_test_vector((int)&instance, (void *)3,
+                                      &physics.position, &melee_vector,
+                                      (int16_t *)&model_result) &&
+          !collision_test_vector(0xc2a0, &physics.position,
+                                 &melee_vector, unit_handle,
+                                 (int16_t *)&world_collision)) {
+        vector3d_scale_add(&physics.position, &melee_vector,
+                           model_result.t,
+                           &impact_point);
+        matrix4x3_transform_plane(
+          (float *)&instance.node_matrices[model_result.node_index],
+                     (float *)model_result.plane, (float *)&impact_plane);
+        if (model_result.plane_designator < 0)
+          plane_negate((float *)&impact_plane, (float *)&impact_plane);
         unit_impact_melee_damage(
-          unit_handle, *(int *)(biped + 0x44c), *(int *)model_result,
-          *(int *)((char *)model_result + 0x2),
-          *(int *)((char *)model_result + 0x1a), (int)impact_point,
-          impact_plane, (int)((char *)world_collision + 0xc));
+          unit_handle, biped->impact_target_object_index, INT16_DWORD_ARG(model_result, collision_model_vector_result, node_index),
+          INT16_DWORD_ARG(model_result, collision_model_vector_result, region_index),
+          INT16_DWORD_ARG(model_result, collision_model_vector_result, material_index), (int)&impact_point,
+          (float *)&impact_plane, (int)&world_collision.location);
       }
     }
 
@@ -5421,23 +5354,22 @@ void FUN_001a5300(int unit_handle, unsigned char *state)
   }
 
   biped_bumped_object(physics.bumped_object_index, unit_handle,
-                      physics.velocity);
+                      &physics.velocity);
   biped_falling_damage(physics.landing_velocity, unit_handle);
 
-  if ((physics.in_flags & 0x10) == 0 &&
-      (*(uint8_t *)(biped + 0x424) & 0x1) == 0)
-    *(uint32_t *)(biped + 0x4) |= 0x2;
+  if ((physics.in_flags & 0x10) == 0 && ((uint8_t)biped->flags & 0x1) == 0)
+    biped->unit.object.flags |= 0x2;
   else
-    *(uint32_t *)(biped + 0x4) &= ~0x2u;
-  if ((physics.in_flags & 0x10) == 0 &&
-      (*(uint8_t *)(biped + 0x424) & 0x1) == 0 &&
+    biped->unit.object.flags &= ~0x2u;
+  if ((physics.in_flags & 0x10) == 0 && ((uint8_t)biped->flags & 0x1) == 0 &&
       (physics.out_flags & 0x10) == 0 &&
-      velocity[0] * velocity[0] + velocity[1] * velocity[1] +
-          velocity[2] * velocity[2] <
+      velocity->i * velocity->i + velocity->j * velocity->j +
+          velocity->k * velocity->k <
         0.0001f)
-    *(uint32_t *)(biped + 0x4) |= 0x20;
+    biped->unit.object.flags |= 0x20;
   else
-    *(uint32_t *)(biped + 0x4) &= ~0x20u;
-  if ((*(uint32_t *)(biped + 0x4) & 0x2) != 0)
-    *(vector3_t *)(biped + 0x3c) = *(vector3_t *)global_zero_vector_ptr;
+    biped->unit.object.flags &= ~0x20u;
+  if ((biped->unit.object.flags & 0x2) != 0)
+    biped->unit.object.angular_velocity =
+      *(real_vector3d *)global_zero_vector_ptr;
 }

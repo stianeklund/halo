@@ -59,7 +59,7 @@ double pow(double x, double y);
  *   0x143ae0 object_set_position
  *   0x1812b0 FUN_001812b0
  *   0x181410 FUN_00181410
- *   0x189320 FUN_00189320 (five-argument form)
+ *   0x189320 render_debug_vector (five-argument form)
  *   0x1ba1f0 tag_get_name
  *   0x1bf570 xbox_texture_cache_get_hardware_format
  *   0x1d9260 qsort (wrapper was typed as an fprintf-style call)
@@ -101,7 +101,7 @@ double pow(double x, double y);
  *            Marked noinline: inlining it costs lights_preprocess_scene.
  *   0x140f10 object_get_marker_by_name
  *   0x181900 rasterizer_lens_flare_submit_for_cluster (lens-flare submit for a rendered cluster)
- *   0x189150 FUN_00189150
+ *   0x189150 render_debug_point
  *   0x196c90 FUN_00196c90 (structure visibility object search)
  *   0x198cb0 structure_test_vector
  *   (0x0b5cc0 game_time_get_speed stays wrapped: calling it directly
@@ -202,8 +202,8 @@ bool valid_real_normal3d_perpendicular(const real_vector3d *a,
 {
   float dot;
   char ok;
-  ok = (char)valid_real_normal3d((float *)a);
-  if (ok && (ok = (char)valid_real_normal3d((float *)b), ok) &&
+  ok = (char)valid_real_normal3d((real_vector3d *)a);
+  if (ok && (ok = (char)valid_real_normal3d((real_vector3d *)b), ok) &&
       (dot = a->k * b->k + a->j * b->j + a->i * b->i,
        (*(unsigned int *)&dot & 0x7f800000) != 0x7f800000) &&
       fabs(dot) < 0.001) {
@@ -2572,21 +2572,21 @@ void render_debug_light(int light_index)
   definition = light_definition_get(light->definition_index);
   color = *global_real_argb_orange;
   radius = definition->radius_modifier_upper * definition->radius;
-  FUN_00189540(1, &light->position, definition->lens_flare_only_radius,
+  render_debug_sphere(1, &light->position, definition->lens_flare_only_radius,
                global_real_argb_white);
-  FUN_00189540(1, &light->position, light->radius, &color);
+  render_debug_sphere(1, &light->position, light->radius, &color);
   color.red *= REAL_0_8_POOL;
   color.green *= REAL_0_8_POOL;
   color.blue *= REAL_0_8_POOL;
   if (!(definition->flags & LIGHT_DEFINITION_FLAG_NO_SPECULAR)) {
     radius *= definition->specular_radius_multiplier;
-    FUN_00189540(1, &light->position,
+    render_debug_sphere(1, &light->position,
                  definition->specular_radius_multiplier * light->radius, &color);
   }
   color.red *= REAL_0_8_POOL;
   color.green *= REAL_0_8_POOL;
   color.blue *= REAL_0_8_POOL;
-  FUN_00189540(1, &light->position, radius, &color);
+  render_debug_sphere(1, &light->position, radius, &color);
 }
 
 void lights_queue_lens_flare(int definition_index, int *position, int direction,
@@ -3341,7 +3341,7 @@ char lights_distant_lighting_at_point(unsigned int flags, int point,
     iVar6 = (int)tag_block_get_element(lightmap + 10, (int)material_index[0], 0x100);
     iVar4 = (int)tag_get(TAG_GROUP_SHDR, *(int *)(iVar6 + 0xc));
     if (*(short *)(iVar4 + 0x24) == 3 &&
-        (local_14 = (int)FUN_001906b0((void *)iVar4, 3),
+        (local_14 = (int)shader_get_and_verify_type((void *)iVar4, 3),
          *(int *)(structure + 0xc) != -1) &&
         *lightmap != -1 && *(int *)(local_14 + 0x94) != -1) {
       surface = (unsigned short *)tag_block_get_element((void *)(structure + 0xf8),
@@ -3396,11 +3396,11 @@ char lights_distant_lighting_at_point(unsigned int flags, int point,
           local_28 = local_40[1];
           local_24 = local_40[2];
           local_30 = 0x3f800000;
-          FUN_00189150(1, (float *)point, 0.5f, &local_30);
+          render_debug_point(1, (real_point3d *)point, 0.5f, &local_30);
           {
             int ds_bits;
             memcpy(&ds_bits, &distance_scale, 4);
-            ((void (*)(int, void *, void *, int, void *))FUN_00189320)(
+            ((void (*)(int, void *, void *, int, void *))render_debug_vector)(
               1, (void *)point, local_70, ds_bits, &local_30);
           }
         }
@@ -3453,8 +3453,8 @@ void light_reconnect_to_map(int object_handle)
       node_matrix =
         object_get_node_matrix(light->object_index,
                                light->attachment_marker_index);
-      matrix_transform_point((float *)node_matrix, &light->attachment.relative_position.x,
-                             &light->position.x);
+      matrix_transform_point((float *)node_matrix, &light->attachment.relative_position,
+                             &light->position);
       matrix_transform_vector((float *)node_matrix, &light->relative_forward,
                               &light->forward);
       perpendicular3d(&light->forward.i, &light->up.i);
@@ -4909,7 +4909,7 @@ void object_types_disconnect_from_structure_bsp(void)
  *     placement's Euler angles (element+0x14/+0x18/+0x1c via matrix4x3_rotation_from_angles),
  *     stamps the placement position (element+0x8/+0xc/+0x10) as the matrix
  *     translation, transforms it (matrix_transform_point), then queries cluster
- *     membership (FUN_0018e720) for both the raw position and the transformed
+ *     membership (scenario_leaf_index_from_point) for both the raw position and the transformed
  *     point; sets/clears the per-placement "in this BSP slot" flag
  * (element+0x20) accordingly;
  *   - if do_spawn != 0: runs objects_memory_compact, then for each placement
@@ -4987,10 +4987,10 @@ void object_types_place_objects(int do_spawn)
             *(int *)(matrix + 0x28) = *(int *)((char *)element + 0x8);
             *(int *)(matrix + 0x2c) = *(int *)((char *)element + 0xc);
             *(int *)(matrix + 0x30) = *(int *)((char *)element + 0x10);
-            matrix_transform_point((float *)matrix, (float *)(obj_tag + 8),
-                                   xform_point);
-            if ((FUN_0018e720((int)((char *)element + 8)) == -1) &&
-                (FUN_0018e720((int)xform_point) == -1)) {
+            matrix_transform_point((float *)matrix, (real_point3d *)(obj_tag + 8),
+                                   (real_point3d *)xform_point);
+            if ((scenario_leaf_index_from_point((int)((char *)element + 8)) == -1) &&
+                (scenario_leaf_index_from_point((int)xform_point) == -1)) {
               element[0x10] =
                 (short)(element[0x10] &
                         ~(unsigned short)(1 << (*(unsigned char *)0x326a0c &
@@ -5282,7 +5282,7 @@ int object_type_synchronize(int param_1, short *param_2, int param_3,
                      "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
       system_exit(-1);
     }
-    cVar2 = valid_real_normal3d(&frame.matrix[1]);
+    cVar2 = valid_real_normal3d((real_vector3d *)&frame.matrix[1]);
     if (cVar2 == '\0') {
       uVar5 = (int)csprintf((char *)0x5ab100, "%s had a bad forward (%f,%f,%f)",
                             "&matrix", (double)frame.matrix[1],
@@ -5291,7 +5291,7 @@ int object_type_synchronize(int param_1, short *param_2, int param_3,
                      "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
       system_exit(-1);
     }
-    cVar2 = valid_real_normal3d(&frame.matrix[4]);
+    cVar2 = valid_real_normal3d((real_vector3d *)&frame.matrix[4]);
     if (cVar2 == '\0') {
       uVar5 = (int)csprintf((char *)0x5ab100, "%s had a bad left (%f,%f,%f)",
                             "&matrix", (double)frame.matrix[4],
@@ -5300,7 +5300,7 @@ int object_type_synchronize(int param_1, short *param_2, int param_3,
                      "c:\\halo\\SOURCE\\objects\\object_types.c", 0x3cf, 1);
       system_exit(-1);
     }
-    cVar2 = valid_real_normal3d(&frame.matrix[7]);
+    cVar2 = valid_real_normal3d((real_vector3d *)&frame.matrix[7]);
     if (cVar2 == '\0') {
       uVar5 = (int)csprintf((char *)0x5ab100, "%s had a bad up (%f,%f,%f)",
                             "&matrix", (double)frame.matrix[7],
@@ -7343,13 +7343,13 @@ int find_objects_from_point_vector(int param_1, int param_2, int param_3,
   int iter_state;
 
   result = 0;
-  bsp_check = FUN_0018e720(param_1);
+  bsp_check = scenario_leaf_index_from_point(param_1);
   if (bsp_check == -1)
     goto done;
 
   bsp_ref_element = tag_block_get_element(
     (void *)((char *)scenario_get() + 0xe0),
-    FUN_0018e720(param_1) & 0x7fffffff, 0x10);
+    scenario_leaf_index_from_point(param_1) & 0x7fffffff, 0x10);
   bsp_index = *(short *)((char *)bsp_ref_element + 8);
   if (bsp_index == -1)
     goto done;
@@ -9741,8 +9741,8 @@ vector3_t *object_get_world_position(int object_handle, vector3_t *out_position)
   /* Parented — transform local position through parent's node matrix */
   node_mat = object_get_node_matrix(obj->parent_object_index.value,
                                     (int16_t) * (int8_t *)((char *)obj + 0xd0));
-  matrix_transform_point((float *)node_mat, (float *)&obj->position,
-                         (float *)out_position);
+  matrix_transform_point((float *)node_mat, &obj->position,
+                         (real_point3d *)out_position);
   return out_position;
 }
 
@@ -9770,8 +9770,8 @@ vector3_t *object_get_world_position(int object_handle, vector3_t *out_position)
  *            "up" (0x28cb28), format at 0x267490.
  */
 /* 0x141360 */
-void object_get_orientation(int object_handle, float *out_forward,
-                            float *out_up)
+void object_get_orientation(int object_handle, real_vector3d *out_forward,
+                            real_vector3d *out_up)
 {
   object_data_t *obj =
     (object_data_t *)object_get_and_verify_type(object_handle, -1);
@@ -9779,10 +9779,10 @@ void object_get_orientation(int object_handle, float *out_forward,
   if (obj->parent_object_index.value == NONE) {
     /* No parent — copy local forward and up vectors directly */
     if (out_forward != NULL) {
-      *(real_vector3d *)out_forward = *(real_vector3d *)&obj->forward;
+      *out_forward = obj->forward;
     }
     if (out_up != NULL) {
-      *(real_vector3d *)out_up = *(real_vector3d *)&obj->up;
+      *out_up = obj->up;
     }
   } else {
     /* Parented — transform through parent's node matrix */
@@ -9791,24 +9791,23 @@ void object_get_orientation(int object_handle, float *out_forward,
                              (int16_t) * (int8_t *)((char *)obj + 0xd0));
 
     if (out_forward != NULL) {
-      matrix_transform_vector((float *)node_mat, &obj->forward,
-                              (real_vector3d *)out_forward);
+      matrix_transform_vector((float *)node_mat, &obj->forward, out_forward);
     }
     if (out_up != NULL) {
-      matrix_transform_vector((float *)node_mat, &obj->up, (real_vector3d *)out_up);
+      matrix_transform_vector((float *)node_mat, &obj->up, out_up);
     }
   }
 
   /* Validate perpendicularity if both vectors were requested */
   if (out_forward != NULL && out_up != NULL) {
-    if (!valid_real_normal3d_perpendicular((real_vector3d *)out_forward, (real_vector3d *)out_up)) {
+    if (!valid_real_normal3d_perpendicular(out_forward, out_up)) {
       display_assert(
         csprintf(
           (char *)0x5ab100,
           "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
-          "forward", "up", (double)out_forward[0], (double)out_forward[1],
-          (double)out_forward[2], (double)out_up[0], (double)out_up[1],
-          (double)out_up[2]),
+          "forward", "up", (double)out_forward->i, (double)out_forward->j,
+          (double)out_forward->k, (double)out_up->i, (double)out_up->j,
+          (double)out_up->k),
         "c:\\halo\\SOURCE\\objects\\objects.c", 0x5b6, 1);
       system_exit(-1);
     }
@@ -10443,12 +10442,12 @@ void object_compute_node_matrices(int object_handle)
                          "c:\\halo\\SOURCE\\objects\\objects.c", 0xa90, 1);
           system_exit(-1);
         }
-        FUN_00121d60(model_tag, anim_entry, (int)(int16_t)frame_index,
+        animation_get_frame_orientations(model_tag, anim_entry, (int)(int16_t)frame_index,
                      anim_data);
       } else {
         /* Use the stored frame index at obj+0x82 */
         int16_t frame_idx = *(int16_t *)((char *)obj + 0x82);
-        FUN_00121d60(model_tag, anim_entry, (int)frame_idx, anim_data);
+        animation_get_frame_orientations(model_tag, anim_entry, (int)frame_idx, anim_data);
       }
       override_decompressor =
         (*(uint8_t *)((char *)anim_entry + 0x3a) >> 1) & 1;
@@ -10700,9 +10699,9 @@ void object_compute_node_matrices(int object_handle)
               {
                 uint32_t scale_bits = *(uint32_t *)parent_node_mat & 0x7f800000;
                 if (scale_bits == 0x7f800000 ||
-                    !valid_real_vector3d_axes3(parent_node_mat + 1,
-                                               parent_node_mat + 4,
-                                               parent_node_mat + 7) ||
+                    !valid_real_vector3d_axes3((real_vector3d *)(parent_node_mat + 1),
+                                               (real_vector3d *)(parent_node_mat + 4),
+                                               (real_vector3d *)(parent_node_mat + 7)) ||
                     !valid_real_point3d(parent_node_mat + 10)) {
                   /* Parent node matrix is invalid — detailed error
                    * reporting */
@@ -10725,7 +10724,7 @@ void object_compute_node_matrices(int object_handle)
                                    0xb37, 1);
                     system_exit(-1);
                   }
-                  if (!valid_real_normal3d(parent_node_mat + 1)) {
+                  if (!valid_real_normal3d((real_vector3d *)(parent_node_mat + 1))) {
                     char *msg = csprintf(
                       (char *)0x5ab100, "%s had a bad forward (%f,%f,%f)",
                       context, (double)parent_node_mat[1],
@@ -10734,7 +10733,7 @@ void object_compute_node_matrices(int object_handle)
                                    0xb37, 1);
                     system_exit(-1);
                   }
-                  if (!valid_real_normal3d(parent_node_mat + 4)) {
+                  if (!valid_real_normal3d((real_vector3d *)(parent_node_mat + 4))) {
                     char *msg = csprintf(
                       (char *)0x5ab100, "%s had a bad left (%f,%f,%f)", context,
                       (double)parent_node_mat[4], (double)parent_node_mat[5],
@@ -10743,7 +10742,7 @@ void object_compute_node_matrices(int object_handle)
                                    0xb37, 1);
                     system_exit(-1);
                   }
-                  if (!valid_real_normal3d(parent_node_mat + 7)) {
+                  if (!valid_real_normal3d((real_vector3d *)(parent_node_mat + 7))) {
                     char *msg = csprintf(
                       (char *)0x5ab100, "%s had a bad up (%f,%f,%f)", context,
                       (double)parent_node_mat[7], (double)parent_node_mat[8],
@@ -10855,7 +10854,7 @@ void object_compute_node_matrices(int object_handle)
             float *left = node_matrices + 4;
             uint32_t scale_bits = *(uint32_t *)node_matrices & 0x7f800000;
             if (scale_bits == 0x7f800000 ||
-                !valid_real_vector3d_axes3(fwd, left, node_matrices + 7) ||
+                !valid_real_vector3d_axes3((real_vector3d *)fwd, (real_vector3d *)left, (real_vector3d *)(node_matrices + 7)) ||
                 (*(uint32_t *)&node_matrices[10] & 0x7f800000) == 0x7f800000 ||
                 (*(uint32_t *)&node_matrices[11] & 0x7f800000) == 0x7f800000 ||
                 (*(uint32_t *)&node_matrices[12] & 0x7f800000) == 0x7f800000) {
@@ -10934,7 +10933,7 @@ void object_compute_node_matrices(int object_handle)
                 /* assert_valid_real_matrix4x3 on root node (line 0xb69)
                  */
                 if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
-                    !valid_real_vector3d_axes3(fwd, left, node_matrices + 7) ||
+                    !valid_real_vector3d_axes3((real_vector3d *)fwd, (real_vector3d *)left, (real_vector3d *)(node_matrices + 7)) ||
                     !valid_real_point3d(node_matrices + 10)) {
                   if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000) {
                     char *msg =
@@ -11061,8 +11060,8 @@ void object_compute_node_matrices(int object_handle)
                     }
                   }
                   if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
-                      !valid_real_vector3d_axes3(fwd, left,
-                                                 node_matrices + 7) ||
+                      !valid_real_vector3d_axes3((real_vector3d *)fwd, (real_vector3d *)left,
+                                                 (real_vector3d *)(node_matrices + 7)) ||
                       !valid_real_point3d(node_matrices + 10)) {
                     char *msg = csprintf(
                       (char *)0x5ab100, "%s: assert_valid_real_matrix4x3",
@@ -11081,7 +11080,7 @@ void object_compute_node_matrices(int object_handle)
             float *fwd2 = node_matrices + 1;
             float *left2 = node_matrices + 4;
             if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
-                !valid_real_vector3d_axes3(fwd2, left2, node_matrices + 7) ||
+                !valid_real_vector3d_axes3((real_vector3d *)fwd2, (real_vector3d *)left2, (real_vector3d *)(node_matrices + 7)) ||
                 (*(uint32_t *)&node_matrices[10] & 0x7f800000) == 0x7f800000 ||
                 (*(uint32_t *)&node_matrices[11] & 0x7f800000) == 0x7f800000 ||
                 (*(uint32_t *)&node_matrices[12] & 0x7f800000) == 0x7f800000) {
@@ -11203,7 +11202,7 @@ void object_compute_node_matrices(int object_handle)
                 }
               }
               if ((*(uint32_t *)node_matrices & 0x7f800000) == 0x7f800000 ||
-                  !valid_real_vector3d_axes3(fwd2, left2, node_matrices + 7) ||
+                  !valid_real_vector3d_axes3((real_vector3d *)fwd2, (real_vector3d *)left2, (real_vector3d *)(node_matrices + 7)) ||
                   !valid_real_point3d(node_matrices + 10)) {
                 char *msg = csprintf((char *)0x5ab100,
                                      "%s: assert_valid_real_matrix4x3", name2);
@@ -11247,8 +11246,8 @@ void object_compute_node_matrices(int object_handle)
   }
 
   /* Apply origin offset from model tag and set bounding sphere radius */
-  matrix_transform_point(node_matrices, (float *)((char *)object_tag + 0x08),
-                         (float *)((char *)obj + 0x50));
+  matrix_transform_point(node_matrices, (real_point3d *)((char *)object_tag + 0x08),
+                         (real_point3d *)((char *)obj + 0x50));
   {
     float radius = *(float *)((char *)object_tag + 0x04);
     *(float *)((char *)obj + 0x5c) = radius;
@@ -11303,7 +11302,7 @@ void object_render_debug(int param_1)
     block_elem = tag_block_get_element(
       (void *)(scen_elem + 0x204), (int)*(short *)((char *)obj + 0x6a), 0x24);
     object_get_world_position(param_1, (vector3_t *)root_pos);
-    FUN_00189cb0(0, root_pos, block_elem, *(int *)0x2ee6f4);
+    render_debug_string_at_point(0, root_pos, block_elem, *(int *)0x2ee6f4);
     tag_data = (char *)tag_get(0x6f626a65, *obj);
   }
 
@@ -11318,9 +11317,9 @@ void object_render_debug(int param_1)
     } else {
       name_ptr = backslash + 1;
     }
-    FUN_00189cb0(0, info_text_buf, name_ptr, *(int *)0x2ee6f0);
+    render_debug_string_at_point(0, info_text_buf, name_ptr, *(int *)0x2ee6f0);
     FUN_001894d0(1, world_matrix, ((float *)obj)[0x17]);
-    FUN_00189320(1, info_text_buf, root_pos, 1.0f, *(void **)0x2ee6e0);
+    render_debug_vector(1, (real_point3d *)info_text_buf, (real_vector3d *)root_pos, 1.0f, *(void **)0x2ee6e0);
     tag_data = (char *)tag_get(0x6f626a65, *obj);
   }
 
@@ -11343,21 +11342,21 @@ void object_render_debug(int param_1)
       } else {
         scale_val = 1.0f;
       }
-      FUN_00189540(1, (char *)obj + 0x50, scale_val, sphere_color);
+      render_debug_sphere(1, (char *)obj + 0x50, scale_val, sphere_color);
       tag_data = (char *)tag_get(0x6f626a65, *obj);
     }
   }
 
   if (*(char *)0x324c31 != '\0') {
     int collision_state[2];
-    if (FUN_0014c8e0(collision_state, param_1)) {
+    if (collision_model_instance_new(collision_state, param_1)) {
       FUN_0014cf20((int)collision_state);
     }
   }
 
   if (*(char *)0x5a8d26 != '\0') {
     int debug_state[2];
-    if (FUN_001509c0(debug_state, param_1)) {
+    if (physics_instance_new(debug_state, param_1)) {
       FUN_001508b0(debug_state);
     }
   }
@@ -11400,14 +11399,14 @@ void object_render_debug(int param_1)
         elem_node = *(short *)coll_elem;
         if (elem_node == -1) {
           matrix_transform_point(
-            world_matrix, (float *)((char *)coll_elem + 0x10), point_out);
+            world_matrix, (real_point3d *)((char *)coll_elem + 0x10), (real_point3d *)point_out);
         } else {
           void *nm;
           nm = object_get_node_matrix(param_1, elem_node);
           matrix_transform_point(
-            (float *)nm, (float *)((char *)coll_elem + 0x10), point_out);
+            (float *)nm, (real_point3d *)((char *)coll_elem + 0x10), (real_point3d *)point_out);
         }
-        FUN_00189540(1, point_out, *(float *)((char *)coll_elem + 0x1c),
+        render_debug_sphere(1, point_out, *(float *)((char *)coll_elem + 0x1c),
                      *(void **)0x2ee6d8);
         i++;
         idx = (int)i;
@@ -11435,7 +11434,7 @@ void object_render_debug(int param_1)
                   dst[0] = *xr;
                   dst[1] = *yr;
                   dst[2] = *zr;
-                  matrix_transform_point(world_matrix, dst, dst);
+                  matrix_transform_point(world_matrix, (real_point3d *)dst, (real_point3d *)dst);
                   zr++;
                   dst += 3;
                 }
@@ -11629,30 +11628,30 @@ void object_set_position(int object_handle, const real_point3d *position,
  * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, location).
  * Confirmed: position copied to obj+0x0C, obj+0x10, obj+0x14.
  */
-void object_translate(int object_handle, float *position, void *location)
+void object_translate(int object_handle, const real_point3d *position, void *location)
 {
   char *obj;
 
 #ifdef HALO_RNG_TRACE
   RNG_TRACE_EX(RNG_TRACE_KIND_OBJECT_TRANSLATE_POS_XY,
-               RNG_TRACE_BITS(position[0]), RNG_TRACE_BITS(position[1]));
+               RNG_TRACE_BITS(position->x), RNG_TRACE_BITS(position->y));
   RNG_TRACE_EX(RNG_TRACE_KIND_OBJECT_TRANSLATE_POS_Z_HANDLE,
-               RNG_TRACE_BITS(position[2]), (unsigned int)object_handle);
+               RNG_TRACE_BITS(position->z), (unsigned int)object_handle);
 #endif
   obj = (char *)object_get_and_verify_type(object_handle, -1);
-  if (!valid_real_point3d(position)) {
+  if (!valid_real_point3d((float *)position)) {
     char *msg;
     display_assert(csprintf((char *)0x5ab100,
                             "%s: assert_valid_real_point3d(%f, %f, %f)",
-                            "new_position", (double)position[0],
-                            (double)position[1], (double)position[2]),
+                            "new_position", (double)position->x,
+                            (double)position->y, (double)position->z),
                    "c:\\halo\\SOURCE\\objects\\objects.c", 0x232, 1);
     system_exit(-1);
   }
   object_disconnect_from_map(object_handle);
   /* object->object.position = *new_position (PAL 2342 objects.c:3231):
    * one 12-byte aggregate copy through the obj+0x0c address. */
-  *(real_point3d *)(obj + 0x0c) = *(real_point3d *)position;
+  *(real_point3d *)(obj + 0x0c) = *position;
 #ifdef HALO_RNG_TRACE
   RNG_TRACE_EX(RNG_TRACE_KIND_OBJECT_TRANSLATE_PRE_CONNECT_XY,
                RNG_TRACE_BITS(*(float *)(obj + 0x0c)),
@@ -12060,8 +12059,8 @@ void object_attach_to_parent(int parent_handle, int child_handle,
     (float *)object_get_node_matrix(parent_handle, (int16_t)parent_node_index);
   matrix_inverse(node_mat, local_matrix);
   matrix_transform_point(local_matrix,
-                         (float *)&child_obj->position, /* dup-args-ok */
-                         (float *)&child_obj->position);
+                         &child_obj->position, /* dup-args-ok */
+                         &child_obj->position);
   matrix_transform_vector(local_matrix,
                           &child_obj->forward, /* dup-args-ok */
                           &child_obj->forward);
@@ -12114,7 +12113,7 @@ void object_attach_to_parent(int parent_handle, int child_handle,
  * Confirmed: collision user ID 0x13 pushed to stack at 0x5a8c80.
  * Confirmed: assert strings match "objects.c" at lines 0x93d and 0x953.
  */
-bool object_try_place(int object_handle, float *position)
+bool object_try_place(int object_handle, const real_point3d *position)
 {
   char *obj;
   char *col_surface_ptr;
@@ -12132,10 +12131,10 @@ bool object_try_place(int object_handle, float *position)
   RNG_TRACE_EX(RNG_TRACE_KIND_TRY_PLACE_IN_POS_Z_HANDLE,
                RNG_TRACE_BITS(*(float *)(obj + 0x14)),
                (unsigned int)object_handle);
-  RNG_TRACE_EX(RNG_TRACE_KIND_TRY_PLACE_TARGET_XY, RNG_TRACE_BITS(position[0]),
-               RNG_TRACE_BITS(position[1]));
+  RNG_TRACE_EX(RNG_TRACE_KIND_TRY_PLACE_TARGET_XY, RNG_TRACE_BITS(position->x),
+               RNG_TRACE_BITS(position->y));
   RNG_TRACE_EX(RNG_TRACE_KIND_TRY_PLACE_TARGET_Z_HANDLE,
-               RNG_TRACE_BITS(position[2]), (unsigned int)object_handle);
+               RNG_TRACE_BITS(position->z), (unsigned int)object_handle);
 #endif
   result = zero_init;
 
@@ -12154,12 +12153,12 @@ bool object_try_place(int object_handle, float *position)
 
   /* Compute delta vector: current_position - target_position. */
   col_surface_ptr = (char *)collision_result + 0x10;
-  delta[0] = *(float *)(obj + 0x0c) - position[zero_init];
-  delta[1] = *(float *)(obj + 0x10) - position[1];
-  delta[2] = *(float *)(obj + 0x14) - position[2];
+  delta[0] = *(float *)(obj + 0x0c) - (&position->x)[zero_init];
+  delta[1] = *(float *)(obj + 0x10) - position->y;
+  delta[2] = *(float *)(obj + 0x14) - position->z;
 
   /* Cast collision ray from target position along delta direction. */
-  if (collision_test_vector(0x1000e9, (real_point3d *)position, (real_vector3d *)delta, -1, collision_result) ||
+  if (collision_test_vector(0x1000e9, position, (real_vector3d *)delta, -1, collision_result) ||
       *(int16_t *)(obj + 0x4c) == -1) {
     /* Collision found or object has no cluster placement. */
     if (*(int16_t *)col_surface_ptr == -1) {
@@ -12167,7 +12166,7 @@ bool object_try_place(int object_handle, float *position)
       goto done;
     }
     /* Place object at collision surface position and reconnect to map. */
-    object_translate(object_handle, (float *)((char *)collision_result + 0x18),
+    object_translate(object_handle, (real_point3d *)((char *)collision_result + 0x18),
                      (void *)((char *)collision_result + 0x0c));
     object_compute_node_matrices(object_handle);
   }
@@ -12503,8 +12502,8 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
        transform the parent marker's position/up/forward into the child's
        local coordinate space. */
     matrix_inverse((float *)(child_markers + 4), inverse);
-    matrix_transform_point(inverse, (float *)(parent_markers + 0x60),
-                           (float *)((char *)child_obj + 0xC));
+    matrix_transform_point(inverse, (real_point3d *)(parent_markers + 0x60),
+                           (real_point3d *)((char *)child_obj + 0xC));
     matrix_transform_vector(inverse, (real_vector3d *)(parent_markers + 0x3C),
                             (real_vector3d *)((char *)child_obj + 0x24));
     matrix_transform_vector(inverse, (real_vector3d *)(parent_markers + 0x54),

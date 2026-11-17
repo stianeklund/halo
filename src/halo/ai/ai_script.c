@@ -97,7 +97,7 @@ short ai_scripting_command_list_status_internal(int16_t scenario_index,
 /* 0x00057380 — ai_scripting_command_list_status.
  *
  * Walks every object named by a packed ai_index reference
- * (FUN_000ce450/FUN_000ce320 child-object iterator, single-int iterator
+ * (object_list_get_first/object_list_get_next child-object iterator, single-int iterator
  * state at [EBP-0x18]) and returns the MAXIMUM per-object status:
  *   0 — no actor, or the actor is neither running a command list nor
  *       recently finished one
@@ -138,8 +138,8 @@ short ai_scripting_command_list_status(int ai_index)
 
   overall = 0;
   game_time = game_time_get();
-  for (object_index = FUN_000ce450(ai_index, &iterator); object_index != -1;
-       object_index = FUN_000ce320(ai_index, &iterator)) {
+  for (object_index = object_list_get_first(ai_index, &iterator); object_index != -1;
+       object_index = object_list_get_next(ai_index, &iterator)) {
     object = (char *)object_try_and_get_and_verify_type(object_index, 3);
     if (object == (char *)0)
       continue;

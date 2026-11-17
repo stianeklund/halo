@@ -410,7 +410,7 @@ system. NOTE: `rtk jq` MANGLES kb.json output (returned 61 ported; bare jq = 265
 
    DECALS CLUSTER RESOLVED: callees FUN_0016c5a0/0016c090 are void(void)/ported=null (original) at
    both ends, so the thunks tail-call-JMP to forward args. Callers are game_engine.c:9011-9016 inside
-   a WIDGET render function (draws screen-quad with shader, routes transparent shader -> FUN_0017cbd0,
+   a WIDGET render function (draws screen-quad with shader, routes transparent shader -> rasterizer_model_transparent_geometry_submit,
    ends with rasterizer_widget_set_tint_factor(widget)). This is the SHARED object-widget render path
    — normal-fire glow renders through it FINE -> it works for the orb too -> NOT the bug. The thunk
    sig fixes were coordinated with the game_engine caller port (benign). Decl-drift class EXHAUSTED.

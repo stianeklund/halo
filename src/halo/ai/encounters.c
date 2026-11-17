@@ -634,7 +634,7 @@ void ai_scripting_migrate_by_unit_internal(int actor_datum,
  * hs_runtime_get_executing_thread_name.
  *
  * Both handles must be valid (-1 rejects) before any work happens.  Iterates
- * the units of arg0 via FUN_000ce450/FUN_000ce320 (local_8 is the 4-byte
+ * the units of arg0 via object_list_get_first/object_list_get_next (local_8 is the 4-byte
  * iterator state).  For each biped/vehicle (type mask 3) it calls
  * ai_scripting_migrate_by_unit_internal(handle@<eax>, encounter_handle, 0, 0),
  * then walks that object's child list (first child at object+0xc8, next sibling
@@ -663,7 +663,7 @@ void ai_scripting_migrate_by_unit(int arg0, int arg1)
           hs_runtime_get_executing_thread_name(), local_208);
   }
   if (arg0 != -1 && arg1 != -1) {
-    iVar4 = FUN_000ce450(arg0, &local_8);
+    iVar4 = object_list_get_first(arg0, &local_8);
     while (iVar4 != -1) {
       pvVar1 = object_try_and_get_and_verify_type(iVar4, 3);
       if (pvVar1 != 0) {
@@ -678,7 +678,7 @@ void ai_scripting_migrate_by_unit(int arg0, int arg1)
           iVar4 = *(int *)((char *)pvVar1 + 0xc4);
         }
       }
-      iVar4 = FUN_000ce320(arg0, &local_8);
+      iVar4 = object_list_get_next(arg0, &local_8);
     }
     ai_update_team_status();
     encounters_update_dirty_status();
@@ -979,7 +979,7 @@ void ai_scripting_braindead(int param_1, char param_2)
 
 /*
  * ai_scripting_braindead_by_unit — ai_braindead_by_unit: set braindead on
- * actors for units. Iterates units via FUN_000ce450/FUN_000ce320 (using local_8
+ * actors for units. Iterates units via object_list_get_first/object_list_get_next (using local_8
  * as 4-byte state). For each biped/vehicle (type mask 3), sets braindead on the
  * primary actor (field_0x1a4 or fallback 0x1a8). Then iterates child objects
  * via sibling links (first child at object+0xc8, next sibling at object+0xc4),
@@ -993,7 +993,7 @@ void ai_scripting_braindead_by_unit(int param_1, char param_2)
   int iVar1;
   int iVar4;
 
-  iVar1 = FUN_000ce450(param_1, &local_8);
+  iVar1 = object_list_get_first(param_1, &local_8);
   if (*(char *)0x5aca59) {
     error(2, "%s: ai_braindead_by_unit <some guys> %s",
           hs_runtime_get_executing_thread_name(),
@@ -1020,13 +1020,13 @@ void ai_scripting_braindead_by_unit(int param_1, char param_2)
         }
       }
     }
-    iVar1 = FUN_000ce320(param_1, &local_8);
+    iVar1 = object_list_get_next(param_1, &local_8);
   }
 }
 
 /*
  * ai_scripting_ignore — set/clear the ai_disregard bit (0x400) on actors by
- * unit. Iterates units in the encounter via FUN_000ce450/FUN_000ce320. For each
+ * unit. Iterates units in the encounter via object_list_get_first/object_list_get_next. For each
  * biped/vehicle (type mask 3), sets or clears field_0x1b4 bit 0x400. param_2 !=
  * 0: set (disregard on); param_2 == 0: clear (disregard off). Logs "[thread]:
  * ai_disregard <some guys> [true|false]" if trace is on. 0x56b20 /
@@ -1038,7 +1038,7 @@ void ai_scripting_ignore(int param_1, char param_2)
   int iVar1;
   const void *puVar2;
 
-  iVar1 = FUN_000ce450(param_1, &local_8);
+  iVar1 = object_list_get_first(param_1, &local_8);
   if (*(char *)0x5aca59) {
     puVar2 = param_2 ? (const void *)0x25c530 : (const void *)0x25c52c;
     error(2, "%s: ai_disregard <some guys> %s",
@@ -1052,7 +1052,7 @@ void ai_scripting_ignore(int param_1, char param_2)
       else
         *(unsigned int *)((char *)iVar1 + 0x1b4) |= 0x400u;
     }
-    iVar1 = FUN_000ce320(param_1, &local_8);
+    iVar1 = object_list_get_next(param_1, &local_8);
   }
 }
 
@@ -1068,7 +1068,7 @@ void ai_scripting_prefer_target(int param_1, char param_2)
   int iVar1;
   const void *puVar2;
 
-  iVar1 = FUN_000ce450(param_1, &local_8);
+  iVar1 = object_list_get_first(param_1, &local_8);
   if (*(char *)0x5aca59) {
     puVar2 = param_2 ? (const void *)0x25c530 : (const void *)0x25c52c;
     error(2, "%s: ai_prefer_target <some guys> %s",
@@ -1082,7 +1082,7 @@ void ai_scripting_prefer_target(int param_1, char param_2)
       else
         *(unsigned int *)((char *)iVar1 + 0x1b4) |= 0x800u;
     }
-    iVar1 = FUN_000ce320(param_1, &local_8);
+    iVar1 = object_list_get_next(param_1, &local_8);
   }
 }
 
@@ -1135,7 +1135,7 @@ void ai_scripting_teleport_starting_location_private(int encounter_handle,
         if (sVar1 != (short)-1) {
           iVar3 =
             (int)tag_block_get_element((char *)iVar3 + 0xd0, (int)sVar1, 0x1c);
-          vector3d_from_angle((float *)local_10,
+          vector3d_from_angle((real_vector3d *)local_10,
                               *(float *)((char *)iVar3 + 0xc));
           object_set_position(*(int *)((char *)iVar2 + 0x18), (real_point3d *)iVar3,
                               (real_vector3d *)local_10, 0);
@@ -1422,7 +1422,7 @@ void ai_scripting_command_list_advance_by_unit(int param_1)
 
 /*
  * ai_scripting_free_units — free actors from units in an encounter
- * (ai_free_units). Iterates units via FUN_000ce450/FUN_000ce320. For each
+ * (ai_free_units). Iterates units via object_list_get_first/object_list_get_next. For each
  * biped/vehicle (type mask 3) with an actor (field_0x1a4 != -1) whose
  * encounter_index (field_0x34) != -1, frees the actor and increments a count.
  * Calls encounters_update_dirty_status if any actors were freed. 0x576a0 /
@@ -1435,7 +1435,7 @@ void ai_scripting_free_units(int param_1)
   int iVar3;
   short count;
 
-  iVar1 = FUN_000ce450(param_1, &local_8);
+  iVar1 = object_list_get_first(param_1, &local_8);
   if (*(char *)0x5aca59)
     error(2, "%s: ai_free_units <some units>",
           hs_runtime_get_executing_thread_name());
@@ -1453,7 +1453,7 @@ void ai_scripting_free_units(int param_1)
           count = (short)(count + 1);
         }
       }
-      iVar1 = FUN_000ce320(param_1, &local_8);
+      iVar1 = object_list_get_next(param_1, &local_8);
     } while (iVar1 != -1);
     if (count > 0)
       encounters_update_dirty_status();

@@ -5241,7 +5241,7 @@ void hs_evaluate_sound_enable(int16_t function_index, int thread_datum, char ini
 /* 0xc2b90 — HS script function handler: apply a byte-valued setting to a
  * handle.  Evaluates the macro arguments; on success the result block holds a
  * handle at +0x0 (int) and a byte value at +0x4.  Calls
- * FUN_001b5610(handle, value) then returns void to the HS thread via
+ * vehicle_hover(handle, value) then returns void to the HS thread via
  * hs_return(thread_datum, 0).  The +0x4 read is a ZERO-extended byte load
  * (XOR EDX,EDX / MOV DL,[EAX+4]) — unsigned char, matching the callee's
  * uint8_t param; the signed `char` used by sibling FUN_000c0c70 would
@@ -5257,7 +5257,7 @@ void hs_evaluate_vehicle_hover(int16_t function_index, int thread_datum, char in
   result =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (result != NULL) {
-    FUN_001b5610(result[0], *(unsigned char *)(result + 1));
+    vehicle_hover(result[0], *(unsigned char *)(result + 1));
     hs_return(thread_datum, 0);
   }
   return;

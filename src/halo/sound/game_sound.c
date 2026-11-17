@@ -767,8 +767,8 @@ void FUN_001c77a0(int looping_sound_index, void *location)
                        0x269, 1);
         system_exit(-1);
       }
-      matrix_transform_point(node_matrix, (float *)(entry + 0x1c),
-                             (float *)(source + 0xc));
+      matrix_transform_point(node_matrix, (real_point3d *)(entry + 0x1c),
+                             (real_point3d *)(source + 0xc));
       matrix_transform_vector(node_matrix, (real_vector3d *)(entry + 0x28),
                               (real_vector3d *)(source + 0x18));
       object_get_velocities(*(int *)(entry + 0x10), (real_vector3d *)(source + 0x24),
@@ -861,8 +861,8 @@ bool FUN_001c7a10(int object_handle, void *attachment_data, void *source)
       *(int *)((char *)source + 0x34) = location[1];
 
       matrix_transform_point(node_matrix,
-                             (float *)((char *)attachment_data + 4),
-                             (float *)((char *)source + 0xc));
+                             (real_point3d *)((char *)attachment_data + 4),
+                             (real_point3d *)((char *)source + 0xc));
       matrix_transform_vector(node_matrix,
                               (real_vector3d *)((char *)attachment_data + 0x10),
                               (real_vector3d *)((char *)source + 0x18));
@@ -1044,7 +1044,8 @@ void game_sound_dispose_from_old_map(void)
  * Builds a callback_data struct with marker/position/forward and a sound_params
  * struct, calls FUN_001c7a10 to resolve attachment, then sound_start. */
 int object_impulse_sound_new(int object_handle, int tag_index, int16_t marker,
-                             float *position, float *forward, float scale)
+                             real_point3d const *position,
+                             real_vector3d const *forward, float scale)
 {
   char sound_params[0x40];
   char callback_data[0x1c];
@@ -1057,20 +1058,20 @@ int object_impulse_sound_new(int object_handle, int tag_index, int16_t marker,
   if (!(scale >= 0.0f) || !(scale <= 1.0f)) {
     error(2, "DIAG scale OOB in 0x1c7e70: scale=%f obj=0x%x tag=0x%x marker=%d",
           (double)scale, object_handle, tag_index, (int)marker);
-    error(2, "DIAG pos=(%f,%f,%f) fwd=(%f,%f,%f)", (double)position[0],
-          (double)position[1], (double)position[2], (double)forward[0],
-          (double)forward[1], (double)forward[2]);
+    error(2, "DIAG pos=(%f,%f,%f) fwd=(%f,%f,%f)", (double)position->x,
+          (double)position->y, (double)position->z, (double)forward->i,
+          (double)forward->j, (double)forward->k);
     display_assert("scale>=0.f && scale<=1.f",
                    "c:\\halo\\SOURCE\\sound\\game_sound.c", 0x12d, 1);
     system_exit(-1);
   }
 
-  *(float *)(callback_data + 4) = position[0];
-  *(float *)(callback_data + 8) = position[1];
-  *(float *)(callback_data + 12) = position[2];
-  *(float *)(callback_data + 16) = forward[0];
-  *(float *)(callback_data + 20) = forward[1];
-  *(float *)(callback_data + 24) = forward[2];
+  *(float *)(callback_data + 4) = position->x;
+  *(float *)(callback_data + 8) = position->y;
+  *(float *)(callback_data + 12) = position->z;
+  *(float *)(callback_data + 16) = forward->i;
+  *(float *)(callback_data + 20) = forward->j;
+  *(float *)(callback_data + 24) = forward->k;
 
   *(int16_t *)(sound_params + 0) = 1;
   *(float *)(sound_params + 8) = 1.0f;
@@ -1135,8 +1136,9 @@ void scripted_sound_new(int param_1, int param_2, float param_3)
         forward[2] = (*(float **)0x31fc3c)[2];
         marker = 0;
       }
-      sound_index = object_impulse_sound_new(param_2, param_1, marker, position,
-                                             forward, param_3);
+      sound_index = object_impulse_sound_new(
+        param_2, param_1, marker, (real_point3d *)position,
+        (real_vector3d *)forward, param_3);
       if (sound_index != NONE) {
         object_type_notify_impulse_sound(param_2, param_1, sound_index);
       }

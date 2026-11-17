@@ -5,7 +5,7 @@
     "assert strings (2276, model_animation_definitions.c / model_animations.c): 'frame_index>=0 && frame_index<animation->frame_count' @0x290c60, 'compressed || (byte *)data-(byte *)animation_get_frame_data(animation, frame_index)==animation->frame_size' @0x291230, 'compressed || (byte *)default_data-(byte *)animation_get_default_data(animation)==animation->default_data.size' @0x2911c0, 'animation->frame_count>1' @0x291440",
     "FUN_00120500 (0x120500) listing: TEST byte [EDI+0x3a],1; LEA [EDI+0xa0] -> tag_data_get_pointer; CMP BX,word [EDI+0x22]; ADD ESI,dword [EDI+0x88]; MOVSX ECX,word [EDI+0x24]",
     "animation_set_frame_size (0x120790) listing: CMP word [ESI+0x2c],0 / MOVZX EBX,word [ESI+0x2c]; TEST dword [ESI+ECX*4+0x6c/0x5c/0x7c],EAX with ECX=node_index>>5; MOV word [ESI+0x24],DI",
-    "FUN_00121d60 (0x121d60) listing: MOVSX EAX,word [EDI+0x24] compared under the frame_size assert @0x121fdf; MOV EDX,dword [EDI+0x98] / MOV ECX,dword [EDI+0x8c] compared under the default_data.size assert @0x12200d",
+    "animation_get_frame_orientations (0x121d60) listing: MOVSX EAX,word [EDI+0x24] compared under the frame_size assert @0x121fdf; MOV EDX,dword [EDI+0x98] / MOV ECX,dword [EDI+0x8c] compared under the default_data.size assert @0x12200d",
     "stride 0xb4: tag_block_get_element(antr+0x74, index, 0xb4) @0x120f9e and in animation_graph_get_animation_by_name (0x120cb0); existing animation_t in src/types.h (name[0x20], frame_count @0x22, cs 0xb4)",
     "animation_get_x_offsets (0x120710), animation_frame_get_xy_translation (0x120ee0), animation_update_internal (0x121c30) listings"
   ],
@@ -23,7 +23,7 @@
       "width": 2,
       "signed": true,
       "confidence": "typed",
-      "evidence": "CMP word [EDI+0x20],BX (BX=0) @0x121d70 in FUN_00121d60"
+      "evidence": "CMP word [EDI+0x20],BX (BX=0) @0x121d70 in animation_get_frame_orientations"
     },
     {
       "offset": "0x22",

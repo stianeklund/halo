@@ -184,7 +184,7 @@ void lightning_offset_marker_position(real_matrix4x3 *matrix,
   offset.i = (2.0f * random_x - 1.0f) * random_position_bounds->i;
   offset.j = (2.0f * random_y - 1.0f) * random_position_bounds->j;
   offset.k = (2.0f * random_z - 1.0f) * random_position_bounds->k;
-  matrix_scale_transform_vector(&matrix->scale, &offset.i, &offset.i);
+  matrix_scale_transform_vector(&matrix->scale, &offset, &offset);
 
   position->x += offset.i;
   position->y += offset.j;
@@ -489,7 +489,7 @@ void lightning_submit(int object_index, int lightning_index, void *lighting,
                                random_math_get_local_seed_address(),
                                -1.0f, 1.0f) *
                            jitter_offset;
-                  scale_vector3d(&up, jitter, &offset);
+                  scale_vector3d_inline(&up, jitter, &offset);
                   set_real_point3d_inline(
                       &point->position,
                       (previous_point->position.x + next_point->position.x) *

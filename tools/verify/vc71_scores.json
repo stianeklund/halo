@@ -352,7 +352,7 @@
       "score": 100.0,
       "source": "src/halo/math/vector_math.c"
     },
-    "FUN_00012170": {
+    "magnitude_squared3d": {
       "addr": "0x12170",
       "end": "0x12196",
       "kind": "auto",
@@ -363,7 +363,7 @@
       "score": 100.0,
       "source": "src/halo/math/vector_math.c"
     },
-    "FUN_000121e0": {
+    "real_random_range": {
       "addr": "0x121e0",
       "end": "0x121fb",
       "kind": "auto",
@@ -473,7 +473,7 @@
       "score": 100.0,
       "source": "src/halo/math/vector_math.c"
     },
-    "FUN_00012fb0": {
+    "scale_vector3d": {
       "addr": "0x12fb0",
       "end": "0x12fd4",
       "kind": "auto",
@@ -484,7 +484,7 @@
       "score": 100.0,
       "source": "src/halo/math/vector_math.c"
     },
-    "FUN_00012fe0": {
+    "magnitude3d": {
       "addr": "0x12fe0",
       "end": "0x13008",
       "kind": "auto",
@@ -495,7 +495,7 @@
       "score": 100.0,
       "source": "src/halo/math/vector_math.c"
     },
-    "FUN_00013070": {
+    "dot_product3d": {
       "addr": "0x13070",
       "end": "0x1308f",
       "kind": "auto",
@@ -517,7 +517,7 @@
       "score": 100.0,
       "source": "src/halo/math/vector_math.c"
     },
-    "FUN_000130d0": {
+    "collision_test_line": {
       "addr": "0x130d0",
       "end": "0x13112",
       "kind": "auto",
@@ -5542,7 +5542,7 @@
       "score": 81.5,
       "source": "src/halo/game/game.c"
     },
-    "FUN_000b5590": {
+    "game_difficulty_get_value": {
       "addr": "0xb5590",
       "end": "0xb55a8",
       "kind": "auto",
@@ -5696,7 +5696,7 @@
       "score": 100.0,
       "source": "src/halo/hs/hs_runtime.c"
     },
-    "FUN_000ce200": {
+    "object_list_new": {
       "addr": "0xce200",
       "end": "0xce237",
       "kind": "auto",
@@ -5707,7 +5707,7 @@
       "score": 100.0,
       "source": "src/halo/hs/hs_runtime.c"
     },
-    "FUN_000ce2b0": {
+    "object_list_add": {
       "addr": "0xce2b0",
       "end": "0xce31e",
       "kind": "auto",
@@ -5718,7 +5718,7 @@
       "score": 95.7,
       "source": "src/halo/hs/hs_runtime.c"
     },
-    "FUN_000ce320": {
+    "object_list_get_next": {
       "addr": "0xce320",
       "end": "0xce34e",
       "kind": "auto",
@@ -5773,7 +5773,7 @@
       "score": 100.0,
       "source": "src/halo/hs/hs_runtime.c"
     },
-    "FUN_000ce450": {
+    "object_list_get_first": {
       "addr": "0xce450",
       "end": "0xce49c",
       "kind": "auto",
@@ -6906,7 +6906,7 @@
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
-    "FUN_001092d0": {
+    "matrix4x3_rotation_from_axis_and_angle": {
       "addr": "0x1092d0",
       "end": "0x1093ae",
       "kind": "auto",
@@ -6917,7 +6917,7 @@
       "score": 97.5,
       "source": "src/halo/math/real_math.c"
     },
-    "FUN_001093b0": {
+    "matrix4x3_rotation_from_quaternion": {
       "addr": "0x1093b0",
       "end": "0x1094c4",
       "kind": "auto",
@@ -6950,7 +6950,7 @@
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
-    "FUN_001099f0": {
+    "matrix3x3_transpose": {
       "addr": "0x1099f0",
       "end": "0x109a59",
       "kind": "auto",
@@ -6983,7 +6983,7 @@
       "score": 100.0,
       "source": "src/halo/math/real_math.c"
     },
-    "FUN_00109c70": {
+    "matrix3x3_multiply": {
       "addr": "0x109c70",
       "end": "0x109d85",
       "kind": "auto",
@@ -7027,7 +7027,7 @@
       "score": 82.4,
       "source": "src/halo/math/real_math.c"
     },
-    "FUN_00109fc0": {
+    "matrix4x3_rotation_to_quaternion": {
       "addr": "0x109fc0",
       "end": "0x10a110",
       "kind": "auto",
@@ -7038,7 +7038,7 @@
       "score": 85.5,
       "source": "src/halo/math/real_math.c"
     },
-    "FUN_0010a1c0": {
+    "matrix4x3_transform_plane": {
       "addr": "0x10a1c0",
       "end": "0x10a233",
       "kind": "auto",
@@ -7060,7 +7060,7 @@
       "score": 73.8,
       "source": "src/halo/math/real_math.c"
     },
-    "FUN_0010a2c0": {
+    "matrix3x3_from_forward_and_up": {
       "addr": "0x10a2c0",
       "end": "0x10a328",
       "kind": "auto",
@@ -7071,7 +7071,7 @@
       "score": 86.4,
       "source": "src/halo/math/real_math.c"
     },
-    "FUN_0010a330": {
+    "matrix3x3_rotation_to_quaternion": {
       "addr": "0x10a330",
       "end": "0x10a474",
       "kind": "auto",
@@ -7181,7 +7181,7 @@
       "score": 92.0,
       "source": "src/halo/math/random_math.c"
     },
-    "FUN_0010b8a0": {
+    "component_vectors_from_normal3d": {
       "addr": "0x10b8a0",
       "end": "0x10b901",
       "kind": "auto",
@@ -7291,7 +7291,7 @@
       "score": 80.0,
       "source": "src/halo/math/random_math.c"
     },
-    "FUN_0010c700": {
+    "pitch_vectors": {
       "addr": "0x10c700",
       "end": "0x10c780",
       "kind": "auto",
@@ -7324,7 +7324,7 @@
       "score": 96.4,
       "source": "src/halo/math/random_math.c"
     },
-    "FUN_0010c8e0": {
+    "reflect_vector3d": {
       "addr": "0x10c8e0",
       "end": "0x10c920",
       "kind": "auto",
@@ -7346,7 +7346,7 @@
       "score": 90.0,
       "source": "src/halo/math/random_math.c"
     },
-    "FUN_0010caf0": {
+    "quaternion_to_angle_and_vector": {
       "addr": "0x10caf0",
       "end": "0x10cb5d",
       "kind": "auto",
@@ -9017,7 +9017,7 @@
       "score": 83.8,
       "source": "src/halo/models/model_animations.c"
     },
-    "FUN_00120590": {
+    "animation_get_frame_info": {
       "addr": "0x120590",
       "end": "0x1205e3",
       "kind": "auto",
@@ -9028,7 +9028,7 @@
       "score": 100.0,
       "source": "src/halo/models/model_animations.c"
     },
-    "FUN_001205f0": {
+    "animation_list_get_string": {
       "addr": "0x1205f0",
       "end": "0x120613",
       "kind": "auto",
@@ -9061,7 +9061,7 @@
       "score": 79.6,
       "source": "src/halo/models/model_animations.c"
     },
-    "FUN_00121d60": {
+    "animation_get_frame_orientations": {
       "addr": "0x121d60",
       "end": "0x122058",
       "kind": "auto",
@@ -9314,7 +9314,7 @@
       "score": 96.6,
       "source": "src/halo/objects/damage.c"
     },
-    "FUN_00138e30": {
+    "area_of_effect_cause_damage": {
       "addr": "0x138e30",
       "end": "0x138ea4",
       "kind": "auto",
@@ -9457,7 +9457,7 @@
       "score": 75.3,
       "source": "src/halo/physics/breakable_surfaces.c"
     },
-    "FUN_00146a90": {
+    "breakable_surface_damage": {
       "addr": "0x146a90",
       "end": "0x146bd3",
       "kind": "auto",
@@ -9611,7 +9611,7 @@
       "score": 89.9,
       "source": "src/halo/physics/collision_features.c"
     },
-    "FUN_0014c4b0": {
+    "collision_features_test_vector": {
       "addr": "0x14c4b0",
       "end": "0x14c6c5",
       "kind": "auto",
@@ -9644,7 +9644,7 @@
       "score": 96.9,
       "source": "src/halo/physics/collision_usage.c"
     },
-    "FUN_0014c8e0": {
+    "collision_model_instance_new": {
       "addr": "0x14c8e0",
       "end": "0x14c943",
       "kind": "auto",
@@ -9677,7 +9677,7 @@
       "score": 94.0,
       "source": "src/halo/physics/collision_usage.c"
     },
-    "FUN_0014cb00": {
+    "collision_model_test_vector": {
       "addr": "0x14cb00",
       "end": "0x14cc74",
       "kind": "auto",
@@ -9688,7 +9688,7 @@
       "score": 92.8,
       "source": "src/halo/physics/collision_usage.c"
     },
-    "FUN_0014cc80": {
+    "collision_model_test_pill": {
       "addr": "0x14cc80",
       "end": "0x14cdd6",
       "kind": "auto",
@@ -9765,7 +9765,7 @@
       "score": 100.0,
       "source": "src/halo/physics/collision_usage.c"
     },
-    "FUN_0014dab0": {
+    "collision_test_sphere": {
       "addr": "0x14dab0",
       "end": "0x14db0c",
       "kind": "auto",
@@ -9831,7 +9831,7 @@
       "score": 87.1,
       "source": "src/halo/physics/collision_bsp.c"
     },
-    "FUN_0014e7d0": {
+    "collision_test_pill": {
       "addr": "0x14e7d0",
       "end": "0x14e939",
       "kind": "auto",
@@ -9864,7 +9864,7 @@
       "score": 97.8,
       "source": "src/halo/physics/collision_bsp.c"
     },
-    "FUN_0014ec30": {
+    "collision_get_features_in_sphere": {
       "addr": "0x14ec30",
       "end": "0x14ee2b",
       "kind": "auto",
@@ -9886,7 +9886,7 @@
       "score": 89.7,
       "source": "src/halo/physics/collision_usage.c"
     },
-    "FUN_0014f020": {
+    "collision_fix_pill": {
       "addr": "0x14f020",
       "end": "0x14f2b1",
       "kind": "auto",
@@ -9897,7 +9897,7 @@
       "score": 90.9,
       "source": "src/halo/physics/collision_usage.c"
     },
-    "FUN_0014f2c0": {
+    "collision_move_point": {
       "addr": "0x14f2c0",
       "end": "0x150537",
       "kind": "auto",
@@ -9908,7 +9908,7 @@
       "score": 89.2,
       "source": "src/halo/physics/collision_usage.c"
     },
-    "FUN_00150550": {
+    "collision_move_pill": {
       "addr": "0x150550",
       "end": "0x1506c4",
       "kind": "auto",
@@ -9963,7 +9963,7 @@
       "score": 100.0,
       "source": "src/halo/physics/point_physics.c"
     },
-    "FUN_001509c0": {
+    "physics_instance_new": {
       "addr": "0x1509c0",
       "end": "0x150ab8",
       "kind": "auto",
@@ -10029,7 +10029,7 @@
       "score": 93.8,
       "source": "src/halo/physics/point_physics.c"
     },
-    "FUN_00154750": {
+    "physics_variable_position_update_seek": {
       "addr": "0x154750",
       "end": "0x1547c7",
       "kind": "auto",
@@ -12801,7 +12801,7 @@
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
-    "FUN_0017cbc0": {
+    "rasterizer_model_draw": {
       "addr": "0x17cbc0",
       "end": "0x17cbc9",
       "kind": "auto",
@@ -12812,7 +12812,7 @@
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
-    "FUN_0017cbd0": {
+    "rasterizer_model_transparent_geometry_submit": {
       "addr": "0x17cbd0",
       "end": "0x17cbd9",
       "kind": "auto",
@@ -12933,7 +12933,7 @@
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
-    "FUN_0017ccd0": {
+    "rasterizer_shadow_model_draw": {
       "addr": "0x17ccd0",
       "end": "0x17ccd9",
       "kind": "auto",
@@ -14319,7 +14319,7 @@
       "score": 66.1,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00189150": {
+    "render_debug_point": {
       "addr": "0x189150",
       "end": "0x189266",
       "kind": "auto",
@@ -14341,7 +14341,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00189320": {
+    "render_debug_vector": {
       "addr": "0x189320",
       "end": "0x1893d9",
       "kind": "auto",
@@ -14385,7 +14385,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00189540": {
+    "render_debug_sphere": {
       "addr": "0x189540",
       "end": "0x1896c5",
       "kind": "auto",
@@ -14407,7 +14407,7 @@
       "score": 80.6,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00189860": {
+    "render_debug_pill": {
       "addr": "0x189860",
       "end": "0x189a1b",
       "kind": "auto",
@@ -14451,7 +14451,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00189cb0": {
+    "render_debug_string_at_point": {
       "addr": "0x189cb0",
       "end": "0x189dd8",
       "kind": "auto",
@@ -15012,7 +15012,7 @@
       "score": 92.3,
       "source": "src/halo/scenario/scenario.c"
     },
-    "FUN_0018e500": {
+    "scenario_material_definition_get": {
       "addr": "0x18e500",
       "end": "0x18e5b7",
       "kind": "auto",
@@ -15056,7 +15056,7 @@
       "score": 91.1,
       "source": "src/halo/scenario/scenario.c"
     },
-    "FUN_0018e720": {
+    "scenario_leaf_index_from_point": {
       "addr": "0x18e720",
       "end": "0x18e763",
       "kind": "auto",
@@ -15287,7 +15287,7 @@
       "score": 100.0,
       "source": "src/halo/shaders/shaders.c"
     },
-    "FUN_001906b0": {
+    "shader_get_and_verify_type": {
       "addr": "0x1906b0",
       "end": "0x19070a",
       "kind": "auto",
@@ -16244,7 +16244,7 @@
       "score": 100.0,
       "source": "src/halo/text/unicode.c"
     },
-    "FUN_0019f530": {
+    "biped_limp_noodle_get_max_relaxation_iterations": {
       "addr": "0x19f530",
       "end": "0x19f536",
       "kind": "auto",
@@ -16255,7 +16255,7 @@
       "score": 100.0,
       "source": "src/halo/text/unicode.c"
     },
-    "FUN_0019fa20": {
+    "biped_limp_noodle_move_relax_and_constrain_positions": {
       "addr": "0x19fa20",
       "end": "0x1a01c3",
       "kind": "auto",
@@ -16277,7 +16277,7 @@
       "score": 96.4,
       "source": "src/halo/sound/sound_manager.c"
     },
-    "FUN_001a0b30": {
+    "biped_check_discard": {
       "addr": "0x1a0b30",
       "end": "0x1a0bd5",
       "kind": "auto",
@@ -16288,7 +16288,7 @@
       "score": 100.0,
       "source": "src/halo/units/bipeds.c"
     },
-    "FUN_001a1e70": {
+    "biped_falling_danger": {
       "addr": "0x1a1e70",
       "end": "0x1a1fa6",
       "kind": "auto",
@@ -16299,7 +16299,7 @@
       "score": 89.4,
       "source": "src/halo/units/bipeds.c"
     },
-    "FUN_001a2160": {
+    "biped_apply_rotation": {
       "addr": "0x1a2160",
       "end": "0x1a228a",
       "kind": "auto",
@@ -16310,7 +16310,7 @@
       "score": 84.1,
       "source": "src/halo/units/bipeds.c"
     },
-    "FUN_001a25e0": {
+    "biped_find_nearby_support_surface": {
       "addr": "0x1a25e0",
       "end": "0x1a27fd",
       "kind": "auto",
@@ -16321,7 +16321,7 @@
       "score": 86.0,
       "source": "src/halo/units/bipeds.c"
     },
-    "FUN_001a2b10": {
+    "biped_update_slipping": {
       "addr": "0x1a2b10",
       "end": "0x1a2b8e",
       "kind": "auto",
@@ -16332,7 +16332,7 @@
       "score": 96.8,
       "source": "src/halo/units/bipeds.c"
     },
-    "FUN_001a2f40": {
+    "biped_update_physics": {
       "addr": "0x1a2f40",
       "end": "0x1a4436",
       "kind": "auto",
@@ -16343,7 +16343,7 @@
       "score": 79.3,
       "source": "src/halo/units/bipeds.c"
     },
-    "FUN_001a4c50": {
+    "biped_update_turning": {
       "addr": "0x1a4c50",
       "end": "0x1a5300",
       "kind": "auto",
@@ -16354,7 +16354,7 @@
       "score": 90.5,
       "source": "src/halo/units/bipeds.c"
     },
-    "FUN_001a5300": {
+    "biped_update_moving": {
       "addr": "0x1a5300",
       "end": "0x1a627d",
       "kind": "auto",
@@ -16365,7 +16365,7 @@
       "score": 90.8,
       "source": "src/halo/units/bipeds.c"
     },
-    "FUN_001a7fe0": {
+    "unit_delete": {
       "addr": "0x1a7fe0",
       "end": "0x1a7fe1",
       "kind": "auto",
@@ -16420,7 +16420,7 @@
       "score": 94.4,
       "source": "src/halo/sound/sound_manager.c"
     },
-    "FUN_001ac180": {
+    "unit_start_user_animation": {
       "addr": "0x1ac180",
       "end": "0x1ac2e2",
       "kind": "auto",
@@ -16442,7 +16442,7 @@
       "score": 100.0,
       "source": "src/halo/sound/sound_manager.c"
     },
-    "FUN_001b5400": {
+    "vehicle_scripting_unload": {
       "addr": "0x1b5400",
       "end": "0x1b54fb",
       "kind": "auto",
@@ -16453,7 +16453,7 @@
       "score": 94.4,
       "source": "src/halo/units/vehicles.c"
     },
-    "FUN_001b5500": {
+    "unit_scripting_exit_vehicle": {
       "addr": "0x1b5500",
       "end": "0x1b5538",
       "kind": "auto",
@@ -16464,7 +16464,7 @@
       "score": 100.0,
       "source": "src/halo/units/vehicles.c"
     },
-    "FUN_001b5610": {
+    "vehicle_hover": {
       "addr": "0x1b5610",
       "end": "0x1b5657",
       "kind": "auto",
@@ -16475,7 +16475,7 @@
       "score": 96.8,
       "source": "src/halo/units/vehicles.c"
     },
-    "FUN_001b56b0": {
+    "compute_airborne_ticks": {
       "addr": "0x1b56b0",
       "end": "0x1b5747",
       "kind": "auto",
@@ -30907,7 +30907,7 @@
       "score": 100.0,
       "source": "src/halo/game/aim_assist.c"
     },
-    "component_vectors_from_normal3d": {
+    "matrix4x3_from_point_and_quaternion": {
       "addr": "0x1094d0",
       "end": "0x1094fb",
       "kind": "auto",
@@ -64149,7 +64149,7 @@
       "score": 78.0,
       "source": "src/halo/scenario/scenario.c"
     },
-    "scenario_leaf_index_from_point": {
+    "object_get_cached_render_lighting": {
       "addr": "0x18c0b0",
       "end": "0x18c100",
       "kind": "auto",
@@ -69891,7 +69891,7 @@
       "score": 97.2,
       "source": "src/halo/units/units.c"
     },
-    "unit_delete": {
+    "unit_kill_no_statistics": {
       "addr": "0x1a7fc0",
       "end": "0x1a7fda",
       "kind": "auto",
@@ -73169,7 +73169,7 @@
       "score": 95.0,
       "source": "src/halo/units/vehicles.c"
     },
-    "vehicle_causes_collision_damage": {
+    "vehicle_place": {
       "addr": "0x1b5580",
       "end": "0x1b55a6",
       "kind": "auto",
@@ -73202,7 +73202,7 @@
       "score": 96.9,
       "source": "src/halo/units/vehicles.c"
     },
-    "vehicle_hover": {
+    "vehicle_causes_collision_damage": {
       "addr": "0x1b55c0",
       "end": "0x1b55ec",
       "kind": "auto",

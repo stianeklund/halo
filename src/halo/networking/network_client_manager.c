@@ -21,7 +21,7 @@
  *
  * Each accepted marker writes one 0x6c-byte output record:
  *   +0x00 int16  node index (remapped through node_remap when non-null)
- *   +0x04 float[13] local matrix from component_vectors_from_normal3d
+ *   +0x04 float[13] local matrix from matrix4x3_from_point_and_quaternion
  *   +0x38 float[13] node matrix * local matrix (matrix4x3_multiply)
  * When mirrored is non-zero the three floats at +0x48/+0x4c/+0x50 of the record
  * are negated (FLD/FCHS/FSTP at 0x1248af..0x1248c4).
@@ -94,7 +94,7 @@ int16_t model_get_marker_by_name(int model_ref, const char *marker_name, int mag
           *(uint16_t *)out =
             (uint16_t) * (int16_t *)(node_remap + (unsigned int)marker[2] * 2);
         }
-        component_vectors_from_normal3d(
+        matrix4x3_from_point_and_quaternion(
           (float *)(out + 4), (float *)(marker + 4), (float *)(marker + 0x10));
         node_index = *(int16_t *)out;
         if (node_index < 0) {

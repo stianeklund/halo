@@ -331,8 +331,8 @@ void FUN_00188d00(float *buffer1, float *buffer2, float *center,
       b1[0] = cp[0];
       b1[1] = cp[1];
       b1[2] = 0.0f;
-      matrix_transform_point(frame, b2, b2);
-      matrix_transform_point(frame, b1, b1);
+      matrix_transform_point(frame, (real_point3d *)b2, (real_point3d *)b2);
+      matrix_transform_point(frame, (real_point3d *)b1, (real_point3d *)b1);
       cp = cp + 2;
       b1 = b1 + 3;
       b2 = b2 + 3;
@@ -353,10 +353,10 @@ void FUN_00188d00(float *buffer1, float *buffer2, float *center,
       buffer6[0] = circle[i * 2 + 16];
       buffer6[1] = 0.0f;
       buffer6[2] = circle[i * 2 + 17];
-      matrix_transform_point(frame, buffer3, buffer3);
-      matrix_transform_point(frame, buffer4, buffer4);
-      matrix_transform_point(frame, buffer5, buffer5);
-      matrix_transform_point(frame, buffer6, buffer6);
+      matrix_transform_point(frame, (real_point3d *)buffer3, (real_point3d *)buffer3);
+      matrix_transform_point(frame, (real_point3d *)buffer4, (real_point3d *)buffer4);
+      matrix_transform_point(frame, (real_point3d *)buffer5, (real_point3d *)buffer5);
+      matrix_transform_point(frame, (real_point3d *)buffer6, (real_point3d *)buffer6);
       buffer3 = buffer3 + 3;
       buffer4 = buffer4 + 3;
       buffer5 = buffer5 + 3;
@@ -524,7 +524,8 @@ void FUN_00188ec0(int type, ...)
  * 18-float vertex buffer is a single contiguous block walked in 6-float
  * (two-endpoint) strides by the line helper. With flag clear, submit a type-1
  * primitive (position, scale, color) to the per-frame cache. */
-void FUN_00189150(char flag, float *position, float scale, void *color)
+void render_debug_point(char flag, const real_point3d *position, float scale,
+                        void *color)
 {
   float v[18];
   float *p;
@@ -544,24 +545,24 @@ void FUN_00189150(char flag, float *position, float scale, void *color)
 
   if (flag != 0) {
     s = scale * *(float *)0x253398;
-    v[0] = position[0] - s;
-    v[1] = position[1];
-    v[2] = position[2];
-    v[3] = position[0] + s;
-    v[4] = position[1];
-    v[5] = position[2];
-    v[6] = position[0];
-    v[7] = position[1] - s;
-    v[8] = position[2];
-    v[9] = position[0];
-    v[10] = position[1] + s;
-    v[11] = position[2];
-    v[12] = position[0];
-    v[13] = position[1];
-    v[14] = position[2] - s;
-    v[15] = position[0];
-    v[16] = position[1];
-    v[17] = position[2] + s;
+    v[0] = position->x - s;
+    v[1] = position->y;
+    v[2] = position->z;
+    v[3] = position->x + s;
+    v[4] = position->y;
+    v[5] = position->z;
+    v[6] = position->x;
+    v[7] = position->y - s;
+    v[8] = position->z;
+    v[9] = position->x;
+    v[10] = position->y + s;
+    v[11] = position->z;
+    v[12] = position->x;
+    v[13] = position->y;
+    v[14] = position->z - s;
+    v[15] = position->x;
+    v[16] = position->y;
+    v[17] = position->z + s;
     p = &v[0];
     i = 3;
     do {
@@ -607,8 +608,8 @@ __declspec(noinline) void FUN_00189270(char flag, float *point_a, float *point_b
 /* Draw a debug vector as a line from a point along a direction (0x189320).
  * The line runs from point to point + scale*vector; the cache flag is forwarded
  * to the line drawer. */
-void FUN_00189320(int flag, float *point, float *vector, float scale,
-                  void *color)
+void render_debug_vector(int flag, const real_point3d *point,
+                         const real_vector3d *vector, float scale, void *color)
 {
   float endpoint[3];
 
@@ -627,10 +628,10 @@ void FUN_00189320(int flag, float *point, float *vector, float scale,
                    1);
     system_exit(-1);
   }
-  endpoint[0] = scale * vector[0] + point[0];
-  endpoint[1] = scale * vector[1] + point[1];
-  endpoint[2] = scale * vector[2] + point[2];
-  FUN_00189270(flag, point, endpoint, color);
+  endpoint[0] = scale * vector->i + point->x;
+  endpoint[1] = scale * vector->j + point->y;
+  endpoint[2] = scale * vector->k + point->z;
+  FUN_00189270(flag, (float *)point, endpoint, color);
 }
 
 /* Draw a debug tick as a line centered on a point (0x1893e0). Extends the line
@@ -679,9 +680,9 @@ void FUN_001894d0(int flag, float *matrix, float scale)
   float *origin;
 
   origin = matrix + 10;
-  FUN_00189320(flag, origin, matrix + 1, scale * matrix[0], *(void **)0x2ee6d0);
-  FUN_00189320(flag, origin, matrix + 4, scale * matrix[0], *(void **)0x2ee6d4);
-  FUN_00189320(flag, origin, matrix + 7, scale * matrix[0], *(void **)0x2ee6d8);
+  render_debug_vector(flag, (real_point3d *)origin, (real_vector3d *)(matrix + 1), scale * matrix[0], *(void **)0x2ee6d0);
+  render_debug_vector(flag, (real_point3d *)origin, (real_vector3d *)(matrix + 4), scale * matrix[0], *(void **)0x2ee6d4);
+  render_debug_vector(flag, (real_point3d *)origin, (real_vector3d *)(matrix + 7), scale * matrix[0], *(void **)0x2ee6d8);
 }
 
 /* Draw or cache a debug sphere (0x189540). type 3. With flag clear, caches a
@@ -691,7 +692,7 @@ void FUN_001894d0(int flag, float *matrix, float scale)
  * circles (in the XY, XZ and YZ planes) as line segments. Each iteration
  * walks two adjacent circle points (cp[-3..-2] current, cp[-1..0] next) and
  * emits one segment per plane into a contiguous six-float endpoint buffer. */
-void FUN_00189540(char flag, void *center, float radius, void *color)
+void render_debug_sphere(char flag, void *center, float radius, void *color)
 {
   float circle[34];
   float verts[6]; /* verts[3..5] = endpoint A, verts[0..2] = endpoint B */
@@ -820,7 +821,7 @@ void FUN_001896d0(char flag, void *center, void *height_vec, float radius,
  * half-rings, then draws: each main ring as a 16-segment strip, four vertical
  * edges connecting the main rings, and the four dome half-rings as 8-segment
  * strips. */
-void FUN_00189860(char flag, void *center, void *height_vec, float radius,
+void render_debug_pill(char flag, void *center, void *height_vec, float radius,
                   void *color)
 {
   float buf1[51];
@@ -981,7 +982,7 @@ void FUN_00189c40(char flag, const char *string)
  * if on screen, converts the screen coordinates to integer text coordinates
  * (relative to the viewport size at 0x50657c/0x50657e), primes the debug text
  * state, sets the text color, and draws the string. */
-void FUN_00189cb0(char flag, void *position, void *string, int color)
+void render_debug_string_at_point(char flag, void *position, void *string, int color)
 {
   float proj[2];
   short text_pos[4];
@@ -1300,11 +1301,11 @@ void FUN_0018a3e0(void)
                             *(unsigned char *)((char *)elem + 0xc), 0x10);
     tag_index = *(int *)((char *)pal_elem + 0xc);
     tag_get(0x64656361, tag_index);
-    if (FUN_0018e720((int)elem) == -1) {
+    if (scenario_leaf_index_from_point((int)elem) == -1) {
       actor_idx = -1;
     } else {
       e = tag_block_get_element((char *)scenario_get() + 0xe0,
-                                FUN_0018e720((int)elem) & 0x7fffffff, 0x10);
+                                scenario_leaf_index_from_point((int)elem) & 0x7fffffff, 0x10);
       actor_idx = *(short *)((char *)e + 8);
     }
     enc = tag_block_get_element(actor_block, actor_idx, 0x68);
@@ -1327,8 +1328,8 @@ void FUN_0018a3e0(void)
       point = elem;
       color = *(void **)0x2ee6d0;
     }
-    FUN_00189540(1, point, 0.1f, color);
-    FUN_00189cb0(0, elem, (void *)tag_name_strip_path(tag_get_name(tag_index)),
+    render_debug_sphere(1, point, 0.1f, color);
+    render_debug_string_at_point(0, elem, (void *)tag_name_strip_path(tag_get_name(tag_index)),
                  *(int *)0x2ee6d4);
     i = i + 1;
   } while (i < *block);
@@ -1336,7 +1337,7 @@ void FUN_0018a3e0(void)
 
 /* Draw a debug point on a plane (0x18a580). Projects a 2D point onto the plane,
  * lifts it off the plane along the projection axis by +/- offset (sign selects
- * the direction), then draws it as a debug point (FUN_00189150). */
+ * the direction), then draws it as a debug point (render_debug_point). */
 void FUN_0018a580(int flag, float *plane, int projection, int sign,
                   float *point, float scale, void *color, float offset)
 {
@@ -1366,7 +1367,7 @@ void FUN_0018a580(int flag, float *plane, int projection, int sign,
   }
   axis = (short)projection;
   pos[axis] = d + pos[axis];
-  FUN_00189150(flag, pos, scale, color);
+  render_debug_point(flag, (real_point3d *)pos, scale, color);
 }
 
 /* Draw one edge of a debug plane as a 3D line segment (0x18a650). Projects
@@ -1515,7 +1516,7 @@ void FUN_0018a9d0(int flag, float *position, float *basis_data, float scale)
 {
   float matrix[13];
 
-  component_vectors_from_normal3d(matrix, position, basis_data);
+  matrix4x3_from_point_and_quaternion(matrix, position, basis_data);
   FUN_001894d0(flag, matrix, scale);
 }
 
@@ -1550,10 +1551,10 @@ void FUN_0018aa00(char flag, float *bounds, void *color)
     corners[9] = bounds[0];
     corners[10] = bounds[3];
     corners[11] = -1.0f;
-    matrix_transform_point((float *)0x5065e8, corners, corners);
-    matrix_transform_point((float *)0x5065e8, corners + 3, corners + 3);
-    matrix_transform_point((float *)0x5065e8, corners + 6, corners + 6);
-    matrix_transform_point((float *)0x5065e8, corners + 9, corners + 9);
+    matrix_transform_point((float *)0x5065e8, (real_point3d *)corners, (real_point3d *)corners);
+    matrix_transform_point((float *)0x5065e8, (real_point3d *)(corners + 3), (real_point3d *)(corners + 3));
+    matrix_transform_point((float *)0x5065e8, (real_point3d *)(corners + 6), (real_point3d *)(corners + 6));
+    matrix_transform_point((float *)0x5065e8, (real_point3d *)(corners + 9), (real_point3d *)(corners + 9));
     FUN_00189ba0(corners, 4, color);
     return;
   }
@@ -1664,19 +1665,19 @@ void FUN_0018ac50(void)
                    &rec->f24, rec->f34);
       break;
     case 1:
-      FUN_00189150(1, &rec->f04, rec->f10, &rec->s14);
+      render_debug_point(1, (real_point3d *)&rec->f04, rec->f10, &rec->s14);
       break;
     case 2:
       FUN_00189270(1, &rec->f04, &rec->f10, &rec->f1c);
       break;
     case 3:
-      FUN_00189540(1, &rec->f04, rec->f10, &rec->s14);
+      render_debug_sphere(1, &rec->f04, rec->f10, &rec->s14);
       break;
     case 4:
       FUN_001896d0(1, &rec->f04, &rec->f10, rec->f1c, &rec->f20);
       break;
     case 5:
-      FUN_00189860(1, &rec->f04, &rec->f10, rec->f1c, &rec->f20);
+      render_debug_pill(1, &rec->f04, &rec->f10, rec->f1c, &rec->f20);
       break;
     case 6:
       FUN_00189a20(1, &rec->f04, &rec->f1c);
@@ -1688,7 +1689,7 @@ void FUN_0018ac50(void)
       FUN_00189c40(1, *(const char **)&rec->f04);
       break;
     case 9:
-      FUN_00189cb0(1, &rec->f08, *(void **)&rec->f04, (int)&rec->s14);
+      render_debug_string_at_point(1, &rec->f08, *(void **)&rec->f04, (int)&rec->s14);
       break;
     default:
       display_assert(0, "c:\\halo\\SOURCE\\render\\render_debug.c", 0x4f5, 1);

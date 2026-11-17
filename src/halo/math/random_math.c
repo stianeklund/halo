@@ -12,7 +12,7 @@
 rng_trace_buffer_t halo_rng_trace = { 0 };
 
 /* Reserved space for diagnostic binary probes patched into UNPORTED original
- * code after the link (tools/xbox/patch_fork_probes.py).  FUN_001a4c50 runs
+ * code after the link (tools/xbox/patch_fork_probes.py).  biped_update_turning runs
  * original bytes in our build too, so the host's probes at 0x1a5109 and
  * 0x1a5142 apply at the same addresses -- but the host patcher hides its caves
  * inside unit_update_animation's body, which is dead in the baseline build and
@@ -768,7 +768,7 @@ void seed_random_orientation(unsigned int *seed, float *facing, float *up)
   up[1] = -(az_sin * el_sin);
   up[2] = el_cos;
 
-  yaw_vectors(up, facing, x87_fsin(roll), x87_fcos(roll));
+  yaw_vectors((real_vector3d *)up, (real_vector3d *)facing, x87_fsin(roll), x87_fcos(roll));
 }
 
 /* Generate a random 3D direction within a cone around a forward vector.
@@ -788,8 +788,8 @@ void seed_random_orientation(unsigned int *seed, float *facing, float *up)
  *   angle   - maximum rotation angle (radians)
  *   result  - output direction vector (3 floats), initially set to forward
  */
-void seed_random_vector_in_cone3d(unsigned int *seed, float *forward, float zero, float angle,
-                        float *result)
+void seed_random_vector_in_cone3d(unsigned int *seed, const real_vector3d *forward, float zero,
+                                  float angle, real_vector3d *result)
 {
   float random_vec[3];
   float cross[3];
@@ -798,9 +798,9 @@ void seed_random_vector_in_cone3d(unsigned int *seed, float *forward, float zero
   float sin_val, cos_val;
 
   /* Copy forward to result */
-  result[0] = forward[0];
-  result[1] = forward[1];
-  result[2] = forward[2];
+  result->i = forward->i;
+  result->j = forward->j;
+  result->k = forward->k;
 
   /* Pick a random direction from the precomputed sphere table.
    * Inlines: index = seed_random_range(seed, 0, table_size) then table lookup. */
@@ -814,9 +814,9 @@ void seed_random_vector_in_cone3d(unsigned int *seed, float *forward, float zero
   random_direction_table_get_element(index, random_vec);
 
   /* Cross product: cross = random_vec x forward */
-  cross[0] = random_vec[2] * forward[1] - random_vec[1] * forward[2];
-  cross[1] = random_vec[0] * forward[2] - random_vec[2] * forward[0];
-  cross[2] = random_vec[1] * forward[0] - random_vec[0] * forward[1];
+  cross[0] = random_vec[2] * forward->j - random_vec[1] * forward->k;
+  cross[1] = random_vec[0] * forward->k - random_vec[2] * forward->i;
+  cross[2] = random_vec[1] * forward->i - random_vec[0] * forward->j;
 
   /* Normalize the rotation axis; bail if degenerate (parallel vectors) */
   if (!(normalize3d((real_vector3d *)cross) > *(float *)0x2533c0))
@@ -828,7 +828,7 @@ void seed_random_vector_in_cone3d(unsigned int *seed, float *forward, float zero
   cos_val = x87_fcos(random_angle);
 
   /* Rotate result around the cross axis by the random angle */
-  rotate_vector3d_by_sincos((real_vector3d *)result, (real_vector3d *)cross, sin_val, cos_val);
+  rotate_vector3d_by_sincos(result, (real_vector3d *)cross, sin_val, cos_val);
 }
 
 /* Decompose vector v into components parallel and perpendicular to normal n.
@@ -1185,15 +1185,18 @@ void FUN_0010c7d0(float *param_1, float *param_2, float param_3, float *param_4)
  *
  * 0x10c8e0 / random_math.obj
  */
-float *FUN_0010c8e0(float *v, float *n, float *out)
+real_vector3d *reflect_vector3d(real_vector3d const *vector,
+                                real_vector3d const *normal,
+                                real_vector3d *result)
 {
   float dot2;
 
-  dot2 = (v[0] * n[0] + v[1] * n[1] + v[2] * n[2]) * 2.0f;
-  out[0] = v[0] - dot2 * n[0];
-  out[1] = v[1] - dot2 * n[1];
-  out[2] = v[2] - dot2 * n[2];
-  return out;
+  dot2 = (vector->i * normal->i + vector->j * normal->j +
+          vector->k * normal->k) * 2.0f;
+  result->i = vector->i - dot2 * normal->i;
+  result->j = vector->j - dot2 * normal->j;
+  result->k = vector->k - dot2 * normal->k;
+  return result;
 }
 
 /* Spherical rotation: rotate v1 toward v2 by angle t (radians), writing

@@ -1915,24 +1915,28 @@ void item_adjust_for_angular_velocity_change(int item_handle)
  * Validate that three vectors (a, b, c) form a valid orthonormal axis triple:
  * each must be a unit normal (valid_real_normal3d), and each adjacent pair
  * must be mutually perpendicular (dot ~= 0). FUN_00021f70 is the two-float
- * approximate-equality test (dot, 0.0). FUN_00013070(c, a) returns the
+ * approximate-equality test (dot, 0.0). dot_product3d(c, a) returns the
  * scalar (dot) that must also be ~0. Returns 1 if all checks pass, else 0.
  *
  * FP term order preserved from disassembly (MSVC scheduling emits the sum
  * components in 0,2,1 order); the sum is commutative so this is harmless
  * mathematically but kept for byte-fidelity. */
-char valid_real_vector3d_axes3(float *a, float *b, float *c)
+char valid_real_vector3d_axes3(real_vector3d const *forward,
+                               real_vector3d const *left,
+                               real_vector3d const *up)
 {
   float scalar;
 
-  if (valid_real_normal3d(a)) {
-    if (valid_real_normal3d(b)) {
-      if (valid_real_normal3d(c)) {
-        if ((char)FUN_00021f70(a[0] * b[0] + a[2] * b[2] + a[1] * b[1], 0.0f) !=
-            '\0') {
-          if ((char)FUN_00021f70(b[0] * c[0] + c[2] * b[2] + c[1] * b[1],
+  if (valid_real_normal3d((real_vector3d *)forward)) {
+    if (valid_real_normal3d((real_vector3d *)left)) {
+      if (valid_real_normal3d((real_vector3d *)up)) {
+        if ((char)FUN_00021f70(forward->i * left->i + forward->k * left->k +
+                                 forward->j * left->j,
+                               0.0f) != '\0') {
+          if ((char)FUN_00021f70(left->i * up->i + up->k * left->k +
+                                   up->j * left->j,
                                  0.0f) != '\0') {
-            scalar = FUN_00013070(c, a);
+            scalar = dot_product3d(up, forward);
             if ((char)FUN_00021f70(scalar, 0.0f) != '\0') {
               return '\x01';
             }
@@ -1959,7 +1963,7 @@ char valid_real_vector3d_axes3(float *a, float *b, float *c)
 char valid_real_matrix4x3(float *mat)
 {
   if ((*(uint32_t *)mat & 0x7f800000) != 0x7f800000) {
-    if (valid_real_vector3d_axes3(mat + 1, mat + 4, mat + 7) != '\0') {
+    if (valid_real_vector3d_axes3((real_vector3d *)(mat + 1), (real_vector3d *)(mat + 4), (real_vector3d *)(mat + 7)) != '\0') {
       if (valid_real_point3d(mat + 10)) {
         return '\x01';
       }
@@ -1994,12 +1998,12 @@ char valid_real_matrix4x3(float *mat)
  * CALL 0x99640 (bsp3d_get_plane_from_designator) for plane extraction.
  * Confirmed: CALL 0x12f80 (vector3d_scale_add) for ground projection.
  * Confirmed: CALL 0x143be0 (object_translate) for repositioning item.
- * Confirmed: CALL 0x12170 (FUN_00012170) for vector magnitude. Confirmed: CALL
+ * Confirmed: CALL 0x12170 (magnitude_squared3d) for vector magnitude. Confirmed: CALL
  * 0x10b0d0 (get_global_random_seed_address). Confirmed: CALL 0x10b240
  * (random_math_real) for random scale. Confirmed: CALL 0x13010 (normalize3d)
  * for cross product normalization. Confirmed: CALL 0x10b380
  * (random_seed_get_direction3d) for degenerate case. Confirmed: CALL 0x121e0
- * (FUN_000121e0) for random angle
+ * (real_random_range) for random angle
  * [-pi/4, pi/4]. Confirmed: CALL 0x213c0 (vector3d_add) for angular velocity
  * accumulation. Confirmed: CALL 0xf6b80
  * (item_adjust_for_angular_velocity_change) with item_handle in EAX. Confirmed:
@@ -2011,7 +2015,7 @@ char valid_real_matrix4x3(float *mat)
  * Confirmed: zero constant at 0x2533c0 = 0.0f.
  * Confirmed: pi/2 constant at 0x2568bc = ~1.5708f.
  */
-void item_accelerate(int item_handle, float *position, int flag)
+void item_accelerate(int item_handle, const real_vector3d *acceleration, int flag)
 {
   char *item_obj;
   char *item_tag;
@@ -2066,9 +2070,9 @@ void item_accelerate(int item_handle, float *position, int flag)
       /* Not grounded: just clear the "needs update" flag bit 5 at +0x04 */
       *(uint32_t *)(item_obj + 0x04) =
         *(uint32_t *)(item_obj + 0x04) & 0xffffffdf;
-    } else if (*(float *)0x253f44 <= position[0] * position[0] +
-                                       position[1] * position[1] +
-                                       position[2] * position[2]) {
+    } else if (*(float *)0x253f44 <= acceleration->i * acceleration->i +
+                                       acceleration->j * acceleration->j +
+                                       acceleration->k * acceleration->k) {
       /* Grounded and velocity magnitude squared >= epsilon:
        * Try to reposition item to ground plane */
       marker_count = object_get_marker_by_name(
@@ -2087,8 +2091,8 @@ void item_accelerate(int item_handle, float *position, int flag)
               plane[2] * *(float *)(marker_buf + 0x68);
         scale = *(float *)0x2533e8 - (dot - plane[3]);
 
-        vector3d_scale_add((float *)(marker_buf + 0x60), plane, scale, new_pos);
-        object_translate(item_handle, new_pos, 0);
+        vector3d_scale_add((real_point3d *)(marker_buf + 0x60), (real_vector3d *)plane, scale, (real_point3d *)new_pos);
+        object_translate(item_handle, (real_point3d *)new_pos, 0);
       }
       /* Clear "needs update" bit 5 at +0x04 and ground bit 3 at +0x1a4 */
       *(uint32_t *)(item_obj + 0x04) =
@@ -2097,18 +2101,18 @@ void item_accelerate(int item_handle, float *position, int flag)
         *(uint32_t *)(item_obj + 0x1a4) & 0xfffffff7;
     }
 
-    /* Accumulate position delta onto object position at +0x18 */
-    *(float *)(item_obj + 0x18) += position[0];
-    *(float *)(item_obj + 0x1c) += position[1];
-    *(float *)(item_obj + 0x20) += position[2];
+    /* Accumulate acceleration onto object velocity at +0x18 */
+    *(float *)(item_obj + 0x18) += acceleration->i;
+    *(float *)(item_obj + 0x1c) += acceleration->j;
+    *(float *)(item_obj + 0x20) += acceleration->k;
 
     /* Determine angular velocity update path */
     if (*(int *)(item_obj + 0x1b0) != NONE ||
         !(*(uint8_t *)(item_obj + 0x1a4) & 0x8) ||
-        *(float *)0x253f44 <= FUN_00012170(position)) {
+        *(float *)0x253f44 <= magnitude_squared3d(acceleration)) {
       /* Normal tumble: compute angular velocity from cross product */
-      vel_mag = sqrtf(position[0] * position[0] + position[1] * position[1] +
-                      position[2] * position[2]);
+      vel_mag = sqrtf(acceleration->i * acceleration->i + acceleration->j * acceleration->j +
+                      acceleration->k * acceleration->k);
       if (vel_mag < *(float *)0x253f44) {
         unsigned int *seed = (unsigned int *)get_global_random_seed_address();
         vel_mag = random_math_real(seed);
@@ -2116,9 +2120,9 @@ void item_accelerate(int item_handle, float *position, int flag)
 
       /* cross = cross(global_up, position_delta) */
       up = *(float **)0x31fc44;
-      cross[2] = up[0] * position[1] - up[1] * position[0];
-      cross[1] = position[0] * up[2] - up[0] * position[2];
-      cross[0] = up[1] * position[2] - position[1] * up[2];
+      cross[2] = up[0] * acceleration->j - up[1] * acceleration->i;
+      cross[1] = acceleration->i * up[2] - up[0] * acceleration->k;
+      cross[0] = up[1] * acceleration->k - acceleration->j * up[2];
 
       if (normalize3d((real_vector3d *)cross) <= *(float *)0x2533c0) {
         /* Degenerate cross product: use random direction */
@@ -2153,15 +2157,15 @@ void item_accelerate(int item_handle, float *position, int flag)
       /* Random angle in [-pi/2, pi/2]. The literal must round to the
        * reference's 0x3fc90fdb / 0xbfc90fdb: 1.5707963f is one ULP low
        * (0x3fc90fda), which VC71 emits verbatim. */
-      scale = FUN_000121e0(-_pi / 2.f, _pi / 2.f);
+      scale = real_random_range(-_pi / 2.f, _pi / 2.f);
       scaled_dir[0] = cross[0] * scale;
       scaled_dir[1] = cross[1] * scale;
       scaled_dir[2] = cross[2] * scale;
 
       /* angular_velocity += scaled_dir */
       vector3d_add(
-        (float *)(item_obj + 0x3c), scaled_dir,
-        (float *)(item_obj + 0x3c)); /* dup-args-ok: in-place accumulation */
+        (real_vector3d *)(item_obj + 0x3c), (real_vector3d *)scaled_dir,
+        (real_vector3d *)(item_obj + 0x3c)); /* dup-args-ok: in-place accumulation */
     }
 
     /* Update item velocity/angular state and clear garbage flag */
@@ -2373,10 +2377,10 @@ bool item_update(int item_handle)
           (float)*(double *)0x2533d0) {
       global_vector = *(float **)0x31fc44;
       *(item_position3d *)(item_obj + 0x30) = *(item_position3d *)global_vector;
-      cross_product3d((float *)(item_obj + 0x30), (float *)(item_obj + 0x24),
-                      new_point);
-      cross_product3d(new_point, (float *)(item_obj + 0x30),
-                      (float *)(item_obj + 0x24));
+      cross_product3d((real_vector3d *)(item_obj + 0x30), (real_vector3d *)(item_obj + 0x24),
+                      (real_vector3d *)new_point);
+      cross_product3d((real_vector3d *)new_point, (real_vector3d *)(item_obj + 0x30),
+                      (real_vector3d *)(item_obj + 0x24));
       if (normalize3d((real_vector3d *)(item_obj + 0x24)) == *(float *)0x2533c0) {
         global_vector = *(float **)0x31fc3c;
         *(item_position3d *)(item_obj + 0x24) =
@@ -2398,7 +2402,7 @@ bool item_update(int item_handle)
       new_point[1] = velocity[1] + *(float *)(item_obj + 0x10);
       new_point[2] = velocity[2] + *(float *)(item_obj + 0x14);
 
-      if (FUN_000130d0(ITEM_COLLISION_FLAGS, (float *)(item_obj + 0xc),
+      if (collision_test_line(ITEM_COLLISION_FLAGS, (float *)(item_obj + 0xc),
                        new_point, *(int *)(item_obj + 0x1b0),
                        (int16_t *)(marker_buf + 0x1c))) {
         /* Lift the impact point off the surface along its normal. */
@@ -2409,7 +2413,7 @@ bool item_update(int item_handle)
         new_point[2] =
           *(float *)(marker_buf + 0x48) * *(float *)0x2533e8 + new_point[2];
 
-        scale = FUN_00012fe0(velocity) / *(float *)0x28aa80;
+        scale = magnitude3d((real_vector3d *)velocity) / *(float *)0x28aa80;
         if (scale < *(float *)0x2533c0)
           scale = 0.0f;
         else if (scale > *(float *)0x2533c8)
@@ -2459,12 +2463,12 @@ bool item_update(int item_handle)
           velocity[2] = 0.0f;
           velocity[1] = 0.0f;
           velocity[0] = 0.0f;
-          FUN_00012fb0(
-            (float *)(marker_buf + 0x40),
+          scale_vector3d(
+            (real_vector3d *)(marker_buf + 0x40),
             *(float *)(marker_buf + 0x44) * *(float *)(item_obj + 0x40) +
               *(float *)(marker_buf + 0x48) * *(float *)(item_obj + 0x44) +
               *(float *)(marker_buf + 0x40) * *(float *)(item_obj + 0x3c),
-            (float *)(item_obj + 0x3c));
+            (real_vector3d *)(item_obj + 0x3c));
 
           if (!game_engine_running() && *(int *)(item_obj + 0x70) == NONE)
             object_set_garbage(item_handle, 1);
@@ -2516,8 +2520,8 @@ bool item_update(int item_handle)
           velocity[2] = impulse * *(float *)(marker_buf + 0x48) + velocity[2];
 
           if (FUN_0014dc30(ITEM_COLLISION_FLAGS, new_point, item_handle)) {
-            vector3d_scale_add((float *)(marker_buf + 0x34),
-                               (float *)(marker_buf + 0x40), 0.05f, new_point);
+            vector3d_scale_add((real_point3d *)(marker_buf + 0x34),
+                               (real_vector3d *)(marker_buf + 0x40), 0.05f, (real_point3d *)new_point);
           }
           FUN_0014dc30(ITEM_COLLISION_FLAGS, new_point, item_handle);
         }
@@ -2526,7 +2530,7 @@ bool item_update(int item_handle)
       velocity_field[0] = velocity[0];
       velocity_field[1] = velocity[1];
       velocity_field[2] = velocity[2];
-      object_translate(item_handle, new_point, marker_buf + 0x28);
+      object_translate(item_handle, (real_point3d *)new_point, marker_buf + 0x28);
     } else if (!(*(uint8_t *)(item_tag + 0x17c) & 0x4)) {
       /* ---- at rest: re-validate the attachment -------------------- */
       object_get_marker_by_name(item_handle, (void *)0x28aa90, marker_buf,
@@ -2540,7 +2544,7 @@ bool item_update(int item_handle)
           (int)*(int16_t *)(item_obj + 0x1aa), 0xc);
         if ((*(uint8_t *)(surface + 0x8) & 0x8) &&
             breakable_surface_extant(*(uint8_t *)(surface + 0x9)) == '\0') {
-          FUN_00012fb0(*(float **)0x31fc50, *(float *)0x32512c, new_point);
+          scale_vector3d((real_vector3d *)(*(float **)0x31fc50), *(float *)0x32512c, (real_vector3d *)new_point);
           *(uint32_t *)(item_obj + 0x1a4) =
             *(uint32_t *)(item_obj + 0x1a4) & 0xfffffff7;
           *(int16_t *)(item_obj + 0x1aa) = (int16_t)NONE;
@@ -2550,16 +2554,16 @@ bool item_update(int item_handle)
         if (object_try_and_get_and_verify_type(*(int *)(item_obj + 0x1b8),
                                                NONE)) {
           node_matrix = object_get_node_matrix(*(int *)(item_obj + 0x1b8), 0);
-          matrix_transform_point(node_matrix, (float *)(item_obj + 0x1bc),
-                                 new_point);
+          matrix_transform_point(node_matrix, (real_point3d *)(item_obj + 0x1bc),
+                                 (real_point3d *)new_point);
           item_align_to_normal_and_point(
             (float *)0, (float *)(item_obj + 0x1c8), item_handle, new_point);
         } else {
-          FUN_00012fb0(*(float **)0x31fc50, *(float *)0x32512c, new_point);
+          scale_vector3d((real_vector3d *)(*(float **)0x31fc50), *(float *)0x32512c, (real_vector3d *)new_point);
           *(uint32_t *)(item_obj + 0x1a4) =
             *(uint32_t *)(item_obj + 0x1a4) & 0xffffffef;
         drop_item:
-          item_accelerate(item_handle, new_point, 0);
+          item_accelerate(item_handle, (real_vector3d *)new_point, 0);
         }
       }
 
@@ -2585,8 +2589,8 @@ bool item_update(int item_handle)
         rotate_vector3d_by_sincos((real_vector3d *)&matrix[7], (real_vector3d *)(item_obj + 0x1c8),
                                   *(float *)(item_obj + 0x1d4),
                                   *(float *)(item_obj + 0x1d8));
-        cross_product3d(&matrix[7], &matrix[1], &matrix[4]);
-        cross_product3d(&matrix[4], &matrix[7], &matrix[1]);
+        cross_product3d((real_vector3d *)&matrix[7], (real_vector3d *)&matrix[1], (real_vector3d *)&matrix[4]);
+        cross_product3d((real_vector3d *)&matrix[4], (real_vector3d *)&matrix[7], (real_vector3d *)&matrix[1]);
         normalize3d((real_vector3d *)&matrix[1]);
         normalize3d((real_vector3d *)&matrix[4]);
         normalize3d((real_vector3d *)&matrix[7]);
@@ -2602,10 +2606,10 @@ bool item_update(int item_handle)
       }
 
       normalize3d((real_vector3d *)(item_obj + 0x30));
-      cross_product3d((float *)(item_obj + 0x30), (float *)(item_obj + 0x24),
-                      new_point);
-      cross_product3d(new_point, (float *)(item_obj + 0x30),
-                      (float *)(item_obj + 0x24));
+      cross_product3d((real_vector3d *)(item_obj + 0x30), (real_vector3d *)(item_obj + 0x24),
+                      (real_vector3d *)new_point);
+      cross_product3d((real_vector3d *)new_point, (real_vector3d *)(item_obj + 0x30),
+                      (real_vector3d *)(item_obj + 0x24));
       normalize3d((real_vector3d *)(item_obj + 0x24));
     }
   }

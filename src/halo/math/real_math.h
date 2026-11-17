@@ -43,7 +43,7 @@ static __inline real_vector3d *vector_from_points3d(real_point3d const *a,
 }
 
 /* result = c * a.  Inlined in lightning_submit (0x1359c4). */
-static __inline real_vector3d *scale_vector3d(real_vector3d const *a, real c,
+static __inline real_vector3d *scale_vector3d_inline(real_vector3d const *a, real c,
                                               real_vector3d *result)
 {
   result->i = c * a->i;
@@ -53,13 +53,13 @@ static __inline real_vector3d *scale_vector3d(real_vector3d const *a, real c,
 }
 
 /* |v|^2.  Inlined in ai_communication_get_player_rating. */
-static __inline real magnitude_squared3d(real_vector3d const *v)
+static __inline real magnitude_squared3d_inline(real_vector3d const *v)
 {
   return v->i * v->i + v->j * v->j + v->k * v->k;
 }
 
 /* a . b.  Inlined in ai_communication_get_player_rating. */
-static __inline real dot_product3d(real_vector3d const *a,
+static __inline real dot_product3d_inline(real_vector3d const *a,
                                    real_vector3d const *b)
 {
   return a->i * b->i + a->j * b->j + a->k * b->k;

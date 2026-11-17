@@ -525,7 +525,7 @@ void FUN_0016e2e0(float *position, float param_2)
 void FUN_0016eef0(void *group)
 {
   char *grp = (char *)group;
-  char *p; /* plasma shader params base = FUN_001906b0(..)+0x28 */
+  char *p; /* plasma shader params base = shader_get_and_verify_type(..)+0x28 */
   int *params; /* grp+0x6c: {color_table, pow_table} pointer pair */
   float *color_table; /* params[0]: 12-byte-stride colour entries */
   float *pow_table; /* params[1]: exponent-table floats [EBP-0xc] */
@@ -552,7 +552,7 @@ void FUN_0016eef0(void *group)
     return;
   }
 
-  p = (char *)FUN_001906b0(*(void **)(grp + 0xc), 10) + 0x28;
+  p = (char *)shader_get_and_verify_type(*(void **)(grp + 0xc), 10) + 0x28;
   tint = *(float **)0x2ee708;
   alpha_c = 1.0f;
   alpha_s = 0.0f;
@@ -3449,7 +3449,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           argb[2] = dim;
           argb[3] = dim;
         }
-        FUN_00189cb0(0, grp + 0x74, text_buffer, (int)argb);
+        render_debug_string_at_point(0, grp + 0x74, text_buffer, (int)argb);
       }
     }
     goto tail;
@@ -3584,7 +3584,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       } else {
         sh = *(char **)(grp + 0xc);
         if (sh != (char *)0 && *(short *)(sh + 0x24) == 1) {
-          char *senv = (char *)FUN_001906b0(sh, 1);
+          char *senv = (char *)shader_get_and_verify_type(sh, 1);
           if ((*(unsigned char *)(senv + 0x28) & 4) != 0) {
             goto next_pass;
           }
@@ -3609,7 +3609,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       int stage_count;
       int idx;
 
-      env = (char *)FUN_001906b0(sh, 1);
+      env = (char *)shader_get_and_verify_type(sh, 1);
       /* has_multi = secondary map used as a regular multitexture stage.
        * A z-sprite secondary map (env+0x5c == 2) is NOT a multitexture
        * stage — it goes through the dedicated z-sprite final-combiner
@@ -3736,7 +3736,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         fog_consts[1] = -(fog_consts[0] * *(float *)0x5a5c04);
         fog_consts[2] = opacity * *(float *)(env + 0x98);
         fog_consts[3] = *(float *)0x5a5c04 + *(float *)0x25bb10;
-        fog_consts[7] = -FUN_00013070((float *)0x5a5bd4, (float *)0x5a5bc8);
+        fog_consts[7] = -dot_product3d((real_vector3d *)0x5a5bd4, (real_vector3d *)0x5a5bc8);
         D3DDevice_SetVertexShaderConstant(-0x3f, fog_consts, 2);
         if (success != 0) {
           success = 1;
@@ -3909,7 +3909,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       float x;
       unsigned int blendrow;
 
-      gen = (char *)FUN_001906b0(sh, 5);
+      gen = (char *)shader_get_and_verify_type(sh, 5);
       frame_index = *(unsigned short *)(grp + 0x10);
       layers = gen + 0x48;
       if (*(int *)layers > 0) {
@@ -4340,7 +4340,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       float x2;
       unsigned int blendrow2;
 
-      chi = (char *)FUN_001906b0(sh, 6);
+      chi = (char *)shader_get_and_verify_type(sh, 6);
       frame_index2 = *(unsigned short *)(grp + 0x10);
       layers2 = chi + 0x48;
       /* NOTE: original re-reads the layer count each iteration and always
@@ -4651,7 +4651,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       float bump_color[3]; /* [EBP-0x7c] */
       float bc;
 
-      gls = (char *)FUN_001906b0(sh, 8);
+      gls = (char *)shader_get_and_verify_type(sh, 8);
       reflection_type = *(short *)(gls + 0x8a);
       if (reflection_type == 2) {
         if (*(char *)0x5a5bc4 == 0 || *(short *)0x5a5bc0 != 0) {
@@ -5001,7 +5001,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       float px3_alpha;
       float meter_consts[12]; /* [EBP-0x250] */
 
-      met = (char *)FUN_001906b0(sh, 9);
+      met = (char *)shader_get_and_verify_type(sh, 9);
       brightness = 1.0f;
       power = 1.0f;
       gradient = 1.0f;
@@ -5531,7 +5531,7 @@ void FUN_001795c0(void *shader)
     return;
   }
 
-  water = FUN_001906b0(shader, 7);
+  water = shader_get_and_verify_type(shader, 7);
 
   layer_count = NUMBER_OF_WATER_RIPPLES;
   if (*(short *)((char *)water + 0xd8) <= NUMBER_OF_WATER_RIPPLES) {
@@ -5799,7 +5799,7 @@ void FUN_00179de0(void *group)
     return;
   }
 
-  shader = FUN_001906b0(*(void **)((char *)group + 0xc), 7);
+  shader = shader_get_and_verify_type(*(void **)((char *)group + 0xc), 7);
   permutation =
     shader_get_vertex_shader_permutation(*(void **)((char *)group + 0xc));
   vertex_type = FUN_00184610(group);
@@ -6003,7 +6003,7 @@ void FUN_00179de0(void *group)
       weight = 1.0f;
       if (-(*(float *)0x5a5bd8 * v[1] + *(float *)0x5a5bdc * v[2] +
             *(float *)0x5a5bd4 * v[0]) <= 1.0f) {
-        weight = -FUN_00013070((float *)0x5a5bd4, v);
+        weight = -dot_product3d((real_vector3d *)0x5a5bd4, (real_vector3d *)v);
       }
     }
     inverse_weight = 1.0f - weight;
@@ -6097,7 +6097,7 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
     viewport_width = VIEWPORT_RIGHT - VIEWPORT_LEFT;
     viewport_extent = *(int *)0x5a5bf8 - *(int *)0x5a5bf4;
 
-    matrix_transform_point(WORLD_TO_VIEW_MATRIX, point, view_point);
+    matrix_transform_point(WORLD_TO_VIEW_MATRIX, (real_point3d *)point, (real_point3d *)view_point);
 
     proj_y = PROJECTION_MATRIX(0, 1) * view_point[0] +
              PROJECTION_MATRIX(1, 1) * view_point[1] +
@@ -6378,7 +6378,7 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
 /* shader_transparent_chicago pixel-shader preprocessor (FUN_0017bca0):
  * build the 0xf0-byte pixel-shader description block for a chicago
  * transparent shader.  Resolves the shader's type-6 parameter block via
- * FUN_001906b0, zero-fills the description, then walks the map tag_block
+ * shader_get_and_verify_type, zero-fills the description, then walks the map tag_block
  * (element stride 0xdc) emitting one combiner colour stage (+0x04+i*4) and
  * one alpha stage (+0x8c+i*4) per map, with the fixed 0xc00 inputs at
  * +0x68+i*4 / +0xb4+i*4.  The final map takes the fixed terminator pair
@@ -6400,7 +6400,7 @@ int rasterizer_widget_submit_occlusion_test(float *position, float radius,
 char FUN_0017bca0(void *shader, void *pixel_shader)
 {
   char result; /* [EBP-1]; the loop keeps the 1 in AL */
-  char *shader_data; /* FUN_001906b0 result, spilled to the dead [EBP+8] */
+  char *shader_data; /* shader_get_and_verify_type result, spilled to the dead [EBP+8] */
   int *maps; /* shader_data + 0x54: map tag_block header */
   char *desc; /* EDI: the 0xf0-byte output description */
   int map_count;
@@ -6428,7 +6428,7 @@ char FUN_0017bca0(void *shader, void *pixel_shader)
   }
 
   desc = (char *)pixel_shader;
-  shader_data = (char *)FUN_001906b0(shader, 6);
+  shader_data = (char *)shader_get_and_verify_type(shader, 6);
   csmemset(pixel_shader, 0, 0xf0);
 
   maps = (int *)(shader_data + 0x54);
@@ -6883,7 +6883,7 @@ bool FUN_0017c1b0(void *stage, short stage_index)
 char FUN_0017c2f0(void *shader, void *pixel_shader)
 {
   char valid; /* [EBP-1] */
-  void *generic; /* FUN_001906b0 result, [EBP+8] after reuse */
+  void *generic; /* shader_get_and_verify_type result, [EBP+8] after reuse */
   int *maps; /* &generic->maps.count   (EBX @0x17c368) */
   int *stages; /* &generic->stages.count ([EBP-0xc]) */
   unsigned char *stage; /* EBX inside the stage loop */
@@ -6915,7 +6915,7 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
     system_exit(-1);
   }
 
-  generic = FUN_001906b0(shader, 5);
+  generic = shader_get_and_verify_type(shader, 5);
   csmemset(pixel_shader, 0, 0xf0);
 
   maps = (int *)((char *)generic + 0x54);

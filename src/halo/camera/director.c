@@ -497,7 +497,7 @@ int16_t director_desired_perspective(int unit_handle, int16_t *perspective)
         bool third_person_on_enter;
         unit_seat_t *seat = tag_block_get_element(
           &unit_definition_get(parent_object->tag_index)->seats,
-          (short)unit->parent_seat_index, sizeof(unit_seat_t));
+          unit->parent_seat_index, sizeof(unit_seat_t));
 
         third_person_on_enter =
           (seat->flags & FLAG(_unit_seat_third_person_on_enter_bit)) != 0;
@@ -505,9 +505,9 @@ int16_t director_desired_perspective(int unit_handle, int16_t *perspective)
           following = 1;
         if (third_person_on_enter) {
           /* unk_595 = animation state */
-          if ((char)unit->unk_595 == _unit_state_entering_seat)
+          if ((char)unit->animation_state == _unit_state_entering_seat)
             *perspective = 1;
-          else if ((char)unit->unk_595 == _unit_state_exiting_seat)
+          else if ((char)unit->animation_state == _unit_state_exiting_seat)
             *perspective = 3;
           else
             *perspective = 2;
@@ -1715,7 +1715,7 @@ void editor_camera_set_position_and_roll(const real_point3d *point,
   cross_product3d_inline(&pitched, &matrix.up, &cross);
   normalize3d(&cross);
   editor_camera_globals.camera->roll =
-    angle_between_vectors3d(&pitched, &matrix.up) * dot_product3d(&cross, &forward);
+    angle_between_vectors3d(&pitched, &matrix.up) * dot_product3d_inline(&cross, &forward);
   if (editor_camera_relative_object_index != NONE) {
     set_real_vector3d_inline(&editor_camera_globals.unit_offset, point->x,
                              point->y, point->z);

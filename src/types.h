@@ -718,62 +718,62 @@ typedef struct {
   object_data_t object;               ///< offset=0x000
   datum_handle_t actor_index;         ///< offset=0x1A4 .text:0003EB73                 cmp     dword ptr [edi+1A4h], 0FFFFFFFFh
   datum_handle_t swarm_actor_index;   ///< offset=0x1A8 .text:0003EB9C                 cmp     dword ptr [edi+1A8h], 0FFFFFFFFh
-  datum_handle_t unk_428;             ///< offset=0x1AC .text:00031492                 mov     eax, [eax+1ACh]
-  datum_handle_t unk_432;             ///< offset=0x1B0 .text:0003AF89                 mov     eax, [esi+1B0h]   datum index?
-  uint32_t unk_436;                   ///< offset=0x1B4 .text:001A80D0                 test    dword ptr [esi+1B4h], 400000h   flags
-  uint32_t unk_440;                   ///< offset=0x1B8 .text:000D93E7                 mov     ecx, [eax+1B8h] flags
-  uint16_t unk_444;                   ///< offset=0x1BC .text:001B3701                 inc     word ptr [ebx+1BCh]
-  uint8_t unk_446;                    ///< offset=0x1BE .text:001A8125                 movsx   edx, byte ptr [esi+1BEh]
-  uint8_t unk_447;                    ///< offset=0x1BF .text:001AE773                 mov     [esi+1BFh], al    seat index
-  uint32_t unk_448;                   ///< offset=0x1C0 .text:001A81DA                 mov     [esi+1C0h], ecx
+  datum_handle_t swarm_next_unit_index;             ///< offset=0x1AC .text:00031492                 mov     eax, [eax+1ACh]
+  datum_handle_t swarm_prev_unit_index;             ///< offset=0x1B0 .text:0003AF89                 mov     eax, [esi+1B0h]   datum index?
+  uint32_t flags;                   ///< offset=0x1B4 .text:001A80D0                 test    dword ptr [esi+1B4h], 400000h   flags
+  uint32_t control_flags;                   ///< offset=0x1B8 .text:000D93E7                 mov     ecx, [eax+1B8h] flags
+  uint16_t timer;                   ///< offset=0x1BC .text:001B3701                 inc     word ptr [ebx+1BCh]
+  uint8_t shield_sap_timeout;                    ///< offset=0x1BE .text:001A8125                 movsx   edx, byte ptr [esi+1BEh]
+  uint8_t magic_seat_index;                    ///< offset=0x1BF .text:001AE773                 mov     [esi+1BFh], al    seat index
+  uint32_t persistent_control_timer;                   ///< offset=0x1C0 .text:001A81DA                 mov     [esi+1C0h], ecx
   uint32_t persistent_control_flags;  ///< offset=0x1C4 .text:001A81D3                 mov     [esi+1C4h], edi
   datum_handle_t player_index;        ///< offset=0x1C8 .text:00030656                 cmp     dword ptr [ebx+1C8h], 0FFFFFFFFh
-  uint16_t unk_460;                   ///< offset=0x1CC .text:0004091B                 cmp     bx, [esi+1CCh]
-  uint16_t unk_462;                   ///< offset=0x1CE .text:001A9B5E                 mov     [esi+1CEh], ax
-  uint32_t unk_464;                   ///< offset=0x1D0 .text:00040924                 mov     ecx, [esi+1D0h] game time related
-  vector3_t desired_facing_vector;   ///< offset=0x1D4 .text:001AF62B                 lea     ecx, [esi+1D4h]
-  vector3_t unk_480;                  ///< offset=0x1E0 .text:001AF63E                 lea     edx, [esi+1E0h]
+  uint16_t last_unit_effect_type;                   ///< offset=0x1CC .text:0004091B                 cmp     bx, [esi+1CCh]
+  uint16_t override_emotion_animation_index;                   ///< offset=0x1CE .text:001A9B5E                 mov     [esi+1CEh], ax
+  uint32_t game_time_at_last_unit_effect;                   ///< offset=0x1D0 .text:00040924                 mov     ecx, [esi+1D0h] game time related
+  real_vector3d desired_facing_vector;   ///< offset=0x1D4 .text:001AF62B                 lea     ecx, [esi+1D4h]
+  real_vector3d desired_aiming_vector;                  ///< offset=0x1E0 .text:001AF63E                 lea     edx, [esi+1E0h]
   real_vector3d aiming_vector;              ///< offset=0x1EC .text:001AF678                 lea     eax, [esi+1ECh]
-  vector3_t unk_504;                  ///< offset=0x1F8 .text:001AF7E5                 fld     dword ptr [esi+1F8h]
-  vector3_t unk_516;                  ///< offset=0x204 .text:001AF651                 lea     eax, [esi+204h]
-  vector3_t unk_528;                  ///< offset=0x210 .text:001AF68B                 add     esi, 210h
-  vector3_t unk_540;                  ///< offset=0x21C .text:001AF82F                 fld     dword ptr [esi+21Ch]
+  real_vector3d aiming_velocity;                  ///< offset=0x1F8 .text:001AF7E5                 fld     dword ptr [esi+1F8h]
+  real_vector3d desired_looking_vector;                  ///< offset=0x204 .text:001AF651                 lea     eax, [esi+204h]
+  real_vector3d looking_vector;                  ///< offset=0x210 .text:001AF68B                 add     esi, 210h
+  real_vector3d looking_velocity;                  ///< offset=0x21C .text:001AF82F                 fld     dword ptr [esi+21Ch]
   vector3_t throttle;                 ///< offset=0x228 .text:001B39A3                 lea     edx, [ebx+228h]
-  float unk_564;                      ///< offset=0x234 .text:001B387D                 mov     dword ptr [ebx+234h], 3F800000h
-  uint8_t unk_568;                    ///< offset=0x238
-  uint8_t unk_569;                    ///< offset=0x239 .text:001ABDB1                 mov     cl, [esi+239h]
-  uint8_t unk_570;                    ///< offset=0x23A .text:001ABDE5                 mov     cl, [esi+23Ah]
-  uint8_t unk_571;                    ///< offset=0x23B .text:001B0EC8                 mov     al, [edi+23Bh]
-  uint8_t unk_572;                    ///< offset=0x23C .text:0003D1D3                 mov     [eax+23Ch], bl
-  uint8_t unk_573;                    ///< offset=0x23D .text:001AB0FB                 mov     byte ptr [esi+23Dh], 3
+  float primary_trigger;                      ///< offset=0x234 .text:001B387D                 mov     dword ptr [ebx+234h], 3F800000h
+  uint8_t aiming_speed;                    ///< offset=0x238
+  uint8_t melee_attack_state;                    ///< offset=0x239 .text:001ABDB1                 mov     cl, [esi+239h]
+  uint8_t melee_continuous_damage_effect_timer;                    ///< offset=0x23A .text:001ABDE5                 mov     cl, [esi+23Ah]
+  uint8_t flaming_death_delay;                    ///< offset=0x23B .text:001B0EC8                 mov     al, [edi+23Bh]
+  uint8_t weapon_drop_delay_ticks;                    ///< offset=0x23C .text:0003D1D3                 mov     [eax+23Ch], bl
+  uint8_t grenade_throw_state;                    ///< offset=0x23D .text:001AB0FB                 mov     byte ptr [esi+23Dh], 3
   uint8_t unk_574;                    ///< offset=0x23E .text:001AB2F7                 movsx   ecx, word ptr [esi+23Eh]
   uint8_t unk_575;                    ///< offset=0x23F padding?
-  uint16_t unk_576;                   ///< offset=0x240 .text:001AB2FE                 movsx   edx, word ptr [esi+240h]
+  int16_t grenade_throw_full_power_ticks;                   ///< offset=0x240 .text:001AB2FE                 movsx   edx, word ptr [esi+240h]
   uint16_t unk_578;                   ///< offset=0x242
-  datum_handle_t unk_580;             ///< offset=0x244 .text:001AB147                 mov     edi, [esi+244h]
-  uint8_t unk_584;                    ///< offset=0x248 .text:001ACF38                 or      byte ptr [eax+248h], 2
-  uint8_t unk_585;                    ///< offset=0x249
-  uint16_t unk_586;                   ///< offset=0x24A .text:001A8C5D                 cmp     word ptr [esi+24Ah], 0FFFFh
-  uint16_t unk_588;                   ///< offset=0x24C .text:001AD69B                 mov     [esi+24Ch], ax
-  uint16_t unk_590;                   ///< offset=0x24E .text:001B2887                 mov     [esi+24Eh], bx
-  uint8_t unk_592;                    ///< offset=0x250 .text:001A841D                 movsx   ecx, byte ptr [esi+250h]
-  uint8_t unk_593;                    ///< offset=0x251 .text:001A8432                 movsx   ecx, byte ptr [esi+251h]
-  uint8_t unk_594;                    ///< offset=0x252 .text:001A8A0C                 movsx   eax, byte ptr [esi+252h]
-  uint8_t unk_595;                    ///< offset=0x253 .text:001A8B46                 movsx   eax, byte ptr [esi+253h]
-  uint8_t unk_596;                    ///< offset=0x254 .text:001A8AEB                 mov     [esi+254h], cl
-  uint8_t unk_597;                    ///< offset=0x255 .text:001A8B31                 movsx   cx, byte ptr [esi+255h]
-  uint8_t unk_598;                    ///< offset=0x256 .text:001B0E17                 movsx   eax, byte ptr [edi+256h]
+  datum_handle_t grenade_object_index;             ///< offset=0x244 .text:001AB147                 mov     edi, [esi+244h]
+  uint8_t animation_flags;                    ///< offset=0x248 .text:001ACF38                 or      byte ptr [eax+248h], 2
+  uint8_t field_249;                    ///< offset=0x249
+  int16_t aiming_screen_index;                   ///< offset=0x24A .text:001A8C5D                 cmp     word ptr [esi+24Ah], 0FFFFh
+  int16_t looking_screen_index;                   ///< offset=0x24C .text:001AD69B                 mov     [esi+24Ch], ax
+  int16_t last_ping_animation_index;                   ///< offset=0x24E .text:001B2887                 mov     [esi+24Eh], bx
+  uint8_t animation_seat_index;                    ///< offset=0x250 .text:001A841D                 movsx   ecx, byte ptr [esi+250h]
+  uint8_t animation_weapon_index;                    ///< offset=0x251 .text:001A8432                 movsx   ecx, byte ptr [esi+251h]
+  uint8_t animation_weapon_type_index;                    ///< offset=0x252 .text:001A8A0C                 movsx   eax, byte ptr [esi+252h]
+  uint8_t animation_state;                    ///< offset=0x253 .text:001A8B46                 movsx   eax, byte ptr [esi+253h]
+  uint8_t animation_action;                    ///< offset=0x254 .text:001A8AEB                 mov     [esi+254h], cl
+  uint8_t overlay_action;                    ///< offset=0x255 .text:001A8B31                 movsx   cx, byte ptr [esi+255h]
+  uint8_t desired_animation_state;                    ///< offset=0x256 .text:001B0E17                 movsx   eax, byte ptr [edi+256h]
   uint8_t base_seat_index;            ///< offset=0x257 .text:001AE2E8                 movsx   si, byte ptr [esi+257h]
-  uint8_t unk_600;                    ///< offset=0x258 .text:001AC08A                 mov     [eax+258h], cl
+  uint8_t emotion_index;                    ///< offset=0x258 .text:001AC08A                 mov     [eax+258h], cl
   uint8_t unk_601;                    ///< offset=0x259 padding? 
-  uint16_t unk_602;                   ///< offset=0x25A .text:001AFD69                 mov     ax, [esi+25Ah]   tag block index
-  uint16_t unk_604;                   ///< offset=0x25C .text:001AFD7E                 mov     cx, [esi+25Ch]   tag block index
-  uint16_t unk_606;                   ///< offset=0x25E .text:001AFDA5                 mov     ax, [esi+25Eh]   tag block index
-  uint16_t unk_608;                   ///< offset=0x260 .text:001AFDB4                 mov     cx, [esi+260h]   tag block index
-  uint16_t unk_610;                   ///< offset=0x262 .text:001AFDDB                 mov     ax, [esi+262h]   tag block index
-  uint16_t unk_612;                   ///< offset=0x264 .text:001AFDEA                 mov     cx, [esi+264h]   tag block index
-  uint8_t unk_614;                    ///< offset=0x266 .text:001ADAB2                 mov     bl, [eax+266h]
-  uint8_t unk_615;                    ///< offset=0x267 .text:001ADAC0                 mov     bl, [eax+267h]
+  uint16_t action_animation_index;                   ///< offset=0x25A .text:001AFD69                 mov     ax, [esi+25Ah]   tag block index
+  int16_t action_animation_frame;                   ///< offset=0x25C .text:001AFD7E                 mov     cx, [esi+25Ch]   tag block index
+  uint16_t overlay_action_animation_index;                   ///< offset=0x25E .text:001AFDA5                 mov     ax, [esi+25Eh]   tag block index
+  int16_t overlay_action_animation_frame;                   ///< offset=0x260 .text:001AFDB4                 mov     cx, [esi+260h]   tag block index
+  int16_t soft_ping_animation_index;                   ///< offset=0x262 .text:001AFDDB                 mov     ax, [esi+262h]   tag block index
+  int16_t soft_ping_animation_frame;                   ///< offset=0x264 .text:001AFDEA                 mov     cx, [esi+264h]   tag block index
+  uint8_t aiming_with_euler_screen;                    ///< offset=0x266 .text:001ADAB2                 mov     bl, [eax+266h]
+  uint8_t looking_with_euler_screen;                    ///< offset=0x267 .text:001ADAC0                 mov     bl, [eax+267h]
   float unk_616;                      ///< offset=0x268 .text:001ADAB8                 lea     edi, [eax+268h]  quat?
   float unk_620;                      ///< offset=0x26C .text:001B0225                 fstp    dword ptr [esi+26Ch]
   float unk_624;                      ///< offset=0x270 .text:001B0244                 fstp    dword ptr [esi+270h]
@@ -784,44 +784,44 @@ typedef struct {
   float unk_644;                      ///< offset=0x284 .text:001B0491                 fstp    dword ptr [esi+284h]
   float unk_648;                      ///< offset=0x288
   uint32_t unk_652;                   ///< offset=0x28C
-  float unk_656;                      ///< offset=0x290 .text:001AB900                 fstp    dword ptr [esi+290h]   rgb color brightness
-  float unk_660;                      ///< offset=0x294 .text:001AB90C                 fstp    dword ptr [esi+294h]   self illumination
-  float unk_664;                      ///< offset=0x298 .text:001A80AC                 fld     dword ptr [esi+298h]
-  uint32_t unk_668;                   ///< offset=0x29C
-  uint16_t parent_seat_index;                 ///< offset=0x2A0 .text:000B6805                 movsx   ecx, word ptr [edi+2A0h]   tag block index
-  uint16_t unk_674;                   ///< offset=0x2A2 .text:000B0B06                 mov     ax, [ebx+2A2h]   current weapon index into (0x2A8)
-  uint16_t unk_676;                   ///< offset=0x2A4 .text:000B707C                 mov     ax, [ebx+2A4h]   next weapon index
+  float ambient_illumination;                      ///< offset=0x290 .text:001AB900                 fstp    dword ptr [esi+290h]   rgb color brightness
+  float self_illumination;                      ///< offset=0x294 .text:001AB90C                 fstp    dword ptr [esi+294h]   self illumination
+  float mouth_aperture;                      ///< offset=0x298 .text:001A80AC                 fld     dword ptr [esi+298h]
+  uint32_t last_entrance_attempt;                   ///< offset=0x29C
+  int16_t parent_seat_index;                 ///< offset=0x2A0 .text:000B6805                 movsx   ecx, word ptr [edi+2A0h]   tag block index
+  int16_t current_weapon_index;                   ///< offset=0x2A2 .text:000B0B06                 mov     ax, [ebx+2A2h]   current weapon index into (0x2A8)
+  int16_t desired_weapon_index;                   ///< offset=0x2A4 .text:000B707C                 mov     ax, [ebx+2A4h]   next weapon index
   uint16_t unk_678;                   ///< offset=0x2A6
-  datum_handle_t unk_680[MAXIMUM_WEAPONS_PER_UNIT]; ///< offset=0x2A8 .text:001AAD23                 mov     eax, [edi+ecx*4+2A8h]
-  datum_handle_t unk_696[MAXIMUM_WEAPONS_PER_UNIT]; ///< offset=0x2B8 .text:001B1E5D                 mov     dword ptr [edi+eax*4+2B8h], 0
-  datum_handle_t unk_712;             ///< offset=0x2C8 .text:001AA97E                 mov     eax, [eax+2C8h] current equipment
+  datum_handle_t weapon_object_indices[MAXIMUM_WEAPONS_PER_UNIT]; ///< offset=0x2A8 .text:001AAD23                 mov     eax, [edi+ecx*4+2A8h]
+  datum_handle_t weapon_last_used_at_game_time[MAXIMUM_WEAPONS_PER_UNIT]; ///< offset=0x2B8 .text:001B1E5D                 mov     dword ptr [edi+eax*4+2B8h], 0
+  datum_handle_t equipment_object_index;             ///< offset=0x2C8 .text:001AA97E                 mov     eax, [eax+2C8h] current equipment
   uint8_t current_grenade_index;      ///< offset=0x2CC .text:001AAEF1                 mov     al, [esi+2CCh] unit->unit.current_grenade_index
-  uint8_t unk_717;                    ///< offset=0x2CD .text:000B7087                 movsx   cx, byte ptr [ebx+2CDh]
-  uint8_t unk_718[NUMBER_OF_UNIT_GRENADE_TYPES];  ///< offset=0x2CE .text:001A99E3                 cmp     byte ptr [ecx+ebx+2CEh], 0   grenade counts
-  uint8_t zoom_level;                 ///< offset=0x2D0 .text:001A869E                 movsx   ax, byte ptr [eax+2D0h]
-  uint8_t unk_721;                    ///< offset=0x2D1 .text:000B7093                 movsx   dx, byte ptr [ebx+2D1h]
-  uint8_t unk_722;                    ///< offset=0x2D2
-  uint8_t unk_723;                    ///< offset=0x2D3 .text:001A8090                 movzx   edx, byte ptr [esi+2D3h]
-  datum_handle_t unk_724;             ///< offset=0x2D4 .text:001AA4DE                 mov     ecx, [eax+2D4h]
-  datum_handle_t unk_728;             ///< offset=0x2D8 .text:000D8D8D                 cmp     [eax+2D8h], edi
-  uint32_t unk_732;                   ///< offset=0x2DC .text:0003AC65                 mov     ecx, [esi+2DCh]  game time related
-  uint32_t unk_736;                   ///< offset=0x2E0 .text:000BC220                 mov     [ebx+2E0h], eax  game time related
-  uint16_t unk_740;                   ///< offset=0x2E4 .text:00057E26                 mov     ax, [eax+2E4h]   actor related
-  uint16_t unk_742;                   ///< offset=0x2E6 .text:0003DF30                 mov     ax, [edi+2E6h]   squad related
+  uint8_t desired_grenade_index;                    ///< offset=0x2CD .text:000B7087                 movsx   cx, byte ptr [ebx+2CDh]
+  uint8_t grenade_counts[NUMBER_OF_UNIT_GRENADE_TYPES];  ///< offset=0x2CE .text:001A99E3                 cmp     byte ptr [ecx+ebx+2CEh], 0   grenade counts
+  uint8_t current_zoom_level;                 ///< offset=0x2D0 .text:001A869E                 movsx   ax, byte ptr [eax+2D0h]
+  uint8_t desired_zoom_level;                    ///< offset=0x2D1 .text:000B7093                 movsx   dx, byte ptr [ebx+2D1h]
+  uint8_t gunner_inactive_ticks;                    ///< offset=0x2D2
+  uint8_t aiming_change;                    ///< offset=0x2D3 .text:001A8090                 movzx   edx, byte ptr [esi+2D3h]
+  datum_handle_t driver_object_index;             ///< offset=0x2D4 .text:001AA4DE                 mov     ecx, [eax+2D4h]
+  datum_handle_t gunner_object_index;             ///< offset=0x2D8 .text:000D8D8D                 cmp     [eax+2D8h], edi
+  uint32_t last_vehicle_index;                   ///< offset=0x2DC .text:0003AC65                 mov     ecx, [esi+2DCh]  game time related
+  uint32_t game_time_at_last_vehicle_exit;                   ///< offset=0x2E0 .text:000BC220                 mov     [ebx+2E0h], eax  game time related
+  int16_t fake_encounter_index;                   ///< offset=0x2E4 .text:00057E26                 mov     ax, [eax+2E4h]   actor related
+  int16_t fake_squad_index;                   ///< offset=0x2E6 .text:0003DF30                 mov     ax, [edi+2E6h]   squad related
   real seat_power[2];                 ///< offset=0x2E8 .text:001A8078/001A8085 fld [esi+2E8h]/[esi+2ECh]; vehicle_update seat-power gates
-  float unk_752;                      ///< offset=0x2F0 .text:000D7F87                 cmp     dword ptr [ecx+2F0h], 3F800000h
-  float unk_756;                      ///< offset=0x2F4 .text:000D7FAD                 fld     dword ptr [ecx+2F4h]
-  float unk_760;                      ///< offset=0x2F8 .text:001B1337                 mov     dword ptr [edi+2F8h], 0  zoom-related?
-  vector3_t unk_764;                  ///< offset=0x2FC .text:001AB4F7                 lea     ecx, [esi+2FCh]
+  float integrated_light_power;                      ///< offset=0x2F0 .text:000D7F87                 cmp     dword ptr [ecx+2F0h], 3F800000h
+  float integrated_light_battery;                      ///< offset=0x2F4 .text:000D7FAD                 fld     dword ptr [ecx+2F4h]
+  float integrated_night_vision_power;                      ///< offset=0x2F8 .text:001B1337                 mov     dword ptr [edi+2F8h], 0  zoom-related?
+  vector3_t seat_last_position;                  ///< offset=0x2FC .text:001AB4F7                 lea     ecx, [esi+2FCh]
   uint16_t powerup_type;              ///< offset=0x308 .text:001AA9DD                 cmp     word ptr [esi+308h], 6  equipment_definition->equipment.powerup_type
   uint16_t unk_778;                   ///< offset=0x30A .text:001AA9BD                 movsx   eax, word ptr [esi+30Ah]
   float unk_782;                      ///< offset=0x30C .text:001AB528                 fsub    dword ptr [esi+30Ch]
   float unk_786;                      ///< offset=0x310 .text:001AB531                 fsub    dword ptr [esi+310h]
-  vector3_t unk_790;                  ///< offset=0x314 .text:001B46F1                 fld     dword ptr [ebx+314h]
-  vector3_t unk_800;                  ///< offset=0x320 .text:001AB57C                 fstp    dword ptr [esi+320h]
-  float unk_812;                      ///< offset=0x32C .text:0013B79C                 fld     dword ptr [edi+32Ch]
-  float unk_816;                      ///< offset=0x330 .text:0003CA20                 fstp    dword ptr [eax+330h]
-  uint32_t unk_820;                   ///< offset=0x334 .text:001A698A                 mov     eax, [ecx+334h]  tag index
+  vector3_t seat_acceleration;                  ///< offset=0x314 .text:001B46F1                 fld     dword ptr [ebx+314h]
+  vector3_t seat_desired_acceleration;                  ///< offset=0x320 .text:001AB57C                 fstp    dword ptr [esi+320h]
+  float active_camouflage;                      ///< offset=0x32C .text:0013B79C                 fld     dword ptr [edi+32Ch]
+  float active_camouflage_super_amount;                      ///< offset=0x330 .text:0003CA20                 fstp    dword ptr [eax+330h]
+  uint32_t dialogue_index;                   ///< offset=0x334 .text:001A698A                 mov     eax, [ecx+334h]  tag index
   uint16_t unk_824;                   ///< offset=0x338 .text:001A6BD3                 cmp     [eax+338h], cx  command type?, also see action_obey_command_perform
   uint16_t unk_826;                   ///< offset=0x33A .text:001A6D9A                 mov     ax, [edi+33Ah]
   uint32_t unk_828;                   ///< offset=0x33C .text:001A6D4B                 mov     eax, [edi+33Ch]  tag index
@@ -832,34 +832,34 @@ typedef struct {
   uint8_t unk_840[0x20];              ///< offset=0x348 .text:001A7913                 lea     eax, [esi+348h]  4th arg to ai_communication_started
   uint16_t unk_872;                   ///< offset=0x368 .text:001A6A73                 mov     dx, [ecx+368h]
   uint8_t unk_874[0x2E];              ///< offset=0x36A
-  uint16_t unk_920;                   ///< offset=0x398 .text:001A77D9                 mov     [esi+398h], ax
-  uint16_t unk_922;                   ///< offset=0x39A .text:001A77E4                 mov     ax, [esi+39Ah]
-  uint16_t unk_924;                   ///< offset=0x39C .text:001A7803                 mov     ax, [esi+39Ch]
-  uint16_t unk_926;                   ///< offset=0x39E
-  uint32_t unk_928;                   ///< offset=0x3A0 .text:001A6BA2                 mov     edx, [ecx+3A0h]
-  uint8_t unk_932;                    ///< offset=0x3A4 .text:001A718B                 mov     byte ptr [esi+3A4h], 1 bool?
-  uint8_t unk_933;                    ///< offset=0x3A5 .text:001A6FDF                 mov     byte ptr [ebx+3A5h], 0 bool?
-  uint8_t unk_934;                    ///< offset=0x3A6 .text:001A79C5                 mov     byte ptr [esi+3A6h], 1 bool?
+  uint16_t damage_minor_decay_timer;                   ///< offset=0x398 .text:001A77D9                 mov     [esi+398h], ax
+  uint16_t damage_minor_sounds;                   ///< offset=0x39A .text:001A77E4                 mov     ax, [esi+39Ah]
+  uint16_t damage_minor_timer;                   ///< offset=0x39C .text:001A7803                 mov     ax, [esi+39Ch]
+  uint16_t damage_major_timer;                   ///< offset=0x39E
+  uint32_t last_speech_finished_time;                   ///< offset=0x3A0 .text:001A6BA2                 mov     edx, [ecx+3A0h]
+  uint8_t speech_played;                    ///< offset=0x3A4 .text:001A718B                 mov     byte ptr [esi+3A4h], 1 bool?
+  uint8_t speech_notified_ai;                    ///< offset=0x3A5 .text:001A6FDF                 mov     byte ptr [ebx+3A5h], 0 bool?
+  uint8_t speech_finished;                    ///< offset=0x3A6 .text:001A79C5                 mov     byte ptr [esi+3A6h], 1 bool?
   uint8_t unk_935;                    ///< offset=0x3A7
-  uint16_t unk_936;                   ///< offset=0x3A8 .text:001A7192                 mov     word ptr [esi+3A8h], 0
-  uint16_t unk_938;                   ///< offset=0x3AA .text:00043F5E                 movsx   eax, word ptr [edi+3AAh]   vocalization timer related
-  uint16_t unk_940;                   ///< offset=0x3AC .text:001A6FFE                 mov     [ebx+3ACh], dx
-  uint16_t unk_942;                   ///< offset=0x3AE .text:001A6B28                 movsx   ebx, word ptr [eax+3AEh]
-  uint32_t unk_944;                   ///< offset=0x3B0 .text:001A6FED                 mov     dword ptr [ebx+3B0h], 0FFFFFFFFh
-  uint16_t unk_948;                   ///< offset=0x3B4 .text:001B29DF                 mov     [esi+3B4h], di
-  uint16_t unk_950;                   ///< offset=0x3B6 .text:001B29E6                 mov     [esi+3B6h], di
-  uint32_t unk_952;                   ///< offset=0x3B8 .text:001B29ED                 mov     [esi+3B8h], edi
-  uint32_t unk_956;                   ///< offset=0x3BC .text:001B489C                 mov     dword ptr [ebx+3BCh], 0FFFFFFFFh
-  datum_handle_t unk_960;             ///< offset=0x3C0 .text:0001C789                 mov     ecx, [eax+3C0h]
-  float unk_964;                      ///< offset=0x3C4 .text:001AF3F9                 fsub    dword ptr [edi+3C4h]
-  float unk_968;                      ///< offset=0x3C8 .text:001AF451                 fsub    dword ptr [edi+3C8h]
-  datum_handle_t unk_972;             ///< offset=0x3CC .text:0002F7DC                 mov     eax, [eax+3CCh]
+  uint16_t speech_pre_delay_timer;                   ///< offset=0x3A8 .text:001A7192                 mov     word ptr [esi+3A8h], 0
+  uint16_t speech_sound_timer;                   ///< offset=0x3AA .text:00043F5E                 movsx   eax, word ptr [edi+3AAh]   vocalization timer related
+  uint16_t speech_ai_delay_timer;                   ///< offset=0x3AC .text:001A6FFE                 mov     [ebx+3ACh], dx
+  uint16_t speech_post_delay_timer;                   ///< offset=0x3AE .text:001A6B28                 movsx   ebx, word ptr [eax+3AEh]
+  uint32_t speech_impulse_sound_index;                   ///< offset=0x3B0 .text:001A6FED                 mov     dword ptr [ebx+3B0h], 0FFFFFFFFh
+  uint16_t last_damage_category;                   ///< offset=0x3B4 .text:001B29DF                 mov     [esi+3B4h], di
+  uint16_t delayed_damage_timer;                   ///< offset=0x3B6 .text:001B29E6                 mov     [esi+3B6h], di
+  uint32_t delayed_damage_peak;                   ///< offset=0x3B8 .text:001B29ED                 mov     [esi+3B8h], edi
+  uint32_t delayed_damage_attacker_object_index;                   ///< offset=0x3BC .text:001B489C                 mov     dword ptr [ebx+3BCh], 0FFFFFFFFh
+  datum_handle_t flaming_death_attacker_object_index;             ///< offset=0x3C0 .text:0001C789                 mov     ecx, [eax+3C0h]
+  float run_blindly_angle;                      ///< offset=0x3C4 .text:001AF3F9                 fsub    dword ptr [edi+3C4h]
+  float run_blindly_angle_delta;                      ///< offset=0x3C8 .text:001AF451                 fsub    dword ptr [edi+3C8h]
+  datum_handle_t time_of_death;             ///< offset=0x3CC .text:0002F7DC                 mov     eax, [eax+3CCh]
   uint16_t feign_death_timer;         ///< offset=0x3D0 .text:001B5025                 mov     [esi+3D0h], ax  unit->unit.feign_death_timer
-  uint16_t unk_978;                   ///< offset=0x3D2 .text:000BC3C1                 mov     [eax+3D2h], si   datum index only, not a full handle?
-  float unk_980;                      ///< offset=0x3D4 .text:000B7471                 fld     dword ptr [eax+3D4h]
-  uint16_t unk_984;                   ///< offset=0x3D8
-  uint16_t unk_986;                   ///< offset=0x3DA .text:0005BE6E                 movsx   eax, word ptr [eax+3DAh] combat related?
-  uint32_t unk_988;                   ///< offset=0x3DC .text:001A90DA                 mov     ecx, [esi+3DCh]
+  uint16_t cause_for_camo_regrowth;                   ///< offset=0x3D2 .text:000BC3C1                 mov     [eax+3D2h], si   datum index only, not a full handle?
+  float body_stun;                      ///< offset=0x3D4 .text:000B7471                 fld     dword ptr [eax+3D4h]
+  uint16_t body_stun_ticks;                   ///< offset=0x3D8
+  uint16_t killing_spree_count;                   ///< offset=0x3DA .text:0005BE6E                 movsx   eax, word ptr [eax+3DAh] combat related?
+  uint32_t killing_spree_last_time;                   ///< offset=0x3DC .text:001A90DA                 mov     ecx, [esi+3DCh]
 
   // array size of 4, struct size of 0x10  .text:0002FB1B                 add     edi, 10h
   // .text:0002FAAB                 lea     edi, [eax+3E0h]
@@ -869,8 +869,9 @@ typedef struct {
   // .text:0002FAB8                 mov     edx, [edi+8]
   // .text:001A8F6D                 lea     edx, [edi+3F4h]
   char unk_992[0x10 * 4];             ///< offset=0x3E0
-  uint32_t unk_1056;                  ///< offset=0x420
+  uint32_t user_animation_indices;                  ///< offset=0x420
 } unit_data_t;
+cs(unit_data_t, 0x424);
 
 // OBJE -> ITEM
 /// size=0x1DC
@@ -4058,7 +4059,7 @@ typedef bool (*profile_sort32_compare_proc)(int32_t a, int32_t b);
 
 /* -------------------------------------------------------------------------
  * collision_test_result -- 0x50-byte record filled by the world collision
- * entry points in physics/collision_bsp.c (FUN_0014e7d0, FUN_0014e940).
+ * entry points in physics/collision_bsp.c (collision_test_pill, FUN_0014e940).
  *
  * Widths are taken from the store instructions at 0x14e7f9..0x14e872 and
  * 0x14e8b9..0x14e8ef: +0x00, +0x08, +0x10, +0x34 and +0x4e are 16-bit stores
@@ -4068,7 +4069,7 @@ typedef bool (*profile_sort32_compare_proc)(int32_t a, int32_t b);
  * FUN_0014dce0 (0x14dce0), which fills the same record through a raw char*:
  * +0x38 dword object handle, +0x3c/+0x3e/+0x40 16-bit indices (all three set
  * to -1 on the model path at 0x14df19/0x14df20/0x14df53, and copied from the
- * FUN_0014cb00 output +0x02/+0x00/+0x04 on the bsp path).  Only +0x36 and
+ * collision_model_test_vector output +0x02/+0x00/+0x04 on the bsp path).  Only +0x36 and
  * +0x42 remain unobserved.
  * ------------------------------------------------------------------------- */
 typedef struct collision_test_result {
@@ -5207,7 +5208,7 @@ co(struct mass_point_datum, torque, 0x124);
 
 /* Game-globals material block element (PAL 2342
  * material_effect_definitions.h), size 0x374 (element size in
- * FUN_0018e500).  Only the five physics scales read by physics_compute_new
+ * scenario_material_definition_get).  Only the five physics scales read by physics_compute_new
  * at 0x151102-0x1511b6 are named. */
 struct material_definition {
   byte pad_00[0x94];               ///< offset=0x00

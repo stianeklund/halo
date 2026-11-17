@@ -440,13 +440,13 @@ void FUN_00196e10(uint16_t *sound_list, void *env, float distance)
     prev[0] = *(float *)(sound_list + (short)sound_list[0] * 4 - 2);
     prev[1] = *(float *)(sound_list + (short)sound_list[0] * 4);
     prev[2] = -1.0f;
-    matrix_transform_point((float *)0x5065e8, prev, prev);
+    matrix_transform_point((float *)0x5065e8, (real_point3d *)prev, (real_point3d *)prev);
   }
   for (i = 0; i < (short)sound_list[0]; i++) {
     cur[0] = *(float *)(sound_list + i * 4 + 2);
     cur[1] = *(float *)(sound_list + i * 4 + 4);
     cur[2] = -1.0f;
-    matrix_transform_point((float *)0x5065e8, cur, cur);
+    matrix_transform_point((float *)0x5065e8, (real_point3d *)cur, (real_point3d *)cur);
     FUN_00189270(1, cur, prev, env);
     prev[0] = cur[0];
     prev[1] = cur[1];
@@ -614,7 +614,7 @@ short FUN_00197310(void *verts, void *plane, void *ref, void *arg1,
   if (count > 0) {
     float *mtx = (float *)((char *)arg1 + 0x10);
     for (j = 0; j < count; j++) {
-      matrix_transform_point(mtx, v + j * 3, &buf[j][0]);
+      matrix_transform_point(mtx, (real_point3d *)(v + j * 3), (real_point3d *)&buf[j][0]);
     }
   }
 

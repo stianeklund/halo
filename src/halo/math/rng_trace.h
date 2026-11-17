@@ -46,7 +46,7 @@
 #define RNG_TRACE_KIND_UNIT_STATE    16u /* unit_animation_set_state entry: value=(anim_state<<8)|old_state, caller=its caller, caller2=unit handle  info */
 #define RNG_TRACE_KIND_ANIM_UPDATE_IN 17u /* unit_animation_update before original updater: value=state[1]<<16|state[0], caller=unit_update_animation site, caller2=unit handle  info */
 #define RNG_TRACE_KIND_ANIM_UPDATE_OUT 18u /* unit_animation_update after original updater: value=state[0]<<16|result, caller=unit_update_animation site, caller2=unit handle  info */
-/* Turn-in-place fork gates in FUN_001a4c50, which is unported on BOTH builds.
+/* Turn-in-place fork gates in biped_update_turning, which is unported on BOTH builds.
  * Sampled in its ported caller (biped_update) rather than inside the fork: the
  * fork performs no write to any of these four fields before the gate chain at
  * 0x1a5109, so the caller's read is the same value the gates see.  The pristine
@@ -59,7 +59,7 @@
 #define RNG_TRACE_KIND_TURN_GATES    19u /* value=packed gates, caller2=unit handle  info */
 #define RNG_TRACE_KIND_TURN_COSINE   20u /* raw float bits of the fcomp operand at 0x1a5169  info */
 /* Client-side reconstruction of the fork's compared value, from the ported
- * caller.  FUN_001a4c50 computes, at 0x1a5061..0x1a50cd:
+ * caller.  biped_update_turning computes, at 0x1a5061..0x1a50cd:
  *     d = (+0x1d4, +0x1d8, 0), normalized
  *     cos = d.x * f.x + d.y * f.y     with f = +0x24, used RAW
  * f is neither flattened nor renormalized, so a non-zero f.z lowers cos even
@@ -102,7 +102,7 @@
  * different candidate set" from "the unported applier rejected it". */
 #define RNG_TRACE_KIND_RADIUS_HIT    32u /* object_find_in_radius accept: value=object position z bits (obj+0x58), caller2=object handle  info */
 #define RNG_TRACE_KIND_LOS_RESULT    33u /* collision_test_vector exit, only when returning into FUN_00138900 or the projectile sweep projectile_collision_test_line (value bit 31 set): value=(result<<16)|(uint16)collision_result[0], caller2=hit-t float bits  info */
-#define RNG_TRACE_KIND_DAMAGE_ORIGIN 34u /* FUN_00138e30 entry: value=origin.x bits (+0x28), caller2=origin.y bits (+0x2c)  info */
+#define RNG_TRACE_KIND_DAMAGE_ORIGIN 34u /* area_of_effect_cause_damage entry: value=origin.x bits (+0x28), caller2=origin.y bits (+0x2c)  info */
 #define RNG_TRACE_KIND_SWEEP_POS     36u /* projectile_collision_test_line entry: value=new_pos.x bits, caller2=new_pos.z bits  info */
 #define RNG_TRACE_KIND_PROJECTILE_ACCEL_X 37u /* projectile_accelerate entry: value=projectile handle, caller2=acceleration.x bits  info */
 #define RNG_TRACE_KIND_PROJECTILE_ACCEL_YZ 38u /* projectile_accelerate entry: value=acceleration.y bits, caller2=acceleration.z bits  info */

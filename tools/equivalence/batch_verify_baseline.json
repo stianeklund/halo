@@ -953,7 +953,7 @@
       "reason": "divergence"
     },
     {
-      "name": "FUN_001093b0",
+      "name": "matrix4x3_rotation_from_quaternion",
       "status": "fail",
       "reason": "divergence"
     },
@@ -963,12 +963,12 @@
       "reason": "divergence"
     },
     {
-      "name": "FUN_00109fc0",
+      "name": "matrix4x3_rotation_to_quaternion",
       "status": "fail",
       "reason": "divergence"
     },
     {
-      "name": "FUN_0010a1c0",
+      "name": "matrix4x3_transform_plane",
       "status": "fail",
       "reason": "divergence"
     },
@@ -1003,7 +1003,7 @@
       "reason": "divergence"
     },
     {
-      "name": "FUN_0010c8e0",
+      "name": "reflect_vector3d",
       "status": "error",
       "reason": "emulation_error"
     },
@@ -1363,7 +1363,7 @@
       "reason": "divergence"
     },
     {
-      "name": "FUN_00146a90",
+      "name": "breakable_surface_damage",
       "status": "fail",
       "reason": "divergence"
     },
@@ -1378,7 +1378,7 @@
       "reason": "emulation_error"
     },
     {
-      "name": "FUN_0014cb00",
+      "name": "collision_model_test_vector",
       "status": "error",
       "reason": "emulation_error"
     },
@@ -1393,12 +1393,12 @@
       "reason": "divergence"
     },
     {
-      "name": "FUN_0014f020",
+      "name": "collision_fix_pill",
       "status": "error",
       "reason": "emulation_error"
     },
     {
-      "name": "FUN_0014f2c0",
+      "name": "collision_move_point",
       "status": "fail",
       "reason": "divergence"
     },
@@ -1508,7 +1508,7 @@
       "reason": "emulation_error"
     },
     {
-      "name": "FUN_00189860",
+      "name": "render_debug_pill",
       "status": "error",
       "reason": "emulation_error"
     },
@@ -3388,7 +3388,7 @@
       "reason": "emulation_error"
     },
     {
-      "name": "scenario_leaf_index_from_point",
+      "name": "object_get_cached_render_lighting",
       "status": "error",
       "reason": "emulation_error"
     },

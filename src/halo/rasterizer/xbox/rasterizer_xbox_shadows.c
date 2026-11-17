@@ -28,12 +28,12 @@
 
 #define _rasterizer_statistics_mode_enabled 2
 
-/* PAL 2342 dot_product3d. The original sums x, z, y ((x + z) + y) at all
+/* PAL 2342 dot_product3d_inline. The original sums x, z, y ((x + z) + y) at all
  * three call sites in _rasterizer_environment_shadow_draw. VC71 here always
  * emits a higher-addressed term first, so no source order reproduces that;
  * this order matches the most of it (position operand first, z in the
  * middle). */
-static __inline real dot_product3d(const real_point3d *a,
+static __inline real dot_product3d_inline(const real_point3d *a,
                                    const real_vector3d *b)
 {
   return a->x * b->i + a->z * b->k + a->y * b->j;
@@ -214,7 +214,7 @@ void FUN_00172730(void)
  * Asserts the D3D device exists.  When the window renders to the primary
  * target, environment shadows are enabled, and the shader is of type 4
  * (shader->base.type at +0x24, _shader_type_model):
- *   1. Resolves the type-4 shader data block via FUN_001906b0(shader, _shader_type_model).
+ *   1. Resolves the type-4 shader data block via shader_get_and_verify_type(shader, _shader_type_model).
  *   2. Selects the cull mode from shader-data flag bit 1 (+0x28):
  *      clear -> D3DCULL_CCW, set -> D3DCULL_NONE.
  *   3. Programs render state 0x27 from the 16-bit word at the head of the
@@ -262,7 +262,7 @@ void FUN_00172de0(void *shader, int frame_index, void *triangle_buffer,
       system_exit(-1);
     }
     if (((const shader_model *)shader)->base.type == _shader_type_model) {
-      shader_data = (shader_model *)FUN_001906b0(shader, _shader_type_model);
+      shader_data = (shader_model *)shader_get_and_verify_type(shader, _shader_type_model);
       if (vertex_buffer == 0) {
         display_assert(
           "vertex_buffer",
@@ -500,7 +500,7 @@ void _rasterizer_environment_shadow_draw(void *shader, short bitmap_index,
         inv_range * 0.5f;
       shader_constants[3] =
         (1.0f -
-         dot_product3d(
+         dot_product3d_inline(
            &rasterizer_environment_shadows_globals.shadow_matrix.position,
            &rasterizer_environment_shadows_globals.shadow_matrix.forward) *
            inv_range) *
@@ -515,7 +515,7 @@ void _rasterizer_environment_shadow_draw(void *shader, short bitmap_index,
         rasterizer_environment_shadows_globals.shadow_matrix.left.k *
         inv_range * -0.5f;
       shader_constants[7] =
-        (dot_product3d(
+        (dot_product3d_inline(
            &rasterizer_environment_shadows_globals.shadow_matrix.position,
            &rasterizer_environment_shadows_globals.shadow_matrix.left) *
            inv_range +
@@ -537,7 +537,7 @@ void _rasterizer_environment_shadow_draw(void *shader, short bitmap_index,
       shader_constants[18] =
         rasterizer_environment_shadows_globals.shadow_matrix.up.k;
       shader_constants[19] = 0.0f;
-      dot = dot_product3d(
+      dot = dot_product3d_inline(
         &rasterizer_environment_shadows_globals.shadow_matrix.position,
         &rasterizer_environment_shadows_globals.shadow_matrix.up);
       shader_constants[11] = -(dot * inv_range_scaled);

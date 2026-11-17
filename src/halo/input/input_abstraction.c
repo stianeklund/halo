@@ -178,7 +178,7 @@ char input_abstraction_print_config_control(int controller_index)
   }
 
   if (unit->object.parent_object_index.value == -1 ||
-      (int16_t)unit->parent_seat_index == -1) {
+      unit->parent_seat_index == -1) {
     return 0;
   }
 
@@ -188,7 +188,7 @@ char input_abstraction_print_config_control(int controller_index)
   if (*(int16_t *)(vehi_tag + 0x2f4) == 3 ||
       *(int16_t *)(vehi_tag + 0x2f4) == 5) {
     seat = (char *)tag_block_get_element(vehi_tag + 0x2e4,
-                                         (int)(int16_t)unit->parent_seat_index, 0x11c);
+                                         (int)unit->parent_seat_index, 0x11c);
     return (char)((*seat & 4) != 0);
   }
   return 0;

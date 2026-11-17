@@ -30,7 +30,7 @@ cs(shader_base, 0x26);
 co(shader_base, type, 0x24);
 
 /// Type-4 (_shader_type_model) shader, as returned by
-/// FUN_001906b0(shader, _shader_type_model). Read by FUN_00172de0
+/// shader_get_and_verify_type(shader, _shader_type_model). Read by FUN_00172de0
 /// (rasterizer_xbox_shadows.c) and the active-camouflage path of
 /// rasterizer_xbox_decals.c. Size is unproven.
 typedef struct shader_model {

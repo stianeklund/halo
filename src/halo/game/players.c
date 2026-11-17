@@ -1379,11 +1379,11 @@ void player_aiming_vector_from_facing(int datum_handle, float *aiming_out,
     return;
 
   /* forward = vehicle up (+0x30) x global -Y; -Z when that degenerates. */
-  cross_product3d((float *)(vehicle + 0x30), *(float **)0x31fc4c,
-                  (float *)&rotation.forward);
+  cross_product3d((real_vector3d *)(vehicle + 0x30), (real_vector3d *)(*(float **)0x31fc4c),
+                  &rotation.forward);
   if (normalize3d(&rotation.forward) == 0.0f) {
-    cross_product3d((float *)(vehicle + 0x30), *(float **)0x31fc50,
-                    (float *)&rotation.forward);
+    cross_product3d((real_vector3d *)(vehicle + 0x30), (real_vector3d *)(*(float **)0x31fc50),
+                    &rotation.forward);
     normalize3d(&rotation.forward);
   }
   matrix_from_forward_and_up(&rotation, &rotation.forward,
@@ -1750,7 +1750,7 @@ bool player_handle_action(int player_handle /* @<eax> */)
           *(float *)(world_matrix_a + 0x2c) - *(float *)(world_matrix_b + 0x2c);
         delta[2] =
           *(float *)(world_matrix_a + 0x30) - *(float *)(world_matrix_b + 0x30);
-        cross_product3d(*(float **)0x31fc44, delta, delta); /* dup-args-ok */
+        cross_product3d((real_vector3d *)(*(float **)0x31fc44), (real_vector3d *)delta, (real_vector3d *)delta); /* dup-args-ok */
         dot = delta[2] * *(float *)(item_obj + 0x2c) +
               delta[1] * *(float *)(item_obj + 0x28) +
               delta[0] * *(float *)(item_obj + 0x24);
@@ -1992,8 +1992,8 @@ void player_update_powerups(int datum_handle)
  *      height land in their own slots.
  * The position's z is then raised by the 'bipd' tag's camera height
  * (bipd+0x42c), the world-up vector ([0x31fc44]) is scaled by the height
- * offset, and the resulting segment is collision-tested (FUN_0014e7d0,
- * flags 0x4029).  The arrow is drawn (FUN_00189860) in the "hit" colour
+ * offset, and the resulting segment is collision-tested (collision_test_pill,
+ * flags 0x4029).  The arrow is drawn (render_debug_pill) in the "hit" colour
  * ([0x2ee6d0]) when the test reports a collision and the "miss" colour
  * ([0x2ee6d4]) otherwise.
  *
@@ -2008,7 +2008,7 @@ void player_update_powerups(int datum_handle)
  *    bipd+0x42c raises the position's z.
  *  - the collision result buffer at EBP-0x84 is 0x50 bytes.
  *  - the float at EBP-0x4 (camera height) is pushed as a raw dword via
- *    MOV ECX,[EBP-0x4]; PUSH ECX for both FUN_0014e7d0 and FUN_00189860 — it
+ *    MOV ECX,[EBP-0x4]; PUSH ECX for both collision_test_pill and render_debug_pill — it
  *    is a float argument, not an int.
  *  - the assert tail is display_assert(...,true) then system_exit(-1) at
  *    0x8e2f0 (Ghidra's thunk_FUN_001029a0 is wrong).
@@ -2061,17 +2061,17 @@ void players_debug_render(void)
             height_vec[0] = height_offset * global_up_vector_ptr[0];
             height_vec[1] = height_offset * global_up_vector_ptr[1];
             height_vec[2] = height_offset * global_up_vector_ptr[2];
-            /* The original branches around two full FUN_00189860 call sites
+            /* The original branches around two full render_debug_pill call sites
              * (MSVC tail-merged the shared `push flag; call` at the join, which
              * is why Ghidra reconstructed it as one call with a
              * default-then-override colour variable). */
-            if (FUN_0014e7d0(0x4029, (float *)&position, height_vec,
+            if (collision_test_pill(0x4029, (float *)&position, height_vec,
                              camera_height, unit_handle,
                              collision_result) != '\0')
-              FUN_00189860('\0', &position, height_vec, camera_height,
+              render_debug_pill('\0', &position, height_vec, camera_height,
                            *(void **)0x2ee6d0);
             else
-              FUN_00189860('\0', &position, height_vec, camera_height,
+              render_debug_pill('\0', &position, height_vec, camera_height,
                            *(void **)0x2ee6d4);
           }
         }
@@ -2297,7 +2297,7 @@ bool players_respawn_coop(void)
  * decides whether it must be re-seated / repositioned this tick:
  *   - If the scenario cluster filter (players_globals+0x2a) is active and the
  *     unit is NOT in that cluster (FUN_0018ef00 == 0), force the update.
- *   - Else, if the unit is at a valid location (FUN_0018e720 != -1), bail.
+ *   - Else, if the unit is at a valid location (scenario_leaf_index_from_point != -1), bail.
  *   - If the unit holds a seat handle (+0xcc) that differs from the passed
  *     object's seat, exit the seat; if it still holds one, clear the
  *     pending-flag (players_globals+0x2e) and return.
@@ -2345,7 +2345,7 @@ void player_teleport_on_bsp_switch(int player_index /* @<ebx> */,
     skip = false;
   }
 
-  loc = FUN_0018e720((int)(unit + 0x50));
+  loc = scenario_leaf_index_from_point((int)(unit + 0x50));
   if (loc != -1 && !skip)
     return;
 
@@ -2519,11 +2519,11 @@ void players_reconnect_to_structure_bsp(void)
                                                &camera_height);
             /* Deliberately re-evaluated: the original calls twice. */
             bsp_reference =
-              FUN_0018e720((int)&camera_pos) == -1
+              scenario_leaf_index_from_point((int)&camera_pos) == -1
                 ? -1
                 : *(int16_t *)((char *)tag_block_get_element(
                                  (char *)scenario_get() + 0xe0,
-                                 FUN_0018e720((int)&camera_pos) & 0x7fffffff,
+                                 scenario_leaf_index_from_point((int)&camera_pos) & 0x7fffffff,
                                  0x10) +
                                8);
             if (bsp_reference != -1) {
@@ -2613,7 +2613,7 @@ void player_examine_nearby_vehicle(int datum_handle, int object_handle)
       return;
 
     nearby_biped = (char *)object_get_and_verify_type(object_handle, 2);
-    if (FUN_00012170((float *)(nearby_biped + 0x3c)) >= *(float *)0x25bb10)
+    if (magnitude_squared3d((real_vector3d *)(nearby_biped + 0x3c)) >= *(float *)0x25bb10)
       return;
 
     seat_index = -1;
@@ -2655,8 +2655,9 @@ void player_examine_nearby_device(int datum_handle, int object_handle)
   weapon = (char *)object_get_and_verify_type(object_handle, 0x380);
 
   unit_get_camera_position(*(int *)(player + 0x34), (real_point3d *)local_position);
-  if (!fast_vector_intersects_sphere(local_position, (float *)(unit + 0x1ec),
-                                     (float *)(weapon + 0x50),
+  if (!fast_vector_intersects_sphere((real_point3d *)local_position,
+                                     (real_vector3d *)(unit + 0x1ec),
+                                     (real_point3d *)(weapon + 0x50),
                                      *(float *)(weapon + 0x5c)))
     return;
   if (!FUN_000971a0(object_handle, local_position, (float *)(unit + 0x1ec)))
@@ -6199,7 +6200,7 @@ void unit_stop_custom_animation_evaluate(int16_t function_index, int thread_datu
  *
  * Callees (all cdecl, in kb.json):
  *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
- *   0x1ac180 = FUN_001ac180(int actor, int anim_tag, void *entry, int do_flag)
+ *   0x1ac180 = unit_start_user_animation(int actor, int anim_tag, void *entry, int do_flag)
  *              -> char in AL (semantics of the returned flag are UNKNOWN)
  *   0xcbf80  = hs_return(int thread_handle, int value) */
 void unit_start_user_animation_evaluate(int16_t function_index, int thread_datum, char init)
@@ -6213,7 +6214,7 @@ void unit_start_user_animation_evaluate(int16_t function_index, int thread_datum
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
     result_slot =
-      (unsigned char)FUN_001ac180(record[0], record[1], (void *)record[2],
+      (unsigned char)unit_start_user_animation(record[0], record[1], (void *)record[2],
                                   (int)*(unsigned char *)(record + 3));
     result = (unsigned int)result_slot;
     hs_return(thread_datum, result);
@@ -6936,7 +6937,7 @@ void unit_scripting_set_emotion_animation_evaluate(int16_t function_index, int t
  * 0xbf1e0/0xbf2b0/0xbf300 above: identical 3-parameter cdecl shape, identical
  * evaluate / NULL-check / worker / hs_return skeleton, and the "worker return
  * discarded, script gets a CONSTANT 0" tail. The record here is a SINGLE dword
- * and the worker is the unported FUN_001b5500.
+ * and the worker is the unported unit_scripting_exit_vehicle.
  *
  * cdecl frame, 0xbf340-0xbf372, 18 instructions: PUSH EBP; MOV EBP,ESP;
  * PUSH ESI. No local dword (no PUSH ECX in the prologue), no _chkstk, no FPU,
@@ -6969,7 +6970,7 @@ void unit_scripting_set_emotion_animation_evaluate(int16_t function_index, int t
  *   kb.json declared 0x1b5500 as `void(void)`; that is the void-decl trap
  *   (lift-learnings 31) -- calling it argument-less from C would silently drop
  *   the record field (same class as the a10 hs_objects_predict_evaluate dropped-arg crash),
- *   so the decl was corrected to `void FUN_001b5500(int)`. Nothing reads EAX
+ *   so the decl was corrected to `void unit_scripting_exit_vehicle(int)`. Nothing reads EAX
  *   after the call, so its return value is discarded (it is void).
  *
  *   CALL 0xcbf80 @0xbf367 pushes the immediate 0x0 then ESI ->
@@ -6985,7 +6986,7 @@ void unit_scripting_set_emotion_animation_evaluate(int16_t function_index, int t
  *
  * Callees (all cdecl, in kb.json, no @<reg> args anywhere):
  *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
- *   0x1b5500 = FUN_001b5500(int) -- UNPORTED, void, result discarded
+ *   0x1b5500 = unit_scripting_exit_vehicle(int) -- UNPORTED, void, result discarded
  *   0xcbf80  = hs_return(int thread_handle, int value) */
 void unit_scripting_exit_vehicle_evaluate(int16_t function_index, int thread_datum, char init)
 {
@@ -6994,7 +6995,7 @@ void unit_scripting_exit_vehicle_evaluate(int16_t function_index, int thread_dat
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    FUN_001b5500(record[0]);
+    unit_scripting_exit_vehicle(record[0]);
     hs_return(thread_datum, 0);
   }
 }
@@ -7367,7 +7368,7 @@ void vehicle_scripting_load_magic_evaluate(int16_t function_index, int thread_da
  *
  * Callees (all cdecl, in kb.json, no @<reg> args anywhere):
  *   0xcc560  = hs_macro_function_evaluate(int16_t, int, char) -> record ptr
- *   0x1b5400 = FUN_001b5400(int, const char *) -> uint16_t in AX (now ported in
+ *   0x1b5400 = vehicle_scripting_unload(int, const char *) -> uint16_t in AX (now ported in
  *              units/vehicles.c; lives in the vehicle-scripting address
  *              neighbourhood alongside 0x1b3400/vehicle_* but its own
  *              semantics are unproven, so the mechanical FUN_ name is kept)
@@ -7384,7 +7385,7 @@ void vehicle_scripting_unload_evaluate(int16_t function_index, int thread_datum,
   record =
     (int *)hs_macro_function_evaluate(function_index, thread_datum, init);
   if (record != NULL) {
-    value.w = FUN_001b5400(record[0], (const char *)record[1]);
+    value.w = vehicle_scripting_unload(record[0], (const char *)record[1]);
     hs_return(thread_datum, value.i);
   }
 }
@@ -14222,7 +14223,7 @@ char player_teleport_internal(int player_index, int object_handle, void *positio
       matrix[0] = scale;
 
       for (i = 0; i < 9 && !moved; i++) {
-        matrix_transform_point(matrix, (real *)(0x26ea88 + i * 12), candidate_pos);
+        matrix_transform_point(matrix, (real_point3d *)((real *)(0x26ea88 + i * 12)), (real_point3d *)candidate_pos);
         moved = biped_fix_position(unit_index, root_parent, candidate_pos, NULL, 2.0f, 0, 0, 1);
         if (!moved) {
           for (j = 0; j < 8 && !moved; j++) {

@@ -2451,16 +2451,16 @@ void infection_swarm_control(int actor_handle)
                 (unsigned char)infection_wander_move_time((short)mode);
               FUN_00012140((float *)(component + 4), (float *)(swarm + 0xc),
                            wander_delta);
-              sqlen = FUN_00012170(wander_delta);
+              sqlen = magnitude_squared3d((real_vector3d *)wander_delta);
               if (*(float *)0x25337c <= sqlen) {
                 wander_tmp = (float)((double)*(float *)0x253398 / sqrtf(sqlen) *
                                      (double)*(float *)0x256980);
-                angle = FUN_000121e0(-wander_tmp, wander_tmp);
+                angle = real_random_range(-wander_tmp, wander_tmp);
                 *(float *)(component + 0x20) = wander_delta[0];
                 *(float *)(component + 0x24) = wander_delta[1];
                 *(float *)(component + 0x28) = wander_delta[2];
               } else {
-                angle = FUN_000121e0(-_pi, _pi);
+                angle = real_random_range(-_pi, _pi);
                 *(int *)(component + 0x20) = *(int *)(unit + 0x24);
                 *(int *)(component + 0x24) = *(int *)(unit + 0x28);
                 *(int *)(component + 0x28) = *(int *)(unit + 0x2c);
@@ -2476,7 +2476,7 @@ void infection_swarm_control(int actor_handle)
                 (unsigned char)infection_wander_pause_time((short)mode);
             } else {
               wander_tmp = *(float *)(component + 0x2c) * *(float *)0x256984;
-              angle = FUN_000121e0(-0.020943951f, 0.020943951f);
+              angle = real_random_range(-0.020943951f, 0.020943951f);
               angle = angle + *(float *)(component + 0x2c) + wander_tmp;
               *(float *)(component + 0x2c) = angle;
               rotate_vector3d_by_sincos((real_vector3d *)(component + 0x20), (real_vector3d *)facing,
@@ -2528,7 +2528,7 @@ void infection_swarm_control(int actor_handle)
               dir[2] = *(float *)(component + 0x30);
               obey_negate = (*(short *)(component + 0x24) == 1);
             } else {
-              cross_product3d(facing, (float *)(component + 0x28), dir);
+              cross_product3d((real_vector3d *)facing, (real_vector3d *)(component + 0x28), (real_vector3d *)dir);
               obey_negate = (*(short *)(component + 0x24) == 3);
             }
             if (obey_negate) {
@@ -2798,10 +2798,10 @@ void infection_swarm_aim_jump(int actor_handle, int object_handle, float speed,
         if ((flags2 & 4) && (flags2 & 0x10)) {
           dir[0] = *(float *)(biped + 0x24);
           dir[1] = *(float *)(biped + 0x28);
-          if (normalize2d(dir) == 0.0f) {
+          if (normalize2d((real_vector2d *)dir) == 0.0f) {
             dir[0] = *(float *)(biped + 0x30);
             dir[1] = *(float *)(biped + 0x34);
-            if (normalize2d(dir) == 0.0f) {
+            if (normalize2d((real_vector2d *)dir) == 0.0f) {
               def = *(float **)0x31fc0c;
               dir[0] = def[0];
               dir[1] = def[1];
@@ -2825,11 +2825,11 @@ void infection_swarm_aim_jump(int actor_handle, int object_handle, float speed,
         (int)&min_speed, &max_speed, 0, 0, aim_vec, 0, 0, 0, &vz_out,
         &speed_scale);
       if (aim_ok) {
-        if (normalize2d(aim_vec) == 0.0f) {
+        if (normalize2d((real_vector2d *)aim_vec) == 0.0f) {
           aim_vec[0] = ((actor_t *)actor)->input_facing_vector[0];
           aim_vec[1] = ((actor_t *)actor)->input_facing_vector[1];
           aim_vec[2] = ((actor_t *)actor)->input_facing_vector[2];
-          if (normalize2d(aim_vec) == 0.0f) {
+          if (normalize2d((real_vector2d *)aim_vec) == 0.0f) {
             def = *(float **)0x31fc3c;
             aim_vec[0] = def[0];
             aim_vec[1] = def[1];
@@ -6157,7 +6157,7 @@ void actor_died(int actor_handle)
         seed = get_global_random_seed_address();
         if (random_math_real((unsigned int *)seed) < accuracy) {
           if (*(float *)(tag + 0x98) == 0.0f) {
-            burst_duration = FUN_000121e0(0.8f, 1.3f);
+            burst_duration = real_random_range(0.8f, 1.3f);
           } else if (*(float *)(tag + 0x98) < 0.8f) {
             burst_duration = 0.8f;
           } else if (*(float *)(tag + 0x98) > 1.3f) {
@@ -7298,7 +7298,7 @@ LAB_3e02c:
    * Confirmed: FCOMP [0x2533c0] (0.0f) at 0x3e233; if length <= 0 copy fwd_vec.
    * Confirmed: else case: MOV dword[ESI+0x17c],0 at 0x3e243 (clears .z). */
   if (((actor_t *)actor)->field_099 == 0) {
-    if (!(normalize2d((float *)(actor + 0x174)) > *(float *)0x2533c0)) {
+    if (!(normalize2d((real_vector2d *)(actor + 0x174)) > *(float *)0x2533c0)) {
       fwd_vec = *(float **)0x31fc3c;
       ((actor_t *)actor)->input_facing_vector[0] = fwd_vec[0];
       ((actor_t *)actor)->input_facing_vector[1] = fwd_vec[1];
@@ -7407,7 +7407,7 @@ LAB_3e02c:
    * Confirmed: valid_real_normal3d = assert_valid_real_normal3d (3-component).
    * Confirmed: valid_real_normal2d = assert_valid_real_normal2d (2-component).
    */
-  if (!valid_real_normal3d((float *)(actor + 0x174))) {
+  if (!valid_real_normal3d((real_vector3d *)(actor + 0x174))) {
     csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&actor->input.facing_vector",
              (double)((actor_t *)actor)->input_facing_vector[0],
@@ -7417,7 +7417,7 @@ LAB_3e02c:
                    1);
     system_exit(-1);
   }
-  if (!valid_real_normal3d((float *)(actor + 0x180))) {
+  if (!valid_real_normal3d((real_vector3d *)(actor + 0x180))) {
     csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&actor->input.aiming_vector",
              (double)((actor_t *)actor)->input_aiming_vector[0],
@@ -7427,7 +7427,7 @@ LAB_3e02c:
                    1);
     system_exit(-1);
   }
-  if (!valid_real_normal3d((float *)(actor + 0x18c))) {
+  if (!valid_real_normal3d((real_vector3d *)(actor + 0x18c))) {
     csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&actor->input.looking_vector",
              (double)((actor_t *)actor)->input_looking_vector[0],
@@ -7652,7 +7652,7 @@ void actor_unit_control(int actor_handle /* @<eax> */)
   }
 
   /* Validate facing, aiming, looking vectors as 3D normals */
-  if (!valid_real_normal3d((float *)(control + 0x1c))) {
+  if (!valid_real_normal3d((real_vector3d *)(control + 0x1c))) {
     csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&control_data.facing_vector", (double)*(float *)(control + 0x1c),
              (double)*(float *)(control + 0x20),
@@ -7661,7 +7661,7 @@ void actor_unit_control(int actor_handle /* @<eax> */)
                    1);
     system_exit(-1);
   }
-  if (!valid_real_normal3d((float *)(control + 0x28))) {
+  if (!valid_real_normal3d((real_vector3d *)(control + 0x28))) {
     csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&control_data.aiming_vector", (double)*(float *)(control + 0x28),
              (double)*(float *)(control + 0x2c),
@@ -7670,7 +7670,7 @@ void actor_unit_control(int actor_handle /* @<eax> */)
                    1);
     system_exit(-1);
   }
-  if (!valid_real_normal3d((float *)(control + 0x34))) {
+  if (!valid_real_normal3d((real_vector3d *)(control + 0x34))) {
     csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&control_data.looking_vector", (double)*(float *)(control + 0x34),
              (double)*(float *)(control + 0x38),
@@ -8218,7 +8218,7 @@ int actor_place(int actv_tag_index, int encounter_index, int squad_index,
   *(int *)(placement + 0x1C) = *(int *)((char *)starting_location + 4);
   *(int *)(placement + 0x20) = *(int *)((char *)starting_location + 8);
 
-  vector3d_from_angle((float *)(placement + 0x34),
+  vector3d_from_angle((real_vector3d *)(placement + 0x34),
                       *(float *)((char *)starting_location + 0xC));
 
   *(int16_t *)(placement + 0x16) = team;

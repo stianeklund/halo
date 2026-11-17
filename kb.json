@@ -4066,7 +4066,7 @@
     },
     {
      "addr": "0x178d0",
-     "decl": "float *cross_product3d(float *a, float *b, float *out);",
+     "decl": "real_vector3d *cross_product3d(real_vector3d const *a, real_vector3d const *b, real_vector3d *out);",
      "ported": true
     },
     {
@@ -4618,7 +4618,7 @@
     },
     {
      "addr": "0x3f350",
-     "decl": "int16_t FUN_0003f350(int unit_handle, int spawn_tag, int16_t count, float radius);",
+     "decl": "int16_t actors_spawn_from_unit(int unit_handle, int spawn_tag, int16_t count, float radius);",
      "ported": true
     },
     {
@@ -4689,7 +4689,7 @@
     },
     {
      "addr": "0x40360",
-     "decl": "void ai_handle_bump(int param_1, int param_2, float *velocity_ptr);",
+     "decl": "void ai_handle_bump(int param_1, int param_2, real_vector3d *velocity_ptr);",
      "ported": true
     },
     {
@@ -5302,7 +5302,7 @@
     {
      "addr": "0x146a90",
      "comment": "Apply breakable-surface damage: looks up the surface by ID, reduces its health, and calls the destruction callback if depleted. Asserts globals are present.",
-     "decl": "void FUN_00146a90(int surface_id, void *damage_params, int unknown);",
+     "decl": "void breakable_surface_damage(int surface_id, void *damage_params, int unknown);",
      "ported": true
     },
     {
@@ -5955,7 +5955,7 @@
     },
     {
      "addr": "0x14c8e0",
-     "decl": "int FUN_0014c8e0(int *out, int object_handle);",
+     "decl": "int collision_model_instance_new(int *out, int object_handle);",
      "ported": true
     },
     {
@@ -5970,12 +5970,12 @@
     },
     {
      "addr": "0x14cb00",
-     "decl": "char FUN_0014cb00(int param_1, void *param_2, void *param_3, void *param_4, int16_t *param_5);",
+     "decl": "char collision_model_test_vector(int param_1, void *param_2, void *param_3, void *param_4, int16_t *param_5);",
      "ported": true
     },
     {
      "addr": "0x14cc80",
-     "decl": "bool FUN_0014cc80(int param_1, int param_2, int param_3, float param_4, int16_t *param_5);",
+     "decl": "bool collision_model_test_pill(int param_1, int param_2, int param_3, float param_4, int16_t *param_5);",
      "ported": true,
      "src": "src/halo/physics/collision_usage.c"
     },
@@ -6067,7 +6067,7 @@
     },
     {
      "addr": "0x14dab0",
-     "decl": "char FUN_0014dab0(int param_1, int param_2);",
+     "decl": "char collision_test_sphere(int param_1, int param_2);",
      "ported": true
     },
     {
@@ -6082,7 +6082,7 @@
     },
     {
      "addr": "0x14ec30",
-     "decl": "bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b, float dist_a, int param6, void *scratch);",
+     "decl": "bool collision_get_features_in_sphere(int flags, const real_point3d *pos, float search_radius, float dist_b, float dist_a, int param6, void *scratch);",
      "ported": true
     },
     {
@@ -6102,17 +6102,17 @@
     },
     {
      "addr": "0x14f020",
-     "decl": "char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent, float p4, float p5, int unit_handle, float *point_out);",
+     "decl": "char collision_fix_pill(uint32_t collision_flags, float *point, float vertical_extent, float p4, float p5, int unit_handle, float *point_out);",
      "ported": true
     },
     {
      "addr": "0x14f2c0",
-     "decl": "short FUN_0014f2c0(float *old_pos, float *old_vel, short *features, float *new_pos, float *new_vel, short max_clips, int collisions);",
+     "decl": "short collision_move_point(float *old_pos, float *old_vel, short *features, float *new_pos, float *new_vel, short max_clips, int collisions);",
      "ported": true
     },
     {
      "addr": "0x150550",
-     "decl": "short FUN_00150550(void *collision_flags, float *position, float *velocity, float arg4, float arg5, int arg6, float *new_position, float *new_velocity, int max_collisions, void *collisions);",
+     "decl": "short collision_move_pill(void *collision_flags, real_point3d const *position, real_vector3d const *velocity, float arg4, float arg5, int arg6, real_point3d *new_position, real_vector3d *new_velocity, int max_collisions, void *collisions);",
      "ported": false,
      "source_path": "src/halo/physics/collision_usage.c"
     },
@@ -7153,7 +7153,7 @@
     },
     {
      "addr": "0x993b0",
-     "decl": "float triple_product3d(float *param_1, float *param_2, float *param_3);",
+     "decl": "float triple_product3d(const real_vector3d *a, const real_vector3d *b, const real_vector3d *c);",
      "name": "triple_product3d",
      "ported": true
     },
@@ -7371,12 +7371,12 @@
     },
     {
      "addr": "0x17cbc0",
-     "decl": "void FUN_0017cbc0(int shader, int p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle);",
+     "decl": "void rasterizer_model_draw(int shader, int p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle);",
      "ported": true
     },
     {
      "addr": "0x17cbd0",
-     "decl": "void FUN_0017cbd0(void *shader, short p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle, float *position, void *p9);",
+     "decl": "void rasterizer_model_transparent_geometry_submit(void *shader, short p2, int p3, int widget_handle, int p5, int p6, int zbuf_handle, float *position, void *p9);",
      "ported": true
     },
     {
@@ -7459,7 +7459,7 @@
     },
     {
      "addr": "0x17ccd0",
-     "decl": "void FUN_0017ccd0(void *decal, int param_2, void *param_3, void *param_4);",
+     "decl": "void rasterizer_shadow_model_draw(void *decal, int param_2, void *param_3, void *param_4);",
      "ported": true
     },
     {
@@ -9323,7 +9323,7 @@
     },
     {
      "addr": "0xb5590",
-     "decl": "float FUN_000b5590(int16_t value_type);",
+     "decl": "float game_difficulty_get_value(int16_t value_type);",
      "ported": true
     },
     {
@@ -10973,7 +10973,7 @@
     },
     {
      "addr": "0x1c7e70",
-     "decl": "int object_impulse_sound_new(int object_handle, int tag_index, int16_t marker, float *position, float *forward, float scale);",
+     "decl": "int object_impulse_sound_new(int object_handle, int tag_index, int16_t marker, real_point3d const *position, real_vector3d const *forward, float scale);",
      "ported": true
     },
     {
@@ -14092,7 +14092,7 @@
     },
     {
      "addr": "0xce200",
-     "decl": "int FUN_000ce200(void);",
+     "decl": "int object_list_new(void);",
      "ported": true
     },
     {
@@ -14102,12 +14102,12 @@
     },
     {
      "addr": "0xce2b0",
-     "decl": "void FUN_000ce2b0(int param_1, int param_2);",
+     "decl": "void object_list_add(int param_1, int param_2);",
      "ported": true
     },
     {
      "addr": "0xce320",
-     "decl": "int FUN_000ce320(int parent_handle, int *iter_state);",
+     "decl": "int object_list_get_next(int parent_handle, int *iter_state);",
      "ported": true
     },
     {
@@ -14132,7 +14132,7 @@
     },
     {
      "addr": "0xce450",
-     "decl": "int FUN_000ce450(int parent_handle, int *iter_state);",
+     "decl": "int object_list_get_first(int parent_handle, int *iter_state);",
      "ported": true
     },
     {
@@ -15640,7 +15640,7 @@
     },
     {
      "addr": "0xf6c40",
-     "decl": "char valid_real_vector3d_axes3(float *a, float *b, float *c);",
+     "decl": "char valid_real_vector3d_axes3(real_vector3d const *forward, real_vector3d const *left, real_vector3d const *up);",
      "ported": true
     },
     {
@@ -15651,7 +15651,7 @@
     },
     {
      "addr": "0xf6d60",
-     "decl": "void item_accelerate(int item_handle, float *position, int flag);",
+     "decl": "void item_accelerate(int item_handle, const real_vector3d *acceleration, int flag);",
      "ported": true,
      "name": "item_accelerate"
     },
@@ -18897,7 +18897,7 @@
     },
     {
      "addr": "0x141360",
-     "decl": "void object_get_orientation(int object_handle, float *out_forward, float *out_up);",
+     "decl": "void object_get_orientation(int object_handle, real_vector3d *forward, real_vector3d *up);",
      "ported": true
     },
     {
@@ -18967,7 +18967,7 @@
     },
     {
      "addr": "0x143be0",
-     "decl": "void object_translate(int object_handle, float *position, void *location);",
+     "decl": "void object_translate(int object_handle, const real_point3d *position, void *location);",
      "ported": true
     },
     {
@@ -18982,7 +18982,7 @@
     },
     {
      "addr": "0x1443f0",
-     "decl": "bool object_try_place(int object_handle, float *position);",
+     "decl": "bool object_try_place(int object_handle, const real_point3d *position);",
      "ported": true
     },
     {
@@ -22034,7 +22034,7 @@
     },
     {
      "addr": "0x1509c0",
-     "decl": "boolean FUN_001509c0(void *instance_data, int object_index);",
+     "decl": "boolean physics_instance_new(void *instance_data, int object_index);",
      "ported": true
     },
     {
@@ -22096,7 +22096,7 @@
     },
     {
      "addr": "0x154270",
-     "decl": "void physics_update(int object_index, void *powered_mass_points, void *mass_points, float *magic_force, float *magic_torque);",
+     "decl": "void physics_update(int object_index, void *powered_mass_points, void *mass_points, const real_vector3d *magic_force, const real_vector3d *magic_torque);",
      "ported": true
     },
     {
@@ -22128,7 +22128,7 @@
     },
     {
      "addr": "0x154750",
-     "decl": "char FUN_00154750(float *out_pos, void *point_phys, boolean wrap, float target_pos, float scale);",
+     "decl": "char physics_variable_position_update_seek(float *out_pos, void *point_phys, boolean wrap, float target_pos, float scale);",
      "ported": true
     },
     {
@@ -22725,7 +22725,7 @@
     },
     {
      "addr": "0xf8ee0",
-     "decl": "void projectile_accelerate(int projectile_handle, float *acceleration);",
+     "decl": "void projectile_accelerate(int projectile_handle, const real_vector3d *acceleration);",
      "ported": true
     },
     {
@@ -22987,7 +22987,7 @@
     {
      "addr": "0x10b4c0",
      "comment": "Generate a random direction within a cone around a forward vector.",
-     "decl": "void seed_random_vector_in_cone3d(unsigned int *seed, float *forward, float zero, float angle, float *result);",
+     "decl": "void seed_random_vector_in_cone3d(unsigned int *seed, const real_vector3d *forward, float zero, float angle, real_vector3d *result);",
      "ported": true,
      "name": "seed_random_vector_in_cone3d"
     },
@@ -23011,7 +23011,7 @@
     {
      "addr": "0x10c8e0",
      "comment": "Reflect vector v about surface normal n: out = v - 2*dot(v,n)*n.",
-     "decl": "float *FUN_0010c8e0(float *v, float *n, float *out);",
+     "decl": "real_vector3d *reflect_vector3d(real_vector3d const *vector, real_vector3d const *normal, real_vector3d *result);",
      "ported": true
     },
     {
@@ -24409,12 +24409,12 @@
     },
     {
      "addr": "0x130d0",
-     "decl": "bool FUN_000130d0(uint32_t collision_flags, float *point_a, float *point_b, int max_distance, int16_t *collision_result);",
+     "decl": "bool collision_test_line(uint32_t collision_flags, float *point_a, float *point_b, int max_distance, int16_t *collision_result);",
      "ported": true
     },
     {
      "addr": "0x12f10",
-     "decl": "float normalize2d(float *v);",
+     "decl": "float normalize2d(real_vector2d *v);",
      "ported": true
     },
     {
@@ -24424,28 +24424,28 @@
     },
     {
      "addr": "0x12f80",
-     "decl": "float *vector3d_scale_add(float *base, float *direction, float scale, float *out);",
+     "decl": "real_point3d *vector3d_scale_add(const real_point3d *base, const real_vector3d *direction, float scale, real_point3d *out);",
      "ported": true,
      "source": "src/halo/math/vector_math.c",
      "status": "ported"
     },
     {
      "addr": "0x213c0",
-     "decl": "float *vector3d_add(float *a, float *b, float *out);",
+     "decl": "real_vector3d *vector3d_add(real_vector3d const *a, real_vector3d const *b, real_vector3d *result);",
      "ported": true,
      "source": "src/halo/math/vector_math.c",
      "status": "ported"
     },
     {
      "addr": "0x21fb0",
-     "decl": "bool valid_real_normal3d(float *v);",
+     "decl": "bool valid_real_normal3d(const real_vector3d *v);",
      "ported": true,
      "source": "src/halo/math/vector_math.c",
      "status": "ported"
     },
     {
      "addr": "0x12170",
-     "decl": "float FUN_00012170(float *vector);",
+     "decl": "float magnitude_squared3d(const real_vector3d *vector);",
      "ported": true
     },
     {
@@ -24455,7 +24455,7 @@
     },
     {
      "addr": "0x121e0",
-     "decl": "float FUN_000121e0(float min, float max);",
+     "decl": "float real_random_range(float min, float max);",
      "ported": true
     },
     {
@@ -24465,7 +24465,7 @@
     },
     {
      "addr": "0x13070",
-     "decl": "float FUN_00013070(float *a, float *b);",
+     "decl": "float dot_product3d(real_vector3d const *a, real_vector3d const *b);",
      "ported": true
     },
     {
@@ -24571,12 +24571,12 @@
     },
     {
      "addr": "0x12fb0",
-     "decl": "float *FUN_00012fb0(float *in, float scale, float *out);",
+     "decl": "real_vector3d *scale_vector3d(real_vector3d const *vector, float scale, real_vector3d *result);",
      "ported": true
     },
     {
      "addr": "0x12fe0",
-     "decl": "float FUN_00012fe0(float *v);",
+     "decl": "float magnitude3d(real_vector3d const *vector);",
      "ported": true
     },
     {
@@ -24724,17 +24724,17 @@
     },
     {
      "addr": "0x1092d0",
-     "decl": "void FUN_001092d0(float *out_matrix, float *axis, float sine, float cosine);",
+     "decl": "void matrix4x3_rotation_from_axis_and_angle(float *out_matrix, const real_vector3d *axis, float sine, float cosine);",
      "ported": true
     },
     {
      "addr": "0x1093b0",
-     "decl": "void FUN_001093b0(float *out, float *q);",
+     "decl": "void matrix4x3_rotation_from_quaternion(float *out, float *q);",
      "ported": true
     },
     {
      "addr": "0x1094d0",
-     "decl": "void component_vectors_from_normal3d(float *out_matrix, float *position, float *basis_data);",
+     "decl": "void matrix4x3_from_point_and_quaternion(float *out_matrix, float *position, float *basis_data);",
      "ported": true
     },
     {
@@ -24749,12 +24749,12 @@
     },
     {
      "addr": "0x109590",
-     "decl": "float *matrix_transform_point(float *matrix, float *in, float *out);",
+     "decl": "real_point3d *matrix_transform_point(float *matrix, const real_point3d *in, real_point3d *out);",
      "ported": true
     },
     {
      "addr": "0x109610",
-     "decl": "float *matrix_scale_transform_vector(float *matrix, float *in, float *out);",
+     "decl": "real_vector3d *matrix_scale_transform_vector(float *matrix, const real_vector3d *in, real_vector3d *out);",
      "ported": true
     },
     {
@@ -24790,7 +24790,7 @@
     },
     {
      "addr": "0x1099f0",
-     "decl": "float *FUN_001099f0(float *src, float *dst);",
+     "decl": "float *matrix3x3_transpose(float *src, float *dst);",
      "ported": true
     },
     {
@@ -24805,7 +24805,7 @@
     },
     {
      "addr": "0x109c70",
-     "decl": "float *FUN_00109c70(float *a, float *b, float *out);",
+     "decl": "float *matrix3x3_multiply(float *a, float *b, float *out);",
      "ported": true
     },
     {
@@ -24830,7 +24830,7 @@
     },
     {
      "addr": "0x109fc0",
-     "decl": "void FUN_00109fc0(float *matrix4x3, float *out_quat4);",
+     "decl": "void matrix4x3_rotation_to_quaternion(float *matrix4x3, float *out_quat4);",
      "ported": true
     },
     {
@@ -24845,7 +24845,7 @@
     },
     {
      "addr": "0x10a1c0",
-     "decl": "float *FUN_0010a1c0(float *matrix, float *in_plane, float *out_plane);",
+     "decl": "float *matrix4x3_transform_plane(float *matrix, float *in_plane, float *out_plane);",
      "ported": true
     },
     {
@@ -24855,12 +24855,12 @@
     },
     {
      "addr": "0x10a2c0",
-     "decl": "void FUN_0010a2c0(float *out, float *forward, float *up);",
+     "decl": "void matrix3x3_from_forward_and_up(float *out, float *forward, float *up);",
      "ported": true
     },
     {
      "addr": "0x10a330",
-     "decl": "void FUN_0010a330(float *matrix, float *quat);",
+     "decl": "void matrix3x3_rotation_to_quaternion(float *matrix, float *quat);",
      "ported": true
     },
     {
@@ -24952,7 +24952,7 @@
     },
     {
      "addr": "0x10b8a0",
-     "decl": "void FUN_0010b8a0(float *v, float *axis, float *parallel, float *perpendicular);",
+     "decl": "void component_vectors_from_normal3d(const real_vector3d *v, const real_vector3d *axis, real_vector3d *parallel, real_vector3d *perpendicular);",
      "ported": true
     },
     {
@@ -24967,7 +24967,7 @@
     },
     {
      "addr": "0x10bc70",
-     "decl": "bool fast_vector_intersects_sphere(float *line_start, float *line_end, float *sphere_center, float sphere_radius);",
+     "decl": "bool fast_vector_intersects_sphere(real_point3d const *point, real_vector3d const *vector, real_point3d const *sphere_center, float sphere_radius);",
      "ported": true
     },
     {
@@ -24997,12 +24997,12 @@
     },
     {
      "addr": "0x10c690",
-     "decl": "void yaw_vectors(float *v1, float *axis, float scale1, float scale2);",
+     "decl": "void yaw_vectors(real_vector3d *vector, real_vector3d const *axis, float sine, float cosine);",
      "ported": true
     },
     {
      "addr": "0x10c700",
-     "decl": "void FUN_0010c700(float *v1, float *v2, float scale1, float scale2);",
+     "decl": "void pitch_vectors(real_vector3d *v1, real_vector3d *v2, float scale1, float scale2);",
      "ported": true
     },
     {
@@ -25017,7 +25017,7 @@
     },
     {
      "addr": "0x10caf0",
-     "decl": "void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3);",
+     "decl": "void quaternion_to_angle_and_vector(real_quaternion const *quaternion, float *angle, real_vector3d *axis);",
      "ported": true
     },
     {
@@ -25043,7 +25043,7 @@
     },
     {
      "addr": "0x10cc70",
-     "decl": "void vector3d_from_angle(float *output, float angle);",
+     "decl": "void vector3d_from_angle(real_vector3d *output, float angle);",
      "ported": true
     },
     {
@@ -25178,7 +25178,7 @@
     },
     {
      "addr": "0x10f770",
-     "decl": "void angular_accelerate_to_position(float *facing, float *target_facing, float *ang_vel, float max_ang_speed, float ang_accel);",
+     "decl": "void angular_accelerate_to_position(real_vector3d *facing, const real_vector3d *target_facing, real_vector3d *ang_vel, float max_ang_speed, float ang_accel);",
      "ported": true
     },
     {
@@ -26137,7 +26137,7 @@
     },
     {
      "addr": "0x189150",
-     "decl": "void FUN_00189150(char flag, float *position, float scale, void *color);",
+     "decl": "void render_debug_point(char flag, const real_point3d *position, float scale, void *color);",
      "ported": true
     },
     {
@@ -26147,7 +26147,7 @@
     },
     {
      "addr": "0x189320",
-     "decl": "void FUN_00189320(int flag, float *point, float *vector, float scale, void *color);",
+     "decl": "void render_debug_vector(int flag, const real_point3d *point, const real_vector3d *vector, float scale, void *color);",
      "ported": true
     },
     {
@@ -26167,7 +26167,7 @@
     },
     {
      "addr": "0x189540",
-     "decl": "void FUN_00189540(char flag, void *center, float radius, void *color);",
+     "decl": "void render_debug_sphere(char flag, void *center, float radius, void *color);",
      "ported": true
     },
     {
@@ -26177,7 +26177,7 @@
     },
     {
      "addr": "0x189860",
-     "decl": "void FUN_00189860(char flag, void *center, void *height_vec, float radius, void *color);",
+     "decl": "void render_debug_pill(char flag, void *center, void *height_vec, float radius, void *color);",
      "ported": true
     },
     {
@@ -26197,7 +26197,7 @@
     },
     {
      "addr": "0x189cb0",
-     "decl": "void FUN_00189cb0(char flag, void *position, void *string, int color);",
+     "decl": "void render_debug_string_at_point(char flag, void *position, void *string, int color);",
      "ported": true
     },
     {
@@ -26697,8 +26697,8 @@
     },
     {
      "addr": "0x18e500",
-     "decl": "void *FUN_0018e500(int16_t material_type);",
-     "name": "FUN_0018e500",
+     "decl": "void *scenario_material_definition_get(int16_t material_type);",
+     "name": "scenario_material_definition_get",
      "ported": true
     },
     {
@@ -26743,7 +26743,7 @@
     },
     {
      "addr": "0x18e720",
-     "decl": "int FUN_0018e720(int point);",
+     "decl": "int scenario_leaf_index_from_point(int point);",
      "ported": true
     },
     {
@@ -26790,7 +26790,7 @@
     },
     {
      "addr": "0x1906b0",
-     "decl": "void *FUN_001906b0(void *shader_pointer, int16_t shader_type);",
+     "decl": "void *shader_get_and_verify_type(void *shader_pointer, int16_t shader_type);",
      "ported": true
     },
     {
@@ -27058,7 +27058,7 @@
     },
     {
      "addr": "0x18c0b0",
-     "decl": "void *scenario_leaf_index_from_point(int object_handle, float lod);",
+     "decl": "void *object_get_cached_render_lighting(int object_handle, float lod);",
      "ported": true
     },
     {
@@ -27268,7 +27268,7 @@
     },
     {
      "addr": "0x18f250",
-     "decl": "char scenario_ensure_point_within_world(float *position);",
+     "decl": "char scenario_ensure_point_within_world(real_point3d *position);",
      "ported": true
     },
     {
@@ -27850,7 +27850,7 @@
     },
     {
      "addr": "0x1ac180",
-     "decl": "char FUN_001ac180(int actor, int anim_tag, void *entry, int do_flag);",
+     "decl": "char unit_start_user_animation(int actor, int anim_tag, void *entry, int do_flag);",
      "ported": true
     },
     {
@@ -31735,7 +31735,7 @@
     },
     {
      "addr": "0x19f530",
-     "decl": "int FUN_0019f530(int unit_handle);",
+     "decl": "int biped_limp_noodle_get_max_relaxation_iterations(int unit_handle);",
      "source_path": "src/halo/text/unicode.c",
      "ported": true
     },
@@ -31745,7 +31745,7 @@
     },
     {
      "addr": "0x19fa20",
-     "decl": "void FUN_0019fa20(int unit_handle, void *node_block);",
+     "decl": "void biped_limp_noodle_move_relax_and_constrain_positions(int unit_handle, void *node_block);",
      "ported": false,
      "source_path": "src/halo/units/bipeds.c"
     }
@@ -31757,7 +31757,7 @@
    "functions": [
     {
      "addr": "0x1a01d0",
-     "decl": "void validate_real_vector3d_axes3(float *forward, float *left, float *up);",
+     "decl": "void validate_real_vector3d_axes3(real_vector3d *forward, real_vector3d *left, real_vector3d *up);",
      "ported": true,
      "name": "validate_real_vector3d_axes3"
     },
@@ -31837,14 +31837,14 @@
     },
     {
      "addr": "0x1a0a40",
-     "decl": "void biped_bumped_object(int contact_handle@<edi>, int unit_handle@<ebx>, float *velocity_ptr);",
+     "decl": "void biped_bumped_object(int contact_handle@<edi>, int unit_handle@<ebx>, real_vector3d *velocity_ptr);",
      "ported": true,
      "name": "biped_bumped_object",
      "static_in_tu": true
     },
     {
      "addr": "0x1a0b30",
-     "decl": "char FUN_001a0b30(int unit_handle@<edi>);",
+     "decl": "char biped_check_discard(int unit_handle@<edi>);",
      "ported": true
     },
     {
@@ -31888,7 +31888,7 @@
     },
     {
      "addr": "0x1a12e0",
-     "decl": "void biped_get_autoaim_pill(int unit_handle, float *out_pos, float *out_axis, int *out_value);",
+     "decl": "void biped_get_autoaim_pill(int unit_handle, real_point3d *out_pos, real_vector3d *out_axis, int *out_value);",
      "ported": true
     },
     {
@@ -31904,7 +31904,7 @@
     },
     {
      "addr": "0x1a1a10",
-     "decl": "int biped_find_ground_surface(float scale, float *out_point, void *out_vec, float *direction@<eax>, int unit_handle@<edi>);",
+     "decl": "int biped_find_ground_surface(float scale, real_point3d *out_point, void *out_vec, const real_vector3d *direction@<eax>, int unit_handle@<edi>);",
      "ported": true,
      "name": "biped_find_ground_surface",
      "static_in_tu": true
@@ -31926,7 +31926,7 @@
     },
     {
      "addr": "0x1a1e70",
-     "decl": "void FUN_001a1e70(int unit_handle);",
+     "decl": "void biped_falling_danger(int unit_handle);",
      "ported": false
     },
     {
@@ -31937,7 +31937,7 @@
     },
     {
      "addr": "0x1a2160",
-     "decl": "void FUN_001a2160(int unit_handle@<eax>);",
+     "decl": "void biped_apply_rotation(int unit_handle@<eax>);",
      "ported": false
     },
     {
@@ -31954,7 +31954,7 @@
     },
     {
      "addr": "0x1a25e0",
-     "decl": "void FUN_001a25e0(int unit_handle@<ecx>);",
+     "decl": "void biped_find_nearby_support_surface(int unit_handle@<ecx>);",
      "ported": false
     },
     {
@@ -31977,7 +31977,7 @@
     },
     {
      "addr": "0x1a2b10",
-     "decl": "void FUN_001a2b10(int unit_handle@<edi>);",
+     "decl": "void biped_update_slipping(int unit_handle@<edi>);",
      "ported": false
     },
     {
@@ -31989,12 +31989,12 @@
     },
     {
      "addr": "0x1a2d90",
-     "decl": "void biped_build_flying_axes(float *forward, float *left, float *up);",
+     "decl": "void biped_build_flying_axes(const real_vector3d *forward, real_vector3d *left, real_vector3d *up);",
      "ported": true
     },
     {
      "addr": "0x1a2f40",
-     "decl": "void FUN_001a2f40(void *physics@<esi>);",
+     "decl": "void biped_update_physics(void *physics@<esi>);",
      "ported": false
     },
     {
@@ -32016,16 +32016,16 @@
     },
     {
      "addr": "0x1a4a70",
-     "decl": "void FUN_001a4a70(int handle, float *velocity);"
+     "decl": "void biped_accelerate(int handle, float *velocity);"
     },
     {
      "addr": "0x1a4c50",
-     "decl": "void FUN_001a4c50(int unit_handle, unsigned char *state);",
+     "decl": "void biped_update_turning(int unit_handle, unsigned char *state);",
      "ported": false
     },
     {
      "addr": "0x1a5300",
-     "decl": "void FUN_001a5300(int unit_handle, unsigned char *state);",
+     "decl": "void biped_update_moving(int unit_handle, unsigned char *state);",
      "ported": false
     }
    ],
@@ -32262,7 +32262,7 @@
     },
     {
      "addr": "0x1a7fc0",
-     "decl": "void unit_delete(int datum_handle);",
+     "decl": "void unit_kill_no_statistics(int datum_handle);",
      "ported": true
     },
     {
@@ -32282,7 +32282,7 @@
     },
     {
      "addr": "0x1a8200",
-     "decl": "int unit_get_seat_enter_position(int unit_handle, int target_unit_handle, int16_t seat_index, float *out_pos_a, float *out_pos_b, float *out_pos_c);",
+     "decl": "int unit_get_seat_enter_position(int unit_handle, int target_unit_handle, int16_t seat_index, real_point3d *out_pos_a, real_point3d *out_pos_b, real_point3d *out_pos_c);",
      "ported": true
     },
     {
@@ -32828,7 +32828,7 @@
     },
     {
      "addr": "0x1ada90",
-     "decl": "char unit_clip_to_aiming_bounds(int unit_handle, float *vector, char flag);",
+     "decl": "char unit_clip_to_aiming_bounds(int unit_handle, real_vector3d *vector, char flag);",
      "ported": true
     },
     {
@@ -32949,7 +32949,7 @@
     },
     {
      "addr": "0x1af180",
-     "decl": "void unit_apply_alignment_vector(int unit_handle@<eax>, float *alignment_vector@<ecx>);",
+     "decl": "void unit_apply_alignment_vector(int unit_handle@<eax>, const real_vector2d *alignment_vector@<ecx>);",
      "ported": true
     },
     {
@@ -32959,7 +32959,7 @@
     },
     {
      "addr": "0x1af340",
-     "decl": "void unit_update_running_blind(int unit_handle@<eax>, float *run_vector@<esi>);",
+     "decl": "void unit_update_running_blind(int unit_handle@<eax>, real_vector3d *run_vector@<esi>);",
      "name": "unit_update_running_blind",
      "ported": true
     },
@@ -32993,7 +32993,7 @@
     },
     {
      "addr": "0x1b0630",
-     "decl": "void unit_euler_aiming_update(int transform_matrix, float *aiming_vector, float *desired_vector, float *angular_velocity, float *aiming_bounds, float angular_velocity_limit, float angular_acceleration_limit);",
+     "decl": "void unit_euler_aiming_update(int transform_matrix, real_vector3d *aiming_vector, const real_vector3d *desired_vector, real_vector3d *angular_velocity, float *aiming_bounds, float angular_velocity_limit, float angular_acceleration_limit);",
      "ported": true,
      "name": "unit_euler_aiming_update"
     },
@@ -33207,7 +33207,7 @@
     },
     {
      "addr": "0x1a7fe0",
-     "decl": "void FUN_001a7fe0(int unit_handle);",
+     "decl": "void unit_delete(int unit_handle);",
      "ported": true,
      "comment": "Added from Ghidra function list (missing from kb.json; found by standalone bring-up 2026-09-27). Stack pops 0 bytes (original ret N)."
     }
@@ -33225,12 +33225,12 @@
    "functions": [
     {
      "addr": "0x1b5400",
-     "decl": "uint16_t FUN_001b5400(int vehicle_handle, const char *name_filter);",
+     "decl": "uint16_t vehicle_scripting_unload(int vehicle_handle, const char *name_filter);",
      "ported": true
     },
     {
      "addr": "0x1b5500",
-     "decl": "void FUN_001b5500(int param_1);",
+     "decl": "void unit_scripting_exit_vehicle(int param_1);",
      "ported": true
     },
     {
@@ -33255,7 +33255,7 @@
     },
     {
      "addr": "0x1b5580",
-     "decl": "void vehicle_causes_collision_damage(int param_1, void *param_2);",
+     "decl": "void vehicle_place(int param_1, void *param_2);",
      "ported": true
     },
     {
@@ -33266,12 +33266,12 @@
     },
     {
      "addr": "0x1b55c0",
-     "decl": "bool vehicle_hover(int vehicle_handle);",
+     "decl": "bool vehicle_causes_collision_damage(int vehicle_handle);",
      "ported": true
     },
     {
      "addr": "0x1b5610",
-     "decl": "void FUN_001b5610(int vehicle_handle, uint8_t param_2);",
+     "decl": "void vehicle_hover(int vehicle_handle, uint8_t param_2);",
      "ported": true
     },
     {
@@ -33281,7 +33281,7 @@
     },
     {
      "addr": "0x1b56b0",
-     "decl": "void FUN_001b56b0(int vehicle_handle@<eax>, void *state_array@<edi>);",
+     "decl": "void compute_airborne_ticks(int vehicle_handle@<eax>, void *state_array@<edi>);",
      "ported": true,
      "static_in_tu": true
     },
@@ -33307,7 +33307,7 @@
     },
     {
      "addr": "0x1b5c90",
-     "decl": "void vehicle_accelerate(int handle, float *velocity);",
+     "decl": "void vehicle_accelerate(int handle, const real_vector3d *acceleration);",
      "ported": true
     },
     {
@@ -33379,7 +33379,7 @@
     },
     {
      "addr": "0x1b72b0",
-     "decl": "void create_crashing_effects(int vehicle_index, float *previous_velocity, void *mass_points);",
+     "decl": "void create_crashing_effects(int vehicle_index, const real_vector3d *previous_velocity, void *mass_points);",
      "comment": "[NAME: create_crashing_effects \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
      "ported": false,
      "source_path": "src/halo/units/vehicles.c"
@@ -37884,7 +37884,7 @@
     },
     {
      "addr": "0x22ba0",
-     "decl": "int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector);",
+     "decl": "int actor_aim_grenade(int actor_handle, void *aim_params, real_vector3d *out_aim_vector);",
      "ported": true
     },
     {
@@ -37963,7 +37963,7 @@
     },
     {
      "addr": "0x2a540",
-     "decl": "float *midpoint3d(float *a, float *b, float *out);",
+     "decl": "real_point3d *midpoint3d(const real_point3d *a, const real_point3d *b, real_point3d *out);",
      "name": "midpoint3d",
      "ported": true
     },
@@ -42331,12 +42331,12 @@
     },
     {
      "addr": "0x120590",
-     "decl": "void *FUN_00120590(void *animation, short frame_index, short frame_size);",
+     "decl": "void *animation_get_frame_info(void *animation, short frame_index, short frame_size);",
      "ported": true
     },
     {
      "addr": "0x1205f0",
-     "decl": "const char *FUN_001205f0(void *string_table, int16_t index);",
+     "decl": "const char *animation_list_get_string(void *string_table, int16_t index);",
      "ported": true
     },
     {
@@ -42443,7 +42443,7 @@
     },
     {
      "addr": "0x121d60",
-     "decl": "void FUN_00121d60(void *mode_tag, void *animation, int animation_index, void *out_node_data);",
+     "decl": "void animation_get_frame_orientations(void *mode_tag, void *animation, int animation_index, void *out_node_data);",
      "ported": true
     },
     {
@@ -42525,7 +42525,7 @@
     },
     {
      "addr": "0x1234b0",
-     "decl": "void animation_get_root_velocity(void *mode_tag, void *animation, int frame_index, float *out_delta);",
+     "decl": "void animation_get_root_velocity(void *mode_tag, void *animation, int frame_index, real_vector3d *out_delta);",
      "ported": true,
      "name": "animation_get_root_velocity"
     }
@@ -42885,7 +42885,7 @@
     },
     {
      "addr": "0x14c4b0",
-     "decl": "char FUN_0014c4b0(int arg1, float *arg2, float *arg3, void *out_result);",
+     "decl": "char collision_features_test_vector(int arg1, real_point3d const *point, real_vector3d const *vector, void *out_result);",
      "ported": false,
      "source_path": "src/halo/physics/collision_features.c"
     }
@@ -43310,7 +43310,7 @@
     },
     {
      "addr": "0x138e30",
-     "decl": "void FUN_00138e30(void *damage_params, int target_index);",
+     "decl": "void area_of_effect_cause_damage(void *damage_params, int target_index);",
      "ported": true
     },
     {
@@ -44191,20 +44191,20 @@
     },
     {
      "addr": "0x147990",
-     "decl": "int collision_surface_project_point2d(int bsp, int surface_index, int param3, int param4, float *point, float *out_point);",
+     "decl": "int collision_surface_project_point2d(int bsp, int surface_index, int param3, int param4, real_point2d const *point, real_point3d *out_point);",
      "name": "collision_surface_project_point2d",
      "ported": true,
      "source_path": "src/halo/physics/collision_bsp.c"
     },
     {
      "addr": "0x1479e0",
-     "decl": "char collision_surface_test_point2d(int bsp, int surface_index, int param3, int param4, float *point);",
+     "decl": "char collision_surface_test_point2d(int bsp, int surface_index, int param3, int param4, real_point2d const *point);",
      "name": "collision_surface_test_point2d",
      "ported": true
     },
     {
      "addr": "0x147ae0",
-     "decl": "char collision_surface_find_closest_point2d(int bsp, int surface_index, int param3, int param4, float *point, float *out_point);",
+     "decl": "char collision_surface_find_closest_point2d(int bsp, int surface_index, int param3, int param4, real_point2d const *point, real_point2d *out_point);",
      "name": "collision_surface_find_closest_point2d",
      "source_path": "src/halo/physics/collision_bsp.c"
     },
@@ -44337,7 +44337,7 @@
     },
     {
      "addr": "0x14e7d0",
-     "decl": "char FUN_0014e7d0(uint32_t collision_flags, float *point, float *offset_vec, float p4, int unit_handle, void *result);",
+     "decl": "char collision_test_pill(uint32_t collision_flags, float *point, float *offset_vec, float p4, int unit_handle, void *result);",
      "ported": true
     },
     {

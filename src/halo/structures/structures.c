@@ -364,7 +364,7 @@ bool FUN_00062020(int16_t *obstacle_set, uint32_t datum, uint16_t flags,
  *      -+0.2f, then the weighted squared-distance test with the 4.0f z weight
  *      (accumulated dz, dy, dx in that order per the FLD sequence).
  *   9. The obstacle "flags" word is 1 only for type-0 objects whose delta has
- *      a positive dot with up_vector and whose FUN_00013070 result exceeds
+ *      a positive dot with up_vector and whose dot_product3d result exceeds
  *      0.06666667f.
  *  10. The disc radius reaches FUN_00062020 as a raw dword (the reference uses
  *      MOV/PUSH, not FLD/FSTP), so the bits are forwarded through a pointer
@@ -460,11 +460,11 @@ void obstacles_get_discs_in_sphere(int16_t *obstacle_set, float *center,
         if (node_index != 0xffff) {
           node_matrix =
             (float *)object_get_node_matrix((int)handle, node_index);
-          matrix_transform_point(node_matrix, (float *)(element + 0x10),
-                                 position);
+          matrix_transform_point(node_matrix, (real_point3d *)(element + 0x10),
+                                 (real_point3d *)position);
           disc_radius = *(float *)(element + 0x1c) * *node_matrix;
         } else {
-          matrix_transform_point(matrix, (float *)(element + 0x10), position);
+          matrix_transform_point(matrix, (real_point3d *)(element + 0x10), (real_point3d *)position);
           disc_radius = matrix[0] * *(float *)(element + 0x1c);
         }
 
@@ -481,7 +481,7 @@ void obstacles_get_discs_in_sphere(int16_t *obstacle_set, float *center,
             if (*(int16_t *)(object + 0x64) == 0 &&
                 dz * up_vector[2] + dy * up_vector[1] + dx * up_vector[0] >
                   0.0f &&
-                FUN_00013070((float *)(object + 0x18), up_vector) > 0.06666667f)
+                dot_product3d((real_vector3d *)(object + 0x18), (real_vector3d *)up_vector) > 0.06666667f)
               flags = 1;
             FUN_00062020(obstacle_set, handle, (uint16_t)flags, position,
                          *(uint32_t *)&disc_radius);
@@ -889,7 +889,7 @@ void FUN_000628b0(int16_t *partition, uint32_t arg2)
  * parallel arrays: point_a base 0x44dfc0, point_b base 0x44dfd8, and a
  * flag byte base 0x44dfec, all indexed by (element + base)*0x18.  For each
  * element FUN_00189270 draws the edge (running point) -> point_b in the
- * global color at 0x2ee6e0, then FUN_00189150 draws point_b as a 0.0625f
+ * global color at 0x2ee6e0, then render_debug_point draws point_b as a 0.0625f
  * point using color 0x2ee6d0 (flag set) or 0x2ee6c4 (flag clear).  After
  * each queue a duplicate-surface-index scan over 0x4547dc reports an error.
  *
@@ -901,7 +901,7 @@ void FUN_000628b0(int16_t *partition, uint32_t arg2)
  *
  * Confirmed from decompile at 0x99070:
  *   - loop bound *0x4547da is re-read after every error() and each inner draw.
- *   - FUN_00189150 scale arg is float 0.0625f (0x3d800000), passed by value.
+ *   - render_debug_point scale arg is float 0.0625f (0x3d800000), passed by value.
  *   - sprintf vararg is (int)(short)*(record+0x2a) << 2.
  *   - the linked-list "next" is read from the resolved record pointer +0x34.
  * ABI: cdecl, no args, void return.
@@ -948,7 +948,7 @@ void FUN_00099070(void)
            * diff. */
           if (*(char *)(0x44dfec + byte_off) == 0)
             color = *(void **)0x2ee6c4;
-          FUN_00189150(1, point_b, 0.0625f, color);
+          render_debug_point(1, (real_point3d *)point_b, 0.0625f, color);
           e = e + 1;
           point_a = point_b;
           queue_count_g = *(short *)0x4547da;
@@ -983,7 +983,7 @@ void FUN_00099070(void)
         while (node != -1) {
           rec = (char *)datum_get(*(void **)0x5aa8b8, node);
           crt_sprintf(local_50, "%d", (int)*(short *)(rec + 0x2a) << 2);
-          FUN_00189cb0(0, rec + 8, local_50, *(int *)0x2ee6d0);
+          render_debug_string_at_point(0, rec + 8, local_50, *(int *)0x2ee6d0);
           node = *(int *)(rec + 0x34);
         }
         layer = layer + 1;
@@ -1440,20 +1440,20 @@ void FUN_00105160(float *matrix)
                      "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
       system_exit(-1);
     }
-    if (!valid_real_normal3d(&matrix[1])) {
+    if (!valid_real_normal3d((real_vector3d *)&matrix[1])) {
       display_assert(csprintf((char *)0x5ab100,
                               "%s had a bad forward (%f,%f,%f)", "matrix",
                               matrix[1], matrix[2], matrix[3]),
                      "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
       system_exit(-1);
     }
-    if (!valid_real_normal3d(&matrix[4])) {
+    if (!valid_real_normal3d((real_vector3d *)&matrix[4])) {
       display_assert(csprintf((char *)0x5ab100, "%s had a bad left (%f,%f,%f)",
                               "matrix", matrix[4], matrix[5], matrix[6]),
                      "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
       system_exit(-1);
     }
-    if (!valid_real_normal3d(&matrix[7])) {
+    if (!valid_real_normal3d((real_vector3d *)&matrix[7])) {
       display_assert(csprintf((char *)0x5ab100, "%s had a bad up (%f,%f,%f)",
                               "matrix", matrix[7], matrix[8], matrix[9]),
                      "c:\\halo\\SOURCE\\tool\\error_geometry.c", 0x6c, true);
@@ -3532,7 +3532,7 @@ void FUN_00194070(void)
                        *(float *)((char *)cell + 0xc) * *(float *)0x253f78)) {
                     clipped = '\1';
                   }
-                  FUN_00189150(1, pos, 0.1f, *(void **)0x2ee6d0);
+                  render_debug_point(1, (real_point3d *)pos, 0.1f, *(void **)0x2ee6d0);
                   marker_index = marker_index + 1;
                 } while (marker_index < cell[1]);
               }
@@ -3783,16 +3783,16 @@ bool build_structure_lens_flares(void *structure_bsp)
               shader = (char *)tag_get(0x73686472, *(int *)(material + 0xc));
               switch (*(short *)(shader + 0x24)) {
               case 3:
-                flare_ref = (char *)FUN_001906b0(shader, 3) + 0x30;
-                radius = *(float *)((char *)FUN_001906b0(shader, 3) + 0x2c);
+                flare_ref = (char *)shader_get_and_verify_type(shader, 3) + 0x30;
+                radius = *(float *)((char *)shader_get_and_verify_type(shader, 3) + 0x2c);
                 break;
               case 5:
-                flare_ref = (char *)FUN_001906b0(shader, 5) + 0x38;
-                radius = *(float *)((char *)FUN_001906b0(shader, 5) + 0x34);
+                flare_ref = (char *)shader_get_and_verify_type(shader, 5) + 0x38;
+                radius = *(float *)((char *)shader_get_and_verify_type(shader, 5) + 0x34);
                 break;
               case 6:
-                flare_ref = (char *)FUN_001906b0(shader, 6) + 0x38;
-                radius = *(float *)((char *)FUN_001906b0(shader, 6) + 0x34);
+                flare_ref = (char *)shader_get_and_verify_type(shader, 6) + 0x38;
+                radius = *(float *)((char *)shader_get_and_verify_type(shader, 6) + 0x34);
                 break;
               default:
                 goto lens_flares_next_material;
@@ -5602,7 +5602,7 @@ typedef struct mirror_edge_poly2d {
  *
  * On acceptance the shader tag ('shdr', index at elem+0x30) is fetched; when
  * its type word (+0x24) is 3 the two floats at +0x30c/+0x310 of
- * FUN_001906b0(shader, 3) are stored to out+0x10/+0x14, else both are zeroed.
+ * shader_get_and_verify_type(shader, 3) are stored to out+0x10/+0x14, else both are zeroed.
  * The element's plane is copied to out+0x00..0x0c and the running surface
  * counter to out+0x18.  If a mirror was already accepted this frame and the
  * new plane differs by more than 1e-4 in any component, error(2, ...) fires.
@@ -5707,7 +5707,7 @@ char FUN_001975e0(void *ref, void *frustum, void *out)
                * float (Ghidra renders it as pfVar4[0xc]). */
               shader = tag_get(0x73686472, *(int *)((char *)elem + 0x30));
               if (*(short *)((char *)shader + 0x24) == 3) {
-                shader_data = FUN_001906b0(shader, 3);
+                shader_data = shader_get_and_verify_type(shader, 3);
                 *(float *)((char *)out + 0x10) =
                   *(float *)((char *)shader_data + 0x30c);
                 *(float *)((char *)out + 0x14) =

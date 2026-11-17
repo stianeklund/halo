@@ -867,7 +867,7 @@ void hs_print(int param_1)
 /* 0xc95f0
  *
  * Confirmed from the disassembly at 0xc95f0: cdecl, no parameters. The
- * FUN_000ce200 result is held in EDI across the loop and moved back into EAX
+ * object_list_new result is held in EDI across the loop and moved back into EAX
  * at 0xc9649, so the function returns it (kb.json decl already says int).
  *
  * Iterates the player table (global at 0x5aa6d4) with
@@ -875,26 +875,26 @@ void hs_print(int param_1)
  * call (0xc95f9, 0xc9610, 0xc9632), which the raw-address form preserves.
  * For each player, the unit handle at +0x34 is loaded once into EAX
  * (0xc961d), tested against NONE, and passed as the second argument to
- * FUN_000ce2b0 together with the FUN_000ce200 result.
+ * object_list_add together with the object_list_new result.
  *
  * player+0x34 as the controlled unit handle is corroborated by the same
- * offset use in scenario.c/units.c. The roles of FUN_000ce200 and
- * FUN_000ce2b0 are unproven, so both keep their FUN_ names and the local
- * holding the FUN_000ce200 result stays mechanically named. */
+ * offset use in scenario.c/units.c. The roles of object_list_new and
+ * object_list_add are unproven, so both keep their FUN_ names and the local
+ * holding the object_list_new result stays mechanically named. */
 int hs_players(void)
 {
   int result;
   int player_index;
   int unit_handle;
 
-  result = FUN_000ce200();
+  result = object_list_new();
   for (player_index = data_next_index(*(data_t **)0x5aa6d4, -1);
        player_index != -1;
        player_index = data_next_index(*(data_t **)0x5aa6d4, player_index)) {
     unit_handle =
       *(int *)((char *)datum_get(*(data_t **)0x5aa6d4, player_index) + 0x34);
     if (unit_handle != -1)
-      FUN_000ce2b0(result, unit_handle);
+      object_list_add(result, unit_handle);
   }
   return result;
 }
@@ -954,7 +954,7 @@ unsigned char hs_trigger_volume_test_objects(int16_t bit_index, int object_list,
   uint32_t *word_ptr;
 
   flag = (char)state;
-  object_index = FUN_000ce450(object_list, &state);
+  object_index = object_list_get_first(object_list, &state);
   while (object_index != -1) {
     if (FUN_0018ef00(bit_index, object_index)) {
       if (flag == 0) {
@@ -965,7 +965,7 @@ unsigned char hs_trigger_volume_test_objects(int16_t bit_index, int object_list,
       flag = 0;
       goto clear_bit;
     }
-    object_index = FUN_000ce320(object_list, &state);
+    object_index = object_list_get_next(object_list, &state);
   }
 
   if (flag != 0) {
@@ -1043,8 +1043,8 @@ char hs_unit_can_see_object(int param_1, int param_2, float param_3)
  * dword through EBX), so the role of the value is unproven beyond that forward.
  *
  * Callees (all cdecl, all in kb.json, none with @<reg> args):
- *   0xce450  = FUN_000ce450(list_handle, int *iter_state)  — first child
- *   0xce320  = FUN_000ce320(list_handle, int *iter_state)  — next child
+ *   0xce450  = object_list_get_first(list_handle, int *iter_state)  — first child
+ *   0xce320  = object_list_get_next(list_handle, int *iter_state)  — next child
  *   0x13d640 = object_try_and_get_and_verify_type(handle, type_mask)
  *   0xc9700  = hs_unit_can_see_object(unit_handle, object_handle, angle)
  *
@@ -1057,14 +1057,14 @@ unsigned char hs_objects_can_see_object(int arg0, int arg1, float arg2)
   unsigned char result;
 
   result = 0;
-  unit_index = FUN_000ce450(arg0, &reference_index);
+  unit_index = object_list_get_first(arg0, &reference_index);
   while (unit_index != -1) {
     if (object_try_and_get_and_verify_type(unit_index, 3) != NULL &&
         hs_unit_can_see_object(unit_index, arg1, arg2) != 0) {
       result = 1;
       break;
     }
-    unit_index = FUN_000ce320(arg0, &reference_index);
+    unit_index = object_list_get_next(arg0, &reference_index);
   }
   return result;
 }
@@ -1137,8 +1137,8 @@ unsigned char hs_unit_can_see_flag(int arg0, short flag_index, float arg2)
  *   is a boolean.
  *
  * Callees (all cdecl, all in kb.json, none with @<reg> args):
- *   0xce450  = FUN_000ce450(list_handle, int *iter_state)  — first child
- *   0xce320  = FUN_000ce320(list_handle, int *iter_state)  — next child
+ *   0xce450  = object_list_get_first(list_handle, int *iter_state)  — first child
+ *   0xce320  = object_list_get_next(list_handle, int *iter_state)  — next child
  *   0x13d640 = object_try_and_get_and_verify_type(handle, type_mask)
  *   0x18e380 = global_scenario_get(void)
  *   0x19b210 = tag_block_get_element(block, index, element_size)
@@ -1152,7 +1152,7 @@ unsigned char hs_objects_can_see_flag(int arg0, short flag_index, float arg2)
   int child;
   int iter_state;
 
-  child = FUN_000ce450(arg0, &iter_state);
+  child = object_list_get_first(arg0, &iter_state);
   while (child != -1) {
     if (object_try_and_get_and_verify_type(child, 3) != NULL &&
         flag_index != 0) {
@@ -1164,7 +1164,7 @@ unsigned char hs_objects_can_see_flag(int arg0, short flag_index, float arg2)
                              arg2 * *(float *)0x253d4c) != 0)
         return 1;
     }
-    child = FUN_000ce320(arg0, &iter_state);
+    child = object_list_get_next(arg0, &iter_state);
   }
   return 0;
 }
@@ -1504,8 +1504,8 @@ void hs_object_destroy_containing(int substring)
  * at [EBP-4]):
  *
  *   The list handle is held in EDI (MOV EDI,[EBP+8] at 0xc9bd6) and is passed
- *   to both iterator calls; [EBP-4] is the iterator cursor, and FUN_000ce450
- *   writes exactly one dword through it (see FUN_000ce450 below), so a single
+ *   to both iterator calls; [EBP-4] is the iterator cursor, and object_list_get_first
+ *   writes exactly one dword through it (see object_list_get_first below), so a single
  *   int local is the correct buffer — not an array.
  *
  *   MOV ESI,[EBP+0xc] loads the whole dword but every subsequent use is 16-bit
@@ -1517,7 +1517,7 @@ void hs_object_destroy_containing(int substring)
  *
  *   The advance is guarded BEFORE it runs (CMP EAX,-1 / JE at the top of the
  *   loop body), so a list whose first element is NONE returns NONE without
- *   calling FUN_000ce320, and the value left in EAX at the epilogue is the
+ *   calling object_list_get_next, and the value left in EAX at the epilogue is the
  *   return — the caller at 0xbe39b consumes it with PUSH EAX into hs_return. */
 int hs_object_list_get_element(int object_list, short index)
 {
@@ -1525,11 +1525,11 @@ int hs_object_list_get_element(int object_list, short index)
   int object_handle;
   short remaining;
 
-  object_handle = FUN_000ce450(object_list, &iterator);
+  object_handle = object_list_get_first(object_list, &iterator);
   for (remaining = index; remaining > 0; remaining--) {
     if (object_handle == -1)
       break;
-    object_handle = FUN_000ce320(object_list, &iterator);
+    object_handle = object_list_get_next(object_list, &iterator);
   }
   return object_handle;
 }
@@ -1652,7 +1652,7 @@ void hs_object_set_permutation(int object_handle, int region_name,
  * [EBP-4]): the list handle stays in ESI across both iterator calls, the
  * cursor is the single dword local, and the loop is the ordinary
  * first/next/NONE walk.  ADD ESP,0xc at 0xc9d60 folds object_predict's one push
- * and FUN_000ce320's two.
+ * and object_list_get_next's two.
  *
  * kb.json previously modelled this as void(void); the caller at 0xbeb8c does
  * MOV EDX,[EAX] / PUSH EDX / CALL, which is what fixes the single argument. */
@@ -1661,10 +1661,10 @@ void hs_objects_predict(int object_list)
   int iterator;
   int object_handle;
 
-  object_handle = FUN_000ce450(object_list, &iterator);
+  object_handle = object_list_get_first(object_list, &iterator);
   while (object_handle != -1) {
     object_predict(object_handle);
-    object_handle = FUN_000ce320(object_list, &iterator);
+    object_handle = object_list_get_next(object_list, &iterator);
   }
 }
 
@@ -1810,7 +1810,7 @@ void hs_effect_new_from_object_marker(int effect_tag_index, int object_handle,
  *   first is what reaches 100%.
  *
  *   ADD ESP,0x24 at 0xc9f11 folds tag_block_get_element (3), damage_data_new
- *   (2), scenario_location_from_point (2) and FUN_00138e30 (2). */
+ *   (2), scenario_location_from_point (2) and area_of_effect_cause_damage (2). */
 void hs_damage_new(int damage_effect_tag_index, short flag_index)
 {
   char damage_params[0x54];
@@ -1822,7 +1822,7 @@ void hs_damage_new(int damage_effect_tag_index, short flag_index)
   *(vector3_t *)(damage_params + 0x28) = *(vector3_t *)(flag + 0x24);
   *(vector3_t *)(damage_params + 0x1c) = *(vector3_t *)(damage_params + 0x28);
   scenario_location_from_point(damage_params + 0x14, flag + 0x24);
-  FUN_00138e30(damage_params, -1);
+  area_of_effect_cause_damage(damage_params, -1);
 }
 
 /* 0xc9f30 — Apply a damage effect to an object at its own world position.
@@ -2014,9 +2014,9 @@ unsigned char hs_trigger_volume_test_objects_all(int16_t bit_index,
   int iter_state;
 
   flag = 1;
-  for (object_index = FUN_000ce450(object_list, &iter_state);
+  for (object_index = object_list_get_first(object_list, &iter_state);
        object_index != -1;
-       object_index = FUN_000ce320(object_list, &iter_state)) {
+       object_index = object_list_get_next(object_list, &iter_state)) {
     if (FUN_0018ef00(bit_index, object_index) == 0) {
       flag = 0;
       break;
@@ -2165,7 +2165,7 @@ void hs_object_orient(int object_handle, int flag_index, char dismount_unit, cha
   }
 
   angles_to_vector((real_vector3d *)&forward, (real_euler_angles2d *)((flag + 0x30)));
-  if (!valid_real_normal3d((float *)&forward)) {
+  if (!valid_real_normal3d((real_vector3d *)&forward)) {
     display_assert(
       csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
                "&forward", (double)forward.x, (double)forward.y,
@@ -3330,8 +3330,8 @@ int hs_long_to_short(int param_1)
 }
 
 /* 0xcaf80 — Resolve an object-name index to a handle and register it with the
- * FUN_000ce200 resource, returning that resource handle or -1 when the name
- * has no live object right now.  Same FUN_000ce200/FUN_000ce2b0 registration
+ * object_list_new resource, returning that resource handle or -1 when the name
+ * has no live object right now.  Same object_list_new/object_list_add registration
  * shape as the very next function (0xcafc0), but this one takes a name-list
  * index instead of an already-resolved object handle.
  *
@@ -3347,13 +3347,13 @@ int hs_long_to_short(int param_1)
  *     handle instead.
  *   CMP ESI,-0x1 / JZ 0xcafac    ; handle == -1 -> skip straight to the
  *                                  epilog with EDI still -1
- *   CALL 0xce200 / MOV EDI,EAX   ; result = FUN_000ce200(), overwrites the
+ *   CALL 0xce200 / MOV EDI,EAX   ; result = object_list_new(), overwrites the
  *                                  -1 default
  *   PUSH ESI / PUSH EDI / CALL 0xce2b0 / ADD ESP,0x8
- *     push order puts EDI (the FUN_000ce200 result) closest to the call, so
- *     it is the first argument: FUN_000ce2b0(result, handle), matching the
- *     FUN_000ce2b0(result, object_handle) shape at 0xcafc0/0xc95f0/0x547c0.
- *   MOV EAX,EDI                  ; return EDI (the FUN_000ce200 result, or
+ *     push order puts EDI (the object_list_new result) closest to the call, so
+ *     it is the first argument: object_list_add(result, handle), matching the
+ *     object_list_add(result, object_handle) shape at 0xcafc0/0xc95f0/0x547c0.
+ *   MOV EAX,EDI                  ; return EDI (the object_list_new result, or
  *                                  the untouched -1 default)
  *
  * The kb.json decl said `void hs_object_name_to_object_list(void)` and Ghidra
@@ -3367,7 +3367,7 @@ int hs_long_to_short(int param_1)
  * Only data references reach this address (0x2f50f8..0x2f510c, six slots of
  * the same HS function table that also holds 0xcafc0's five slots at
  * 0x2f50e4..0x2f50f4), so no ported caller constrains the signature further.
- * FUN_000ce200/FUN_000ce2b0 stay unproven and keep their FUN_ names. */
+ * object_list_new/object_list_add stay unproven and keep their FUN_ names. */
 int hs_object_name_to_object_list(int16_t index)
 {
   int result;
@@ -3376,13 +3376,13 @@ int hs_object_name_to_object_list(int16_t index)
   result = -1;
   object_handle = object_name_list_get_handle(index);
   if (object_handle != -1) {
-    result = FUN_000ce200();
-    FUN_000ce2b0(result, object_handle);
+    result = object_list_new();
+    object_list_add(result, object_handle);
   }
   return result;
 }
 
-/* 0xcafc0 — Register a single object handle with the FUN_000ce200 resource and
+/* 0xcafc0 — Register a single object handle with the object_list_new resource and
  * return that resource handle, or -1 when the incoming handle is NONE.
  *
  * Binary evidence (0xcafc0..0xcafe6, cdecl, EBP frame, no `sub esp`, EDI/ESI
@@ -3393,29 +3393,29 @@ int hs_object_name_to_object_list(int16_t index)
  *   CMP EDI,-0x1 / JZ 0xcafe4    ; NONE handle -> fall straight to the epilog
  *   CALL 0xce200 / MOV ESI,EAX
  *   PUSH EDI / PUSH ESI / CALL 0xce2b0 / ADD ESP,0x8
- *   MOV EAX,ESI                  ; return the FUN_000ce200 result
+ *   MOV EAX,ESI                  ; return the object_list_new result
  *
  * The kb.json decl said `void hs_object_to_object_list(void)` and Ghidra
  * reported the argument as `in_stack_00000004` with no return; the disassembly
  * above proves both the single dword parameter and the EAX return, so the decl
  * is corrected to `int hs_object_to_object_list(int)`. The push order at
- * 0xcafd7/0xcafd8 puts the FUN_000ce200 result first and our own argument
- * second, matching the FUN_000ce2b0(result, handle) shape already lifted at
+ * 0xcafd7/0xcafd8 puts the object_list_new result first and our own argument
+ * second, matching the object_list_add(result, handle) shape already lifted at
  * 0xc95f0 and 0x547c0.
  *
  * Only data references reach this address (0x2f50e4..0x2f50f4, five slots of an
  * HS function table), so no ported caller constrains the signature. The roles
- * of FUN_000ce200/FUN_000ce2b0 stay unproven and keep their FUN_ names; the
+ * of object_list_new/object_list_add stay unproven and keep their FUN_ names; the
  * parameter is named for the NONE test plus the two ported call sites that feed
- * object handles into the same FUN_000ce2b0 slot. */
+ * object handles into the same object_list_add slot. */
 int hs_object_to_object_list(int object_handle)
 {
   int result;
 
   result = -1;
   if (object_handle != -1) {
-    result = FUN_000ce200();
-    FUN_000ce2b0(result, object_handle);
+    result = object_list_new();
+    object_list_add(result, object_handle);
   }
   return result;
 }
@@ -4121,8 +4121,8 @@ void render_debug_trigger_volumes(void)
       matrix4x3_from_forward_up_position(transform, (real_point3d *)(volume + 0x48),
                                          (real_vector3d *)(volume + 0x30),
                                          (real_vector3d *)(volume + 0x3c));
-      matrix_scale_transform_vector(transform, (float *)&local_extents,
-                                    (float *)&world_extents);
+      matrix_scale_transform_vector(transform, (real_vector3d *)&local_extents,
+                                    (real_vector3d *)&world_extents);
       break;
     default:
       display_assert("!\"unreachable\"", "c:\\halo\\SOURCE\\hs\\hs_runtime.c",
@@ -4157,8 +4157,8 @@ void render_debug_trigger_volumes(void)
           ((float *)&local_extents)[((int16_t)axis + 2) % 3];
       }
 
-      matrix_scale_transform_vector(transform, (float *)&edges[0], (float *)&edges[0]); /* dup-args-ok */
-      matrix_scale_transform_vector(transform, (float *)&edges[1], (float *)&edges[1]); /* dup-args-ok */
+      matrix_scale_transform_vector(transform, (real_vector3d *)&edges[0], (real_vector3d *)&edges[0]); /* dup-args-ok */
+      matrix_scale_transform_vector(transform, (real_vector3d *)&edges[1], (real_vector3d *)&edges[1]); /* dup-args-ok */
 
       face_pts[1].x = face_pts[0].x + edges[0].x;
       face_pts[1].y = edges[0].y + face_pts[0].y;
@@ -4194,7 +4194,7 @@ void render_debug_trigger_volumes(void)
 
     if (!collision_test_vector(0xc2ad, (real_point3d *)(0x506550), (real_vector3d *)&view_dir, -1,
                       collision_result)) {
-      FUN_00189cb0(1, &center, volume + 4,
+      render_debug_string_at_point(1, &center, volume + 4,
                    (*bitvector_word & bit_mask) ? *(int *)0x2ee6e0
                                                 : *(int *)0x2ee6c4);
     }
@@ -5062,7 +5062,7 @@ int FUN_000ce090(data_t *data, int *handle_ptr)
  * field+0x4 = value and field+0x8 = *head_ptr (the previous head), then
  * *head_ptr = new_index (push_front onto the chain head_ptr addresses).
  * On allocation failure, report error(2, "...", data->name,
- * data->maximum_count) -- mirrors FUN_000ce2b0's inlined version of the
+ * data->maximum_count) -- mirrors object_list_add's inlined version of the
  * same allocate-or-report pattern against the same field+0x4/field+0x8
  * datum layout that FUN_000ce090 walks in the opposite direction.
  *
@@ -5082,9 +5082,9 @@ int FUN_000ce090(data_t *data, int *handle_ptr)
  *     the %s argument; source form uses data->name for clarity, same value.
  *
  * No callers found (xrefs_to empty). Sits in the same data-pool reference-
- * chain cluster as FUN_000ce090 (the mirror pop/lookup) and FUN_000ce2b0
+ * chain cluster as FUN_000ce090 (the mirror pop/lookup) and object_list_add
  * (an already-lifted inlined instance of this exact pattern); head_ptr's
- * relationship to a specific header field (e.g. FUN_000ce200's header+0x8)
+ * relationship to a specific header field (e.g. object_list_new's header+0x8)
  * is plausible but unproven for this generic entry point.
  */
 void FUN_000ce0c0(data_t *data, int *head_ptr, int value)
@@ -5211,16 +5211,16 @@ void object_lists_dispose_from_old_map(void)
  * success the header is re-fetched with datum_get (the original reloads
  * [0x5aa698] at 0xce216) and two fields are initialised:
  *   header+0x6 (word) = 0    ; entry count, read back by FUN_000ce420
- *   header+0x8 (dword) = -1  ; head reference link, matches FUN_000ce450
+ *   header+0x8 (dword) = -1  ; head reference link, matches object_list_get_first
  * header+0x4 (reference count) is left as the allocator zeroed it.
  * Returns the header datum index in EAX (ESI holds it across the call).
  * The role beyond these mechanical observations is unproven, so the name
- * stays FUN_000ce200 (its five call sites already use that name).
+ * stays object_list_new (its five call sites already use that name).
  *
  * noinline: the original build compiled the object-list family in a separate
  * TU (the asserts name c:\halo\SOURCE\hs\object_lists.c), so hs_players in
  * this file calls it instead of expanding it inline. */
-__declspec(noinline) int FUN_000ce200(void)
+__declspec(noinline) int object_list_new(void)
 {
   int list_index;
   char *list;
@@ -5282,7 +5282,7 @@ void object_list_delete(int list_handle)
  * the original tail-duplicated the increment, the single increment here is
  * the equivalent source form. Header/reference offsets are unproven beyond
  * these accesses, so the function keeps its FUN_ name. */
-void FUN_000ce2b0(int param_1, int param_2)
+void object_list_add(int param_1, int param_2)
 {
   char *list;
   data_t *references;
@@ -5327,7 +5327,7 @@ void FUN_000ce2b0(int param_1, int param_2)
 #if defined(_MSC_VER) && !defined(__clang__)
 __declspec(noinline)
 #endif
-int FUN_000ce320(int param_1, int *param_2)
+int object_list_get_next(int param_1, int *param_2)
 {
   char *node;
 
@@ -5421,7 +5421,7 @@ int16_t FUN_000ce420(int param_1)
  * Confirmed: node+0x8 = head link (list entry), then node+0x8 = next, node+0x4
  * = handle.
  *
- * noinline (VC71 verification only) — same reason as FUN_000ce320 above: the
+ * noinline (VC71 verification only) — same reason as object_list_get_next above: the
  * original emits a real CALL from 0xc9bd0 and 0xc9d40, while cl.exe inlines the
  * in-TU body.  Guarded `_MSC_VER && !__clang__` so it never affects the shipped
  * clang codegen.
@@ -5429,7 +5429,7 @@ int16_t FUN_000ce420(int param_1)
 #if defined(_MSC_VER) && !defined(__clang__)
 __declspec(noinline)
 #endif
-int FUN_000ce450(int param_1, int *param_2)
+int object_list_get_first(int param_1, int *param_2)
 {
   char *node;
   int first_link;

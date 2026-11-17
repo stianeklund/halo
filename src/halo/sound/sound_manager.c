@@ -167,7 +167,7 @@ unsigned char FUN_001ac150(int handle)
   return 0;
 }
 
-/* FUN_001ac180 (0x1ac180)
+/* unit_start_user_animation (0x1ac180)
  *
  * Looks up a named animation in an animation graph and, when the chosen
  * animation block entry's short at +0x20 is 0, starts it on a unit via
@@ -187,7 +187,7 @@ unsigned char FUN_001ac150(int handle)
  *   Unit short +0x82 is loaded zero-extended (XOR ECX / MOV CX) then MOVSX
  *   for the +2 compare; the store path is DEC ECX / MOV word, return 0.
  *   do_flag is tested as a byte (MOV AL,[EBP+0x14] / TEST AL,AL). */
-char FUN_001ac180(int actor, int anim_tag, void *entry, int do_flag)
+char unit_start_user_animation(int actor, int anim_tag, void *entry, int do_flag)
 {
   char *unit;
   char *graph;
@@ -1935,16 +1935,16 @@ void FUN_001cc4f0(int sound_handle)
     sound_entry = (char *)datum_get(*(data_t **)0x4fdba4, sound_handle);
     tag_get(0x736e6421, *(int *)(sound_entry + 8));
     position = (void *)(sound_entry + 0x20);
-    FUN_00189540('\0', position,
+    render_debug_sphere('\0', position,
                  sound_get_default_priority(*(int *)(sound_entry + 8)),
                  *(void **)0x2ee6e0);
-    FUN_00189540('\0', position,
+    render_debug_sphere('\0', position,
                  sound_class_get_min_distance(*(int *)(sound_entry + 8)),
                  *(void **)0x2ee6d0);
     crt_sprintf(text, "%s|n%f %f", tag_get_name(*(int *)(sound_entry + 8)),
                 (double)*(float *)(sound_entry + 0x4c),
                 (double)*(float *)(sound_entry + 0x50));
-    FUN_00189cb0('\0', position, text, (int)*(void **)0x2ee6c4);
+    render_debug_string_at_point('\0', position, text, (int)*(void **)0x2ee6c4);
   }
 }
 
@@ -2028,10 +2028,10 @@ void render_debug_looping_sound(int definition_index, void *entry)
     }
   draw:
     position = (void *)((char *)entry + 0xc);
-    FUN_00189cb0('\0', position, (void *)tag_get_name(definition_index),
+    render_debug_string_at_point('\0', position, (void *)tag_get_name(definition_index),
                  (int)*(void **)0x2ee6c4);
-    FUN_00189540('\0', position, priority, *(void **)0x2ee6dc);
-    FUN_00189540('\0', position, min_distance, *(void **)0x2ee6d8);
+    render_debug_sphere('\0', position, priority, *(void **)0x2ee6dc);
+    render_debug_sphere('\0', position, min_distance, *(void **)0x2ee6d8);
   }
 }
 
@@ -3779,7 +3779,7 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
   }
 
   if (((sound_source *)source)->spatialization_mode != _sound_spatialization_mode_none &&
-      !valid_real_normal3d((float *)&((sound_source *)source)->location.forward)) {
+      !valid_real_normal3d((real_vector3d *)&((sound_source *)source)->location.forward)) {
     display_assert(
       "source->spatialization_mode==_sound_spatialization_mode_none || "
       "valid_real_normal3d(&source->location.forward)",
@@ -4004,7 +4004,7 @@ bool sound_refresh_looping(int sound_tag_index, int looping_sound_index,
 
   created = (short)param_4 == 2;
   if (((sound_source *)source)->spatialization_mode != _sound_spatialization_mode_none &&
-      !valid_real_normal3d((float *)&((sound_source *)source)->location.forward)) {
+      !valid_real_normal3d((real_vector3d *)&((sound_source *)source)->location.forward)) {
     display_assert("source->spatialization_mode==_sound_spatialization_mode_"
                    "none || valid_real_normal3d(&source->location.forward)",
                    "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x2f4, 1);

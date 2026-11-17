@@ -559,8 +559,8 @@ int ai_index_actor_iterator_next(void *iter_arg)
 }
 
 /* object_list_from_ai_reference — relay all actors named by an ai_index_reference (plus each
- * actor's unit and child chain) through FUN_000ce2b0, keyed by the resource
- * handle from FUN_000ce200. Returns that handle, or -1 on bad input / no
+ * actor's unit and child chain) through object_list_add, keyed by the resource
+ * handle from object_list_new. Returns that handle, or -1 on bad input / no
  * resource. 0x710 obj / 0x547c0 XBE. */
 int object_list_from_ai_reference(int encounter_handle)
 {
@@ -570,20 +570,20 @@ int object_list_from_ai_reference(int encounter_handle)
   int child;
 
   if (encounter_handle != -1) {
-    resource = FUN_000ce200();
+    resource = object_list_new();
     if (resource != -1) {
       ai_index_actor_iterator_new((unsigned int)encounter_handle, iter);
       actor = (void *)ai_index_actor_iterator_next(iter);
       if (actor != 0) {
         do {
           if (((actor_t *)actor)->field_018 != -1) {
-            FUN_000ce2b0(resource, ((actor_t *)actor)->field_018);
+            object_list_add(resource, ((actor_t *)actor)->field_018);
           }
 
           child = ((actor_t *)actor)->field_024;
           while (child != -1) {
             void *object = object_get_and_verify_type(child, 3);
-            FUN_000ce2b0(resource, child);
+            object_list_add(resource, child);
             child = *(int *)((char *)object + 0x1ac);
           }
 
@@ -698,19 +698,19 @@ void ai_scripting_attach_unit(int unit_handle, unsigned int ai_ref)
 
 /* ai_scripting_attach_units (ai_scripting_attach_units) — ai_attach
  * over the children of a parent object: iterates every child
- * (FUN_000ce450/FUN_000ce320) and attaches the same ai_ref to each. 0x9d0 obj /
+ * (object_list_get_first/object_list_get_next) and attaches the same ai_ref to each. 0x9d0 obj /
  * 0x54a80 XBE. */
 void ai_scripting_attach_units(int parent_handle, unsigned int ai_ref)
 {
   int iter_state;
   int child;
 
-  child = FUN_000ce450(parent_handle, &iter_state);
+  child = object_list_get_first(parent_handle, &iter_state);
   if (child == -1)
     return;
   do {
     ai_scripting_attach_unit(child, ai_ref);
-    child = FUN_000ce320(parent_handle, &iter_state);
+    child = object_list_get_next(parent_handle, &iter_state);
   } while (child != -1);
 }
 
@@ -739,7 +739,7 @@ void ai_scripting_detach_unit(int unit_handle)
 }
 
 /* ai_scripting_detach_units — ai_detach over the children of a parent object: iterates each
- * child (FUN_000ce450/FUN_000ce320) and detaches its attached actor (inlines
+ * child (object_list_get_first/object_list_get_next) and detaches its attached actor (inlines
  * ai_scripting_detach_unit). 0xa70 obj / 0x54b20 XBE. */
 void ai_scripting_detach_units(int parent_handle)
 {
@@ -748,7 +748,7 @@ void ai_scripting_detach_units(int parent_handle)
   void *object;
   int actor_handle;
 
-  child = FUN_000ce450(parent_handle, &iter_state);
+  child = object_list_get_first(parent_handle, &iter_state);
   if (child == -1)
     return;
 
@@ -763,7 +763,7 @@ void ai_scripting_detach_units(int parent_handle)
       if (actor_handle != -1)
         actor_delete(actor_handle, 0);
     }
-    child = FUN_000ce320(parent_handle, &iter_state);
+    child = object_list_get_next(parent_handle, &iter_state);
   } while (child != -1);
 }
 
@@ -1076,20 +1076,20 @@ void ai_scripting_magically_see_unit(unsigned int combined_handle, int unit_hand
 
 /* ai_scripting_magically_see_units — ai_magically_see: make all actors named by combined_handle
  * see every unit in unit_group. Iterates the unit group via
- * FUN_000ce450/FUN_000ce320 and relays each unit through ai_scripting_magically_see_unit.
+ * object_list_get_first/object_list_get_next and relays each unit through ai_scripting_magically_see_unit.
  * 0x1130 obj / 0x551e0 XBE. */
 void ai_scripting_magically_see_units(unsigned int combined_handle, int unit_group)
 {
   int unit;
   int state; /* [ebp-0x4] */
 
-  unit = FUN_000ce450(unit_group, &state);
+  unit = object_list_get_first(unit_group, &state);
   if (unit == -1) {
     return;
   }
   do {
     ai_scripting_magically_see_unit(combined_handle, unit);
-    unit = FUN_000ce320(unit_group, &state);
+    unit = object_list_get_next(unit_group, &state);
   } while (unit != -1);
 }
 

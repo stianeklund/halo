@@ -330,15 +330,16 @@ void project_point2d(float *point_2d, float *plane, int16_t projection,
  * Computes the scalar triple product: dot(cross(p, q), r).
  * Equivalent to the signed volume of the parallelepiped formed by vectors
  * p, q, r. Returns a float. */
-float triple_product3d(float *p, float *q, float *r)
+float triple_product3d(const real_vector3d *p, const real_vector3d *q,
+                       const real_vector3d *r)
 {
   float cross[3];
 
-  cross[0] = p[1] * q[2] - p[2] * q[1];
-  cross[1] = p[2] * q[0] - p[0] * q[2];
-  cross[2] = p[0] * q[1] - q[0] * p[1];
+  cross[0] = p->j * q->k - p->k * q->j;
+  cross[1] = p->k * q->i - p->i * q->k;
+  cross[2] = p->i * q->j - q->i * p->j;
 
-  return cross[0] * r[0] + cross[1] * r[1] + cross[2] * r[2];
+  return cross[0] * r->i + cross[1] * r->j + cross[2] * r->k;
 }
 
 /* plane2d_from_points (0x99400)
@@ -1310,8 +1311,8 @@ void decal_clip_to_surface(void *geometry, float *projection, int surface_index,
         edge_vector[1] = edge_end[1] - edge_start[1];
         edge_vector[2] = edge_end[2] - edge_start[2];
         if (fast_vector_intersects_sphere(
-              edge_start, edge_vector, projection + 0xa,
-              scale * *(float *)(0x269d88 + type * 0x10))) {
+              (real_point3d *)edge_start, (real_vector3d *)edge_vector,
+              (real_point3d *)(projection + 0xa), scale * *(float *)(0x269d88 + type * 0x10))) {
           int adjacent_surface_index = edge[4 + !surface_on_right];
           int16_t queue_index = 0;
 
@@ -1389,8 +1390,8 @@ void decal_clip_to_surface(void *geometry, float *projection, int surface_index,
             edge_vector[1] = edge_end[1] - edge_start[1];
             edge_vector[2] = edge_end[2] - edge_start[2];
             if (fast_vector_intersects_sphere(
-                  edge_start, edge_vector, projection + 0xa,
-                  scale * *(float *)(0x269d88 + type * 0x10))) {
+                  (real_point3d *)edge_start, (real_vector3d *)edge_vector,
+                  (real_point3d *)(projection + 0xa), scale * *(float *)(0x269d88 + type * 0x10))) {
               int adjacent_surface_index = edge[4 + !surface_on_right];
               int16_t queue_index = 0;
 
@@ -2058,14 +2059,14 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                       angle = angle_between_normals3d(closest_plane,
                                                       &projection[17]) *
                               sign;
-                      FUN_001092d0(rotation, edge_axis, x87_fsin(angle),
+                      matrix4x3_rotation_from_axis_and_angle(rotation, (real_vector3d *)edge_axis, x87_fsin(angle),
                                    x87_fcos(angle));
 
                       wrapped_basis[10] = basis[10] - closest_edge_start.x;
                       wrapped_basis[11] = basis[11] - closest_edge_start.y;
                       wrapped_basis[12] = basis[12] - closest_edge_start.z;
-                      matrix_transform_point(rotation, &wrapped_basis[10],
-                                             &wrapped_basis[10]); /* dup-args-ok */
+                      matrix_transform_point(rotation, (real_point3d *)&wrapped_basis[10],
+                                             (real_point3d *)&wrapped_basis[10]); /* dup-args-ok */
                       matrix_transform_vector(rotation, (real_vector3d *)&basis[1],
                                               (real_vector3d *)&wrapped_basis[1]);
                       matrix_transform_vector(rotation, (real_vector3d *)&basis[4],
@@ -2553,7 +2554,7 @@ void FUN_0017cbb0(void *param_1, int param_2)
 
 /* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c5a0).
  */
-void FUN_0017cbc0(int shader, int p2, int p3, int widget_handle, int p5, int p6,
+void rasterizer_model_draw(int shader, int p2, int p3, int widget_handle, int p5, int p6,
                   int zbuf_handle)
 {
   FUN_0016c5a0(shader, p2, p3, widget_handle, p5, p6, zbuf_handle);
@@ -2561,7 +2562,7 @@ void FUN_0017cbc0(int shader, int p2, int p3, int widget_handle, int p5, int p6,
 
 /* Tail-call thunk to rasterizer dynamic vertex geometry decal (FUN_0016c090).
  */
-void FUN_0017cbd0(void *shader, short p2, int p3, int widget_handle, int p5,
+void rasterizer_model_transparent_geometry_submit(void *shader, short p2, int p3, int widget_handle, int p5,
                   int p6, int zbuf_handle, float *position, void *p9)
 {
   FUN_0016c090(shader, p2, p3, widget_handle, p5, p6, zbuf_handle, position,
@@ -2673,7 +2674,7 @@ void FUN_0017ccc0(int param_1)
  * args (ADD ESP,0x10 at 0x173041): [EBP+8]=decal ptr (MOV ESI,[EBP+8]),
  * [EBP+C]=param_2 (pushed @0x172f20), [EBP+10]=param_3 (MOV EBX,[EBP+10]),
  * [EBP+14]=param_4 (MOV EDI,[EBP+14]). */
-void FUN_0017ccd0(void *decal, int param_2, void *param_3, void *param_4)
+void rasterizer_shadow_model_draw(void *decal, int param_2, void *param_3, void *param_4)
 {
   FUN_00172de0(decal, param_2, param_3, param_4);
 }

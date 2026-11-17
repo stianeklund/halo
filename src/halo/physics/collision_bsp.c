@@ -181,9 +181,9 @@ void render_debug_collision_vertex(int bsp, int vertex_index, float *matrix,
   point =
     (float *)tag_block_get_element((void *)(bsp + 0x54), vertex_index, 0x10);
   if (matrix != 0) {
-    point = matrix_transform_point(matrix, point, transformed);
+    point = (float *)matrix_transform_point(matrix, (real_point3d *)point, (real_point3d *)transformed);
   }
-  FUN_00189150(1, point, scale, color);
+  render_debug_point(1, (real_point3d *)point, scale, color);
 }
 
 /* 0x147570 - render_debug_collision_edge
@@ -216,10 +216,10 @@ void render_debug_collision_edge(int bsp, int edge_index, int matrix_or_flag,
   point_a = (float *)tag_block_get_element((void *)(bsp + 0x54), edge[0], 0x10);
   point_b = (float *)tag_block_get_element((void *)(bsp + 0x54), edge[1], 0x10);
   if (matrix_or_flag != 0) {
-    point_a = matrix_transform_point((float *)matrix_or_flag, point_a,
-                                     xformed_a);
-    point_b = matrix_transform_point((float *)matrix_or_flag, point_b,
-                                     xformed_b);
+    point_a = (float *)matrix_transform_point((float *)matrix_or_flag, (real_point3d *)point_a,
+                                     (real_point3d *)xformed_a);
+    point_b = (float *)matrix_transform_point((float *)matrix_or_flag, (real_point3d *)point_b,
+                                     (real_point3d *)xformed_b);
   }
   FUN_00189270(1, point_a, point_b, color);
 }
@@ -506,8 +506,8 @@ float collision_surface_area(int bsp, int surface_index)
  * buffer of at least 12 bytes (projection-output-size, §5).
  */
 int collision_surface_project_point2d(int bsp, int surface_index, int param3,
-                                      int param4, float *point,
-                                      float *out_point)
+                                      int param4, real_point2d const *point,
+                                      real_point3d *out_point)
 {
   int *surface;
   float *plane;
@@ -516,7 +516,7 @@ int collision_surface_project_point2d(int bsp, int surface_index, int param3,
     (int *)tag_block_get_element((void *)(bsp + 0x3c), surface_index, 0xc);
   plane = (float *)tag_block_get_element((void *)(bsp + 0xc),
                                          *surface & 0x7fffffff, 0x10);
-  project_point2d(point, plane, param3, param4, out_point);
+  project_point2d((float *)point, plane, param3, param4, (float *)out_point);
   return (int)out_point;
 }
 
@@ -559,7 +559,7 @@ int collision_surface_project_point2d(int bsp, int surface_index, int param3,
  * mis-grouping). The hazard scanner's ARG_COUNT warning on 0x147a7e is this.
  */
 char collision_surface_test_point2d(int bsp, int surface_index, int param3,
-                                    int param4, float *point)
+                                    int param4, real_point2d const *point)
 {
   void *edges;
   int side;
@@ -583,8 +583,8 @@ char collision_surface_test_point2d(int bsp, int surface_index, int param3,
     vb = tag_block_get_element((void *)(bsp + 0x54), edge[!side], 0x10);
     FUN_00061df0(va, (short)param3, (unsigned char)param4, a2d);
     FUN_00061df0(vb, (short)param3, (unsigned char)param4, b2d);
-    if ((point[1] - b2d[1]) * (point[0] - a2d[0]) -
-          (point[0] - b2d[0]) * (point[1] - a2d[1]) >
+    if ((point->y - b2d[1]) * (point->x - a2d[0]) -
+          (point->x - b2d[0]) * (point->y - a2d[1]) >
         0.0f) {
       return 0;
     }
@@ -625,7 +625,8 @@ char collision_surface_test_point2d(int bsp, int surface_index, int param3,
  */
 char collision_surface_find_closest_point2d(int bsp, int surface_index,
                                             int param3, int param4,
-                                            float *point, float *out_point)
+                                            real_point2d const *point,
+                                            real_point2d *out_point)
 {
   void *edges;
   void *vertices;
@@ -665,8 +666,8 @@ char collision_surface_find_closest_point2d(int bsp, int surface_index,
     beyond_end = 0;
     FUN_00061df0(va, (short)param3, (unsigned char)param4, &a2d);
     FUN_00061df0(vb, (short)param3, (unsigned char)param4, &b2d);
-    px = point[0] - a2d.x;
-    py = point[1] - a2d.y;
+    px = point->x - a2d.x;
+    py = point->y - a2d.y;
     edge_vector.i = b2d.x - a2d.x;
     edge_vector.j = b2d.y - a2d.y;
     if (edge_vector.j * px - edge_vector.i * py > 0.0f) {
@@ -679,8 +680,8 @@ char collision_surface_find_closest_point2d(int bsp, int surface_index,
           beyond_end = 1;
         } else {
           t = dot / len2;
-          out_point[0] = edge_vector.i * t + a2d.x;
-          out_point[1] = edge_vector.j * t + a2d.y;
+          out_point->x = edge_vector.i * t + a2d.x;
+          out_point->y = edge_vector.j * t + a2d.y;
           return 0;
         }
       }
@@ -688,7 +689,7 @@ char collision_surface_find_closest_point2d(int bsp, int surface_index,
     if (edge_index != first_edge) {
       if (prev_beyond_end ? (before_start || !beyond_end)
                           : (before_start && !prev_before_start)) {
-        *(real_point2d *)out_point = a2d;
+        *out_point = a2d;
         return 0;
       }
     } else {
@@ -708,7 +709,7 @@ char collision_surface_find_closest_point2d(int bsp, int surface_index,
     FUN_00061df0(va, (short)param3, (unsigned char)param4, out_point);
     return 0;
   }
-  *(real_point2d *)out_point = *(real_point2d *)point;
+  *out_point = *point;
   return 1;
 }
 
@@ -954,8 +955,9 @@ void FUN_00147ed0(void *state, int surface_index)
       delta[0] = v1[0] - v0[0];
       delta[1] = v1[1] - v0[1];
       delta[2] = v1[2] - v0[2];
-      if (fast_vector_intersects_sphere(v0, delta,
-                                        *(float **)((char *)state + 0xc),
+      if (fast_vector_intersects_sphere((real_point3d *)v0,
+                                        (real_vector3d *)delta,
+                                        *(real_point3d **)((char *)state + 0xc),
                                         *(float *)((char *)state + 0x10))) {
         results = *(int **)((char *)state + 0x14);
         for (i = 0; i < results[0x101]; i++) {
@@ -2618,8 +2620,8 @@ char FUN_0014dc30(int param_1, float *pos, int param_3)
  *    float object+0x5c). The radius is a push-then-FSTP float arg
  *    (PUSH ECX / FSTP [ESP] at 0x14dd3c-0x14dd43), not the pushed pointer.
  *  - Path select: byte object+0x64 shifted (TEST DL,0x2) AND
- *    type_mask & 0x400000 picks the FUN_001509c0/FUN_00150b60 model path;
- *    otherwise the collision-bsp path via FUN_0014c8e0/FUN_0014cb00.
+ *    type_mask & 0x400000 picks the physics_instance_new/FUN_00150b60 model path;
+ *    otherwise the collision-bsp path via collision_model_instance_new/collision_model_test_vector.
  *  - Both distance guards are `FLD [ESI+0x14]; FCOMP <candidate>;
  *    TEST AH,0x41; JNZ skip` (0x14ddae and 0x14de51), i.e. the source form is
  *    `collision_result->distance > candidate`, NOT `candidate < ...`. Writing
@@ -2629,19 +2631,19 @@ char FUN_0014dc30(int param_1, float *pos, int param_3)
  *    plain `!= -1`.
  *
  * Frame (SUB ESP,0x484 = 1156 bytes), derived from the EBP displacements:
- *   EBP-0x484 (1056)  FUN_0014cb00 output record; only the first 0x1c bytes
+ *   EBP-0x484 (1056)  collision_model_test_vector output record; only the first 0x1c bytes
  *                     are read back here, the remaining 0x404 are scratch the
  *                     callee owns (size inferred from the frame arithmetic,
  *                     not from a decompiled callee - see Uncertain).
- *   EBP-0x64  (60)    FUN_001509c0 context
- *   EBP-0x28  (16)    FUN_0014c8e0 context (+0x4 tag data, +0xc surface base)
+ *   EBP-0x64  (60)    physics_instance_new context
+ *   EBP-0x28  (16)    collision_model_instance_new context (+0x4 tag data, +0xc surface base)
  *   EBP-0x18  (20)    FUN_00150b60 result
  *   EBP-0x4   (4)     `found`
  * Ghidra split every field of those four buffers into independent locals
  * (local_488/local_486/.../local_46e are all one struct at EBP-0x484).
  *
- * FUN_0014cb00 output fields actually consumed:
- *   +0x00 short surface index (also the FUN_0010a1c0 row selector, *0x34)
+ * collision_model_test_vector output fields actually consumed:
+ *   +0x00 short surface index (also the matrix4x3_transform_plane row selector, *0x34)
  *   +0x02 short  -> +0x3c        +0x04 short  -> +0x40
  *   +0x08 float  hit distance    +0x0c float* plane to transform
  *   +0x10 dword  -> +0x44        +0x14 int    -> +0x48, sign selects negate
@@ -2670,14 +2672,15 @@ char FUN_0014dce0(int object_handle, unsigned int type_mask, int param_3,
     if (object_handle != exclude_handle &&
         (*(unsigned char *)(obj + 4) & 1) == 0 &&
         (type_mask & (1u << (*(uint16_t *)(obj + 0x64) + 8))) != 0 &&
-        fast_vector_intersects_sphere((float *)origin, (float *)direction,
-                                      (float *)(obj + 0x50),
+        fast_vector_intersects_sphere((real_point3d *)origin,
+                                      (real_vector3d *)direction,
+                                      (real_point3d *)(obj + 0x50),
                                       *(float *)(obj + 0x5c))) {
       res = (char *)collision_result;
 
       if (((1 << *(unsigned char *)(obj + 0x64)) & 2) != 0 &&
           (type_mask & 0x400000) != 0) {
-        if (FUN_001509c0((int *)model_ctx, object_handle) != 0 &&
+        if (physics_instance_new((int *)model_ctx, object_handle) != 0 &&
             FUN_00150b60(model_ctx, (void *)origin, (void *)direction,
                          model_result) != 0 &&
             *(float *)(res + 0x14) > *(float *)model_result) {
@@ -2701,8 +2704,8 @@ char FUN_0014dce0(int object_handle, unsigned int type_mask, int param_3,
         }
       } else {
         bres = (char *)bsp_result;
-        if ((char)FUN_0014c8e0((int *)bsp_ctx, object_handle) != 0 &&
-            FUN_0014cb00((int)bsp_ctx, (void *)param_3, (void *)origin,
+        if ((char)collision_model_instance_new((int *)bsp_ctx, object_handle) != 0 &&
+            collision_model_test_vector((int)bsp_ctx, (void *)param_3, (void *)origin,
                          (void *)direction, (int16_t *)bres) != 0 &&
             *(float *)(res + 0x14) > *(float *)(bres + 8)) {
           /* MOVSX at 0x14de65: the row selector is the signed short at +0x00.
@@ -2710,7 +2713,7 @@ char FUN_0014dce0(int object_handle, unsigned int type_mask, int param_3,
           idx = *(int16_t *)bres;
           *(int16_t *)res = 3;
           *(int32_t *)(res + 0x14) = *(int32_t *)(bres + 8);
-          FUN_0010a1c0((float *)(bsp_ctx[3] + idx * 0x34),
+          matrix4x3_transform_plane((float *)(bsp_ctx[3] + idx * 0x34),
                        *(float **)(bres + 0xc), (float *)(res + 0x24));
           if (*(int32_t *)(bres + 0x14) < 0)
             plane_negate((float *)(res + 0x24), (float *)(res + 0x24));
@@ -2754,7 +2757,7 @@ char FUN_0014dce0(int object_handle, unsigned int type_mask, int param_3,
  *  - Entry seeds the record as "no hit" (word +0x00 = -1, +0x14 = FLT_MAX)
  *    BEFORE the type guard, so a rejected record still leaves a sane result.
  *  - The walk is run from the far endpoint backwards: the point handed to
- *    FUN_0014cb00 is origin+delta and the direction is -delta, so the hit
+ *    collision_model_test_vector is origin+delta and the direction is -delta, so the hit
  *    parameter comes back measured from the far end. It is converted to a
  *    forward parameter by 1.0f - t (FLD [0x2533c8] = 1.0f, FSUB, at
  *    0x14e6e4-0x14e6f3) before being stored to +0x14.
@@ -2772,7 +2775,7 @@ char FUN_0014dce0(int object_handle, unsigned int type_mask, int param_3,
  *      +0x04  FLD [delta+4] ; FADD [origin+4] -> delta[1]  + origin[1]
  *      +0x08  FLD [delta+8] ; FADD [origin+8] -> delta[2]  + origin[2]
  *    Normalising all three to one form is an FPU-WARN-class change.
- *  - FUN_0014cb00's second argument is the literal 1 (PUSH 1 at 0x14e6ca),
+ *  - collision_model_test_vector's second argument is the literal 1 (PUSH 1 at 0x14e6ca),
  *    where FUN_0014dce0 forwards its own param_3 into the same slot.
  *  - The plane_negate call at 0x14e721 pushes the SAME pointer twice
  *    (LEA EAX,[ESI+0x24] / PUSH EAX / PUSH EAX) - an in-place negate, not a
@@ -2788,12 +2791,12 @@ char FUN_0014dce0(int object_handle, unsigned int type_mask, int param_3,
  * Frame (SUB ESP,0x448 = 1096 bytes), in declaration order outward from EBP:
  *   EBP-0x0c  (12)    sum_point, the far endpoint origin+delta
  *   EBP-0x18  (12)    neg_delta, the backward direction
- *   EBP-0x28  (16)    FUN_0014c8e0 context (+0x04 tag data, +0x0c surface base)
- *   EBP-0x448 (1056)  FUN_0014cb00 output record; only the first 0x1c bytes
+ *   EBP-0x28  (16)    collision_model_instance_new context (+0x04 tag data, +0x0c surface base)
+ *   EBP-0x448 (1056)  collision_model_test_vector output record; only the first 0x1c bytes
  *                     are read back, the rest is callee-owned scratch.
  *
  * Uncertain: the 1056-byte size of the scratch record is inferred from the
- * frame arithmetic (0x448 - 0x28), not from a decompiled FUN_0014cb00.
+ * frame arithmetic (0x448 - 0x28), not from a decompiled collision_model_test_vector.
  */
 char FUN_0014e640(void *test_record, float *origin, float *delta, void *result)
 {
@@ -2825,15 +2828,15 @@ char FUN_0014e640(void *test_record, float *origin, float *delta, void *result)
     neg_delta[1] = -delta[1];
     neg_delta[2] = -delta[2];
 
-    if ((char)FUN_0014c8e0(bsp_ctx, *(int32_t *)((char *)test_record + 0x38)) !=
+    if ((char)collision_model_instance_new(bsp_ctx, *(int32_t *)((char *)test_record + 0x38)) !=
           0 &&
-        FUN_0014cb00((int)bsp_ctx, (void *)1, (void *)sum_point,
+        collision_model_test_vector((int)bsp_ctx, (void *)1, (void *)sum_point,
                      (void *)neg_delta, (int16_t *)bres) != 0) {
       /* MOVSX at 0x14e6dd: the row selector is the signed short at +0x00. */
       idx = *(int16_t *)bres;
       *(float *)(res + 0x14) = 1.0f - *(float *)(bres + 8);
       *(int16_t *)res = 3;
-      FUN_0010a1c0((float *)(bsp_ctx[3] + idx * 0x34), *(float **)(bres + 0xc),
+      matrix4x3_transform_plane((float *)(bsp_ctx[3] + idx * 0x34), *(float **)(bres + 0xc),
                    (float *)(res + 0x24));
       if (*(int32_t *)(bres + 0x14) < 0)
         plane_negate((float *)(res + 0x24), (float *)(res + 0x24));
@@ -2916,7 +2919,7 @@ typedef struct {
   uint32_t indices[256]; /* 0x20 - leaf indices, [0] first and [count-1] last */
 } collision_bsp_test_vector_scratch;
 
-char FUN_0014e7d0(uint32_t collision_flags, float *point, float *offset_vec,
+char collision_test_pill(uint32_t collision_flags, float *point, float *offset_vec,
                   float p4, int unit_handle, void *result)
 {
   collision_bsp_test_vector_scratch scratch;
@@ -3100,13 +3103,13 @@ bool FUN_0014e940(int param_1, float *origin, float *delta, float radius,
  *  - The child recursion at 0x14ebf2 (8 args, ADD ESP,0x20) sits inside the
  *    sphere test but OUTSIDE the type_mask gate, and passes the CHILD handle
  *    [obj+0xC8] — not the sibling [obj+0xC4] that drives the do/while.
- *  - FUN_0014c8e0 returns its result in AL only; EDI (the handle) is never
- *    reloaded from it. Ghidra's `iVar9 = FUN_0014c8e0(...)` is register
+ *  - collision_model_instance_new returns its result in AL only; EDI (the handle) is never
+ *    reloaded from it. Ghidra's `iVar9 = collision_model_instance_new(...)` is register
  *    aliasing and would corrupt the sibling walk.
  *
  * Frame (SUB ESP,0x60), derived from the EBP displacements:
- *   EBP-0x60 (60)  FUN_001509c0 model context
- *   EBP-0x24 (16)  FUN_0014c8e0 collision-bsp context
+ *   EBP-0x60 (60)  physics_instance_new model context
+ *   EBP-0x24 (16)  collision_model_instance_new collision-bsp context
  *   EBP-0x14 (12)  biped camera position (vector3)
  *   EBP-0x08 (4)   biped camera height
  *   EBP-0x04 (4)   shift temp for (1 << type)  [Ghidra: `local_c[1] = 1.4e-45`
@@ -3176,12 +3179,12 @@ void FUN_0014ea10(unsigned int type_mask, int first_handle, float *origin,
           case 7:
           case 8:
             if (((1 << type) & 2) != 0 && (type_mask & 0x400000) != 0) {
-              if (FUN_001509c0(model_ctx, cur) != 0) {
+              if (physics_instance_new(model_ctx, cur) != 0) {
                 FUN_00150790((int)model_ctx, (int)origin, radius,
                              *(int *)&param_5, *(int *)&param_6, param_8);
               }
             } else {
-              if ((char)FUN_0014c8e0(bsp_ctx, cur) != 0) {
+              if ((char)collision_model_instance_new(bsp_ctx, cur) != 0) {
                 FUN_0014cde0((int)bsp_ctx, (int)origin, radius,
                              *(int *)&param_5, *(int *)&param_6, param_8);
               }

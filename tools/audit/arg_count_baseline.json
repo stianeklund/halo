@@ -99,7 +99,7 @@
       }
     },
     "0x14dab0": {
-      "name": "FUN_0014dab0",
+      "name": "collision_test_sphere",
       "declared_stack": 2,
       "verdict": "UNDER-DECLARED",
       "observed": {
@@ -214,7 +214,7 @@
       }
     },
     "0x1a2b10": {
-      "name": "FUN_001a2b10",
+      "name": "biped_update_slipping",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {
@@ -238,7 +238,7 @@
       }
     },
     "0x1b56b0": {
-      "name": "FUN_001b56b0",
+      "name": "compute_airborne_ticks",
       "declared_stack": 0,
       "verdict": "UNDER-DECLARED",
       "observed": {

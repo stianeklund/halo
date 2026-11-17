@@ -259,7 +259,7 @@ float object_get_self_illumination(int object_handle)
  *            then tag_block_get_element(collection+0x14, material_index,
  *            0x100).
  * Confirmed: CMP word ptr [EAX+0x24],0x3 gates on shader type 3; the shader
- *            is then re-resolved through FUN_001906b0(shader, 3).
+ *            is then re-resolved through shader_get_and_verify_type(shader, 3).
  * Confirmed: MOVSX EAX,word ptr [EBX+0x10]; CDQ; IDIV dword ptr [ECX+0x60] —
  *            a signed 32-bit modulo whose remainder (EDX) becomes the
  *            bitmap index for the gel bitmap.
@@ -319,7 +319,7 @@ void light_particle(void *position, void *tint_color, void *out_color,
   if (*(int16_t *)(shader + 0x24) != 3) {
     return;
   }
-  shader_env = (char *)FUN_001906b0(shader, 3);
+  shader_env = (char *)shader_get_and_verify_type(shader, 3);
   if (*(int *)(scenario + 0xc) == -1 || *(int *)(shader_env + 0x94) == -1 ||
       *collection == -1) {
     return;

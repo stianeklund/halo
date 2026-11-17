@@ -101,7 +101,7 @@ void FUN_0014c7b0(int16_t *param_1)
   sVar2 = 0;
   if (0 < *param_1) {
     do {
-      FUN_00189540(1, param_1 + sVar2 * 0xe + 10,
+      render_debug_sphere(1, param_1 + sVar2 * 0xe + 10,
                    *(float *)(param_1 + sVar2 * 0xe + 0x10),
                    *(void **)0x2ee6d0);
       sVar2 = sVar2 + 1;
@@ -115,7 +115,7 @@ void FUN_0014c7b0(int16_t *param_1)
  * node_matrices. Returns 1 if the object has a collision model, 0 otherwise.
  * 0x14c8e0 / collision_usage.obj
  */
-int FUN_0014c8e0(int *out, int object_handle)
+int collision_model_instance_new(int *out, int object_handle)
 {
   int *obj;
   int obje_tag;
@@ -226,7 +226,7 @@ bool FUN_0014ca30(int param_1, void *param_2)
             if (0 < *piVar5) {
               matrix_inverse((float *)(iVar8 * 0x34 + *(int *)(param_1 + 0xc)),
                              local_44);
-              matrix_transform_point(local_44, (float *)param_2, local_10);
+              matrix_transform_point(local_44, (real_point3d *)param_2, (real_point3d *)local_10);
             }
           }
         }
@@ -242,7 +242,7 @@ bool FUN_0014ca30(int param_1, void *param_2)
 /* Cylinder BSP vector test: tests a ray against each cylinder collision
  * element. 0x14cb00 / collision_usage.obj
  */
-char FUN_0014cb00(int param_1, void *param_2, void *param_3, void *param_4,
+char collision_model_test_vector(int param_1, void *param_2, void *param_3, void *param_4,
                   int16_t *param_5)
 {
   short bVar1;
@@ -304,9 +304,9 @@ char FUN_0014cb00(int param_1, void *param_2, void *param_3, void *param_4,
             if (0 < *piVar3) {
               matrix_inverse((float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc)),
                              local_5c);
-              matrix_transform_point(local_5c, (float *)param_3, local_28);
-              matrix_scale_transform_vector(local_5c, (float *)param_4,
-                                            local_1c);
+              matrix_transform_point(local_5c, (real_point3d *)param_3, (real_point3d *)local_28);
+              matrix_scale_transform_vector(local_5c, (real_vector3d *)param_4,
+                                            (real_vector3d *)local_1c);
 #ifdef HALO_RNG_TRACE
               trace_node_matrix =
                 (float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc));
@@ -385,10 +385,10 @@ char FUN_0014cb00(int param_1, void *param_2, void *param_3, void *param_4,
 /* Object model cylinder BSP collision test: for each cylinder model,
  * invert the local frame matrix, transform the test ray, then call the
  * BSP cylinder intersection test. Stores the closest hit index and LOD.
- * No collision_log calls (differs from FUN_0014cb00 which has them).
+ * No collision_log calls (differs from collision_model_test_vector which has them).
  * 0x14cc80 / collision_usage.obj
  */
-bool FUN_0014cc80(int param_1, int param_2, int param_3, float param_4,
+bool collision_model_test_pill(int param_1, int param_2, int param_3, float param_4,
                   int16_t *param_5)
 {
   uint8_t bVar1;
@@ -435,9 +435,9 @@ bool FUN_0014cc80(int param_1, int param_2, int param_3, float param_4,
             if (0 < *piVar3) {
               matrix_inverse((float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc)),
                              local_60);
-              matrix_transform_point(local_60, (float *)param_2, local_2c);
-              matrix_scale_transform_vector(local_60, (float *)param_3,
-                                            local_20);
+              matrix_transform_point(local_60, (real_point3d *)param_2, (real_point3d *)local_2c);
+              matrix_scale_transform_vector(local_60, (real_vector3d *)param_3,
+                                            (real_vector3d *)local_20);
               cVar2 =
                 FUN_00149c60(piVar3, local_2c, local_20, local_60[0] * param_4,
                              *(float *)((char *)param_5 + 8),
@@ -511,7 +511,7 @@ char FUN_0014cde0(int param_1, int param_2, float param_3, int param_4,
             if (0 < *piVar3) {
               node_matrix = (float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc));
               matrix_inverse(node_matrix, local_48);
-              matrix_transform_point(local_48, (float *)param_2, local_14);
+              matrix_transform_point(local_48, (real_point3d *)param_2, (real_point3d *)local_14);
               radius_f = local_48[0] * param_3;
               cVar2 = (char)collision_bsp_test_sphere(
                 (int)piVar3, 0, 0, (int)local_14, *(int *)&radius_f,
@@ -1005,7 +1005,7 @@ int FUN_0014da80(int tag_data, int16_t collision_fn_index)
  * collision BSP sphere. Returns 1 if outside BSP or collision sphere
  * intersects, 0 on pass. Confirmed: cdecl, 2 stack args. _chkstk(0x1010) for
  * 4112-byte buf local. */
-char FUN_0014dab0(int param_1, int param_2)
+char collision_test_sphere(int param_1, int param_2)
 {
   char buf[0x1010];
   if ((int)bsp3d_find_leaf(FUN_0018e420(), 0, (void *)param_1) == -1)
@@ -1021,8 +1021,8 @@ fail:
 
 /* 0x14db10 — Walk a linked list of objects (via [obj+0xC4] sibling index),
  * testing each against a sphere (radius at [obj+0x5C], position at [obj+0x50]).
- * Dispatches to FUN_001509c0/FUN_00150ac0 (type-flag branch A) or
- * FUN_0014c8e0/FUN_0014c950 (branch B). Recurses on child index [obj+0xC8].
+ * Dispatches to physics_instance_new/FUN_00150ac0 (type-flag branch A) or
+ * collision_model_instance_new/FUN_0014c950 (branch B). Recurses on child index [obj+0xC8].
  * Returns 1 if any match found. */
 char FUN_0014db10(int param_1, int param_2, int param_3, int param_4)
 {
@@ -1049,12 +1049,12 @@ char FUN_0014db10(int param_1, int param_2, int param_3, int param_4)
         dz = *(float *)((char *)obj + 0x58) - ((float *)param_3)[2];
         if (r * r >= dx * dx + dy * dy + dz * dz) {
           if ((1 << type_short) & 2 && param_2 & 0x400000) {
-            if (FUN_001509c0(local_a, cur) &&
+            if (physics_instance_new(local_a, cur) &&
                 FUN_00150ac0(local_a, (int *)param_3)) {
               return 1;
             }
           } else {
-            if (FUN_0014c8e0(local_b, cur) &&
+            if (collision_model_instance_new(local_b, cur) &&
                 FUN_0014c950((int)local_b, (void *)param_3)) {
               return 1;
             }
@@ -1460,19 +1460,19 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
   if (collision_flags & 0x100000) {
     if (result && *(int *)((char *)collision_result + 0xc) != -1) {
       int cur_zone;
-      cur_zone = FUN_0018e720((int)((char *)collision_result + 0x18));
+      cur_zone = scenario_leaf_index_from_point((int)((char *)collision_result + 0x18));
       if (cur_zone != *(int *)((char *)collision_result + 0xc)) {
-        vector3d_scale_add((float *)((char *)collision_result + 0x18),
-                           (float *)((char *)collision_result + 0x24),
+        vector3d_scale_add((real_point3d *)((char *)collision_result + 0x18),
+                           (real_vector3d *)((char *)collision_result + 0x24),
                            0.000244140625f,
-                           (float *)((char *)collision_result + 0x18));
+                           (real_point3d *)((char *)collision_result + 0x18));
         scenario_location_from_point((char *)collision_result + 0xc,
                                      (char *)collision_result + 0x18);
         if (*(int *)((char *)collision_result + 0xc) == -1) {
           float d;
           float step;
           d =
-            FUN_00013070((float *)direction, (float *)((char *)collision_result + 0x24));
+            dot_product3d((real_vector3d *)direction, (real_vector3d *)((char *)collision_result + 0x24));
           if (d != 0.0f)
             step = (float)(0.000244140625 / fabs((double)d));
           else
@@ -1520,7 +1520,7 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
  * nearby clusters (filtered by type mask in flags bits 8-19) and tests
  * each marked object via FUN_0014ea10. Returns true if any collision
  * features were recorded (any of the 3 feature counts is nonzero). */
-bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
+bool collision_get_features_in_sphere(int flags, const real_point3d *pos, float search_radius, float dist_b,
                   float dist_a, int param6, void *scratch)
 {
   void *scenario;
@@ -1590,7 +1590,7 @@ bool FUN_0014ec30(int flags, float *pos, float search_radius, float dist_b,
               cluster_partition_object_iter_first(&iter_state, cluster_idx);
             while (obj_handle != -1) {
               if (object_mark(obj_handle)) {
-                FUN_0014ea10((unsigned int)flags, obj_handle, pos,
+                FUN_0014ea10((unsigned int)flags, obj_handle, (float *)pos,
                              search_radius, dist_b, dist_a, param6,
                              (int)scratch);
               }
@@ -1626,7 +1626,7 @@ void collision_log_end_time(float *target, float *origin, float *output,
 {
   /* The original keeps both dot products in ST(i) and narrows only the
    * quotient (FSTP dword [ebp+8] at 0x14eefb).  When clang inlines this into
-   * FUN_0014f2c0 it narrowed the numerator instead and kept t wide; both
+   * collision_move_point it narrowed the numerator instead and kept t wide; both
    * differences moved a grenade's rest position (system-link run 9). */
   float t = HALO_NARROW((((x87_wide_t)target[0] - origin[0]) * dir[0] +
                      ((x87_wide_t)target[1] - origin[1]) * dir[1] +
@@ -1681,7 +1681,7 @@ void FUN_0014ef80(int param_1, float *dir, int param_3, float *pos,
  * valid point_out was found.
  * Confirmed: chkstk(0xac88) at 0x14f028; collision user = 7; 17 iters DI<0x11.
  * Confirmed: dir table at 0x325060 stride 12; scale ptr at 0x31fc50. */
-char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent,
+char collision_fix_pill(uint32_t collision_flags, float *point, float vertical_extent,
                   float p4, float p5, int unit_handle, float *point_out)
 {
   char feature_buf[0xac88]; /* stack — _chkstk is now a no-op stub */
@@ -1715,7 +1715,7 @@ char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent,
   local_pos[1] = point[1];
   local_pos[2] = elevation + point[2];
 
-  FUN_0014ec30((int)collision_flags, local_pos,
+  collision_get_features_in_sphere((int)collision_flags, (real_point3d *)local_pos,
                elevation + vertical_extent + p5, p4, p5, unit_handle,
                feature_buf);
 
@@ -1743,7 +1743,7 @@ char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent,
         local_pos[1] = vertical_extent * scale_table[1];
         local_pos[2] = vertical_extent * scale_table[2];
 
-        if (FUN_0014c4b0((int)(void *)feature_buf, local_offset, local_pos,
+        if (collision_features_test_vector((int)(void *)feature_buf, (real_point3d *)local_offset, (real_vector3d *)local_pos,
                          (void *)local_hit)) {
           if (local_hit[6] > *(float *)0x29d59c) {
             FUN_0014ef80((int)collision_flags, local_pos, unit_handle,
@@ -1770,7 +1770,7 @@ char FUN_0014f020(uint32_t collision_flags, float *point, float vertical_extent,
   local_pos[0] = point[0] - save_pos[0];
   local_pos[1] = point[1] - save_pos[1];
   local_pos[2] = point[2] - save_pos[2];
-  FUN_0014c4b0((int)(void *)feature_buf, save_pos, local_pos,
+  collision_features_test_vector((int)(void *)feature_buf, (real_point3d *)save_pos, (real_vector3d *)local_pos,
                (void *)local_hit);
   FUN_0014ef80((int)collision_flags, local_pos, unit_handle, local_hit,
                save_pos);
@@ -1843,7 +1843,7 @@ epilog:
     system_exit(-1);                                                           \
   }
 
-short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
+short collision_move_point(float *old_pos, float *old_vel, short *features,
                    float *new_pos, float *new_vel, short max_clips,
                    int collisions)
 {
@@ -1936,7 +1936,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
     CHECK_FINITE3_POINT(position, "&clipped_position", 0x3c0);
     CHECK_FINITE3_VEC(velocity, "&clipped_velocity", 0x3c1);
 
-    if (!FUN_0014c4b0((int)features, position, velocity,
+    if (!collision_features_test_vector((int)features, (real_point3d *)position, (real_vector3d *)velocity,
                       (void *)collision_record)) {
       position[0] = collision_record[1];
       position[1] = collision_record[2];
@@ -2359,21 +2359,23 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
  * Pushes collision user 7 on the collision-user stack (0x4761d8 depth,
  * 0x5a8c80 stack), gathers features around the sweep midpoint
  * (position + 0.5*velocity, z lifted by 0.5*arg4) with radius
- * 0.5*|velocity| + 0.5*arg4 + arg5 via FUN_0014ec30, then clips the motion
- * through them with FUN_0014f2c0. When no features are found, new_position is
+ * 0.5*|velocity| + 0.5*arg4 + arg5 via collision_get_features_in_sphere, then clips the motion
+ * through them with collision_move_point. When no features are found, new_position is
  * position + velocity and new_velocity is velocity (dword copy).
- * Returns the FUN_0014f2c0 clip count, 0 when no features (MOV AX,BX: short).
+ * Returns the collision_move_point clip count, 0 when no features (MOV AX,BX: short).
  * Confirmed: arg4/arg5 are floats (FLD [EBP+0x14], FADD [EBP+0x18]) and feed
- *   FUN_0014ec30's float params 4/5; 0x253398 = 0.5f.
+ *   collision_get_features_in_sphere's float params 4/5; 0x253398 = 0.5f.
  * Confirmed: _chkstk(0xac14); feature buffer at EBP-0xac14, 0xac08 bytes
  *   (counts[3] + 256 spheres*0x1c + 256 cylinders*0x28 + 256 prisms*0x68).
  * Confirmed: asserts are collisions.c #0x4be / #0x4ce.
  * Status: dormant (ported=false).
  * 0x150550 / collision_usage.obj
  */
-short FUN_00150550(void *collision_flags, float *position, float *velocity,
-                   float arg4, float arg5, int arg6, float *new_position,
-                   float *new_velocity, int max_collisions, void *collisions)
+short collision_move_pill(void *collision_flags, real_point3d const *position,
+                          real_vector3d const *velocity, float arg4, float arg5,
+                          int arg6, real_point3d *new_position,
+                          real_vector3d *new_velocity, int max_collisions,
+                          void *collisions)
 {
   char features[0xac08];
   float center[3];
@@ -2389,25 +2391,27 @@ short FUN_00150550(void *collision_flags, float *position, float *velocity,
   ((short *)0x5a8c80)[*(short *)0x4761d8] = 7;
   *(short *)0x4761d8 = *(short *)0x4761d8 + 1;
 
-  center[0] = velocity[0] * *(float *)0x253398 + position[0];
-  center[1] = velocity[1] * *(float *)0x253398 + position[1];
+  center[0] = velocity->i * *(float *)0x253398 + position->x;
+  center[1] = velocity->j * *(float *)0x253398 + position->y;
   half_height = arg4 * *(float *)0x253398;
-  center[2] = velocity[2] * *(float *)0x253398 + position[2] + half_height;
+  center[2] = velocity->k * *(float *)0x253398 + position->z + half_height;
 
-  magnitude = sqrtf(velocity[2] * velocity[2] + velocity[1] * velocity[1] +
-                    velocity[0] * velocity[0]);
-  if (FUN_0014ec30((int)collision_flags, center,
+  magnitude = sqrtf(velocity->k * velocity->k + velocity->j * velocity->j +
+                    velocity->i * velocity->i);
+  if (collision_get_features_in_sphere((int)collision_flags, (real_point3d *)center,
                    magnitude * *(float *)0x253398 + half_height + arg5, arg4,
                    arg5, arg6, features)) {
-    count = FUN_0014f2c0(position, velocity, (short *)features, new_position,
-                         new_velocity, (short)max_collisions, (int)collisions);
+    count = collision_move_point((float *)position, (float *)velocity,
+                                 (short *)features, (float *)new_position,
+                                 (float *)new_velocity, (short)max_collisions,
+                                 (int)collisions);
   } else {
-    new_position[0] = position[0] + velocity[0];
-    new_position[1] = position[1] + velocity[1];
-    new_position[2] = position[2] + velocity[2];
-    *(int *)&new_velocity[0] = *(int *)&velocity[0];
-    *(int *)&new_velocity[1] = *(int *)&velocity[1];
-    *(int *)&new_velocity[2] = *(int *)&velocity[2];
+    new_position->x = position->x + velocity->i;
+    new_position->y = position->y + velocity->j;
+    new_position->z = position->z + velocity->k;
+    *(int *)&new_velocity->i = *(int *)&velocity->i;
+    *(int *)&new_velocity->j = *(int *)&velocity->j;
+    *(int *)&new_velocity->k = *(int *)&velocity->k;
   }
 
   if (*(short *)0x4761d8 <= 1) {
@@ -2420,23 +2424,25 @@ short FUN_00150550(void *collision_flags, float *position, float *velocity,
 
 
 /* FUN_001506d0 — thin forwarder to the 10-arg collision/line-of-sight query
- * FUN_00150550, supplying a literal 0 for that callee's 4th parameter
+ * collision_move_pill, supplying a literal 0 for that callee's 4th parameter
  * (PUSH 0x0 at 0x1506f4). All nine incoming stack slots [EBP+0x08 .. EBP+0x28]
  * are forwarded verbatim; push order at 0x1506dc..0x1506f8 (last push = first
  * C argument) gives 0x08,0x0c,0x10 then 0, then 0x14,0x18,0x1c,0x20,0x24,0x28.
  * cdecl: ADD ESP,0x28 after the CALL confirms 10 pushed dwords.
  * EAX is not touched after the CALL, so the callee's int result is the
  * wrapper's return value.
- * arg5 is a float: FUN_00150550 loads it with FADD [EBP+0x18] and forwards
- * it to FUN_0014ec30's float parameter; here it is dword-forwarded.
+ * arg5 is a float: collision_move_pill loads it with FADD [EBP+0x18] and forwards
+ * it to collision_get_features_in_sphere's float parameter; here it is dword-forwarded.
  * 0x1506d0 / collision_usage.obj
  */
 int FUN_001506d0(void *out_point, float *direction, float *origin, float arg5,
                  int arg6, float *out_point2, void *out_arg8, int max_results,
                  void *results)
 {
-  return FUN_00150550(out_point, direction, origin, 0, arg5, arg6, out_point2,
-                      out_arg8, max_results, results);
+  return collision_move_pill(out_point, (real_point3d *)direction,
+                             (real_vector3d *)origin, 0, arg5, arg6,
+                             (real_point3d *)out_point2,
+                             (real_vector3d *)out_arg8, max_results, results);
 }
 
 /* Returns 1 if the transformed point lies within any 0x80-byte element's

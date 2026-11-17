@@ -316,9 +316,9 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
             marker[2] = fwd[2] * *(float *)0x2549d4 + *(float *)(obj + 0x58);
             crt_sprintf(text, "inactive %s",
                         tag_name_strip_path(tag_get_name(*(int *)obj)));
-            FUN_00189150(0, (float *)(obj + 0x50), *(float *)(obj + 0x5c),
+            render_debug_point(0, (real_point3d *)(obj + 0x50), *(float *)(obj + 0x5c),
                          *(void **)0x2ee6d8);
-            FUN_00189cb0(0, marker, text, *(int *)0x2ee6d8);
+            render_debug_string_at_point(0, marker, text, *(int *)0x2ee6d8);
           }
 
           /* Single 13-argument model-submit. MSVC evaluates the cdecl args
@@ -833,9 +833,9 @@ int FUN_0018bf80(int object_handle, float lod)
  * back to the global lighting-state buffer at 0x4d8258: rebuilds its baseline
  * lighting (lights_prepare_for_object_static) and its dynamic light markers (lights_prepare_for_object_dynamic), then
  * returns &DAT_004d8258. cdecl: object_handle [EBP+8], lod [EBP+0xc] (float,
- * forwarded bitwise to FUN_0018bf80). NOTE: kb name 'scenario_leaf_index_from
- * _point' appears to be a misnomer (object-handle arg, pointer return). */
-void *scenario_leaf_index_from_point(int object_handle, float lod)
+ * forwarded bitwise to FUN_0018bf80).
+ */
+void *object_get_cached_render_lighting(int object_handle, float lod)
 {
   int index;
 
@@ -901,7 +901,7 @@ void FUN_0018c100(void *record)
     if ((flags & 1) != 0 && *(int *)(obj + 0xc8) == -1) {
       return;
     }
-    *(int *)(rec + 4) = (int)scenario_leaf_index_from_point(
+    *(int *)(rec + 4) = (int)object_get_cached_render_lighting(
       *(int *)rec, FUN_0018b130(*(int *)rec));
     diameter = FUN_0018b130(*(int *)rec);
     FADE_ROUND32(diameter);
@@ -940,7 +940,7 @@ void FUN_0018c100(void *record)
     }
     tagdef = (int)tag_get(0x6f626a65 /* 'obje' */, *(int *)obj);
     if (visible != 0) {
-      *(int *)(rec + 4) = (int)scenario_leaf_index_from_point(
+      *(int *)(rec + 4) = (int)object_get_cached_render_lighting(
         *(int *)rec, FUN_0018b130(*(int *)rec));
     } else {
       *(int *)(rec + 4) = 0;
@@ -1284,8 +1284,8 @@ void FUN_0018c5b0(void)
                     marker = (float *)object_get_node_matrix(
                       *(int *)(part + 8), *(int16_t *)(part + 0xc));
                   }
-                  matrix_transform_point(marker, (float *)(part + 0x30),
-                                         position);
+                  matrix_transform_point(marker, (real_point3d *)(part + 0x30),
+                                         (real_point3d *)position);
                   matrix_transform_vector(marker, (real_vector3d *)(part + 0x3c),
                                           (real_vector3d *)direction);
                 }
@@ -1581,8 +1581,8 @@ void FUN_0018cf10(void *data, float *untransformed_origin,
         *(int32_t *)(untransformed_direction + 2);
     }
   } else {
-    matrix_transform_point((float *)0x5065b4, untransformed_origin,
-                           transformed_origin);
+    matrix_transform_point((float *)0x5065b4, (real_point3d *)untransformed_origin,
+                           (real_point3d *)transformed_origin);
     if (untransformed_direction != NULL) {
       matrix_transform_vector((float *)0x5065b4, (real_vector3d *)untransformed_direction,
                               (real_vector3d *)transformed_direction);
@@ -1802,7 +1802,7 @@ void FUN_0018d360(void *sprite_build_data)
   origin[0] *= scale;
   origin[1] *= scale;
   origin[2] *= scale;
-  matrix_transform_point((float *)0x5065e8, origin, origin);
+  matrix_transform_point((float *)0x5065e8, (real_point3d *)origin, (real_point3d *)origin);
 
   for (i = 0; i < *(int16_t *)(data + 0x20); i++) {
     rec = (uint32_t *)(data + 0x24 + (int)i * 0x10);
@@ -1885,7 +1885,7 @@ void FUN_0018d490(float *basis, void *data, float *direction,
     *(int32_t *)(basis + 3) = *(int32_t *)(direction + 2);
     /* length results discarded (FSTP ST0 in the original) */
     normalize3d((real_vector3d *)(basis + 1));
-    cross_product3d(origin, basis + 1, basis + 4);
+    cross_product3d((real_vector3d *)origin, (real_vector3d *)(basis + 1), (real_vector3d *)(basis + 4));
     normalize3d((real_vector3d *)(basis + 4));
     return;
   }
@@ -1894,9 +1894,9 @@ void FUN_0018d490(float *basis, void *data, float *direction,
           *(float *)0x506518 * direction[2] + *(float *)0x506510 * direction[0];
     dot_sq = dot * dot;
     origin = (float *)0x506510;
-    if (FUN_00012170(direction) * *(const float *)0x28ace8 < dot_sq)
+    if (magnitude_squared3d((real_vector3d *)direction) * *(const float *)0x28ace8 < dot_sq)
       origin = (float *)0x50651c;
-    cross_product3d(direction, origin, basis + 1);
+    cross_product3d((real_vector3d *)direction, (real_vector3d *)origin, (real_vector3d *)(basis + 1));
     normalize3d((real_vector3d *)(basis + 1));
     origin = basis + 4;
     *(int32_t *)origin = *(int32_t *)(basis + 1);
@@ -2064,7 +2064,7 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
                          bitmap_elem);
             anim = (char *)*(int *)((char *)data + 8);
             if (anim != NULL && *(int16_t *)(anim + 0x2c) != 0 && mode != 0) {
-              cross_product3d(basis + 1, basis + 4, basis + 7);
+              cross_product3d((real_vector3d *)(basis + 1), (real_vector3d *)(basis + 4), (real_vector3d *)(basis + 7));
               intensity = FUN_0018d670(*(uint16_t *)(anim + 0x2c),
                                        transformed_origin, basis + 7) *
                           intensity;
@@ -2175,17 +2175,17 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
                 idx = (int)(int16_t)vertex_index;
                 verts = *(int *)(group + 4);
                 matrix_transform_point((float *)0x5065e8,
-                                       (float *)(verts + (idx * 3 - 12) * 8),
-                                       wpoint);
+                                       (real_point3d *)(verts + (idx * 3 - 12) * 8),
+                                       (real_point3d *)wpoint);
                 matrix_transform_point((float *)0x5065e8,
-                                       (float *)(verts + (idx * 3 - 9) * 8),
-                                       dbg_b);
+                                       (real_point3d *)(verts + (idx * 3 - 9) * 8),
+                                       (real_point3d *)dbg_b);
                 matrix_transform_point((float *)0x5065e8,
-                                       (float *)(verts + (idx * 3 - 6) * 8),
-                                       dbg_c);
+                                       (real_point3d *)(verts + (idx * 3 - 6) * 8),
+                                       (real_point3d *)dbg_c);
                 matrix_transform_point((float *)0x5065e8,
-                                       (float *)(verts + idx * 0x18 - 0x18),
-                                       dbg_d);
+                                       (real_point3d *)(verts + idx * 0x18 - 0x18),
+                                       (real_point3d *)dbg_d);
                 FUN_0017eb10(wpoint, dbg_b, *(int *)0x2ee6c4);
                 FUN_0017eb10(wpoint, dbg_c, *(int *)0x2ee6c4);
                 FUN_0017eb10(dbg_c, dbg_d, *(int *)0x2ee6c4);
@@ -2642,7 +2642,7 @@ void scenario_location_reset(int *location)
   *(int16_t *)((char *)location + 6) = NONE;
 }
 
-/* FUN_0018e500 (0x18e500) — look up a material type entry from game globals.
+/* scenario_material_definition_get (0x18e500) — look up a material type entry from game globals.
  *
  * Given a material_type index (int16_t), validate it and return a pointer to
  * the corresponding element from the game_globals material_types tag block at
@@ -2660,7 +2660,7 @@ void scenario_location_reset(int *location)
  * Confirmed: fallback initialises dword at 0x4d8a70 to -1, byte 0x4d8a74 to 1.
  * Confirmed: returns &DAT_004d8700 when index is NONE or out of range.
  */
-void *FUN_0018e500(int16_t material_type)
+void *scenario_material_definition_get(int16_t material_type)
 {
   char *game_globals;
   int index;
@@ -2787,7 +2787,7 @@ char FUN_0018e6a0(int unused, float *out_up, float *out_left, float *out_d,
   return 1;
 }
 
-/* FUN_0018e720 (0x18e720) — bsp3d_find_leaf_point
+/* scenario_leaf_index_from_point (0x18e720) — bsp3d_find_leaf_point
  *
  * Looks up the BSP3D leaf containing a given 3D point by traversing the
  * bsp3d tree from the root (node 0). Asserts that the global bsp3d tree
@@ -2798,7 +2798,7 @@ char FUN_0018e6a0(int unused, float *out_up, float *out_left, float *out_d,
  * Confirmed: single cdecl param (point pointer) at [EBP+8].
  * Confirmed: return value is bsp3d_find_leaf result in EAX.
  */
-int FUN_0018e720(int point)
+int scenario_leaf_index_from_point(int point)
 {
   if (*(void **)0x5064d8 == NULL) {
     display_assert("global_bsp3d", "c:\\halo\\SOURCE\\scenario\\scenario.c",
@@ -3452,7 +3452,7 @@ void FUN_0018f230(void *param_1, void *param_2, void *param_3, void *param_4)
    found). Steps the position up in Z by 0.05 up to 0x96 times until a leaf is
    located. Returns 1 if a leaf was found on the very first probe (position was
    immediately above geometry / "underwater"), 0 otherwise. */
-char scenario_ensure_point_within_world(float *position)
+char scenario_ensure_point_within_world(real_point3d *position)
 {
   short count;
   uint32_t leaf;
@@ -3471,7 +3471,7 @@ char scenario_ensure_point_within_world(float *position)
     if (count >= 0x96) {
       break;
     }
-    position[2] += 0.05f;
+    position->z += 0.05f;
     count = count + 1;
   }
   return count == 0;

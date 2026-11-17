@@ -862,7 +862,7 @@
   },
   {
     "addr": "0x1a0b30",
-    "name": "FUN_001a0b30",
+    "name": "biped_check_discard",
     "object": "bipeds.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"
@@ -883,14 +883,14 @@
   },
   {
     "addr": "0x1a1e70",
-    "name": "FUN_001a1e70",
+    "name": "biped_falling_danger",
     "object": "bipeds.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"
   },
   {
     "addr": "0x1a2160",
-    "name": "FUN_001a2160",
+    "name": "biped_apply_rotation",
     "object": "bipeds.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"
@@ -904,7 +904,7 @@
   },
   {
     "addr": "0x1a25e0",
-    "name": "FUN_001a25e0",
+    "name": "biped_find_nearby_support_surface",
     "object": "bipeds.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"
@@ -918,14 +918,14 @@
   },
   {
     "addr": "0x1a2b10",
-    "name": "FUN_001a2b10",
+    "name": "biped_update_slipping",
     "object": "bipeds.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"
   },
   {
     "addr": "0x1a2f40",
-    "name": "FUN_001a2f40",
+    "name": "biped_update_physics",
     "object": "bipeds.obj",
     "reason": "pre-gate baseline 2026-06-10",
     "since": "2026-06-10"
@@ -1541,7 +1541,7 @@
   },
   {
     "addr": "0x1ac180",
-    "name": "FUN_001ac180",
+    "name": "unit_start_user_animation",
     "object": "sound_manager.obj",
     "reason": "pre-existing ported:false with no source_path; the only detected \"impl\" is the raw-address forwarding thunk added in src/halo/unported_thunks.c (build-fix), which behaves identically to the ported:false patch.py fallback (calls the original address either way) -- not a new/active bisection",
     "since": "2026-08-27"

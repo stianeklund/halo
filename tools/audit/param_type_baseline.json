@@ -60,7 +60,7 @@
     "0x14c8e0:byte_return:declared return `int` but all 8 conclusive callers test AL only": {
       "detail": "declared return `int` but all 8 conclusive callers test AL only",
       "kind": "byte_return",
-      "name": "FUN_0014c8e0",
+      "name": "collision_model_instance_new",
       "ported": true,
       "severity": "WARN"
     },
@@ -116,7 +116,7 @@
     "0x19f530:byte_return:declared return `int` but all 1 conclusive callers test AL only": {
       "detail": "declared return `int` but all 1 conclusive callers test AL only",
       "kind": "byte_return",
-      "name": "FUN_0019f530",
+      "name": "biped_limp_noodle_get_max_relaxation_iterations",
       "ported": true,
       "severity": "WARN"
     },

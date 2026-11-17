@@ -760,7 +760,7 @@ void player_effect_get_screen_flash(int16_t player_index, void *screen_flash)
  *
  * Binary (0xa32e0): if [ebp+0xc] != [0x2533c0]: seed =
  * random_math_get_local_seed_address(); random_seed_get_direction3d(seed,
- * &axis); FUN_001092d0(ESI, &axis, fsin(angle), fcos(angle)) (both floats
+ * &axis); matrix4x3_rotation_from_axis_and_angle(ESI, &axis, fsin(angle), fcos(angle)) (both floats
  * FSTP'd into the reused arg slots). If [ebp+8] != [0x2533c0]: same random
  * direction, scaled by [ebp+8], stored to matrix +0x28/+0x2c/+0x30.
  * Callers: FUN_000a3370 (x2).
@@ -774,7 +774,7 @@ void get_shake_matrix(float *matrix /* @<esi> */, float translation_scale,
   if (rotation_angle != *(float *)0x002533c0) {
     random_seed_get_direction3d(random_math_get_local_seed_address(),
                                 direction);
-    FUN_001092d0(matrix, direction, x87_fsin(rotation_angle),
+    matrix4x3_rotation_from_axis_and_angle(matrix, (real_vector3d *)direction, x87_fsin(rotation_angle),
                  x87_fcos(rotation_angle));
   }
   if (translation_scale != *(float *)0x002533c0) {
@@ -813,7 +813,7 @@ void get_shake_matrix(float *matrix /* @<esi> */, float translation_scale,
  *   - effect+0xe0 ticks > 0 or +0xe8 bit 1: intensity = 1.0f when bit 1 is
  *     set, else transition_function_evaluate(+0x54, 1 - (+0x50 - ticks) /
  *     +0x50) * +0x68.  Clears bit 1, axis = cross(global up (*0x31fc44),
- *     effect+0x00), FUN_001092d0(local, axis, sin(i * +0x58), cos(i * +0x58)),
+ *     effect+0x00), matrix4x3_rotation_from_axis_and_angle(local, axis, sin(i * +0x58), cos(i * +0x58)),
  *     local position = i * +0x0c..+0x14 + (i * +0x5c) * +0x00..+0x08, then
  *     +0xe0 -= elapsed.  Otherwise the identity is copied.
  *   - effect+0xe2 ticks > 0 or +0xe8 bit 2: local = identity; intensity 1.0f
@@ -940,7 +940,7 @@ void player_effect_get_camera_effect_matrix(int16_t local_player_index,
     axis[2] = effect_fields[1] * up[0] - effect_fields[0] * up[1];
 
     angle = intensity * effect->field_58;
-    FUN_001092d0((float *)&effect_matrix, axis, x87_fsin(angle),
+    matrix4x3_rotation_from_axis_and_angle((float *)&effect_matrix, (real_vector3d *)axis, x87_fsin(angle),
                  x87_fcos(angle));
 
     translation = intensity * effect->field_5c;
@@ -1106,8 +1106,8 @@ void player_effect_start(int player_handle, void *damage_params,
           delta[1] = victim_pos.y - attacker_pos[1];
           delta[2] = victim_pos.z - attacker_pos[2];
 
-          cross_product3d((float *)((char *)camera + 0x20),
-                          (float *)((char *)camera + 0x2c), attacker_pos);
+          cross_product3d((real_vector3d *)((char *)camera + 0x20),
+                          (real_vector3d *)((char *)camera + 0x2c), (real_vector3d *)attacker_pos);
 
           rotated_delta[0] = attacker_pos[0] * delta[0] +
                              attacker_pos[1] * delta[1] +
