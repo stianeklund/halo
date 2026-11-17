@@ -28,7 +28,7 @@ void first_person_camera_deterministic(int unit_handle, real_point3d *out_positi
 
   unit = object_get_and_verify_type(unit_handle,
                                                    _object_mask_unit);
-  unit_get_camera_position(unit_handle, &out_position->x);
+  unit_get_camera_position(unit_handle, out_position);
   *out_forward = unit->aiming_vector;
 
   if (unit->object.parent_object_index.value != NONE) {
@@ -81,8 +81,8 @@ void first_person_camera_for_unit_and_vector(const real_vector3d *vector,
   command->forward = *vector;
   command->field_of_view = 1.22173047f; /* 70 degrees */
   observer_up_from_forward(&command->forward, &command->up);
-  if (!valid_real_normal3d_perpendicular(&command->forward.i,
-                                         &command->up.i)) {
+  if (!valid_real_normal3d_perpendicular(&command->forward,
+                                         &command->up)) {
     display_assert("valid_real_vector3d_axes2(&result->forward, &result->up)",
                    "c:\\halo\\SOURCE\\camera\\first_person_camera.c", 0x52, 1);
     system_exit(-1);
@@ -91,8 +91,8 @@ void first_person_camera_for_unit_and_vector(const real_vector3d *vector,
   if (unit_index != -1) {
     unit =
       object_get_and_verify_type(unit_index, _object_mask_unit);
-    unit_get_camera_position(unit_index, &command->position.x);
-    object_get_root_location(unit_index, &command->velocity.i, NULL);
+    unit_get_camera_position(unit_index, &command->position);
+    object_get_velocities(unit_index, &command->velocity, NULL);
     if (unit->object.parent_object_index.value != -1) {
       vehicle = object_try_and_get_and_verify_type(
         unit->object.parent_object_index.value, _object_mask_vehicle);
@@ -113,19 +113,19 @@ void first_person_camera_for_unit_and_vector(const real_vector3d *vector,
           /* in-place transforms: 0x88edc/0x88ef4 PUSH EDI twice, 0x88f02
            * PUSH EBX twice (same buffer as input and output) */
           matrix4x3_from_forward_up_position(
-            &matrix, &vehicle->position.x, &vehicle->forward.x,
-            &vehicle->up.x);
+            &matrix, &vehicle->position, &vehicle->forward,
+            &vehicle->up);
           real_matrix4x3_transform_point(
             &matrix, &command->forward,
             &command->forward); /* dup-args-ok: in-place */
           observer_up_from_forward(&command->forward,
                                    &command->up);
           matrix_transform_vector(
-            &matrix.scale, &command->forward.i,
-            &command->forward.i); /* dup-args-ok: in-place */
+            &matrix.scale, &command->forward,
+            &command->forward); /* dup-args-ok: in-place */
           matrix_transform_vector(
-            &matrix.scale, &command->up.i,
-            &command->up.i); /* dup-args-ok: in-place */
+            &matrix.scale, &command->up,
+            &command->up); /* dup-args-ok: in-place */
         }
       }
     }
@@ -174,7 +174,7 @@ void first_person_camera_update(void *camera, camera_action_t *action,
   }
 
   player_control_get_facing_direction(action->local_player_index,
-                                      &facing_direction.i);
+                                      &facing_direction);
   first_person_camera_for_unit_and_vector(&facing_direction,
                                           unit_index, result);
   field_of_view =

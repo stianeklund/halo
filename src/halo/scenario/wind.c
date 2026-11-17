@@ -146,12 +146,12 @@ void wind_update(void)
         : (rec->pitch_perturbation > 1.0f ? 1.0f : rec->pitch_perturbation);
 
       rec->velocity = (definition[1] - definition[0]) * rec->t + definition[0];
-      vector_to_angles(angles, (float *)(elem + 0x90));
+      vector_to_angles((real_euler_angles2d *)angles, (real_vector3d *)(elem + 0x90));
       angles[1] += definition[3] * rec->yaw_perturbation * 0.5f;
       angles[0] += definition[2] * rec->pitch_perturbation * 0.5f;
 
       direction = rec->direction;
-      angles_to_vector(direction, angles);
+      angles_to_vector((real_vector3d *)direction, (real_euler_angles2d *)angles);
       scale = *(float *)(elem + 0x9c) * rec->velocity;
       direction[0] *= scale;
       direction[1] *= scale;
@@ -246,9 +246,12 @@ void FUN_00190380(void)
       idx = 0;
       inner_count = 3;
       do {
-        uniform_cubic_spline_vector3d(out_ptr, base + (idx + im1) * 0x18, node_i_ptr,
-                     base + (idx + ip1) * 0x18, base + (idx + ip2) * 0x18,
-                     x_im1, 1.0f, t);
+        uniform_cubic_spline_vector3d(
+          (real_vector3d *)out_ptr,
+          (const real_vector3d *)(base + (idx + im1) * 0x18),
+          (const real_vector3d *)node_i_ptr,
+          (const real_vector3d *)(base + (idx + ip1) * 0x18),
+          (const real_vector3d *)(base + (idx + ip2) * 0x18), x_im1, 1.0f, t);
         idx += 8;
         node_i_ptr += 0xc0;
         out_ptr += 0xc0;

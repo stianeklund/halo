@@ -78,7 +78,7 @@ void structure_decals_update(uint32_t *old_cluster_visibility,
           (float)(int)runtime_decal->field_0e * RUNTIME_DECAL_YAW_SCALE;
         decal_angles[1] =
           (float)(int)runtime_decal->field_0f * RUNTIME_DECAL_PITCH_SCALE;
-        angles_to_vector(decal_vector, decal_angles);
+        angles_to_vector((real_vector3d *)decal_vector, (real_euler_angles2d *)decal_angles);
 
         decal_new(decal_tag_index, runtime_decal, decal_vector, 1.0f, 1, -1,
                      0);

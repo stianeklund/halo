@@ -283,8 +283,8 @@ float FUN_00188c60(float *frame, float *in_vec, float *position)
   fwd[2] = in_vec[2];
   up = frame + 4;
   perpendicular3d(fwd, up);
-  length = normalize3d(fwd);
-  normalize3d(up);
+  length = normalize3d((real_vector3d *)fwd);
+  normalize3d((real_vector3d *)up);
   frame[1] = up[1] * fwd[2] - fwd[1] * up[2];
   frame[2] = fwd[0] * up[2] - up[0] * fwd[2];
   frame[3] = up[0] * fwd[1] - fwd[0] * up[1];
@@ -1055,7 +1055,7 @@ void FUN_00189de0(void)
   dir[0] = fwd[0] * *(float *)0x254cb8;
   dir[1] = fwd[1] * *(float *)0x254cb8;
   dir[2] = fwd[2] * *(float *)0x254cb8;
-  if (collision_test_vector(0x21, (float *)0x506550, dir, -1,
+  if (collision_test_vector(0x21, (real_point3d *)(0x506550), (real_vector3d *)dir, -1,
                    (short *)collision_result)) {
     snprintf(
       text + csstrlen(text), 0x800 - csstrlen(text),
@@ -1312,8 +1312,8 @@ void FUN_0018a3e0(void)
     angles[0] = (float)angle_tmp * *(float *)0x2b1958;
     angle_tmp = *(signed char *)((char *)elem + 0xf);
     angles[1] = (float)angle_tmp * *(float *)0x2b1954;
-    angles_to_vector(dir, angles);
-    if (collision_test_vector(0x61, (float *)elem, dir, -1, (short *)collision_result)) {
+    angles_to_vector((real_vector3d *)dir, (real_euler_angles2d *)angles);
+    if (collision_test_vector(0x61, elem, (real_vector3d *)dir, -1, (short *)collision_result)) {
       if (*(short *)((char *)enc + 0xc) == -1 ||
           (int)*(unsigned short *)((char *)enc + 0xe) <=
             i - *(short *)((char *)enc + 0xc)) {
@@ -1504,7 +1504,7 @@ void FUN_0018a990(int flag, float *position, float *forward, float *up,
 {
   float matrix[13];
 
-  matrix4x3_from_forward_up_position(matrix, position, forward, up);
+  matrix4x3_from_forward_up_position(matrix, (real_point3d *)position, (real_vector3d *)forward, (real_vector3d *)up);
   FUN_001894d0(flag, matrix, scale);
 }
 

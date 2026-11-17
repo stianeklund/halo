@@ -1077,7 +1077,8 @@ char FUN_0014db10(int param_1, int param_2, int param_3, int param_4)
  * Confirmed: init at 0x14df7d; scenario_get at 0x14dfc5; BSP test at 0x14e054.
  * Confirmed: log_add_call(0)/log_add_call(1) bracketing; atmosphere zone test.
  */
-bool collision_test_vector(uint32_t collision_flags, float *origin, float *direction,
+bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
+                           const real_vector3d *direction,
                   int max_distance, int16_t *collision_result)
 {
   char result;
@@ -1122,9 +1123,9 @@ bool collision_test_vector(uint32_t collision_flags, float *origin, float *direc
   if ((collision_flags & 0xe0) == 0 || *(char *)0x4761f9 != '\0') {
     /* No BSP test: just compute end point */
     *(float *)((char *)collision_result + 0x14) = 1.0f;
-    ((float *)((char *)collision_result + 0x18))[0] = origin[0] + direction[0];
-    ((float *)((char *)collision_result + 0x18))[1] = origin[1] + direction[1];
-    ((float *)((char *)collision_result + 0x18))[2] = origin[2] + direction[2];
+    ((float *)((char *)collision_result + 0x18))[0] = origin->x + direction->i;
+    ((float *)((char *)collision_result + 0x18))[1] = origin->y + direction->j;
+    ((float *)((char *)collision_result + 0x18))[2] = origin->z + direction->k;
     scenario_location_from_point((char *)collision_result + 0xc,
                                  (char *)collision_result + 0x18);
 #ifdef HALO_RNG_TRACE
@@ -1319,8 +1320,8 @@ bool collision_test_vector(uint32_t collision_flags, float *origin, float *direc
          * association is not free: x87 rounds each FADDP, so the plain
          * left-to-right spelling gives a different result and can flip the
          * four float branches below. */
-        fVar_dir_dot = local_18[1] * direction[1] + local_18[2] * direction[2] +
-                       local_18[0] * direction[0];
+        fVar_dir_dot = local_18[1] * direction->j + local_18[2] * direction->k +
+                       local_18[0] * direction->i;
 
         if ((fVar_dist > 0.0f) != (fVar_dir_dot > 0.0f) &&
             fabs((double)fVar_dist) < fabs((double)fVar_dir_dot) &&
@@ -1429,11 +1430,11 @@ bool collision_test_vector(uint32_t collision_flags, float *origin, float *direc
   }
   saved_dist = *(float *)((char *)collision_result + 0x14);
   ((float *)((char *)collision_result + 0x18))[0] =
-    saved_dist * direction[0] + origin[0];
+    saved_dist * direction->i + origin->x;
   ((float *)((char *)collision_result + 0x18))[1] =
-    saved_dist * direction[1] + origin[1];
+    saved_dist * direction->j + origin->y;
   ((float *)((char *)collision_result + 0x18))[2] =
-    saved_dist * direction[2] + origin[2];
+    saved_dist * direction->k + origin->z;
   /* Zone-tracking refinement (original 0x14e500-0x14e631), gated on
    * (collision_flags & 0x100000) — i.e. the detonation/effects callers
    * (0x1000e9 / 0x100061), never the render path (0xfff80, no 0x100000 bit, so
@@ -1471,7 +1472,7 @@ bool collision_test_vector(uint32_t collision_flags, float *origin, float *direc
           float d;
           float step;
           d =
-            FUN_00013070(direction, (float *)((char *)collision_result + 0x24));
+            FUN_00013070((float *)direction, (float *)((char *)collision_result + 0x24));
           if (d != 0.0f)
             step = (float)(0.000244140625 / fabs((double)d));
           else
@@ -1483,11 +1484,11 @@ bool collision_test_vector(uint32_t collision_flags, float *origin, float *direc
               frac = 0.0f;
             *(float *)((char *)collision_result + 0x14) = frac;
             ((float *)((char *)collision_result + 0x18))[0] =
-              frac * direction[0] + origin[0];
+              frac * direction->i + origin->x;
             ((float *)((char *)collision_result + 0x18))[1] =
-              frac * direction[1] + origin[1];
+              frac * direction->j + origin->y;
             ((float *)((char *)collision_result + 0x18))[2] =
-              frac * direction[2] + origin[2];
+              frac * direction->k + origin->z;
             scenario_location_from_point((char *)collision_result + 0xc,
                                          (char *)collision_result + 0x18);
             if (*(float *)((char *)collision_result + 0x14) <= 0.0f)
@@ -1888,7 +1889,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
                    "c:\\halo\\SOURCE\\physics\\collisions.c", 0x3ad, 1);
     system_exit(-1);
   }
-  if (!real_vector3d_valid(old_vel)) {
+  if (!real_vector3d_valid((real_vector3d *)old_vel)) {
     display_assert(csprintf((char *)0x5ab100,
                             "%s: assert_valid_real_vector2d(%f, %f, %f)",
                             "old_velocity", (double)old_vel[0],
@@ -2128,7 +2129,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
               "c:\\halo\\SOURCE\\physics\\collisions.c", 0x3fe, 1);
             system_exit(-1);
           }
-          if (!real_vector3d_valid(clip_line)) {
+          if (!real_vector3d_valid((real_vector3d *)clip_line)) {
             display_assert(
               csprintf((char *)0x5ab100,
                        "%s: assert_valid_real_vector2d(%f, %f, %f)",
@@ -2208,7 +2209,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
         "c:\\halo\\SOURCE\\physics\\collisions.c", 0x42d, 1);
       system_exit(-1);
     }
-    if (!real_vector3d_valid(clip_line)) {
+    if (!real_vector3d_valid((real_vector3d *)clip_line)) {
       display_assert(
         csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                  "&clip_line_vector", (double)clip_line[0],
@@ -2248,7 +2249,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
                    "c:\\halo\\SOURCE\\physics\\collisions.c", 0x43b, 1);
     system_exit(-1);
   }
-  if (!real_vector3d_valid(new_vel)) {
+  if (!real_vector3d_valid((real_vector3d *)new_vel)) {
     display_assert(csprintf((char *)0x5ab100,
                             "%s: assert_valid_real_vector2d(%f, %f, %f)",
                             "new_velocity", (double)new_vel[0],
@@ -2316,7 +2317,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
         edge[1] = factor * clip_line[1] + up_vec[1];
         edge[2] = factor * clip_line[2] + up_vec[2];
       }
-      if (normalize3d(edge) != 0.0f) {
+      if (normalize3d((real_vector3d *)edge) != 0.0f) {
         *(float *)((char *)dst_record + 0x1c) =
           (clip_result[1] * edge[1] + clip_result[2] * edge[2]) +
           clip_result[0] * edge[0];
@@ -2331,7 +2332,7 @@ short FUN_0014f2c0(float *old_pos, float *old_vel, short *features,
         edge[0] = factor * src_record[4] + up_vec[0];
         edge[1] = factor * src_record[5] + up_vec[1];
         edge[2] = factor * src_record[6] + up_vec[2];
-        if (normalize3d(edge) != 0.0f) {
+        if (normalize3d((real_vector3d *)edge) != 0.0f) {
           *(float *)((char *)dst_record + 0x1c) =
             (clip_point[1] * edge[1] + clip_point[2] * edge[2]) +
             clip_point[0] * edge[0];

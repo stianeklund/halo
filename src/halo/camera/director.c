@@ -263,7 +263,7 @@ void dead_camera_update(void *camera_data, void *control_data,
   result->position =
     unit != NULL ? unit->bounding_sphere_center : camera->position;
   result->depth = camera->distance;
-  angles_to_vector(&result->forward.i, &camera->facing.yaw);
+  angles_to_vector(&result->forward, &camera->facing);
   observer_up_from_forward(&result->forward, &result->up);
   result->field_of_view = camera->field_of_view;
   result->offset = *global_zero_vector3d;
@@ -710,7 +710,7 @@ void director_load_camera(void)
     camera = director_flying_camera(director);
     flying_camera_new_from_point_and_vector(camera, &position, &forward);
     observer_up_from_forward(&forward, &derived_up);
-    camera->roll = angle_between_vectors3d(&stored_up.i, &derived_up.i);
+    camera->roll = angle_between_vectors3d(&stored_up, &derived_up);
     if ((derived_up.k * stored_up.j - stored_up.k * derived_up.j) *
             forward.i +
           (forward.j *
@@ -1427,22 +1427,22 @@ void editor_camera_initialize(void *camera_data, int16_t local_player_index)
   real_vector3d forward;
 
   if (!editor_camera_globals.initialized) {
-    if (scenario_block_354(global_scenario_get())->count == 0 ||
-        scenario_block_354(global_scenario_get())->address == NULL) {
+    if (global_scenario_get()->player_starting_locations.count == 0 ||
+        global_scenario_get()->player_starting_locations.address == NULL) {
       csmemset(&editor_camera_globals.focus_position, 0,
                sizeof(real_point3d) + sizeof(real_euler_angles2d));
     } else {
       element = tag_block_get_element(
-        scenario_block_354(global_scenario_get()), 0,
-        SCENARIO_BLOCK_354_ELEMENT_SIZE);
+        &global_scenario_get()->player_starting_locations, 0,
+        SCENARIO_PLAYER_STARTING_LOCATION_SIZE);
       editor_camera_globals.focus_position = element->position;
       editor_camera_globals.focus_angles.yaw = element->angles.yaw;
     }
   }
   editor_camera_globals.initialized = true;
 
-  angles_to_vector(&forward.i,
-                   &editor_camera_globals.focus_angles.yaw);
+  angles_to_vector(&forward,
+                   &editor_camera_globals.focus_angles);
 
   /* 0x89350: cdecl(camera_data, position, forward) — the shared
    * ADD ESP,0x14 also retires angles_to_vector's two arguments. */
@@ -1641,8 +1641,8 @@ void translate_flying_to_orbiting(void *state)
 
   position_y = editor_camera_default_position_y;
   set_real_point3d_inline(&camera->position, 0.0f, position_y, 0.0f);
-  vector_to_angles(&camera->facing.yaw,
-                   &editor_camera_source->forward.i);
+  vector_to_angles(&camera->facing,
+                   &editor_camera_source->forward);
 }
 
 /* editor_camera_move_to_point (0x87c80) — place the editor camera 2.5 units
@@ -1660,8 +1660,8 @@ void editor_camera_move_to_point(const real_point3d *point)
     system_exit(-1);
   }
 
-  angles_to_vector(&forward.i,
-                   &editor_camera_globals.camera->facing.yaw);
+  angles_to_vector(&forward,
+                   &editor_camera_globals.camera->facing);
   camera = editor_camera_globals.camera;
   point_from_line_back3d(point, &forward, 2.5f, &camera->position);
 }
@@ -1703,19 +1703,19 @@ void editor_camera_set_position_and_roll(const real_point3d *point,
   editor_camera_globals.camera->position = *point;
   matrix4x3_rotation_from_angles(&matrix.scale, angles->facing.yaw, angles->facing.pitch,
                angles->roll);
-  vector_to_angles(&editor_camera_globals.camera->facing.yaw,
-                   &matrix.forward.i);
-  angles_to_vector(&forward.i,
-                   &editor_camera_globals.camera->facing.yaw);
+  vector_to_angles(&editor_camera_globals.camera->facing,
+                   &matrix.forward);
+  angles_to_vector(&forward,
+                   &editor_camera_globals.camera->facing);
   facing = editor_camera_globals.camera->facing;
   facing.pitch = facing.pitch + k_half_pi;
-  angles_to_vector(&pitched.i, &facing.yaw);
-  normalize3d(&forward.i);
-  normalize3d(&pitched.i);
+  angles_to_vector(&pitched, &facing);
+  normalize3d(&forward);
+  normalize3d(&pitched);
   cross_product3d_inline(&pitched, &matrix.up, &cross);
-  normalize3d(&cross.i);
+  normalize3d(&cross);
   editor_camera_globals.camera->roll =
-    angle_between_vectors3d(&pitched.i, &matrix.up.i) * dot_product3d(&cross, &forward);
+    angle_between_vectors3d(&pitched, &matrix.up) * dot_product3d(&cross, &forward);
   if (editor_camera_relative_object_index != NONE) {
     set_real_vector3d_inline(&editor_camera_globals.unit_offset, point->x,
                              point->y, point->z);
@@ -1793,8 +1793,8 @@ void editor_camera_update(void *camera_data, camera_action_t *action,
     camera = editor_camera_globals.camera;
     source = editor_camera_source;
     camera->position = source->position;
-    vector_to_angles(&camera->facing.yaw,
-                     &editor_camera_source->forward.i);
+    vector_to_angles(&camera->facing,
+                     &editor_camera_source->forward);
     editor_camera_set_unit_focus(editor_camera_relative_object_index);
 
     if (editor_camera_globals.mode != 0) {
@@ -1884,8 +1884,8 @@ void editor_camera_set_scripted(unsigned char enable)
         editor_camera_globals.camera);
     }
 
-    vector_to_angles(&facing.yaw,
-                     &editor_camera_source->forward.i);
+    vector_to_angles(&facing,
+                     &editor_camera_source->forward);
     source = editor_camera_source;
     editor_camera_set_position(&source->position, &facing);
 
@@ -1895,13 +1895,13 @@ void editor_camera_set_scripted(unsigned char enable)
     if (relative_object_index != NONE) {
       source = editor_camera_source;
       scripted_camera_set_camera_point_relative(
-        &editor_camera_globals.unit_offset.i, &source->forward.i,
-        &source->up.i, 1.2217305f, 0, relative_object_index);
+        editor_camera_unit_relative_position(), &source->forward,
+        &source->up, 1.2217305f, 0, relative_object_index);
     } else {
       source = editor_camera_source;
       scripted_camera_set_camera_point_relative(
-        &source->position.x, &source->forward.i,
-        &source->up.i, 1.2217305f, 0, NONE);
+        &source->position, &source->forward,
+        &source->up, 1.2217305f, 0, NONE);
     }
   } else {
     /* ADD EAX,0x10 / MOV ECX,EAX at 0x8813a: source->position is held in
@@ -1910,8 +1910,8 @@ void editor_camera_set_scripted(unsigned char enable)
     position = &editor_camera_source->position;
     camera->position = *position;
 
-    vector_to_angles(&camera->facing.yaw,
-                     &editor_camera_source->forward.i);
+    vector_to_angles(&camera->facing,
+                     &editor_camera_source->forward);
     editor_camera_set_unit_focus(editor_camera_relative_object_index);
 
     if (editor_camera_globals.mode != 0) {
@@ -1957,8 +1957,8 @@ void translate_orbiting_to_flying(void *state)
 
   source = editor_camera_source;
   camera->position = source->position;
-  vector_to_angles(&camera->facing.yaw,
-                   &editor_camera_source->forward.i);
+  vector_to_angles(&camera->facing,
+                   &editor_camera_source->forward);
   editor_camera_set_unit_focus(editor_camera_relative_object_index);
 }
 
@@ -2010,9 +2010,9 @@ void editor_camera_orbiting_update(void *camera_data, void *control_data,
   camera->position.y = distance;
 
   if (info.unit_index != NONE) {
-    angles_to_vector(&result->forward.i, &camera->facing.yaw);
+    angles_to_vector(&result->forward, &camera->facing);
     observer_up_from_forward(&result->forward, &result->up);
-    object_get_root_location(info.unit_index, &result->velocity.i, NULL);
+    object_get_velocities(info.unit_index, &result->velocity, NULL);
     result->flags = FLAG(_observer_command_valid_bit);
   }
 

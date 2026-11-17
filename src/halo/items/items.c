@@ -2120,7 +2120,7 @@ void item_accelerate(int item_handle, float *position, int flag)
       cross[1] = position[0] * up[2] - up[0] * position[2];
       cross[0] = up[1] * position[2] - position[1] * up[2];
 
-      if (normalize3d(cross) <= *(float *)0x2533c0) {
+      if (normalize3d((real_vector3d *)cross) <= *(float *)0x2533c0) {
         /* Degenerate cross product: use random direction */
         unsigned int *seed = (unsigned int *)get_global_random_seed_address();
         random_seed_get_direction3d(seed, cross);
@@ -2253,8 +2253,8 @@ void item_align_to_normal_and_point(float *out_point, float *normal,
     forward[1] = t2 * normal[0] - t0 * normal[2];
     forward[2] = t0 * normal[1] - t1 * normal[0];
   }
-  normalize3d(forward);
-  matrix4x3_from_forward_up_position(matrix, point, forward, normal);
+  normalize3d((real_vector3d *)forward);
+  matrix4x3_from_forward_up_position(matrix, (real_point3d *)point, (real_vector3d *)forward, (real_vector3d *)normal);
   if (!valid_real_matrix4x3(matrix)) {
     display_assert("valid_real_matrix4x3(&ground_point_matrix)",
                    "c:\\halo\\SOURCE\\items\\items.c", 0x2f3, 1);
@@ -2377,7 +2377,7 @@ bool item_update(int item_handle)
                       new_point);
       cross_product3d(new_point, (float *)(item_obj + 0x30),
                       (float *)(item_obj + 0x24));
-      if (normalize3d((float *)(item_obj + 0x24)) == *(float *)0x2533c0) {
+      if (normalize3d((real_vector3d *)(item_obj + 0x24)) == *(float *)0x2533c0) {
         global_vector = *(float **)0x31fc3c;
         *(item_position3d *)(item_obj + 0x24) =
           *(item_position3d *)global_vector;
@@ -2579,34 +2579,34 @@ bool item_update(int item_handle)
                                           marker_buf, 1) != 0) {
         *(item_ground_matrix *)matrix =
           *(item_ground_matrix *)(marker_buf + 0x38);
-        rotate_vector3d_by_sincos(&matrix[1], (float *)(item_obj + 0x1c8),
+        rotate_vector3d_by_sincos((real_vector3d *)&matrix[1], (real_vector3d *)(item_obj + 0x1c8),
                                   *(float *)(item_obj + 0x1d4),
                                   *(float *)(item_obj + 0x1d8));
-        rotate_vector3d_by_sincos(&matrix[7], (float *)(item_obj + 0x1c8),
+        rotate_vector3d_by_sincos((real_vector3d *)&matrix[7], (real_vector3d *)(item_obj + 0x1c8),
                                   *(float *)(item_obj + 0x1d4),
                                   *(float *)(item_obj + 0x1d8));
         cross_product3d(&matrix[7], &matrix[1], &matrix[4]);
         cross_product3d(&matrix[4], &matrix[7], &matrix[1]);
-        normalize3d(&matrix[1]);
-        normalize3d(&matrix[4]);
-        normalize3d(&matrix[7]);
+        normalize3d((real_vector3d *)&matrix[1]);
+        normalize3d((real_vector3d *)&matrix[4]);
+        normalize3d((real_vector3d *)&matrix[7]);
         object_compute_child_marker_position(
           object_get_and_verify_type(item_handle, NONE), marker_buf, matrix);
       } else {
         rotate_vector3d_by_sincos(
-          (float *)(item_obj + 0x24), (float *)(item_obj + 0x1c8),
+          (real_vector3d *)(item_obj + 0x24), (real_vector3d *)(item_obj + 0x1c8),
           *(float *)(item_obj + 0x1d4), *(float *)(item_obj + 0x1d8));
         rotate_vector3d_by_sincos(
-          (float *)(item_obj + 0x30), (float *)(item_obj + 0x1c8),
+          (real_vector3d *)(item_obj + 0x30), (real_vector3d *)(item_obj + 0x1c8),
           *(float *)(item_obj + 0x1d4), *(float *)(item_obj + 0x1d8));
       }
 
-      normalize3d((float *)(item_obj + 0x30));
+      normalize3d((real_vector3d *)(item_obj + 0x30));
       cross_product3d((float *)(item_obj + 0x30), (float *)(item_obj + 0x24),
                       new_point);
       cross_product3d(new_point, (float *)(item_obj + 0x30),
                       (float *)(item_obj + 0x24));
-      normalize3d((float *)(item_obj + 0x24));
+      normalize3d((real_vector3d *)(item_obj + 0x24));
     }
   }
 

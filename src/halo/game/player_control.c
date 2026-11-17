@@ -318,7 +318,7 @@ void player_control_get_unit_camera_info(int16_t local_player_index,
   *(int16_t *)(info + 4) = NONE;
   if (handle != NONE) {
     unit_obj = (char *)object_get_and_verify_type(handle, 3);
-    unit_get_camera_position(*(int *)info, (real *)(info + 0xc));
+    unit_get_camera_position(*(int *)info, (real_point3d *)(info + 0xc));
     if (*(int *)(unit_obj + 0xcc) != NONE) {
       vehicle_obj = (char *)object_try_and_get_and_verify_type(
         *(int *)(unit_obj + 0xcc), 2);
@@ -1245,7 +1245,8 @@ void interpolate_scalar(float *value, float target, float max_delta)
  * Converts the direction vector to yaw+pitch via vector_to_angles (atan2-based
  * vector_to_angles), validates both angles for NaN/Inf, and normalizes yaw
  * to [0, 2*pi) by adding 2*pi if negative. */
-void player_control_set_facing(int16_t local_player_index, float *direction)
+void player_control_set_facing(int16_t local_player_index,
+                               const real_vector3d *direction)
 {
   player_control_t *pc;
   float *desired_yaw;
@@ -1258,7 +1259,7 @@ void player_control_set_facing(int16_t local_player_index, float *direction)
   desired_yaw = &pc->desired_angles.yaw;
 
   /* Convert direction vector to yaw/pitch angles */
-  vector_to_angles(desired_yaw, direction);
+  vector_to_angles((real_euler_angles2d *)desired_yaw, direction);
 
   /* assert_valid_real on desired_angles.pitch (slot+0x10) */
   if ((*(uint32_t *)&pc->desired_angles.pitch & 0x7f800000u) == 0x7f800000u) {
@@ -1373,11 +1374,11 @@ real_euler_angles2d *player_control_get_facing_angles(int16_t local_player_index
  * stack slot (MOV ESI,[EBP+8]); there is no MOVSX, so no widening cast here.
  *
  * c:\halo\SOURCE\game\player_control.c */
-real *player_control_get_facing_direction(int16_t local_player_index,
-                                          real *facing_out)
+real_vector3d *player_control_get_facing_direction(int16_t local_player_index,
+                                                   real_vector3d *facing_out)
 {
   player_aiming_vector_from_facing(
-    local_player_get_player_index(local_player_index), facing_out,
+    local_player_get_player_index(local_player_index), (float *)facing_out,
     &player_control_get_facing_angles(local_player_index)->yaw);
   return facing_out;
 }
@@ -1505,7 +1506,7 @@ void player_control_modify_desired_angles(int16_t local_player_index,
       object_get_marker_by_name(*(int *)camera_info, seat + 0x24,
                                       marker_buf, 1);
       /* the marker's forward vector sits at +0x3c in the marker record */
-      vector_to_angles(marker_angles, (float *)(marker_buf + 0x3c));
+      vector_to_angles((real_euler_angles2d *)marker_angles, (real_vector3d *)(marker_buf + 0x3c));
 
       yaw_low = marker_angles[0] + *(float *)(seat + 0xf0);
       yaw_high = marker_angles[0] + *(float *)(seat + 0xf4);
@@ -1573,9 +1574,9 @@ void player_control_modify_desired_angles(int16_t local_player_index,
 
         marker_angles[0] = pc->desired_angles.yaw;
         marker_angles[1] = 0.0f;
-        angles_to_vector(forward, marker_angles);
+        angles_to_vector((real_vector3d *)forward, (real_euler_angles2d *)marker_angles);
         offset =
-          REAL_HALF_PI - angle_between_vectors3d(forward, (float *)(unit_obj + 0x30));
+          REAL_HALF_PI - angle_between_vectors3d((real_vector3d *)forward, (real_vector3d *)(unit_obj + 0x30));
         pitch_minimum_target -= offset;
         pitch_maximum_target -= offset;
         pitch_target -= offset;
@@ -1699,7 +1700,7 @@ __declspec(noinline) void player_control_new_unit(int16_t local_player_index,
   if (player_index != -1) {
     unit = (int)object_get_and_verify_type(player_index, 3);
     facing = &pc->desired_angles.yaw;
-    vector_to_angles(facing, (float *)(unit + 0x1d4));
+    vector_to_angles((real_euler_angles2d *)facing, (real_vector3d *)(unit + 0x1d4));
     if (*facing < REAL_ZERO_POOL)
       *facing += REAL_TWO_PI_POOL;
     pc->desired_weapon_index = *(int16_t *)(unit + 0x2a4);

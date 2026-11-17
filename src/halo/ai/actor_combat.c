@@ -799,7 +799,7 @@ void actor_start_burst(int actor_handle)
   perp[0] = dy - dz * 0.0f;
   perp[1] = dz * 0.0f - dx;
   perp[2] = dx * 0.0f - dy * 0.0f;
-  normalize3d(perp);
+  normalize3d((real_vector3d *)perp);
 
   seed = get_global_random_seed_address();
   random_val = random_seed_step((unsigned int *)seed);
@@ -1046,7 +1046,7 @@ int actor_aim_grenade(int actor_handle, void *aim_params, float *out_aim_vector)
          sin^2+cos^2 = 0.9856, so it shrank the rotated facing ~0.7% and tripped
          assert_valid_real_normal3d at actor_combat.c:1865 on grenade throws
          whose aim was >30deg off the actor facing (PoA covenant combat). */
-      rotate_vector3d_by_sincos(nrm, *(float **)0x31fc44, sin_a,
+      rotate_vector3d_by_sincos((real_vector3d *)nrm, (real_vector3d *)(*(float **)0x31fc44), sin_a,
                                 0.866025388f /* 0x3f5db3d7 = cos(30 deg) */);
       /* orig 0x22d1b: overwrite the rotated z with aim_z AFTER the rotate. */
       nrm[2] = aim_z;
@@ -1726,7 +1726,7 @@ void actor_combat_update(int actor_handle)
                                       actor->control_burst_relative_position.k;
 
       if (actor->vehicle_index != -1) {
-        unit_get_camera_position(actor->meta_unit_index, &origin.x);
+        unit_get_camera_position(actor->meta_unit_index, &origin);
       } else {
         real_vector3d *gun_offset = NULL;
 

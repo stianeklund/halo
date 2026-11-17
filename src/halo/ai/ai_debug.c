@@ -1233,7 +1233,7 @@ int ai_debug_get_this_actor(void)
   delta[1] = camera[9] * *(float *)0x25acf0;
   delta[2] = camera[10] * *(float *)0x25acf0;
 
-  if (!collision_test_vector(0x81, camera, delta, player_unit,
+  if (!collision_test_vector(0x81, (real_point3d *)camera, (real_vector3d *)delta, player_unit,
                     (int16_t *)collision_result)) {
     return result;
   }
@@ -2478,7 +2478,7 @@ void ai_debug_update(void)
         dir[0] = fwd[0] * scale;
         dir[1] = fwd[1] * scale;
         dir[2] = fwd[2] * scale;
-        if (collision_test_vector(0x21, (float *)cam, dir, -1, (int16_t *)hitbuf) != 0) {
+        if (collision_test_vector(0x21, cam, (real_vector3d *)dir, -1, (int16_t *)hitbuf) != 0) {
           /* hitbuf offsets relative to local_20 (EBP-0x1c):
            * local_58 = EBP-0x58 = local_20 - 0x3c (+0x3c back from
            * local_20); Ghidra shows local_58/54/50/2c.
@@ -2815,8 +2815,8 @@ void ai_debug_teleport_to(int encounter_index)
         forward[0] = (float)cos((double)location[3]);
         forward[1] = (float)sin((double)location[3]);
         forward[2] = 0.0f;
-        object_set_position(*(int *)(player + 0x34), location, forward,
-                            (float *)0);
+        object_set_position(*(int *)(player + 0x34), (real_point3d *)location, (real_vector3d *)forward,
+                            0);
         index = (short)(index + 1);
       }
       player = (char *)data_iterator_next(&iter);

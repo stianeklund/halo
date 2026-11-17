@@ -32,7 +32,7 @@ void flying_camera_new_from_point_and_vector(void *camera_data, real_point3d *po
   camera->facing.yaw = 0.0f;
   camera->field_of_view = 1.22173047f;
   camera->position = *position;
-  vector_to_angles(&camera->facing.yaw, &forward->i);
+  vector_to_angles(&camera->facing, forward);
 }
 
 /* flying_camera_update (0x893a0): the second entry of the gameplay cycle. */
@@ -70,9 +70,9 @@ void flying_camera_update(void *camera_data, void *control_data,
     --flying_camera_reset_ticks;
   }
   result->timer = 0.3f;
-  angles_to_vector(&result->forward.i, &camera->facing.yaw);
+  angles_to_vector(&result->forward, &camera->facing);
   observer_up_from_forward(&result->forward, &result->up);
-  rotate_vector3d_by_sincos(&result->up.i, &result->forward.i,
+  rotate_vector3d_by_sincos(&result->up, &result->forward,
                             x87_fsin(camera->roll), x87_fcos(camera->roll));
   if (controls->active) {
     cosine_yaw = x87_fcos(camera->facing.yaw);
@@ -212,12 +212,15 @@ float uniform_cubic_spline(float f0, float f1, float f2, float f3, float t0,
  * 3-vector (0x89a20). The four input pointers supply the four control values
  * y0..y3 for each component; t0/h/t are shared scalars forwarded unchanged to
  * every component. Results are stored into out[0..2] as each call returns. */
-void uniform_cubic_spline_vector3d(float *out, float *p0, float *p1, float *p2, float *p3,
-                  float t0, float h, float t)
+void uniform_cubic_spline_vector3d(real_vector3d *out, const real_vector3d *p0,
+                                   const real_vector3d *p1,
+                                   const real_vector3d *p2,
+                                   const real_vector3d *p3, float t0, float h,
+                                   float t)
 {
-  out[0] = uniform_cubic_spline(p0[0], p1[0], p2[0], p3[0], t0, h, t);
-  out[1] = uniform_cubic_spline(p0[1], p1[1], p2[1], p3[1], t0, h, t);
-  out[2] = uniform_cubic_spline(p0[2], p1[2], p2[2], p3[2], t0, h, t);
+  out->i = uniform_cubic_spline(p0->i, p1->i, p2->i, p3->i, t0, h, t);
+  out->j = uniform_cubic_spline(p0->j, p1->j, p2->j, p3->j, t0, h, t);
+  out->k = uniform_cubic_spline(p0->k, p1->k, p2->k, p3->k, t0, h, t);
 }
 
 /* camera_track_splut (0x89ab0) — Sample the active camera track spline.
@@ -291,7 +294,7 @@ have_track:
 
   index = (int)i;
   uniform_cubic_spline_vector3d(
-    &out->i,
+    out,
     tag_block_get_element(control_points, index,
                           CAMERA_TRACK_CONTROL_POINT_SIZE),
     tag_block_get_element(control_points, index + 1,
@@ -320,7 +323,7 @@ void following_camera_deterministic(int unit_handle, real_point3d *position,
 
   unit = object_get_and_verify_type(unit_handle, 3);
   camera_track = unit_camera_get(unit_handle);
-  unit_get_camera_position(unit_handle, &position->x);
+  unit_get_camera_position(unit_handle, position);
   *forward = unit->aiming_vector;
   camera_track_splut(camera_track, (float)asin((double)forward->k), &offset);
   i = forward->i;
@@ -394,7 +397,7 @@ void following_camera_update(void *camera_data, void *control_data,
                      (facing.pitch + camera->facing_offset.pitch > 1.57079637f ?
                         1.57079637f :
                         facing.pitch + camera->facing_offset.pitch);
-    angles_to_vector(&result->forward.i, &facing.yaw);
+    angles_to_vector(&result->forward, &facing);
     assert_halt_msg_at(
       "magnitude3d(&result->forward) > 0.9999f && "
       "magnitude3d(&result->forward) < 1.0001f",
@@ -413,7 +416,7 @@ void following_camera_update(void *camera_data, void *control_data,
                        camera->distance_scale;
     depth = (depth - 0.6f) * camera->distance_scale + 0.6f;
     result->depth = depth > 0.6f ? depth : 0.6f;
-    object_get_root_location(info.unit_index, &result->velocity.i, NULL);
+    object_get_velocities(info.unit_index, &result->velocity, NULL);
     result->flags |= FLAG(_observer_command_valid_bit);
   }
   observer_up_from_forward(&result->forward, &result->up);
@@ -734,7 +737,7 @@ void observer_up_from_forward(const real_vector3d *forward, real_vector3d *up)
   right.i = forward->j;
   right.j = -forward->i;
   right.k = 0.0f;
-  if (normalize3d(&right.i) == 0.0f) {
+  if (normalize3d(&right) == 0.0f) {
     right.i = 1.0f;
     right.j = right.k = 0.0f;
   }
@@ -759,12 +762,12 @@ void observer_apply_rotational_displacement(const real_vector3d *rotation,
 
   axis = *rotation;
 
-  angle = normalize3d(&axis.i);
+  angle = normalize3d(&axis);
   if (angle != 0.0f) {
     sin_angle = x87_fsin(angle);
     cos_angle = x87_fcos(angle);
-    rotate_vector3d_by_sincos(&vector_a->i, &axis.i, sin_angle, cos_angle);
-    rotate_vector3d_by_sincos(&vector_b->i, &axis.i, sin_angle, cos_angle);
+    rotate_vector3d_by_sincos(vector_a, &axis, sin_angle, cos_angle);
+    rotate_vector3d_by_sincos(vector_b, &axis, sin_angle, cos_angle);
   }
 }
 
@@ -795,7 +798,7 @@ bool observer_collision_test_with_t(real *out_fraction, bool indoor, real_point3
 
   vector_from_points3d(ray_origin, ray_endpoint, &direction);
 
-  if (collision_test_vector(flags, &ray_origin->x, &direction.i, -1,
+  if (collision_test_vector(flags, ray_origin, &direction, -1,
                    &collision.type)) {
     *out_fraction = collision.t;
     result = true;
@@ -1136,9 +1139,10 @@ void observer_compute_update(int16_t local_player_index)
         if (angle != 0.0f) {
           float sine = x87_fsin(angle);
           float cosine = x87_fcos(angle);
-          rotate_vector3d_by_sincos(parameters, &axis.i, sine, cosine);
-          rotate_vector3d_by_sincos(parameters + 3, &axis.i, sine,
-                                    cosine);
+          rotate_vector3d_by_sincos(observer_parameter_vector(parameters),
+                                    &axis, sine, cosine);
+          rotate_vector3d_by_sincos(observer_parameter_vector(parameters + 3),
+                                    &axis, sine, cosine);
         }
       }
     }
@@ -1201,10 +1205,13 @@ void observer_compute_update(int16_t local_player_index)
 
 /* Angular displacement between two forward/up frames (0x8c030): both pairs
  * must be valid perpendicular unit axes; each becomes a rotation matrix and
- * the rotation taking frame 0 to frame 1 is written to result_angular as an
+ * the rotation taking frame 0 to frame 1 is written to rotation as an
  * axis scaled by its angle. */
-void observer_rotational_displacement(float *forward1, float *result_angular, float *forward0,
-                  float *up0, float *up1)
+void observer_rotational_displacement(const real_vector3d *forward1,
+                                      real_vector3d *rotation,
+                                      const real_vector3d *forward0,
+                                      const real_vector3d *up0,
+                                      const real_vector3d *up1)
 {
   real_matrix4x3 matrix0;
   float up1_k;
@@ -1215,28 +1222,27 @@ void observer_rotational_displacement(float *forward1, float *result_angular, fl
     csprintf(
       error_string_buffer,
       "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
-      "forward0", "up0", (double)forward0[0], (double)forward0[1],
-      (double)forward0[2], (double)up0[0], (double)up0[1], (double)up0[2]);
+      "forward0", "up0", (double)forward0->i, (double)forward0->j,
+      (double)forward0->k, (double)up0->i, (double)up0->j, (double)up0->k);
     display_assert(error_string_buffer, "c:\\halo\\SOURCE\\camera\\observer.c",
                    0x382, 1);
     system_exit(-1);
   }
-  forward1_k = forward1[2];
+  forward1_k = forward1->k;
   if (!valid_real_normal3d_perpendicular(forward1, up1)) {
-    up1_k = up1[2];
+    up1_k = up1->k;
     csprintf(
       error_string_buffer,
       "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
-      "forward1", "up1", (double)forward1[0], (double)forward1[1],
-      (double)forward1_k, (double)up1[0], (double)up1[1], (double)up1_k);
+      "forward1", "up1", (double)forward1->i, (double)forward1->j,
+      (double)forward1_k, (double)up1->i, (double)up1->j, (double)up1_k);
     display_assert(error_string_buffer, "c:\\halo\\SOURCE\\camera\\observer.c",
                    0x383, 1);
     system_exit(-1);
   }
-  matrix_from_forward_and_up(&matrix0.scale, forward0, up0);
-  matrix_from_forward_and_up(&matrix1.scale, forward1, up1);
-  quaternion_to_angle_and_vector(&matrix0.scale, &matrix1.scale,
-                                 result_angular);
+  matrix_from_forward_and_up(&matrix0, forward0, up0);
+  matrix_from_forward_and_up(&matrix1, forward1, up1);
+  vector_from_matrices4x3(&matrix0, &matrix1, rotation);
 }
 
 /* Near-plane collision fix for the camera focus distance (0x8c150).
@@ -1348,8 +1354,12 @@ void observer_find_displacement(real *target_parameters, real *displacement,
   } while (parameter_index < 8);
 
   while (parameter_index < NUMBER_OF_OBSERVER_PARAMETERS) {
-    observer_rotational_displacement(position1, displacement, position0, position0 + 3,
-                 position1 + 3);
+    observer_rotational_displacement(
+      observer_parameter_vector_const(position1),
+      observer_parameter_vector(displacement),
+      observer_parameter_vector_const(position0),
+      observer_parameter_vector_const(position0 + 3),
+      observer_parameter_vector_const(position1 + 3));
     position0 += 6;
     position1 += 6;
     displacement += 3;
@@ -1407,7 +1417,7 @@ void observer_update_result(int16_t local_player_index)
   /* Validate forward/up axes */
   forward = &observer->forward;
   up = &observer->up;
-  if (!valid_real_normal3d_perpendicular(&forward->i, &up->i)) {
+  if (!valid_real_normal3d_perpendicular(forward, up)) {
     csprintf(
       error_string_buffer,
       "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
@@ -1543,7 +1553,7 @@ void observer_update_result(int16_t local_player_index)
   }
 
   /* Validate forward/up axes again */
-  if (!valid_real_normal3d_perpendicular(&forward->i, &up->i)) {
+  if (!valid_real_normal3d_perpendicular(forward, up)) {
     csprintf(
       error_string_buffer,
       "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
@@ -1712,7 +1722,7 @@ void orbiting_camera_new(void *camera_data, real distance,
   orbiting_camera_t *camera = camera_data;
 
   camera->distance = distance;
-  vector_to_angles(&camera->facing.yaw, &forward->i);
+  vector_to_angles(&camera->facing, forward);
 }
 
 /* orbiting_camera_update (0x8cf30): replay mode's fourth cycle entry. */
@@ -1744,9 +1754,9 @@ void orbiting_camera_update(void *camera_data, void *control_data,
       camera->distance - controls->wheel_delta * 0.333333343f :
       0.6f;
   if (info.unit_index != NONE) {
-    angles_to_vector(&result->forward.i, &camera->facing.yaw);
+    angles_to_vector(&result->forward, &camera->facing);
     observer_up_from_forward(&result->forward, &result->up);
-    object_get_root_location(info.unit_index, &result->velocity.i, NULL);
+    object_get_velocities(info.unit_index, &result->velocity, NULL);
     result->position.z += orbiting_camera_height_offset;
     result->flags = FLAG(_observer_command_valid_bit);
   }
@@ -1755,15 +1765,15 @@ void orbiting_camera_update(void *camera_data, void *control_data,
   result->field_of_view = orbiting_camera_field_of_view;
   result->timer = orbiting_camera_timer;
   if (!(!(result->flags & FLAG(_observer_command_valid_bit)) ||
-        (valid_real_normal3d_perpendicular(&result->forward.i,
-                                           &result->up.i) &&
+        (valid_real_normal3d_perpendicular(&result->forward,
+                                           &result->up) &&
          valid_world_real(result->position.x) &&
          valid_world_real(result->position.y) &&
          valid_world_real(result->position.z) &&
          valid_world_real(result->offset.i) &&
          valid_world_real(result->offset.j) &&
          valid_world_real(result->offset.k) &&
-         real_vector3d_valid(&result->velocity.i) &&
+         real_vector3d_valid(&result->velocity) &&
          valid_real(result->depth) && result->depth >= 0.0f &&
          result->depth <= 5000.0f && valid_real(orbiting_camera_field_of_view) &&
          orbiting_camera_field_of_view >= 0.001f &&

@@ -41,7 +41,7 @@ void material_effect_new_from_point(int effect_tag_index, int param_2, void *pos
   direction[1] = down[1] * 0.3f;
   direction[2] = down[2] * 0.3f;
 
-  if (collision_test_vector(0xc2a0, origin, direction, -1,
+  if (collision_test_vector(0xc2a0, (real_point3d *)origin, (real_vector3d *)direction, -1,
                    (int16_t *)collision_result)) {
     surface_index =
       scenario_location_underwater(collision_result + 0x0c, collision_result + 0x18, NULL) ?
@@ -728,8 +728,8 @@ void particle_system_update(float dt, int particle_system_handle)
     }
     object_get_world_position(*(int *)(ps_datum + 0xc),
                               (vector3_t *)(ps_datum + 0x20));
-    object_get_root_location(*(int *)(ps_datum + 0xc),
-                             (float *)(ps_datum + 0x2c), (float *)0);
+    object_get_velocities(*(int *)(ps_datum + 0xc),
+                             (real_vector3d *)(ps_datum + 0x2c), 0);
     *(float *)(ps_datum + 0x2c) =
       *(float *)(ps_datum + 0x2c) * TICKS_PER_SECOND;
     *(float *)(ps_datum + 0x30) =
@@ -1144,7 +1144,7 @@ void particle_system_render(int particle_system_handle)
             matrix_transform_point((float *)0x5065b4,
                                    (float *)(particle + 0x1c), origin);
             matrix_transform_vector((float *)0x5065b4,
-                                    (float *)(particle + 0x34), direction);
+                                    (real_vector3d *)(particle + 0x34), (real_vector3d *)direction);
             if (*(short *)(particle + 0xa) == NONE) {
               particle_state_b = NULL;
               radius = *(float *)(particle + 0x48) *
@@ -1382,7 +1382,7 @@ void particle_system_new_particle_explosion(void *definition, short block_index,
   *(float *)(st + 0x30) =
     scale_c * *(float *)(st + 0x30) + *(float *)(def + 0x34);
 
-  rotate_vector3d_by_sincos((float *)(st + 0x34), *(float **)0x31fc44, 1.0f,
+  rotate_vector3d_by_sincos((real_vector3d *)(st + 0x34), (real_vector3d *)(*(float **)0x31fc44), 1.0f,
                             0.0f);
 }
 

@@ -896,7 +896,7 @@ void FUN_0017d1a0(bool param_1)
     *(int16_t *)(0x5a8c80 + depth * 2) = 0x15;
     direction[2] = *(float *)0x5a5bdc * *(float *)0x2af240;
 
-    if (collision_test_vector(0xfff80, (float *)0x5a5bc8, direction, local_player,
+    if (collision_test_vector(0xfff80, (real_point3d *)(0x5a5bc8), (real_vector3d *)direction, local_player,
                      (int16_t *)collision_result)) {
       *(int *)0x47e4cc = *(int *)(collision_result + 0x38);
     }
@@ -1119,7 +1119,7 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
       normal[0] = normal1[0] * node_weight1 + normal0[0] * node_weight0;
       normal[1] = normal1[1] * node_weight1 + normal0[1] * node_weight0;
       normal[2] = normal1[2] * node_weight1 + normal0[2] * node_weight0;
-      normalize3d(normal);
+      normalize3d((real_vector3d *)normal);
 
       for (j = 0; j < point_count; j++) {
         if (point[0] == points[j].position[0] &&

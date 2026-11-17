@@ -814,7 +814,7 @@ void animation_graph_node_matrices_from_orientations(
   float *parent_matrix;
 
   antr_tag = (char *)tag_get(0x616e7472, animation_graph_tag_index);
-  matrix4x3_from_forward_up_position(base_matrix, position, forward, up);
+  matrix4x3_from_forward_up_position(base_matrix, (real_point3d *)position, (real_vector3d *)forward, (real_vector3d *)up);
   read_index = 0;
   node_block = (int *)(antr_tag + 0x68);
   if (*node_block > 0) {
@@ -1213,7 +1213,7 @@ void inverse_kinematics_adjust_matrices(float *composed_matrix,
   bend.x = axis.y * bc_dir.z - axis.z * bc_dir.y;
   bend.y = axis.z * bc_dir.x - axis.x * bc_dir.z;
   bend.z = axis.x * bc_dir.y - axis.y * bc_dir.x;
-  normalize3d((float *)&bend);
+  normalize3d((real_vector3d *)&bend);
   perp.x = bend.y * axis.z - bend.z * axis.y;
   perp.y = bend.z * axis.x - bend.x * axis.z;
   perp.z = bend.x * axis.y - bend.y * axis.x;
@@ -1239,13 +1239,13 @@ void inverse_kinematics_adjust_matrices(float *composed_matrix,
   b_forward->j = split * axis.y + offset.y;
   offset.z = perp.z * height;
   b_forward->k = split * axis.z + offset.z;
-  normalize3d((float *)b_forward);
+  normalize3d(b_forward);
 
   anim_set_vector3d(b_up,
                     b_left->k * b_forward->j - b_left->j * b_forward->k,
                     b_left->i * b_forward->k - b_left->k * b_forward->i,
                     b_left->j * b_forward->i - b_forward->j * b_left->i);
-  normalize3d((float *)b_up);
+  normalize3d(b_up);
   anim_set_vector3d(b_left,
                     b_up->j * b_forward->k - b_up->k * b_forward->j,
                     b_up->k * b_forward->i - b_up->i * b_forward->k,
@@ -1261,13 +1261,13 @@ void inverse_kinematics_adjust_matrices(float *composed_matrix,
   c_forward->i = len_ab * axis.x - offset.x;
   c_forward->j = len_ab * axis.y - offset.y;
   c_forward->k = len_ab * axis.z - offset.z;
-  normalize3d((float *)c_forward);
+  normalize3d(c_forward);
 
   anim_set_vector3d(c_up,
                     c_forward->j * c_left->k - c_forward->k * c_left->j,
                     c_forward->k * c_left->i - c_forward->i * c_left->k,
                     c_forward->i * c_left->j - c_forward->j * c_left->i);
-  normalize3d((float *)c_up);
+  normalize3d(c_up);
   anim_set_vector3d(c_left,
                     c_forward->k * c_up->j - c_forward->j * c_up->k,
                     c_forward->i * c_up->k - c_forward->k * c_up->i,
@@ -2627,9 +2627,9 @@ void model_get_node_matrices(void *mode_tag, float *node_matrices,
                                     (float *)(node + 0x34));
     if (node_index == 0) {
       matrix4x3_from_forward_up_position(
-        node_matrices, position != NULL ? position : *(float **)0x31fc1c,
-        forward != NULL ? forward : *(float **)0x31fc3c,
-        up != NULL ? up : *(float **)0x31fc44);
+        node_matrices, (real_point3d *)(position != NULL ? position : *(float **)0x31fc1c),
+        (real_vector3d *)(forward != NULL ? forward : *(float **)0x31fc3c),
+        (real_vector3d *)(up != NULL ? up : *(float **)0x31fc44));
       matrix4x3_multiply(node_matrices, node_matrix, node_matrices);
     } else {
       if (*(short *)(node + 0x24) == -1) {
@@ -2667,7 +2667,7 @@ void FUN_00123c70(void *mode_tag, void *out_matrices, void *node_data,
   int read_index;
   int write_index;
 
-  matrix4x3_from_forward_up_position(root_matrix, position, forward, up);
+  matrix4x3_from_forward_up_position(root_matrix, (real_point3d *)position, (real_vector3d *)forward, (real_vector3d *)up);
   read_index = 0;
   node_block = (char *)mode_tag + 0xb8;
   if (0 < *(int *)((char *)mode_tag + 0xb8)) {

@@ -338,7 +338,7 @@ char FUN_000a5830(float *point, void *elem_data, float *arg3, int arg4)
   direction[1] = ((float *)elem_data)[1] - point[1];
   direction[2] = ((float *)elem_data)[2] - point[2];
 
-  if (!collision_test_vector(0xc2ad, point, direction, ignore_root,
+  if (!collision_test_vector(0xc2ad, (real_point3d *)point, (real_vector3d *)direction, ignore_root,
                     (int16_t *)collision_result) ||
       (*(int16_t *)collision_result == 3 &&
        object_get_root_parent(collision_result[0x38 / 4]) ==
@@ -491,7 +491,7 @@ int FUN_000a5ac0(float *cone_spec, int object_index, float *point,
   record->field_10.j = record->field_04.y - point[1];
   record->field_10.k = record->field_04.z - point[2];
   record->field_1c = record->field_10;
-  distance = normalize3d(&record->field_1c.i);
+  distance = normalize3d(&record->field_1c);
   record->field_28 = distance;
 
   dot = record->field_1c.k * direction[2] + record->field_1c.j * direction[1] +
@@ -562,7 +562,7 @@ char FUN_000a5c60(int object_index, float *point, float *direction,
     out_vector[0] = out_point[0] - point[0];
     out_vector[1] = out_point[1] - point[1];
     out_vector[2] = out_point[2] - point[2];
-    distance = normalize3d(out_vector);
+    distance = normalize3d((real_vector3d *)out_vector);
     *out_distance = distance;
     if (distance != 0.0f) {
       dot = CLAMP(direction[2] * out_vector[2] + direction[1] * out_vector[1] +
@@ -907,7 +907,7 @@ int player_aim_projectile(int player_index, float *origin, float *forward)
       aim_vector.i = record.field_04.x - origin[0];
       aim_vector.j = record.field_04.y - origin[1];
       aim_vector.k = record.field_04.z - origin[2];
-      if (normalize3d(&aim_vector.i) == 0.0f) {
+      if (normalize3d(&aim_vector) == 0.0f) {
         aim_vector = *(real_vector3d *)forward;
       }
       aim_level = record.field_30;
@@ -920,7 +920,7 @@ int player_aim_projectile(int player_index, float *origin, float *forward)
     dz = camera_position.z - unit->position.z;
     offset_vector = camera_forward;
     distance = sqrtf(dz * dz + dy * dy + dx * dx);
-    normalize3d(&offset_vector.i);
+    normalize3d(&offset_vector);
     offset_vector.i *= distance;
     offset_vector.j *= distance;
     offset_vector.k *= distance;
@@ -931,13 +931,13 @@ int player_aim_projectile(int player_index, float *origin, float *forward)
     test_vector.i = camera_forward.i * 128.0f;
     test_vector.j = camera_forward.j * 128.0f;
     test_vector.k = camera_forward.k * 128.0f;
-    collision_test_vector(0x1000e9, &camera_position.x, &test_vector.i,
+    collision_test_vector(0x1000e9, &camera_position, &test_vector,
                  player->unit_handle, (int16_t *)&collision);
 
     hit_vector.i = collision.point.x - origin[0];
     hit_vector.j = collision.point.y - origin[1];
     hit_vector.k = collision.point.z - origin[2];
-    if (normalize3d(&hit_vector.i) == 0.0f) {
+    if (normalize3d(&hit_vector) == 0.0f) {
       hit_vector = *(real_vector3d *)forward;
     }
 
@@ -1025,9 +1025,9 @@ int local_player_aim_assist(short local_player_index, real *autoaim_level,
                        (int16_t)player->team_index, &record)) {
         *autoaim_level = record.field_30;
         *field_0x30 = record.field_34;
-        vector_to_angles(angles, &record.field_10.i);
-        object_get_root_location(player->unit_handle, &unit_origin.x, 0);
-        object_get_root_location(record.object_index, &target_origin.x, 0);
+        vector_to_angles((real_euler_angles2d *)angles, &record.field_10);
+        object_get_velocities(player->unit_handle, (real_vector3d *)&unit_origin, 0);
+        object_get_velocities(record.object_index, (real_vector3d *)&target_origin, 0);
 
         /* The original keeps the three deltas in ST(i) at full width until
          * the end (0xa655a-0xa6570); x87_wide_t stops clang spilling them

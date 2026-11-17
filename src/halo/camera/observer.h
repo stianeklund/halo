@@ -173,6 +173,23 @@ static __inline observer_data_t *observer_data_get(int16_t local_player_index)
   return observer;
 }
 
+/* The forward/up pair of the orientation parameters, read through the flat
+ * parameter arrays the update and displacement loops walk. */
+static __inline real_vector3d *observer_parameter_vector(real *parameter)
+{
+  void *vector = parameter;
+
+  return vector;
+}
+
+static __inline const real_vector3d *
+observer_parameter_vector_const(const real *parameter)
+{
+  const void *vector = parameter;
+
+  return vector;
+}
+
 /* camera_command_t.flags bits beyond types.h's valid/force-time pair:
  * observer_update_result skips the near-plane obstruction probe for bit 4,
  * observer_update_positions skips the whole integration for bit 5. */

@@ -1993,7 +1993,7 @@ void hud_draw_multitexture_overlay(int element, float *scale, int local_player_i
           hud_globals = datum_get(*(data_t **)0x5aa6d4, player_index);
           unit_get_aiming_vector(*(int *)((char *)hud_globals + 0x34),
                                      driver_out);
-          vector_to_angles(aim_angles, driver_out);
+          vector_to_angles((real_euler_angles2d *)aim_angles, (real_vector3d *)driver_out);
           dest_value = aim_angles[1];
         }
         break;

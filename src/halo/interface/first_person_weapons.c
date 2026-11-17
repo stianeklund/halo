@@ -772,7 +772,7 @@ void first_person_weapon_build_node_matrices(int16_t local_player_index)
 
   fp = (char *)*(int *)0x46bea8 + (int)local_player_index * 0x1ea0;
   if (!*(uint8_t *)(fp + 0x50)) {
-    vector_to_angles((float *)(fp + 0x60), (float *)0x50655c);
+    vector_to_angles((real_euler_angles2d *)((fp + 0x60)), (real_vector3d *)(0x50655c));
     *(uint32_t *)(fp + 0x70) = *(uint32_t *)0x506550;
     *(uint32_t *)(fp + 0x74) = *(uint32_t *)0x506554;
     *(uint32_t *)(fp + 0x78) = *(uint32_t *)0x506558;
@@ -784,7 +784,7 @@ void first_person_weapon_build_node_matrices(int16_t local_player_index)
   *(uint32_t *)(fp + 0x80) = *(uint32_t *)(fp + 0x74);
   *(uint32_t *)(fp + 0x84) = *(uint32_t *)(fp + 0x78);
 
-  vector_to_angles((float *)(fp + 0x60), (float *)0x50655c);
+  vector_to_angles((real_euler_angles2d *)((fp + 0x60)), (real_vector3d *)(0x50655c));
   *(uint32_t *)(fp + 0x70) = *(uint32_t *)0x506550;
   *(uint32_t *)(fp + 0x74) = *(uint32_t *)0x506554;
   *(uint32_t *)(fp + 0x78) = *(uint32_t *)0x506558;

@@ -1741,7 +1741,7 @@ void hs_effect_new(int effect_tag_index, short flag_index)
 
   flag = (char *)tag_block_get_element((char *)global_scenario_get() + 0x4e4,
                                        flag_index, 0x5c);
-  angles_to_vector((float *)&forward, (float *)(flag + 0x30));
+  angles_to_vector((real_vector3d *)&forward, (real_euler_angles2d *)((flag + 0x30)));
   effect_new_unattached_from_markers(
     effect_tag_index, -1, global_zero_vector_ptr, 1, NULL,
     (float *)(flag + 0x24), (float *)&forward, 1.0f, 1.0f, 0.0f, 0.0f, 1);
@@ -2164,7 +2164,7 @@ void hs_object_orient(int object_handle, int flag_index, char dismount_unit, cha
     }
   }
 
-  angles_to_vector((float *)&forward, (float *)(flag + 0x30));
+  angles_to_vector((real_vector3d *)&forward, (real_euler_angles2d *)((flag + 0x30)));
   if (!valid_real_normal3d((float *)&forward)) {
     display_assert(
       csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
@@ -2181,7 +2181,7 @@ void hs_object_orient(int object_handle, int flag_index, char dismount_unit, cha
     if (*(int *)(unit + 0xcc) != -1) {
       matrix_inverse((float *)object_get_node_matrix(*(int *)(unit + 0xcc), (int16_t)*(int8_t *)(unit + 0xd0)),
                      (float *)&local_matrix);
-      matrix_transform_vector((float *)&local_matrix, (float *)&forward, (float *)&transformed_forward);
+      matrix_transform_vector((float *)&local_matrix, (real_vector3d *)&forward, (real_vector3d *)&transformed_forward);
     } else {
       transformed_forward = forward;
     }
@@ -2198,7 +2198,7 @@ void hs_object_orient(int object_handle, int flag_index, char dismount_unit, cha
         player_teleport(player_index, -1, (vector3_t *)(flag + 0x24));
       }
       if (set_camera && *(int16_t *)(player + 2) != -1) {
-        player_control_set_facing(*(int16_t *)(player + 2), (float *)&transformed_forward);
+        player_control_set_facing(*(int16_t *)(player + 2), (real_vector3d *)&transformed_forward);
       }
     }
   }
@@ -2206,9 +2206,9 @@ void hs_object_orient(int object_handle, int flag_index, char dismount_unit, cha
   forward_ptr = (set_camera && player == NULL) ? &forward : NULL;
 
   if (dismount_unit && player == NULL) {
-    object_set_position(object_handle, (float *)(flag + 0x24), (float *)forward_ptr, NULL);
+    object_set_position(object_handle, (real_point3d *)(flag + 0x24), (real_vector3d *)forward_ptr, NULL);
   } else {
-    object_set_position(object_handle, NULL, (float *)forward_ptr, NULL);
+    object_set_position(object_handle, NULL, (real_vector3d *)forward_ptr, NULL);
   }
 }
 
@@ -4118,9 +4118,9 @@ void render_debug_trigger_volumes(void)
     case 1:
       local_extents = *(vector3_t *)(volume + 0x54);
       world_extents = *(vector3_t *)(volume + 0x54);
-      matrix4x3_from_forward_up_position(transform, (float *)(volume + 0x48),
-                                         (float *)(volume + 0x30),
-                                         (float *)(volume + 0x3c));
+      matrix4x3_from_forward_up_position(transform, (real_point3d *)(volume + 0x48),
+                                         (real_vector3d *)(volume + 0x30),
+                                         (real_vector3d *)(volume + 0x3c));
       matrix_scale_transform_vector(transform, (float *)&local_extents,
                                     (float *)&world_extents);
       break;
@@ -4192,7 +4192,7 @@ void render_debug_trigger_volumes(void)
     view_dir.y = (center.y - *(float *)0x506554) * *(float *)0x255ed4;
     view_dir.z = (center.z - *(float *)0x506558) * *(float *)0x255ed4;
 
-    if (!collision_test_vector(0xc2ad, (float *)0x506550, (float *)&view_dir, -1,
+    if (!collision_test_vector(0xc2ad, (real_point3d *)(0x506550), (real_vector3d *)&view_dir, -1,
                       collision_result)) {
       FUN_00189cb0(1, &center, volume + 4,
                    (*bitvector_word & bit_mask) ? *(int *)0x2ee6e0

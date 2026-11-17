@@ -513,7 +513,7 @@ void apply_angle_vector(char *control, short *anim_event_v1,
       "c:\\halo\\SOURCE\\cutscene\\recorded_animation_playback_v1.c", 0x3b, 1);
     system_exit(-1);
   }
-  angles_to_vector(local_vec, (float *)(anim_event_v1 + 2));
+  angles_to_vector((real_vector3d *)local_vec, (real_euler_angles2d *)((anim_event_v1 + 2)));
   src = (int *)local_vec;
   if (*anim_event_v1 != 0x15) {
     dst = (int *)(control + 0x1c);

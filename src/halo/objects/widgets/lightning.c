@@ -442,7 +442,7 @@ void lightning_submit(int object_index, int lightning_index, void *lighting,
                 up.j = j;
                 up.k = k;
               }
-              if (normalize3d(&up.i) == 0.0f) {
+              if (normalize3d(&up) == 0.0f) {
                 up.i = global_z_axis3d->i;
                 up.j = global_z_axis3d->j;
                 up.k = global_z_axis3d->k;

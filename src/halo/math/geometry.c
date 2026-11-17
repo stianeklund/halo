@@ -969,7 +969,7 @@ void calculate_vertex(short subdivision_index /* @<eax> */,
   vout[0] = inv_frac * vp1[0] + frac * vp2[0];
   vout[1] = frac * vp2[1] + inv_frac * vp1[1];
   vout[2] = frac * vp2[2] + inv_frac * vp1[2];
-  normalize3d(vout);
+  normalize3d((real_vector3d *)vout);
 }
 
 /* 0x105980 — Build a ring/cylinder (torus-like) mesh.
@@ -1088,7 +1088,7 @@ void FUN_00105980(float *matrix, short *out_vertex_count,
               out_positions[1] = fVar11 * param_10;
               out_positions[2] = 0.0f;
               fVar_sin = x87_fsin(angle);
-              rotate_vector3d_by_sincos(out_positions, normal, fVar_sin, fVar12);
+              rotate_vector3d_by_sincos((real_vector3d *)out_positions, (real_vector3d *)normal, fVar_sin, fVar12);
               *out_positions = fVar1 + *out_positions;
               out_positions[2] = out_positions[2];
               out_positions[1] = fVar2 + out_positions[1];

@@ -4819,7 +4819,7 @@ float *FUN_001037b0(float *out_plane, float *p0, float *p1, float *p2)
   out_plane[1] = d1z * d2x - d2z * d1x;
   out_plane[2] = d2y * d1x - d2x * d1y;
 
-  length = normalize3d(out_plane);
+  length = normalize3d((real_vector3d *)out_plane);
   if (length != 0.0f) {
     out_plane[3] =
       out_plane[1] * p0[1] + p0[2] * out_plane[2] + out_plane[0] * p0[0];

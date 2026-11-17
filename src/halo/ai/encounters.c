@@ -1137,8 +1137,8 @@ void ai_scripting_teleport_starting_location_private(int encounter_handle,
             (int)tag_block_get_element((char *)iVar3 + 0xd0, (int)sVar1, 0x1c);
           vector3d_from_angle((float *)local_10,
                               *(float *)((char *)iVar3 + 0xc));
-          object_set_position(*(int *)((char *)iVar2 + 0x18), (float *)iVar3,
-                              (float *)local_10, 0);
+          object_set_position(*(int *)((char *)iVar2 + 0x18), (real_point3d *)iVar3,
+                              (real_vector3d *)local_10, 0);
           object_reset(*(int *)((char *)iVar2 + 0x18));
           actor_move_halt(*(int *)(local_28 + 0x10));
         }

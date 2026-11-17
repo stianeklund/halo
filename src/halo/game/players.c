@@ -1358,7 +1358,7 @@ void player_aiming_vector_from_facing(int datum_handle, float *aiming_out,
   real_matrix4x3 rotation;
 
   player = (char *)datum_get(player_data, datum_handle);
-  angles_to_vector(aiming_out, desired_facing);
+  angles_to_vector((real_vector3d *)aiming_out, (real_euler_angles2d *)desired_facing);
 
   if (*(int *)(player + 0x34) == -1)
     return;
@@ -1381,14 +1381,14 @@ void player_aiming_vector_from_facing(int datum_handle, float *aiming_out,
   /* forward = vehicle up (+0x30) x global -Y; -Z when that degenerates. */
   cross_product3d((float *)(vehicle + 0x30), *(float **)0x31fc4c,
                   (float *)&rotation.forward);
-  if (normalize3d((float *)&rotation.forward) == 0.0f) {
+  if (normalize3d(&rotation.forward) == 0.0f) {
     cross_product3d((float *)(vehicle + 0x30), *(float **)0x31fc50,
                     (float *)&rotation.forward);
-    normalize3d((float *)&rotation.forward);
+    normalize3d(&rotation.forward);
   }
-  matrix_from_forward_and_up((float *)&rotation, (float *)&rotation.forward,
-                             (float *)(vehicle + 0x30));
-  matrix_transform_vector((float *)&rotation, aiming_out, aiming_out); /* dup-args-ok */
+  matrix_from_forward_and_up(&rotation, &rotation.forward,
+                             (real_vector3d *)(vehicle + 0x30));
+  matrix_transform_vector((float *)&rotation, (real_vector3d *)aiming_out, (real_vector3d *)aiming_out); /* dup-args-ok */
 }
 
 /* 0xbbb80 — Teleport a player's unit to an anchor object's position.
@@ -2654,7 +2654,7 @@ void player_examine_nearby_device(int datum_handle, int object_handle)
   unit = (char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
   weapon = (char *)object_get_and_verify_type(object_handle, 0x380);
 
-  unit_get_camera_position(*(int *)(player + 0x34), local_position);
+  unit_get_camera_position(*(int *)(player + 0x34), (real_point3d *)local_position);
   if (!fast_vector_intersects_sphere(local_position, (float *)(unit + 0x1ec),
                                      (float *)(weapon + 0x50),
                                      *(float *)(weapon + 0x5c)))
@@ -14214,11 +14214,11 @@ char player_teleport_internal(int player_index, int object_handle, void *positio
       best_adjustment_vector[0] = -best_adjustment_vector[0];
       best_adjustment_vector[1] = -best_adjustment_vector[1];
       best_adjustment_vector[2] = -best_adjustment_vector[2];
-      normalize3d(best_adjustment_vector);
+      normalize3d((real_vector3d *)best_adjustment_vector);
 
       up_vector = *(real **)0x31fc44;
-      matrix4x3_from_forward_up_position(matrix, (real *)(root_unit + 0x50),
-                                         best_adjustment_vector, up_vector);
+      matrix4x3_from_forward_up_position(matrix, (real_point3d *)(root_unit + 0x50),
+                                         (real_vector3d *)best_adjustment_vector, (real_vector3d *)up_vector);
       matrix[0] = scale;
 
       for (i = 0; i < 9 && !moved; i++) {
@@ -14290,7 +14290,7 @@ finish_teleport:
       *(real *)(unit + 0x20c) = facing[2];
 
       if (*(int16_t *)(player + 2) != -1) {
-        player_control_set_facing(*(int16_t *)(player + 2), facing);
+        player_control_set_facing(*(int16_t *)(player + 2), (real_vector3d *)facing);
       }
 
       globals = game_globals_get();

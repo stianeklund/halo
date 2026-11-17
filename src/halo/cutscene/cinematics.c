@@ -1372,7 +1372,7 @@ void FUN_00093be0(short *angles, float *out_vector)
 
   euler[0] = (float)angles[0] * RECORDED_ANIMATION_ANGLE_SCALE;
   euler[1] = (float)angles[1] * RECORDED_ANIMATION_ANGLE_SCALE;
-  angles_to_vector(out_vector, euler);
+  angles_to_vector((real_vector3d *)out_vector, (real_euler_angles2d *)euler);
 }
 
 
@@ -1475,7 +1475,7 @@ void FUN_00093c20(short *angles, unsigned char *control, unsigned char *header,
 
     euler[0] = (float)angles[0] * RECORDED_ANIMATION_ANGLE_SCALE;
     euler[1] = (float)angles[1] * RECORDED_ANIMATION_ANGLE_SCALE;
-    angles_to_vector((float *)(control + 0x1c), euler);
+    angles_to_vector((real_vector3d *)(control + 0x1c), (real_euler_angles2d *)euler);
   }
 
   if (vector_flags & 2) {
@@ -1666,7 +1666,7 @@ void FUN_00093e20(short *angles, unsigned char *control, unsigned char *header,
 
     euler[0] = (float)angles[0] * RECORDED_ANIMATION_ANGLE_SCALE;
     euler[1] = (float)angles[1] * RECORDED_ANIMATION_ANGLE_SCALE;
-    angles_to_vector((float *)(control + 0x1c), euler);
+    angles_to_vector((real_vector3d *)(control + 0x1c), (real_euler_angles2d *)euler);
   }
 
   if (vector_flags & 2) {

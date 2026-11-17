@@ -1119,7 +1119,7 @@ void player_effect_start(int player_handle, void *damage_params,
                              delta[1] * *(float *)((char *)camera + 0x30) +
                              delta[2] * *(float *)((char *)camera + 0x34);
 
-          length = normalize3d(rotated_delta);
+          length = normalize3d((real_vector3d *)rotated_delta);
           if (length != 0.0f) {
             if ((0.0f < fabsf(rotated_delta[2]))) {
               if (rotated_delta[2] <= 0.0f) {

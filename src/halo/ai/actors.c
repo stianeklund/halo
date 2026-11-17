@@ -735,7 +735,7 @@ void actor_stimulus_weapon_impact(int actor_handle, int object_handle, float *po
     direction[0] = position[0] - ((actor_t *)actor)->field_120;
     direction[1] = position[1] - ((actor_t *)actor)->field_124;
     direction[2] = position[2] - ((actor_t *)actor)->field_128;
-    length = normalize3d(direction);
+    length = normalize3d((real_vector3d *)direction);
     if (length < 0.0001f && length > -0.0001f) {
       direction[0] = ((actor_t *)actor)->input_facing_vector[0];
       direction[1] = ((actor_t *)actor)->input_facing_vector[1];
@@ -804,7 +804,7 @@ void actor_stimulus_weapon_detonation(int actor_handle, int object_handle, float
   delta[0] = position[0] - ((actor_t *)actor)->field_120;
   delta[1] = position[1] - ((actor_t *)actor)->field_124;
   delta[2] = position[2] - ((actor_t *)actor)->field_128;
-  mag = normalize3d(delta);
+  mag = normalize3d((real_vector3d *)delta);
   if (mag < (float)*(double *)0x2533d0) {
     delta[0] = ((actor_t *)actor)->input_facing_vector[0];
     delta[1] = ((actor_t *)actor)->input_facing_vector[1];
@@ -1034,7 +1034,7 @@ void actor_stimulus_noticed_danger_zone(int actor_handle, short param_2, short p
   delta[0] = param_5[0] - ((actor_t *)actor)->field_120;
   delta[1] = param_5[1] - ((actor_t *)actor)->field_124;
   delta[2] = param_5[2] - ((actor_t *)actor)->field_128;
-  mag = normalize3d(delta);
+  mag = normalize3d((real_vector3d *)delta);
   if (((actor_t *)actor)->field_06a < 3 && mag < *(float *)(tag + 0x2b0) &&
       danger_type == 2) {
     actor_stimulus_surprise(actor_handle, 4, -1, (int *)delta);
@@ -2465,7 +2465,7 @@ void infection_swarm_control(int actor_handle)
                 *(int *)(component + 0x24) = *(int *)(unit + 0x28);
                 *(int *)(component + 0x28) = *(int *)(unit + 0x2c);
               }
-              rotate_vector3d_by_sincos((float *)(component + 0x20), facing,
+              rotate_vector3d_by_sincos((real_vector3d *)(component + 0x20), (real_vector3d *)facing,
                                         x87_fsin(angle), x87_fcos(angle));
               *(int *)(component + 0x2c) = 0;
             }
@@ -2479,7 +2479,7 @@ void infection_swarm_control(int actor_handle)
               angle = FUN_000121e0(-0.020943951f, 0.020943951f);
               angle = angle + *(float *)(component + 0x2c) + wander_tmp;
               *(float *)(component + 0x2c) = angle;
-              rotate_vector3d_by_sincos((float *)(component + 0x20), facing,
+              rotate_vector3d_by_sincos((real_vector3d *)(component + 0x20), (real_vector3d *)facing,
                                         x87_fsin(angle), x87_fcos(angle));
             }
           }
@@ -2576,7 +2576,7 @@ void infection_swarm_control(int actor_handle)
           dir[0] = cz * facing[2] - cy * facing[1];
           dir[1] = cy * facing[0] - facing[2] * cx;
           dir[2] = facing[1] * cx - cz * facing[0];
-          if (normalize3d(dir) == *(float *)0x2533c0) {
+          if (normalize3d((real_vector3d *)dir) == *(float *)0x2533c0) {
             dir[0] = *(float *)(unit + 0x24);
             dir[1] = *(float *)(unit + 0x28);
             dir[2] = *(float *)(unit + 0x2c);
@@ -2630,7 +2630,7 @@ void infection_swarm_control(int actor_handle)
               } else {
                 angle = *(float *)0x2568bc;
               }
-              rotate_vector3d_by_sincos(dir, facing, x87_fsin(angle),
+              rotate_vector3d_by_sincos((real_vector3d *)dir, (real_vector3d *)facing, x87_fsin(angle),
                                         x87_fcos(angle));
             }
           }
@@ -4622,7 +4622,7 @@ void actor_randomly_control_unit(int actor_handle, int unit_object_index /* @<es
 
   /* Rotate facing 30 degrees around the up axis */
   up_axis = *(float **)0x31fc44;
-  rotate_vector3d_by_sincos((float *)(control + 0x1c), up_axis, 0.5f,
+  rotate_vector3d_by_sincos((real_vector3d *)(control + 0x1c), (real_vector3d *)up_axis, 0.5f,
                             0.866025388f);
 
   /* Copy rotated facing to aiming and looking */
@@ -4946,7 +4946,7 @@ float actor_destination_tolerance(int actor_handle)
  * Confirmed: object_get_world_position(unit_handle, input_block+0xc) at
  * 0x3bdfb. Confirmed: 12-byte copy from obj+0x24 to input_block+0x18 at
  * 0x3be03. Confirmed: unit_get_head_position(unit_handle, input_block) at
- * 0x3be18. Confirmed: object_get_root_location(unit_handle, input_block+0x2c,
+ * 0x3be18. Confirmed: object_get_velocities(unit_handle, input_block+0x2c,
  * 0) at 0x3be24. Confirmed: object_get_root_parent(unit_handle) at 0x3be2a.
  * Confirmed: object_get_and_verify_type(root, -1) at 0x3be32.
  * Confirmed: root_obj+0x48/0x4c copied to input_block+0x24/0x28. */
@@ -4966,7 +4966,7 @@ void actor_input_sample_position(int actor_handle, int unit_handle, char *input_
 
   unit_get_head_position(unit_handle, (float *)input_block);
 
-  object_get_root_location(unit_handle, (float *)(input_block + 0x2c), 0);
+  object_get_velocities(unit_handle, (real_vector3d *)(input_block + 0x2c), 0);
 
   root_handle = object_get_root_parent(unit_handle);
   root_obj = (char *)object_get_and_verify_type(root_handle, -1);
@@ -5990,7 +5990,7 @@ char actor_get_running_blind_vector(int actor_handle, float *vector_out)
     vector_out[2] =
       ((actor_t *)actor)->field_490 - ((actor_t *)actor)->field_134;
   }
-  if (normalize3d(vector_out) != *(float *)0x2533c0) {
+  if (normalize3d((real_vector3d *)vector_out) != *(float *)0x2533c0) {
     return 0;
   }
   return 1;
@@ -7370,7 +7370,7 @@ LAB_3e02c:
     ((actor_t *)actor)->field_198 = uz;
     ((actor_t *)actor)->field_19c = uy;
     ((actor_t *)actor)->field_1a0 = ux;
-    normalize3d((float *)(actor + 0x198));
+    normalize3d((real_vector3d *)(actor + 0x198));
   }
 
   /* Compute right-vector = cross(looking, up)

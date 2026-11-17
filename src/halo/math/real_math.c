@@ -589,19 +589,20 @@ return out; }
 /* Transform a 3D vector by a 3x3 rotation matrix (stored at matrix+0x4).
  * out[i] = dot(in, column_i of matrix).
  * The matrix layout is: [scale(4 bytes)][3x3 floats row-major at +0x4]. */
-float *matrix_transform_vector(float *matrix, float *in, float *out)
+real_vector3d *matrix_transform_vector(float *matrix, const real_vector3d *in,
+                                       real_vector3d *out)
 {
-  float x = in[0];
-  float y = in[1];
-  float z = in[2];
+  float x = in->i;
+  float y = in->j;
+  float z = in->k;
 
-  out[0] = x * *(float *)((char *)matrix + 0x04) +
+  out->i = x * *(float *)((char *)matrix + 0x04) +
            y * *(float *)((char *)matrix + 0x10) +
            z * *(float *)((char *)matrix + 0x1c);
-  out[1] = x * *(float *)((char *)matrix + 0x08) +
+  out->j = x * *(float *)((char *)matrix + 0x08) +
            y * *(float *)((char *)matrix + 0x14) +
            z * *(float *)((char *)matrix + 0x20);
-  out[2] = x * *(float *)((char *)matrix + 0x0c) +
+  out->k = x * *(float *)((char *)matrix + 0x0c) +
            y * *(float *)((char *)matrix + 0x18) +
            z * *(float *)((char *)matrix + 0x24);
   return out;
@@ -1060,30 +1061,28 @@ void FUN_00109d90(float *m, float *v, float *out)
 /* Build a 4x3 matrix from forward and up direction vectors.
  * Layout: [1.0f scale][forward 3f][left 3f][up 3f][translation 0,0,0].
  * Left is computed as forward x up (cross product). */
-void matrix_from_forward_and_up(float *out, float *forward, float *up)
+void matrix_from_forward_and_up(real_matrix4x3 *out,
+                                const real_vector3d *forward,
+                                const real_vector3d *up)
 {
-  /* scale = 1.0 */
-  *(int *)out = 0x3f800000;
+  out->scale = 1.0f;
 
-  /* row 0: forward */
-  *(float *)((char *)out + 0x04) = forward[0];
-  *(float *)((char *)out + 0x08) = forward[1];
-  *(float *)((char *)out + 0x0c) = forward[2];
+  out->forward.i = forward->i;
+  out->forward.j = forward->j;
+  out->forward.k = forward->k;
 
-  /* row 1: left = forward x up */
-  *(float *)((char *)out + 0x10) = forward[2] * up[1] - up[2] * forward[1];
-  *(float *)((char *)out + 0x14) = up[2] * forward[0] - forward[2] * up[0];
-  *(float *)((char *)out + 0x18) = forward[1] * up[0] - forward[0] * up[1];
+  /* left = up x forward */
+  out->left.i = forward->k * up->j - up->k * forward->j;
+  out->left.j = up->k * forward->i - forward->k * up->i;
+  out->left.k = forward->j * up->i - forward->i * up->j;
 
-  /* row 2: up */
-  *(float *)((char *)out + 0x1c) = up[0];
-  *(float *)((char *)out + 0x20) = up[1];
-  *(float *)((char *)out + 0x24) = up[2];
+  out->up.i = up->i;
+  out->up.j = up->j;
+  out->up.k = up->k;
 
-  /* translation = zero */
-  *(float *)((char *)out + 0x28) = 0.0f;
-  *(float *)((char *)out + 0x2c) = 0.0f;
-  *(float *)((char *)out + 0x30) = 0.0f;
+  out->position.x = 0.0f;
+  out->position.y = 0.0f;
+  out->position.z = 0.0f;
 }
 
 /* 0x109e90 — Build a 4x3 rotation matrix from euler angles (yaw, pitch, roll).
@@ -1206,32 +1205,34 @@ void FUN_00109fc0(float *matrix4x3, float *out_quat4)
 
 /* Build a 4x3 matrix from forward, up direction vectors and a position.
  * Fills the rotation via matrix_from_forward_and_up, then sets translation. */
-void matrix4x3_from_forward_up_position(void *out, float *position,
-                                        float *forward, float *up)
+void matrix4x3_from_forward_up_position(void *out, const real_point3d *position,
+                                        const real_vector3d *forward,
+                                        const real_vector3d *up)
 {
-  matrix_from_forward_and_up((float *)out, forward, up);
-  *(float *)((char *)out + 0x28) = position[0];
-  *(float *)((char *)out + 0x2c) = position[1];
-  *(float *)((char *)out + 0x30) = position[2];
+  matrix_from_forward_and_up(out, forward, up);
+  *(float *)((char *)out + 0x28) = position->x;
+  *(float *)((char *)out + 0x2c) = position->y;
+  *(float *)((char *)out + 0x30) = position->z;
 }
 
 /* Compute the rotation difference between two 4x3 matrices as an axis-angle
  * vector.  Inverts mat1, multiplies by mat0, extracts the rotation quaternion,
  * converts to axis-angle, then writes (axis * angle) into out_vec3. */
-void quaternion_to_angle_and_vector(float *mat0, float *mat1, float *out_vec3)
+void vector_from_matrices4x3(const real_matrix4x3 *matrix0,
+                             const real_matrix4x3 *matrix1, real_vector3d *result)
 {
   float local_inv[13];
   float local_product[13];
   float local_quat[4];
   float local_angle;
 
-  matrix_inverse(mat1, local_inv);
-  matrix4x3_multiply(mat0, local_inv, local_product);
+  matrix_inverse((float *)matrix1, local_inv);
+  matrix4x3_multiply((float *)matrix0, local_inv, local_product);
   FUN_00109fc0(local_product, local_quat);
-  FUN_0010caf0(local_quat, &local_angle, out_vec3);
-  out_vec3[0] = local_angle * out_vec3[0];
-  out_vec3[1] = local_angle * out_vec3[1];
-  out_vec3[2] = local_angle * out_vec3[2];
+  FUN_0010caf0(local_quat, &local_angle, (float *)result);
+  result->i = local_angle * result->i;
+  result->j = local_angle * result->j;
+  result->k = local_angle * result->k;
 }
 
 /* Transform a plane (normal + distance) by a 4x3 matrix.
@@ -1354,11 +1355,11 @@ void FUN_0010a4c0(int out_matrix, float *plane)
     system_exit(-1);
   }
   perpendicular3d(plane, axis);
-  normalize3d(axis);
+  normalize3d((real_vector3d *)axis);
   point[0] = plane[3] * plane[0];
   point[1] = plane[1] * plane[3];
   point[2] = plane[2] * plane[3];
-  matrix_from_forward_and_up((float *)out_matrix, axis, plane);
+  matrix_from_forward_and_up((real_matrix4x3 *)out_matrix, (real_vector3d *)axis, (real_vector3d *)plane);
   *(float *)(out_matrix + 0x28) = point[0];
   *(float *)(out_matrix + 0x2c) = point[1];
   *(float *)(out_matrix + 0x30) = point[2];
@@ -1706,8 +1707,8 @@ return out; }
 /* Rotate vector in-place around axis by angle given as sin/cos (0x10b6e0).
  * Uses the Rodrigues rotation formula:
  *   v' = v*cos + axis*(axis.v)*(1-cos) - (v x axis)*sin */
-void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle,
-                               float cos_angle)
+void rotate_vector3d_by_sincos(real_vector3d *vector, const real_vector3d *axis,
+                               float sin_angle, float cos_angle)
 {
   x87_wide_t k;  /* ref keeps k in ST(i) 0x10b706..0x10b75a */
   x87_wide_t cy; /* ref keeps cy in ST(i) 0x10b712..0x10b752 */
@@ -1715,17 +1716,17 @@ void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle,
 
   /* reference (0x10b6e0, 58 insns, zero frame) re-reads vector[]/axis[]
    * per use — do not cache components in locals */
-  k = ((x87_wide_t)vector[1] * axis[1] + (x87_wide_t)axis[2] * vector[2] +
-       (x87_wide_t)vector[0] * axis[0]) * (1.0f - cos_angle);
-  cy = (x87_wide_t)axis[0] * vector[2] - (x87_wide_t)vector[0] * axis[2];
-  cz = HALO_NARROW((x87_wide_t)vector[0] * axis[1] -
-               (x87_wide_t)vector[1] * axis[0]);
+  k = ((x87_wide_t)vector->j * axis->j + (x87_wide_t)axis->k * vector->k +
+       (x87_wide_t)vector->i * axis->i) * (1.0f - cos_angle);
+  cy = (x87_wide_t)axis->i * vector->k - (x87_wide_t)vector->i * axis->k;
+  cz = HALO_NARROW((x87_wide_t)vector->i * axis->j -
+               (x87_wide_t)vector->j * axis->i);
   HALO_FLT_ROUNDTRIP(cz);
-  vector[0] = HALO_NARROW(cos_angle * vector[0] + k * axis[0] -
-                      ((x87_wide_t)vector[1] * axis[2] -
-                       (x87_wide_t)vector[2] * axis[1]) * sin_angle);
-  vector[1] = HALO_NARROW(cos_angle * vector[1] + k * axis[1] - cy * sin_angle);
-  vector[2] = HALO_NARROW(cos_angle * vector[2] + k * axis[2] - cz * sin_angle);
+  vector->i = HALO_NARROW(cos_angle * vector->i + k * axis->i -
+                      ((x87_wide_t)vector->j * axis->k -
+                       (x87_wide_t)vector->k * axis->j) * sin_angle);
+  vector->j = HALO_NARROW(cos_angle * vector->j + k * axis->j - cy * sin_angle);
+  vector->k = HALO_NARROW(cos_angle * vector->k + k * axis->k - cz * sin_angle);
 }
 
 /* 0x10b780 — Linearly interpolate between two 3D vectors: out = a*(1-t) + b*t.
@@ -2217,7 +2218,7 @@ void FUN_0010caf0(float *in_quat4, float *out_angle, float *out_axis3)
   out_axis3[1] = in_quat4[1];
   out_axis3[2] = in_quat4[2];
 
-  magnitude = normalize3d(out_axis3);
+  magnitude = normalize3d((real_vector3d *)out_axis3);
 #if defined(_MSC_VER) && !defined(__clang__)
   angle = x87_fatan2f(magnitude, w);
   angle = angle + angle;
@@ -2260,37 +2261,38 @@ void orientations_interpolate(float *orient1, float *orient2, float t,
 }
 
 /* Convert a 3D direction vector to yaw/pitch angles (radians).
- * Reference (0x10cc00, 25 insns, zero frame) re-reads in_vector[] per use —
+ * Reference (0x10cc00, 25 insns, zero frame) re-reads in_vector per use —
  * no cached locals; sum order x*x + y*y. */
-float * vector_to_angles(float *out_angles, float *in_vector)
+real_euler_angles2d *vector_to_angles(real_euler_angles2d *out_angles,
+                                      const real_vector3d *in_vector)
 {
   float y;
   float x;
   float z;
 
-  y = in_vector[1];
-  x = in_vector[0];
-  out_angles[0] = (float)atan2((double)y, (double)x);
-  y = in_vector[1];
-  x = in_vector[0];
-  z = in_vector[2];
-  out_angles[1] = (float)atan2((double)z, (double)sqrtf(x * x + y * y));
-return out_angles; }
+  y = in_vector->j;
+  x = in_vector->i;
+  out_angles->yaw = (float)atan2((double)y, (double)x);
+  y = in_vector->j;
+  x = in_vector->i;
+  z = in_vector->k;
+  out_angles->pitch = (float)atan2((double)z, (double)sqrtf(x * x + y * y));
+  return out_angles;
+}
 
 /* Convert yaw/pitch angles to a unit direction vector.
- * angles[0] = yaw, angles[1] = pitch.
- * out[0] = cos(yaw) * cos(pitch)
- * out[1] = sin(yaw) * cos(pitch)
- * out[2] = sin(pitch) */
-float * angles_to_vector(float *out, float *angles)
+ * out = (cos(yaw) * cos(pitch), sin(yaw) * cos(pitch), sin(pitch)) */
+real_vector3d *angles_to_vector(real_vector3d *out,
+                                const real_euler_angles2d *angles)
 {
   float cos_pitch;
 
-  cos_pitch = x87_fcos(angles[1]);
-  out[0] = x87_fcos(angles[0]) * cos_pitch;
-  out[1] = x87_fsin(angles[0]) * cos_pitch;
-  out[2] = x87_fsin(angles[1]);
-return out; }
+  cos_pitch = x87_fcos(angles->pitch);
+  out->i = x87_fcos(angles->yaw) * cos_pitch;
+  out->j = x87_fsin(angles->yaw) * cos_pitch;
+  out->k = x87_fsin(angles->pitch);
+  return out;
+}
 
 /* Convert an angle to a 2D direction vector stored as (cos, sin, 0) (0x10cc70).
  */
@@ -4043,7 +4045,7 @@ void angular_accelerate_to_position(float *facing, float *target_facing,
   axis[0] = target_facing[2] * facing[1] - facing[2] * target_facing[1];
   axis[1] = facing[2] * target_facing[0] - target_facing[2] * facing[0];
   axis[2] = facing[0] * target_facing[1] - target_facing[0] * facing[1];
-  normalize3d(axis);
+  normalize3d((real_vector3d *)axis);
 
   /* scale axis by speed (in place), then measure distance to current ang_vel */
   axis[0] = axis[0] * speed;
@@ -4081,10 +4083,10 @@ void angular_accelerate_to_position(float *facing, float *target_facing,
   axis[0] = ang_vel[0];
   axis[1] = ang_vel[1];
   axis[2] = ang_vel[2];
-  angle = normalize3d(axis);
+  angle = normalize3d((real_vector3d *)axis);
   if (angle != *(float *)0x2533c0) {
-    rotate_vector3d_by_sincos(facing, axis, x87_fsin(angle), x87_fcos(angle));
-    normalize3d(facing);
+    rotate_vector3d_by_sincos((real_vector3d *)facing, (real_vector3d *)axis, x87_fsin(angle), x87_fcos(angle));
+    normalize3d((real_vector3d *)facing);
   }
 }
 
@@ -4146,7 +4148,7 @@ char accerate_to_position3d(float *pos, float *vel, float *target, int unused,
   delta[0] = target[0] - pos[0];
   delta[1] = target[1] - pos[1];
   delta[2] = target[2] - pos[2];
-  mag = normalize3d(delta);
+  mag = normalize3d((real_vector3d *)delta);
   if (mag == *(float *)0x2533c0) {
     delta[0] = 0.0f;
     delta[1] = 0.0f;
@@ -4374,16 +4376,16 @@ char pin_normal_to_cone3d(float *normal, float *direction, float sin_half_angle,
   axis[0] = normal[2] * direction[1] - normal[1] * direction[2];
   axis[1] = normal[0] * direction[2] - direction[0] * normal[2];
   axis[2] = direction[0] * normal[1] - normal[0] * direction[1];
-  mag = normalize3d(axis);
+  mag = normalize3d((real_vector3d *)axis);
   if (mag == 0.0f) {
     perpendicular3d(direction, axis);
-    normalize3d(axis);
+    normalize3d((real_vector3d *)axis);
   }
 
   result[0] = direction[0];
   result[1] = direction[1];
   result[2] = direction[2];
-  rotate_vector3d_by_sincos(result, axis, sin_half_angle, cos_half_angle);
+  rotate_vector3d_by_sincos((real_vector3d *)result, (real_vector3d *)axis, sin_half_angle, cos_half_angle);
 
   if (!valid_real_normal3d(result)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",

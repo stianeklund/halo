@@ -621,7 +621,7 @@ void effect_random_translational_velocity(void *effect, unsigned int *seed, floa
     cos_a = x87_fcos(angle);
     sin_a = x87_fsin(angle);
     random_seed_get_direction3d(seed, axis);
-    rotate_vector3d_by_sincos(direction_out, axis, sin_a, cos_a);
+    rotate_vector3d_by_sincos((real_vector3d *)direction_out, (real_vector3d *)axis, sin_a, cos_a);
   }
 
   velocity_out[0] = direction_out[0] * speed;
@@ -935,8 +935,8 @@ void effect_generate_particles(void *effect)
                 }
 
                 matrix_transform_vector(
-                  (float *)(location + 8), spawn_params.fields.direction,
-                  spawn_params.fields.direction); /* dup-args-ok: in-place transform */
+                  (float *)(location + 8), (real_vector3d *)spawn_params.fields.direction,
+                  (real_vector3d *)spawn_params.fields.direction); /* dup-args-ok: in-place transform */
                 matrix_scale_transform_vector(
                   (float *)(location + 8), spawn_params.fields.velocity,
                   spawn_params.fields.velocity); /* dup-args-ok: in-place transform */
@@ -966,8 +966,8 @@ void effect_generate_particles(void *effect)
                     }
                     matrix_transform_point(node_matrix, spawn_params.fields.position,
                                            world_pos);
-                    matrix_transform_vector(node_matrix, spawn_params.fields.direction,
-                                            dir_world);
+                    matrix_transform_vector(node_matrix, (real_vector3d *)spawn_params.fields.direction,
+                                            (real_vector3d *)dir_world);
                     matrix_scale_transform_vector(node_matrix,
                                                   spawn_params.fields.velocity,
                                                   vel_world);
@@ -1431,9 +1431,9 @@ void effect_marker_list_get_marker(void *output, int16_t marker_index /* @<ax> *
   }
 
   perpendicular3d(local_forward, local_up);
-  normalize3d(local_up);
-  matrix4x3_from_forward_up_position((char *)output + 4, local_position,
-                                     local_forward, local_up);
+  normalize3d((real_vector3d *)local_up);
+  matrix4x3_from_forward_up_position((char *)output + 4, (real_point3d *)local_position,
+                                     (real_vector3d *)local_forward, (real_vector3d *)local_up);
 }
 
 void effect_generate_parts(void *effect)
@@ -1498,10 +1498,10 @@ void effect_generate_parts(void *effect)
             }
             matrix_transform_point(node_matrix, (float *)(location + 0x30),
                                    position);
-            matrix_transform_vector(node_matrix, (float *)(location + 0xc),
-                                    forward);
-            matrix_transform_vector(node_matrix, (float *)(location + 0x24),
-                                    up);
+            matrix_transform_vector(node_matrix, (real_vector3d *)(location + 0xc),
+                                    (real_vector3d *)forward);
+            matrix_transform_vector(node_matrix, (real_vector3d *)(location + 0x24),
+                                    (real_vector3d *)up);
           } else {
             position[0] = *(float *)(location + 0x30);
             position[1] = *(float *)(location + 0x34);
@@ -2008,7 +2008,7 @@ int effect_new_unattached_from_markers(
   char creation_info[24];
 
   if (translational_velocity != NULL) {
-    if (!(char)real_vector3d_valid(translational_velocity)) {
+    if (!(char)real_vector3d_valid((real_vector3d *)translational_velocity)) {
       display_assert("!translational_velocity || "
                      "valid_real_vector3d(translational_velocity)",
                      "c:\\halo\\SOURCE\\effects\\effects.c", 0x1c0, 1);

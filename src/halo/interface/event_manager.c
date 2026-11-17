@@ -680,7 +680,7 @@ void render_weapon_hud(int whud_index, int local_player_index,
                                   (int16_t)local_player_index)) +
                               0x34);
       }
-      unit_get_camera_position(unit_index, camera_position);
+      unit_get_camera_position(unit_index, (real_point3d *)camera_position);
       object_get_world_position(target_object_index,
                                 (vector3_t *)target_position);
       delta_x = camera_position[0] - target_position[0];
@@ -1286,7 +1286,7 @@ char FUN_000db250(int object_handle)
     return true;
   }
 
-  object_get_root_location(object_handle, velocity, NULL);
+  object_get_velocities(object_handle, (real_vector3d *)velocity, NULL);
   visible = game_engine_running() || ((*(uint8_t *)(unit + 0x1b4) & 0x10) == 0);
   moving = velocity[0] * velocity[0] + velocity[1] * velocity[1] +
              velocity[2] * velocity[2] >=
@@ -1380,7 +1380,7 @@ void motion_sensor_update(void)
                    0x34);
       players[i] = local_player_index;
       if (unit_handle != -1) {
-        unit_get_camera_position(unit_handle, positions[local_player_index]);
+        unit_get_camera_position(unit_handle, (real_point3d *)positions[local_player_index]);
       }
       *(int *)(record + 0x78) = 0;
       for (slot = 0; slot < 0x10; slot++) {
@@ -1520,7 +1520,7 @@ void update_motion_sensor(int local_player_index)
     return;
   }
 
-  unit_get_camera_position(unit_handle, camera_position);
+  unit_get_camera_position(unit_handle, (real_point3d *)camera_position);
   *(float *)(sensor + 0x70) = camera_position[0];
   *(float *)(sensor + 0x74) = camera_position[1];
   range = *(float *)(*(char **)0x46bd0c + 0x2d0);
@@ -1549,7 +1549,7 @@ void update_motion_sensor(int local_player_index)
   custom_count = game_engine_player_get_custom_motion_sensor_positions(
     player_index, (int)custom_positions, (int)(sensor + 0x60), 0x10);
   *(uint8_t *)(sensor + 0x80) = (uint8_t)custom_count;
-  unit_get_camera_position(unit_handle, camera_position);
+  unit_get_camera_position(unit_handle, (real_point3d *)camera_position);
 
   out_of_range_count = 0;
   for (blip_index = 0; blip_index < *(uint8_t *)(sensor + 0x80); blip_index++) {

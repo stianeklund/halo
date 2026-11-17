@@ -6077,7 +6077,7 @@
     },
     {
      "addr": "0x14df70",
-     "decl": "bool collision_test_vector(uint32_t collision_flags, float *origin, float *direction, int max_distance, int16_t *collision_result);",
+     "decl": "bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin, const real_vector3d *direction, int max_distance, int16_t *collision_result);",
      "ported": true
     },
     {
@@ -17685,12 +17685,12 @@
    "functions": [
     {
      "addr": "0x84a10",
-     "decl": "bool real_vector3d_valid(float *vector);",
+     "decl": "bool real_vector3d_valid(const real_vector3d *vector);",
      "ported": true
     },
     {
      "addr": "0x84a70",
-     "decl": "bool valid_real_normal3d_perpendicular(float *a, float *b);",
+     "decl": "bool valid_real_normal3d_perpendicular(const real_vector3d *a, const real_vector3d *b);",
      "ported": true,
      "source": "src/halo/objects/objects.c",
      "status": "ported"
@@ -17752,7 +17752,7 @@
     },
     {
      "addr": "0x85280",
-     "decl": "void scripted_camera_set_camera_point_relative(float *position, float *forward, float *up, float field_of_view, short transition_time, int relative_object_index);",
+     "decl": "void scripted_camera_set_camera_point_relative(const real_point3d *position, const real_vector3d *forward, const real_vector3d *up, float field_of_view, short transition_time, int relative_object_index);",
      "ported": true,
      "source_path": "objects/objects.c",
      "name": "scripted_camera_set_camera_point_relative"
@@ -18780,7 +18780,7 @@
     {
      "addr": "0x140070",
      "comment": "Walk the parent chain to the root object and copy its position/forward vector.",
-     "decl": "void object_get_root_location(int object_handle, float *position_out, float *direction_out);",
+     "decl": "void object_get_velocities(int object_handle, real_vector3d *translational_velocity, real_vector3d *angular_velocity);",
      "ported": true
     },
     {
@@ -18962,7 +18962,7 @@
     },
     {
      "addr": "0x143ae0",
-     "decl": "void object_set_position(int object_handle, float *position, float *forward, float *up);",
+     "decl": "void object_set_position(int object_handle, const real_point3d *position, const real_vector3d *forward, const real_vector3d *up);",
      "ported": true
     },
     {
@@ -19098,7 +19098,7 @@
     },
     {
      "addr": "0x89a20",
-     "decl": "void uniform_cubic_spline_vector3d(float *out, float *p0, float *p1, float *p2, float *p3, float t0, float h, float t);",
+     "decl": "void uniform_cubic_spline_vector3d(real_vector3d *out, const real_vector3d *p0, const real_vector3d *p1, const real_vector3d *p2, const real_vector3d *p3, float t0, float h, float t);",
      "ported": true
     },
     {
@@ -19214,7 +19214,7 @@
     },
     {
      "addr": "0x8c030",
-     "decl": "void observer_rotational_displacement(float *forward1, float *result_angular, float *forward0, float *up0, float *up1);",
+     "decl": "void observer_rotational_displacement(const real_vector3d *forward1, real_vector3d *rotation, const real_vector3d *forward0, const real_vector3d *up0, const real_vector3d *up1);",
      "ported": true
     },
     {
@@ -19667,7 +19667,7 @@
     },
     {
      "addr": "0xb6ea0",
-     "decl": "void player_control_set_facing(int16_t local_player_index, float *direction);",
+     "decl": "void player_control_set_facing(int16_t local_player_index, const real_vector3d *direction);",
      "ported": true
     },
     {
@@ -19854,7 +19854,7 @@
     },
     {
      "addr": "0xb7f10",
-     "decl": "real * player_control_get_facing_direction(int16_t local_player_index, real *facing_out);",
+     "decl": "real_vector3d *player_control_get_facing_direction(int16_t local_player_index, real_vector3d *facing_out);",
      "ported": true
     },
     {
@@ -23005,7 +23005,7 @@
     {
      "addr": "0x10c510",
      "comment": "Compute the angle (radians, via acos) between two 3D vectors v1 and v2. Returns angle offset from PI/2 (i.e. returns acos(dot(v1,v2)/(|v1||v2|)) - PI/2).",
-     "decl": "float angle_between_vectors3d(float *v1, float *v2);",
+     "decl": "float angle_between_vectors3d(const real_vector3d *v1, const real_vector3d *v2);",
      "ported": true
     },
     {
@@ -24404,7 +24404,7 @@
    "functions": [
     {
      "addr": "0x13010",
-     "decl": "float normalize3d(float *v);",
+     "decl": "float normalize3d(real_vector3d *v);",
      "ported": true
     },
     {
@@ -24759,7 +24759,7 @@
     },
     {
      "addr": "0x109680",
-     "decl": "float *matrix_transform_vector(float *matrix, float *in, float *out);",
+     "decl": "real_vector3d *matrix_transform_vector(float *matrix, const real_vector3d *in, real_vector3d *out);",
      "ported": true
     },
     {
@@ -24815,7 +24815,7 @@
     },
     {
      "addr": "0x109e10",
-     "decl": "void matrix_from_forward_and_up(float *out, float *forward, float *up);",
+     "decl": "void matrix_from_forward_and_up(real_matrix4x3 *out, const real_vector3d *forward, const real_vector3d *up);",
      "ported": true
     },
     {
@@ -24835,12 +24835,12 @@
     },
     {
      "addr": "0x10a110",
-     "decl": "void matrix4x3_from_forward_up_position(void *out, float *position, float *forward, float *up);",
+     "decl": "void matrix4x3_from_forward_up_position(void *out, const real_point3d *position, const real_vector3d *forward, const real_vector3d *up);",
      "ported": true
     },
     {
      "addr": "0x10a150",
-     "decl": "void quaternion_to_angle_and_vector(float *mat0, float *mat1, float *out_vec3);",
+     "decl": "void vector_from_matrices4x3(const real_matrix4x3 *matrix0, const real_matrix4x3 *matrix1, real_vector3d *result);",
      "ported": true
     },
     {
@@ -24927,7 +24927,7 @@
     {
      "addr": "0x10b6e0",
      "comment": "Rotate vector in-place around axis by angle given as sin/cos (Rodrigues formula).",
-     "decl": "void rotate_vector3d_by_sincos(float *vector, float *axis, float sin_angle, float cos_angle);",
+     "decl": "void rotate_vector3d_by_sincos(real_vector3d *vector, const real_vector3d *axis, float sin_angle, float cos_angle);",
      "ported": true
     },
     {
@@ -25032,12 +25032,12 @@
     },
     {
      "addr": "0x10cc00",
-     "decl": "float *vector_to_angles(float *out_angles, float *in_vector);",
+     "decl": "real_euler_angles2d *vector_to_angles(real_euler_angles2d *out_angles, const real_vector3d *in_vector);",
      "ported": true
     },
     {
      "addr": "0x10cc40",
-     "decl": "float *angles_to_vector(float *out, float *angles);",
+     "decl": "real_vector3d *angles_to_vector(real_vector3d *out, const real_euler_angles2d *angles);",
      "name": "angles_to_vector",
      "ported": true
     },
@@ -32395,7 +32395,7 @@
     },
     {
      "addr": "0x1a9240",
-     "decl": "void unit_get_camera_position(int unit_handle, float *position);",
+     "decl": "void unit_get_camera_position(int unit_handle, real_point3d *position);",
      "name": "unit_get_camera_position",
      "ported": true
     },

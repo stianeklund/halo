@@ -125,15 +125,15 @@ static __inline uint8_t camera_internal_poll_input(void *out_buf, int player)
   (valid_real(value) && (value) >= -5000.0f && (value) <= 5000.0f)
 #define camera_command_valid(command)                                      \
   (!((command)->flags & FLAG(_observer_command_valid_bit)) ||              \
-   (valid_real_normal3d_perpendicular(&(command)->forward.i,              \
-                                      &(command)->up.i) &&                 \
+   (valid_real_normal3d_perpendicular(&(command)->forward,              \
+                                      &(command)->up) &&                 \
     valid_world_real((command)->position.x) &&                             \
     valid_world_real((command)->position.y) &&                             \
     valid_world_real((command)->position.z) &&                             \
     valid_world_real((command)->offset.i) &&                               \
     valid_world_real((command)->offset.j) &&                               \
     valid_world_real((command)->offset.k) &&                               \
-    real_vector3d_valid(&(command)->velocity.i) &&                         \
+    real_vector3d_valid(&(command)->velocity) &&                         \
     valid_real((command)->depth) && (command)->depth >= 0.0f &&            \
     (command)->depth <= 5000.0f &&                                         \
     valid_real((command)->field_of_view) &&                                \

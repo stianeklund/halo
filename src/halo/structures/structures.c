@@ -6651,7 +6651,7 @@ char structure_test_vector(float *point, float *direction, float *out_point,
     *(int16_t *)0x4761d8 = depth + 1;
     *(int16_t *)(0x5a8c80 + depth * 2) = 0xf;
 
-    if (collision_test_vector(0x21, out_point, direction, -1,
+    if (collision_test_vector(0x21, (real_point3d *)out_point, (real_vector3d *)direction, -1,
                      (int16_t *)collision_result) != 0) {
       scenario = scenario_get();
       out_point[0] = *(float *)(collision_result + 0x18);

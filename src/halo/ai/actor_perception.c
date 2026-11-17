@@ -1326,7 +1326,7 @@ char actor_perception_friend_prop_is_attacking(int actor_handle,
             delta[0] = *(float *)(other + 0xbc) - *(float *)(prop + 0xbc);
             delta[1] = *(float *)(other + 0xc0) - *(float *)(prop + 0xc0);
             delta[2] = *(float *)(other + 0xc4) - *(float *)(prop + 0xc4);
-            if (normalize3d(delta) > *(float *)0x2533c0 &&
+            if (normalize3d((real_vector3d *)delta) > *(float *)0x2533c0 &&
                 delta[2] * out_pos[2] + delta[1] * out_pos[1] +
                     delta[0] * out_pos[0] >
                   *(float *)0x253398) {
@@ -2375,7 +2375,7 @@ update_actor_to_prop:
   prop->actor_to_prop.i = prop->body_position.x - sense[3];
   prop->actor_to_prop.j = prop->body_position.y - sense[4];
   prop->actor_to_prop.k = prop->body_position.z - sense[5];
-  prop->distance = normalize3d((float *)&prop->actor_to_prop);
+  prop->distance = normalize3d(&prop->actor_to_prop);
   if (prop->distance == 0.0f) {
     forward = *(float **)0x31fc3c;
     prop->actor_to_prop = *(real_vector3d *)forward;
@@ -3071,7 +3071,7 @@ void actor_emotion_update(int actor_handle)
                 (*(char *)(actor + 0x504) != 0 ||
                  *(short *)(actor + 0x360) > 0)) {
               direction = *(real_vector3d *)(actor + 0x518);
-              if (normalize3d((float *)&direction) > *(float *)0x2533c0) {
+              if (normalize3d(&direction) > *(float *)0x2533c0) {
                 vector3d_scale_add((float *)(actor + 0x12c),
                                    (float *)&direction, 0.4f,
                                    (float *)&scaled_position);
@@ -3352,7 +3352,7 @@ void prop_status_refresh(int actor_handle, int prop_handle, void *out_data)
   }
 
   previous_quantized_speed = prop->quantized_speed;
-  object_get_root_location(prop->unit_index, velocity, NULL);
+  object_get_velocities(prop->unit_index, (real_vector3d *)velocity, NULL);
 
   speed = x87_sqrt(velocity[1] * velocity[1] + velocity[0] * velocity[0] +
                    velocity[2] * velocity[2]);

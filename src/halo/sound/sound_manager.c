@@ -2938,7 +2938,7 @@ void detail_sound_random_offset(void *element, void *out_track_data)
                                   *(float *)(e + 0x58), *(float *)(e + 0x5c));
     angles[0] = random_real_range(random_math_get_local_seed_address(),
                                   *(float *)(e + 0x50), *(float *)(e + 0x54));
-    angles_to_vector(out, angles);
+    angles_to_vector((real_vector3d *)out, (real_euler_angles2d *)angles);
     out[0] = distance * out[0];
     out[1] = distance * out[1];
     out[2] = distance * out[2];
@@ -4263,8 +4263,8 @@ void FUN_001ce9c0(void)
       }
 
       listener->field_01 = (uint8_t)state;
-      matrix4x3_from_forward_up_position(&listener->matrix, camera, camera + 8,
-                                         camera + 11);
+      matrix4x3_from_forward_up_position(&listener->matrix, (real_point3d *)camera, (real_vector3d *)(camera + 8),
+                                         (real_vector3d *)(camera + 11));
       real_matrix3x3_transform_vector(&listener->matrix, (vector3_t *)(camera + 5),
                                       (vector3_t *)&listener->field_38);
     }

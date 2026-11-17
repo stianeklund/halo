@@ -411,10 +411,10 @@ char projectile_aim_ballistic(float base_velocity, float gravity_scale, float *o
   vertical_velocity = aim_vector.k;
   distance = t * v_desired;
 
-  if (normalize3d((float *)&aim_vector) == REAL_ZERO_POOL) {
+  if (normalize3d(&aim_vector) == REAL_ZERO_POOL) {
     result = false;
     aim_vector = delta;
-    if (normalize3d((float *)&aim_vector) == REAL_ZERO_POOL) {
+    if (normalize3d(&aim_vector) == REAL_ZERO_POOL) {
       aim_vector = *global_up3d;
     }
   }
@@ -454,7 +454,7 @@ bool projectile_aim_linear(float speed, float *origin, float *target,
 
   vector_from_points3d((real_point3d *)origin, (real_point3d *)target, &aim_vector);
 
-  distance = normalize3d((float *)&aim_vector);
+  distance = normalize3d(&aim_vector);
   /* 0xf843e: FSTP dword [ebp+0x10] -- the magnitude is narrowed before the
    * divide at 0xf8457 and before it is copied to result_distance at 0xf84a7. */
   HALO_FLT_ROUNDTRIP(distance);
@@ -635,7 +635,7 @@ bool projectile_collision_test_line(int projectile_handle, float *new_pos,
 #endif
 
   vector_from_points3d(position, destination, &sweep.ray);
-  if (SWEEP_LOS(collision_test_vector(0x1000e9, (float *)position, (float *)&sweep.ray,
+  if (SWEEP_LOS(collision_test_vector(0x1000e9, position, &sweep.ray,
                              projectile->ignore_object_index, collision_result)) == 0) {
     if (definition->collision_radius < REAL_0_0001_POOL) {
       return false;
@@ -648,7 +648,7 @@ bool projectile_collision_test_line(int projectile_handle, float *new_pos,
     sweep.direction.j = delta.k * up->i - delta.i * up->k;
     sweep.direction.k = delta.i * up->j - delta.j * up->i;
 
-    if (normalize3d((float *)&sweep.direction) == REAL_ZERO_POOL) {
+    if (normalize3d(&sweep.direction) == REAL_ZERO_POOL) {
       /* Moving straight along up: offset sideways instead. */
       sweep.direction = *(real_vector3d *)global_left_vector_ptr;
     }
@@ -662,7 +662,7 @@ bool projectile_collision_test_line(int projectile_handle, float *new_pos,
 
     vector_from_points3d(&sweep.positive_origin, &sweep.positive_end, &sweep.direction);
 
-    if (SWEEP_LOS(collision_test_vector(0x89, (float *)&sweep.positive_origin, (float *)&sweep.direction,
+    if (SWEEP_LOS(collision_test_vector(0x89, &sweep.positive_origin, &sweep.direction,
                                projectile->ignore_object_index, collision_result)) == 0 &&
         FUN_000130d0(0x89, (float *)&sweep.negative_origin, (float *)&sweep.negative_end,
                      projectile->ignore_object_index, collision_result) == 0) {
@@ -886,9 +886,9 @@ bool projectile_new(int projectile_handle)
   }
 
   initial_velocity = definition->initial_velocity;
-  projectile->object.translational_velocity.x += initial_velocity * projectile->object.forward.x;
-  projectile->object.translational_velocity.y += initial_velocity * projectile->object.forward.y;
-  projectile->object.translational_velocity.z += initial_velocity * projectile->object.forward.z;
+  projectile->object.translational_velocity.i += initial_velocity * projectile->object.forward.i;
+  projectile->object.translational_velocity.j += initial_velocity * projectile->object.forward.j;
+  projectile->object.translational_velocity.k += initial_velocity * projectile->object.forward.k;
 
   if (scenario_location_underwater(&projectile->object.location, &projectile->object.bounding_sphere_center, 0)) {
     projectile->object.flags |= 0x10u;
@@ -925,7 +925,7 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
 #endif
   projectile = projectile_get(projectile_handle);
   projectile_definition_get(projectile->object.tag_index);
-  if (!real_vector3d_valid(acceleration)) {
+  if (!real_vector3d_valid((real_vector3d *)acceleration)) {
     display_assert(
       csprintf(error_string_buffer, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                "acceleration", (double)((real_vector3d *)acceleration)->i,
@@ -938,7 +938,7 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
   if (projectile->object.parent_object_index.value == NONE) {
     velocity = (real_vector3d *)&projectile->object.translational_velocity;
 
-    if (!real_vector3d_valid((float *)velocity)) {
+    if (!real_vector3d_valid(velocity)) {
       display_assert(
         csprintf(error_string_buffer, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                  "&projectile->object.translational_velocity",
@@ -965,15 +965,15 @@ void projectile_accelerate(int projectile_handle, float *acceleration)
     HALO_FLT_ROUNDTRIP(direction.j);
     direction.k *= scale;
     HALO_FLT_ROUNDTRIP(direction.k);
-    projectile->object.angular_velocity.x += direction.i * scale;
-    projectile->object.angular_velocity.y += direction.j;
-    projectile->object.angular_velocity.z += direction.k;
+    projectile->object.angular_velocity.i += direction.i * scale;
+    projectile->object.angular_velocity.j += direction.j;
+    projectile->object.angular_velocity.k += direction.k;
 
     projectile_adjust_for_angular_velocity_change(projectile_handle);
 
     projectile->object.flags &= ~0x20u;
 
-    if (!real_vector3d_valid((float *)velocity)) {
+    if (!real_vector3d_valid(velocity)) {
       display_assert(
         csprintf(error_string_buffer, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                  "&projectile->object.translational_velocity",
@@ -1057,7 +1057,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   effect_scale = 1.0f;
   material_effect_scale = 0.0f;
   direction = *velocity;
-  speed = normalize3d((float *)&direction);
+  speed = normalize3d(&direction);
   if (speed == REAL_ZERO_POOL) {
     direction = *global_up3d;
   }
@@ -1095,7 +1095,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
     damage.origin = collision->position;
     damage.epicenter = collision->position;
     damage.direction = *velocity;
-    normalize3d((float *)&damage.direction);
+    normalize3d(&damage.direction);
     object_cause_damage(&damage, collision->object_index,
                         (short)collision->node_index, (short)collision->region_index,
                         (short)collision->material_index, (float *)&collision->normal);
@@ -1134,7 +1134,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
   {
     float angle_between;
 
-    angle_between = angle_between_vectors3d(in_velocity, (float *)&collision->normal);
+    angle_between = angle_between_vectors3d((real_vector3d *)in_velocity, &collision->normal);
     impact_angle = angle_between - REAL_HALF_PI_POOL + impact_angle;
     /* 0xf9365 FSTP: narrowed before the range test and 0xf981e reload it. */
     HALO_FLT_ROUNDTRIP(impact_angle);
@@ -1191,7 +1191,7 @@ void projectile_collision(int projectile_handle, float *hit_pos, float param_3,
     damage.origin = collision->position;
     damage.epicenter = collision->position;
     damage.direction = *velocity;
-    normalize3d((float *)&damage.direction);
+    normalize3d(&damage.direction);
     damage.material_type = collision->material_type;
     if ((damage.material_type >= 0) &&
         ((int)damage.material_type < definition->material_responses.count)) {
@@ -1270,7 +1270,7 @@ add_noise:
   if (material_response->velocity_noise != REAL_ZERO_POOL) {
     float lower_bound, upper_bound;
 
-    temp = normalize3d(in_velocity);
+    temp = normalize3d((real_vector3d *)in_velocity);
     if (temp != REAL_ZERO_POOL) {
       lower_bound = -material_response->velocity_noise;
       upper_bound = material_response->velocity_noise;
@@ -1439,9 +1439,9 @@ clamp_material_effect_scale:
       }
     }
     projectile->object.translational_velocity =
-      *(real_point3d *)halo_global_zero_vector_ptr;
+      *(real_vector3d *)halo_global_zero_vector_ptr;
     projectile->object.angular_velocity =
-      *(real_point3d *)halo_global_zero_vector_ptr;
+      *(real_vector3d *)halo_global_zero_vector_ptr;
     projectile->object.flags |= 0x20;
     projectile->flags |= FLAG(_projectile_attached_bit);
     object_translate(projectile_handle, hit_pos, &collision->location);
@@ -1593,12 +1593,12 @@ bool projectile_update(int projectile_handle)
       break;
     }
 
-    velocity.i = projectile->object.translational_velocity.x;
-    velocity.j = projectile->object.translational_velocity.y;
-    velocity.k = projectile->object.translational_velocity.z;
-    average_velocity.i = projectile->object.translational_velocity.x;
-    average_velocity.j = projectile->object.translational_velocity.y;
-    average_velocity.k = projectile->object.translational_velocity.z;
+    velocity.i = projectile->object.translational_velocity.i;
+    velocity.j = projectile->object.translational_velocity.j;
+    velocity.k = projectile->object.translational_velocity.k;
+    average_velocity.i = projectile->object.translational_velocity.i;
+    average_velocity.j = projectile->object.translational_velocity.j;
+    average_velocity.k = projectile->object.translational_velocity.k;
     ignore_object_index = projectile->ignore_object_index;
     moved = '\0';
 
@@ -1613,13 +1613,13 @@ bool projectile_update(int projectile_handle)
     average_speed = speed;
 
     if (!(char)real_vector3d_valid(
-          (float *)&projectile->object.translational_velocity)) {
+          &projectile->object.translational_velocity)) {
       display_assert(csprintf(error_string_buffer,
                               "%s: assert_valid_real_vector2d(%f, %f, %f)",
                               "&projectile->object.translational_velocity",
-                              (double)projectile->object.translational_velocity.x,
-                              (double)projectile->object.translational_velocity.y,
-                              (double)projectile->object.translational_velocity.z),
+                              (double)projectile->object.translational_velocity.i,
+                              (double)projectile->object.translational_velocity.j,
+                              (double)projectile->object.translational_velocity.k),
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x146, 1);
       system_exit(-1);
     }
@@ -1680,7 +1680,7 @@ bool projectile_update(int projectile_handle)
         }
       }
       angles[1] = angles[0];
-      angles_to_vector((float *)&perpendicular, angles);
+      angles_to_vector(&perpendicular, (real_euler_angles2d *)angles);
       point_from_line3d(&target_position, &perpendicular, wander_fraction,
                         &target_position); /* dup-args-ok: in-place */
       /* 0xfa06c/0xfa07b/0xfa08a: each component is FSTP'd before the
@@ -1693,7 +1693,7 @@ bool projectile_update(int projectile_handle)
       dot = dot_product3d(&target_delta,
                           (real_vector3d *)&projectile->object.translational_velocity);
       if ((dot > 0.0f) &&
-          ((float)normalize3d((float *)&steer_axis) > 0.0f)) {
+          ((float)normalize3d(&steer_axis) > 0.0f)) {
         float turn_cos, turn_sin;
 #ifdef XDK_BUILD
         __asm {
@@ -1708,12 +1708,12 @@ bool projectile_update(int projectile_handle)
         turn_cos = x87_fcos(turn_angle);
         turn_sin = x87_fsin(turn_angle);
 #endif
-        rotate_vector3d_by_sincos((float *)&projectile->object.translational_velocity,
-                                  (float *)&steer_axis, turn_sin, turn_cos);
+        rotate_vector3d_by_sincos(&projectile->object.translational_velocity,
+                                  &steer_axis, turn_sin, turn_cos);
       }
     }
 
-    if (!(char)real_vector3d_valid((float *)&velocity)) {
+    if (!(char)real_vector3d_valid(&velocity)) {
       display_assert("projectile velocity is bad after steering.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x19d, 1);
       system_exit(-1);
@@ -1766,15 +1766,15 @@ bool projectile_update(int projectile_handle)
            * new_speed/initial_speed ratio that ST(0) holds. */
           average_velocity.i =
             remaining_fraction * velocity.i +
-            (velocity.i + projectile->object.translational_velocity.x) *
+            (velocity.i + projectile->object.translational_velocity.i) *
               split_fraction * REAL_0_5_POOL;
           average_velocity.j =
             remaining_fraction * velocity.j +
-            (velocity.j + projectile->object.translational_velocity.y) *
+            (velocity.j + projectile->object.translational_velocity.j) *
               split_fraction * REAL_0_5_POOL;
           average_velocity.k =
             remaining_fraction * velocity.k +
-            (velocity.k + projectile->object.translational_velocity.z) *
+            (velocity.k + projectile->object.translational_velocity.k) *
               split_fraction * REAL_0_5_POOL;
         } else {
           average_speed = initial_speed - scale * REAL_0_5_POOL;
@@ -1792,16 +1792,16 @@ bool projectile_update(int projectile_handle)
           HALO_FLT_ROUNDTRIP(velocity.j);
           HALO_FLT_ROUNDTRIP(velocity.k);
           average_velocity.i =
-            (velocity.i + projectile->object.translational_velocity.x) * REAL_0_5_POOL;
+            (velocity.i + projectile->object.translational_velocity.i) * REAL_0_5_POOL;
           average_velocity.j =
-            (velocity.j + projectile->object.translational_velocity.y) * REAL_0_5_POOL;
+            (velocity.j + projectile->object.translational_velocity.j) * REAL_0_5_POOL;
           average_velocity.k =
-            (velocity.k + projectile->object.translational_velocity.z) * REAL_0_5_POOL;
+            (velocity.k + projectile->object.translational_velocity.k) * REAL_0_5_POOL;
         }
       }
     }
 
-    if (!(char)real_vector3d_valid((float *)&velocity)) {
+    if (!(char)real_vector3d_valid(&velocity)) {
       display_assert("projectile velocity is bad after deceleration.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1cd, 1);
       system_exit(-1);
@@ -1819,7 +1819,7 @@ bool projectile_update(int projectile_handle)
     velocity.k -= gravity * time_remaining;
     average_velocity.k -= gravity * time_remaining * REAL_0_5_POOL;
 
-    if (!(char)real_vector3d_valid((float *)&velocity)) {
+    if (!(char)real_vector3d_valid(&velocity)) {
       display_assert("projectile velocity is bad after gravity.",
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x1dc, 1);
       system_exit(-1);
@@ -1969,7 +1969,7 @@ bool projectile_update(int projectile_handle)
                   vector3d_scale_add((float *)listener_position, (float *)&perpendicular,
                                      -1.0f, (float *)&sound_location.position);
                   sound_location.forward = movement;
-                  normalize3d((float *)&sound_location.forward);
+                  normalize3d(&sound_location.forward);
                   sound_location.translational_velocity =
                     *(real_vector3d *)halo_global_zero_vector_ptr;
                   sound_location.game_location = collision.location;
@@ -1985,37 +1985,37 @@ bool projectile_update(int projectile_handle)
 
       if (((definition->flags &
             FLAG(_projectile_definition_oriented_along_velocity_bit)) == 0) ||
-          ((projectile->object.translational_velocity.x == 0.0f) &&
-           (projectile->object.translational_velocity.y == 0.0f) &&
-           (projectile->object.translational_velocity.z == 0.0f))) {
+          ((projectile->object.translational_velocity.i == 0.0f) &&
+           (projectile->object.translational_velocity.j == 0.0f) &&
+           (projectile->object.translational_velocity.k == 0.0f))) {
         if ((projectile->flags & FLAG(_projectile_has_angular_velocity_bit)) != 0) {
           float *forward = (float *)&projectile->object.forward;
           float *up = (float *)&projectile->object.up;
           float *axis = (float *)&projectile->rotation_axis;
           float sine = projectile->rotation_sine;
           float cosine = projectile->rotation_cosine;
-          rotate_vector3d_by_sincos(forward, axis, sine, cosine);
-          rotate_vector3d_by_sincos(up, axis, sine, cosine);
-          normalize3d(forward);
+          rotate_vector3d_by_sincos((real_vector3d *)forward, (real_vector3d *)axis, sine, cosine);
+          rotate_vector3d_by_sincos((real_vector3d *)up, (real_vector3d *)axis, sine, cosine);
+          normalize3d((real_vector3d *)forward);
           cross_product3d(up, forward, (float *)&sound_location.position);
           cross_product3d(forward, (float *)&sound_location.position, up);
-          normalize3d(up);
+          normalize3d((real_vector3d *)up);
         }
       } else {
         {
           float *forward = (float *)&projectile->object.forward;
           float *up = (float *)&projectile->object.up;
           velocity_direction = *(real_vector3d *)&projectile->object.translational_velocity;
-          if ((float)normalize3d((float *)&velocity_direction) > 0.0f) {
+          if ((float)normalize3d(&velocity_direction) > 0.0f) {
             *(real_vector3d *)forward = velocity_direction;
             cross_product3d(up, forward, (float *)&sound_location.position);
             cross_product3d(forward, (float *)&sound_location.position, up);
-            if ((float)normalize3d(up) == 0.0f) {
+            if ((float)normalize3d((real_vector3d *)up) == 0.0f) {
               perpendicular3d(forward, up);
-              normalize3d(up);
+              normalize3d((real_vector3d *)up);
             }
           }
-          rotate_vector3d_by_sincos(up, forward, projectile->rotation_sine,
+          rotate_vector3d_by_sincos((real_vector3d *)up, (real_vector3d *)forward, projectile->rotation_sine,
                                     projectile->rotation_cosine);
         }
       }
@@ -2038,13 +2038,13 @@ bool projectile_update(int projectile_handle)
     }
 
     if (!(char)real_vector3d_valid(
-          (float *)&projectile->object.translational_velocity)) {
+          &projectile->object.translational_velocity)) {
       display_assert(csprintf(error_string_buffer,
                               "%s: assert_valid_real_vector2d(%f, %f, %f)",
                               "&projectile->object.translational_velocity",
-                              (double)projectile->object.translational_velocity.x,
-                              (double)projectile->object.translational_velocity.y,
-                              (double)projectile->object.translational_velocity.z),
+                              (double)projectile->object.translational_velocity.i,
+                              (double)projectile->object.translational_velocity.j,
+                              (double)projectile->object.translational_velocity.k),
                      "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2a0, 1);
       system_exit(-1);
     }
@@ -2066,18 +2066,18 @@ bool projectile_update(int projectile_handle)
       break;
   }
 
-  if (!valid_real_normal3d_perpendicular((float *)&projectile->object.forward,
-                                         (float *)&projectile->object.up)) {
+  if (!valid_real_normal3d_perpendicular(&projectile->object.forward,
+                                         &projectile->object.up)) {
     display_assert(
       csprintf(error_string_buffer,
                "%s, %s: assert_valid_real_vector3d_axes2"
                "(%f, %f, %f / %f, %f, %f)",
                "&projectile->object.forward", "&projectile->object.up",
-               (double)projectile->object.forward.x,
-               (double)projectile->object.forward.y,
-               (double)projectile->object.forward.z,
-               (double)projectile->object.up.x, (double)projectile->object.up.y,
-               (double)projectile->object.up.z),
+               (double)projectile->object.forward.i,
+               (double)projectile->object.forward.j,
+               (double)projectile->object.forward.k,
+               (double)projectile->object.up.i, (double)projectile->object.up.j,
+               (double)projectile->object.up.k),
       "c:\\halo\\SOURCE\\items\\projectiles.c", 0x2b0, 1);
     system_exit(-1);
   }

@@ -2537,7 +2537,7 @@ void projectile_distribute(int16_t projectile_index, float *vector, float *axis,
   }
   offset = offset * angle;
   if (param_4 == 1) {
-    rotate_vector3d_by_sincos(vector, axis, x87_fsin(offset), x87_fcos(offset));
+    rotate_vector3d_by_sincos((real_vector3d *)vector, (real_vector3d *)axis, x87_fsin(offset), x87_fcos(offset));
   }
 }
 
@@ -2972,7 +2972,7 @@ void trigger_create_projectiles(int weapon_handle, int16_t trigger_index)
         left[0] = forward[2] * global_up_vector_ptr[1] - forward[1] * global_up_vector_ptr[2];
         left[1] = forward[0] * global_up_vector_ptr[2] - forward[2] * global_up_vector_ptr[0];
         left[2] = forward[1] * global_up_vector_ptr[0] - forward[0] * global_up_vector_ptr[1];
-        if (normalize3d(left) == 0.0f) {
+        if (normalize3d((real_vector3d *)left) == 0.0f) {
           left[0] = global_left_vector_ptr[0];
           left[1] = global_left_vector_ptr[1];
           left[2] = global_left_vector_ptr[2];
@@ -2980,7 +2980,7 @@ void trigger_create_projectiles(int weapon_handle, int16_t trigger_index)
         up[0] = left[2] * forward[1] - left[1] * forward[2];
         up[1] = forward[2] * left[0] - left[2] * forward[0];
         up[2] = left[1] * forward[0] - forward[1] * left[0];
-        normalize3d(up);
+        normalize3d((real_vector3d *)up);
 
         /* origin += forward*o[0] + left*o[1] + up*o[2], same per-axis
          * accumulation order as 0xfd839-0xfd8bc. */
@@ -3105,7 +3105,7 @@ void trigger_create_projectiles(int weapon_handle, int16_t trigger_index)
         projectile = object_new(&placement);
         if (projectile != -1) {
           if (place_at_camera) {
-            unit_get_camera_position(parent_unit_handle, camera_position);
+            unit_get_camera_position(parent_unit_handle, (real_point3d *)camera_position);
             object_try_place(projectile, camera_position);
           }
           if (target_object != -1) {

@@ -949,12 +949,12 @@ float FUN_00012fe0(float *v)
  * small epsilon threshold (~0.0001), divides each component by the
  * magnitude so v becomes a unit vector. Returns the original magnitude,
  * or 0.0f if the vector was too small to normalize. */
-float normalize3d(float *v)
+float normalize3d(real_vector3d *v)
 {
   float mag;
   float scale;
 
-  mag = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  mag = sqrtf(v->i * v->i + v->j * v->j + v->k * v->k);
   /* Original (0x13010): FCOMP ABS(mag) against the *double* 0.0001 at 0x2533d0
      and normalize only when |mag| >= 0.0001, otherwise return 0.0 (0x2533c0)
      leaving v unchanged.  A prior lift mis-read 0x2533d0 as a float
@@ -966,9 +966,9 @@ float normalize3d(float *v)
      the original early-out. */
   if (fabsf(mag) >= *(double *)0x2533d0) {
     scale = 1.0f / mag;
-    v[0] = v[0] * scale;
-    v[1] = v[1] * scale;
-    v[2] = v[2] * scale;
+    v->i = v->i * scale;
+    v->j = v->j * scale;
+    v->k = v->k * scale;
     return mag;
   }
   return 0.0f;
@@ -1016,7 +1016,7 @@ bool FUN_000130d0(uint32_t collision_flags, float *point_a, float *point_b,
   direction[0] = point_b[0] - point_a[0];
   direction[1] = point_b[1] - point_a[1];
   direction[2] = point_b[2] - point_a[2];
-  return collision_test_vector(collision_flags, point_a, direction, max_distance,
+  return collision_test_vector(collision_flags, (real_point3d *)point_a, (real_vector3d *)direction, max_distance,
                       collision_result);
 }
 
@@ -1258,7 +1258,7 @@ bool action_charge_perform(int actor_index)
         distance = 0.0f;
         direction = *(real_vector3d *)(prop + 0xe0);
       } else {
-        distance = normalize3d(&direction.i);
+        distance = normalize3d(&direction);
         if (distance == 0.0f) {
           direction = *(real_vector3d *)(prop + 0xe0);
         }

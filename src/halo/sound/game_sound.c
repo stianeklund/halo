@@ -769,10 +769,10 @@ void FUN_001c77a0(int looping_sound_index, void *location)
       }
       matrix_transform_point(node_matrix, (float *)(entry + 0x1c),
                              (float *)(source + 0xc));
-      matrix_transform_vector(node_matrix, (float *)(entry + 0x28),
-                              (float *)(source + 0x18));
-      object_get_root_location(*(int *)(entry + 0x10), (float *)(source + 0x24),
-                               (float *)(source + 0x40));
+      matrix_transform_vector(node_matrix, (real_vector3d *)(entry + 0x28),
+                              (real_vector3d *)(source + 0x18));
+      object_get_velocities(*(int *)(entry + 0x10), (real_vector3d *)(source + 0x24),
+                               (real_vector3d *)(source + 0x40));
       *(int *)(source + 0x30) = *(int *)location;
       *(int *)(source + 0x34) = *((int *)location + 1);
       *(int16_t *)source = 1;
@@ -864,9 +864,9 @@ bool FUN_001c7a10(int object_handle, void *attachment_data, void *source)
                              (float *)((char *)attachment_data + 4),
                              (float *)((char *)source + 0xc));
       matrix_transform_vector(node_matrix,
-                              (float *)((char *)attachment_data + 0x10),
-                              (float *)((char *)source + 0x18));
-      object_get_root_location(object_handle, (float *)((char *)source + 0x24),
+                              (real_vector3d *)((char *)attachment_data + 0x10),
+                              (real_vector3d *)((char *)source + 0x18));
+      object_get_velocities(object_handle, (real_vector3d *)((char *)source + 0x24),
                                0);
 
       return true;
@@ -1406,7 +1406,7 @@ void sound_compute_source_obstruction(int channel_index, void *source,
         direction[1] = *(float *)((char *)source + 0x10) - camera[1];
         direction[2] = *(float *)((char *)source + 0x14) - camera[2];
 
-        if (!collision_test_vector(0xc0e1, camera, direction, -1, collision_result)) {
+        if (!collision_test_vector(0xc0e1, (real_point3d *)camera, (real_vector3d *)direction, -1, collision_result)) {
           /* No line of sight — fully occluded. */
           *(float *)new_var = 0.0f;
           *(float *)((char *)source + 0x3c) = 0.0f;

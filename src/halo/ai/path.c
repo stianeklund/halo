@@ -1423,7 +1423,7 @@ char path_state_estimated_distance(void *path_state, void *fp_element,
       opt_out_vec[0] = target[0] - *(float *)((char *)path_state + 0x14);
       opt_out_vec[1] = target[1] - *(float *)((char *)path_state + 0x18);
       opt_out_vec[2] = target[2] - *(float *)((char *)path_state + 0x1c);
-      normalize3d(opt_out_vec);
+      normalize3d((real_vector3d *)opt_out_vec);
     }
   } else {
     if (opt_min_clearance) {

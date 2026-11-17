@@ -1197,7 +1197,7 @@ char actor_path_3d_available(int actor_handle, float *dest_pos, float *dist_out)
       delta[0] = dest_pos[0] - ((actor_t *)actor)->field_12c;
       delta[1] = dest_pos[1] - ((actor_t *)actor)->field_130;
       delta[2] = dest_pos[2] - ((actor_t *)actor)->field_134;
-      if (normalize3d(delta) > *(float *)0x2533c0 &&
+      if (normalize3d((real_vector3d *)delta) > *(float *)0x2533c0 &&
           delta[0] * ((actor_t *)actor)->input_facing_vector[0] +
               delta[1] * ((actor_t *)actor)->input_facing_vector[1] +
               delta[2] * ((actor_t *)actor)->input_facing_vector[2] >
@@ -1248,14 +1248,14 @@ void actor_move_calculate_controlled_by_aiming(float *facing_basis /* @<ecx> */,
 
   if (use_3d != 0) {
     directions[0] = *(const real_vector3d *)in_vec;
-    if (normalize3d((float *)&directions[0]) == 0.0f) {
+    if (normalize3d(&directions[0]) == 0.0f) {
       directions[0] = *(const real_vector3d *)facing_basis;
     }
     directions[2] = *(const real_vector3d *)halo_global_zero_vector_ptr;
   } else {
     directions[0] = *(const real_vector3d *)in_vec;
     directions[0].k = 0.0f;
-    if (normalize3d((float *)&directions[0]) == 0.0f) {
+    if (normalize3d(&directions[0]) == 0.0f) {
       directions[0] = *(const real_vector3d *)facing_basis;
     }
     directions[2].i = -directions[0].j;
@@ -1391,7 +1391,7 @@ void actor_move_calculate_free(char use_3d /* @<al> */,
     throttle->i = dot_product3d(movement, facing);
     throttle->j = (left.j * movement->j + left.k * movement->k) + left.i * movement->i;
     throttle->k = (up.j * movement->j + up.k * movement->k) + up.i * movement->i;
-    normalize3d(out);
+    normalize3d((real_vector3d *)out);
     return;
   }
 
@@ -1434,7 +1434,7 @@ void actor_move_calculate_free(char use_3d /* @<al> */,
   throttle->i = movement->i * facing->i + movement->j * facing->j;
   throttle->j = movement->i * perpendicular.i + movement->j * perpendicular.j;
   throttle->k = 0.0f;
-  normalize3d(out);
+  normalize3d((real_vector3d *)out);
 }
 
 /* 0x2bd80 — FUN_0002bd80: the per-tick obstacle-avoidance and
@@ -1469,7 +1469,6 @@ void actor_move_calculate_free(char use_3d /* @<al> */,
 #define avoid_ray_avoidance_weights ((const float *)0x255948)
 #define avoid_ray_adjacent_fractions ((const float *)0x255954)
 #define avoid_ray_clear_bias_time 75
-#define angle_between_vectors3d(a, b) angle_between_vectors3d((float *)(a), (float *)(b))
 
 #define MIN_FLOAT(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX_FLOAT(a, b) (((a) > (b)) ? (a) : (b))
@@ -1825,7 +1824,7 @@ void actor_move_vector_avoidance(int actor_handle /* @<ecx> */, float *facing, f
       rotation_axis.j = best_direction.i * ((const real_vector3d *)facing)->k - best_direction.k * ((const real_vector3d *)facing)->i;
       rotation_axis.k = best_direction.j * ((const real_vector3d *)facing)->i - best_direction.i * ((const real_vector3d *)facing)->j;
       if (normalize3d_inline(&rotation_axis) > 0.0f) {
-        float rotation_angle = angle_between_vectors3d(facing, &best_direction);
+        float rotation_angle = angle_between_vectors3d((real_vector3d *)facing, &best_direction);
 
         rotation.i = rotation_axis.i * rotation_angle;
         rotation.j = rotation_axis.j * rotation_angle;
@@ -2881,7 +2880,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
     if (!use_z) {
       movement_vector.k = 0.0f;
     }
-    if (normalize3d((float *)&movement_vector) == 0.0f) {
+    if (normalize3d(&movement_vector) == 0.0f) {
       movement_vector = *(const real_vector3d *)actor->input_facing_vector;
     }
 
@@ -2944,10 +2943,10 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
         movement_vector.k = 0.0f;
         facing_vector.k = 0.0f;
       }
-      if (normalize3d((float *)&facing_vector) == 0.0f) {
+      if (normalize3d(&facing_vector) == 0.0f) {
         facing_vector = *(const real_vector3d *)actor->input_facing_vector;
       }
-      if (normalize3d((float *)&movement_vector) == 0.0f) {
+      if (normalize3d(&movement_vector) == 0.0f) {
         movement_vector = facing_vector;
       }
 
@@ -2956,7 +2955,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
         if (!use_z) {
           actor_facing_vector.k = 0.0f;
         }
-        if (normalize3d((float *)&actor_facing_vector) == 0.0f) {
+        if (normalize3d(&actor_facing_vector) == 0.0f) {
           actor_facing_vector = facing_vector;
         }
         free_facing_vector = &actor_facing_vector;
@@ -2978,7 +2977,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
       if (!use_z) {
         facing_vector.k = 0.0f;
       }
-      if (normalize3d((float *)&facing_vector) == 0.0f) {
+      if (normalize3d(&facing_vector) == 0.0f) {
         facing_vector = *(const real_vector3d *)actor->input_facing_vector;
       }
       facing_direction = 0;
@@ -3192,10 +3191,10 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
       rotation_axis.i = facing_vector.k * actor->input_facing_vector[1] - facing_vector.j * actor->input_facing_vector[2];
       rotation_axis.j = facing_vector.i * actor->input_facing_vector[2] - facing_vector.k * actor->input_facing_vector[0];
       rotation_axis.k = facing_vector.j * actor->input_facing_vector[0] - facing_vector.i * actor->input_facing_vector[1];
-      if (normalize3d((float *)&rotation_axis) > 0.0f) {
+      if (normalize3d(&rotation_axis) > 0.0f) {
         rotate_vector3d_by_sincos(
-          (float *)&facing_vector,
-          (float *)&rotation_axis,
+          &facing_vector,
+          &rotation_axis,
           x87_fsin(angle_adjustment),
           x87_fcos(angle_adjustment));
         if (*(char *)0x5aca5e != '\0') {
@@ -3377,7 +3376,7 @@ void actor_move_update(int actor_handle)
         slerp[0] = slerp[0] * inv_len;
         slerp[1] = slerp[1] * inv_len;
         slerp[2] = slerp[2] * inv_len;
-        rotate_vector3d_by_sincos((float *)(actor + 0x518), slerp,
+        rotate_vector3d_by_sincos((real_vector3d *)(actor + 0x518), (real_vector3d *)slerp,
                                   x87_fsin(sqrtf(len_sq)),
                                   x87_fcos(sqrtf(len_sq)));
       }
@@ -3455,7 +3454,7 @@ void actor_move_update(int actor_handle)
             FUN_00012140((float *)(actor + 0x12c), (float *)(actor + 0x6a8),
                          vec_scratch);
             crouch = 0;
-            if (normalize3d(vec_scratch) == *(float *)0x2533c0) {
+            if (normalize3d((real_vector3d *)vec_scratch) == *(float *)0x2533c0) {
               ((actor_t *)actor)->field_58d = 1;
             } else {
               ((actor_t *)actor)->control_desired_facing_vector[0] =

@@ -2153,8 +2153,8 @@ float ai_communication_get_player_rating(int unit_handle, char test_line_of_sigh
           vector_from_points3d(&player_position, &position,
                                &line_of_sight_vector);
 
-          blocked = collision_test_vector(0x27, (float *)&player_position,
-                                 (float *)&line_of_sight_vector, -1, collision);
+          blocked = collision_test_vector(0x27, &player_position,
+                                 &line_of_sight_vector, -1, collision);
           if (global_current_collision_user_depth <= 1) {
             display_assert("global_current_collision_user_depth > 1",
                            "c:\\halo\\SOURCE\\ai\\ai_communication.c", 0xe97, 1);
@@ -5592,8 +5592,8 @@ void ai_communication_event(short communication_type, int subject_unit_index,
           (unit_data_t *)object_get_and_verify_type(speaker_unit_index, 3);
         real_vector2d alignment;
 
-        alignment.i = speaker_unit->object.forward.x; /* object.forward */
-        alignment.j = speaker_unit->object.forward.y;
+        alignment.i = speaker_unit->object.forward.i; /* object.forward */
+        alignment.j = speaker_unit->object.forward.j;
         if (recipient_unit_index != -1) {
           real_point3d speaker_head;
           real_point3d target_head;
@@ -5615,8 +5615,8 @@ void ai_communication_event(short communication_type, int subject_unit_index,
             alignment.j *= inverse;
           }
           if (magnitude == 0.0f) {
-            alignment.i = speaker_unit->object.forward.x;
-            alignment.j = speaker_unit->object.forward.y;
+            alignment.i = speaker_unit->object.forward.i;
+            alignment.j = speaker_unit->object.forward.j;
           }
         }
         unit_apply_animation_impulse(

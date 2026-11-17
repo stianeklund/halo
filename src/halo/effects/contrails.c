@@ -508,7 +508,7 @@ void contrail_add_points(int contrail_handle /* @<eax> */, int count, int flag)
 
             scenario_location_from_point(pd + 0x14, pd + 0x1c);
 
-            object_get_root_location(*(int *)(datum + 8), root_loc, NULL);
+            object_get_velocities(*(int *)(datum + 8), (real_vector3d *)root_loc, NULL);
 
             *(float *)(pd + 0x28) =
               vel[0] * vel_scale + root_scale * root_loc[0];

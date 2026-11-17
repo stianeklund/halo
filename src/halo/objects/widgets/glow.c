@@ -164,7 +164,7 @@ void glow_update(int glow_widget, int object_handle)
               d[0] = basis_j[-2] - basis_i[-2];
               d[1] = basis_j[-1] - basis_i[-1];
               d[2] = basis_j[0] - basis_i[0];
-              normalize3d(d);
+              normalize3d((real_vector3d *)d);
               dot = d[0] * basis_i[-0xb] + d[1] * basis_i[-0xa] +
                     d[2] * basis_i[-9];
               if (dot > best_dot) {
@@ -996,7 +996,7 @@ int glow_trailing_particle_new(int glow_widget /* @<ebx> */)
         random_math_get_local_seed_address(), -1.0f, 1.0f);
       *(float *)(particle + 0x40) = random_real_range(
         random_math_get_local_seed_address(), -1.0f, 1.0f);
-      normalize3d((float *)(particle + 0x38));
+      normalize3d((real_vector3d *)(particle + 0x38));
       break;
     default:
       display_assert("unknown trailing particle distribution?",

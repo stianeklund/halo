@@ -431,7 +431,7 @@ void FUN_0018b780(float *cur, float *des, float step)
   delta = des[2] - cur[2];
   FADE_ROUND32(delta);
   cur[2] = ((delta < -step) ? -step : ((delta > step) ? step : delta)) + cur[2];
-  normalize3d(cur);
+  normalize3d((real_vector3d *)cur);
 }
 
 /* 0x18b830 — render an object's blob shadow. ctx is a small shadow
@@ -460,10 +460,10 @@ char FUN_0018b830(void *ctx, float fade)
   object_get_bounding_sphere(*(int *)ctx, center, &radius);
   perpendicular3d((float *)(*(int *)((char *)ctx + 4) + 0x5c), perp);
   /* length result discarded (FSTP ST0 in the original) */
-  normalize3d(perp);
+  normalize3d((real_vector3d *)perp);
   matrix4x3_from_forward_up_position(
-    (char *)ctx + 0xc, center, perp,
-    (float *)(*(int *)((char *)ctx + 4) + 0x5c));
+    (char *)ctx + 0xc, (real_point3d *)center, (real_vector3d *)perp,
+    (real_vector3d *)((*(int *)((char *)ctx + 4) + 0x5c)));
   state = *(int *)((char *)ctx + 4);
   color[0] = *(float *)(state + 0x68);
   color[1] = *(float *)(state + 0x6c);
@@ -721,7 +721,7 @@ void FUN_0018bc60(int render_state_index, int object_handle, float lod,
                      "c:\\halo\\SOURCE\\render\\render_objects.c", 0x27b, 1);
       system_exit(-1);
     }
-    object_get_root_location(object_handle, pos, 0);
+    object_get_velocities(object_handle, (real_vector3d *)pos, 0);
     if (pos[0] != *(const float *)0x2533c0 ||
         pos[1] != *(const float *)0x2533c0 ||
         pos[2] != *(const float *)0x2533c0 ||
@@ -1286,8 +1286,8 @@ void FUN_0018c5b0(void)
                   }
                   matrix_transform_point(marker, (float *)(part + 0x30),
                                          position);
-                  matrix_transform_vector(marker, (float *)(part + 0x3c),
-                                          direction);
+                  matrix_transform_vector(marker, (real_vector3d *)(part + 0x3c),
+                                          (real_vector3d *)direction);
                 }
                 pixels = render_frustum_sphere_diameter_in_pixels(
                   (void *)0x5065a4, position, radius);
@@ -1455,7 +1455,7 @@ void render_sky(void)
           elem = (char *)tag_block_get_element(rec + 0xc4, i, 0x74);
           if (*(int *)(elem + 0xc) != -1) {
             if (csstrlen(elem + 0x10) == 0) {
-              angles_to_vector(delta, (float *)(elem + 0x68));
+              angles_to_vector((real_vector3d *)delta, (real_euler_angles2d *)((elem + 0x68)));
             } else {
               if (model_get_marker_by_name(*(int *)(rec + 0xc), elem + 0x10, 0, 0, -1,
                                node_matrices, 0, marker, 1) == 0)
@@ -1584,8 +1584,8 @@ void FUN_0018cf10(void *data, float *untransformed_origin,
     matrix_transform_point((float *)0x5065b4, untransformed_origin,
                            transformed_origin);
     if (untransformed_direction != NULL) {
-      matrix_transform_vector((float *)0x5065b4, untransformed_direction,
-                              transformed_direction);
+      matrix_transform_vector((float *)0x5065b4, (real_vector3d *)untransformed_direction,
+                              (real_vector3d *)transformed_direction);
     }
   }
 }
@@ -1632,10 +1632,10 @@ void scenario_fog_region_get_fog_index(void)
   }
   *(float *)0x506504 = 0.0f;
   *(short *)0x506508 = 0;
-  matrix_transform_vector((float *)0x5065b4, *(float **)0x31fc44,
-                          (float *)0x506510);
-  matrix_transform_vector((float *)0x5065b4, *(float **)0x31fc40,
-                          (float *)0x50651c);
+  matrix_transform_vector((float *)0x5065b4, (real_vector3d *)(*(float **)0x31fc44),
+                          (real_vector3d *)(0x506510));
+  matrix_transform_vector((float *)0x5065b4, (real_vector3d *)(*(float **)0x31fc40),
+                          (real_vector3d *)(0x50651c));
 }
 
 /* 0x18d140 — render_sprite.c: find or allocate the sprite group slot for a
@@ -1884,9 +1884,9 @@ void FUN_0018d490(float *basis, void *data, float *direction,
     *(int32_t *)(basis + 2) = *(int32_t *)(direction + 1);
     *(int32_t *)(basis + 3) = *(int32_t *)(direction + 2);
     /* length results discarded (FSTP ST0 in the original) */
-    normalize3d(basis + 1);
+    normalize3d((real_vector3d *)(basis + 1));
     cross_product3d(origin, basis + 1, basis + 4);
-    normalize3d(basis + 4);
+    normalize3d((real_vector3d *)(basis + 4));
     return;
   }
   if (sprite_type == 2) {
@@ -1897,7 +1897,7 @@ void FUN_0018d490(float *basis, void *data, float *direction,
     if (FUN_00012170(direction) * *(const float *)0x28ace8 < dot_sq)
       origin = (float *)0x50651c;
     cross_product3d(direction, origin, basis + 1);
-    normalize3d(basis + 1);
+    normalize3d((real_vector3d *)(basis + 1));
     origin = basis + 4;
     *(int32_t *)origin = *(int32_t *)(basis + 1);
     *(int32_t *)(origin + 1) = *(int32_t *)(basis + 2);
@@ -1905,8 +1905,8 @@ void FUN_0018d490(float *basis, void *data, float *direction,
     *(int32_t *)(basis + 7) = *(int32_t *)direction;
     *(int32_t *)(basis + 8) = *(int32_t *)(direction + 1);
     *(int32_t *)(basis + 9) = *(int32_t *)(direction + 2);
-    normalize3d(basis + 7);
-    rotate_vector3d_by_sincos(origin, basis + 7, -1.0f, 0.0f);
+    normalize3d((real_vector3d *)(basis + 7));
+    rotate_vector3d_by_sincos((real_vector3d *)origin, (real_vector3d *)(basis + 7), -1.0f, 0.0f);
     return;
   }
   display_assert(0, "c:\\halo\\SOURCE\\render\\render_sprite.c", 0xac, 1);
@@ -2260,7 +2260,7 @@ void FUN_0018dcf0(void *param_1, unsigned int param_2, int param_3, int param_4,
 
   FUN_0018cf10(param_1, (float *)param_5, (float *)param_6,
                (uint8_t)(param_2 & 1), vec_a, vec_b);
-  distance = angle_between_vectors3d(vec_a, vec_b) - *(float *)0x2568bc;
+  distance = angle_between_vectors3d((real_vector3d *)vec_a, (real_vector3d *)vec_b) - *(float *)0x2568bc;
   fade = distance * distance * *(float *)0x2b1ef8;
 
   if (fade >= *(float *)0x2533c0) {
@@ -3211,9 +3211,9 @@ char FUN_0018ed90(short cluster_index, float *point)
     z = point[2];
     break;
   case 1:
-    matrix4x3_from_forward_up_position(local, (float *)(box + 0x48),
-                                       (float *)(box + 0x30),
-                                       (float *)(box + 0x3c));
+    matrix4x3_from_forward_up_position(local, (real_point3d *)(box + 0x48),
+                                       (real_vector3d *)(box + 0x30),
+                                       (real_vector3d *)(box + 0x3c));
     real_matrix3x3_transform_point(local, point, transformed);
     if (transformed[0] <= *(float *)0x2533c0) {
       return 0;

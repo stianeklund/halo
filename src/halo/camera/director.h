@@ -24,6 +24,16 @@ static __inline flying_camera_t *director_flying_camera(camera_director_t *direc
   return camera;
 }
 
+/* editor_camera_globals.unit_offset handed to
+ * scripted_camera_set_camera_point_relative as the object-relative
+ * position. */
+static __inline const real_point3d *editor_camera_unit_relative_position(void)
+{
+  const void *position = &editor_camera_globals.unit_offset;
+
+  return position;
+}
+
 #define k_half_pi 1.5707964f
 
 /* camera_director_t.camera_proc called as a function by director_update. */
@@ -57,17 +67,7 @@ typedef struct {
 co(director_player_view_t, unit_handle, 0x34);
 co(director_player_view_t, field_aa, 0xaa);
 
-/* Scenario tag block at +0x354 (element size 0x34) that seeds the editor
- * camera focus from its first element: three position dwords and a yaw.
- * It lies inside scenario_t.pad_210, which is not split in types.h. */
-typedef struct {
-  uint8_t pad_00[0x354];
-  tag_block field_354;
-} director_scenario_view_t;
-co(director_scenario_view_t, field_354, 0x354);
-#define scenario_block_354(scenario) \
-  (&((director_scenario_view_t *)(scenario))->field_354)
-#define SCENARIO_BLOCK_354_ELEMENT_SIZE 0x34
+#define SCENARIO_PLAYER_STARTING_LOCATION_SIZE 0x34
 
 /* Pointer slot at 0x2ee670.  The editor camera reads three vectors from the
  * pointee: the point, forward and up it hands to
@@ -83,7 +83,7 @@ co(editor_camera_source_t, position, 0x10);
 co(editor_camera_source_t, forward, 0x1c);
 co(editor_camera_source_t, up, 0x28);
 
-/* Leading fields of an element of the scenario block at +0x354: the editor
+/* Leading fields of a scenario player starting location: the editor
  * camera's starting focus. */
 typedef struct {
   real_point3d position;
@@ -121,15 +121,15 @@ co(input_gamepad_state, stick_ry, 0x26);
   (real_bits_valid(value) && (value) >= -5000.0f && (value) <= 5000.0f)
 #define director_camera_command_valid(command, field_of_view, timer)      \
   (!((command)->flags & FLAG(_observer_command_valid_bit)) ||             \
-   (valid_real_normal3d_perpendicular(&(command)->forward.i,       \
-                                      &(command)->up.i) &&         \
+   (valid_real_normal3d_perpendicular(&(command)->forward,       \
+                                      &(command)->up) &&         \
     director_world_real_valid((command)->position.x) &&                   \
     director_world_real_valid((command)->position.y) &&                   \
     director_world_real_valid((command)->position.z) &&                   \
     director_world_real_valid((command)->offset.i) &&                     \
     director_world_real_valid((command)->offset.j) &&                     \
     director_world_real_valid((command)->offset.k) &&                     \
-    real_vector3d_valid(&(command)->velocity.i) &&                 \
+    real_vector3d_valid(&(command)->velocity) &&                 \
     real_bits_valid((command)->depth) && (command)->depth >= 0.0f &&      \
     (command)->depth <= 5000.0f && real_bits_valid(field_of_view) &&      \
     (field_of_view) >= 0.001f && (field_of_view) <= k_half_pi &&          \

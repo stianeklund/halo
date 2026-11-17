@@ -655,7 +655,7 @@ char collision_cylinder_test_point(void *feature, void *los_data, float *t_hit,
     *(int *)&normal[2] = *(int *)&dz;
   }
 
-  mag = normalize3d(normal);
+  mag = normalize3d((real_vector3d *)normal);
 
   if (mag == 0.0f) {
     normal[0] = 0.0f;
@@ -882,7 +882,7 @@ char collision_sphere_test_vector(void *feature, float *point, float *vector,
   plane_out[0] = t * vector[0] - dx;
   plane_out[1] = scaled_y - dy;
   plane_out[2] = scaled_z - dz;
-  if (normalize3d(plane_out) == *(float *)0x2533c0) {
+  if (normalize3d((real_vector3d *)plane_out) == *(float *)0x2533c0) {
     plane_out[0] = 0.0f;
     plane_out[1] = 0.0f;
     plane_out[2] = 1.0f;
@@ -987,7 +987,7 @@ char collision_cylinder_test_vector(void *feature, float *point, float *vector,
     hit, axis,
     -((hit[1] * axis[1] + hit[2] * axis[2] + hit[0] * axis[0]) / axis_sq),
     plane_out);
-  if (normalize3d(plane_out) == *(float *)0x2533c0) {
+  if (normalize3d((real_vector3d *)plane_out) == *(float *)0x2533c0) {
     plane_out[0] = 1.0f;
     plane_out[1] = 0.0f;
     plane_out[2] = 0.0f;

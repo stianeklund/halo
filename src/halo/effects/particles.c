@@ -94,7 +94,7 @@ int particle_system_new_attached(int particle_tag_index, int object_handle,
     *(int *)(datum + 0x24) = *(int *)(marker_buf + 0x64);
     *(int *)(datum + 0x28) = *(int *)(marker_buf + 0x68);
 
-    object_get_root_location(object_handle, (float *)(datum + 0x2c), NULL);
+    object_get_velocities(object_handle, (real_vector3d *)(datum + 0x2c), NULL);
     *(float *)(datum + 0x2c) *= TICKS_PER_SECOND;
     *(float *)(datum + 0x30) *= TICKS_PER_SECOND;
     *(float *)(datum + 0x34) *= TICKS_PER_SECOND;
@@ -322,7 +322,7 @@ void particle_effect_new(int particle, int tag_group, int physics_tag, int param
     marker_forwards[0] = *(float *)(particle + 0x3c);
     marker_forwards[1] = *(float *)(particle + 0x40);
     marker_forwards[2] = *(float *)(particle + 0x44);
-    normalize3d(marker_forwards);
+    normalize3d((real_vector3d *)marker_forwards);
 
     default_fwd = *(float **)0x31fc50;
     marker_forwards[3] = default_fwd[0];
@@ -758,7 +758,7 @@ void particle_new(void *spawn_params)
   float diffuse[3];
 
   /* assert velocity is valid */
-  if (!real_vector3d_valid(velocity)) {
+  if (!real_vector3d_valid((real_vector3d *)velocity)) {
     csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
              "&data->velocity", (double)velocity[0], (double)velocity[1],
              (double)velocity[2]);

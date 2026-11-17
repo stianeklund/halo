@@ -574,7 +574,7 @@ void FUN_00169fd0(int *sun_entry)
   scratch[0] = sun_pos[1] - *(float *)0x5a5bc8;
   scratch[1] = sun_pos[2] - *(float *)0x5a5bcc;
   scratch[2] = sun_pos[3] - *(float *)0x5a5bd0;
-  normalize3d(scratch);
+  normalize3d((real_vector3d *)scratch);
 
   dot = scratch[0] * *(float *)0x5a5bd4 + scratch[1] * *(float *)0x5a5bd8 +
         scratch[2] * *(float *)0x5a5bdc;

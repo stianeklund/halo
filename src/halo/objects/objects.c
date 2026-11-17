@@ -31,7 +31,7 @@ double pow(double x, double y);
  */
 #define XCALL(addr, type) ((type)(addr))
 #define CALL_FUN_0013d640(a, b) XCALL(0x13d640, int (*)(int, int))(a, b)
-#define CALL_FUN_00084a10(a) XCALL(0x84a10, char (*)(float *))(a)
+#define CALL_FUN_00084a10(a) XCALL(0x84a10, char (*)(const real_vector3d *))(a)
 #define CALL_game_time_get_rate() XCALL(0xb5cc0, float (*)(void))()
 /* real_rgb_color_brightness (0x7a750) — call by name, no XCALL needed */
 /* Wrappers retired in favour of named kb.json calls:
@@ -153,10 +153,10 @@ static __inline bool valid_real(float n)
 }
 
 /* 0x84a10 */
-bool real_vector3d_valid(float *vector)
+bool real_vector3d_valid(const real_vector3d *vector)
 {
-  return valid_real(vector[0]) && valid_real(vector[1]) &&
-         valid_real(vector[2]);
+  return valid_real(vector->i) && valid_real(vector->j) &&
+         valid_real(vector->k);
 }
 
 #define valid_ranged_real(x, lo, hi) (valid_real(x) && (x) >= (lo) && (x) <= (hi))
@@ -164,10 +164,10 @@ bool real_vector3d_valid(float *vector)
 #define valid_world_real3d(v, a, b, c) \
   (valid_world_real((v).a) && valid_world_real((v).b) && valid_world_real((v).c))
 #define valid_camera_command(c, velocity_valid) \
-  (valid_real_normal3d_perpendicular(&(c)->forward.i, &(c)->up.i) && \
+  (valid_real_normal3d_perpendicular(&(c)->forward, &(c)->up) && \
    valid_world_real3d((c)->position, x, y, z) && \
    valid_world_real3d((c)->offset, i, j, k) && \
-   velocity_valid(&(c)->velocity.i) && \
+   velocity_valid(&(c)->velocity) && \
    valid_ranged_real((c)->depth, REAL_ZERO_POOL, REAL_5000_POOL) && \
    valid_ranged_real((c)->field_of_view, REAL_0_001_POOL, REAL_HALF_PI_POOL) && \
    valid_ranged_real((c)->timer, REAL_ZERO_POOL, REAL_3600_POOL))
@@ -197,13 +197,14 @@ bool real_vector3d_valid(float *vector)
  * Confirmed: FABS / FCOMPL double ptr [0x2549d8] compares against
  * (double)0.001f. Confirmed: FNSTSW AX / TEST AH,5 / JP pattern — returns true
  * when fabsf(dot) < 0.001f. */
-bool valid_real_normal3d_perpendicular(float *a, float *b)
+bool valid_real_normal3d_perpendicular(const real_vector3d *a,
+                                       const real_vector3d *b)
 {
   float dot;
   char ok;
-  ok = (char)valid_real_normal3d(a);
-  if (ok && (ok = (char)valid_real_normal3d(b), ok) &&
-      (dot = a[2] * b[2] + a[1] * b[1] + a[0] * b[0],
+  ok = (char)valid_real_normal3d((float *)a);
+  if (ok && (ok = (char)valid_real_normal3d((float *)b), ok) &&
+      (dot = a->k * b->k + a->j * b->j + a->i * b->i,
        (*(unsigned int *)&dot & 0x7f800000) != 0x7f800000) &&
       fabs(dot) < 0.001) {
     return 1;
@@ -265,14 +266,14 @@ void bored_camera_update(bored_camera_t *camera, camera_action_t *controls,
       facing = player_control_get_facing_angles(controls->local_player_index);
       angles[0] = facing->yaw;
       angles[1] = facing->pitch;
-      unit_get_camera_position(unit_index, &camera_position.x);
+      unit_get_camera_position(unit_index, &camera_position);
       /* angles[] is one {yaw, pitch} pair: angles_to_vector reads both. */
       angles[1] = random_real_range(random_math_get_local_seed_address(),
                                     -1.0995574f, 0.39269909f);
       angles[0] += random_real_range(random_math_get_local_seed_address(),
                                      -0.78539819f, 0.78539819f) +
                    3.14159265f;
-      angles_to_vector(&result->forward.i, angles);
+      angles_to_vector(&result->forward, (real_euler_angles2d *)angles);
       observer_up_from_forward(&result->forward, &result->up);
       field_of_view = random_real_range(
         random_math_get_local_seed_address(), 0.52359879f, 1.3962634f);
@@ -463,15 +464,16 @@ void scripted_camera_set_absolute(short camera_point_index, short transition_tim
  * Confirmed: the zero-speed comparison uses 0x2533c0; the fallback speed is
  * the binary constant 0x3f9c61aa, and observer_update receives 0x38d1b717.
  */
-void scripted_camera_set_camera_point_relative(float *position, float *forward,
-                                               float *up, float field_of_view,
+void scripted_camera_set_camera_point_relative(const real_point3d *position,
+                                               const real_vector3d *forward,
+                                               const real_vector3d *up, float field_of_view,
                                                short transition_time, int relative_object_index)
 {
   scripted_camera_globals.mode = 0;
   scripted_camera_globals.camera_point_index = -1;
-  scripted_camera_globals.point = *(real_point3d *)position;
-  scripted_camera_globals.forward = *(real_vector3d *)forward;
-  scripted_camera_globals.up = *(real_vector3d *)up;
+  scripted_camera_globals.point = *position;
+  scripted_camera_globals.forward = *forward;
+  scripted_camera_globals.up = *up;
   if (field_of_view != 0.0f) {
     scripted_camera_globals.field_of_view = field_of_view;
   } else {
@@ -489,7 +491,7 @@ void scripted_camera_set_camera_point_absolute(float *position, float *forward,
                                                float *up, float field_of_view,
                                                short transition_time)
 {
-  scripted_camera_set_camera_point_relative(position, forward, up, field_of_view, transition_time,
+  scripted_camera_set_camera_point_relative((real_point3d *)position, (real_vector3d *)forward, (real_vector3d *)up, field_of_view, transition_time,
                                             -1);
 }
 
@@ -3453,10 +3455,10 @@ void light_reconnect_to_map(int object_handle)
                                light->attachment_marker_index);
       matrix_transform_point((float *)node_matrix, &light->attachment.relative_position.x,
                              &light->position.x);
-      matrix_transform_vector((float *)node_matrix, &light->relative_forward.i,
-                              &light->forward.i);
+      matrix_transform_vector((float *)node_matrix, &light->relative_forward,
+                              &light->forward);
       perpendicular3d(&light->forward.i, &light->up.i);
-      normalize3d(&light->up.i);
+      normalize3d(&light->up);
     }
   }
 
@@ -4070,18 +4072,18 @@ void lights_prepare_for_object_static(int object_handle, float *lighting)
     lighting[4] *= scale;
     lighting[5] *= scale;
     lighting[6] *= scale;
-    normalize3d(lighting + 7);
+    normalize3d((real_vector3d *)(lighting + 7));
     lighting[0xa] *= scale;
     lighting[0xb] *= scale;
     lighting[0xc] *= scale;
-    normalize3d(lighting + 0xd);
+    normalize3d((real_vector3d *)(lighting + 0xd));
     lighting[0x1a] *= scale;
     lighting[0x1b] *= scale;
     lighting[0x1c] *= scale;
     lighting[0x17] *= scale;
     lighting[0x18] *= scale;
     lighting[0x19] *= scale;
-    normalize3d(lighting + 0x17);
+    normalize3d((real_vector3d *)(lighting + 0x17));
   } else if (sample_count == 0) {
     csmemcpy(lighting, sample, 29 * 4);
   }
@@ -5378,7 +5380,7 @@ int object_type_synchronize(int param_1, short *param_2, int param_3,
       (float)puVar4[0x17] * REAL_0_5_POOL + *(float *)(param_2 + 8);
     position = (float *)&frame.local_44;
   }
-  object_set_position(param_1, position, &frame.matrix[1], &frame.matrix[7]);
+  object_set_position(param_1, (real_point3d *)position, (real_vector3d *)&frame.matrix[1], (real_vector3d *)&frame.matrix[7]);
   *(short *)((int)puVar4 + 0x6a) = param_2[1];
 LAB_0013d51f:
   if (param_2[1] != -1) {
@@ -8007,10 +8009,10 @@ void object_deactivate(int object_handle)
 void object_reset(int object_handle)
 {
   object_data_t *obj;
-  const vector3_t *up;
+  const real_vector3d *up;
 
   obj = (object_data_t *)object_get_and_verify_type(object_handle, -1);
-  up = (const vector3_t *)0x31fc38;
+  up = (const real_vector3d *)0x31fc38;
   obj->translational_velocity = *up;
   obj->angular_velocity = *up;
   obj->flags &= ~0x20u;
@@ -8428,8 +8430,8 @@ void object_set_visibility(int object_handle, int flag)
  * forward vector to the output buffers (0x140070). Either output may
  * be NULL to skip copying. Position is at object offset 0x18 (3 floats),
  * forward direction at 0x3c (3 floats). */
-void object_get_root_location(int object_handle, float *position_out,
-                              float *direction_out)
+void object_get_velocities(int object_handle, real_vector3d *translational_velocity,
+                           real_vector3d *angular_velocity)
 {
   char *obj = (char *)object_get_and_verify_type(object_handle, -1);
 
@@ -8452,16 +8454,16 @@ void object_get_root_location(int object_handle, float *position_out,
     }
   }
 
-  if (position_out != NULL) {
-    position_out[0] = *(float *)(obj + 0x18);
-    position_out[1] = *(float *)(obj + 0x1c);
-    position_out[2] = *(float *)(obj + 0x20);
+  if (translational_velocity != NULL) {
+    translational_velocity->i = *(float *)(obj + 0x18);
+    translational_velocity->j = *(float *)(obj + 0x1c);
+    translational_velocity->k = *(float *)(obj + 0x20);
   }
 
-  if (direction_out != NULL) {
-    direction_out[0] = *(float *)(obj + 0x3c);
-    direction_out[1] = *(float *)(obj + 0x40);
-    direction_out[2] = *(float *)(obj + 0x44);
+  if (angular_velocity != NULL) {
+    angular_velocity->i = *(float *)(obj + 0x3c);
+    angular_velocity->j = *(float *)(obj + 0x40);
+    angular_velocity->k = *(float *)(obj + 0x44);
   }
 }
 
@@ -9034,7 +9036,7 @@ char object_visible_to_any_player(int object_handle)
             delta[1] = obj->bounding_sphere_center.y - head_pos[1];
             delta[2] = obj->bounding_sphere_center.z - head_pos[2];
             radius_d = (double)obj->unk_92;
-            magnitude = normalize3d(delta);
+            magnitude = normalize3d((real_vector3d *)delta);
 
             /* dot product of normalized delta with unit forward vector */
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -9586,8 +9588,8 @@ void object_compute_child_marker_position(void *object, void *child_marker,
   obj_up = (float *)((char *)object + 0x30);
 
   /* Build a matrix4x3 from the object's orientation and position */
-  matrix4x3_from_forward_up_position(local_mat, obj_position, obj_forward,
-                                     obj_up);
+  matrix4x3_from_forward_up_position(local_mat, (real_point3d *)obj_position, (real_vector3d *)obj_forward,
+                                     (real_vector3d *)obj_up);
 
   /* Invert it */
   matrix_inverse(local_mat, inv_mat);
@@ -9633,8 +9635,8 @@ void object_compute_child_marker_position(void *object, void *child_marker,
   obj_up[1] = left_z * fwd_x - fwd_z * left_x;
   obj_up[2] = fwd_y * left_x - left_y * fwd_x;
 
-  normalize3d(obj_forward);
-  normalize3d(obj_up);
+  normalize3d((real_vector3d *)obj_forward);
+  normalize3d((real_vector3d *)obj_up);
 }
 
 /*
@@ -9683,8 +9685,8 @@ void object_detach_from_parent(int object_handle)
                            (int16_t) * (int8_t *)((char *)child + 0xd0));
 
   matrix4x3_identity_with_position(child_position, (float *)&child->position);
-  matrix_from_forward_and_up(child_orientation, (float *)&child->forward,
-                             (float *)&child->up);
+  matrix_from_forward_and_up((real_matrix4x3 *)child_orientation, &child->forward,
+                             &child->up);
   matrix4x3_multiply((float *)node_matrix, child_position, result);
   matrix4x3_multiply(result, child_orientation, result); /* dup-args-ok */
   matrix4x3_decompose(result, (float *)&child->position, (float *)&child->forward,
@@ -9789,17 +9791,17 @@ void object_get_orientation(int object_handle, float *out_forward,
                              (int16_t) * (int8_t *)((char *)obj + 0xd0));
 
     if (out_forward != NULL) {
-      matrix_transform_vector((float *)node_mat, (float *)&obj->forward,
-                              out_forward);
+      matrix_transform_vector((float *)node_mat, &obj->forward,
+                              (real_vector3d *)out_forward);
     }
     if (out_up != NULL) {
-      matrix_transform_vector((float *)node_mat, (float *)&obj->up, out_up);
+      matrix_transform_vector((float *)node_mat, &obj->up, (real_vector3d *)out_up);
     }
   }
 
   /* Validate perpendicularity if both vectors were requested */
   if (out_forward != NULL && out_up != NULL) {
-    if (!valid_real_normal3d_perpendicular(out_forward, out_up)) {
+    if (!valid_real_normal3d_perpendicular((real_vector3d *)out_forward, (real_vector3d *)out_up)) {
       display_assert(
         csprintf(
           (char *)0x5ab100,
@@ -10558,8 +10560,8 @@ void object_compute_node_matrices(int object_handle)
         display_assert(msg, "c:\\halo\\SOURCE\\objects\\objects.c", 0xae2, 1);
         system_exit(-1);
       }
-      if (!valid_real_normal3d_perpendicular((float *)((char *)obj + 0x24),
-                                             (float *)((char *)obj + 0x30))) {
+      if (!valid_real_normal3d_perpendicular((real_vector3d *)((char *)obj + 0x24),
+                                             (real_vector3d *)((char *)obj + 0x30))) {
         char *name = (char *)tag_get_name(*(int *)obj);
         char *msg = csprintf((char *)0x5ab100,
                              "%s had a bad forward and up before "
@@ -11310,7 +11312,7 @@ void object_render_debug(int param_1)
     char *name_ptr;
     backslash = (char *)strrchr(*(char **)(tag_data + 0x2c), 0x5c);
     object_get_world_matrix(param_1, world_matrix);
-    object_get_root_location(param_1, root_pos, 0);
+    object_get_velocities(param_1, (real_vector3d *)root_pos, 0);
     if (backslash == (char *)0) {
       name_ptr = *(char **)(tag_data + 0x2c);
     } else {
@@ -11553,8 +11555,8 @@ void attachments_delete(int object_handle)
  * Confirmed: CALL 0x140ce0 (object_connect_to_map) with (handle, 0).
  * Confirmed: FCOMP against REAL_ZERO_POOL (0.0f) for degenerate check.
  */
-void object_set_position(int object_handle, float *position, float *forward,
-                         float *up)
+void object_set_position(int object_handle, const real_point3d *position,
+                         const real_vector3d *forward, const real_vector3d *up)
 {
   char *obj;
   float temp[3];
@@ -11566,31 +11568,31 @@ void object_set_position(int object_handle, float *position, float *forward,
 
   /* Copy position if provided */
   if (position != NULL) {
-    *(float *)(obj + 0x0c) = position[0];
-    *(float *)(obj + 0x10) = position[1];
-    *(float *)(obj + 0x14) = position[2];
+    *(float *)(obj + 0x0c) = position->x;
+    *(float *)(obj + 0x10) = position->y;
+    *(float *)(obj + 0x14) = position->z;
   }
 
   /* Copy forward direction and compute/set up vector */
   if (forward != NULL) {
-    fwd0 = forward[0];
+    fwd0 = forward->i;
     *(float *)(obj + 0x24) = fwd0;
-    *(float *)(obj + 0x28) = forward[1];
-    *(float *)(obj + 0x2c) = forward[2];
+    *(float *)(obj + 0x28) = forward->j;
+    *(float *)(obj + 0x2c) = forward->k;
 
     if (up != NULL) {
       /* Up vector provided directly */
-      *(float *)(obj + 0x30) = up[0];
-      *(float *)(obj + 0x34) = up[1];
-      *(float *)(obj + 0x38) = up[2];
+      *(float *)(obj + 0x30) = up->i;
+      *(float *)(obj + 0x34) = up->j;
+      *(float *)(obj + 0x38) = up->k;
     } else {
       /* Compute perpendicular up from forward direction:
        * temp = {forward.y, -forward.x, 0.0} */
-      temp[0] = forward[1];
+      temp[0] = forward->j;
       temp[1] = -fwd0;
       temp[2] = 0.0f;
 
-      mag = normalize3d(temp);
+      mag = normalize3d((real_vector3d *)temp);
       if (REAL_ZERO_POOL == mag) {
         /* Degenerate (forward is along Z) — use X axis */
         temp[0] = 1.0f;
@@ -11599,9 +11601,9 @@ void object_set_position(int object_handle, float *position, float *forward,
       }
 
       /* up = cross(temp, forward) */
-      *(float *)(obj + 0x30) = temp[1] * forward[2] - temp[2] * forward[1];
-      *(float *)(obj + 0x34) = temp[2] * fwd0 - temp[0] * forward[2];
-      *(float *)(obj + 0x38) = temp[0] * forward[1] - temp[1] * fwd0;
+      *(float *)(obj + 0x30) = temp[1] * forward->k - temp[2] * forward->j;
+      *(float *)(obj + 0x34) = temp[2] * fwd0 - temp[0] * forward->k;
+      *(float *)(obj + 0x38) = temp[0] * forward->j - temp[1] * fwd0;
     }
   }
 
@@ -11720,8 +11722,8 @@ int object_new(void *placement)
   }
 
   /* --- Validation: forward/up axes perpendicularity --- */
-  if (!valid_real_normal3d_perpendicular((float *)(p + 0x34),
-                                         (float *)(p + 0x40))) {
+  if (!valid_real_normal3d_perpendicular((real_vector3d *)(p + 0x34),
+                                         (real_vector3d *)(p + 0x40))) {
     char *msg = csprintf(
       (char *)0x5ab100,
       "%s, %s: assert_valid_real_vector3d_axes2(%f, %f, %f / %f, %f, %f)",
@@ -11734,7 +11736,7 @@ int object_new(void *placement)
   }
 
   /* --- Validation: angular velocity --- */
-  if (!real_vector3d_valid((float *)(p + 0x4c))) {
+  if (!real_vector3d_valid((real_vector3d *)(p + 0x4c))) {
     char *msg =
       csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                "&data->angular_velocity", (double)*(float *)(p + 0x4c),
@@ -11744,7 +11746,7 @@ int object_new(void *placement)
   }
 
   /* --- Validation: translational velocity --- */
-  if (!real_vector3d_valid((float *)(p + 0x28))) {
+  if (!real_vector3d_valid((real_vector3d *)(p + 0x28))) {
     char *msg =
       csprintf((char *)0x5ab100, "%s: assert_valid_real_vector2d(%f, %f, %f)",
                "&data->translational_velocity", (double)*(float *)(p + 0x28),
@@ -12061,11 +12063,11 @@ void object_attach_to_parent(int parent_handle, int child_handle,
                          (float *)&child_obj->position, /* dup-args-ok */
                          (float *)&child_obj->position);
   matrix_transform_vector(local_matrix,
-                          (float *)&child_obj->forward, /* dup-args-ok */
-                          (float *)&child_obj->forward);
+                          &child_obj->forward, /* dup-args-ok */
+                          &child_obj->forward);
   matrix_transform_vector(local_matrix,
-                          (float *)&child_obj->up, /* dup-args-ok */
-                          (float *)&child_obj->up);
+                          &child_obj->up, /* dup-args-ok */
+                          &child_obj->up);
 
   /* Store parent attachment info in the child object. */
   child_obj->parent_object_index.value = parent_handle;
@@ -12157,7 +12159,7 @@ bool object_try_place(int object_handle, float *position)
   delta[2] = *(float *)(obj + 0x14) - position[2];
 
   /* Cast collision ray from target position along delta direction. */
-  if (collision_test_vector(0x1000e9, position, delta, -1, collision_result) ||
+  if (collision_test_vector(0x1000e9, (real_point3d *)position, (real_vector3d *)delta, -1, collision_result) ||
       *(int16_t *)(obj + 0x4c) == -1) {
     /* Collision found or object has no cluster placement. */
     if (*(int16_t *)col_surface_ptr == -1) {
@@ -12503,10 +12505,10 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
     matrix_inverse((float *)(child_markers + 4), inverse);
     matrix_transform_point(inverse, (float *)(parent_markers + 0x60),
                            (float *)((char *)child_obj + 0xC));
-    matrix_transform_vector(inverse, (float *)(parent_markers + 0x3C),
-                            (float *)((char *)child_obj + 0x24));
-    matrix_transform_vector(inverse, (float *)(parent_markers + 0x54),
-                            (float *)((char *)child_obj + 0x30));
+    matrix_transform_vector(inverse, (real_vector3d *)(parent_markers + 0x3C),
+                            (real_vector3d *)((char *)child_obj + 0x24));
+    matrix_transform_vector(inverse, (real_vector3d *)(parent_markers + 0x54),
+                            (real_vector3d *)((char *)child_obj + 0x30));
   } else {
     /* Child marker name specified — delegate to
        object_compute_child_marker_position which handles the full

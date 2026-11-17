@@ -66,7 +66,7 @@ int action_charge_valid_melee_destination(int actor_handle, float *source_pos)
   dir[0] = source_pos[0] - target_pos[0];
   dir[1] = source_pos[1] - target_pos[1];
   dir[2] = source_pos[2] - target_pos[2];
-  collision_test_vector(0x33, target_pos, dir, -1, collision_result);
+  collision_test_vector(0x33, (real_point3d *)target_pos, (real_vector3d *)dir, -1, collision_result);
 
   if (*(volatile short *)0x4761d8 <= 1) {
     display_assert("global_current_collision_user_depth > 1",
@@ -2191,7 +2191,7 @@ int action_guard_setup_from_combat_transition(int actor_handle, short *param_2)
         *(int *)(param_2 + 0xc) = ((actor_t *)actor)->field_330;
         *(int *)(param_2 + 0xe) = ((actor_t *)actor)->field_334;
         *(int *)(param_2 + 0x10) = ((actor_t *)actor)->field_338;
-        if (normalize3d((float *)(param_2 + 0xc)) == *(float *)0x2533c0) {
+        if (normalize3d((real_vector3d *)(param_2 + 0xc)) == *(float *)0x2533c0) {
           *(char *)(param_2 + 10) = 0;
         }
       }
@@ -2284,7 +2284,7 @@ char action_guard_setup_from_fleeing(int actor_handle, int param_2,
           *(float *)(param_2 + 0x28) - ((actor_t *)actor)->field_130;
         direction[2] =
           *(float *)(param_2 + 0x2c) - ((actor_t *)actor)->field_134;
-        if (normalize3d(direction) == *(float *)0x2533c0) {
+        if (normalize3d((real_vector3d *)direction) == *(float *)0x2533c0) {
           *(char *)(param_3 + 10) = 0;
         }
       }
@@ -3360,10 +3360,10 @@ void action_obey_directmovement_update_facing(char *state_data,
   case 2:
   case 3:
     cross_product3d(*(float **)0x31fc44, &facing[0], &cross[0]);
-    if (normalize3d(&cross[0]) == 0.0f) {
+    if (normalize3d((real_vector3d *)&cross[0]) == 0.0f) {
       obj = (char *)object_get_and_verify_type(object_handle, 0x3);
       cross_product3d((float *)(obj + 0x30), &facing[0], &cross[0]);
-      if (normalize3d(&cross[0]) == 0.0f) {
+      if (normalize3d((real_vector3d *)&cross[0]) == 0.0f) {
         cross[0] = *(float *)(*(int *)0x31fc3c);
         cross[1] = *(float *)(*(int *)0x31fc3c + 4);
         cross[2] = *(float *)(*(int *)0x31fc3c + 8);
@@ -3644,7 +3644,7 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx,
       elem = (int *)tag_block_get_element(cmd_list + 0x3c, (int)mode, 0x14);
       FUN_00012140((float *)(state_data + 0x18), (float *)elem,
                    (float *)(state_data + 0xc));
-      if (!(normalize3d((float *)(state_data + 0xc)) > *(float *)0x2533c0)) {
+      if (!(normalize3d((real_vector3d *)(state_data + 0xc)) > *(float *)0x2533c0)) {
         result = 0;
         break;
       }
@@ -4084,12 +4084,12 @@ bool action_obey_command_begin(int actor_handle, short scenario_idx,
           unit_get_facing_vector(unit_handle, pos);
         }
       } else {
-        if (normalize3d(pos) == *(float *)0x2533c0) {
+        if (normalize3d((real_vector3d *)pos) == *(float *)0x2533c0) {
           unit_get_facing_vector(unit_handle, pos);
         }
       }
     }
-    object_set_position(unit_handle, (float *)elem, pos, 0);
+    object_set_position(unit_handle, (real_point3d *)elem, (real_vector3d *)pos, 0);
     object_reset(unit_handle);
     object_update_children_recursive(unit_handle);
     if (unit_handle == ((actor_t *)actor)->field_018) {
@@ -7226,7 +7226,7 @@ short actor_select_firing_position(int actor_handle, void *eval_ctx,
               *(float *)0x254f90) {
             if (path_3d_available((int)scn, (int *)(ctx + 0x604), 0, (int *)pos,
                                   (unsigned char *)0, (float *)0) != '\0') {
-              *(float *)(rec + 0x18) = normalize3d(vtmp);
+              *(float *)(rec + 0x18) = normalize3d((real_vector3d *)vtmp);
               if (*(char *)(ctx + 0x43) != '\0') {
                 *(int *)(rec + 0x20) = *(int *)&vtmp[0];
                 *(int *)(rec + 0x24) = *(int *)&vtmp[1];
@@ -8524,7 +8524,7 @@ char FUN_000283b0(float *actor_facing, char is_aim, float az_min, float az_max,
   axis[0] = -current_dir[1];
   axis[1] = current_dir[0];
   axis[2] = 0.0f;
-  if (normalize3d(axis) == 0.0f) {
+  if (normalize3d((real_vector3d *)axis) == 0.0f) {
     axis[0] = (*(float **)0x31fc40)[0];
     axis[1] = (*(float **)0x31fc40)[1];
     axis[2] = (*(float **)0x31fc40)[2];
@@ -8538,9 +8538,9 @@ char FUN_000283b0(float *actor_facing, char is_aim, float az_min, float az_max,
     direction[0] = current_dir[0];
     direction[1] = current_dir[1];
     direction[2] = current_dir[2];
-    rotate_vector3d_by_sincos(direction, axis, x87_fsin(pitch),
+    rotate_vector3d_by_sincos((real_vector3d *)direction, (real_vector3d *)axis, x87_fsin(pitch),
                               x87_fcos(pitch));
-    rotate_vector3d_by_sincos(direction, *(float **)0x31fc44, x87_fsin(yaw),
+    rotate_vector3d_by_sincos((real_vector3d *)direction, (real_vector3d *)(*(float **)0x31fc44), x87_fsin(yaw),
                               x87_fcos(yaw));
     if (is_aim == '\0') {
       break;
@@ -8559,7 +8559,7 @@ char FUN_000283b0(float *actor_facing, char is_aim, float az_min, float az_max,
     ray[0] = direction[0] * *(float *)0x254644;
     ray[1] = direction[1] * *(float *)0x254644;
     ray[2] = direction[2] * *(float *)0x254644;
-    clear = !collision_test_vector(0x21, actor_facing, ray, -1, collision_result);
+    clear = !collision_test_vector(0x21, (real_point3d *)actor_facing, (real_vector3d *)ray, -1, collision_result);
     if (*(volatile short *)0x4761d8 <= 1) {
       display_assert("global_current_collision_user_depth > 1",
                      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x42e, 1);
@@ -8661,7 +8661,7 @@ char actor_look_idle_new_major_direction(float *look_vectors, float *dir_vec,
         el_max = *(float *)(tag_data + 0xc8);
       }
       local_dir[2] = 0.0f;
-      if (normalize3d(local_dir) == 0.0f) {
+      if (normalize3d((real_vector3d *)local_dir) == 0.0f) {
         local_dir[0] = *(float *)(*(int *)0x0031fc3c);
         local_dir[1] = *(float *)(*(int *)0x0031fc3c + 4);
         local_dir[2] = *(float *)(*(int *)0x0031fc3c + 8);

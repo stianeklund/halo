@@ -597,7 +597,7 @@ void vehicle_accelerate(int handle, float *velocity)
 
     vehicle_cross_product3d_in_place(GLOBAL_UP3D, acceleration, &torque);
 
-    magnitude = normalize3d(&torque.i);
+    magnitude = normalize3d(&torque);
     if (magnitude > 0.0f) {
       magnitude = magnitude * 3.14159265f;
       torque.i = torque.i * magnitude;
@@ -1079,7 +1079,7 @@ void update_human_boat_physics(int vehicle_index, void *mass_points,
     zero.j = 0.0f;
     zero.k = 0.0f;
 
-    forward = &object->forward.x;
+    forward = &object->forward.i;
 
     state[1].water_lift_ratio = 0.003f;
     state[1].rotation[0] = 0.0f;
@@ -1093,13 +1093,13 @@ void update_human_boat_physics(int vehicle_index, void *mass_points,
     state[2].rotation[2] = 0.0f;
     state[2].rotation[3] = 1.0f;
 
-    negative_k = -object->forward.z;
+    negative_k = -object->forward.k;
 
     up_relative.i = forward[0] * negative_k + GLOBAL_UP3D->i;
     up_relative.j = forward[1] * negative_k + GLOBAL_UP3D->j;
     up_relative.k = forward[2] * negative_k + GLOBAL_UP3D->k;
 
-    if (normalize3d(&up_relative.i) != 0.0f) {
+    if (normalize3d(&up_relative) != 0.0f) {
       const real_vector3d *up = (const real_vector3d *)&object->up;
       const real_vector3d *velocity =
         (const real_vector3d *)&object->translational_velocity;
@@ -1110,10 +1110,10 @@ void update_human_boat_physics(int vehicle_index, void *mass_points,
       spin = vehicle_triple_product3d(velocity, forward3d, GLOBAL_UP3D) *
              (2.0f * 3.14159265f);
 
-      rotate_vector3d_by_sincos(&up_relative.i, (float *)forward,
+      rotate_vector3d_by_sincos(&up_relative, (real_vector3d *)forward,
                                 x87_fsin(spin), x87_fcos(spin));
 
-      angle = angle_between_vectors3d(&up_relative.i, &object->up.x);
+      angle = angle_between_vectors3d(&up_relative, &object->up);
 
       if (vehicle_dot_product3d(&cross, &up_relative) > 0.0f) {
         angle = -angle;
@@ -1275,7 +1275,7 @@ void update_alien_fighter_physics_new(int vehicle_index,
       desired_rotation.up.k =
         desired_rotation.forward.k * t + GLOBAL_UP3D->k;
 
-      if (normalize3d(&desired_rotation.up.i) == 0.0f) {
+      if (normalize3d(&desired_rotation.up) == 0.0f) {
         desired_rotation.up = *(real_vector3d *)global_forward_vector_ptr;
       }
 
@@ -1286,9 +1286,9 @@ void update_alien_fighter_physics_new(int vehicle_index,
       }
 
       yaw = (desired_rotation.forward.i *
-               vehicle->unit.object.translational_velocity.y -
+               vehicle->unit.object.translational_velocity.j -
              desired_rotation.forward.j *
-               vehicle->unit.object.translational_velocity.x) /
+               vehicle->unit.object.translational_velocity.i) /
             definition->field_2f8[0] * definition->field_308;
 
       yaw_vectors(&desired_rotation.up.i, &desired_rotation.forward.i,
@@ -1448,7 +1448,7 @@ void update_alien_fighter_physics_old(int vehicle_index,
     perpendicular.j = -(facing.k * facing.j);
     perpendicular.k = 1.0f - facing.k * facing.k;
 
-    if (normalize3d(&perpendicular.i) == 0.0f) {
+    if (normalize3d(&perpendicular) == 0.0f) {
       perpendicular.i = 1.0f;
       perpendicular.j = 0.0f;
       perpendicular.k = 0.0f;
@@ -1461,13 +1461,13 @@ void update_alien_fighter_physics_old(int vehicle_index,
     lift = (x87_fabs(speed / definition->field_2f8[0]) * physics->mass) *
            global_gravity * 1.05f;
 
-    force.i = lift * object->up.x + thrust * object->forward.x;
-    force.j = lift * object->up.y + thrust * object->forward.y;
-    force.k = lift * object->up.z + thrust * object->forward.z;
+    force.i = lift * object->up.i + thrust * object->forward.i;
+    force.j = lift * object->up.j + thrust * object->forward.j;
+    force.k = lift * object->up.k + thrust * object->forward.k;
 
     {
       real *destination = &velocity.i;
-      const real *source = &object->translational_velocity.x;
+      const real *source = &object->translational_velocity.i;
       short component_index;
 
       for (component_index = 0; component_index < 2; component_index++) {
@@ -1484,10 +1484,10 @@ void update_alien_fighter_physics_old(int vehicle_index,
       real_quaternion rotation;
       real angle;
 
-      matrix_from_forward_and_up((float *)&actual, &object->forward.x,
-                                 &object->up.x);
-      matrix_from_forward_and_up((float *)&desired, &facing.i,
-                                 &perpendicular.i);
+      matrix_from_forward_and_up(&actual, &object->forward,
+                                 &object->up);
+      matrix_from_forward_and_up(&desired, &facing,
+                                 &perpendicular);
       matrix_inverse((float *)&desired, (float *)&desired);
       matrix4x3_multiply((float *)&actual, (float *)&desired,
                          (float *)&difference);
@@ -1498,9 +1498,9 @@ void update_alien_fighter_physics_old(int vehicle_index,
 
     scale = physics->radius * physics->radius * physics->mass * 0.05f;
 
-    torque.i = (scaled.i - object->angular_velocity.x) * scale;
-    torque.j = (scaled.j - object->angular_velocity.y) * scale;
-    torque.k = (scaled.k - object->angular_velocity.z) * scale;
+    torque.i = (scaled.i - object->angular_velocity.i) * scale;
+    torque.j = (scaled.j - object->angular_velocity.j) * scale;
+    torque.k = (scaled.k - object->angular_velocity.k) * scale;
 
     state[0].antigrav_fraction = vehicle->unit.seat_power[0];
     state[0].rotation[3] = 1.0f;
@@ -1575,15 +1575,15 @@ void slowly_stop_vehicle(int vehicle_index)
 
     axis = *angular_velocity;
 
-    magnitude = normalize3d(&axis.i);
+    magnitude = normalize3d(&axis);
     if (magnitude != 0.0f) {
       FUN_001092d0((float *)&rotation, &axis.i, x87_fsin(magnitude),
                    x87_fcos(magnitude));
       matrix_scale_transform_vector((float *)&rotation,
-                                    &vehicle->unit.object.forward.x,
+                                    &vehicle->unit.object.forward.i,
                                     &forward.i);
       matrix_scale_transform_vector((float *)&rotation,
-                                    &vehicle->unit.object.up.x, &up.i);
+                                    &vehicle->unit.object.up.i, &up.i);
     } else {
       forward = *(real_vector3d *)&vehicle->unit.object.forward;
       up = *(real_vector3d *)&vehicle->unit.object.up;
@@ -1595,7 +1595,7 @@ void slowly_stop_vehicle(int vehicle_index)
     *angular_velocity = *(real_vector3d *)global_zero_vector_ptr;
   }
 
-  object_set_position(vehicle_index, &position.x, &forward.i, &up.i);
+  object_set_position(vehicle_index, &position, &forward, &up);
 }
 
 /*
@@ -1693,7 +1693,7 @@ void create_pelican_effect(int vehicle_handle)
     velocity[1] = direction[1] * speed;
     velocity[2] = direction[2] * speed;
 
-    if (collision_test_vector(0x61, (float *)(marker + 0x60), velocity, vehicle_handle,
+    if (collision_test_vector(0x61, (real_point3d *)(marker + 0x60), (real_vector3d *)velocity, vehicle_handle,
                      collision_result)) {
       marker_forwards[0] = -direction[0];
       marker_forwards[1] = -direction[1];
@@ -1796,7 +1796,7 @@ void create_ghost_effect(int vehicle_index)
 
       vector = direction;
 
-      if (collision_test_vector(0x61, (float *)&marker->matrix.position, &vector.i,
+      if (collision_test_vector(0x61, &marker->matrix.position, &vector,
                        vehicle_index, (int16_t *)&collision)) {
 #define GHOST_WASH_SCALE \
   (-marker->matrix.forward.k * (1.0f - collision.t) * vehicle->unit.seat_power[0])
@@ -1969,9 +1969,9 @@ bool update_suspension(int vehicle_index)
     return 0;
   physics = (char *)tag_get(0x70687973, *(int *)(definition + 0x8c));
   largest = 0.0f;
-  matrix4x3_from_forward_up_position(matrix, (float *)(vehicle + 0xc),
-                                     (float *)(vehicle + 0x24),
-                                     (float *)(vehicle + 0x30));
+  matrix4x3_from_forward_up_position(matrix, (real_point3d *)(vehicle + 0xc),
+                                     (real_vector3d *)(vehicle + 0x24),
+                                     (real_vector3d *)(vehicle + 0x30));
   suspensions = (int *)(animation + 0x68);
   for (i = 0; i < *suspensions; i++) {
     suspension = (char *)tag_block_get_element(suspensions, i, 0x14);
@@ -1988,7 +1988,7 @@ bool update_suspension(int vehicle_index)
     else
       previous = (float)*(uint8_t *)(vehicle + 0x44c + i) * 0.003921569f;
     matrix_transform_point(matrix, (float *)(mass_point + 0x38), point);
-    matrix_transform_vector(matrix, (float *)(mass_point + 0x50), down);
+    matrix_transform_vector(matrix, (real_vector3d *)(mass_point + 0x50), (real_vector3d *)down);
     length = *(float *)(suspension + 0x4) - *(float *)(suspension + 0x8);
     offset = *(float *)(suspension + 0x8) - *(float *)(physics + 0x14) - length;
     start[0] = down[0] * offset + point[0];
@@ -1998,7 +1998,7 @@ bool update_suspension(int vehicle_index)
     vector[0] = down[0] * length;
     vector[1] = down[1] * length;
     vector[2] = down[2] * length;
-    collision_test_vector(0xc0a0, start, vector, vehicle_index, collision_result);
+    collision_test_vector(0xc0a0, (real_point3d *)start, (real_vector3d *)vector, vehicle_index, collision_result);
     state = (1.0f - *(float *)((char *)collision_result + 0x14)) * 2.0f;
     if (state < 0.0f)
       state = 0.0f;
@@ -2516,7 +2516,7 @@ char vehicle_stuck(int unit_handle, float *vec)
         vec[1] = center_in_world.y - origin.y;
         vec[2] = center_in_world.z - origin.z;
 
-        if (normalize3d(vec) != 0.0f) {
+        if (normalize3d((real_vector3d *)vec) != 0.0f) {
           stuck = 1;
         }
       }
@@ -2603,7 +2603,7 @@ void update_human_plane_physics(int vehicle_index, void *powered_mass_points,
     desired_up.j = -(desired_forward.k * desired_forward.j);
     desired_up.k = 1.0f - desired_forward.k * desired_forward.k;
 
-    if (normalize3d(&desired_up.i) == 0.0f) {
+    if (normalize3d(&desired_up) == 0.0f) {
       desired_up.i = 1.0f;
       desired_up.j = 0.0f;
       desired_up.k = 0.0f;
@@ -2624,9 +2624,9 @@ void update_human_plane_physics(int vehicle_index, void *powered_mass_points,
              global_gravity;
       lift *= physics->mass;
 
-      force.i = lift * object->up.x + drive * object->forward.x;
-      force.j = lift * object->up.y + drive * object->forward.y;
-      force.k = lift * object->up.z + drive * object->forward.z;
+      force.i = lift * object->up.i + drive * object->forward.i;
+      force.j = lift * object->up.j + drive * object->forward.j;
+      force.k = lift * object->up.k + drive * object->forward.k;
     }
 
     {
@@ -2635,7 +2635,7 @@ void update_human_plane_physics(int vehicle_index, void *powered_mass_points,
 
       {
         real *destination = &velocity.i;
-        const real *source = &object->translational_velocity.x;
+        const real *source = &object->translational_velocity.i;
         short component_index;
 
         for (component_index = 0; component_index < 2; component_index++) {
@@ -2660,10 +2660,10 @@ void update_human_plane_physics(int vehicle_index, void *powered_mass_points,
       real angle;
       real scale;
 
-      matrix_from_forward_and_up((float *)&vehicle_rotation,
-                                 &object->forward.x, &object->up.x);
-      matrix_from_forward_and_up((float *)&desired_rotation,
-                                 &desired_forward.i, &desired_up.i);
+      matrix_from_forward_and_up(&vehicle_rotation,
+                                 &object->forward, &object->up);
+      matrix_from_forward_and_up(&desired_rotation,
+                                 &desired_forward, &desired_up);
       matrix_inverse((float *)&desired_rotation, (float *)&desired_rotation);
       matrix4x3_multiply((float *)&vehicle_rotation,
                          (float *)&desired_rotation, (float *)&rotation);
@@ -2674,9 +2674,9 @@ void update_human_plane_physics(int vehicle_index, void *powered_mass_points,
 
       scale = physics->radius * physics->radius * physics->mass * 0.05f;
 
-      torque.i = (scaled.i - object->angular_velocity.x) * scale;
-      torque.j = (scaled.j - object->angular_velocity.y) * scale;
-      torque.k = (scaled.k - object->angular_velocity.z) * scale;
+      torque.i = (scaled.i - object->angular_velocity.i) * scale;
+      torque.j = (scaled.j - object->angular_velocity.j) * scale;
+      torque.k = (scaled.k - object->angular_velocity.k) * scale;
     }
 
     scale_vector3d(&force, vehicle->unit.seat_power[0], &force);
@@ -2760,7 +2760,7 @@ void update_alien_scout_physics(int vehicle_index, float steering,
     state[mass_point_index].rotation[3] = 1.0f;
   }
 
-  if (water_depth < 0.5f && vehicle->unit.object.up.z > -0.2f) {
+  if (water_depth < 0.5f && vehicle->unit.object.up.k > -0.2f) {
     const real_vector3d *object_forward =
       (const real_vector3d *)&vehicle->unit.object.forward;
     const real_vector3d *object_up =
@@ -2769,10 +2769,10 @@ void update_alien_scout_physics(int vehicle_index, float steering,
       (const real_vector3d *)&vehicle->unit.object.angular_velocity;
 
     matrix4x3_from_forward_up_position(
-      &matrix, &vehicle->unit.object.position.x, (float *)&object_forward->i,
-      (float *)&object_up->i);
+      &matrix, &vehicle->unit.object.position, object_forward,
+      (real_vector3d *)&object_up->i);
     real_matrix3x3_transform_vector(
-      &matrix, &vehicle->unit.object.translational_velocity, &local_velocity);
+      &matrix, (vector3_t *)&vehicle->unit.object.translational_velocity, &local_velocity);
 
     if (vehicle->hover > 0.0f) {
       real maximum_speed = definition->field_2f8[0];
@@ -2975,7 +2975,7 @@ void update_alien_scout_physics(int vehicle_index, float steering,
         real_vector3d axis;
 
         vehicle_cross_product3d(&left, GLOBAL_UP3D, &axis);
-        if (normalize3d(&axis.i) > 0.0f) {
+        if (normalize3d(&axis) > 0.0f) {
           real fade = 1.0f - vehicle->airborne_ticks * (1.0f / 30);
           real axis_scale;
           real up_scale;
@@ -3011,9 +3011,9 @@ void update_alien_scout_physics(int vehicle_index, float steering,
                  &magic_torque.i);
 
   {
-    real maximum = 0.4f > vehicle->unit.object.up.z
+    real maximum = 0.4f > vehicle->unit.object.up.k
                      ? 0.4f
-                     : vehicle->unit.object.up.z;
+                     : vehicle->unit.object.up.k;
     int32_t powered_count = 0;
     int32_t grounded_count = 0;
     real ratio = 0.0f;

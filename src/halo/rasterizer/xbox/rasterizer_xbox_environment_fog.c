@@ -936,7 +936,7 @@ void FUN_00166890(int16_t pass)
     vector[0] = 1.0f;
     vector[1] = 0.0f;
     vector[2] = 0.0f;
-    matrix_transform_vector(matrix, vector, vector);
+    matrix_transform_vector(matrix, (real_vector3d *)vector, (real_vector3d *)vector);
     window->rotation -=
       -x87_fatan2f(vector[1], vector[0]) * screen->rotation_multiplier;
     cosine = x87_fcos(window->rotation);

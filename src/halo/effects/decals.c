@@ -1623,7 +1623,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
               axis_vector[2] = axis_vector[2] - normal[2];
             }
 
-            normalize3d(axis_vector);
+            normalize3d((real_vector3d *)axis_vector);
             {
               float k = normal[0] * axis_vector[1] - normal[1] * axis_vector[0];
               float j = normal[2] * axis_vector[0] - normal[0] * axis_vector[2];
@@ -1687,7 +1687,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                 axis_vector[2] = axis_vector[2] - normal[2];
               }
 
-              normalize3d(axis_vector);
+              normalize3d((real_vector3d *)axis_vector);
               {
                 float k = normal[0] * axis_vector[1] - normal[1] * axis_vector[0];
                 float j = normal[2] * axis_vector[0] - normal[0] * axis_vector[2];
@@ -2066,12 +2066,12 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                       wrapped_basis[12] = basis[12] - closest_edge_start.z;
                       matrix_transform_point(rotation, &wrapped_basis[10],
                                              &wrapped_basis[10]); /* dup-args-ok */
-                      matrix_transform_vector(rotation, &basis[1],
-                                              &wrapped_basis[1]);
-                      matrix_transform_vector(rotation, &basis[4],
-                                              &wrapped_basis[4]);
-                      matrix_transform_vector(rotation, &basis[7],
-                                              &wrapped_basis[7]);
+                      matrix_transform_vector(rotation, (real_vector3d *)&basis[1],
+                                              (real_vector3d *)&wrapped_basis[1]);
+                      matrix_transform_vector(rotation, (real_vector3d *)&basis[4],
+                                              (real_vector3d *)&wrapped_basis[4]);
+                      matrix_transform_vector(rotation, (real_vector3d *)&basis[7],
+                                              (real_vector3d *)&wrapped_basis[7]);
                       wrapped_basis[0] = 1.0f;
                       wrapped_basis[10] += closest_edge_start.x;
                       wrapped_basis[11] += closest_edge_start.y;
@@ -2141,7 +2141,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
             offset[0] = normal_bounds[0] + normal_bounds[1];
             offset[1] = normal_bounds[2] + normal_bounds[3];
             offset[2] = normal_bounds[4] + normal_bounds[5];
-            normalize3d(offset);
+            normalize3d((real_vector3d *)offset);
             offset[0] = offset[0] * *(float *)0x325710;
             offset[1] = offset[1] * *(float *)0x325710;
             offset[2] = offset[2] * *(float *)0x325710;
@@ -2379,7 +2379,7 @@ void decal_new(int decal_tag_index, void *origin, void *direction,
 
     collision_user_stack[global_current_collision_user_depth++] = 9;
 
-    if (collision_test_vector(0x100061, (float *)origin, (float *)direction, -1,
+    if (collision_test_vector(0x100061, origin, direction, -1,
                      collision_result) &&
         collision_result[0] != 0 && collision_result[0] == 2) {
       uint8_t *decal_tag = (uint8_t *)tag_get(0x64656361, decal_tag_index);

@@ -699,7 +699,7 @@ void antenna_debug_data_simulate_rope(void *rec, void *tag_def,
         z_axis[1] = 0.0f;
         z_axis[2] = 1.0f;
 
-        axis_len = normalize3d(axis);
+        axis_len = normalize3d((real_vector3d *)axis);
         if (axis_len == 0.0f) {
           axis[0] = global_left_vector_ptr[0];
           axis[1] = global_left_vector_ptr[1];
@@ -710,10 +710,10 @@ void antenna_debug_data_simulate_rope(void *rec, void *tag_def,
         offset[1] = *(float *)(te + 0x78);
         offset[2] = *(float *)(te + 0x7c);
 
-        angle = angle_between_vectors3d(z_axis, delta_vec);
+        angle = angle_between_vectors3d((real_vector3d *)z_axis, (real_vector3d *)delta_vec);
         cos_a = x87_fcos(angle);
         sin_a = x87_fsin(angle);
-        rotate_vector3d_by_sincos(offset, axis, sin_a, cos_a);
+        rotate_vector3d_by_sincos((real_vector3d *)offset, (real_vector3d *)axis, sin_a, cos_a);
 
         prev_rotated[0] = offset[0] + pos[0];
         prev_rotated[1] = offset[1] + pos[1];

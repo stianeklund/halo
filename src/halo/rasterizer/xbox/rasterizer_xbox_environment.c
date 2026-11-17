@@ -1254,10 +1254,10 @@ void FUN_001621c0(int light_index)
         real_matrix4x3 rotation;
 
         matrix4x3_rotation_from_angles((float *)&rotation, yaw, pitch, roll);
-        matrix_transform_vector((float *)&rotation, (float *)&light->forward,
-                                (float *)&gel_matrix.forward);
-        matrix_transform_vector((float *)&rotation, (float *)&light->up,
-                                (float *)&gel_matrix.up);
+        matrix_transform_vector((float *)&rotation, &light->forward,
+                                &gel_matrix.forward);
+        matrix_transform_vector((float *)&rotation, &light->up,
+                                &gel_matrix.up);
       }
 
       gel_matrix.left.i = gel_matrix.up.k * gel_matrix.forward.j -
@@ -1266,7 +1266,7 @@ void FUN_001621c0(int light_index)
                           gel_matrix.up.k * gel_matrix.forward.i;
       gel_matrix.left.k = gel_matrix.up.j * gel_matrix.forward.i -
                           gel_matrix.up.i * gel_matrix.forward.j;
-      normalize3d((float *)&gel_matrix.left);
+      normalize3d(&gel_matrix.left);
 
       {
         real vertex_constants[20];
@@ -1997,7 +1997,7 @@ void FUN_001631d0(int light_index)
       matrix.left.j = a->z * b->x - a->x * b->z;
       matrix.left.k = a->x * b->y - a->y * b->x;
     }
-    normalize3d((float *)&matrix.left);
+    normalize3d(&matrix.left);
 
     radius = *(float *)(light->owner + 0x24) * light->radius;
     cone_scale = 1.0f / (radius - radius * 0.5f);

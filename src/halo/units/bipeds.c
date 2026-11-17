@@ -142,7 +142,7 @@ void FUN_0019fa20(int unit_handle, void *node_block) {
           delta[0] *= 1.03f; /* 0x2b4b78 */
           delta[1] *= 1.03f;
           delta[2] *= 1.03f;
-          if (collision_test_vector(0xc0a8, ray_start, delta, unit_handle,
+          if (collision_test_vector(0xc0a8, (real_point3d *)ray_start, (real_vector3d *)delta, unit_handle,
                            collision_result)) {
             touching[0] = (unsigned char)FUN_0014dab0((int)node_pos,
                                                       0x3cf5c28f);
@@ -288,12 +288,12 @@ void validate_real_vector3d_axes3(float *forward, float *left, float *up)
     system_exit(-1);
   }
 
-  if (normalize3d(forward) == 0.0f) {
+  if (normalize3d((real_vector3d *)forward) == 0.0f) {
     forward[0] = global_forward_vector_ptr[0];
     forward[1] = global_forward_vector_ptr[1];
     forward[2] = global_forward_vector_ptr[2];
   }
-  if (normalize3d(up) == 0.0f) {
+  if (normalize3d((real_vector3d *)up) == 0.0f) {
     up[0] = global_up_vector_ptr[0];
     up[1] = global_up_vector_ptr[1];
     up[2] = global_up_vector_ptr[2];
@@ -308,7 +308,7 @@ void validate_real_vector3d_axes3(float *forward, float *left, float *up)
   left[0] = lc0;
   left[1] = lc1;
   left[2] = lc2;
-  if (normalize3d(left) == 0.0f) {
+  if (normalize3d((real_vector3d *)left) == 0.0f) {
     left[0] = global_left_vector_ptr[0];
     left[1] = global_left_vector_ptr[1];
     left[2] = global_left_vector_ptr[2];
@@ -321,7 +321,7 @@ void validate_real_vector3d_axes3(float *forward, float *left, float *up)
   up[0] = lc0;
   up[1] = lc1;
   up[2] = lc2;
-  if (normalize3d(up) == 0.0f) {
+  if (normalize3d((real_vector3d *)up) == 0.0f) {
     up[0] = global_up_vector_ptr[0];
     up[1] = global_up_vector_ptr[1];
     up[2] = global_up_vector_ptr[2];
@@ -334,7 +334,7 @@ void validate_real_vector3d_axes3(float *forward, float *left, float *up)
   left[0] = lc0;
   left[1] = lc1;
   left[2] = lc2;
-  if (normalize3d(left) == 0.0f) {
+  if (normalize3d((real_vector3d *)left) == 0.0f) {
     left[0] = global_left_vector_ptr[0];
     left[1] = global_left_vector_ptr[1];
     left[2] = global_left_vector_ptr[2];
@@ -458,8 +458,8 @@ void biped_limp_noodle_adjust_orientations(int unit_handle, int node_count,
         B[1] = nfx[-1] - parent_nod28[1];
         B[2] = nfx[0] - parent_nod28[2];
 
-        normalize3d(A);
-        normalize3d(B);
+        normalize3d((real_vector3d *)A);
+        normalize3d((real_vector3d *)B);
 
         /* cross(A,B) — operand order verified from FSUBP sequence:
          *   [0]: B[2]*A[1] - B[1]*A[2] = cross(A,B)[0]
@@ -469,7 +469,7 @@ void biped_limp_noodle_adjust_orientations(int unit_handle, int node_count,
         cross[1] = A[2] * B[0] - B[2] * A[0];
         cross[2] = B[1] * A[0] - A[1] * B[0];
 
-        normalize3d(cross);
+        normalize3d((real_vector3d *)cross);
 
         /* dot(A,B) — FPU order: A[2]*B[2] + A[1]*B[1] + A[0]*B[0] */
         dot_val = A[2] * B[2] + A[1] * B[1] + A[0] * B[0];
@@ -501,28 +501,28 @@ void biped_limp_noodle_adjust_orientations(int unit_handle, int node_count,
 
             /* rotate fwd and up — each re-reads *(short*)(elem+0x24) */
             rotate_vector3d_by_sincos(
-              (float *)(nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34 +
-                        0x4),
-              cross, sin_a, dot_val);
+              (real_vector3d *)((nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34 +
+                        0x4)),
+              (real_vector3d *)cross, sin_a, dot_val);
             rotate_vector3d_by_sincos(
-              (float *)(nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34 +
-                        0x1c),
-              cross, sin_a, dot_val);
+              (real_vector3d *)((nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34 +
+                        0x1c)),
+              (real_vector3d *)cross, sin_a, dot_val);
 
-            normalize3d((float *)(nodes_bytes +
-                                  (int)(*(short *)(elem + 0x24)) * 0x34 + 0x4));
-            normalize3d((float *)(nodes_bytes +
+            normalize3d((real_vector3d *)((nodes_bytes +
+                                  (int)(*(short *)(elem + 0x24)) * 0x34 + 0x4)));
+            normalize3d((real_vector3d *)((nodes_bytes +
                                   (int)(*(short *)(elem + 0x24)) * 0x34 +
-                                  0x1c));
+                                  0x1c)));
 
             /* cross_product3d(up, fwd, left) — uses single base */
             base = nodes_bytes + (int)(*(short *)(elem + 0x24)) * 0x34;
             cross_product3d((float *)(base + 0x1c), (float *)(base + 0x4),
                             (float *)(base + 0x10));
 
-            normalize3d((float *)(nodes_bytes +
+            normalize3d((real_vector3d *)((nodes_bytes +
                                   (int)(*(short *)(elem + 0x24)) * 0x34 +
-                                  0x10));
+                                  0x10)));
 
             /* Second valid_real_vector3d_axes3 / validate_real_vector3d_axes3
              * block */
@@ -1731,7 +1731,7 @@ char biped_fix_position(int unit_handle, int seat_handle,
     cross[0] = basis[0xe] * basis[0xa] - basis[0xb] * basis[0xd];
     cross[1] = basis[0xb] * basis[0xc] - basis[9] * basis[0xe];
     cross[2] = basis[9] * basis[0xd] - basis[0xc] * basis[0xa];
-    normalize3d(&cross[0]);
+    normalize3d((real_vector3d *)&cross[0]);
     offset_vec[0] = height_offset * global_up_vector_ptr[0];
     offset_vec[1] = height_offset * global_up_vector_ptr[1];
     offset_vec[2] = height_offset * global_up_vector_ptr[2];
@@ -2107,7 +2107,7 @@ void biped_exit_seat_end(int unit_handle, int seat_handle)
   tag_get(0x62697064, *(int *)unit_obj);
 
   *(int *)(unit_obj + 0x2c) = 0;
-  if (normalize3d((float *)(unit_obj + 0x24)) == 0.0f) {
+  if (normalize3d((real_vector3d *)(unit_obj + 0x24)) == 0.0f) {
     *(float *)(unit_obj + 0x24) = global_forward_vector_ptr[0];
     *(float *)(unit_obj + 0x28) = global_forward_vector_ptr[1];
     *(float *)(unit_obj + 0x2c) = global_forward_vector_ptr[2];
@@ -2248,7 +2248,7 @@ void biped_vehicle_speech(int unit_handle /* @eax */)
         scaled_vel[2] =
           *(float *)((char *)vehi_obj + 0x20) * *(float *)0x2b4ee4 -
           *(float *)0x32512c * *(float *)0x2b4ee0;
-        if (normalize3d(scaled_vel) <= *(float *)0x2533c0) {
+        if (normalize3d((real_vector3d *)scaled_vel) <= *(float *)0x2533c0) {
           ai_communication_event(0x28, unit_handle, -1, -1, -1, -1, 0);
           return;
         }
@@ -2298,7 +2298,7 @@ void FUN_001a2160(int unit_handle)
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
 
   axis = *(real_vector3d *)(unit_obj + 0x3c);
-  angle = normalize3d((float *)&axis);
+  angle = normalize3d(&axis);
   fwd = (float *)(unit_obj + 0x24);
 #if defined(_MSC_VER) && !defined(__clang__)
   cos_a = (float)cos((double)angle);
@@ -2307,12 +2307,12 @@ void FUN_001a2160(int unit_handle)
   cos_a = x87_fcos(angle);
   sin_a = x87_fsin(angle);
 #endif
-  rotate_vector3d_by_sincos(fwd, (float *)&axis, sin_a, cos_a);
-  normalize3d(fwd);
+  rotate_vector3d_by_sincos((real_vector3d *)fwd, &axis, sin_a, cos_a);
+  normalize3d((real_vector3d *)fwd);
 
   up_ptr = (float *)(unit_obj + 0x30);
   up_rot = *(real_vector3d *)up_ptr;
-  rotate_vector3d_by_sincos((float *)&up_rot, (float *)&axis, sin_a, cos_a);
+  rotate_vector3d_by_sincos(&up_rot, &axis, sin_a, cos_a);
 
   t[0] = up_rot.k * fwd[1] - up_rot.j * fwd[2];
   t[1] = up_rot.i * fwd[2] - up_rot.k * fwd[0];
@@ -2321,7 +2321,7 @@ void FUN_001a2160(int unit_handle)
   up_ptr[0] = t[1] * fwd[2] - t[2] * fwd[1];
   up_ptr[1] = t[2] * fwd[0] - t[0] * fwd[2];
   up_ptr[2] = t[0] * fwd[1] - t[1] * fwd[0];
-  if (normalize3d(up_ptr) == 0.0f) {
+  if (normalize3d((real_vector3d *)up_ptr) == 0.0f) {
     fwd[0] = global_forward_vector_ptr[0];
     fwd[1] = global_forward_vector_ptr[1];
     fwd[2] = global_forward_vector_ptr[2];
@@ -2680,8 +2680,8 @@ void biped_verify_object_vectors(int unit_handle /* @eax */,
   uint32_t flags;
 
   unit_obj = (char *)object_get_and_verify_type(unit_handle, 1);
-  if (valid_real_normal3d_perpendicular((float *)(unit_obj + 0x24),
-                                        (float *)(unit_obj + 0x30)) == 0) {
+  if (valid_real_normal3d_perpendicular((real_vector3d *)(unit_obj + 0x24),
+                                        (real_vector3d *)(unit_obj + 0x30)) == 0) {
     biped_tag = (char *)tag_get(0x62697064, *(int *)unit_obj);
 
     limp_str = "/limping";
@@ -2767,7 +2767,7 @@ void biped_update_airborne(int unit_handle, char *state)
       if (*(float *)(object + 0xe) /* +0x38 */ < *(float *)0x2533f0) {
         cross_product3d((float *)(object + 0xc) /* +0x30 */,
                         *(float **)0x31fc44 /* world up */, facing);
-        if (normalize3d(facing) > *(float *)0x2533c0) {
+        if (normalize3d((real_vector3d *)facing) > *(float *)0x2533c0) {
           goto have_facing;
         }
       }
@@ -3025,7 +3025,7 @@ void biped_build_flying_axes(float *forward, float *left, float *up)
   left[0] = lc0;
   left[1] = lc1;
   left[2] = lc2;
-  if (normalize3d(left) == *(float *)0x2533c0) {
+  if (normalize3d((real_vector3d *)left) == *(float *)0x2533c0) {
     up[0] = global_forward_vector_ptr[0];
     up[1] = global_forward_vector_ptr[1];
     up[2] = global_forward_vector_ptr[2];
@@ -3035,7 +3035,7 @@ void biped_build_flying_axes(float *forward, float *left, float *up)
     left[0] = lc0;
     left[1] = lc1;
     left[2] = lc2;
-    normalize3d(left);
+    normalize3d((real_vector3d *)left);
   }
 
   /* up = forward x left */
@@ -3045,7 +3045,7 @@ void biped_build_flying_axes(float *forward, float *left, float *up)
   up[0] = lc0;
   up[1] = lc1;
   up[2] = lc2;
-  normalize3d(up);
+  normalize3d((real_vector3d *)up);
 
   if (valid_real_vector3d_axes3(forward, left, up) == 0) {
     display_assert(
@@ -3189,7 +3189,7 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
     system_exit(-1);
   }
   /* assert_valid_real_vector2d(&physics->velocity) */
-  if (real_vector3d_valid(velocity) == 0) {
+  if (real_vector3d_valid((real_vector3d *)velocity) == 0) {
     display_assert(csprintf(error_string_buffer,
                             "%s: assert_valid_real_vector2d(%f, %f, %f)",
                             "&physics->velocity", (double)velocity[0],
@@ -3231,7 +3231,7 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
     disp[0] = dx;
     disp[1] = dy;
     disp[2] = dz;
-    length3 = normalize3d(disp);
+    length3 = normalize3d((real_vector3d *)disp);
     if (length3 > physics[0x13]) {
       clamp = physics[0x13];
       dx = disp[0] * clamp;
@@ -3330,19 +3330,19 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
       vecB[1] = physics[9];
       vecB[2] = physics[10];
       cross_product3d(gp, vecB, vecA);
-      if (normalize3d(vecA) == 0.0f) {
+      if (normalize3d((real_vector3d *)vecA) == 0.0f) {
         cross_product3d(gp, (float *)(*(int *)0x31fc44), vecA);
-        if (normalize3d(vecA) == 0.0f) {
+        if (normalize3d((real_vector3d *)vecA) == 0.0f) {
           cross_product3d(gp, (float *)(*(int *)0x31fc3c), vecA);
-          normalize3d(vecA);
+          normalize3d((real_vector3d *)vecA);
         }
       }
       cross_product3d(vecA, gp, vecB);
-      normalize3d(vecB);
+      normalize3d((real_vector3d *)vecB);
       d[0] = vecB[0] * physics[0xf] + vecA[0] * physics[0x10];
       d[1] = vecB[1] * physics[0xf] + vecA[1] * physics[0x10];
       d[2] = vecB[2] * physics[0xf] + vecA[2] * physics[0x10] + physics[0x11];
-      normalize3d(d); /* submode normalizes here, JMP 0x34f6 skips below */
+      normalize3d((real_vector3d *)d); /* submode normalizes here, JMP 0x34f6 skips below */
     } else {
       /* else-if and else share the normalize at 0x34ea; only else has
        * the material multiply. */
@@ -3371,7 +3371,7 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
         vecB[1] = physics[9];
         vecB[2] = physics[10];
         cross_product3d((float *)(*(int *)0x31fc44), vecB, vecA);
-        normalize3d(vecA);
+        normalize3d((real_vector3d *)vecA);
         vector3d_scale_add(
           vecB, gp, -(vecB[0] * gp[0] + vecB[1] * gp[1] + vecB[2] * gp[2]),
           vecB);
@@ -3388,7 +3388,7 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
           d[2] = d[2] * *(float *)0x254cc4;
         }
       }
-      normalize3d(d); /* shared normalize at 0x34ea */
+      normalize3d((real_vector3d *)d); /* shared normalize at 0x34ea */
     }
 
     /* ---- slope-response curve (0x1a34f6..0x1a358f) ---- */
@@ -3440,7 +3440,7 @@ void FUN_001a2f40(void *physics_arg /* @esi */)
       disp[1] = vecB[1];
       vecB[2] = d[2] * damp2 - physics[0xd];
       disp[2] = vecB[2];
-      length3 = normalize3d(disp); /* 0x1a35e2; ST0 -> compare */
+      length3 = normalize3d((real_vector3d *)disp); /* 0x1a35e2; ST0 -> compare */
       if (length3 <= physics[0x13]) {
         /* 0x1a361f: keep raw (pre-normalize) disp -> restore saved vecB */
         disp[0] = vecB[0];
@@ -4218,7 +4218,7 @@ void biped_snap_facing(int biped_index)
     up_vector.x = left.y * forward[2] - left.z * forward[1];
     up_vector.y = left.z * forward[0] - left.x * forward[2];
     up_vector.z = left.x * forward[1] - left.y * forward[0];
-    if (normalize3d((float *)&up_vector) == 0.0f) {
+    if (normalize3d((real_vector3d *)&up_vector) == 0.0f) {
       up_vector = *(vector3_t *)global_forward_vector_ptr;
       left = *(vector3_t *)global_left_vector_ptr;
     }
@@ -4228,7 +4228,7 @@ void biped_snap_facing(int biped_index)
     up_vector.x = up_vector.x * cosine;
     up_vector.y = up_vector.y * cosine;
     up_vector.z = up_vector.z * cosine;
-    normalize3d((float *)&left);
+    normalize3d((real_vector3d *)&left);
     *(float *)(biped + 0x30) = left.x * sine + up_vector.x;
     *(float *)(biped + 0x34) = left.y * sine + up_vector.y;
     *(float *)(biped + 0x38) = left.z * sine + up_vector.z;
@@ -4249,7 +4249,7 @@ void biped_snap_facing(int biped_index)
 
       normal = *(vector3_t *)(biped + 0x46c);
       cross_product3d(up, (float *)&normal, (float *)&axis);
-      if (normalize3d((float *)&axis) == 0.0f) {
+      if (normalize3d((real_vector3d *)&axis) == 0.0f) {
         if (normal.y * up[1] + normal.z * up[2] + normal.x * up[0] > 0.0f)
           tilt_toward_surface = false;
         else
@@ -4264,7 +4264,7 @@ void biped_snap_facing(int biped_index)
                                   (float)sin(0.17453292012214661),
                                   (float)cos(0.17453292012214661));
 #else
-        rotate_vector3d_by_sincos((float *)&tilted_up, (float *)&axis,
+        rotate_vector3d_by_sincos((real_vector3d *)&tilted_up, (real_vector3d *)&axis,
                                   (float)x87_fsin_d(0.17453292012214661),
                                   (float)x87_fcos_d(0.17453292012214661));
 #endif
@@ -4282,11 +4282,11 @@ void biped_snap_facing(int biped_index)
     new_forward.x = vector.z * normal.y - vector.y * normal.z;
     new_forward.y = normal.z * vector.x - vector.z * normal.x;
     new_forward.z = vector.y * normal.x - normal.y * vector.x;
-    if (normalize3d((float *)&new_forward) == 0.0f) {
+    if (normalize3d((real_vector3d *)&new_forward) == 0.0f) {
       cross_product3d((float *)&normal, up, (float *)&vector);
       cross_product3d((float *)&normal, (float *)&vector,
                       (float *)&new_forward);
-      if (normalize3d((float *)&new_forward) == 0.0f) {
+      if (normalize3d((real_vector3d *)&new_forward) == 0.0f) {
         normal = *(vector3_t *)global_up_vector_ptr;
         new_forward = *(vector3_t *)global_forward_vector_ptr;
       }
@@ -4322,15 +4322,15 @@ void biped_snap_facing(int biped_index)
         vector3_t axis;
 
         cross_product3d(up, ground_normal, (float *)&axis);
-        if (normalize3d((float *)&axis) != 0.0f) {
+        if (normalize3d((real_vector3d *)&axis) != 0.0f) {
           float cosine = x87_fcos(angle);
           float sine = x87_fsin(angle);
 
           forward = (float *)(biped + 0x24);
-          rotate_vector3d_by_sincos(up, (float *)&axis, sine, cosine);
-          rotate_vector3d_by_sincos(forward, (float *)&axis, sine, cosine);
-          normalize3d(up);
-          normalize3d(forward);
+          rotate_vector3d_by_sincos((real_vector3d *)up, (real_vector3d *)&axis, sine, cosine);
+          rotate_vector3d_by_sincos((real_vector3d *)forward, (real_vector3d *)&axis, sine, cosine);
+          normalize3d((real_vector3d *)up);
+          normalize3d((real_vector3d *)forward);
         }
       }
     }
@@ -4339,7 +4339,7 @@ void biped_snap_facing(int biped_index)
   } else {
     forward = (float *)(biped + 0x24);
     forward[2] = 0.0f;
-    if (normalize3d(forward) == 0.0f)
+    if (normalize3d((real_vector3d *)forward) == 0.0f)
       *(vector3_t *)forward = *(vector3_t *)global_forward_vector_ptr;
     *(vector3_t *)(biped + 0x30) = *(vector3_t *)global_up_vector_ptr;
 
@@ -4526,7 +4526,7 @@ void FUN_001a4a70(int biped_index, float *acceleration_vector)
              acceleration->k * global_up_vector_ptr[0];
     axis.k = acceleration->j * global_up_vector_ptr[0] -
              global_up_vector_ptr[1] * acceleration->i;
-    normalize3d((float *)&axis);
+    normalize3d(&axis);
     magnitude = x87_sqrt(acceleration->k * acceleration->k +
                          acceleration->j * acceleration->j +
                          acceleration->i * acceleration->i);
@@ -4544,7 +4544,7 @@ void FUN_001a4a70(int biped_index, float *acceleration_vector)
     real_vector3d forward;
 
     forward = *acceleration;
-    if (normalize3d((float *)&forward) > 0.0f) {
+    if (normalize3d(&forward) > 0.0f) {
       biped->object.forward = forward;
       biped_snap_facing(biped_index);
       biped_verify_object_vectors(biped_index, "post-accel");
@@ -4659,7 +4659,7 @@ void FUN_001a4c50(int unit_handle, unsigned char *state)
       target_facing = *(vector3_t *)desired;
       if (pitch != 0.0f) {
         target_facing.z = target_facing.z + pitch;
-        if (normalize3d((float *)&target_facing) == 0.0f)
+        if (normalize3d((real_vector3d *)&target_facing) == 0.0f)
           target_facing = *(vector3_t *)desired;
       }
     }
@@ -4729,7 +4729,7 @@ void FUN_001a4c50(int unit_handle, unsigned char *state)
       turn_axis.x = cross_y * up[2] - cross_z * up[1];
       turn_axis.y = cross_z * up[0] - cross_x * up[2];
       turn_axis.z = cross_x * up[1] - cross_y * up[0];
-      if (normalize3d((float *)&turn_axis) == 0.0f)
+      if (normalize3d((real_vector3d *)&turn_axis) == 0.0f)
         turn_axis = *(vector3_t *)forward;
 
       /* (turn_axis x forward) . up, association (z + y) + x */
@@ -4773,7 +4773,7 @@ void FUN_001a4c50(int unit_handle, unsigned char *state)
         if ((flags & 0x40) != 0) {
           vector3_t cross;
 
-          rotate_vector3d_by_sincos(forward, up, sine, cosine);
+          rotate_vector3d_by_sincos((real_vector3d *)forward, (real_vector3d *)up, sine, cosine);
           cross_product3d((float *)&turn_axis, forward, (float *)&cross);
           progress = cross.y * up[1] + cross.z * up[2] + cross.x * up[0];
         } else {
@@ -4791,7 +4791,7 @@ void FUN_001a4c50(int unit_handle, unsigned char *state)
             vector3_t rotation_axis;
 
             cross_product3d(up, (float *)&turn_axis, (float *)&rotation_axis);
-            if (normalize3d((float *)&rotation_axis) > 0.0f)
+            if (normalize3d((real_vector3d *)&rotation_axis) > 0.0f)
               cross_product3d((float *)&rotation_axis, up, forward);
           } else {
             forward[0] = turn_axis.x;
@@ -4800,7 +4800,7 @@ void FUN_001a4c50(int unit_handle, unsigned char *state)
             *(vector3_t *)up = *(vector3_t *)global_up_vector_ptr;
           }
 
-          normalize3d(forward);
+          normalize3d((real_vector3d *)forward);
         }
 
         biped_verify_object_vectors(unit_handle, "post-moving-turn");
@@ -5098,7 +5098,7 @@ void FUN_001a5300(int unit_handle, unsigned char *state)
         float *desired = (float *)(biped + 0x1d4);
 
         rotated_forward = *(vector3_t *)forward;
-        rotate_vector3d_by_sincos((float *)&rotated_forward, up, x87_fsin(dyaw),
+        rotate_vector3d_by_sincos((real_vector3d *)&rotated_forward, (real_vector3d *)up, x87_fsin(dyaw),
                                   x87_fcos(dyaw));
         if ((*(uint8_t *)(biped + 0x1b8) & 0x20) != 0 &&
             (*(uint8_t *)(biped + 0x253) == 2 ||
@@ -5393,7 +5393,7 @@ void FUN_001a5300(int unit_handle, unsigned char *state)
       if ((uint8_t)FUN_0014c8e0(instance, *(int *)(biped + 0x44c)) &&
           FUN_0014cb00((int)instance, (void *)3, physics.position,
                        (float *)&melee_vector, (int16_t *)model_result) &&
-          !collision_test_vector(0xc2a0, physics.position, (float *)&melee_vector,
+          !collision_test_vector(0xc2a0, (real_point3d *)physics.position, (real_vector3d *)&melee_vector,
                         unit_handle, (int16_t *)world_collision)) {
         vector3d_scale_add(physics.position, (float *)&melee_vector,
                            *(float *)((char *)model_result + 0x8),

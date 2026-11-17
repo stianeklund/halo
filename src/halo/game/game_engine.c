@@ -2870,8 +2870,8 @@ __declspec(noinline) void game_engine_flag_reset(int param_1, int param_2)
   if (param_1 != -1) {
     weapon = (int)object_get_and_verify_type(param_1, 4);
 
-    object_set_position(param_1, (float *)param_2, *(float **)0x31fc3c,
-                        *(float **)0x31fc44);
+    object_set_position(param_1, (real_point3d *)param_2, (real_vector3d *)(*(float **)0x31fc3c),
+                        (real_vector3d *)(*(float **)0x31fc44));
 
     object_reset(param_1);
 
@@ -4661,7 +4661,7 @@ void game_engine_player_update_netgame_flag(int player_handle)
   unsigned char *next_goal_entry;
   int selected_goal_index;
   int next_goal_index;
-  float unit_pos[3];
+  real_vector3d unit_pos;
   float search_pos[3];
   float distance_a;
   float distance_b;
@@ -4718,9 +4718,9 @@ void game_engine_player_update_netgame_flag(int player_handle)
 
   unit =
     (unsigned char *)object_get_and_verify_type(*(int *)(player + 0x34), 3);
-  unit_pos[0] = *(float *)(unit + 0x24);
-  unit_pos[1] = *(float *)(unit + 0x28);
-  unit_pos[2] = *(float *)(unit + 0x2c);
+  unit_pos.i = *(float *)(unit + 0x24);
+  unit_pos.j = *(float *)(unit + 0x28);
+  unit_pos.k = *(float *)(unit + 0x2c);
 
   player = (unsigned char *)datum_get(*(void **)0x5aa6d4, player_handle);
   biped_get_camera_height_and_offset(*(int *)(player + 0x34),
@@ -4788,20 +4788,20 @@ void game_engine_player_update_netgame_flag(int player_handle)
   }
 
   {
-    float angle = (float)atan2(unit_pos[1], unit_pos[0]);
+    float angle = (float)atan2(unit_pos.j, unit_pos.i);
     float adjusted = angle + ((netgame_flag *)next_goal_entry)->facing -
                      ((netgame_flag *)goal_entry)->facing;
-    unit_pos[0] = x87_fcos(adjusted);
-    unit_pos[1] = x87_fsin(adjusted);
-    normalize3d(unit_pos);
+    unit_pos.i = x87_fcos(adjusted);
+    unit_pos.j = x87_fsin(adjusted);
+    normalize3d(&unit_pos);
   }
 
   /* object_place_at_position: teleport player to destination flag */
-  object_set_position(*(int *)(player + 0x34), (float *)next_goal_entry,
-                      unit_pos, 0);
+  object_set_position(*(int *)(player + 0x34), (real_point3d *)next_goal_entry,
+                      &unit_pos, 0);
 
   if (*(short *)(player + 2) != -1) {
-    player_control_set_facing((unsigned short)*(short *)(player + 2), unit_pos);
+    player_control_set_facing((unsigned short)*(short *)(player + 2), &unit_pos);
   }
 
   *(int *)(player + 0x70) =

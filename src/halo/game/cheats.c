@@ -158,7 +158,7 @@ void cheat_teleport_to_camera(void)
     object_handle = *(int *)(weapon_obj + 0xcc);
     if (object_handle == -1)
       object_handle = *(int *)(player + 0x34);
-    object_set_position(object_handle, (float *)camera, NULL, NULL);
+    object_set_position(object_handle, (real_point3d *)camera, NULL, NULL);
     return;
   }
   ((terminal_output_2_t)terminal_printf)(

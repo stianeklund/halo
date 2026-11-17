@@ -1236,8 +1236,8 @@ void rasterizer_lens_flare_submit_for_cluster(short param_1)
 
     /* Compute perpendicular and normalize both */
     perpendicular3d(dir, perp);
-    normalize3d(dir);
-    normalize3d(perp);
+    normalize3d((real_vector3d *)dir);
+    normalize3d((real_vector3d *)perp);
 
     /* Build params buffer (byte-level stores into int array). */
     *(int *)((char *)params + 0x00) =
@@ -1531,7 +1531,7 @@ void FUN_00181c20(void)
         depth_bias = -(depth_scale * *(float *)(definition + 0xc));
 
         /* Normalize delta (in-place, modifies delta[0]/y/z via &delta[0]) */
-        normalize3d(&delta[0]);
+        normalize3d((real_vector3d *)&delta[0]);
 
         /* Visibility array:
          * [0] = 1.0 (always)

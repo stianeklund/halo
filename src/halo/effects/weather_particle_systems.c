@@ -409,7 +409,7 @@ void weather_particle_update_physics(int16_t type_index /* @<eax> */,
   if (*(float *)((char *)type_element + 0xcc) != 0.0f ||
       *(float *)((char *)type_element + 0xd0) != 0.0f) {
     direction = (float *)(particle + 0x1c);
-    speed = normalize3d(direction);
+    speed = normalize3d((real_vector3d *)direction);
 
     blend = 1.0f - *(float *)((char *)type_element + 0xd4);
     turbulence_max = *(float *)((char *)type_element + 0xd8);

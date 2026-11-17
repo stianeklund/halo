@@ -3,7 +3,7 @@ extern float *vector3d_scale_add(float *base, float *direction, float scale,
                                  float *out);
 extern float *matrix_transform_point(float *matrix, float *in, float *out);
 extern void perpendicular3d(float *in, float *out);
-extern float *angles_to_vector(float *out, float *angles);
+extern real_vector3d *angles_to_vector(real_vector3d *out, const real_euler_angles2d *angles);
 
 extern void object_placement_data_new(void *placement, int tag_index,
                                       int parent_handle);

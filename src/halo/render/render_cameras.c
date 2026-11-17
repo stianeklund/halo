@@ -1035,7 +1035,7 @@ void render_camera_mirror(camera_t *camera, render_mirror_t *mirror,
       adjusted_normal.x = forward->x * 0.005859375f + plane.normal[0];
       adjusted_normal.y = forward->y * 0.005859375f + plane.normal[1];
       adjusted_normal.z = forward->z * 0.005859375f + plane.normal[2];
-      normalize3d((float *)&adjusted_normal);
+      normalize3d((real_vector3d *)&adjusted_normal);
       plane3d_from_point_and_normal_inline(&adjusted_plane, &point_on_plane,
                                            &adjusted_normal);
 
@@ -1053,10 +1053,10 @@ void render_camera_mirror(camera_t *camera, render_mirror_t *mirror,
 
     assert_halt_msg_at("valid_real_vector3d(&result->forward)",
                        "c:\\halo\\SOURCE\\render\\render_cameras.c", 0xd9,
-                       (char)real_vector3d_valid((float *)&result->field_0c));
+                       (char)real_vector3d_valid((real_vector3d *)&result->field_0c));
     assert_halt_msg_at("valid_real_vector3d(&result->up)",
                        "c:\\halo\\SOURCE\\render\\render_cameras.c", 0xda,
-                       (char)real_vector3d_valid((float *)&result->field_18));
+                       (char)real_vector3d_valid((real_vector3d *)&result->field_18));
 
     {
       real mirror_scale =
@@ -1217,9 +1217,9 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   view_backward.x = -camera->field_0c.x;
   view_backward.y = -camera->field_0c.y;
   view_backward.z = -camera->field_0c.z;
-  normalize3d(&view_left.x);
-  normalize3d(&view_up.x);
-  normalize3d(&view_backward.x);
+  normalize3d((real_vector3d *)&view_left);
+  normalize3d((real_vector3d *)&view_up);
+  normalize3d((real_vector3d *)&view_backward);
   fr->field_44.forward = *(real_vector3d *)&view_left;
   fr->field_44.left = *(real_vector3d *)&view_up;
   fr->field_44.up = *(real_vector3d *)&view_backward;
@@ -1237,7 +1237,7 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   plane_normal.y = 0.0f;
   left_plane_z = bounds_center_x + 1.0f;
   plane_normal.z = left_plane_z;
-  normalize3d(&plane_normal.x);
+  normalize3d((real_vector3d *)&plane_normal);
   plane3d_from_point_and_normal_inline(&view_plane, global_origin3d,
                                        &plane_normal);
   FUN_0010a1c0(&fr->field_44.scale, view_plane.normal, fr->field_78[0].normal);
@@ -1245,7 +1245,7 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   plane_normal.x = projection_x_scale;
   plane_normal.y = 0.0f;
   plane_normal.z = 1.0f - bounds_center_x;
-  normalize3d(&plane_normal.x);
+  normalize3d((real_vector3d *)&plane_normal);
   plane3d_from_point_and_normal_inline(&view_plane, global_origin3d,
                                        &plane_normal);
   FUN_0010a1c0(&fr->field_44.scale, view_plane.normal, fr->field_78[1].normal);
@@ -1254,7 +1254,7 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   plane_normal.y = -projection_y_scale;
   bottom_plane_z = bounds_center_y + 1.0f;
   plane_normal.z = bottom_plane_z;
-  normalize3d(&plane_normal.x);
+  normalize3d((real_vector3d *)&plane_normal);
   plane3d_from_point_and_normal_inline(&view_plane, global_origin3d,
                                        &plane_normal);
   FUN_0010a1c0(&fr->field_44.scale, view_plane.normal, fr->field_78[2].normal);
@@ -1262,7 +1262,7 @@ void render_camera_build_frustum(camera_t *camera, float *bounds,
   plane_normal.x = 0.0f;
   plane_normal.y = projection_y_scale;
   plane_normal.z = 1.0f - bounds_center_y;
-  normalize3d(&plane_normal.x);
+  normalize3d((real_vector3d *)&plane_normal);
   plane3d_from_point_and_normal_inline(&view_plane, global_origin3d,
                                        &plane_normal);
   FUN_0010a1c0(&fr->field_44.scale, view_plane.normal, fr->field_78[3].normal);
@@ -1714,7 +1714,7 @@ void render_contrail(void *contrail_datum, void *contrail_definition,
               orientation.y = next_point->position.x - point->position.x;
             }
             orientation.z = 0.0f;
-            normalize3d((float *)&orientation);
+            normalize3d((real_vector3d *)&orientation);
           }
           break;
 
@@ -1779,7 +1779,7 @@ void render_contrail(void *contrail_datum, void *contrail_definition,
           facing_normal.x = tangent.z * eye_j - tangent.y * eye_k;
           facing_normal.y = tangent.x * eye_k - tangent.z * eye_i;
           facing_normal.z = tangent.y * eye_i - tangent.x * eye_j;
-          normalize3d((float *)&facing_normal);
+          normalize3d((real_vector3d *)&facing_normal);
           vertices[0].point.x =
             point->position.x - facing_normal.x * half_width;
           vertices[0].point.y =
@@ -1799,7 +1799,7 @@ void render_contrail(void *contrail_datum, void *contrail_definition,
               facing_normal.x * tangent.z - facing_normal.z * tangent.x;
             orientation.z =
               facing_normal.y * tangent.x - facing_normal.x * tangent.y;
-            normalize3d((float *)&orientation);
+            normalize3d((real_vector3d *)&orientation);
           }
           break;
         }

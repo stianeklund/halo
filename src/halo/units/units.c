@@ -481,7 +481,7 @@ char biped_update(int unit_handle)
       /* Normalize the forward vector at +0x1D4 */
       vec = (float *)((char *)biped + 0x1d4);
       *(float *)((char *)biped + 0x1dc) = 0.0f;
-      if (normalize3d(vec) == 0.0f) {
+      if (normalize3d((real_vector3d *)vec) == 0.0f) {
         fwd_ptr = *(char **)0x0031fc3c;
         vec[0] = *(float *)(fwd_ptr);
         vec[1] = *(float *)(fwd_ptr + 4);
@@ -3409,7 +3409,7 @@ void unit_get_head_position(int object_handle, float *out_position)
  *    tag, and resolves it on the original unit via
  * object_get_marker_by_name.
  */
-void unit_get_camera_position(int unit_handle, float *position)
+void unit_get_camera_position(int unit_handle, real_point3d *position)
 {
   char *unit;
   char *unit_tag;
@@ -3487,9 +3487,9 @@ void unit_get_camera_position(int unit_handle, float *position)
   /* Look up the seat marker on the parent object */
   object_get_marker_by_name(*(int *)(unit + 0xcc), seat_def + 0x84,
                                   marker_buf, 1);
-  position[0] = *(float *)(marker_buf + 0x60);
-  position[1] = *(float *)(marker_buf + 0x64);
-  position[2] = *(float *)(marker_buf + 0x68);
+  position->x = *(float *)(marker_buf + 0x60);
+  position->y = *(float *)(marker_buf + 0x64);
+  position->z = *(float *)(marker_buf + 0x68);
 }
 
 /* unit_estimate_position (0x1a93e0)
@@ -3573,7 +3573,7 @@ void unit_estimate_position(int unit_handle, int16_t estimate_mode,
 
 apply_delta:
   /* Get the unit's current estimated seat position into out_position */
-  unit_get_camera_position(unit_handle, (float *)out_position);
+  unit_get_camera_position(unit_handle, out_position);
 
   /* Add (body_position - local_body_pos) delta to out_position */
   out_position->x += body_position->x - local_body_pos.x;
@@ -4519,7 +4519,7 @@ void unit_debug_ninja_rope(int unit_handle)
   int16_t depth;
 
   unit = (char *)object_get_and_verify_type(unit_handle, 3);
-  unit_get_camera_position(unit_handle, origin);
+  unit_get_camera_position(unit_handle, (real_point3d *)origin);
 
   direction[0] = *(float *)(unit + 0x1ec) * 25.0f;
   direction[1] = *(float *)(unit + 0x1f0) * 25.0f;
@@ -4537,7 +4537,7 @@ void unit_debug_ninja_rope(int unit_handle)
   global_current_collision_user_depth = depth + 1;
   collision_user_stack[depth] = 0x15;
 
-  if (collision_test_vector(0x22, origin, direction, unit_handle,
+  if (collision_test_vector(0x22, (real_point3d *)origin, (real_vector3d *)direction, unit_handle,
                    (int16_t *)collision_result)) {
     /* collision_result + 0x2c = fraction, compare > 0.95 */
     if (*(float *)(collision_result + 0x2c) > 0.95f) {
@@ -4668,7 +4668,7 @@ char unit_can_see_point(int unit_handle, float *point, float half_angle)
   dir[1] = point[1] - marker_pos[1];
   dir[2] = point[2] - marker_pos[2];
 
-  normalize3d(dir);
+  normalize3d((real_vector3d *)dir);
 
   dot = dir[0] * *(float *)(unit + 0x210) + dir[1] * *(float *)(unit + 0x214) +
         dir[2] * *(float *)(unit + 0x218);
@@ -4774,7 +4774,7 @@ void unit_detach_from_parent(int object_handle)
   dir[1] = child_pos[1] - parent_pos[1];
   dir[2] = child_pos[2] - parent_pos[2];
 
-  len = normalize3d(dir);
+  len = normalize3d((real_vector3d *)dir);
   if (len == *(float *)0x2533c0) {
     dir[0] = *(float *)(unit + 0x24);
     dir[1] = *(float *)(unit + 0x28);
@@ -4791,7 +4791,7 @@ void unit_detach_from_parent(int object_handle)
   child_pos[1] = *(float *)(unit + 0x10);
   child_pos[2] = *(float *)(unit + 0x14);
   scenario_ensure_point_within_world(child_pos);
-  object_set_position(object_handle, child_pos, NULL, NULL);
+  object_set_position(object_handle, (real_point3d *)child_pos, NULL, NULL);
 
   *(uint32_t *)(unit + 0x4) &= ~0x20u;
   *(uint32_t *)(unit + 0x1b4) &= ~0x8000u;
@@ -5454,7 +5454,7 @@ skip_decrement:
 
   /* Compute perpendicular vector for orientation */
   perpendicular3d(forward, perp_out);
-  normalize3d(perp_out);
+  normalize3d((real_vector3d *)perp_out);
 
   /* Copy marker position into placement position (offset 0x18) */
   *(int *)(placement + 0x18) = *(int *)(marker_buf + 0x60);
@@ -5538,7 +5538,7 @@ void unit_throw_grenade_release(int unit_handle, char flag)
       memcpy(forward, unit + 0x1ec, sizeof(forward));
 
       cross_product3d(*(float **)0x31fc44, forward, cross_fwd);
-      if (normalize3d(cross_fwd) == 0.0f) {
+      if (normalize3d((real_vector3d *)cross_fwd) == 0.0f) {
         float *up;
         up = *(float **)0x31fc44;
         cross_fwd[0] = up[0];
@@ -5547,10 +5547,10 @@ void unit_throw_grenade_release(int unit_handle, char flag)
       }
 
       cross_product3d(forward, cross_fwd, cross2);
-      normalize3d(cross2);
+      normalize3d((real_vector3d *)cross2);
 
       /* Get the unit's seat/marker position */
-      unit_get_camera_position(unit_handle, seat_pos);
+      unit_get_camera_position(unit_handle, (real_point3d *)seat_pos);
 #ifdef HALO_RNG_TRACE
       RNG_TRACE_EX(RNG_TRACE_KIND_THROW_SEAT_XY, RNG_TRACE_BITS(seat_pos[0]),
                    RNG_TRACE_BITS(seat_pos[1]));
@@ -5634,7 +5634,7 @@ void unit_throw_grenade_release(int unit_handle, char flag)
   *(int *)(unit + 0x244) = -1;
 
   /* Try to place the grenade; delete on failure */
-  unit_get_camera_position(unit_handle, cross2);
+  unit_get_camera_position(unit_handle, (real_point3d *)cross2);
   if (object_try_place(grenade_handle, cross2) == 0) {
     object_delete(grenade_handle);
   }
@@ -6007,7 +6007,7 @@ void unit_detach_weapon(int unit_handle, int weapon_handle)
   direction[2] *= scale;
 
   /* Get root parent position and offset by scaled direction */
-  object_get_root_location(unit_handle, position, 0);
+  object_get_velocities(unit_handle, (real_vector3d *)position, 0);
   direction[0] = position[0] + direction[0];
   direction[1] = position[1] + direction[1];
   direction[2] = position[2] + direction[2];
@@ -6017,7 +6017,7 @@ void unit_detach_weapon(int unit_handle, int weapon_handle)
 
   /* Set weapon position and try to place it */
   item_accelerate(weapon_handle, direction, 0);
-  unit_get_camera_position(unit_handle, position);
+  unit_get_camera_position(unit_handle, (real_point3d *)position);
 
   if (!object_try_place(weapon_handle, position)) {
     if (!game_engine_running()) {
@@ -6425,7 +6425,7 @@ void unit_start_running_blindly(int unit_handle)
   } else {
     real_euler_angles2d facing_angles;
 
-    vector_to_angles((float *)&facing_angles, (float *)(unit + 0x24));
+    vector_to_angles(&facing_angles, (real_vector3d *)(unit + 0x24));
     if (facing_angles.yaw > 3.1415927f) {
       facing_angles.yaw -= 6.2831855f;
     }
@@ -7058,7 +7058,7 @@ void unit_adjust_projectile_ray(int unit_handle, float *origin,
 
   /* Project origin onto aim position along direction */
   if (adjust_origin != '\0') {
-    unit_get_camera_position(unit_handle, aim_pos);
+    unit_get_camera_position(unit_handle, (real_point3d *)aim_pos);
     dot = (origin[0] - aim_pos[0]) * direction[0] +
           (origin[1] - aim_pos[1]) * direction[1] +
           (origin[2] - aim_pos[2]) * direction[2];
@@ -7068,7 +7068,7 @@ void unit_adjust_projectile_ray(int unit_handle, float *origin,
   }
 
   /* Compute velocity as dot(root_direction, direction) */
-  object_get_root_location(unit_handle, root_dir, 0);
+  object_get_velocities(unit_handle, (real_vector3d *)root_dir, 0);
   *velocity_out = root_dir[0] * direction[0] + root_dir[2] * direction[2] +
                   root_dir[1] * direction[1];
 }
@@ -7099,7 +7099,7 @@ void unit_render_debug(int unit_handle)
 
   /* Debug aim/look vectors */
   if (*(char *)0x5054f7 != '\0') {
-    unit_get_camera_position(unit_handle, eye_pos);
+    unit_get_camera_position(unit_handle, (real_point3d *)eye_pos);
     object_get_world_position(unit_handle, (vector3_t *)head_pos);
     head_pos[2] = head_pos[2] + 0.1f;
     /* Draw aim direction line (scale 1.0, yellow) */
@@ -7861,7 +7861,7 @@ char unit_clip_to_aiming_bounds(int unit_handle, float *vector, char flag)
 
     real_matrix4x3_transform_point(matrix, vector, relative_vector);
 
-    if (!(char)real_vector3d_valid(relative_vector)) {
+    if (!(char)real_vector3d_valid((real_vector3d *)relative_vector)) {
       display_assert(csprintf(error_string_buffer,
                               "%s: assert_valid_real_vector2d(%f, %f, %f)",
                               "&relative_vector", (double)relative_vector[0],
@@ -7871,7 +7871,7 @@ char unit_clip_to_aiming_bounds(int unit_handle, float *vector, char flag)
       system_exit(-1);
     }
 
-    vector_to_angles(angles, relative_vector);
+    vector_to_angles((real_euler_angles2d *)angles, (real_vector3d *)relative_vector);
 
     if (!valid_real(angles[1])) {
       display_assert(csprintf(error_string_buffer,
@@ -7929,9 +7929,9 @@ char unit_clip_to_aiming_bounds(int unit_handle, float *vector, char flag)
         system_exit(-1);
       }
 
-      angles_to_vector(relative_vector, angles);
+      angles_to_vector((real_vector3d *)relative_vector, (real_euler_angles2d *)angles);
 
-      if (!(char)real_vector3d_valid(relative_vector)) {
+      if (!(char)real_vector3d_valid((real_vector3d *)relative_vector)) {
         display_assert(csprintf(error_string_buffer,
                                 "%s: assert_valid_real_vector2d(%f, %f, %f)",
                                 "&relative_vector", (double)relative_vector[0],
@@ -7941,9 +7941,9 @@ char unit_clip_to_aiming_bounds(int unit_handle, float *vector, char flag)
         system_exit(-1);
       }
 
-      matrix_transform_vector(matrix, relative_vector, vector);
+      matrix_transform_vector(matrix, (real_vector3d *)relative_vector, (real_vector3d *)vector);
 
-      if (!(char)real_vector3d_valid(vector)) {
+      if (!(char)real_vector3d_valid((real_vector3d *)vector)) {
         display_assert(csprintf(error_string_buffer,
                                 "%s: assert_valid_real_vector2d(%f, %f, %f)",
                                 "vector", (double)vector[0], (double)vector[1],
@@ -8797,7 +8797,7 @@ void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
     direction[1] = melee_pos[1] - position[1];
     direction[2] = melee_pos[2] - position[2];
 
-    coll_hit = (char)collision_test_vector(0x1000e9, position, direction, -1,
+    coll_hit = (char)collision_test_vector(0x1000e9, (real_point3d *)position, (real_vector3d *)direction, -1,
                                   (int16_t *)collision_result);
     if (coll_hit != 0) {
       /* collision hit — snap melee position to unit center */
@@ -8947,7 +8947,7 @@ void unit_cause_player_melee_damage(int unit_handle)
 
   facing = (float *)((char *)unit + 0x1ec);
   perpendicular3d(facing, perp);
-  normalize3d(perp);
+  normalize3d((real_vector3d *)perp);
 
   best_type = 0;
   best_fraction = 0.0f;
@@ -8969,7 +8969,7 @@ void unit_cause_player_melee_damage(int unit_handle)
       ray_dir[1] = facing[1] * 0.8f + (fi * perp[1] + cross_vec[1] * fj) * 0.1f;
       ray_dir[2] = facing[2] * 0.8f + (fi * perp[2] + fj * cross_vec[2]) * 0.1f;
 
-      hit = collision_test_vector(0x1000e9, ray_origin, ray_dir, unit_handle,
+      hit = collision_test_vector(0x1000e9, (real_point3d *)ray_origin, (real_vector3d *)ray_dir, unit_handle,
                          (int16_t *)collision_result);
 
       if (hit != 0) {
@@ -9249,8 +9249,8 @@ void unit_apply_alignment_vector(int unit_handle, float *alignment_vector)
     *(float *)((char *)unit + 0x34) = up_vector[1];
     *(float *)((char *)unit + 0x38) = up_vector[2];
 
-    if (!valid_real_normal3d_perpendicular((float *)((char *)unit + 0x24),
-                                           (float *)((char *)unit + 0x30))) {
+    if (!valid_real_normal3d_perpendicular((real_vector3d *)((char *)unit + 0x24),
+                                           (real_vector3d *)((char *)unit + 0x30))) {
       display_assert(
         csprintf(
           error_string_buffer,
@@ -9435,7 +9435,7 @@ apply_angle:
   sin_angle = x87_fsin(*(float *)(unit + 0x3c4));
 #endif
   up_axis = *(float **)0x31fc44;
-  rotate_vector3d_by_sincos(run_vector, up_axis, sin_angle, cos_angle);
+  rotate_vector3d_by_sincos((real_vector3d *)run_vector, (real_vector3d *)up_axis, sin_angle, cos_angle);
 
   /* Assert valid normal after rotation */
   if (valid_real_normal3d(run_vector) == 0) {
@@ -9484,8 +9484,8 @@ bool unit_verify_vectors(int unit_handle)
   return (bool)(valid_real_normal3d((float *)(obj + 0x1d4)) &&
                 valid_real_normal3d((float *)(obj + 0x1e0)) &&
                 valid_real_normal3d((float *)(obj + 0x204)) &&
-                valid_real_normal3d_perpendicular((float *)(obj + 0x24),
-                                                  (float *)(obj + 0x30)) &&
+                valid_real_normal3d_perpendicular((real_vector3d *)(obj + 0x24),
+                                                  (real_vector3d *)(obj + 0x30)) &&
                 valid_real_normal3d((float *)(obj + 0x1ec)) &&
                 valid_real_normal3d((float *)(obj + 0x210)));
 }
@@ -9536,10 +9536,10 @@ void unit_control_trace(int unit_handle, const char *label)
   /* dump object position, forward, up as floats */
   error(2, "  object: pos %f %f %f, fwd %f %f %f, up %f %f %f",
         (double)unit->object.position.x, (double)unit->object.position.y,
-        (double)unit->object.position.z, (double)unit->object.forward.x,
-        (double)unit->object.forward.y, (double)unit->object.forward.z,
-        (double)unit->object.up.x, (double)unit->object.up.y,
-        (double)unit->object.up.z);
+        (double)unit->object.position.z, (double)unit->object.forward.i,
+        (double)unit->object.forward.j, (double)unit->object.forward.k,
+        (double)unit->object.up.i, (double)unit->object.up.j,
+        (double)unit->object.up.k);
 
   /* dump desired facing, aiming, looking as floats */
   error(
@@ -9566,10 +9566,10 @@ void unit_control_trace(int unit_handle, const char *label)
   error(
     2, "  object: pos %08X %08X %08X, fwd %08X %08X %08X, up %08X %08X %08X",
     *(uint32_t *)&unit->object.position.x, *(uint32_t *)&unit->object.position.y,
-    *(uint32_t *)&unit->object.position.z, *(uint32_t *)&unit->object.forward.x,
-    *(uint32_t *)&unit->object.forward.y, *(uint32_t *)&unit->object.forward.z,
-    *(uint32_t *)&unit->object.up.x, *(uint32_t *)&unit->object.up.y,
-    *(uint32_t *)&unit->object.up.z);
+    *(uint32_t *)&unit->object.position.z, *(uint32_t *)&unit->object.forward.i,
+    *(uint32_t *)&unit->object.forward.j, *(uint32_t *)&unit->object.forward.k,
+    *(uint32_t *)&unit->object.up.i, *(uint32_t *)&unit->object.up.j,
+    *(uint32_t *)&unit->object.up.k);
 
   /* dump desired facing, aiming, looking as hex */
   error(2,
@@ -9970,7 +9970,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
           local_matrix[12] = *(float *)(*(int *)0x31fc1c + 8);
           real_matrix4x3_transform_point(local_matrix, aiming_vec, rel_aim_vec);
 
-          valid = real_vector3d_valid(rel_aim_vec);
+          valid = real_vector3d_valid((real_vector3d *)rel_aim_vec);
           if (valid == 0) {
             csprintf((char *)0x5ab100,
                      "%s: assert_valid_real_vector2d(%f, %f, %f)",
@@ -9980,7 +9980,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
             system_exit(-1);
           }
 
-          vector_to_angles(aim_angles, rel_aim_vec);
+          vector_to_angles((real_euler_angles2d *)aim_angles, (real_vector3d *)rel_aim_vec);
 
           temp = aim_angles[1];
           if ((*(unsigned int *)&temp & 0x7f800000) == 0x7f800000) {
@@ -10042,7 +10042,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
           real_matrix4x3_transform_point(local_matrix, (void *)(unit + 0x210),
                                          rel_look_vec);
 
-          valid = real_vector3d_valid(rel_look_vec);
+          valid = real_vector3d_valid((real_vector3d *)rel_look_vec);
           if (valid == 0) {
             csprintf((char *)0x5ab100,
                      "%s: assert_valid_real_vector2d(%f, %f, %f)",
@@ -10052,7 +10052,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
             system_exit(-1);
           }
 
-          vector_to_angles(look_angles, rel_look_vec);
+          vector_to_angles((real_euler_angles2d *)look_angles, (real_vector3d *)rel_look_vec);
           look_angles[0] = look_angles[0] - aim_angles[0];
           look_angles[1] = look_angles[1] - aim_angles[1];
 
@@ -10244,8 +10244,8 @@ void unit_euler_aiming_update(int transform_matrix, float *aiming_vector,
 
   wrapping = (aiming_bounds[1] - aiming_bounds[0]) - 6.2831853f > -1.0e-4f;
 
-  vector_to_angles(aim_angles, local_aim);
-  vector_to_angles(desired_angles, local_desired);
+  vector_to_angles((real_euler_angles2d *)aim_angles, (real_vector3d *)local_aim);
+  vector_to_angles((real_euler_angles2d *)desired_angles, (real_vector3d *)local_desired);
 
   yaw_ok = 1;
   if (wrapping == 0) {
@@ -10294,18 +10294,18 @@ void unit_euler_aiming_update(int transform_matrix, float *aiming_vector,
   }
 
 clamp_and_reconstruct:
-  angles_to_vector(desired_clamped, desired_angles);
+  angles_to_vector((real_vector3d *)desired_clamped, (real_euler_angles2d *)desired_angles);
   if (transform_matrix != 0) {
-    matrix_transform_vector((float *)transform_matrix, desired_clamped,
-                            desired_clamped);
-    normalize3d(desired_clamped);
+    matrix_transform_vector((float *)transform_matrix, (real_vector3d *)desired_clamped,
+                            (real_vector3d *)desired_clamped);
+    normalize3d((real_vector3d *)desired_clamped);
   }
 
 done_clamp:
   vel_vec[0] = angular_velocity[0];
   vel_vec[1] = angular_velocity[1];
   vel_vec[2] = angular_velocity[2];
-  norm_len = normalize3d(vel_vec);
+  norm_len = normalize3d((real_vector3d *)vel_vec);
   if (norm_len == 0.0f) {
     vel_yaw = 0.0f;
     vel_pitch = 0.0f;
@@ -10315,8 +10315,8 @@ done_clamp:
     rotated[1] = local_aim[1];
     rotated[2] = local_aim[2];
     sin_v = x87_fsin(norm_len);
-    rotate_vector3d_by_sincos(rotated, vel_vec, sin_v, cos_v);
-    vector_to_angles(rot_angles, rotated);
+    rotate_vector3d_by_sincos((real_vector3d *)rotated, (real_vector3d *)vel_vec, sin_v, cos_v);
+    vector_to_angles((real_euler_angles2d *)rot_angles, (real_vector3d *)rotated);
     vel_yaw = rot_angles[0] - aim_angles[0];
     vel_pitch = rot_angles[1] - aim_angles[1];
   }
@@ -10399,7 +10399,7 @@ done_clamp:
       system_exit(-1);
     }
 
-    angles_to_vector(end_aim, end_angles);
+    angles_to_vector((real_vector3d *)end_aim, (real_euler_angles2d *)end_angles);
 
     {
       float
@@ -10410,7 +10410,7 @@ done_clamp:
 
       total_angles[0] = rot_angles[0] + end_angles[0];
       total_angles[1] = rot_angles[1] + end_angles[1];
-      angles_to_vector(vel_end, total_angles);
+      angles_to_vector((real_vector3d *)vel_end, (real_euler_angles2d *)total_angles);
 
       /* dot = vel_end . end_aim. Read vel_end AFTER the call: angles_to_vector
          overwrote the stack slots the decompiler mislabeled rot_angles[1..2]
@@ -10428,7 +10428,7 @@ done_clamp:
       angular_velocity[1] = end_aim[2] * vel_end[0] - end_aim[0] * vel_end[2];
       angular_velocity[2] = end_aim[0] * vel_end[1] - end_aim[1] * vel_end[0];
 
-      normalize3d(angular_velocity);
+      normalize3d((real_vector3d *)angular_velocity);
 
       /* angle = acos(clamped dot) (orig 0x1d94f0 = MSVC CRT acos, arg in ST0),
          clamped to the angular-velocity limit, then scales the axis. */
@@ -10442,9 +10442,9 @@ done_clamp:
     }
 
     if (transform_matrix != 0) {
-      matrix_transform_vector((float *)transform_matrix, end_aim,
-                              aiming_vector);
-      normalize3d(aiming_vector);
+      matrix_transform_vector((float *)transform_matrix, (real_vector3d *)end_aim,
+                              (real_vector3d *)aiming_vector);
+      normalize3d((real_vector3d *)aiming_vector);
       goto final_validate;
     }
     aiming_vector[0] = end_aim[0];
@@ -11917,12 +11917,12 @@ void unit_impact_melee_damage(int unit_handle, int param_2, int param_3,
 
   /* Derive left vector via cross product: forward = cross(up, impact_dir) */
   cross_product3d((float *)(unit + 0x30), impact_dir, local_vec);
-  mag = normalize3d(local_vec);
+  mag = normalize3d((real_vector3d *)local_vec);
   if (mag == 0.0f) {
     /* Impact direction parallel to up — use global up as fallback */
     up_ptr = *(char **)0x0031fc44;
     cross_product3d((float *)up_ptr, impact_dir, local_vec);
-    mag = normalize3d(local_vec);
+    mag = normalize3d((real_vector3d *)local_vec);
     if (mag == 0.0f) {
       /* Still degenerate — use the global vector at 0x31fc3c.  Whole-vector
        * copy: the reference loads all three dwords before storing any of
@@ -12555,7 +12555,7 @@ void unit_exit_seat_end(int unit_handle)
   exit_position[2] =
     exit_offset[2] + *(float *)(unit + 0x14) - model_node_pos.z;
 
-  object_set_position(unit_handle, exit_position, 0, 0);
+  object_set_position(unit_handle, (real_point3d *)exit_position, 0, 0);
 
   /* Multiply node matrix by seat rotation to get new orientation */
   {
@@ -13515,9 +13515,9 @@ char unit_update(int unit_handle)
     }
 
     /* Delta angle + steering byte */
-    angle_between_vectors3d(aim_vec, saved_aim);
+    angle_between_vectors3d((real_vector3d *)aim_vec, (real_vector3d *)saved_aim);
     i10 = tag_data;
-    delta_angle = angle_between_vectors3d(aim_vec, saved_aim);
+    delta_angle = angle_between_vectors3d((real_vector3d *)aim_vec, (real_vector3d *)saved_aim);
     ratio = delta_angle / (*(float *)(i10 + 0x264) * *(float *)0x2546a4);
     if (ratio < 0.0f) {
       ratio = 0.0f;
@@ -13678,7 +13678,7 @@ char unit_update(int unit_handle)
   {
     float *obj_fwd = (float *)((char *)unit + 0x24);
     float *obj_up = (float *)((char *)unit + 0x30);
-    c6 = (char)valid_real_normal3d_perpendicular(obj_fwd, obj_up);
+    c6 = (char)valid_real_normal3d_perpendicular((real_vector3d *)obj_fwd, (real_vector3d *)obj_up);
     if (c6 == 0) {
       char *msg = csprintf(
         *(char **)0x5ab100,

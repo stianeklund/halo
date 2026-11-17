@@ -769,7 +769,7 @@ void FUN_00136f40(int object_handle, void *damage_data, unsigned int flags,
   if (*(float *)(obje_tag + 0x20) > 0.0001f) {
     *(vector3_t *)direction = *(vector3_t *)(dd + 0x34);
     direction[2] += 0.45f;
-    normalize3d(direction);
+    normalize3d((real_vector3d *)direction);
 
     scale =
       *(float *)(jpt_tag + 0x1f4) * *(float *)(obje_tag + 0x20) * 0.03333333f;
@@ -949,7 +949,7 @@ void render_debug_object_damage(void)
   direction[2] = *(float *)0x506564 * *(float *)0x25acf0;
 
   /* Cast a collision ray from camera position along the scaled direction */
-  if (collision_test_vector(0x81, (float *)0x506550, direction, object_handle,
+  if (collision_test_vector(0x81, (real_point3d *)(0x506550), (real_vector3d *)direction, object_handle,
                    collision_result) == 0)
     return;
 
@@ -2415,12 +2415,12 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
       all_second_casts_blocked = 1;
 
       perpendicular3d(delta, axis_a);
-      normalize3d(axis_a);
+      normalize3d((real_vector3d *)axis_a);
 
       axis_b[0] = axis_a[2] * delta[1] - axis_a[1] * delta[2];
       axis_b[1] = delta[2] * axis_a[0] - axis_a[2] * delta[0];
       axis_b[2] = axis_a[1] * delta[0] - delta[1] * axis_a[0];
-      normalize3d(axis_b);
+      normalize3d((real_vector3d *)axis_b);
 
       for (i = 0; i < 4; i++) {
         float scale_dir;
@@ -2452,7 +2452,7 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
         cast_dir[2] = axis[2] * scale_dir;
 
         root_parent = object_get_root_parent(object_handle);
-        collision_test_vector(0xc221, (float *)((char *)damage_params + 0x28), cast_dir,
+        collision_test_vector(0xc221, (real_point3d *)((char *)damage_params + 0x28), (real_vector3d *)cast_dir,
                      root_parent, cast_result);
         collision[0] = *(float *)((char *)cast_result + 0x18);
         collision[1] = *(float *)((char *)cast_result + 0x1c);
@@ -2462,7 +2462,7 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
         dir2[0] = *(float *)(obj + 0x50) - collision[0];
         dir2[1] = *(float *)(obj + 0x54) - collision[1];
         dir2[2] = *(float *)(obj + 0x58) - collision[2];
-        if (collision_test_vector(0xc221, collision, dir2, root_parent, cast_result) ==
+        if (collision_test_vector(0xc221, (real_point3d *)collision, (real_vector3d *)dir2, root_parent, cast_result) ==
             0)
           all_second_casts_blocked = 0;
       }
@@ -2479,7 +2479,7 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
         *(float *)(obj + 0x54) - *(float *)((char *)damage_params + 0x2c);
       dir[2] =
         *(float *)(obj + 0x58) - *(float *)((char *)damage_params + 0x30);
-      if (collision_test_vector(0xc221, (float *)((char *)damage_params + 0x28), dir,
+      if (collision_test_vector(0xc221, (real_point3d *)((char *)damage_params + 0x28), (real_vector3d *)dir,
                        root_parent, cast_result) != 0)
         may_apply_damage = 0;
     }
@@ -2545,7 +2545,7 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
         *(float *)(obj + 0x54) - *(float *)((char *)damage_params + 0x2c);
       *(float *)((char *)damage_params + 0x3c) =
         *(float *)(obj + 0x58) - *(float *)((char *)damage_params + 0x30);
-      distance = normalize3d((float *)((char *)damage_params + 0x34));
+      distance = normalize3d((real_vector3d *)((char *)damage_params + 0x34));
 
       falloff_range = *(float *)(jpt_tag + 4) - *(float *)jpt_tag;
       if (falloff_range <= *(float *)0x2533c0) {

@@ -819,7 +819,7 @@ void seed_random_vector_in_cone3d(unsigned int *seed, float *forward, float zero
   cross[2] = random_vec[1] * forward[0] - random_vec[0] * forward[1];
 
   /* Normalize the rotation axis; bail if degenerate (parallel vectors) */
-  if (!(normalize3d(cross) > *(float *)0x2533c0))
+  if (!(normalize3d((real_vector3d *)cross) > *(float *)0x2533c0))
     return;
 
   /* Random rotation angle in [zero, angle] (inlines random_real_range) */
@@ -828,7 +828,7 @@ void seed_random_vector_in_cone3d(unsigned int *seed, float *forward, float zero
   cos_val = x87_fcos(random_angle);
 
   /* Rotate result around the cross axis by the random angle */
-  rotate_vector3d_by_sincos(result, cross, sin_val, cos_val);
+  rotate_vector3d_by_sincos((real_vector3d *)result, (real_vector3d *)cross, sin_val, cos_val);
 }
 
 /* Decompose vector v into components parallel and perpendicular to normal n.
@@ -1072,7 +1072,7 @@ float FUN_0010c440(float *a, float *b)
  *
  * 0x10c510 / random_math.obj
  */
-float angle_between_vectors3d(float *v1, float *v2)
+float angle_between_vectors3d(const real_vector3d *v1, const real_vector3d *v2)
 {
 #if defined(_MSC_VER) && !defined(__clang__)
   double acos(double x);
@@ -1083,14 +1083,14 @@ float angle_between_vectors3d(float *v1, float *v2)
   float half_angle;
 
   /* Product of squared magnitudes: |v1|^2 * |v2|^2 */
-  product = (v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2]) *
-            (v2[0] * v2[0] + v2[1] * v2[1] + v2[2] * v2[2]);
+  product = (v1->i * v1->i + v1->j * v1->j + v1->k * v1->k) *
+            (v2->i * v2->i + v2->j * v2->j + v2->k * v2->k);
 
   if (product == 0.0f)
     return 0.0f;
 
   /* dot(v1, v2) */
-  dot = v1[2] * v2[2] + v1[1] * v2[1] + v1[0] * v2[0];
+  dot = v1->k * v2->k + v1->j * v2->j + v1->i * v2->i;
 
   cos2theta = (dot / product) * dot * 2.0f - 1.0f;
   if (cos2theta < -1.0f)
@@ -1148,7 +1148,7 @@ void FUN_0010c7d0(float *param_1, float *param_2, float param_3, float *param_4)
   float angle;
   float blend;
 
-  angle = angle_between_vectors3d(param_1, param_2);
+  angle = angle_between_vectors3d((real_vector3d *)param_1, (real_vector3d *)param_2);
   if (param_3 < 0.5f) {
     /* Rotate from param_1 side: scale angle by t, axis = cross(param_1,
      * param_2) */
@@ -1170,8 +1170,8 @@ void FUN_0010c7d0(float *param_1, float *param_2, float param_3, float *param_4)
     param_4[1] = param_2[1];
     param_4[2] = param_2[2];
   }
-  if (normalize3d(axis) > 0.0f) {
-    rotate_vector3d_by_sincos(param_4, axis, x87_fsin(blend), x87_fcos(blend));
+  if (normalize3d((real_vector3d *)axis) > 0.0f) {
+    rotate_vector3d_by_sincos((real_vector3d *)param_4, (real_vector3d *)axis, x87_fsin(blend), x87_fcos(blend));
   }
 }
 

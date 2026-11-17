@@ -420,10 +420,10 @@ typedef struct {
   uint32_t flags;           ///< offset=0x04  .text:00095B7B                 mov     [esi+4], ecx
   uint32_t marker_generation; ///< offset=0x08  .text:0013EC41 compared against global object_marker_generation
   vector3_t position;       ///< offset=0x0C
-  vector3_t translational_velocity; ///< offset=0x18
-  vector3_t forward;        ///< offset=0x24
-  vector3_t up;             ///< offset=0x30
-  vector3_t angular_velocity; ///< offset=0x3C
+  real_vector3d translational_velocity; ///< offset=0x18
+  real_vector3d forward;    ///< offset=0x24
+  real_vector3d up;         ///< offset=0x30
+  real_vector3d angular_velocity; ///< offset=0x3C
   location_t location;      ///< offset=0x48
   real_point3d bounding_sphere_center; ///< offset=0x50
   float unk_92;             ///< offset=0x5C  .text:0009D155                 fld     dword ptr [ebx+5Ch]
@@ -1813,7 +1813,9 @@ typedef struct
   int   unk_236;     ///< offset=0xEC
   _BYTE unk_240[0x114];                ///< offset=0xF0
   struct tag_block object_names;       ///< offset=0x204  element 0x24 (scenario_object_name_t)
-  uint8_t pad_210[0x21c];              ///< offset=0x210
+  uint8_t pad_210[0x144];              ///< offset=0x210
+  struct tag_block player_starting_locations; ///< offset=0x354  element 0x34
+  uint8_t pad_360[0xcc];               ///< offset=0x360
   struct tag_block ai_encounters;      ///< offset=0x42c  element 0xb0 (encounter_definition)
   uint8_t pad_438[0xb8];               ///< offset=0x438
   struct tag_block cutscene_camera_points; ///< offset=0x4F0  element 0x68, scripted_camera_set
@@ -1823,6 +1825,7 @@ typedef struct
 co(scenario_t, cutscene_camera_points, 0x4f0);
 co(scenario_t, object_names, 0x204);
 co(scenario_t, ai_encounters, 0x42c);
+co(scenario_t, player_starting_locations, 0x354);
 
 /* scenario_t::object_names element (stride 0x24); the name is at +0, read
  * as a string by the debug printers (e.g. ai_communication_started). */
