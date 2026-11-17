@@ -6077,7 +6077,7 @@ void FUN_00179de0(void *group)
 bool FUN_0017a8a0(float *point, float radius, float *out_extent,
                   float *out_screen)
 {
-  float view_point[3]; /* [EBP-0x1c..-0x14] matrix_transform_point output */
+  real_point3d view_point; /* [EBP-0x1c..-0x14] matrix_transform_point output */
   float radius_y; /* [EBP-0x10] */
   float radius_x; /* [EBP-0xc]  */
   float proj_z; /* [EBP-8]  FST (not FSTP) -- stays live in ST0 */
@@ -6097,27 +6097,27 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
     viewport_width = VIEWPORT_RIGHT - VIEWPORT_LEFT;
     viewport_extent = *(int *)0x5a5bf8 - *(int *)0x5a5bf4;
 
-    matrix_transform_point(WORLD_TO_VIEW_MATRIX, (real_point3d *)point, (real_point3d *)view_point);
+    matrix_transform_point(WORLD_TO_VIEW_MATRIX, (real_point3d *)point, &view_point);
 
-    proj_y = PROJECTION_MATRIX(0, 1) * view_point[0] +
-             PROJECTION_MATRIX(1, 1) * view_point[1] +
-             PROJECTION_MATRIX(2, 1) * view_point[2] + PROJECTION_MATRIX(3, 1);
-    proj_z = PROJECTION_MATRIX(0, 2) * view_point[0] +
-             PROJECTION_MATRIX(1, 2) * view_point[1] +
-             PROJECTION_MATRIX(2, 2) * view_point[2] + PROJECTION_MATRIX(3, 2);
+    proj_y = PROJECTION_MATRIX(0, 1) * view_point.x +
+             PROJECTION_MATRIX(1, 1) * view_point.y +
+             PROJECTION_MATRIX(2, 1) * view_point.z + PROJECTION_MATRIX(3, 1);
+    proj_z = PROJECTION_MATRIX(0, 2) * view_point.x +
+             PROJECTION_MATRIX(1, 2) * view_point.y +
+             PROJECTION_MATRIX(2, 2) * view_point.z + PROJECTION_MATRIX(3, 2);
     radius_x = PROJECTION_MATRIX(0, 0) * radius;
     radius_y = PROJECTION_MATRIX(1, 1) * radius;
 
     if (proj_z > 0.0f) {
-      inv_w = 1.0f / (PROJECTION_MATRIX(0, 3) * view_point[0] +
-                      PROJECTION_MATRIX(1, 3) * view_point[1] +
-                      PROJECTION_MATRIX(2, 3) * view_point[2] +
+      inv_w = 1.0f / (PROJECTION_MATRIX(0, 3) * view_point.x +
+                      PROJECTION_MATRIX(1, 3) * view_point.y +
+                      PROJECTION_MATRIX(2, 3) * view_point.z +
                       PROJECTION_MATRIX(3, 3));
 
       out_screen[0] =
-        (((PROJECTION_MATRIX(0, 0) * view_point[0] +
-           PROJECTION_MATRIX(1, 0) * view_point[1] +
-           PROJECTION_MATRIX(2, 0) * view_point[2] + PROJECTION_MATRIX(3, 0)) *
+        (((PROJECTION_MATRIX(0, 0) * view_point.x +
+           PROJECTION_MATRIX(1, 0) * view_point.y +
+           PROJECTION_MATRIX(2, 0) * view_point.z + PROJECTION_MATRIX(3, 0)) *
             inv_w +
           1.0f) *
            (float)viewport_width -

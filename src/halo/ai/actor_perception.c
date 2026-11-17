@@ -2964,7 +2964,7 @@ void actor_emotion_update(int actor_handle)
   char *target;
   int iter[2];
   real_vector3d friend_position;
-  real_vector3d scaled_position;
+  real_point3d scaled_position;
   real_vector3d target_vector;
   real_vector3d blockage_vector;
   real_vector3d direction;
@@ -3074,7 +3074,7 @@ void actor_emotion_update(int actor_handle)
               if (normalize3d(&direction) > *(float *)0x2533c0) {
                 vector3d_scale_add((real_point3d *)(actor + 0x12c),
                                    &direction, 0.4f,
-                                   (real_point3d *)&scaled_position);
+                                   &scaled_position);
                 blocked2 = actor_perception_aiming_vector_test_blockage(
                   (float *)(prop + 0xbc), (float *)&friend_position,
                   (int)&scaled_position, 0);

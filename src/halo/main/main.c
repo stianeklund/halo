@@ -5437,7 +5437,7 @@ void FUN_00104040(float *p0, float *p1, float *p2, float *color)
  */
 void FUN_00104240(int point_count, float *points, float *color)
 {
-  float p[3];
+  real_point3d p;
   const char *sep;
   float *pt;
   short count;
@@ -5471,13 +5471,13 @@ void FUN_00104240(int point_count, float *points, float *color)
         pt = points;
         n = (unsigned int)(unsigned short)count;
         do {
-          matrix_transform_point((float *)0x31fb08, (real_point3d *)pt, (real_point3d *)p);
+          matrix_transform_point((float *)0x31fb08, (real_point3d *)pt, &p);
           sep = ", ";
           if (i >= last)
             sep = "] }\n";
           crt_fprintf(*(void **)0x46e394, "%f %f %f%s",
-                      p[0] * *(float *)0x253f00, p[1] * *(float *)0x253f00,
-                      p[2] * *(float *)0x253f00, sep);
+                      p.x * *(float *)0x253f00, p.y * *(float *)0x253f00,
+                      p.z * *(float *)0x253f00, sep);
           i = i + 1;
           pt = pt + 3;
           n = n - 1;
@@ -5546,7 +5546,7 @@ void FUN_00104240(int point_count, float *points, float *color)
 void FUN_00104430(int polygon_count, short *point_counts, float *points,
                   float *color)
 {
-  float p[3];
+  real_point3d p;
   float *pt;
   float *cp;
   short *pc;
@@ -5584,10 +5584,10 @@ void FUN_00104430(int polygon_count, short *point_counts, float *points,
           if (*pc > 0) {
             pt = points + vertex_index * 3;
             do {
-              matrix_transform_point((float *)0x31fb08, (real_point3d *)pt, (real_point3d *)p);
+              matrix_transform_point((float *)0x31fb08, (real_point3d *)pt, &p);
               crt_fprintf(*(void **)0x46e394, "\t\t\t%f %f %f,\n",
-                          p[0] * *(float *)0x253f00, p[1] * *(float *)0x253f00,
-                          p[2] * *(float *)0x253f00);
+                          p.x * *(float *)0x253f00, p.y * *(float *)0x253f00,
+                          p.z * *(float *)0x253f00);
               i = i + 1;
               vertex_index = vertex_index + 1;
               pt = pt + 3;

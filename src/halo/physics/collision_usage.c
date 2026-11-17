@@ -202,7 +202,7 @@ bool FUN_0014ca30(int param_1, void *param_2)
   short sVar7;
   int iVar8;
   float local_44[13];
-  float local_10[3];
+  real_point3d local_10;
 
   uVar2 = *(unsigned int *)(param_1 + 4) + 0x28c;
   sVar7 = 0;
@@ -226,7 +226,7 @@ bool FUN_0014ca30(int param_1, void *param_2)
             if (0 < *piVar5) {
               matrix_inverse((float *)(iVar8 * 0x34 + *(int *)(param_1 + 0xc)),
                              local_44);
-              matrix_transform_point(local_44, (real_point3d *)param_2, (real_point3d *)local_10);
+              matrix_transform_point(local_44, (real_point3d *)param_2, &local_10);
             }
           }
         }
@@ -252,8 +252,8 @@ char collision_model_test_vector(int param_1, void *param_2, void *param_3, void
   int iVar5;
   int iVar6;
   float local_5c[13];
-  float local_28[3];
-  float local_1c[3];
+  real_point3d local_28;
+  real_vector3d local_1c;
   int local_10;
   int local_c;
   char local_5;
@@ -304,9 +304,9 @@ char collision_model_test_vector(int param_1, void *param_2, void *param_3, void
             if (0 < *piVar3) {
               matrix_inverse((float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc)),
                              local_5c);
-              matrix_transform_point(local_5c, (real_point3d *)param_3, (real_point3d *)local_28);
+              matrix_transform_point(local_5c, (real_point3d *)param_3, &local_28);
               matrix_scale_transform_vector(local_5c, (real_vector3d *)param_4,
-                                            (real_vector3d *)local_1c);
+                                            &local_1c);
 #ifdef HALO_RNG_TRACE
               trace_node_matrix =
                 (float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc));
@@ -361,7 +361,7 @@ char collision_model_test_vector(int param_1, void *param_2, void *param_3, void
                            trace_node7_matrix_hash, 0);
 #endif
               cVar2 = collision_bsp_test_vector(
-                (int)param_2, (int)piVar3, 0, 0, (int)local_28, (int)local_1c,
+                (int)param_2, (int)piVar3, 0, 0, (int)&local_28, (int)&local_1c,
                 *(float *)(param_5 + 4), (float *)(param_5 + 4));
               if (cVar2 != '\0') {
                 *param_5 = (int16_t)local_c;
@@ -399,8 +399,8 @@ bool collision_model_test_pill(int param_1, int param_2, int param_3, float para
   int iVar6;
   int local_14;
   float local_60[13];
-  float local_2c[3];
-  float local_20[3];
+  real_point3d local_2c;
+  real_vector3d local_20;
   int local_c;
   char local_5;
 
@@ -435,11 +435,11 @@ bool collision_model_test_pill(int param_1, int param_2, int param_3, float para
             if (0 < *piVar3) {
               matrix_inverse((float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc)),
                              local_60);
-              matrix_transform_point(local_60, (real_point3d *)param_2, (real_point3d *)local_2c);
+              matrix_transform_point(local_60, (real_point3d *)param_2, &local_2c);
               matrix_scale_transform_vector(local_60, (real_vector3d *)param_3,
-                                            (real_vector3d *)local_20);
+                                            &local_20);
               cVar2 =
-                FUN_00149c60(piVar3, local_2c, local_20, local_60[0] * param_4,
+                FUN_00149c60(piVar3, &local_2c, &local_20, local_60[0] * param_4,
                              *(float *)((char *)param_5 + 8),
                              (float *)((char *)param_5 + 8));
               if (cVar2 != '\0') {
@@ -479,7 +479,7 @@ char FUN_0014cde0(int param_1, int param_2, float param_3, int param_4,
   float *node_matrix;
   unsigned char local_1058[0x1010];
   float local_48[13];
-  float local_14[3];
+  real_point3d local_14;
   int local_c;
   char local_1;
 
@@ -511,10 +511,10 @@ char FUN_0014cde0(int param_1, int param_2, float param_3, int param_4,
             if (0 < *piVar3) {
               node_matrix = (float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc));
               matrix_inverse(node_matrix, local_48);
-              matrix_transform_point(local_48, (real_point3d *)param_2, (real_point3d *)local_14);
+              matrix_transform_point(local_48, (real_point3d *)param_2, &local_14);
               radius_f = local_48[0] * param_3;
               cVar2 = (char)collision_bsp_test_sphere(
-                (int)piVar3, 0, 0, (int)local_14, *(int *)&radius_f,
+                (int)piVar3, 0, 0, (int)&local_14, *(int *)&radius_f,
                 (int *)local_1058);
               if (cVar2 != '\0') {
                 collision_features_add((int)piVar3, (int *)local_1058,
@@ -1472,7 +1472,7 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
           float d;
           float step;
           d =
-            dot_product3d((real_vector3d *)direction, (real_vector3d *)((char *)collision_result + 0x24));
+            dot_product3d(direction, (real_vector3d *)((char *)collision_result + 0x24));
           if (d != 0.0f)
             step = (float)(0.000244140625 / fabs((double)d));
           else
@@ -2378,7 +2378,7 @@ short collision_move_pill(void *collision_flags, real_point3d const *position,
                           void *collisions)
 {
   char features[0xac08];
-  float center[3];
+  real_point3d center;
   float half_height;
   float magnitude;
   short count;
@@ -2391,14 +2391,14 @@ short collision_move_pill(void *collision_flags, real_point3d const *position,
   ((short *)0x5a8c80)[*(short *)0x4761d8] = 7;
   *(short *)0x4761d8 = *(short *)0x4761d8 + 1;
 
-  center[0] = velocity->i * *(float *)0x253398 + position->x;
-  center[1] = velocity->j * *(float *)0x253398 + position->y;
+  center.x = velocity->i * *(float *)0x253398 + position->x;
+  center.y = velocity->j * *(float *)0x253398 + position->y;
   half_height = arg4 * *(float *)0x253398;
-  center[2] = velocity->k * *(float *)0x253398 + position->z + half_height;
+  center.z = velocity->k * *(float *)0x253398 + position->z + half_height;
 
   magnitude = sqrtf(velocity->k * velocity->k + velocity->j * velocity->j +
                     velocity->i * velocity->i);
-  if (collision_get_features_in_sphere((int)collision_flags, (real_point3d *)center,
+  if (collision_get_features_in_sphere((int)collision_flags, &center,
                    magnitude * *(float *)0x253398 + half_height + arg5, arg4,
                    arg5, arg6, features)) {
     count = collision_move_point((float *)position, (float *)velocity,

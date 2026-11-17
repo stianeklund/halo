@@ -3334,51 +3334,51 @@ void action_obey_directmovement_update_facing(char *state_data,
                                               int object_handle)
 {
   char *actor;
-  float facing[3];
-  float cross[3];
+  real_vector3d facing;
+  real_vector3d cross;
   char *obj;
 
   actor = (char *)datum_get(actor_data, actor_handle);
   if (object_handle == ((actor_t *)actor)->field_018) {
-    facing[0] = ((actor_t *)actor)->input_facing_vector[0];
-    facing[1] = ((actor_t *)actor)->input_facing_vector[1];
-    facing[2] = ((actor_t *)actor)->input_facing_vector[2];
+    facing.i = ((actor_t *)actor)->input_facing_vector[0];
+    facing.j = ((actor_t *)actor)->input_facing_vector[1];
+    facing.k = ((actor_t *)actor)->input_facing_vector[2];
   } else {
-    unit_get_facing_vector(object_handle, &facing[0]);
+    unit_get_facing_vector(object_handle, &facing);
   }
 
   switch (*(short *)(state_data + 8)) {
   case 0:
-    *(float *)(state_data + 0xc) = facing[0];
-    *(float *)(state_data + 0x10) = facing[1];
-    *(float *)(state_data + 0x14) = facing[2];
+    *(float *)(state_data + 0xc) = facing.i;
+    *(float *)(state_data + 0x10) = facing.j;
+    *(float *)(state_data + 0x14) = facing.k;
     return;
   case 1:
-    *(float *)(state_data + 0xc) = -facing[0];
-    *(float *)(state_data + 0x10) = -facing[1];
-    *(float *)(state_data + 0x14) = -facing[2];
+    *(float *)(state_data + 0xc) = -facing.i;
+    *(float *)(state_data + 0x10) = -facing.j;
+    *(float *)(state_data + 0x14) = -facing.k;
     return;
   case 2:
   case 3:
-    cross_product3d((real_vector3d *)(*(float **)0x31fc44), (real_vector3d *)&facing[0], (real_vector3d *)&cross[0]);
-    if (normalize3d((real_vector3d *)&cross[0]) == 0.0f) {
+    cross_product3d((real_vector3d *)(*(float **)0x31fc44), &facing, &cross);
+    if (normalize3d(&cross) == 0.0f) {
       obj = (char *)object_get_and_verify_type(object_handle, 0x3);
-      cross_product3d((real_vector3d *)(obj + 0x30), (real_vector3d *)&facing[0], (real_vector3d *)&cross[0]);
-      if (normalize3d((real_vector3d *)&cross[0]) == 0.0f) {
-        cross[0] = *(float *)(*(int *)0x31fc3c);
-        cross[1] = *(float *)(*(int *)0x31fc3c + 4);
-        cross[2] = *(float *)(*(int *)0x31fc3c + 8);
+      cross_product3d((real_vector3d *)(obj + 0x30), &facing, &cross);
+      if (normalize3d(&cross) == 0.0f) {
+        cross.i = *(float *)(*(int *)0x31fc3c);
+        cross.j = *(float *)(*(int *)0x31fc3c + 4);
+        cross.k = *(float *)(*(int *)0x31fc3c + 8);
       }
     }
     if (*(short *)(state_data + 8) == 2) {
-      *(float *)(state_data + 0xc) = cross[0];
-      *(float *)(state_data + 0x10) = cross[1];
-      *(float *)(state_data + 0x14) = cross[2];
+      *(float *)(state_data + 0xc) = cross.i;
+      *(float *)(state_data + 0x10) = cross.j;
+      *(float *)(state_data + 0x14) = cross.k;
       return;
     }
-    *(float *)(state_data + 0xc) = -cross[0];
-    *(float *)(state_data + 0x10) = -cross[1];
-    *(float *)(state_data + 0x14) = -cross[2];
+    *(float *)(state_data + 0xc) = -cross.i;
+    *(float *)(state_data + 0x10) = -cross.j;
+    *(float *)(state_data + 0x14) = -cross.k;
     return;
   default:
     return;

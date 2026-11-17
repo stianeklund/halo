@@ -546,7 +546,7 @@ void hud_draw_friendly_indicator(int player_handle)
 {
   void *player;
   float head_pos[3];
-  float cam_pos[3];
+  real_point3d cam_pos;
   float screen_xy[2];
   int screen_int;
   short offset_xy[2];
@@ -558,8 +558,8 @@ void hud_draw_friendly_indicator(int player_handle)
   player = datum_get(*(data_t **)0x5aa6d4, player_handle);
   unit_get_head_position(*(int *)((char *)player + 0x34), head_pos);
   head_pos[2] += *(float *)0x2533e4;
-  matrix_transform_point((float *)0x5065b4, (real_point3d *)head_pos, (real_point3d *)cam_pos);
-  if (render_camera_view_to_screen((int *)0x506550, (int *)0x5065a4, cam_pos,
+  matrix_transform_point((float *)0x5065b4, (real_point3d *)head_pos, &cam_pos);
+  if (render_camera_view_to_screen((int *)0x506550, (int *)0x5065a4, &cam_pos,
                                    screen_xy) == '\0') {
     return;
   }
@@ -575,7 +575,7 @@ void hud_draw_friendly_indicator(int player_handle)
   offset_xy[0] = (short)(screen_int - *(short *)0x50657e);
 
   screen_int = (int)screen_xy[1];
-  depth_ratio = (-cam_pos[2] - *(float *)0x50667c) * *(float *)0x253f00 /
+  depth_ratio = (-cam_pos.z - *(float *)0x50667c) * *(float *)0x253f00 /
                 (*(float *)0x506680 - *(float *)0x50667c);
   offset_xy[1] = (short)(screen_int - *(int *)0x50657c);
 

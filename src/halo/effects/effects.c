@@ -512,7 +512,7 @@ bool dangerous_effects_near_player(void)
   void *player_object;
   int location_index;
   void *location;
-  float position[3];
+  real_point3d position;
 
   for (effect_index = data_next_index(effect_data, NONE); effect_index != NONE;
        effect_index = data_next_index(effect_data, effect_index)) {
@@ -555,9 +555,9 @@ bool dangerous_effects_near_player(void)
         node_index = *(short *)((char *)location + 2);
         if (node_index == -1) {
           /* no node attachment — use position directly */
-          position[0] = *(float *)((char *)location + 0x30);
-          position[1] = *(float *)((char *)location + 0x34);
-          position[2] = *(float *)((char *)location + 0x38);
+          position.x = *(float *)((char *)location + 0x30);
+          position.y = *(float *)((char *)location + 0x34);
+          position.z = *(float *)((char *)location + 0x38);
         } else {
           void *matrix;
           if (node_index < 0) {
@@ -569,15 +569,15 @@ bool dangerous_effects_near_player(void)
           }
           /* transform local position to world space via node matrix */
           matrix_transform_point(
-            (float *)matrix, (real_point3d *)((char *)location + 0x30), (real_point3d *)position);
+            (float *)matrix, (real_point3d *)((char *)location + 0x30), &position);
         }
 
         /* squared-distance check against player bounding sphere */
         radius_sum = *(float *)((char *)player_object + 0x5c) +
                      *(float *)((char *)effect_tag + 8);
-        dx = position[0] - *(float *)((char *)player_object + 0x50);
-        dy = position[1] - *(float *)((char *)player_object + 0x54);
-        dz = position[2] - *(float *)((char *)player_object + 0x58);
+        dx = position.x - *(float *)((char *)player_object + 0x50);
+        dy = position.y - *(float *)((char *)player_object + 0x54);
+        dz = position.z - *(float *)((char *)player_object + 0x58);
         if ((dz * dz + dx * dx) + dy * dy <= radius_sum * radius_sum)
           return true;
       }
@@ -873,15 +873,15 @@ void effect_generate_particles(void *effect)
                 float dist_lo, dist_hi, dist_base, dist_range;
                 float random_distance;
                 float random_dir[3];
-                float scaled_dir[3];
+                real_vector3d scaled_dir;
                 float world_pos[3];
                 float dir_world[3];
-                float vel_world[3];
+                real_vector3d vel_world;
                 union {
                   char bytes[0x5c];
                   struct {
                     char pad_00[0x10];
-                    float position[3];
+                    real_point3d position;
                     float direction[3];
                     float velocity[3];
                     float up_vector[3];
@@ -916,14 +916,14 @@ void effect_generate_particles(void *effect)
                   random_seed_get_direction3d(seed, random_dir);
 
                   matrix_scale_transform_vector(
-                    (float *)(location + 8), (real_vector3d *)(part + 0x14), (real_vector3d *)scaled_dir);
+                    (float *)(location + 8), (real_vector3d *)(part + 0x14), &scaled_dir);
 
-                  spawn_params.fields.position[0] = random_dir[0] * random_distance +
-                                                     *(float *)(location + 0x30) + scaled_dir[0];
-                  spawn_params.fields.position[1] = random_dir[1] * random_distance +
-                                                     *(float *)(location + 0x34) + scaled_dir[1];
-                  spawn_params.fields.position[2] = random_dir[2] * random_distance +
-                                                     *(float *)(location + 0x38) + scaled_dir[2];
+                  spawn_params.fields.position.x = random_dir[0] * random_distance +
+                                                     *(float *)(location + 0x30) + scaled_dir.i;
+                  spawn_params.fields.position.y = random_dir[1] * random_distance +
+                                                     *(float *)(location + 0x34) + scaled_dir.j;
+                  spawn_params.fields.position.z = random_dir[2] * random_distance +
+                                                     *(float *)(location + 0x38) + scaled_dir.k;
 
                   seed = random_math_get_local_seed_address();
                   effect_random_translational_velocity(effect, seed, (float *)(part + 0x20),
@@ -944,15 +944,15 @@ void effect_generate_particles(void *effect)
                 {
                   uint16_t node_idx = *(uint16_t *)(location + 2);
                   if (node_idx == 0xffff) {
-                    world_pos[0] = spawn_params.fields.position[0];
-                    world_pos[1] = spawn_params.fields.position[1];
-                    world_pos[2] = spawn_params.fields.position[2];
+                    world_pos[0] = spawn_params.fields.position.x;
+                    world_pos[1] = spawn_params.fields.position.y;
+                    world_pos[2] = spawn_params.fields.position.z;
                     dir_world[0] = spawn_params.fields.direction[0];
                     dir_world[1] = spawn_params.fields.direction[1];
                     dir_world[2] = spawn_params.fields.direction[2];
-                    vel_world[0] = spawn_params.fields.velocity[0];
-                    vel_world[1] = spawn_params.fields.velocity[1];
-                    vel_world[2] = spawn_params.fields.velocity[2];
+                    vel_world.i = spawn_params.fields.velocity[0];
+                    vel_world.j = spawn_params.fields.velocity[1];
+                    vel_world.k = spawn_params.fields.velocity[2];
                   } else {
                     float *node_matrix;
                     if ((int16_t)node_idx < 0) {
@@ -964,13 +964,13 @@ void effect_generate_particles(void *effect)
                       node_matrix = (float *)object_get_node_matrix(
                         *(int *)(ef + 0x3c), (int16_t)(node_idx & 0x7fff));
                     }
-                    matrix_transform_point(node_matrix, (real_point3d *)spawn_params.fields.position,
+                    matrix_transform_point(node_matrix, &spawn_params.fields.position,
                                            (real_point3d *)world_pos);
                     matrix_transform_vector(node_matrix, (real_vector3d *)spawn_params.fields.direction,
                                             (real_vector3d *)dir_world);
                     matrix_scale_transform_vector(node_matrix,
                                                   (real_vector3d *)spawn_params.fields.velocity,
-                                                  (real_vector3d *)vel_world);
+                                                  &vel_world);
                   }
                 }
 
@@ -1008,18 +1008,18 @@ void effect_generate_particles(void *effect)
                     spawn_params.fields.up_vector[2] = zero_vec[2];
                   }
 
-                  spawn_params.fields.position[0] = world_pos[0];
-                  spawn_params.fields.position[1] = world_pos[1];
-                  spawn_params.fields.position[2] = world_pos[2];
+                  spawn_params.fields.position.x = world_pos[0];
+                  spawn_params.fields.position.y = world_pos[1];
+                  spawn_params.fields.position.z = world_pos[2];
                   spawn_params.fields.direction[0] = dir_world[0];
                   spawn_params.fields.direction[1] = dir_world[1];
                   spawn_params.fields.direction[2] = dir_world[2];
                   spawn_params.fields.velocity[0] =
-                    *(float *)(ef + 0x24) * TICKS_PER_SECOND + vel_world[0];
+                    *(float *)(ef + 0x24) * TICKS_PER_SECOND + vel_world.i;
                   spawn_params.fields.velocity[1] =
-                    *(float *)(ef + 0x28) * TICKS_PER_SECOND + vel_world[1];
+                    *(float *)(ef + 0x28) * TICKS_PER_SECOND + vel_world.j;
                   spawn_params.fields.velocity[2] =
-                    *(float *)(ef + 0x2c) * TICKS_PER_SECOND + vel_world[2];
+                    *(float *)(ef + 0x2c) * TICKS_PER_SECOND + vel_world.k;
                   *(int *)(spawn_params.bytes + 0x04) = -1;
                 }
 

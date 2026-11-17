@@ -3779,7 +3779,7 @@ int sound_start(int sound_tag_index, void *source, int object_handle,
   }
 
   if (((sound_source *)source)->spatialization_mode != _sound_spatialization_mode_none &&
-      !valid_real_normal3d((real_vector3d *)&((sound_source *)source)->location.forward)) {
+      !valid_real_normal3d(&((sound_source *)source)->location.forward)) {
     display_assert(
       "source->spatialization_mode==_sound_spatialization_mode_none || "
       "valid_real_normal3d(&source->location.forward)",
@@ -4004,7 +4004,7 @@ bool sound_refresh_looping(int sound_tag_index, int looping_sound_index,
 
   created = (short)param_4 == 2;
   if (((sound_source *)source)->spatialization_mode != _sound_spatialization_mode_none &&
-      !valid_real_normal3d((real_vector3d *)&((sound_source *)source)->location.forward)) {
+      !valid_real_normal3d(&((sound_source *)source)->location.forward)) {
     display_assert("source->spatialization_mode==_sound_spatialization_mode_"
                    "none || valid_real_normal3d(&source->location.forward)",
                    "c:\\halo\\SOURCE\\sound\\sound_manager.c", 0x2f4, 1);

@@ -519,7 +519,7 @@ char FUN_00061750(unsigned int param_1, int param_2, void *param_3,
 {
   struct obstacle_path_point {
     int32_t surface_index;
-    float point[3];
+    real_point3d point;
   };
   char *input;
   char *cache;
@@ -531,7 +531,7 @@ char FUN_00061750(unsigned int param_1, int param_2, void *param_3,
   struct obstacle_path_point smoothed[0x80];
   uint32_t record_buffer[0x54d];
   int16_t obstacles_buffer[0x604];
-  float previous_point[3];
+  real_point3d previous_point;
   float direction[3];
   float *start_point;
   float *end_point;
@@ -574,12 +574,12 @@ char FUN_00061750(unsigned int param_1, int param_2, void *param_3,
     is_last = (i == (int16_t)param_2 - 1 && *param_6 != 0);
     if (i > 0) {
       start_surface = previous_surface;
-      start_point = previous_point;
+      start_point = &previous_point.x;
     } else {
       start_surface = *(int32_t *)(input + 0x20);
       start_point = (float *)(input + 0x14);
     }
-    end_point = points[i].point;
+    end_point = &points[i].point.x;
     end_surface = points[i].surface_index;
     direction[0] = end_point[0] - start_point[0];
     direction[1] = end_point[1] - start_point[1];
@@ -650,9 +650,9 @@ char FUN_00061750(unsigned int param_1, int param_2, void *param_3,
     overflow = 0;
     smoothed_count = 0;
     if (*(unsigned char *)(record + 0x28) != 0) {
-      previous_point[0] = end_point[0];
-      previous_point[1] = end_point[1];
-      previous_point[2] = end_point[2];
+      previous_point.x = end_point[0];
+      previous_point.y = end_point[1];
+      previous_point.z = end_point[2];
       previous_surface = end_surface;
     } else {
       step_index = *(int16_t *)(record + 0x1e);
@@ -667,7 +667,7 @@ char FUN_00061750(unsigned int param_1, int param_2, void *param_3,
       step = record + 0x30 + step_index * 0x28;
       previous_surface = *(int32_t *)(step + 8);
       collision_surface_project_point2d((int)bsp, previous_surface, 2, 1,
-                                        (real_point2d *)step, (real_point3d *)previous_point);
+                                        (real_point2d *)step, &previous_point);
     }
     step_index = *(int16_t *)(record + 0x1e);
     while (step_index != 0) {
@@ -684,7 +684,7 @@ char FUN_00061750(unsigned int param_1, int param_2, void *param_3,
       step = record + 0x30 + step_index * 0x28;
       smoothed[j].surface_index = *(int32_t *)(step + 8);
       collision_surface_project_point2d((int)bsp, *(int32_t *)(step + 8), 2, 1,
-                                        (real_point2d *)step, (real_point3d *)smoothed[j].point);
+                                        (real_point2d *)step, &smoothed[j].point);
       step_index = *(int16_t *)(step + 0x24);
       if (step_index < 0 || step_index >= *(int16_t *)(record + 0x2c)) {
         display_assert("(obstacle_step_index >= 0) && "

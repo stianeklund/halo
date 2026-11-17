@@ -2892,7 +2892,7 @@ void trigger_create_projectiles(int weapon_handle, int16_t trigger_index)
   float left[3];
   float up[3];
   float first_forward[3];
-  float camera_position[3];
+  real_point3d camera_position;
   float *offset;
   float x;
   float y;
@@ -3105,8 +3105,8 @@ void trigger_create_projectiles(int weapon_handle, int16_t trigger_index)
         projectile = object_new(&placement);
         if (projectile != -1) {
           if (place_at_camera) {
-            unit_get_camera_position(parent_unit_handle, (real_point3d *)camera_position);
-            object_try_place(projectile, (real_point3d *)camera_position);
+            unit_get_camera_position(parent_unit_handle, &camera_position);
+            object_try_place(projectile, &camera_position);
           }
           if (target_object != -1) {
             projectile_set_target_object_index(projectile, target_object);

@@ -749,7 +749,7 @@ void particle_new(void *spawn_params)
   float *velocity = (float *)(sp + 0x28);
   float *position = (float *)(sp + 0x10);
   float *color = (float *)(sp + 0x4c);
-  float local_position[3];
+  real_point3d local_position;
   char location[8];
   int datum_handle;
   char *datum;
@@ -795,22 +795,22 @@ void particle_new(void *spawn_params)
 
   if (*(int *)(sp + 0x04) == -1) {
     /* no parent object — use position directly */
-    local_position[0] = position[0];
-    local_position[1] = position[1];
-    local_position[2] = position[2];
+    local_position.x = position[0];
+    local_position.y = position[1];
+    local_position.z = position[2];
   } else if (*(uint8_t *)(sp + 0x0c) == 0) {
     /* attached to object — transform through object node matrix */
     float *matrix = (float *)object_get_node_matrix(*(int *)(sp + 0x04),
                                                     *(uint16_t *)(sp + 0x08));
-    matrix_transform_point(matrix, (real_point3d *)position, (real_point3d *)local_position);
+    matrix_transform_point(matrix, (real_point3d *)position, &local_position);
   } else {
     /* first-person weapon — transform through FP weapon node matrix */
     float *matrix = (float *)first_person_weapon_get_node_matrix(
       *(uint16_t *)(sp + 0x0a), *(uint16_t *)(sp + 0x08));
-    matrix_transform_point(matrix, (real_point3d *)position, (real_point3d *)local_position);
+    matrix_transform_point(matrix, (real_point3d *)position, &local_position);
   }
 
-  scenario_location_from_point(location, local_position);
+  scenario_location_from_point(location, &local_position);
 
   if (*(int *)location == -1)
     return;
@@ -935,7 +935,7 @@ void particle_new(void *spawn_params)
 
   /* sample lighting and apply to color channels */
   if ((*tag & 0x200) == 0 || (*tag & 0x40) != 0) {
-    light_particle(local_position, light, diffuse, 0);
+    light_particle(&local_position, light, diffuse, 0);
 
     if (!valid_real_rgb_color(light)) {
       csprintf((char *)0x5ab100, "%s: assert_valid_real_rgb_color(%f, %f, %f)",

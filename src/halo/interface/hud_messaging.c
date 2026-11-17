@@ -1967,7 +1967,7 @@ void custom_render_nav_point(int param_1, float *param_2, short param_3, short p
   char text_element[36];
   char text_pos_buf[84];
   int l_34;
-  float l_30[3];
+  real_point3d l_30;
   float l_24[3] = { 0, 0, 0 };
   float distance;
   float l_14;
@@ -1979,9 +1979,9 @@ void custom_render_nav_point(int param_1, float *param_2, short param_3, short p
   i8 = (int)tag_block_get_element((void *)(*(int *)0x46bd0c + 0x160),
                                      (int)param_3, 0x68);
   pf4 = param_2;
-  l_30[0] = *param_2;
-  l_30[1] = param_2[1];
-  l_30[2] = param_2[2];
+  l_30.x = *param_2;
+  l_30.y = param_2[1];
+  l_30.z = param_2[2];
   i9 = local_player_get_player_index(param_1);
   if (i9 == -1) {
     u11 = -1;
@@ -2002,13 +2002,13 @@ void custom_render_nav_point(int param_1, float *param_2, short param_3, short p
                  *(double *)0x281e18) +
       *(float *)0x253398;
   }
-  matrix_transform_point((float *)0x5065b4, (real_point3d *)l_30, (real_point3d *)l_30);
+  matrix_transform_point((float *)0x5065b4, &l_30, &l_30);
   s7 = param_4;
   if (s7 == 1 || (c5 = render_camera_view_to_screen(
-                       (int *)0x506550, (int *)0x5065a4, l_30, screen_pos),
+                       (int *)0x506550, (int *)0x5065a4, &l_30, screen_pos),
                      c5 == '\0')) {
-    screen_pos[0] = l_30[0];
-    screen_pos[1] = -l_30[1];
+    screen_pos[0] = l_30.x;
+    screen_pos[1] = -l_30.y;
     s7 = 1;
   } else {
     screen_pos[0] =

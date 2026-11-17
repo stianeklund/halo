@@ -1927,9 +1927,9 @@ char valid_real_vector3d_axes3(real_vector3d const *forward,
 {
   float scalar;
 
-  if (valid_real_normal3d((real_vector3d *)forward)) {
-    if (valid_real_normal3d((real_vector3d *)left)) {
-      if (valid_real_normal3d((real_vector3d *)up)) {
+  if (valid_real_normal3d(forward)) {
+    if (valid_real_normal3d(left)) {
+      if (valid_real_normal3d(up)) {
         if ((char)FUN_00021f70(forward->i * left->i + forward->k * left->k +
                                  forward->j * left->j,
                                0.0f) != '\0') {
@@ -2024,8 +2024,8 @@ void item_accelerate(int item_handle, const real_vector3d *acceleration, int fla
   float plane[4];
   float cross[3];
   float vel_mag;
-  float new_pos[3];
-  float scaled_dir[3];
+  real_point3d new_pos;
+  real_vector3d scaled_dir;
   float *up;
   float scale;
   int bsp;
@@ -2091,8 +2091,8 @@ void item_accelerate(int item_handle, const real_vector3d *acceleration, int fla
               plane[2] * *(float *)(marker_buf + 0x68);
         scale = *(float *)0x2533e8 - (dot - plane[3]);
 
-        vector3d_scale_add((real_point3d *)(marker_buf + 0x60), (real_vector3d *)plane, scale, (real_point3d *)new_pos);
-        object_translate(item_handle, (real_point3d *)new_pos, 0);
+        vector3d_scale_add((real_point3d *)(marker_buf + 0x60), (real_vector3d *)plane, scale, &new_pos);
+        object_translate(item_handle, &new_pos, 0);
       }
       /* Clear "needs update" bit 5 at +0x04 and ground bit 3 at +0x1a4 */
       *(uint32_t *)(item_obj + 0x04) =
@@ -2158,13 +2158,13 @@ void item_accelerate(int item_handle, const real_vector3d *acceleration, int fla
        * reference's 0x3fc90fdb / 0xbfc90fdb: 1.5707963f is one ULP low
        * (0x3fc90fda), which VC71 emits verbatim. */
       scale = real_random_range(-_pi / 2.f, _pi / 2.f);
-      scaled_dir[0] = cross[0] * scale;
-      scaled_dir[1] = cross[1] * scale;
-      scaled_dir[2] = cross[2] * scale;
+      scaled_dir.i = cross[0] * scale;
+      scaled_dir.j = cross[1] * scale;
+      scaled_dir.k = cross[2] * scale;
 
       /* angular_velocity += scaled_dir */
       vector3d_add(
-        (real_vector3d *)(item_obj + 0x3c), (real_vector3d *)scaled_dir,
+        (real_vector3d *)(item_obj + 0x3c), &scaled_dir,
         (real_vector3d *)(item_obj + 0x3c)); /* dup-args-ok: in-place accumulation */
     }
 
@@ -2336,7 +2336,7 @@ typedef struct {
 bool item_update(int item_handle)
 {
   float new_point[3]; /* EBP-0x0c */
-  float velocity[3]; /* EBP-0x18 */
+  real_vector3d velocity; /* EBP-0x18 */
   char *item_tag; /* EBP-0x1c (spilled across the reg-arg calls) */
   float scale; /* EBP-0x20 */
   char *item_obj; /* EBP-0x24 (spilled) */
@@ -2391,16 +2391,16 @@ bool item_update(int item_handle)
     if (!(*(uint8_t *)(item_obj + 0x4) & 0x20)) {
       /* ---- in flight ---------------------------------------------- */
       velocity_field = (float *)(item_obj + 0x18);
-      velocity[0] = velocity_field[0];
-      velocity[1] = velocity_field[1];
-      velocity[2] = velocity_field[2];
+      velocity.i = velocity_field[0];
+      velocity.j = velocity_field[1];
+      velocity.k = velocity_field[2];
 
       if (!(*(uint8_t *)(item_tag + 0x17c) & 0x4))
-        velocity[2] = velocity[2] - *(float *)0x32512c;
+        velocity.k = velocity.k - *(float *)0x32512c;
 
-      new_point[0] = velocity[0] + *(float *)(item_obj + 0xc);
-      new_point[1] = velocity[1] + *(float *)(item_obj + 0x10);
-      new_point[2] = velocity[2] + *(float *)(item_obj + 0x14);
+      new_point[0] = velocity.i + *(float *)(item_obj + 0xc);
+      new_point[1] = velocity.j + *(float *)(item_obj + 0x10);
+      new_point[2] = velocity.k + *(float *)(item_obj + 0x14);
 
       if (collision_test_line(ITEM_COLLISION_FLAGS, (float *)(item_obj + 0xc),
                        new_point, *(int *)(item_obj + 0x1b0),
@@ -2413,7 +2413,7 @@ bool item_update(int item_handle)
         new_point[2] =
           *(float *)(marker_buf + 0x48) * *(float *)0x2533e8 + new_point[2];
 
-        scale = magnitude3d((real_vector3d *)velocity) / *(float *)0x28aa80;
+        scale = magnitude3d(&velocity) / *(float *)0x28aa80;
         if (scale < *(float *)0x2533c0)
           scale = 0.0f;
         else if (scale > *(float *)0x2533c8)
@@ -2448,9 +2448,9 @@ bool item_update(int item_handle)
               ((1 << (object_get_type(*(int *)(marker_buf + 0x54)) & 0x1f)) &
                0x3c0) != 0)) &&
             *(float *)(marker_buf + 0x48) > *(float *)0x28aaf4 &&
-            -(*(float *)(marker_buf + 0x44) * velocity[1] +
-              *(float *)(marker_buf + 0x40) * velocity[0] +
-              *(float *)(marker_buf + 0x48) * velocity[2]) <
+            -(*(float *)(marker_buf + 0x44) * velocity.j +
+              *(float *)(marker_buf + 0x40) * velocity.i +
+              *(float *)(marker_buf + 0x48) * velocity.k) <
               *(float *)0x2533e8) {
           /* ---- comes to rest ---------------------------------------- */
           new_point[0] = *(float *)(marker_buf + 0x34);
@@ -2460,9 +2460,9 @@ bool item_update(int item_handle)
             new_point, (float *)(marker_buf + 0x40), item_handle,
             (float *)(marker_buf + 0x34));
 
-          velocity[2] = 0.0f;
-          velocity[1] = 0.0f;
-          velocity[0] = 0.0f;
+          velocity.k = 0.0f;
+          velocity.j = 0.0f;
+          velocity.i = 0.0f;
           scale_vector3d(
             (real_vector3d *)(marker_buf + 0x40),
             *(float *)(marker_buf + 0x44) * *(float *)(item_obj + 0x40) +
@@ -2505,19 +2505,19 @@ bool item_update(int item_handle)
         } else {
           /* ---- bounces ---------------------------------------------- */
           impulse =
-            (*(float *)(marker_buf + 0x40) * velocity[0] * *(float *)0x25686c -
-             *(float *)(marker_buf + 0x44) * velocity[1] * *(float *)0x256870) -
-            *(float *)(marker_buf + 0x48) * velocity[2] * *(float *)0x256870;
+            (*(float *)(marker_buf + 0x40) * velocity.i * *(float *)0x25686c -
+             *(float *)(marker_buf + 0x44) * velocity.j * *(float *)0x256870) -
+            *(float *)(marker_buf + 0x48) * velocity.k * *(float *)0x256870;
           if (*(int16_t *)(marker_buf + 0x1c) != 2 &&
               *(float *)0x2533ec <= impulse)
             impulse = *(float *)0x2533ec;
 
           new_point[0] = *(float *)(marker_buf + 0x34);
-          velocity[0] = *(float *)(marker_buf + 0x40) * impulse + velocity[0];
+          velocity.i = *(float *)(marker_buf + 0x40) * impulse + velocity.i;
           new_point[1] = *(float *)(marker_buf + 0x38);
           new_point[2] = *(float *)(marker_buf + 0x3c);
-          velocity[1] = *(float *)(marker_buf + 0x44) * impulse + velocity[1];
-          velocity[2] = impulse * *(float *)(marker_buf + 0x48) + velocity[2];
+          velocity.j = *(float *)(marker_buf + 0x44) * impulse + velocity.j;
+          velocity.k = impulse * *(float *)(marker_buf + 0x48) + velocity.k;
 
           if (FUN_0014dc30(ITEM_COLLISION_FLAGS, new_point, item_handle)) {
             vector3d_scale_add((real_point3d *)(marker_buf + 0x34),
@@ -2527,9 +2527,9 @@ bool item_update(int item_handle)
         }
       }
 
-      velocity_field[0] = velocity[0];
-      velocity_field[1] = velocity[1];
-      velocity_field[2] = velocity[2];
+      velocity_field[0] = velocity.i;
+      velocity_field[1] = velocity.j;
+      velocity_field[2] = velocity.k;
       object_translate(item_handle, (real_point3d *)new_point, marker_buf + 0x28);
     } else if (!(*(uint8_t *)(item_tag + 0x17c) & 0x4)) {
       /* ---- at rest: re-validate the attachment -------------------- */

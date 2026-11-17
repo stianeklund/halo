@@ -925,7 +925,7 @@ int16_t render_frustum_sphere_visible(void *frustum, float *center,
 char render_camera_world_to_screen(void *camera, float *frustum,
                                    float *world_point, float *screen_point)
 {
-  float view_point[3];
+  real_point3d view_point;
 
   assert_halt_at("c:\\halo\\SOURCE\\render\\render_cameras.c", 0x3c1, camera);
   assert_halt_at("c:\\halo\\SOURCE\\render\\render_cameras.c", 0x3c2, frustum);
@@ -934,8 +934,8 @@ char render_camera_world_to_screen(void *camera, float *frustum,
   assert_halt_at("c:\\halo\\SOURCE\\render\\render_cameras.c", 0x3c4,
                  screen_point);
 
-  matrix_transform_point(frustum + 4, (real_point3d *)world_point, (real_point3d *)view_point);
-  return render_camera_view_to_screen((int *)camera, (int *)frustum, view_point,
+  matrix_transform_point(frustum + 4, (real_point3d *)world_point, &view_point);
+  return render_camera_view_to_screen((int *)camera, (int *)frustum, &view_point,
                                       screen_point);
 }
 
@@ -978,8 +978,8 @@ void render_camera_debug_frustum(camera_t *camera, void *frustum)
         points[j + 1][i + 1].y = (real)i * tangent;
         points[j + 1][i + 1].z = -1.0f;
         matrix_transform_point((float *)&((render_frustum_t *)frustum)->field_44,
-                               (real_point3d *)&points[j + 1][i + 1],
-                               (real_point3d *)&points[j + 1][i + 1]);
+                               &points[j + 1][i + 1],
+                               &points[j + 1][i + 1]);
       }
     }
 

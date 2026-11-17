@@ -329,10 +329,10 @@ char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector,
   char *actor;
   char *actr_tag;
   float local_target[2];
-  float origin[3];
-  float direction[3];
-  float seg_a[3];
-  float seg_b[3];
+  real_point3d origin;
+  real_vector3d direction;
+  real_point3d seg_a;
+  real_vector3d seg_b;
   int bsp;
   collision_bsp_test_vector_result_t col_result;
   float height_delta;
@@ -371,26 +371,26 @@ char actor_move_try_evasion_vector(int actor_handle, float *evasion_vector,
     }
     if (param_4 > *(float *)0x2533c0) {
       bsp = (int)global_collision_bsp_get();
-      origin[0] =
+      origin.x =
         (((actor_t *)actor)->field_120 + ((actor_t *)actor)->field_12c) *
         *(float *)0x253398;
-      origin[1] =
+      origin.y =
         (((actor_t *)actor)->field_124 + ((actor_t *)actor)->field_130) *
         *(float *)0x253398;
-      origin[2] =
+      origin.z =
         (((actor_t *)actor)->field_128 + ((actor_t *)actor)->field_134) *
         *(float *)0x253398;
-      direction[0] = scale * evasion_vector[0];
-      direction[1] = scale * evasion_vector[1];
-      direction[2] = 0.0f;
-      if (collision_bsp_test_vector(3, bsp, 0, 0, (int)origin, (int)direction,
+      direction.i = scale * evasion_vector[0];
+      direction.j = scale * evasion_vector[1];
+      direction.k = 0.0f;
+      if (collision_bsp_test_vector(3, bsp, 0, 0, (int)&origin, (int)&direction,
                                     3.4028235e+38f, (float *)&col_result) == '\0') {
         found = 1;
         used_bsp_test = 1;
         if (param_4 < *(float *)0x2548fc) {
-          vector3d_scale_add((real_point3d *)origin, (real_vector3d *)direction, 1.0f, (real_point3d *)seg_a);
-          scale_vector3d((real_vector3d *)(*(float **)0x31fc50), param_4, (real_vector3d *)seg_b);
-          if (collision_bsp_test_vector(3, bsp, 0, 0, (int)seg_a, (int)seg_b,
+          vector3d_scale_add(&origin, &direction, 1.0f, &seg_a);
+          scale_vector3d((real_vector3d *)(*(float **)0x31fc50), param_4, &seg_b);
+          if (collision_bsp_test_vector(3, bsp, 0, 0, (int)&seg_a, (int)&seg_b,
                                         3.4028235e+38f, (float *)&col_result) == '\0') {
             found = 0;
           }
@@ -616,7 +616,7 @@ void actor_move_avoidance_setup(int actor_handle)
 {
   int handles[2048];
   float world_matrix[13];
-  float out[3];
+  real_point3d out;
   int object_handle;
   float center[3];
   int16_t sphere_index;
@@ -683,15 +683,15 @@ void actor_move_avoidance_setup(int actor_handle)
             if (*marker != 0xffff) {
               matrix = object_get_node_matrix(object_handle, (int16_t)*marker);
               matrix_transform_point((float *)matrix,
-                                     (real_point3d *)((char *)marker + 0x10), (real_point3d *)out);
+                                     (real_point3d *)((char *)marker + 0x10), &out);
               scale_term = *(float *)((char *)marker + 0x1c) * *(float *)matrix;
             } else {
               matrix_transform_point(world_matrix,
-                                     (real_point3d *)((char *)marker + 0x10), (real_point3d *)out);
+                                     (real_point3d *)((char *)marker + 0x10), &out);
               scale_term = world_matrix[0] * *(float *)((char *)marker + 0x1c);
             }
-            dx = out[0] - center[0];
-            dy = out[1] - center[1];
+            dx = out.x - center[0];
+            dy = out.y - center[1];
             scale_term = sqrtf(dx * dx + dy * dy) + scale_term;
             /* disasm 0x2af69: FLD maxdist; FCOMP scale_term; JZ keeps maxdist. */
             if (maxdist > scale_term) {
@@ -1372,7 +1372,7 @@ void actor_move_calculate_free(char use_3d /* @<al> */,
   throttle = (real_vector3d *)out;
 
   if (use_3d != 0) {
-    if (valid_real_normal3d((real_vector3d *)movement_direction) == 0) {
+    if (valid_real_normal3d(movement) == 0) {
       display_assert(
         csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
                  "movement_direction", (double)movement->i,
@@ -1380,7 +1380,7 @@ void actor_move_calculate_free(char use_3d /* @<al> */,
         "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x775, 1);
       system_exit(-1);
     }
-    if (valid_real_normal3d((real_vector3d *)facing_direction) == 0) {
+    if (valid_real_normal3d(facing) == 0) {
       display_assert(
         csprintf(error_string_buffer, "%s: assert_valid_real_normal3d(%f, %f, %f)",
                  "facing_direction", (double)facing->i,
@@ -1388,7 +1388,7 @@ void actor_move_calculate_free(char use_3d /* @<al> */,
         "c:\\halo\\SOURCE\\ai\\actor_moving.c", 0x776, 1);
       system_exit(-1);
     }
-    biped_build_flying_axes((real_vector3d *)facing_direction, &left, &up);
+    biped_build_flying_axes(facing, &left, &up);
     throttle->i = dot_product3d_inline(movement, facing);
     throttle->j = (left.j * movement->j + left.k * movement->k) + left.i * movement->i;
     throttle->k = (up.j * movement->j + up.k * movement->k) + up.i * movement->i;

@@ -1233,7 +1233,7 @@ void vector_from_matrices4x3(const real_matrix4x3 *matrix0,
   matrix_inverse((float *)matrix1, local_inv);
   matrix4x3_multiply((float *)matrix0, local_inv, local_product);
   matrix4x3_rotation_to_quaternion(local_product, local_quat);
-  quaternion_to_angle_and_vector((real_quaternion *)local_quat, &local_angle, (real_vector3d *)result);
+  quaternion_to_angle_and_vector((real_quaternion *)local_quat, &local_angle, result);
   result->i = local_angle * result->i;
   result->j = local_angle * result->j;
   result->k = local_angle * result->k;
@@ -1795,13 +1795,13 @@ void component_vectors_from_normal3d(const real_vector3d *v, const real_vector3d
   real_vector3d local;
 
   dot = v->i * axis->i + axis->k * v->k + v->j * axis->j;
-  if (parallel == (real_vector3d *)0) {
+  if (parallel == NULL) {
     parallel = &local;
   }
   parallel->i = dot * axis->i;
   parallel->j = dot * axis->j;
   parallel->k = dot * axis->k;
-  if (perpendicular != (real_vector3d *)0) {
+  if (perpendicular != NULL) {
     perpendicular->i = v->i - parallel->i;
     perpendicular->j = v->j - parallel->j;
     perpendicular->k = v->k - parallel->k;
@@ -2516,26 +2516,26 @@ __declspec(noinline) char sphere_test_vector3d(float *p1, float p2, float *p3,
                                        float *p4, float *out_t,
                                        float *out_normal)
 {
-  float offset[3];
+  real_point3d offset;
   float dot;
   float dist_sq, c;
   float a, disc;
 
-  offset[0] = p3[0] - p1[0];
-  offset[1] = p3[1] - p1[1];
-  offset[2] = p3[2] - p1[2];
-  dot = offset[2] * p4[2] + offset[1] * p4[1] + offset[0] * p4[0];
+  offset.x = p3[0] - p1[0];
+  offset.y = p3[1] - p1[1];
+  offset.z = p3[2] - p1[2];
+  dot = offset.z * p4[2] + offset.y * p4[1] + offset.x * p4[0];
   if (dot < 0.0f) {
-    dist_sq = offset[2] * offset[2];
-    dist_sq += offset[0] * offset[0];
-    dist_sq += offset[1] * offset[1];
+    dist_sq = offset.z * offset.z;
+    dist_sq += offset.x * offset.x;
+    dist_sq += offset.y * offset.y;
     c = dist_sq - p2 * p2;
     if (c <= 0.0f) {
       *out_t = 0.0f;
       a = 1.0f / sqrtf(dist_sq);
-      out_normal[0] = offset[0] * a;
-      out_normal[1] = offset[1] * a;
-      out_normal[2] = offset[2] * a;
+      out_normal[0] = offset.x * a;
+      out_normal[1] = offset.y * a;
+      out_normal[2] = offset.z * a;
       return 1;
     }
     a = p4[0] * p4[0] + p4[1] * p4[1] + p4[2] * p4[2];
@@ -2544,7 +2544,7 @@ __declspec(noinline) char sphere_test_vector3d(float *p1, float p2, float *p3,
       dot = -(sqrtf(disc) + dot);
       if (dot <= a) {
         *out_t = dot / a;
-        FUN_0010c2e0((float *)vector3d_scale_add((real_point3d *)offset, (real_vector3d *)p4, *out_t, (real_point3d *)out_normal));
+        FUN_0010c2e0((float *)vector3d_scale_add(&offset, (real_vector3d *)p4, *out_t, (real_point3d *)out_normal));
         return 1;
       }
     }
@@ -3041,8 +3041,8 @@ bool vector_intersects_pill3d(float *start_a, float *dir_a, float *start_b,
   /* Contiguous arrays: fast_vector_intersects_sphere reads three floats
    * through the pointer (ref [ebp-0x18..-0x10] / [ebp-0xc..-4]); as separate
    * scalars clang dead-stripped the y/z components. */
-  float closest_a[3];
-  float closest_b[3];
+  real_point3d closest_a;
+  real_point3d closest_b;
   x87_wide_t diff_x, diff_y, diff_z;
   char s_oob, t_oob;
 
@@ -3098,9 +3098,9 @@ bool vector_intersects_pill3d(float *start_a, float *dir_a, float *start_b,
     if (s_oob) {
       clamped_s =
         (s < *(float *)0x2533c0) ? *(float *)0x2533c0 : *(float *)0x2533c8;
-      closest_a[0] = clamped_s * dir_a[0] + start_a[0];
-      closest_a[1] = clamped_s * dir_a[1] + start_a[1];
-      closest_a[2] = clamped_s * dir_a[2] + start_a[2];
+      closest_a.x = clamped_s * dir_a[0] + start_a[0];
+      closest_a.y = clamped_s * dir_a[1] + start_a[1];
+      closest_a.z = clamped_s * dir_a[2] + start_a[2];
       if (!t_oob)
         goto point_segment_checks;
     } else if (!t_oob) {
@@ -3109,21 +3109,21 @@ bool vector_intersects_pill3d(float *start_a, float *dir_a, float *start_b,
 
     clamped_t =
       (t < *(float *)0x2533c0) ? *(float *)0x2533c0 : *(float *)0x2533c8;
-    closest_b[0] = clamped_t * dir_b[0] + start_b[0];
-    closest_b[1] = clamped_t * dir_b[1] + start_b[1];
-    closest_b[2] = clamped_t * dir_b[2] + start_b[2];
+    closest_b.x = clamped_t * dir_b[0] + start_b[0];
+    closest_b.y = clamped_t * dir_b[1] + start_b[1];
+    closest_b.z = clamped_t * dir_b[2] + start_b[2];
 
   point_segment_checks:
     if (s_oob) {
       if (fast_vector_intersects_sphere((real_point3d *)start_b,
                                         (real_vector3d *)dir_b,
-                                        (real_point3d *)closest_a, radius))
+                                        &closest_a, radius))
         return 1;
     }
     if (t_oob) {
       if (fast_vector_intersects_sphere((real_point3d *)start_a,
                                         (real_vector3d *)dir_a,
-                                        (real_point3d *)closest_b, radius))
+                                        &closest_b, radius))
         return 1;
     }
     return 0;
@@ -3202,21 +3202,21 @@ bool vector_intersects_pill3d(float *start_a, float *dir_a, float *start_b,
 
 distance_check:
   /* ref narrows closest_a[0..2] and closest_b[0..1] (fstp, 0x10e44f-0x10e47b)
-   * but keeps closest_b[2] in ST(0) (0x10e481) */
-  closest_a[0] = HALO_NARROW((x87_wide_t)s * dir_a[0] + start_a[0]);
-  closest_a[1] = HALO_NARROW((x87_wide_t)s * dir_a[1] + start_a[1]);
-  closest_a[2] = HALO_NARROW((x87_wide_t)s * dir_a[2] + start_a[2]);
-  closest_b[0] = HALO_NARROW(t * dir_b[0] + start_b[0]);
-  closest_b[1] = HALO_NARROW(t * dir_b[1] + start_b[1]);
-  HALO_FLT_ROUNDTRIP(closest_a[0]);
-  HALO_FLT_ROUNDTRIP(closest_a[1]);
-  HALO_FLT_ROUNDTRIP(closest_a[2]);
-  HALO_FLT_ROUNDTRIP(closest_b[0]);
-  HALO_FLT_ROUNDTRIP(closest_b[1]);
+   * but keeps closest_b.z in ST(0) (0x10e481) */
+  closest_a.x = HALO_NARROW((x87_wide_t)s * dir_a[0] + start_a[0]);
+  closest_a.y = HALO_NARROW((x87_wide_t)s * dir_a[1] + start_a[1]);
+  closest_a.z = HALO_NARROW((x87_wide_t)s * dir_a[2] + start_a[2]);
+  closest_b.x = HALO_NARROW(t * dir_b[0] + start_b[0]);
+  closest_b.y = HALO_NARROW(t * dir_b[1] + start_b[1]);
+  HALO_FLT_ROUNDTRIP(closest_a.x);
+  HALO_FLT_ROUNDTRIP(closest_a.y);
+  HALO_FLT_ROUNDTRIP(closest_a.z);
+  HALO_FLT_ROUNDTRIP(closest_b.x);
+  HALO_FLT_ROUNDTRIP(closest_b.y);
 
-  diff_x = (x87_wide_t)closest_b[0] - closest_a[0];
-  diff_y = (x87_wide_t)closest_b[1] - closest_a[1];
-  diff_z = (t * dir_b[2] + start_b[2]) - closest_a[2]; /* closest_b[2] wide */
+  diff_x = (x87_wide_t)closest_b.x - closest_a.x;
+  diff_y = (x87_wide_t)closest_b.y - closest_a.y;
+  diff_z = (t * dir_b[2] + start_b[2]) - closest_a.z; /* closest_b.z wide */
 
   /* ref sums z, y, x (0x10e495-0x10e4a3) */
   if ((x87_wide_t)radius * radius <
@@ -3333,9 +3333,9 @@ char vector_intersects_triangle3d(float *p1, float *p2, float *p3, float *p4, fl
   float e1[3], e2[3];
   float n0, n1, n2;
   float det, inv_det;
-  float origin_to_v0[3];
+  real_vector3d origin_to_v0;
   float t, u, v;
-  float scratch[3];
+  real_vector3d scratch;
 
   e1[0] = p4[0] - p3[0];
   e1[1] = p4[1] - p3[1];
@@ -3353,25 +3353,25 @@ char vector_intersects_triangle3d(float *p1, float *p2, float *p3, float *p4, fl
   }
 
   inv_det = 1.0f / det;
-  origin_to_v0[0] = p3[0] - p1[0];
-  origin_to_v0[1] = p3[1] - p1[1];
-  origin_to_v0[2] = p3[2] - p1[2];
+  origin_to_v0.i = p3[0] - p1[0];
+  origin_to_v0.j = p3[1] - p1[1];
+  origin_to_v0.k = p3[2] - p1[2];
   t =
-    (origin_to_v0[0] * n0 + origin_to_v0[1] * n1 + origin_to_v0[2] * n2) *
+    (origin_to_v0.i * n0 + origin_to_v0.j * n1 + origin_to_v0.k * n2) *
     inv_det;
   if (!(t >= 0.0f))
     return 0;
   if (!(t <= 1.0f))
     return 0;
 
-  cross_product3d((real_vector3d *)origin_to_v0, (real_vector3d *)p2, (real_vector3d *)scratch);
-  u = (e2[0] * scratch[0] + scratch[1] * e2[1] + scratch[2] * e2[2]) * inv_det;
+  cross_product3d(&origin_to_v0, (real_vector3d *)p2, &scratch);
+  u = (e2[0] * scratch.i + scratch.j * e2[1] + scratch.k * e2[2]) * inv_det;
   if (!(u >= 0.0f))
     return 0;
   if (!(u <= 1.0f))
     return 0;
   v =
-    -((e1[0] * scratch[0] + scratch[1] * e1[1] + scratch[2] * e1[2]) * inv_det);
+    -((e1[0] * scratch.i + scratch.j * e1[1] + scratch.k * e1[2]) * inv_det);
   if (!(v >= 0.0f))
     return 0;
   if (!(u + v <= 1.0f))
@@ -3486,9 +3486,10 @@ char sphere_intersects_triangle3d(float *center, float radius, float *v0,
                                   float *v1, float *v2)
 {
   volatile float d0[3];
-  float e01[3], e12[3];
+  real_vector3d e01, e12;
   volatile float n[3];
-  float c12[3], c20[3];
+  float c12[3];
+  real_vector3d c20;
   float plane_dot;
   char result;
 
@@ -3497,52 +3498,52 @@ char sphere_intersects_triangle3d(float *center, float radius, float *v0,
   d0[1] = center[1] - v0[1];
   d0[2] = center[2] - v0[2];
 
-  e01[0] = v1[0] - v0[0];
-  e01[1] = v1[1] - v0[1];
-  e01[2] = v1[2] - v0[2];
+  e01.i = v1[0] - v0[0];
+  e01.j = v1[1] - v0[1];
+  e01.k = v1[2] - v0[2];
 
-  e12[0] = v2[0] - v1[0];
-  e12[1] = v2[1] - v1[1];
-  e12[2] = v2[2] - v1[2];
+  e12.i = v2[0] - v1[0];
+  e12.j = v2[1] - v1[1];
+  e12.k = v2[2] - v1[2];
 
-  n[0] = e12[2] * e01[1] - e12[1] * e01[2];
-  n[1] = e01[2] * e12[0] - e12[2] * e01[0];
-  n[2] = e12[1] * e01[0] - e01[1] * e12[0];
+  n[0] = e12.k * e01.j - e12.j * e01.k;
+  n[1] = e01.k * e12.i - e12.k * e01.i;
+  n[2] = e12.j * e01.i - e01.j * e12.i;
 
   plane_dot = n[0] * d0[0] + n[1] * d0[1] + n[2] * d0[2];
   if ((n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) * radius * radius <
       plane_dot * plane_dot)
     return 0;
 
-  if (0.0f < (e01[1] * d0[2] - d0[1] * e01[2]) * n[0] +
-               (d0[0] * e01[2] - e01[0] * d0[2]) * n[1] +
-               n[2] * (e01[0] * d0[1] - e01[1] * d0[0])) {
-    if (fast_vector_intersects_sphere((real_point3d *)v0, (real_vector3d *)e01,
+  if (0.0f < (e01.j * d0[2] - d0[1] * e01.k) * n[0] +
+               (d0[0] * e01.k - e01.i * d0[2]) * n[1] +
+               n[2] * (e01.i * d0[1] - e01.j * d0[0])) {
+    if (fast_vector_intersects_sphere((real_point3d *)v0, &e01,
                                       (real_point3d *)center, radius))
       return 1;
     result = 0;
   }
 
-  c12[0] = e12[2] * (center[1] - v1[1]) - e12[1] * (center[2] - v1[2]);
-  c12[1] = (center[2] - v1[2]) * e12[0] - e12[2] * (center[0] - v1[0]);
+  c12[0] = e12.k * (center[1] - v1[1]) - e12.j * (center[2] - v1[2]);
+  c12[1] = (center[2] - v1[2]) * e12.i - e12.k * (center[0] - v1[0]);
   if (0.0f <
       c12[0] * n[0] + c12[1] * n[1] +
-        n[2] * (e12[1] * (center[0] - v1[0]) - e12[0] * (center[1] - v1[1]))) {
-    if (fast_vector_intersects_sphere((real_point3d *)v1, (real_vector3d *)e12,
+        n[2] * (e12.j * (center[0] - v1[0]) - e12.i * (center[1] - v1[1]))) {
+    if (fast_vector_intersects_sphere((real_point3d *)v1, &e12,
                                       (real_point3d *)center, radius))
       return 1;
     result = 0;
   }
 
-  c20[0] = v0[0] - v2[0];
-  c20[1] = v0[1] - v2[1];
-  c20[2] = v0[2] - v2[2];
-  e12[0] = c20[2] * (center[1] - v2[1]) - c20[1] * (center[2] - v2[2]);
-  e12[1] = (center[2] - v2[2]) * c20[0] - c20[2] * (center[0] - v2[0]);
-  if (e12[0] * n[0] + e12[1] * n[1] +
-        n[2] * (c20[1] * (center[0] - v2[0]) - c20[0] * (center[1] - v2[1])) <
+  c20.i = v0[0] - v2[0];
+  c20.j = v0[1] - v2[1];
+  c20.k = v0[2] - v2[2];
+  e12.i = c20.k * (center[1] - v2[1]) - c20.j * (center[2] - v2[2]);
+  e12.j = (center[2] - v2[2]) * c20.i - c20.k * (center[0] - v2[0]);
+  if (e12.i * n[0] + e12.j * n[1] +
+        n[2] * (c20.j * (center[0] - v2[0]) - c20.i * (center[1] - v2[1])) <
       0.0f) {
-    if (fast_vector_intersects_sphere((real_point3d *)v2, (real_vector3d *)c20,
+    if (fast_vector_intersects_sphere((real_point3d *)v2, &c20,
                                       (real_point3d *)center, radius))
       return 1;
     result = 0;
@@ -4011,7 +4012,7 @@ void angular_accelerate_to_position(real_vector3d *facing, const real_vector3d *
   float cos_theta;
   float speed;
   float sp;
-  float axis[3];
+  real_vector3d axis;
   float dx;
   float dy;
   float dz;
@@ -4058,18 +4059,18 @@ void angular_accelerate_to_position(real_vector3d *facing, const real_vector3d *
   }
 
   /* axis = cross(facing, target_facing) */
-  axis[0] = target_facing->k * facing->j - facing->k * target_facing->j;
-  axis[1] = facing->k * target_facing->i - target_facing->k * facing->i;
-  axis[2] = facing->i * target_facing->j - target_facing->i * facing->j;
-  normalize3d((real_vector3d *)axis);
+  axis.i = target_facing->k * facing->j - facing->k * target_facing->j;
+  axis.j = facing->k * target_facing->i - target_facing->k * facing->i;
+  axis.k = facing->i * target_facing->j - target_facing->i * facing->j;
+  normalize3d(&axis);
 
   /* scale axis by speed (in place), then measure distance to current ang_vel */
-  axis[0] = axis[0] * speed;
-  axis[1] = axis[1] * speed;
-  axis[2] = axis[2] * speed;
-  dx = axis[0] - ang_vel->i;
-  dy = axis[1] - ang_vel->j;
-  dz = axis[2] - ang_vel->k;
+  axis.i = axis.i * speed;
+  axis.j = axis.j * speed;
+  axis.k = axis.k * speed;
+  dx = axis.i - ang_vel->i;
+  dy = axis.j - ang_vel->j;
+  dz = axis.k - ang_vel->k;
   mag_sq = dz * dz + dy * dy + dx * dx;
   /* disasm squares 0x18(%ebp) (ang_accel) here and divides by it below; the
    * prior lift had ang_accel and max_ang_speed swapped at both clamp sites. */
@@ -4090,18 +4091,18 @@ void angular_accelerate_to_position(real_vector3d *facing, const real_vector3d *
       facing->k = target_facing->k;
       return;
     }
-    ang_vel->i = axis[0];
-    ang_vel->j = axis[1];
-    ang_vel->k = axis[2];
+    ang_vel->i = axis.i;
+    ang_vel->j = axis.j;
+    ang_vel->k = axis.k;
   }
 
   /* rotate facing about ang_vel by its magnitude */
-  axis[0] = ang_vel->i;
-  axis[1] = ang_vel->j;
-  axis[2] = ang_vel->k;
-  angle = normalize3d((real_vector3d *)axis);
+  axis.i = ang_vel->i;
+  axis.j = ang_vel->j;
+  axis.k = ang_vel->k;
+  angle = normalize3d(&axis);
   if (angle != *(float *)0x2533c0) {
-    rotate_vector3d_by_sincos(facing, (real_vector3d *)axis, x87_fsin(angle), x87_fcos(angle));
+    rotate_vector3d_by_sincos(facing, &axis, x87_fsin(angle), x87_fcos(angle));
     normalize3d(facing);
   }
 }

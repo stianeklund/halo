@@ -728,7 +728,7 @@ char *dialogue_get_vocalization_name(short vocalization_type, unsigned char colu
 
   result = "<error>";
   if (vocalization_type >= 0 && vocalization_type < 0xd1) {
-    result = ((char **)0x32d7c8)[(unsigned int)column +
+    result = VOCALIZATION_NAMES[(unsigned int)column +
                                  (unsigned int)(short)vocalization_type * 2];
   }
   return result;
@@ -743,7 +743,7 @@ short dialogue_get_vocalization_type_by_name(const char *name)
 
   vocalization_type = 0;
   do {
-    compare = csstrcmp(((const char **)0x32d7c8)[(int)vocalization_type * 2], name);
+    compare = csstrcmp(VOCALIZATION_NAMES_CONST[(int)vocalization_type * 2], name);
     if (compare == 0) {
       return vocalization_type;
     }
@@ -881,7 +881,7 @@ short unit_test_speech(int unit_handle, short priority, char param_3, char param
           (game_connection() == 0 && AI_DEBUG_FORCE_VOCALIZATIONS != '\0')) {
         break;
       }
-      voc_type = *(short *)(0x2b6420 + (int)voc_type * 2);
+      voc_type = *(short *)(VOCALIZATION_FALLBACK_TYPES_ADDRESS + (int)voc_type * 2);
     } while (voc_type != -1);
   }
 
@@ -921,14 +921,14 @@ short unit_test_speech(int unit_handle, short priority, char param_3, char param
       break;
     }
 
-    override_priority = *(short *)(0x2b65c4 + priority_int * 2);
+    override_priority = *(short *)(SPEECH_OVERRIDE_PRIORITIES_ADDRESS + priority_int * 2);
     if (override_priority >= max_priority) {
       result = 3;
     } else if (priority >= _unit_speech_involuntary &&
                override_priority >= slot_priority) {
       result = 2;
     } else if (param_4 != '\0') {
-      timing_threshold = *(float *)(0x2b65dc + priority_int * 4);
+      timing_threshold = *(float *)(SPEECH_TIMING_THRESHOLDS_ADDRESS + priority_int * 4);
       if (timing_threshold != 0.0f) {
         if (timing_threshold == REAL_MAX_POOL) {
           /* REAL_MAX => always interrupt */
@@ -1031,7 +1031,7 @@ char *unit_get_speech_priority_name(short priority)
 
   result = "<error>";
   if (priority >= 0 && priority < 0xb) {
-    result = ((char **)0x32de50)[(short)priority];
+    result = SPEECH_PRIORITY_NAMES[(short)priority];
   }
   return result;
 }
@@ -1046,7 +1046,7 @@ short unit_get_speech_priority_by_name(const char *name)
   result = 0;
   i = 0;
   do {
-    if (csstrcmp(((char **)0x32de50)[(short)i], name) == 0) {
+    if (csstrcmp(SPEECH_PRIORITY_NAMES[(short)i], name) == 0) {
       return (short)i;
     }
     i++;
@@ -1767,7 +1767,7 @@ void unit_dialogue_update(int unit_handle)
     } else {
       if (unit->speech_played == 0) {
         marker_count = object_get_marker_by_name(
-          unit_handle, (void *)0x2909e4, marker_buf, 1);
+          unit_handle, MARKER_NAME_HEAD, marker_buf, 1);
         if (marker_count == 0) {
           position.x = GLOBAL_ORIGIN3D->x;
           position.y = GLOBAL_ORIGIN3D->y;
@@ -3154,7 +3154,7 @@ missing:
   /* developer-mode warning: animation not defined */
   if (DEBUG_UNIT_ANIMATIONS != 0 && unit->object.type == _object_type_biped &&
       unit->aiming_screen_index == -1) {
-    const char *state_name = animation_list_get_string((void *)0x322148, anim_table_index);
+    const char *state_name = animation_list_get_string(WEAPON_TYPE_ANIMATION_NAMES, anim_table_index);
     const char *tag_path =
       tag_name_strip_path(object_definition_animation_graph_name(unit_tag));
     console_warning("MISSING: %s '%s %s'", tag_path, state_name,
@@ -3500,7 +3500,7 @@ void unit_get_head_position(int object_handle, float *out_position)
 {
   object_marker marker;
 
-  object_get_marker_by_name(object_handle, (void *)0x2909e4, &marker, 1);
+  object_get_marker_by_name(object_handle, MARKER_NAME_HEAD, &marker, 1);
   *(real_point3d *)out_position = marker.matrix.position;
 }
 
@@ -3556,7 +3556,7 @@ void unit_get_camera_position(int unit_handle, real_point3d *position)
     }
 
     if (unit->gunner_object_index.value == NONE) {
-      object_get_marker_by_name(unit_handle, (void *)0x2909e4, &marker, 1);
+      object_get_marker_by_name(unit_handle, MARKER_NAME_HEAD, &marker, 1);
       memcpy(position, &marker.matrix.position, sizeof(real_point3d));
       return;
     }
@@ -4684,7 +4684,7 @@ char unit_can_see_point(int unit_handle, float *point, float half_angle)
   }
 
   unit = object_get_and_verify_type(unit_handle, _object_mask_unit);
-  object_get_marker_by_name(unit_handle, (void *)0x2909e4, marker_buf, 1);
+  object_get_marker_by_name(unit_handle, MARKER_NAME_HEAD, marker_buf, 1);
 
   /* dir must stay one contiguous vector: normalize3d reads all three
    * components through its base pointer. */
@@ -5351,7 +5351,7 @@ void unit_throw_grenade_move_to_hand(int unit_handle)
   unit->grenade_counts[(int8_t)unit->current_grenade_index] -= 1;
 
 skip_decrement:
-  object_get_marker_by_name(unit_handle, (void *)0x2b6d2c, &marker, 1);
+  object_get_marker_by_name(unit_handle, MARKER_NAME_LEFT_HAND, &marker, 1);
 
   object_placement_data_new(&placement, grenade->projectile.tag_index,
                             unit_handle);
@@ -5662,7 +5662,7 @@ const char *base_seat_label_get(int16_t base_seat_index)
       "c:\\halo\\SOURCE\\units\\units.c", 0x200f, 1);
     system_exit(-1);
   }
-  return *(const char **)(0x32e484 + (int)base_seat_index * 4);
+  return *(const char **)(BASE_SEAT_LABELS_ADDRESS + (int)base_seat_index * 4);
 }
 
 /* seat_label_to_base_seat_index (0x1ab730)
@@ -5674,7 +5674,7 @@ int16_t seat_label_to_base_seat_index(const char *seat_name)
   int16_t i;
 
   for (i = 0; i < NUMBER_OF_UNIT_BASE_SEATS; i++) {
-    if (crt_stricmp(seat_name, *(const char **)(0x32e484 + (int)i * 4)) == 0) {
+    if (crt_stricmp(seat_name, *(const char **)(BASE_SEAT_LABELS_ADDRESS + (int)i * 4)) == 0) {
       return i;
     }
   }
@@ -5834,8 +5834,8 @@ void unit_detach_weapon(int unit_handle, int weapon_handle)
   if (parent == NONE) {
     object_connect_to_map(weapon_handle, 0);
     object_set_visibility(weapon_handle, 1);
-    object_attach_to_marker(unit_handle, (void *)0x2b6d2c, weapon_handle,
-                            (void *)0x25386f);
+    object_attach_to_marker(unit_handle, MARKER_NAME_LEFT_HAND, weapon_handle,
+                            EMPTY_STRING_VOID);
   } else if (parent != unit_handle) {
     display_assert("item->object.parent_object_index==unit_index",
                    "c:\\halo\\SOURCE\\units\\units.c", 0x20c5, 1);
@@ -6805,7 +6805,7 @@ char unit_set_or_test_seat_and_weapon_label(int unit_handle, const char *seat_la
         base_seat = NONE;
         for (si = 0; si < NUMBER_OF_UNIT_BASE_SEATS; si++) {
           if (crt_stricmp(seat_label,
-                          *(const char **)(0x32e484 + (int)si * 4)) == 0) {
+                          *(const char **)(BASE_SEAT_LABELS_ADDRESS + (int)si * 4)) == 0) {
             base_seat = si;
             break;
           }
@@ -6937,7 +6937,7 @@ void unit_render_debug(int unit_handle)
   }
 
   if (DEBUG_OBJECTS_UNIT_MOUTH_APETURE != '\0') {
-    object_get_marker_by_name(unit_handle, (void *)0x2909e4, &marker, 1);
+    object_get_marker_by_name(unit_handle, MARKER_NAME_HEAD, &marker, 1);
     head_pos = marker.matrix.position;
     render_debug_string_at_point(0, &head_pos,
                  csprintf(error_string_buffer, "%.2f",
@@ -7049,7 +7049,7 @@ bool unit_try_animation_state(int unit_handle, int seat_label, int weapon_label,
         base_seat = NONE;
         for (si = 0; si < NUMBER_OF_UNIT_BASE_SEATS; si++) {
           if (crt_stricmp((const char *)seat_label,
-                          *(const char **)(0x32e484 + si * 4)) == 0) {
+                          *(const char **)(BASE_SEAT_LABELS_ADDRESS + si * 4)) == 0) {
             base_seat = si;
             break;
           }
@@ -7304,12 +7304,12 @@ check_found:
       const char *mn;
       const char *on;
       if (mode_anim_index != -1) {
-        mn = animation_list_get_string((void *)0x322308, mode_anim_index);
+        mn = animation_list_get_string(WEAPON_ANIMATION_NAMES, mode_anim_index);
       } else {
-        mn = (const char *)0x25386f;
+        mn = EMPTY_STRING;
       }
       if (overlay_index != -1) {
-        on = (const char *)animation_list_get_string((void *)0x322450, overlay_index);
+        on = (const char *)animation_list_get_string(UNIT_SEAT_ANIMATION_NAMES, overlay_index);
       } else {
         on = weapon_class->label;
       }
@@ -7376,7 +7376,7 @@ resolve_weapon_idle: {
 
     if (DEBUG_UNIT_ANIMATIONS != 0 && unit->object.type == _object_type_biped &&
         weapon_idle_anim == -1 && new_weapon_idle != -1) {
-      const char *wn = animation_list_get_string((void *)0x322308, (int16_t)new_weapon_idle);
+      const char *wn = animation_list_get_string(WEAPON_ANIMATION_NAMES, (int16_t)new_weapon_idle);
       console_warning("MISSING: %s \'%s %s %s\'",
                       tag_name_strip_path(object_definition_animation_graph_name(unit_definition)),
                       unit_seat->label, weapon_class->label, wn);
@@ -7398,7 +7398,7 @@ resolve_weapon_idle: {
 
       if (DEBUG_UNIT_ANIMATIONS != 0 && unit->object.type == _object_type_biped &&
           weapon_idle_anim == -1) {
-        const char *oln = animation_list_get_string((void *)0x322450, 9);
+        const char *oln = animation_list_get_string(UNIT_SEAT_ANIMATION_NAMES, 9);
         console_warning("MISSING: %s \'%s %s\'",
                         tag_name_strip_path(object_definition_animation_graph_name(unit_definition)),
                         unit_seat->label, oln);
@@ -8373,7 +8373,7 @@ void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
     goto cleanup;
   }
 
-  marker_count = object_get_marker_by_name(unit_handle, (void *)0x25961c, &marker, 1);
+  marker_count = object_get_marker_by_name(unit_handle, MARKER_NAME_MELEE, &marker, 1);
 
   if (marker_count == 1) {
     melee_position.x = marker.matrix.position.x;
@@ -8516,7 +8516,7 @@ void unit_cause_player_melee_damage(int unit_handle)
   material_idx = -1;
   melee_response_effect = -1;
 
-  object_get_marker_by_name(unit_handle, (void *)0x2909e4, &marker, 1);
+  object_get_marker_by_name(unit_handle, MARKER_NAME_HEAD, &marker, 1);
 
   ray_origin.x = marker.matrix.position.x;
   ray_origin.y = marker.matrix.position.y;
@@ -8893,7 +8893,7 @@ void unit_update_running_blind(int unit_handle, real_vector3d *run_vector)
 
   if (valid_real_normal3d(run_vector) == 0) {
     msg = csprintf(
-      (char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+      ERROR_STRING_BUFFER, "%s: assert_valid_real_normal3d(%f, %f, %f)",
       "run_vector", (double)run_vector->i, (double)run_vector->j,
       (double)run_vector->k, "c:\\halo\\SOURCE\\units\\units.c", 0x253e, true);
     display_assert(msg, "c:\\halo\\SOURCE\\units\\units.c", 0x253e, true);
@@ -9003,7 +9003,7 @@ apply_angle:
   /* Assert valid normal after rotation */
   if (valid_real_normal3d(run_vector) == 0) {
     msg = csprintf(
-      (char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+      ERROR_STRING_BUFFER, "%s: assert_valid_real_normal3d(%f, %f, %f)",
       "run_vector", (double)run_vector->i, (double)run_vector->j,
       (double)run_vector->k, "c:\\halo\\SOURCE\\units\\units.c", 0x2585, true);
     display_assert(msg, "c:\\halo\\SOURCE\\units\\units.c", 0x2585, true);
@@ -9318,7 +9318,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
     repl_anim = tag_block_get_element(&animation_graph->animations,
                                            (int16_t)unit->action_animation_index,
                                            0xb4);
-    ((void (*)(void *, short, void *))0x122060)(
+    REPLACEMENT_ANIMATION_APPLY_FN(
       repl_anim, unit->action_animation_frame, (void *)node_output);
   }
 
@@ -9327,7 +9327,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
     ovl_anim = tag_block_get_element(
       &animation_graph->animations,
       (int16_t)unit->overlay_action_animation_index, 0xb4);
-    ((void (*)(void *, short, void *))0x122240)(
+    OVERLAY_ANIMATION_APPLY_FN(
       ovl_anim, unit->overlay_action_animation_frame, (void *)node_output);
   }
 
@@ -9336,7 +9336,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
     ovl_anim2 = tag_block_get_element(
       &animation_graph->animations, unit->soft_ping_animation_index,
       0xb4);
-    ((void (*)(void *, short, void *))0x122240)(
+    OVERLAY_ANIMATION_APPLY_FN(
       ovl_anim2, unit->soft_ping_animation_frame, (void *)node_output);
   }
 
@@ -9364,7 +9364,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
         seat_anim_idx = unit->emotion_index;
         if (seat_anim_idx >= 0 &&
             (short)seat_anim_idx < anim_entry->frame_count) {
-          ((void (*)(void *, short, void *))0x122240)(
+          OVERLAY_ANIMATION_APPLY_FN(
             anim_entry, (short)seat_anim_idx, (void *)node_output);
         }
       }
@@ -9376,7 +9376,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
         void *throttle_anim;
         throttle_anim = tag_block_get_element(
           &animation_graph->animations, (int)anim_index, 0xb4);
-        ((void (*)(void *, int, float, void *))0x122450)(throttle_anim, 0, unit->mouth_aperture,
+        OVERLAY_ANIMATION_APPLY_SCALED_FN(throttle_anim, 0, unit->mouth_aperture,
                                        (void *)node_output);
       }
     }
@@ -9396,7 +9396,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
             anim_entry = tag_block_get_element(
               &animation_graph->animations, (int)anim_index, 0xb4);
             max_frame = (float)(anim_entry->frame_count - 1);
-            ((void (*)(void *, float, void *))0x122690)(
+            OVERLAY_ANIMATION_APPLY_CONTINUOUS_FN(
               anim_entry, max_frame * *steering_ptr, (void *)node_output);
           }
         }
@@ -9425,7 +9425,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
           valid = valid_real_normal3d(aiming_vec);
           if (valid == 0) {
             csprintf(
-              (char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+              ERROR_STRING_BUFFER, "%s: assert_valid_real_normal3d(%f, %f, %f)",
               "&unit->unit.aiming_vector", (double)aiming_vec->i,
               (double)unit->aiming_vector.j, (double)unit->aiming_vector.k);
             display_assert(0, "c:\\halo\\SOURCE\\units\\units.c", 0x670, 1);
@@ -9444,7 +9444,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
 
           valid = real_vector3d_valid(&relative_aiming_vector);
           if (valid == 0) {
-            csprintf((char *)0x5ab100,
+            csprintf(ERROR_STRING_BUFFER,
                      "%s: assert_valid_real_vector2d(%f, %f, %f)",
                      "&relative_aiming_vector", (double)relative_aiming_vector.i,
                      (double)relative_aiming_vector.j,
@@ -9457,7 +9457,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
 
           temp = relative_aiming_angles.pitch;
           if ((*(unsigned int *)&temp & 0x7f800000) == 0x7f800000) {
-            csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+            csprintf(ERROR_STRING_BUFFER, "%s: assert_valid_real(0x%08X %f)",
                      "relative_aiming_angles.pitch", *(unsigned int *)&temp,
                      (double)temp);
             display_assert(0, "c:\\halo\\SOURCE\\units\\units.c", 0x680, 1);
@@ -9465,7 +9465,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
           }
           temp = relative_aiming_angles.yaw;
           if ((*(unsigned int *)&temp & 0x7f800000) == 0x7f800000) {
-            csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+            csprintf(ERROR_STRING_BUFFER, "%s: assert_valid_real(0x%08X %f)",
                      "relative_aiming_angles.yaw", *(unsigned int *)&temp,
                      (double)temp);
             display_assert(0, "c:\\halo\\SOURCE\\units\\units.c", 0x681, 1);
@@ -9512,7 +9512,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
 
           valid = real_vector3d_valid(&relative_looking_vector);
           if (valid == 0) {
-            csprintf((char *)0x5ab100,
+            csprintf(ERROR_STRING_BUFFER,
                      "%s: assert_valid_real_vector2d(%f, %f, %f)",
                      "&relative_looking_vector", (double)relative_looking_vector.i,
                      (double)relative_looking_vector.j,
@@ -9529,7 +9529,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
 
           temp = relative_looking_angles.pitch;
           if ((*(unsigned int *)&temp & 0x7f800000) == 0x7f800000) {
-            csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+            csprintf(ERROR_STRING_BUFFER, "%s: assert_valid_real(0x%08X %f)",
                      "relative_looking_angles.pitch", *(unsigned int *)&temp,
                      (double)temp);
             display_assert(0, "c:\\halo\\SOURCE\\units\\units.c", 0x6ae, 1);
@@ -9537,7 +9537,7 @@ void unit_preprocess_node_orientations(int unit_handle, int node_output)
           }
           temp = relative_looking_angles.yaw;
           if ((*(unsigned int *)&temp & 0x7f800000) == 0x7f800000) {
-            csprintf((char *)0x5ab100, "%s: assert_valid_real(0x%08X %f)",
+            csprintf(ERROR_STRING_BUFFER, "%s: assert_valid_real(0x%08X %f)",
                      "relative_looking_angles.yaw", *(unsigned int *)&temp,
                      (double)temp);
             display_assert(0, "c:\\halo\\SOURCE\\units\\units.c", 0x6af, 1);
@@ -9940,7 +9940,7 @@ final_validate: {
   char aim_valid;
   aim_valid = valid_real_normal3d(aiming_vector);
   if (aim_valid == 0) {
-    csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+    csprintf(ERROR_STRING_BUFFER, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "aiming_vector", (double)aiming_vector->i,
              (double)aiming_vector->j, (double)aiming_vector->k);
     display_assert(0, "c:\\halo\\SOURCE\\units\\units.c", 0xae9, 1);
@@ -11480,11 +11480,11 @@ char unit_new(int unit_handle)
   forward = &unit->object.forward;
   valid = (char)valid_real_normal3d(forward);
   if (valid == 0) {
-    csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
+    csprintf(ERROR_STRING_BUFFER, "%s: assert_valid_real_normal3d(%f, %f, %f)",
              "&unit->object.forward", (double)forward->i,
              (double)unit->object.forward.j, (double)unit->object.forward.k,
              "c:\\halo\\SOURCE\\units\\units.c", 0x189, true);
-    display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\units\\units.c", 0x189,
+    display_assert(ERROR_STRING_BUFFER, "c:\\halo\\SOURCE\\units\\units.c", 0x189,
                    true);
     system_exit(-1);
   }
@@ -11647,7 +11647,7 @@ bool unit_board_vehicle(int unit_handle, int vehicle_handle, int16_t seat_index)
                                   &delta); /* dup-args-ok */
 
   object_attach_to_marker(vehicle_handle, marker_name, unit_handle,
-                          (void *)0x25386f);
+                          EMPTY_STRING_VOID);
 
   unit->parent_seat_index = seat_index;
   unit->object.parent_object_index.value = vehicle_handle;
@@ -12304,7 +12304,7 @@ char unit_update(int unit_handle)
   if (PROFILE_GLOBAL_ENABLE != 0 && UNIT_UPDATE_SECTION_ENABLED != 0) {
     profile_enter_private(UNIT_UPDATE_SECTION);
   }
-  unit_control_trace(unit_handle, (const char *)0x2b7c98);
+  unit_control_trace(unit_handle, TRACE_STRING_UNIT_UPDATE_BEGIN);
 
   /* [2] Animation frame counter */
   anim_ptr = UNIT_GLOBALS;
@@ -12643,7 +12643,7 @@ char unit_update(int unit_handle)
     } /* end seat-held check */
 
     /* [9] Aiming and looking update */
-    unit_control_trace(unit_handle, (const char *)0x2b7c28);
+    unit_control_trace(unit_handle, TRACE_STRING_UNIT_UPDATE_PREVECTORS);
 
     if (unit->aiming_speed == 1) {
       aiming_speed_scale = unit_definition_casual_aiming_modifier(unit_tag);
@@ -12675,13 +12675,13 @@ char unit_update(int unit_handle)
         unit->aiming_velocity.j = g[1];
         unit->aiming_velocity.k = g[2];
       }
-      unit_control_trace(unit_handle, (const char *)0x2b7bf0);
+      unit_control_trace(unit_handle, TRACE_STRING_UNIT_UPDATE_AIM_SET);
     } else if (unit->aiming_with_euler_screen == 0) {
       /* Smooth */
       angular_accelerate_to_position(aim_vec, &unit->desired_aiming_vector,
                                      &unit->aiming_velocity,
                                      aim_vel_limit, aim_accel_limit);
-      unit_control_trace(unit_handle, (const char *)0x2b7bc4);
+      unit_control_trace(unit_handle, TRACE_STRING_UNIT_UPDATE_AIM_3D);
     } else {
       /* Euler */
       real_point3d *origin;
@@ -12698,7 +12698,7 @@ char unit_update(int unit_handle)
                    &unit->aiming_velocity,
                    &unit->unk_616, aim_vel_limit,
                    aim_accel_limit);
-      unit_control_trace(unit_handle, (const char *)0x2b7bd8);
+      unit_control_trace(unit_handle, TRACE_STRING_UNIT_UPDATE_AIM_EULER);
     }
 
     /* Delta angle + steering byte */
@@ -12735,13 +12735,13 @@ char unit_update(int unit_handle)
         unit->looking_velocity.j = g[1];
         unit->looking_velocity.k = g[2];
       }
-      unit_control_trace(unit_handle, (const char *)0x2b7bac);
+      unit_control_trace(unit_handle, TRACE_STRING_UNIT_UPDATE_LOOK_SET);
     } else if (unit->looking_with_euler_screen == 0) {
       real_vector3d *lk = &unit->looking_vector;
       angular_accelerate_to_position(lk, &unit->desired_looking_vector,
                                      &unit->looking_velocity,
                                      aim_vel_limit, aim_accel_limit);
-      unit_control_trace(unit_handle, (const char *)0x2b7b80);
+      unit_control_trace(unit_handle, TRACE_STRING_UNIT_UPDATE_LOOK_3D);
     } else {
       real_vector3d *lk = &unit->looking_vector;
       real_point3d *origin;
@@ -12758,12 +12758,12 @@ char unit_update(int unit_handle)
                    &unit->looking_velocity,
                    &unit->unk_632, aim_vel_limit,
                    aim_accel_limit);
-      unit_control_trace(unit_handle, (const char *)0x2b7b94);
+      unit_control_trace(unit_handle, TRACE_STRING_UNIT_UPDATE_LOOK_EULER);
     }
 
     /* Assert look vector */
     assert_halt(valid_real_normal3d(&unit->looking_vector));
-    unit_control_trace(unit_handle, (const char *)0x2b7b4c);
+    unit_control_trace(unit_handle, TRACE_STRING_UNIT_UPDATE_POSTVECTOR);
 
     /* [10] Combat state switch */
     if (skip_combat_update == 0) {
@@ -12953,7 +12953,7 @@ char unit_update(int unit_handle)
         eff_handle = (int)unit->delayed_damage_attacker_object_index;
         eff_data = (int)unit->delayed_damage_peak;
         eff_anim = (int16_t)unit->last_damage_category;
-        ((void (*)(int, int, int16_t, int, int, int))0x40460)(
+        AI_HANDLE_DAMAGE_FN(
           unit_handle, eff_handle, eff_anim, eff_data, 0, 1);
         unit->last_damage_category = 0;
         unit->delayed_damage_attacker_object_index = -1;
@@ -12971,8 +12971,8 @@ char unit_update(int unit_handle)
       (unit_refresh_illumination(unit_handle), DEBUG_UNIT_ILLUMINATION != 0) && unit->player_index.value != -1) {
     i10 = game_time_get();
     if (i10 >= UNIT_ILLUMINATION_DEBUG_LAST_TIME + 0x1e) {
-      ((void (*)(int, const char *, ...))0x8f390)(
-        2, (const char *)0x2b7b20, (double)unit->ambient_illumination,
+      ERROR_FN(
+        2, FORMAT_STRING_PLAYER_ILLUMINATION, (double)unit->ambient_illumination,
         (double)unit->self_illumination);
       UNIT_ILLUMINATION_DEBUG_LAST_TIME = i10;
     }
@@ -13139,7 +13139,7 @@ label_flashlight_done:
   }
 
   /* [20] Debug trace exit */
-  unit_control_trace(unit_handle, (const char *)0x2b7aec);
+  unit_control_trace(unit_handle, TRACE_STRING_UNIT_UPDATE_END);
   if (PROFILE_GLOBAL_ENABLE != 0 && UNIT_UPDATE_SECTION_ENABLED != 0) {
     profile_exit_private(UNIT_UPDATE_SECTION);
   }

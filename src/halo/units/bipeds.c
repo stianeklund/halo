@@ -72,7 +72,7 @@ void biped_limp_noodle_move_relax_and_constrain_positions(int unit_handle, void 
   real_point3d ray_start;          /* [EBP-0xa8] */
   struct collision_result collision; /* [EBP-0x9c] */
   real_vector3d delta;             /* [EBP-0x18] */
-  float step[3];                   /* [EBP-0x2c] */
+  real_vector3d step;              /* [EBP-0x2c] */
   float dist[2];                   /* [EBP-0x38] */
   unsigned char touching[2];       /* [EBP-0x1c] */
   real_matrix4x3 *node_matrices = node_block;
@@ -138,7 +138,7 @@ void biped_limp_noodle_move_relax_and_constrain_positions(int unit_handle, void 
   if (tick < tick_count) {
     collision_get_features_in_sphere(0xc0a8, &biped->unit.object.position,
                  biped->unit.object.unk_92 + 0.0625f, 0.0f, radius,
-                 unit_handle, (void *)0x4d9de8);
+                 unit_handle, LIMP_BODY_COLLISION_FEATURES_VOID);
     csmemset(bits, 0, 8);
 
     for (pass = 0; pass < 4; pass++) {
@@ -151,9 +151,9 @@ void biped_limp_noodle_move_relax_and_constrain_positions(int unit_handle, void 
         node = tag_block_get_element(&animation_graph->nodes, node_index,
                                      sizeof(animation_graph_node_t));
         if (node_index != 0) {
-          step[0] = 0.0f;
-          step[1] = 0.0f;
-          step[2] = frac * -0.032086614f; /* 0x2b4b7c */
+          step.i = 0.0f;
+          step.j = 0.0f;
+          step.k = frac * -0.032086614f; /* 0x2b4b7c */
           node_pos = &node_matrices[node_index].position.x;
           parent_pos =
             &node_matrices[node->parent_node_index].position.x;
@@ -162,7 +162,7 @@ void biped_limp_noodle_move_relax_and_constrain_positions(int unit_handle, void 
           delta.k = node_pos[2] - parent_pos[2];
 
           if (pass == 0 && !collision_test_sphere((int)node_pos, radius_bits.i)) {
-            collision_move_point(node_pos, step, (short *)0x4d9de8, (float *)&new_pos, (float *)&new_vel,
+            collision_move_point(node_pos, (float *)&step, LIMP_BODY_COLLISION_FEATURES, (float *)&new_pos, (float *)&new_vel,
                          3, (int)collisions);
             if (fabs(new_vel.i) < REAL_EPSILON_DOUBLE_POOL &&
                 fabs(new_vel.j) < REAL_EPSILON_DOUBLE_POOL) {
@@ -252,23 +252,23 @@ void biped_limp_noodle_move_relax_and_constrain_positions(int unit_handle, void 
             float f = (rest - cur) / cur;
             if (node->parent_node_index != 0) {
               float h = f * 0.5f; /* 0x253398 */
-              step[0] = delta.i * -h;
-              step[1] = delta.j * -h;
-              step[2] = delta.k * -h;
-              collision_move_point(parent_pos, step, (short *)0x4d9de8, parent_pos,
-                           step, 3, (int)collisions);
-              step[0] = delta.i * h;
-              step[1] = delta.j * h;
-              step[2] = delta.k * h;
-              collision_move_point(node_pos, step, (short *)0x4d9de8, node_pos, step,
+              step.i = delta.i * -h;
+              step.j = delta.j * -h;
+              step.k = delta.k * -h;
+              collision_move_point(parent_pos, (float *)&step, LIMP_BODY_COLLISION_FEATURES, parent_pos,
+                           (float *)&step, 3, (int)collisions);
+              step.i = delta.i * h;
+              step.j = delta.j * h;
+              step.k = delta.k * h;
+              collision_move_point(node_pos, (float *)&step, LIMP_BODY_COLLISION_FEATURES, node_pos, (float *)&step,
                            3, (int)collisions);
             } else {
-              step[0] = delta.i * f;
-              step[1] = delta.j * f;
-              step[2] = delta.k * f;
+              step.i = delta.i * f;
+              step.j = delta.j * f;
+              step.k = delta.k * f;
               if (!collision_test_sphere((int)node_pos, radius_bits.i)) {
-                collision_move_point(node_pos, step, (short *)0x4d9de8, node_pos,
-                             step, 3, (int)collisions);
+                collision_move_point(node_pos, (float *)&step, LIMP_BODY_COLLISION_FEATURES, node_pos,
+                             (float *)&step, 3, (int)collisions);
               }
             }
           }
@@ -589,7 +589,7 @@ char biped_limp_noodle_relax_nodes_onto_environment(int unit_handle)
 
   count = animation_graph->nodes.count;
   if (count > 0) {
-    scratch = (int *)0x4e49f0;
+    scratch = LIMP_BODY_NODE_POSITIONS_AS_INT;
     src_node = (int *)((char *)node_block + 0x28);
     i = 0;
     do {
@@ -606,7 +606,7 @@ char biped_limp_noodle_relax_nodes_onto_environment(int unit_handle)
   /* @<eax>=unit_handle, node_count, positions=scratch buf, @<edi>=node_block */
   biped_limp_noodle_adjust_orientations(unit_handle,
                                         animation_graph->nodes.count,
-                                        (float *)0x4e49f0, node_block);
+                                        LIMP_BODY_NODE_POSITIONS, node_block);
 
   if (biped->limp_body_current_relaxation_iterations < 0x7f) {
     biped->limp_body_current_relaxation_iterations =
@@ -1012,7 +1012,7 @@ char biped_check_discard(int unit_handle /* @edi */)
     actor_handle = biped->unit.actor_index.value;
   }
   actor_desc = ai_debug_describe_actor(actor_handle, unit_handle, 1,
-                                       (char *)0x5ab100, 0x100);
+                                       ERROR_STRING_BUFFER, 0x100);
   /* The binary passes actor_desc after the three coordinates (argument
    * order differs from the format string); reproduced as compiled. */
   error(2, "WARNING: biped %s (%s) is in a bad place (%.1f %.1f %.1f), erasing",
@@ -1125,7 +1125,7 @@ void biped_falling_damage(float landing_velocity, int unit_handle /* @edi */)
     actor_handle = biped->unit.actor_index.value;
   }
   actor_desc = ai_debug_describe_actor(actor_handle, unit_handle, 1,
-                                       (char *)0x5ab100, 0x100);
+                                       ERROR_STRING_BUFFER, 0x100);
   tag_name = tag_get_name(biped->unit.object.tag_index);
   tag_name = tag_name_strip_path(tag_name);
   error(2, "WARNING: biped %s (%s) fell outside world and was erased", tag_name,
@@ -2340,7 +2340,7 @@ char biped_jump(int unit_handle)
   int actor_handle;
   int zero_idx;
   float max_speed;
-  float vel[3];
+  real_vector3d vel;
   float *vel0_ptr;
   float dot;
   char success;
@@ -2352,7 +2352,7 @@ char biped_jump(int unit_handle)
   zero_idx = 0;
   if (((uint8_t)biped->flags & 1) == 0 && biped->landing != 1) {
     max_speed = biped_definition_jump_velocity(biped_tag);
-    vel0_ptr = &vel[0];
+    vel0_ptr = &vel.i;
     success = 1;
     if (biped->unit.player_index.value != NONE) {
       player_information =
@@ -2367,16 +2367,16 @@ char biped_jump(int unit_handle)
     }
 
     vel_ptr = &biped->unit.object.translational_velocity;
-    vel[0] = vel_ptr->i;
-    vel[1] = vel_ptr->j;
-    vel[2] = vel_ptr->k;
-    dot = vel[1] * biped->unit.object.up.j + vel[2] * biped->unit.object.up.k +
-          vel[zero_idx] * biped->unit.object.up.i;
+    vel.i = vel_ptr->i;
+    vel.j = vel_ptr->j;
+    vel.k = vel_ptr->k;
+    dot = vel.j * biped->unit.object.up.j + vel.k * biped->unit.object.up.k +
+          (&vel.i)[zero_idx] * biped->unit.object.up.i;
     if (dot < max_speed) {
       dot = max_speed - dot;
-      vel[zero_idx] = dot * biped->unit.object.up.i + *vel0_ptr;
-      vel[1] = dot * biped->unit.object.up.j + vel[1];
-      vel[2] = dot * biped->unit.object.up.k + vel[2];
+      (&vel.i)[zero_idx] = dot * biped->unit.object.up.i + *vel0_ptr;
+      vel.j = dot * biped->unit.object.up.j + vel.j;
+      vel.k = dot * biped->unit.object.up.k + vel.k;
     }
 
     actor_handle = biped->unit.swarm_actor_index.value;
@@ -2389,15 +2389,15 @@ char biped_jump(int unit_handle)
                    1 :
                    0;
       success = (char)actor_aim_jump(actor_handle, unit_handle, aim_flag,
-                                     max_speed, vel);
+                                     max_speed, (float *)&vel);
       if (success == zero_idx) {
         return success;
       }
     }
 
-    vel_ptr->i = vel[0];
-    vel_ptr->j = vel[1];
-    vel_ptr->k = vel[2];
+    vel_ptr->i = vel.i;
+    vel_ptr->j = vel.j;
+    vel_ptr->k = vel.k;
     biped->flags |= 1;
     biped->jump_recovery_timer = (int8_t)zero_idx;
     biped->support_surface_index = NONE;
@@ -2688,14 +2688,14 @@ void biped_verify_object_vectors(int unit_handle /* @eax */,
     }
 
     csprintf(
-      (char *)0x5ab100,
+      ERROR_STRING_BUFFER,
       "biped %s (%s%s%s): %s vector failure: (%f, %f, %f) / (%f, %f, %f)",
       tag_name_strip_path(tag_get_name(biped->unit.object.tag_index)), mode_str,
       dead_str, limp_str, failure_kind, (double)biped->unit.object.forward.i,
       (double)biped->unit.object.forward.j, (double)biped->unit.object.forward.k,
       (double)biped->unit.object.up.i, (double)biped->unit.object.up.j,
       (double)biped->unit.object.up.k);
-    display_assert((const char *)0x5ab100, "c:\\halo\\SOURCE\\units\\bipeds.c",
+    display_assert(ERROR_STRING_BUFFER_CONST, "c:\\halo\\SOURCE\\units\\bipeds.c",
                    0x55d, true);
     system_exit(-1);
   }
@@ -3177,7 +3177,7 @@ void biped_update_physics(void *physics_arg /* @esi */)
   int result_count; /* local_40: u16 count from collision_move_pill */
   int draw_color; /* pcVar10: debug-draw colour code */
   float gx, gy; /* local_5c, local_60: carried planar normal */
-  float pos_world[3]; /* local_34/30: position copy */
+  real_point3d pos_world; /* local_34/30: position copy */
   real_vector3d new_pos; /* local_9c/98/94: new_position+step */
   real_vector3d los_dir; /* local_7c/78/74: line-of-sight out point */
   real_point3d surf; /* local_6c/68/64: projected surface point */
@@ -3549,9 +3549,9 @@ LAB_001a36a4:
 
   /* position copy (local_34/30/2c) and ray endpoint (local_9c/98/94). The
    * endpoint z carries the step-height offset physics->crouch_velocity. (0x1a36d2..) */
-  pos_world[0] = physics->position.x;
-  pos_world[1] = physics->position.y;
-  pos_world[2] = physics->position.z;
+  pos_world.x = physics->position.x;
+  pos_world.y = physics->position.y;
+  pos_world.z = physics->position.z;
   new_pos.i = physics->new_velocity.i;
   new_pos.j = physics->new_velocity.j;
   new_pos.k = physics->new_velocity.k + physics->crouch_velocity;
@@ -3564,14 +3564,14 @@ LAB_001a36a4:
      *   physics->biped_index, &los_dir2, &los_dir, 0x10, results. */
 #ifdef HALO_RNG_TRACE
     RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_POS_WORLD_XY,
-                 RNG_TRACE_BITS(pos_world[0]), RNG_TRACE_BITS(pos_world[1]));
+                 RNG_TRACE_BITS(pos_world.x), RNG_TRACE_BITS(pos_world.y));
     RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_POS_WORLD_Z_NEW_POS_X,
-                 RNG_TRACE_BITS(pos_world[2]), RNG_TRACE_BITS(new_pos.i));
+                 RNG_TRACE_BITS(pos_world.z), RNG_TRACE_BITS(new_pos.i));
     RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_NEW_POS_YZ,
                  RNG_TRACE_BITS(new_pos.j), RNG_TRACE_BITS(new_pos.k));
 #endif
     result_count = collision_move_pill(
-      (void *)draw_color, (real_point3d *)pos_world, &new_pos, physics->height, physics->width,
+      (void *)draw_color, &pos_world, &new_pos, physics->height, physics->width,
       physics->biped_index, &los_dir2, &los_dir, 0x10, results);
 #ifdef HALO_RNG_TRACE
     RNG_TRACE_EX(RNG_TRACE_KIND_BIPED_QUERY_OUT_Y, RNG_TRACE_BITS(los_dir2.y),
@@ -3588,7 +3588,7 @@ LAB_001a36a4:
      * and the basis at *0x31fc44, plus the los_dir endpoints. Dead in normal
      * play (gated on debug global 0x4e4cf2); objdump offsets 0x7e1..0x889
      * show los_dir (later new_velocity) is bare new_pos.xy/0, while los_dir2
-     * (later new_position) is pos_world.xy + new_pos.xy and pos_world[2]. */
+     * (later new_position) is pos_world.xy + new_pos.xy and pos_world.z. */
     results[0].point[1] = physics->position.x;
     results[0].point[2] = physics->position.y;
     results[0].point[3] = physics->position.z;
@@ -3605,9 +3605,9 @@ LAB_001a36a4:
     results[0].field_29 = 0;
     los_dir.j = new_pos.j;
     *(int *)&results[0].object_handle = physics->biped_index;
-    los_dir2.x = pos_world[0] + new_pos.i;
-    los_dir2.y = pos_world[1] + new_pos.j;
-    los_dir2.z = pos_world[2];
+    los_dir2.x = pos_world.x + new_pos.i;
+    los_dir2.y = pos_world.y + new_pos.j;
+    los_dir2.z = pos_world.z;
     los_dir.k = 0.0f;
     result_count = 1;
   }
@@ -3616,9 +3616,9 @@ LAB_001a36a4:
   if (DEBUG_BIPED_PHYSICS != '\0') {
     obj = object_get_and_verify_type(physics->biped_index, -1);
     if (((object_data_t *)obj)->owner_player_index != -1) {
-      COLLISION_DEBUG_POINT_X = pos_world[0];
-      COLLISION_DEBUG_POINT_Y_BITS = *(int *)&pos_world[1];
-      COLLISION_DEBUG_POINT_Z_BITS = *(int *)&pos_world[2];
+      COLLISION_DEBUG_POINT_X = pos_world.x;
+      COLLISION_DEBUG_POINT_Y_BITS = *(int *)&pos_world.y;
+      COLLISION_DEBUG_POINT_Z_BITS = *(int *)&pos_world.z;
       COLLISION_DEBUG_REPEAT_DWORD = 1;
       COLLISION_DEBUG_VECTOR_I = new_pos.i;
       COLLISION_DEBUG_VECTOR_J = new_pos.j;
@@ -3651,9 +3651,9 @@ LAB_001a36a4:
     int best_edge; /* local_38 */
     float best_dist; /* local_48 */
     float nrm_d; /* local_8 */
-    float proj[3]; /* local_6c/68/64 */
-    float plane0[4]; /* local_8c/88/84/80 (from bsp3d_get_plane) */
-    float planeN[4]; /* local_58/54/4c projected plane */
+    real_point3d proj; /* local_6c/68/64 */
+    real_plane3d plane0; /* local_8c/88/84/80 (from bsp3d_get_plane) */
+    real_point3d planeN; /* local_58/54/4c projected plane */
     char edge_swap; /* local_1 */
     real_plane3d bestN; /* local_ac/a8/a4/a0 region: ff58/5c/60/64 */
     int sel_edge;
@@ -3670,7 +3670,7 @@ LAB_001a36a4:
         tag_block_get_element((void *)(surf_block + 0x3c), surf_index, 0xc);
       edge0 = surf->plane;
       edge1 = surf->first_edge;
-      bsp3d_get_plane_from_designator(surf_block, edge0, plane0);
+      bsp3d_get_plane_from_designator(surf_block, edge0, plane0.normal);
       /* DEVIATION-FIX 2026-06-17: this count==0 mach-edge block operates on the
        * collision-query swept out-points, NOT physics+0xb8. The original keeps
        * THREE distinct stack vec3s; the prior lift collapsed two of them, which
@@ -3682,11 +3682,11 @@ LAB_001a36a4:
        * distance los_dir  (EBP-0x78) = query out-point-2 -> new_velocity
        * (+0xb8): side dot, face dot, in-place scale_add nrm_d / proj-base read
        * los_dir2 (disasm 0x9cc..0xa14). */
-      nrm_d = -(plane0[0] * los_dir2.x + plane0[1] * los_dir2.y +
-                plane0[2] * los_dir2.z - plane0[3]);
-      proj[0] = plane0[0] * nrm_d + los_dir2.x;
-      proj[1] = plane0[1] * nrm_d + los_dir2.y;
-      proj[2] = plane0[2] * nrm_d + los_dir2.z;
+      nrm_d = -(plane0.normal[0] * los_dir2.x + plane0.normal[1] * los_dir2.y +
+                plane0.normal[2] * los_dir2.z - plane0.d);
+      proj.x = plane0.normal[0] * nrm_d + los_dir2.x;
+      proj.y = plane0.normal[1] * nrm_d + los_dir2.y;
+      proj.z = plane0.normal[2] * nrm_d + los_dir2.z;
       ce = (void *)edge1;
       do {
         collision_edge_t *edge =
@@ -3706,15 +3706,15 @@ LAB_001a36a4:
           if ((((uint8_t *)&physics->in_flags)[1] & 2) != 0 ||
               (e2->flags & 4) != 0) {
             float side;
-            bsp3d_get_plane_from_designator(surf_block, e2->plane, plane0);
+            bsp3d_get_plane_from_designator(surf_block, e2->plane, plane0.normal);
             /* side dots plane0 with los_dir (out-point-2), disasm 0xa8b */
-            side = plane0[0] * los_dir.i + plane0[1] * los_dir.j +
-                   plane0[2] * los_dir.k;
+            side = plane0.normal[0] * los_dir.i + plane0.normal[1] * los_dir.j +
+                   plane0.normal[2] * los_dir.k;
             nrm_d = side;
             if (!(REAL_ZERO_POOL < side) &&
                 physics->width * REAL_NEG_0_5_POOL <
-                  (plane0[0] * los_dir2.x + plane0[1] * los_dir2.y +
-                   plane0[2] * los_dir2.z - plane0[3])) {
+                  (plane0.normal[0] * los_dir2.x + plane0.normal[1] * los_dir2.y +
+                   plane0.normal[2] * los_dir2.z - plane0.d)) {
               void *v0 = tag_block_get_element((void *)(surf_block + 0x54),
                                                edge->start_vertex, 0x10);
               void *v1 = tag_block_get_element(
@@ -3725,28 +3725,28 @@ LAB_001a36a4:
               ev.i = pb[0] - pa[0];
               ev.j = pb[1] - pa[1];
               ev.k = pb[2] - pa[2];
-              t2 = ((proj[0] - pa[0]) * ev.i + (proj[1] - pa[1]) * ev.j +
-                    (proj[2] - pa[2]) * ev.k) /
+              t2 = ((proj.x - pa[0]) * ev.i + (proj.y - pa[1]) * ev.j +
+                    (proj.z - pa[2]) * ev.k) /
                    (ev.i * ev.i + ev.j * ev.j + ev.k * ev.k);
               if (!(REAL_ZERO_POOL < t2)) {
-                planeN[0] = pa[0];
-                planeN[1] = pa[1];
-                planeN[2] = pa[2];
+                planeN.x = pa[0];
+                planeN.y = pa[1];
+                planeN.z = pa[2];
               } else if (t2 <= REAL_ONE_POOL) {
-                vector3d_scale_add((real_point3d *)pa, &ev, t2, (real_point3d *)planeN);
+                vector3d_scale_add((real_point3d *)pa, &ev, t2, &planeN);
               } else {
-                planeN[0] = pb[0];
-                planeN[1] = pb[1];
-                planeN[2] = pb[2];
+                planeN.x = pb[0];
+                planeN.y = pb[1];
+                planeN.z = pb[2];
               }
-              dist = distance_squared3d(proj, planeN);
+              dist = distance_squared3d(&proj.x, &planeN.x);
               if (dist < best_dist) {
                 best_dist = dist;
                 best_edge = sel_edge;
-                bestN.normal[0] = plane0[0];
-                bestN.normal[1] = plane0[1];
-                bestN.normal[2] = plane0[2];
-                bestN.d = plane0[3];
+                bestN.normal[0] = plane0.normal[0];
+                bestN.normal[1] = plane0.normal[1];
+                bestN.normal[2] = plane0.normal[2];
+                bestN.d = plane0.d;
                 nrm_d = side;
               }
             }
@@ -4256,7 +4256,7 @@ void biped_snap_facing(int biped_index)
 
     forward = &biped->unit.object.forward;
     if (!valid_real_normal3d(forward)) {
-      display_assert(csprintf((char *)0x5ab100,
+      display_assert(csprintf(ERROR_STRING_BUFFER,
                               "%s: assert_valid_real_normal3d(%f, %f, %f)",
                               "&biped->object.forward", (double)forward->i,
                               (double)forward->j, (double)forward->k),

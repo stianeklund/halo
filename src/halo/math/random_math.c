@@ -792,7 +792,7 @@ void seed_random_vector_in_cone3d(unsigned int *seed, const real_vector3d *forwa
                                   float angle, real_vector3d *result)
 {
   float random_vec[3];
-  float cross[3];
+  real_vector3d cross;
   int16_t index;
   float random_angle;
   float sin_val, cos_val;
@@ -814,12 +814,12 @@ void seed_random_vector_in_cone3d(unsigned int *seed, const real_vector3d *forwa
   random_direction_table_get_element(index, random_vec);
 
   /* Cross product: cross = random_vec x forward */
-  cross[0] = random_vec[2] * forward->j - random_vec[1] * forward->k;
-  cross[1] = random_vec[0] * forward->k - random_vec[2] * forward->i;
-  cross[2] = random_vec[1] * forward->i - random_vec[0] * forward->j;
+  cross.i = random_vec[2] * forward->j - random_vec[1] * forward->k;
+  cross.j = random_vec[0] * forward->k - random_vec[2] * forward->i;
+  cross.k = random_vec[1] * forward->i - random_vec[0] * forward->j;
 
   /* Normalize the rotation axis; bail if degenerate (parallel vectors) */
-  if (!(normalize3d((real_vector3d *)cross) > *(float *)0x2533c0))
+  if (!(normalize3d(&cross) > *(float *)0x2533c0))
     return;
 
   /* Random rotation angle in [zero, angle] (inlines random_real_range) */
@@ -828,7 +828,7 @@ void seed_random_vector_in_cone3d(unsigned int *seed, const real_vector3d *forwa
   cos_val = x87_fcos(random_angle);
 
   /* Rotate result around the cross axis by the random angle */
-  rotate_vector3d_by_sincos(result, (real_vector3d *)cross, sin_val, cos_val);
+  rotate_vector3d_by_sincos(result, &cross, sin_val, cos_val);
 }
 
 /* Decompose vector v into components parallel and perpendicular to normal n.

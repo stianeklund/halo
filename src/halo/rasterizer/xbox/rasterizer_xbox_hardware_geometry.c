@@ -310,7 +310,7 @@ void rasterizer_triangle_buffer_delete(void *triangle_buffer)
 bool FUN_00169200(float *point, float radius, float *out_extent,
                   float *out_screen)
 {
-  float view_point[3]; /* [EBP-0x1c..-0x14] matrix_transform_point output */
+  real_point3d view_point; /* [EBP-0x1c..-0x14] matrix_transform_point output */
   float radius_y;      /* [EBP-0x10] */
   float radius_x;      /* [EBP-0xc]  */
   float proj_z;         /* [EBP-8]  FST (not FSTP) -- stays live in ST0 */
@@ -326,27 +326,27 @@ bool FUN_00169200(float *point, float radius, float *out_extent,
     viewport_width = *(short *)0x5a5bfa - *(short *)0x5a5bf6;
     viewport_extent = *(int *)0x5a5bf8 - *(int *)0x5a5bf4;
 
-    matrix_transform_point((float *)0x5a5c2c, (real_point3d *)point, (real_point3d *)view_point);
+    matrix_transform_point((float *)0x5a5c2c, (real_point3d *)point, &view_point);
 
-    proj_y = *(float *)0x5a5d64 * view_point[0] +
-             *(float *)0x5a5d74 * view_point[1] +
-             *(float *)0x5a5d84 * view_point[2] + *(float *)0x5a5d94;
-    proj_z = *(float *)0x5a5d68 * view_point[0] +
-             *(float *)0x5a5d78 * view_point[1] +
-             *(float *)0x5a5d88 * view_point[2] + *(float *)0x5a5d98;
+    proj_y = *(float *)0x5a5d64 * view_point.x +
+             *(float *)0x5a5d74 * view_point.y +
+             *(float *)0x5a5d84 * view_point.z + *(float *)0x5a5d94;
+    proj_z = *(float *)0x5a5d68 * view_point.x +
+             *(float *)0x5a5d78 * view_point.y +
+             *(float *)0x5a5d88 * view_point.z + *(float *)0x5a5d98;
     radius_x = *(float *)0x5a5d60 * radius;
     radius_y = *(float *)0x5a5d74 * radius;
 
     if (proj_z > 0.0f) {
-      inv_w = 1.0f / (*(float *)0x5a5d6c * view_point[0] +
-                      *(float *)0x5a5d7c * view_point[1] +
-                      *(float *)0x5a5d8c * view_point[2] +
+      inv_w = 1.0f / (*(float *)0x5a5d6c * view_point.x +
+                      *(float *)0x5a5d7c * view_point.y +
+                      *(float *)0x5a5d8c * view_point.z +
                       *(float *)0x5a5d9c);
 
       out_screen[0] =
-        (((*(float *)0x5a5d60 * view_point[0] +
-           *(float *)0x5a5d70 * view_point[1] +
-           *(float *)0x5a5d80 * view_point[2] + *(float *)0x5a5d90) *
+        (((*(float *)0x5a5d60 * view_point.x +
+           *(float *)0x5a5d70 * view_point.y +
+           *(float *)0x5a5d80 * view_point.z + *(float *)0x5a5d90) *
             inv_w +
           1.0f) *
            (float)viewport_width -

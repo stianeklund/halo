@@ -1098,8 +1098,8 @@ int object_impulse_sound_new(int object_handle, int tag_index, int16_t marker,
 void scripted_sound_new(int param_1, int param_2, float param_3)
 {
   char marker_buf[0x6c];
-  float forward[3];
-  float position[3];
+  real_vector3d forward;
+  real_point3d position;
   char *sound_tag;
   int16_t marker;
   int sound_index;
@@ -1121,24 +1121,24 @@ void scripted_sound_new(int param_1, int param_2, float param_3)
       if (object_get_marker_by_name(param_2, (void *)0x2909e4, marker_buf,
                                           1)) {
         marker = *(int16_t *)marker_buf;
-        position[0] = *(float *)(marker_buf + 0x2c);
-        position[1] = *(float *)(marker_buf + 0x30);
-        position[2] = *(float *)(marker_buf + 0x34);
-        forward[0] = *(float *)(marker_buf + 0x08);
-        forward[1] = *(float *)(marker_buf + 0x0c);
-        forward[2] = *(float *)(marker_buf + 0x10);
+        position.x = *(float *)(marker_buf + 0x2c);
+        position.y = *(float *)(marker_buf + 0x30);
+        position.z = *(float *)(marker_buf + 0x34);
+        forward.i = *(float *)(marker_buf + 0x08);
+        forward.j = *(float *)(marker_buf + 0x0c);
+        forward.k = *(float *)(marker_buf + 0x10);
       } else {
-        position[0] = (*(float **)0x31fc1c)[0];
-        position[1] = (*(float **)0x31fc1c)[1];
-        position[2] = (*(float **)0x31fc1c)[2];
-        forward[0] = (*(float **)0x31fc3c)[0];
-        forward[1] = (*(float **)0x31fc3c)[1];
-        forward[2] = (*(float **)0x31fc3c)[2];
+        position.x = (*(float **)0x31fc1c)[0];
+        position.y = (*(float **)0x31fc1c)[1];
+        position.z = (*(float **)0x31fc1c)[2];
+        forward.i = (*(float **)0x31fc3c)[0];
+        forward.j = (*(float **)0x31fc3c)[1];
+        forward.k = (*(float **)0x31fc3c)[2];
         marker = 0;
       }
       sound_index = object_impulse_sound_new(
-        param_2, param_1, marker, (real_point3d *)position,
-        (real_vector3d *)forward, param_3);
+        param_2, param_1, marker, &position,
+        &forward, param_3);
       if (sound_index != NONE) {
         object_type_notify_impulse_sound(param_2, param_1, sound_index);
       }

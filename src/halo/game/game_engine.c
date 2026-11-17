@@ -4728,14 +4728,14 @@ void game_engine_player_update_netgame_flag(int player_handle)
                                      &distance_a);
 
   {
-    float candidate_pos[3];
-    candidate_pos[0] = ((netgame_flag *)next_goal_entry)->position_x;
-    candidate_pos[1] = ((netgame_flag *)next_goal_entry)->position_y;
-    candidate_pos[2] = ((netgame_flag *)next_goal_entry)->position_z;
+    real_point3d candidate_pos;
+    candidate_pos.x = ((netgame_flag *)next_goal_entry)->position_x;
+    candidate_pos.y = ((netgame_flag *)next_goal_entry)->position_y;
+    candidate_pos.z = ((netgame_flag *)next_goal_entry)->position_z;
 
-    if (collision_get_features_in_sphere(0x200380, (real_point3d *)candidate_pos, distance_a * 2.0f + distance_b,
+    if (collision_get_features_in_sphere(0x200380, &candidate_pos, distance_a * 2.0f + distance_b,
                      distance_b, distance_a, -1, los_scratch) &&
-        collision_features_test_los(los_scratch, candidate_pos, hit_info)) {
+        collision_features_test_los(los_scratch, &candidate_pos, hit_info)) {
       int hit_object = *(int *)(hit_info + 0x20);
       if (hit_object != -1) {
         unsigned char *hit_any =

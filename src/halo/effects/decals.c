@@ -1299,19 +1299,19 @@ void decal_clip_to_surface(void *geometry, float *projection, int surface_index,
       int *edge = (int *)tag_block_get_element((char *)structure_bsp + 0x48,
                                                edge_index, 0x18);
       bool surface_on_right = edge[5] == surface_index;
-      float *edge_start = (float *)tag_block_get_element(
+      real_point3d *edge_start = tag_block_get_element(
         (char *)structure_bsp + 0x54, edge[!surface_on_right], 0x10);
 
       if (queue_write_index < 0x400) {
         float *edge_end = (float *)tag_block_get_element(
           (char *)structure_bsp + 0x54, edge[surface_on_right], 0x10);
-        float edge_vector[3];
+        real_vector3d edge_vector;
 
-        edge_vector[0] = edge_end[0] - edge_start[0];
-        edge_vector[1] = edge_end[1] - edge_start[1];
-        edge_vector[2] = edge_end[2] - edge_start[2];
+        edge_vector.i = edge_end[0] - edge_start->x;
+        edge_vector.j = edge_end[1] - edge_start->y;
+        edge_vector.k = edge_end[2] - edge_start->z;
         if (fast_vector_intersects_sphere(
-              (real_point3d *)edge_start, (real_vector3d *)edge_vector,
+              edge_start, &edge_vector,
               (real_point3d *)(projection + 0xa), scale * *(float *)(0x269d88 + type * 0x10))) {
           int adjacent_surface_index = edge[4 + !surface_on_right];
           int16_t queue_index = 0;
@@ -1355,7 +1355,7 @@ void decal_clip_to_surface(void *geometry, float *projection, int surface_index,
       int *edge = (int *)tag_block_get_element((char *)structure_bsp + 0x48,
                                                edge_index, 0x18);
       bool surface_on_right = edge[5] == surface_index;
-      float *edge_start = (float *)tag_block_get_element(
+      real_point3d *edge_start = tag_block_get_element(
         (char *)structure_bsp + 0x54, edge[!surface_on_right], 0x10);
 
       output_points = (float *)(0x44df10 + (edge_iteration & 1) * 0x60);
@@ -1384,13 +1384,13 @@ void decal_clip_to_surface(void *geometry, float *projection, int surface_index,
           if (allow_deviants && clipped && queue_write_index < 0x400) {
             float *edge_end = (float *)tag_block_get_element(
               (char *)structure_bsp + 0x54, edge[surface_on_right], 0x10);
-            float edge_vector[3];
+            real_vector3d edge_vector;
 
-            edge_vector[0] = edge_end[0] - edge_start[0];
-            edge_vector[1] = edge_end[1] - edge_start[1];
-            edge_vector[2] = edge_end[2] - edge_start[2];
+            edge_vector.i = edge_end[0] - edge_start->x;
+            edge_vector.j = edge_end[1] - edge_start->y;
+            edge_vector.k = edge_end[2] - edge_start->z;
             if (fast_vector_intersects_sphere(
-                  (real_point3d *)edge_start, (real_vector3d *)edge_vector,
+                  edge_start, &edge_vector,
                   (real_point3d *)(projection + 0xa), scale * *(float *)(0x269d88 + type * 0x10))) {
               int adjacent_surface_index = edge[4 + !surface_on_right];
               int16_t queue_index = 0;

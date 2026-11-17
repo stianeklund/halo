@@ -984,7 +984,7 @@ int actor_aim_grenade(int actor_handle, void *aim_params, real_vector3d *out_aim
 {
   char *actor = (char *)datum_get(*(void **)0x6325a4, actor_handle);
   float aim_x, aim_y, aim_z; /* [ebp-0x24/-0x20/-0x1c] chosen aim vector  */
-  float nrm[3]; /* [ebp-0x18/-0x14/-0x10] rotated facing nrm;
+  real_vector3d nrm; /* [ebp-0x18/-0x14/-0x10] rotated facing nrm;
                    MUST be contiguous — passed by &nrm[0] to
                    rotate_vector3d_by_sincos and
                    valid_real_normal3d, both of which read 3
@@ -1030,9 +1030,9 @@ int actor_aim_grenade(int actor_handle, void *aim_params, real_vector3d *out_aim
         planar[0] * ((actor_t *)actor)->input_facing_vector[0] +
             planar[1] * ((actor_t *)actor)->input_facing_vector[1] <
           *(float *)0x2533dc) {
-      nrm[0] = ((actor_t *)actor)->input_facing_vector[0];
-      nrm[1] = ((actor_t *)actor)->input_facing_vector[1];
-      nrm[2] = ((actor_t *)actor)->input_facing_vector[2];
+      nrm.i = ((actor_t *)actor)->input_facing_vector[0];
+      nrm.j = ((actor_t *)actor)->input_facing_vector[1];
+      nrm.k = ((actor_t *)actor)->input_facing_vector[2];
       t = planar[1] * ((actor_t *)actor)->input_facing_vector[0] -
           planar[0] * ((actor_t *)actor)->input_facing_vector[1];
       sign = (t > *(float *)0x2533c0) ? 1 : -1;
@@ -1046,24 +1046,24 @@ int actor_aim_grenade(int actor_handle, void *aim_params, real_vector3d *out_aim
          sin^2+cos^2 = 0.9856, so it shrank the rotated facing ~0.7% and tripped
          assert_valid_real_normal3d at actor_combat.c:1865 on grenade throws
          whose aim was >30deg off the actor facing (PoA covenant combat). */
-      rotate_vector3d_by_sincos((real_vector3d *)nrm, (real_vector3d *)(*(float **)0x31fc44), sin_a,
+      rotate_vector3d_by_sincos(&nrm, (real_vector3d *)(*(float **)0x31fc44), sin_a,
                                 0.866025388f /* 0x3f5db3d7 = cos(30 deg) */);
       /* orig 0x22d1b: overwrite the rotated z with aim_z AFTER the rotate. */
-      nrm[2] = aim_z;
+      nrm.k = aim_z;
       planar_mag = (float)x87_sqrt(aim_x * aim_x + aim_y * aim_y);
-      nrm[0] = nrm[0] * planar_mag;
-      nrm[1] = planar_mag * nrm[1];
-      if (!valid_real_normal3d((real_vector3d *)nrm)) {
+      nrm.i = nrm.i * planar_mag;
+      nrm.j = planar_mag * nrm.j;
+      if (!valid_real_normal3d(&nrm)) {
         csprintf((char *)0x5ab100, "%s: assert_valid_real_normal3d(%f, %f, %f)",
-                 "&new_aim_vector", (double)nrm[0], (double)nrm[1],
+                 "&new_aim_vector", (double)nrm.i, (double)nrm.j,
                  (double)aim_z);
         display_assert((char *)0x5ab100, "c:\\halo\\SOURCE\\ai\\actor_combat.c",
                        0x749, 1);
         system_exit(-1);
       }
-      aim_x = nrm[0];
-      aim_y = nrm[1];
-      aim_z = nrm[2];
+      aim_x = nrm.i;
+      aim_y = nrm.j;
+      aim_z = nrm.k;
     }
   }
 

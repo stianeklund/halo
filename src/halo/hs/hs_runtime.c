@@ -4089,7 +4089,7 @@ void render_debug_trigger_volumes(void)
   uint32_t bit_mask;
   int side;
   int axis;
-  vector3_t edges[2];
+  real_vector3d edges[2];
   vector3_t face_pts[4];
   float fill_color[4];
   vector3_t center;
@@ -4135,8 +4135,8 @@ void render_debug_trigger_volumes(void)
     bit_mask = 1u << (index & 0x1f);
 
     for (side = 0; side < 6; side++) {
-      edges[0].x = edges[0].y = edges[0].z = 0.0f;
-      edges[1].x = edges[1].y = edges[1].z = 0.0f;
+      edges[0].i = edges[0].j = edges[0].k = 0.0f;
+      edges[1].i = edges[1].j = edges[1].k = 0.0f;
       axis = side / 2;
 
       if ((int16_t)(side % 2) != 0) {
@@ -4157,18 +4157,18 @@ void render_debug_trigger_volumes(void)
           ((float *)&local_extents)[((int16_t)axis + 2) % 3];
       }
 
-      matrix_scale_transform_vector(transform, (real_vector3d *)&edges[0], (real_vector3d *)&edges[0]); /* dup-args-ok */
-      matrix_scale_transform_vector(transform, (real_vector3d *)&edges[1], (real_vector3d *)&edges[1]); /* dup-args-ok */
+      matrix_scale_transform_vector(transform, &edges[0], &edges[0]); /* dup-args-ok */
+      matrix_scale_transform_vector(transform, &edges[1], &edges[1]); /* dup-args-ok */
 
-      face_pts[1].x = face_pts[0].x + edges[0].x;
-      face_pts[1].y = edges[0].y + face_pts[0].y;
-      face_pts[1].z = edges[0].z + face_pts[0].z;
-      face_pts[2].x = edges[1].x + face_pts[1].x;
-      face_pts[2].y = edges[1].y + face_pts[1].y;
-      face_pts[2].z = edges[1].z + face_pts[1].z;
-      face_pts[3].x = face_pts[2].x - edges[0].x;
-      face_pts[3].y = face_pts[2].y - edges[0].y;
-      face_pts[3].z = face_pts[2].z - edges[0].z;
+      face_pts[1].x = face_pts[0].x + edges[0].i;
+      face_pts[1].y = edges[0].j + face_pts[0].y;
+      face_pts[1].z = edges[0].k + face_pts[0].z;
+      face_pts[2].x = edges[1].i + face_pts[1].x;
+      face_pts[2].y = edges[1].j + face_pts[1].y;
+      face_pts[2].z = edges[1].k + face_pts[1].z;
+      face_pts[3].x = face_pts[2].x - edges[0].i;
+      face_pts[3].y = face_pts[2].y - edges[0].j;
+      face_pts[3].z = face_pts[2].z - edges[0].k;
 
       if (*bitvector_word & bit_mask) {
         FUN_00189ba0((float *)face_pts, 4, *(void **)0x2ee6d8);

@@ -1108,7 +1108,7 @@ void ai_scripting_teleport_starting_location_private(int encounter_handle,
                                                      char param_2)
 {
   char local_28[16]; /* iterator state; local_28+0x10 = actor handle */
-  char local_10[12]; /* output buffer for vector3d_from_angle */
+  real_vector3d local_10; /* output buffer for vector3d_from_angle */
   int iVar2;
   int iVar3;
   short sVar1;
@@ -1135,10 +1135,10 @@ void ai_scripting_teleport_starting_location_private(int encounter_handle,
         if (sVar1 != (short)-1) {
           iVar3 =
             (int)tag_block_get_element((char *)iVar3 + 0xd0, (int)sVar1, 0x1c);
-          vector3d_from_angle((real_vector3d *)local_10,
+          vector3d_from_angle(&local_10,
                               *(float *)((char *)iVar3 + 0xc));
           object_set_position(*(int *)((char *)iVar2 + 0x18), (real_point3d *)iVar3,
-                              (real_vector3d *)local_10, 0);
+                              &local_10, 0);
           object_reset(*(int *)((char *)iVar2 + 0x18));
           actor_move_halt(*(int *)(local_28 + 0x10));
         }

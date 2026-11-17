@@ -121,4 +121,59 @@
 #define AI_DEBUG_FORCE_VOCALIZATIONS (*(char *)0x5ac9cd)
 #define AI_PRINT_LOST_SPEECH (*(char *)0x5aca56)
 
+/* error_string_buffer (char[256]). */
+#define ERROR_STRING_BUFFER ((char *)0x5ab100)
+#define ERROR_STRING_BUFFER_CONST ((const char *)0x5ab100)
+
+/* .rdata strings. 0x25386f is the terminator of " face at (p%d)". */
+#define EMPTY_STRING ((const char *)0x25386f)
+#define EMPTY_STRING_VOID ((void *)0x25386f)
+#define MARKER_NAME_HEAD ((void *)0x2909e4)
+#define MARKER_NAME_LEFT_HAND ((void *)0x2b6d2c)
+#define MARKER_NAME_MELEE ((void *)0x25961c)
+#define TRACE_STRING_UNIT_UPDATE_BEGIN ((const char *)0x2b7c98)
+#define TRACE_STRING_UNIT_UPDATE_PREVECTORS ((const char *)0x2b7c28)
+#define TRACE_STRING_UNIT_UPDATE_AIM_SET ((const char *)0x2b7bf0)
+#define TRACE_STRING_UNIT_UPDATE_AIM_3D ((const char *)0x2b7bc4)
+#define TRACE_STRING_UNIT_UPDATE_AIM_EULER ((const char *)0x2b7bd8)
+#define TRACE_STRING_UNIT_UPDATE_LOOK_SET ((const char *)0x2b7bac)
+#define TRACE_STRING_UNIT_UPDATE_LOOK_3D ((const char *)0x2b7b80)
+#define TRACE_STRING_UNIT_UPDATE_LOOK_EULER ((const char *)0x2b7b94)
+#define TRACE_STRING_UNIT_UPDATE_POSTVECTOR ((const char *)0x2b7b4c)
+#define TRACE_STRING_UNIT_UPDATE_END ((const char *)0x2b7aec)
+/* "player illumination: self %.2f ambient %.2f" */
+#define FORMAT_STRING_PLAYER_ILLUMINATION ((const char *)0x2b7b20)
+
+/* Animation name lists {count, {name, flag}[]} for animation_list_get_string. */
+#define WEAPON_TYPE_ANIMATION_NAMES ((void *)0x322148) /* 10: reload-1.. */
+#define WEAPON_ANIMATION_NAMES ((void *)0x322308) /* 55: idle, gesture.. */
+#define UNIT_SEAT_ANIMATION_NAMES ((void *)0x322450) /* 30: airborne-dead.. */
+
+/* String tables. */
+#define VOCALIZATION_NAMES ((char **)0x32d7c8) /* two per type */
+#define VOCALIZATION_NAMES_CONST ((const char **)0x32d7c8)
+#define SPEECH_PRIORITY_NAMES ((char **)0x32de50) /* "none", "idle", .. */
+#define BASE_SEAT_LABELS_ADDRESS 0x32e484
+
+/* unit_test_speech tables, indexed by address arithmetic. */
+#define VOCALIZATION_FALLBACK_TYPES_ADDRESS 0x2b6420 /* short[] */
+#define SPEECH_OVERRIDE_PRIORITIES_ADDRESS 0x2b65c4 /* short[11] */
+#define SPEECH_TIMING_THRESHOLDS_ADDRESS 0x2b65dc /* float[11] */
+
+/* Limp-body scratch buffers (bss, referenced only by 0x19fa20). */
+#define LIMP_BODY_COLLISION_FEATURES ((short *)0x4d9de8)
+#define LIMP_BODY_COLLISION_FEATURES_VOID ((void *)0x4d9de8)
+#define LIMP_BODY_NODE_POSITIONS ((float *)0x4e49f0)
+#define LIMP_BODY_NODE_POSITIONS_AS_INT ((int *)0x4e49f0)
+
+/* Callees reached through a call-site function-pointer cast. */
+#define REPLACEMENT_ANIMATION_APPLY_FN ((void (*)(void *, short, void *))0x122060)
+#define OVERLAY_ANIMATION_APPLY_FN ((void (*)(void *, short, void *))0x122240)
+#define OVERLAY_ANIMATION_APPLY_SCALED_FN \
+  ((void (*)(void *, int, float, void *))0x122450)
+#define OVERLAY_ANIMATION_APPLY_CONTINUOUS_FN \
+  ((void (*)(void *, float, void *))0x122690)
+#define AI_HANDLE_DAMAGE_FN ((void (*)(int, int, int16_t, int, int, int))0x40460)
+#define ERROR_FN ((void (*)(int, const char *, ...))0x8f390)
+
 #endif /* UNITS_GLOBALS_H */

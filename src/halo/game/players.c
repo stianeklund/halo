@@ -1679,7 +1679,7 @@ bool player_handle_action(int player_handle /* @<eax> */)
   char *nearby_unit_data;
   char *world_matrix_a;
   char *world_matrix_b;
-  float delta[3];
+  real_vector3d delta;
   float dot;
   char action_type;
   char out_a[52];
@@ -1744,16 +1744,16 @@ bool player_handle_action(int player_handle /* @<eax> */)
           (char *)object_get_world_matrix(*(int *)(player + 0x24), out_b);
         world_matrix_b =
           (char *)object_get_world_matrix(*(int *)(player + 0x34), out_a);
-        delta[0] =
+        delta.i =
           *(float *)(world_matrix_a + 0x28) - *(float *)(world_matrix_b + 0x28);
-        delta[1] =
+        delta.j =
           *(float *)(world_matrix_a + 0x2c) - *(float *)(world_matrix_b + 0x2c);
-        delta[2] =
+        delta.k =
           *(float *)(world_matrix_a + 0x30) - *(float *)(world_matrix_b + 0x30);
-        cross_product3d((real_vector3d *)(*(float **)0x31fc44), (real_vector3d *)delta, (real_vector3d *)delta); /* dup-args-ok */
-        dot = delta[2] * *(float *)(item_obj + 0x2c) +
-              delta[1] * *(float *)(item_obj + 0x28) +
-              delta[0] * *(float *)(item_obj + 0x24);
+        cross_product3d((real_vector3d *)(*(float **)0x31fc44), &delta, &delta); /* dup-args-ok */
+        dot = delta.k * *(float *)(item_obj + 0x2c) +
+              delta.j * *(float *)(item_obj + 0x28) +
+              delta.i * *(float *)(item_obj + 0x24);
         action_type = (dot > 0.0f ? 1 : 0) + 1;
       } else if (*(float *)(item_obj + 0x2c) >= *(float *)0x2533c0) {
         action_type = 4;

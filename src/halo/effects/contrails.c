@@ -496,11 +496,11 @@ void contrail_add_points(int contrail_handle /* @<eax> */, int count, int flag)
           *(float *)(pd + 0xc) = *(float *)(datum + 0x10);
 
           {
-            float vel[3];
-            float root_loc[3];
+            real_vector3d vel;
+            real_vector3d root_loc;
             unsigned int *seed = random_math_get_local_seed_address();
             seed_random_vector_in_cone3d(seed, (real_vector3d *)(marker + 0x3c), 0.0f,
-                              dir_angle, (real_vector3d *)vel);
+                              dir_angle, &vel);
 
             *(float *)(pd + 0x1c) = *(float *)(marker + 0x60);
             *(float *)(pd + 0x20) = *(float *)(marker + 0x64);
@@ -508,14 +508,14 @@ void contrail_add_points(int contrail_handle /* @<eax> */, int count, int flag)
 
             scenario_location_from_point(pd + 0x14, pd + 0x1c);
 
-            object_get_velocities(*(int *)(datum + 8), (real_vector3d *)root_loc, NULL);
+            object_get_velocities(*(int *)(datum + 8), &root_loc, NULL);
 
             *(float *)(pd + 0x28) =
-              vel[0] * vel_scale + root_scale * root_loc[0];
+              vel.i * vel_scale + root_scale * root_loc.i;
             *(float *)(pd + 0x2c) =
-              vel[1] * vel_scale + root_scale * root_loc[1];
+              vel.j * vel_scale + root_scale * root_loc.j;
             *(float *)(pd + 0x30) =
-              vel[2] * vel_scale + root_scale * root_loc[2];
+              vel.k * vel_scale + root_scale * root_loc.k;
           }
 
           if ((int16_t)cur_iter < emit_count) {

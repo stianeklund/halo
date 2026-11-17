@@ -202,8 +202,8 @@ bool valid_real_normal3d_perpendicular(const real_vector3d *a,
 {
   float dot;
   char ok;
-  ok = (char)valid_real_normal3d((real_vector3d *)a);
-  if (ok && (ok = (char)valid_real_normal3d((real_vector3d *)b), ok) &&
+  ok = (char)valid_real_normal3d(a);
+  if (ok && (ok = (char)valid_real_normal3d(b), ok) &&
       (dot = a->k * b->k + a->j * b->j + a->i * b->i,
        (*(unsigned int *)&dot & 0x7f800000) != 0x7f800000) &&
       fabs(dot) < 0.001) {
@@ -4934,7 +4934,7 @@ void object_types_disconnect_from_structure_bsp(void)
 void object_types_place_objects(int do_spawn)
 {
   unsigned char matrix[0x34]; /* EBP-0x5c: Euler matrix; translation at +0x28 */
-  float xform_point[3]; /* EBP-0x28: transformed position */
+  real_point3d xform_point; /* EBP-0x28: transformed position */
   int scenario;
   int type;
   int def;
@@ -4988,9 +4988,9 @@ void object_types_place_objects(int do_spawn)
             *(int *)(matrix + 0x2c) = *(int *)((char *)element + 0xc);
             *(int *)(matrix + 0x30) = *(int *)((char *)element + 0x10);
             matrix_transform_point((float *)matrix, (real_point3d *)(obj_tag + 8),
-                                   (real_point3d *)xform_point);
+                                   &xform_point);
             if ((scenario_leaf_index_from_point((int)((char *)element + 8)) == -1) &&
-                (scenario_leaf_index_from_point((int)xform_point) == -1)) {
+                (scenario_leaf_index_from_point((int)&xform_point) == -1)) {
               element[0x10] =
                 (short)(element[0x10] &
                         ~(unsigned short)(1 << (*(unsigned char *)0x326a0c &
@@ -11281,9 +11281,9 @@ void object_render_debug(int param_1)
   int *obj;
   char *tag_data;
   float world_matrix[10];
-  float root_pos[3];
-  float info_text_buf[3];
-  float point_out[3];
+  real_vector3d root_pos;
+  real_point3d info_text_buf;
+  real_point3d point_out;
   float bbox_corners[24];
 
   obj = (int *)object_get_and_verify_type(param_1, -1);
@@ -11301,8 +11301,8 @@ void object_render_debug(int param_1)
     scen_elem = (int)global_scenario_get();
     block_elem = tag_block_get_element(
       (void *)(scen_elem + 0x204), (int)*(short *)((char *)obj + 0x6a), 0x24);
-    object_get_world_position(param_1, (vector3_t *)root_pos);
-    render_debug_string_at_point(0, root_pos, block_elem, *(int *)0x2ee6f4);
+    object_get_world_position(param_1, (vector3_t *)&root_pos);
+    render_debug_string_at_point(0, &root_pos, block_elem, *(int *)0x2ee6f4);
     tag_data = (char *)tag_get(0x6f626a65, *obj);
   }
 
@@ -11311,15 +11311,15 @@ void object_render_debug(int param_1)
     char *name_ptr;
     backslash = (char *)strrchr(*(char **)(tag_data + 0x2c), 0x5c);
     object_get_world_matrix(param_1, world_matrix);
-    object_get_velocities(param_1, (real_vector3d *)root_pos, 0);
+    object_get_velocities(param_1, &root_pos, 0);
     if (backslash == (char *)0) {
       name_ptr = *(char **)(tag_data + 0x2c);
     } else {
       name_ptr = backslash + 1;
     }
-    render_debug_string_at_point(0, info_text_buf, name_ptr, *(int *)0x2ee6f0);
+    render_debug_string_at_point(0, &info_text_buf, name_ptr, *(int *)0x2ee6f0);
     FUN_001894d0(1, world_matrix, ((float *)obj)[0x17]);
-    render_debug_vector(1, (real_point3d *)info_text_buf, (real_vector3d *)root_pos, 1.0f, *(void **)0x2ee6e0);
+    render_debug_vector(1, &info_text_buf, &root_pos, 1.0f, *(void **)0x2ee6e0);
     tag_data = (char *)tag_get(0x6f626a65, *obj);
   }
 
@@ -11399,14 +11399,14 @@ void object_render_debug(int param_1)
         elem_node = *(short *)coll_elem;
         if (elem_node == -1) {
           matrix_transform_point(
-            world_matrix, (real_point3d *)((char *)coll_elem + 0x10), (real_point3d *)point_out);
+            world_matrix, (real_point3d *)((char *)coll_elem + 0x10), &point_out);
         } else {
           void *nm;
           nm = object_get_node_matrix(param_1, elem_node);
           matrix_transform_point(
-            (float *)nm, (real_point3d *)((char *)coll_elem + 0x10), (real_point3d *)point_out);
+            (float *)nm, (real_point3d *)((char *)coll_elem + 0x10), &point_out);
         }
-        render_debug_sphere(1, point_out, *(float *)((char *)coll_elem + 0x1c),
+        render_debug_sphere(1, &point_out, *(float *)((char *)coll_elem + 0x1c),
                      *(void **)0x2ee6d8);
         i++;
         idx = (int)i;
@@ -12120,7 +12120,7 @@ bool object_try_place(int object_handle, const real_point3d *position)
   volatile unsigned char zero_init;
   bool result;
   int16_t collision_result[40]; /* 0x50 bytes at EBP-0x5c */
-  float delta[3]; /* 3 floats at EBP-0x0c */
+  real_vector3d delta; /* 3 floats at EBP-0x0c */
 
   zero_init = 0;
   obj = (char *)object_get_and_verify_type(object_handle, -1);
@@ -12153,12 +12153,12 @@ bool object_try_place(int object_handle, const real_point3d *position)
 
   /* Compute delta vector: current_position - target_position. */
   col_surface_ptr = (char *)collision_result + 0x10;
-  delta[0] = *(float *)(obj + 0x0c) - (&position->x)[zero_init];
-  delta[1] = *(float *)(obj + 0x10) - position->y;
-  delta[2] = *(float *)(obj + 0x14) - position->z;
+  delta.i = *(float *)(obj + 0x0c) - (&position->x)[zero_init];
+  delta.j = *(float *)(obj + 0x10) - position->y;
+  delta.k = *(float *)(obj + 0x14) - position->z;
 
   /* Cast collision ray from target position along delta direction. */
-  if (collision_test_vector(0x1000e9, position, (real_vector3d *)delta, -1, collision_result) ||
+  if (collision_test_vector(0x1000e9, position, &delta, -1, collision_result) ||
       *(int16_t *)(obj + 0x4c) == -1) {
     /* Collision found or object has no cluster placement. */
     if (*(int16_t *)col_surface_ptr == -1) {

@@ -226,7 +226,7 @@ int FUN_00150790(int param_1, int param_2, float param_3, int param_4,
   short index;
   float *pRadius;
   float radius;
-  float point[3];
+  real_point3d point;
 
   base = *(int *)(param_1 + 4);
   index = 0;
@@ -237,11 +237,11 @@ int FUN_00150790(int param_1, int param_2, float param_3, int param_4,
       element =
         tag_block_get_element((void *)(base + 0x74), element_index, 0x80);
       matrix_transform_point((float *)(param_1 + 8),
-                             (real_point3d *)((char *)element + 0x38), (real_point3d *)point);
+                             (real_point3d *)((char *)element + 0x38), &point);
       radius = *(float *)((char *)element + 0x68) * *(float *)(param_1 + 8) +
                *(float *)&param_5;
       pRadius = &radius;
-      collision_features_from_point((int)point, *(float *)&param_4,
+      collision_features_from_point((int)&point, *(float *)&param_4,
                                     *(int *)pRadius, *(int *)param_1, -1, 0,
                                     0xff, -1, (void *)param_6);
       base = *(int *)(param_1 + 4);

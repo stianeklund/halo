@@ -358,7 +358,7 @@ void collision_features_from_vertex(int param_1, int param_2, int param_3,
   int iVar2;
   int iVar3;
   int uVar4;
-  float local_10[3];
+  real_point3d local_10;
 
   elem = tag_block_get_element((void *)(param_1 + 0x54), param_2, 0x10);
   iVar2 = (int)tag_block_get_element((void *)(param_1 + 0x48),
@@ -373,8 +373,8 @@ void collision_features_from_vertex(int param_1, int param_2, int param_3,
   }
 
   if (param_3 != 0) {
-    matrix_transform_point((float *)param_3, (real_point3d *)elem, (real_point3d *)local_10);
-    elem = local_10;
+    matrix_transform_point((float *)param_3, elem, &local_10);
+    elem = &local_10;
   }
 
   collision_features_from_point((int)elem, *(float *)&param_4, param_5, param_6,
@@ -911,7 +911,7 @@ char collision_cylinder_test_vector(void *feature, float *point, float *vector,
   float axis_dot_v;
   float a;
   float d[3];
-  float hit[3];
+  real_point3d hit;
   float axis_dot_d;
   float b;
   float disc;
@@ -982,10 +982,10 @@ char collision_cylinder_test_vector(void *feature, float *point, float *vector,
   }
 
   *t_out = t0;
-  vector3d_scale_add((real_point3d *)d, (real_vector3d *)vector, t0, (real_point3d *)hit);
+  vector3d_scale_add((real_point3d *)d, (real_vector3d *)vector, t0, &hit);
   vector3d_scale_add(
-    (real_point3d *)hit, (real_vector3d *)axis,
-    -((hit[1] * axis[1] + hit[2] * axis[2] + hit[0] * axis[0]) / axis_sq),
+    &hit, (real_vector3d *)axis,
+    -((hit.y * axis[1] + hit.z * axis[2] + hit.x * axis[0]) / axis_sq),
     (real_point3d *)plane_out);
   if (normalize3d((real_vector3d *)plane_out) == *(float *)0x2533c0) {
     plane_out[0] = 1.0f;

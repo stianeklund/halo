@@ -2230,8 +2230,8 @@ void infection_swarm_control(int actor_handle)
   float sqlen;
   float dx, dy, dz;
   float cx, cy, cz;
-  float facing[3];
-  float dir[3];
+  real_vector3d facing;
+  real_vector3d dir;
   float look[3];
   float right_vec[3];
   float cross_tmp[3];
@@ -2278,9 +2278,9 @@ void infection_swarm_control(int actor_handle)
     unit = (char *)object_get_and_verify_type(unit_handle, 3);
     component_handle = *(int *)(swarm + 0x58 + i * 4);
     component = (char *)datum_get(swarm_component_data, component_handle);
-    facing[0] = *(float *)(unit + 0x30);
-    facing[1] = *(float *)(unit + 0x34);
-    facing[2] = *(float *)(unit + 0x38);
+    facing.i = *(float *)(unit + 0x30);
+    facing.j = *(float *)(unit + 0x34);
+    facing.k = *(float *)(unit + 0x38);
     mode = 0;
     target_handle = -1;
     movement_type = 3;
@@ -2292,9 +2292,9 @@ void infection_swarm_control(int actor_handle)
     unit_passive = 0;
     if (*(short *)(unit + 0x64) == 0) {
       if (*(int *)(unit + 0x430) != -1) {
-        facing[0] = *(float *)(unit + 0x46c);
-        facing[1] = *(float *)(unit + 0x470);
-        facing[2] = *(float *)(unit + 0x474);
+        facing.i = *(float *)(unit + 0x46c);
+        facing.j = *(float *)(unit + 0x470);
+        facing.k = *(float *)(unit + 0x474);
       }
       unit_passive = *(unsigned char *)(unit + 0x424) & 1;
     }
@@ -2465,7 +2465,7 @@ void infection_swarm_control(int actor_handle)
                 *(int *)(component + 0x24) = *(int *)(unit + 0x28);
                 *(int *)(component + 0x28) = *(int *)(unit + 0x2c);
               }
-              rotate_vector3d_by_sincos((real_vector3d *)(component + 0x20), (real_vector3d *)facing,
+              rotate_vector3d_by_sincos((real_vector3d *)(component + 0x20), &facing,
                                         x87_fsin(angle), x87_fcos(angle));
               *(int *)(component + 0x2c) = 0;
             }
@@ -2479,7 +2479,7 @@ void infection_swarm_control(int actor_handle)
               angle = real_random_range(-0.020943951f, 0.020943951f);
               angle = angle + *(float *)(component + 0x2c) + wander_tmp;
               *(float *)(component + 0x2c) = angle;
-              rotate_vector3d_by_sincos((real_vector3d *)(component + 0x20), (real_vector3d *)facing,
+              rotate_vector3d_by_sincos((real_vector3d *)(component + 0x20), &facing,
                                         x87_fsin(angle), x87_fcos(angle));
             }
           }
@@ -2494,21 +2494,21 @@ void infection_swarm_control(int actor_handle)
             if (*(char *)(component + 0x1d) == '\0')
               goto switchD_default;
           }
-          dir[0] = *(float *)(component + 0x20);
-          dir[1] = *(float *)(component + 0x24);
-          dir[2] = *(float *)(component + 0x28);
+          dir.i = *(float *)(component + 0x20);
+          dir.j = *(float *)(component + 0x24);
+          dir.k = *(float *)(component + 0x28);
           has_direction = 1;
           break;
         case 4:
         case 5:
           target_prop = (char *)datum_get(prop_data, target_handle);
-          dir[0] = *(float *)(target_prop + 0xbc) - *(float *)(component + 4);
-          dir[1] = *(float *)(target_prop + 0xc0) - *(float *)(component + 8);
-          dir[2] = *(float *)(target_prop + 0xc4) - *(float *)(component + 0xc);
+          dir.i = *(float *)(target_prop + 0xbc) - *(float *)(component + 4);
+          dir.j = *(float *)(target_prop + 0xc0) - *(float *)(component + 8);
+          dir.k = *(float *)(target_prop + 0xc4) - *(float *)(component + 0xc);
           if ((short)mode == 5) {
-            dir[0] = -dir[0];
-            dir[1] = -dir[1];
-            dir[2] = -dir[2];
+            dir.i = -dir.i;
+            dir.j = -dir.j;
+            dir.k = -dir.k;
           }
           has_direction = 1;
           break;
@@ -2523,18 +2523,18 @@ void infection_swarm_control(int actor_handle)
             has_direction = 1;
             if ((*(short *)(component + 0x24) < 2) ||
                 (3 < *(short *)(component + 0x24))) {
-              dir[0] = *(float *)(component + 0x28);
-              dir[1] = *(float *)(component + 0x2c);
-              dir[2] = *(float *)(component + 0x30);
+              dir.i = *(float *)(component + 0x28);
+              dir.j = *(float *)(component + 0x2c);
+              dir.k = *(float *)(component + 0x30);
               obey_negate = (*(short *)(component + 0x24) == 1);
             } else {
-              cross_product3d((real_vector3d *)facing, (real_vector3d *)(component + 0x28), (real_vector3d *)dir);
+              cross_product3d(&facing, (real_vector3d *)(component + 0x28), &dir);
               obey_negate = (*(short *)(component + 0x24) == 3);
             }
             if (obey_negate) {
-              dir[0] = -dir[0];
-              dir[1] = -dir[1];
-              dir[2] = -dir[2];
+              dir.i = -dir.i;
+              dir.j = -dir.j;
+              dir.k = -dir.k;
             }
           }
           if ((*(unsigned char *)(component + 0x21) & 4) == 0) {
@@ -2549,51 +2549,51 @@ void infection_swarm_control(int actor_handle)
               *(unsigned char *)(component + 0x21) =
                 *(unsigned char *)(component + 0x21) | 8;
             }
-            dir[0] = *(float *)(unit + 0x24);
-            dir[1] = *(float *)(unit + 0x28);
-            dir[2] = *(float *)(unit + 0x2c);
+            dir.i = *(float *)(unit + 0x24);
+            dir.j = *(float *)(unit + 0x28);
+            dir.k = *(float *)(unit + 0x2c);
             has_direction = 1;
           }
           break;
         default:
           goto switchD_default;
         }
-        mag = sqrtf(dir[2] * dir[2] + dir[1] * dir[1] + dir[0] * dir[0]);
+        mag = sqrtf(dir.k * dir.k + dir.j * dir.j + dir.i * dir.i);
         if (fabsf(mag) >= (float)*(double *)0x2533d0) {
           recip = *(float *)0x2533c8 / mag;
-          dir[0] = dir[0] * recip;
-          dir[1] = dir[1] * recip;
-          dir[2] = dir[2] * recip;
+          dir.i = dir.i * recip;
+          dir.j = dir.j * recip;
+          dir.k = dir.k * recip;
         }
         if (*(float *)0x2555d0 <
-            facing[2] * dir[2] + facing[1] * dir[1] + facing[0] * dir[0])
+            facing.k * dir.k + facing.j * dir.j + facing.i * dir.i)
           moving_toward = 1;
         if (*(float *)0x2568c0 <=
-            facing[2] * dir[2] + facing[1] * dir[1] + facing[0] * dir[0]) {
-          cx = facing[1] * dir[2] - facing[2] * dir[1];
-          cz = facing[2] * dir[0] - dir[2] * facing[0];
-          cy = dir[1] * facing[0] - facing[1] * dir[0];
-          dir[0] = cz * facing[2] - cy * facing[1];
-          dir[1] = cy * facing[0] - facing[2] * cx;
-          dir[2] = facing[1] * cx - cz * facing[0];
-          if (normalize3d((real_vector3d *)dir) == *(float *)0x2533c0) {
-            dir[0] = *(float *)(unit + 0x24);
-            dir[1] = *(float *)(unit + 0x28);
-            dir[2] = *(float *)(unit + 0x2c);
+            facing.k * dir.k + facing.j * dir.j + facing.i * dir.i) {
+          cx = facing.j * dir.k - facing.k * dir.j;
+          cz = facing.k * dir.i - dir.k * facing.i;
+          cy = dir.j * facing.i - facing.j * dir.i;
+          dir.i = cz * facing.k - cy * facing.j;
+          dir.j = cy * facing.i - facing.k * cx;
+          dir.k = facing.j * cx - cz * facing.i;
+          if (normalize3d(&dir) == *(float *)0x2533c0) {
+            dir.i = *(float *)(unit + 0x24);
+            dir.j = *(float *)(unit + 0x28);
+            dir.k = *(float *)(unit + 0x2c);
           }
         } else {
-          dir[0] = *(float *)(unit + 0x24);
-          dir[1] = *(float *)(unit + 0x28);
-          dir[2] = *(float *)(unit + 0x2c);
+          dir.i = *(float *)(unit + 0x24);
+          dir.j = *(float *)(unit + 0x28);
+          dir.k = *(float *)(unit + 0x2c);
         }
         if ((short)mode != 6) {
           separation = 0.0f;
-          look[0] = *(float *)(component + 4) - dir[0] * *(float *)0x2549d4;
-          look[1] = *(float *)(component + 8) - dir[1] * *(float *)0x2549d4;
-          look[2] = *(float *)(component + 0xc) - dir[2] * *(float *)0x2549d4;
-          right_vec[0] = facing[1] * dir[2] - facing[2] * dir[1];
-          right_vec[1] = facing[2] * dir[0] - dir[2] * facing[0];
-          right_vec[2] = dir[1] * facing[0] - facing[1] * dir[0];
+          look[0] = *(float *)(component + 4) - dir.i * *(float *)0x2549d4;
+          look[1] = *(float *)(component + 8) - dir.j * *(float *)0x2549d4;
+          look[2] = *(float *)(component + 0xc) - dir.k * *(float *)0x2549d4;
+          right_vec[0] = facing.j * dir.k - facing.k * dir.j;
+          right_vec[1] = facing.k * dir.i - dir.k * facing.i;
+          right_vec[2] = dir.j * facing.i - facing.j * dir.i;
           if (0 < *(short *)(swarm + 2)) {
             j = 0;
             do {
@@ -2606,8 +2606,8 @@ void infection_swarm_control(int actor_handle)
                 sqlen = ndelta[0] * ndelta[0] + ndelta[1] * ndelta[1] +
                         ndelta[2] * ndelta[2];
                 if ((sqlen < *(float *)0x253dc8) &&
-                    (sqlen = (ndelta[0] * dir[0] + ndelta[1] * dir[1] +
-                              ndelta[2] * dir[2]) /
+                    (sqlen = (ndelta[0] * dir.i + ndelta[1] * dir.j +
+                              ndelta[2] * dir.k) /
                              sqrtf(sqlen),
                      *(float *)0x253398 < sqlen)) {
                   weight = (sqlen - *(float *)0x253398) * *(float *)0x253398;
@@ -2630,14 +2630,14 @@ void infection_swarm_control(int actor_handle)
               } else {
                 angle = *(float *)0x2568bc;
               }
-              rotate_vector3d_by_sincos((real_vector3d *)dir, (real_vector3d *)facing, x87_fsin(angle),
+              rotate_vector3d_by_sincos(&dir, &facing, x87_fsin(angle),
                                         x87_fcos(angle));
             }
           }
         }
-        cross_tmp[0] = facing[1] * dir[2] - facing[2] * dir[1];
-        cross_tmp[1] = facing[2] * dir[0] - dir[2] * facing[0];
-        cross_tmp[2] = dir[1] * facing[0] - facing[1] * dir[0];
+        cross_tmp[0] = facing.j * dir.k - facing.k * dir.j;
+        cross_tmp[1] = facing.k * dir.i - dir.k * facing.i;
+        cross_tmp[2] = dir.j * facing.i - facing.j * dir.i;
         mag = sqrtf(cross_tmp[0] * cross_tmp[0] + cross_tmp[1] * cross_tmp[1] +
                     cross_tmp[2] * cross_tmp[2]);
         if (fabsf(mag) >= (float)*(double *)0x2533d0) {
@@ -2646,15 +2646,15 @@ void infection_swarm_control(int actor_handle)
           cross_tmp[1] = cross_tmp[1] * recip;
           cross_tmp[2] = cross_tmp[2] * recip;
           if (mag != *(float *)0x2533c0) {
-            dir[0] = cross_tmp[1] * facing[2] - cross_tmp[2] * facing[1];
-            dir[1] = cross_tmp[2] * facing[0] - facing[2] * cross_tmp[0];
-            dir[2] = facing[1] * cross_tmp[0] - cross_tmp[1] * facing[0];
+            dir.i = cross_tmp[1] * facing.k - cross_tmp[2] * facing.j;
+            dir.j = cross_tmp[2] * facing.i - facing.k * cross_tmp[0];
+            dir.k = facing.j * cross_tmp[0] - cross_tmp[1] * facing.i;
             goto switchD_default;
           }
         }
-        dir[0] = *(float *)(unit + 0x24);
-        dir[1] = *(float *)(unit + 0x28);
-        dir[2] = *(float *)(unit + 0x2c);
+        dir.i = *(float *)(unit + 0x24);
+        dir.j = *(float *)(unit + 0x28);
+        dir.k = *(float *)(unit + 0x2c);
       } else {
         *(unsigned char *)(component + 2) =
           *(unsigned char *)(component + 2) & 0xfd;
@@ -2716,9 +2716,9 @@ void infection_swarm_control(int actor_handle)
       *(int *)(control + 0xc) = 0x3f800000;
       *(int *)(control + 0x10) = 0;
       *(int *)(control + 0x14) = 0;
-      *(float *)(control + 0x1c) = dir[0];
-      *(float *)(control + 0x20) = dir[1];
-      *(float *)(control + 0x24) = dir[2];
+      *(float *)(control + 0x1c) = dir.i;
+      *(float *)(control + 0x20) = dir.j;
+      *(float *)(control + 0x24) = dir.k;
     }
     *(short *)(control + 2) = -(short)(control_flag != '\0') & 2;
     *(float *)(control + 0x28) = *(float *)(control + 0x1c);

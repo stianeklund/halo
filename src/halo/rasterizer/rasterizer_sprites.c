@@ -1010,7 +1010,7 @@ void FUN_0017d1a0(bool param_1)
  * kb object (rasterizer_sprites.obj) does not match its original translation
  * unit.  Flagged only; not investigated. */
 typedef struct rasterizer_debug_vertex_record {
-  float position[3]; /* +0x00 */
+  real_point3d position; /* +0x00 */
   short index_list[12]; /* +0x0c */
   short vertex_list[12]; /* +0x24 */
   unsigned char index_count; /* +0x3c */
@@ -1030,12 +1030,12 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
   float point[3];
   int best_index;
   float best_distance;
-  float point1[3];
-  float normal1[3];
-  float normal0[3];
-  float point0[3];
+  real_point3d point1;
+  real_vector3d normal1;
+  real_vector3d normal0;
+  real_point3d point0;
   float normal[3];
-  float vertex_normal[3];
+  real_vector3d vertex_normal;
   float decompressed[3];
   char index_text[256];
   char vertex_text[256];
@@ -1072,23 +1072,23 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
       node_weight1 = 1.0f - node_weight0;
       node_index1 = (short)(*(signed char *)(vertex + 0x1d) / 3);
 
-      point0[0] = 0.0f;
-      point0[1] = 0.0f;
-      point0[2] = 0.0f;
-      normal0[0] = 0.0f;
-      normal0[1] = 0.0f;
-      normal0[2] = 0.0f;
-      point1[0] = 0.0f;
-      point1[1] = 0.0f;
-      point1[2] = 0.0f;
-      normal1[0] = 0.0f;
-      normal1[1] = 0.0f;
-      normal1[2] = 0.0f;
+      point0.x = 0.0f;
+      point0.y = 0.0f;
+      point0.z = 0.0f;
+      normal0.i = 0.0f;
+      normal0.j = 0.0f;
+      normal0.k = 0.0f;
+      point1.x = 0.0f;
+      point1.y = 0.0f;
+      point1.z = 0.0f;
+      normal1.i = 0.0f;
+      normal1.j = 0.0f;
+      normal1.k = 0.0f;
 
       unpacked = uncompress_int32_to_real_vector3d(decompressed, *(unsigned int *)(vertex + 0xc));
-      vertex_normal[0] = unpacked[0];
-      vertex_normal[1] = unpacked[1];
-      vertex_normal[2] = unpacked[2];
+      vertex_normal.i = unpacked[0];
+      vertex_normal.j = unpacked[1];
+      vertex_normal.k = unpacked[2];
 
       assert_halt_msg_at("node_index0<skinning->node_matrix_count",
                          "c:\\halo\\SOURCE\\rasterizer\\rasterizer.c", 0x36e,
@@ -1102,29 +1102,29 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
 
       if (node_index0 >= 0) {
         matrix_transform_point((float *)(*skinning + node_index0 * 0x34),
-                               (real_point3d *)vertex, (real_point3d *)point0);
+                               (real_point3d *)vertex, &point0);
         matrix_scale_transform_vector((float *)(*skinning + node_index0 * 0x34),
-                                      (real_vector3d *)vertex_normal, (real_vector3d *)normal0);
+                                      &vertex_normal, &normal0);
       }
       if (node_index1 >= 0) {
         matrix_transform_point((float *)(*skinning + node_index1 * 0x34),
-                               (real_point3d *)vertex, (real_point3d *)point1);
+                               (real_point3d *)vertex, &point1);
         matrix_scale_transform_vector((float *)(*skinning + node_index1 * 0x34),
-                                      (real_vector3d *)vertex_normal, (real_vector3d *)normal1);
+                                      &vertex_normal, &normal1);
       }
 
-      point[0] = point1[0] * node_weight1 + point0[0] * node_weight0;
-      point[1] = point1[1] * node_weight1 + point0[1] * node_weight0;
-      point[2] = point1[2] * node_weight1 + point0[2] * node_weight0;
-      normal[0] = normal1[0] * node_weight1 + normal0[0] * node_weight0;
-      normal[1] = normal1[1] * node_weight1 + normal0[1] * node_weight0;
-      normal[2] = normal1[2] * node_weight1 + normal0[2] * node_weight0;
+      point[0] = point1.x * node_weight1 + point0.x * node_weight0;
+      point[1] = point1.y * node_weight1 + point0.y * node_weight0;
+      point[2] = point1.z * node_weight1 + point0.z * node_weight0;
+      normal[0] = normal1.i * node_weight1 + normal0.i * node_weight0;
+      normal[1] = normal1.j * node_weight1 + normal0.j * node_weight0;
+      normal[2] = normal1.k * node_weight1 + normal0.k * node_weight0;
       normalize3d((real_vector3d *)normal);
 
       for (j = 0; j < point_count; j++) {
-        if (point[0] == points[j].position[0] &&
-            point[1] == points[j].position[1] &&
-            point[2] == points[j].position[2]) {
+        if (point[0] == points[j].position.x &&
+            point[1] == points[j].position.y &&
+            point[2] == points[j].position.z) {
           if (points[j].index_count < 12) {
             for (k = 0; k < points[j].index_count; k++) {
               if (points[j].index_list[k] == strip_index) {
@@ -1156,9 +1156,9 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
         dx = point[0] - *(float *)0x5a5bc8;
         dy = point[1] - *(float *)0x5a5bcc;
         dz = point[2] - *(float *)0x5a5bd0;
-        points[point_count].position[0] = point[0];
-        points[point_count].position[1] = point[1];
-        points[point_count].position[2] = point[2];
+        points[point_count].position.x = point[0];
+        points[point_count].position.y = point[1];
+        points[point_count].position.z = point[2];
         points[point_count].index_list[0] = strip_index;
         points[point_count].vertex_list[0] = (short)vertex_index;
         points[point_count].index_count = 1;
@@ -1196,10 +1196,10 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
                       k != points[j].vertex_count - 1 ? ',' : ' ');
           csstrcat((char *)0x5ab100, vertex_text);
         }
-        render_debug_point(0, (real_point3d *)points[j].position, 0.03125f, *(void **)0x2ee6d0);
-        render_debug_string_at_point(0, points[j].position, (void *)0x5ab100, *(int *)0x2ee6e0);
+        render_debug_point(0, &points[j].position, 0.03125f, *(void **)0x2ee6d0);
+        render_debug_string_at_point(0, &points[j].position, (void *)0x5ab100, *(int *)0x2ee6e0);
       } else {
-        render_debug_point(0, (real_point3d *)points[j].position, 0.03125f, *(void **)0x2ee6c4);
+        render_debug_point(0, &points[j].position, 0.03125f, *(void **)0x2ee6c4);
       }
     }
   }

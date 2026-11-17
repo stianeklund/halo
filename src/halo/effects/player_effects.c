@@ -844,7 +844,7 @@ void player_effect_get_camera_effect_matrix(int16_t local_player_index,
   float *up;
   const real_matrix4x3 *source;
   real_matrix4x3 effect_matrix;
-  float axis[3];
+  real_vector3d axis;
   float scale;
   float random_a;
   float random_b;
@@ -935,12 +935,12 @@ void player_effect_get_camera_effect_matrix(int16_t local_player_index,
     effect->field_e8 &= 0xfd;
 
     up = global_up_vector_ptr;
-    axis[0] = effect_fields[2] * up[1] - up[2] * effect_fields[1];
-    axis[1] = up[2] * effect_fields[0] - effect_fields[2] * up[0];
-    axis[2] = effect_fields[1] * up[0] - effect_fields[0] * up[1];
+    axis.i = effect_fields[2] * up[1] - up[2] * effect_fields[1];
+    axis.j = up[2] * effect_fields[0] - effect_fields[2] * up[0];
+    axis.k = effect_fields[1] * up[0] - effect_fields[0] * up[1];
 
     angle = intensity * effect->field_58;
-    matrix4x3_rotation_from_axis_and_angle((float *)&effect_matrix, (real_vector3d *)axis, x87_fsin(angle),
+    matrix4x3_rotation_from_axis_and_angle((float *)&effect_matrix, &axis, x87_fsin(angle),
                  x87_fcos(angle));
 
     translation = intensity * effect->field_5c;

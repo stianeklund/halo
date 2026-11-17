@@ -1232,7 +1232,7 @@ bool action_charge_perform(int actor_index)
         (char *)object_get_and_verify_type(*(int *)(actor + 0x18), 3);
       float lead_fraction;
       float speed;
-      real_vector3d target_point;
+      real_point3d target_point;
 
       *(char *)(debug_info + 0x139) = 0;
       lead_fraction = 0.0f;
@@ -1247,11 +1247,11 @@ bool action_charge_perform(int actor_index)
 
       vector3d_scale_add((real_point3d *)(prop + 0xbc), (real_vector3d *)(prop + 0xd4),
                          lead_fraction * *(short *)(state + 0x32),
-                         (real_point3d *)&target_point);
-      direction.i = target_point.i - *(float *)(actor + 0x12c);
-      direction.j = target_point.j - *(float *)(actor + 0x130);
-      direction.k = target_point.k - *(float *)(actor + 0x134);
-      vector3d_scale_add((real_point3d *)&target_point, (real_vector3d *)(*(float **)0x31fc44), 0.05f,
+                         &target_point);
+      direction.i = target_point.x - *(float *)(actor + 0x12c);
+      direction.j = target_point.y - *(float *)(actor + 0x130);
+      direction.k = target_point.z - *(float *)(actor + 0x134);
+      vector3d_scale_add(&target_point, (real_vector3d *)(*(float **)0x31fc44), 0.05f,
                          (real_point3d *)(debug_info + 0x13c));
 
       if (direction.i * *(float *)(prop + 0xe0) +

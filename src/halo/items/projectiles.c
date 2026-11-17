@@ -1262,9 +1262,9 @@ add_noise:
   if (material_response->angular_noise != REAL_ZERO_POOL) {
     seed = get_global_random_seed_address();
     seed_random_vector_in_cone3d(
-      seed, (real_vector3d *)in_velocity,
+      seed, velocity,
       0.0f, /* dup-args-ok: in-place, verified PUSH EDI x2 at 0x000f95f3/59 */
-      material_response->angular_noise, (real_vector3d *)in_velocity);
+      material_response->angular_noise, velocity);
   }
 
   if (material_response->velocity_noise != REAL_ZERO_POOL) {
@@ -1966,7 +1966,7 @@ bool projectile_update(int projectile_handle)
                   ((float)magnitude_squared3d(&movement) > dot)) {
                 distance_squared = (float)magnitude_squared3d(&perpendicular);
                 if (distance_squared < sound_range * sound_range) {
-                  vector3d_scale_add((real_point3d *)listener_position, &perpendicular,
+                  vector3d_scale_add(listener_position, &perpendicular,
                                      -1.0f, &sound_location.position);
                   sound_location.forward = movement;
                   normalize3d(&sound_location.forward);
@@ -1989,17 +1989,17 @@ bool projectile_update(int projectile_handle)
            (projectile->object.translational_velocity.j == 0.0f) &&
            (projectile->object.translational_velocity.k == 0.0f))) {
         if ((projectile->flags & FLAG(_projectile_has_angular_velocity_bit)) != 0) {
-          float *forward = (float *)&projectile->object.forward;
-          float *up = (float *)&projectile->object.up;
-          float *axis = (float *)&projectile->rotation_axis;
+          real_vector3d *forward = &projectile->object.forward;
+          real_vector3d *up = &projectile->object.up;
+          real_vector3d *axis = &projectile->rotation_axis;
           float sine = projectile->rotation_sine;
           float cosine = projectile->rotation_cosine;
-          rotate_vector3d_by_sincos((real_vector3d *)forward, (real_vector3d *)axis, sine, cosine);
-          rotate_vector3d_by_sincos((real_vector3d *)up, (real_vector3d *)axis, sine, cosine);
-          normalize3d((real_vector3d *)forward);
-          cross_product3d((real_vector3d *)up, (real_vector3d *)forward, (real_vector3d *)&sound_location.position);
-          cross_product3d((real_vector3d *)forward, (real_vector3d *)&sound_location.position, (real_vector3d *)up);
-          normalize3d((real_vector3d *)up);
+          rotate_vector3d_by_sincos(forward, axis, sine, cosine);
+          rotate_vector3d_by_sincos(up, axis, sine, cosine);
+          normalize3d(forward);
+          cross_product3d(up, forward, (real_vector3d *)&sound_location.position);
+          cross_product3d(forward, (real_vector3d *)&sound_location.position, up);
+          normalize3d(up);
         }
       } else {
         {

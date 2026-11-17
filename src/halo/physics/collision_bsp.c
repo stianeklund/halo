@@ -175,15 +175,14 @@ typedef char
 void render_debug_collision_vertex(int bsp, int vertex_index, float *matrix,
                                    float scale, void *color)
 {
-  float *point;
-  float transformed[3];
+  real_point3d *point;
+  real_point3d transformed;
 
-  point =
-    (float *)tag_block_get_element((void *)(bsp + 0x54), vertex_index, 0x10);
+  point = tag_block_get_element((void *)(bsp + 0x54), vertex_index, 0x10);
   if (matrix != 0) {
-    point = (float *)matrix_transform_point(matrix, (real_point3d *)point, (real_point3d *)transformed);
+    point = matrix_transform_point(matrix, point, &transformed);
   }
-  render_debug_point(1, (real_point3d *)point, scale, color);
+  render_debug_point(1, point, scale, color);
 }
 
 /* 0x147570 - render_debug_collision_edge
@@ -849,15 +848,15 @@ void FUN_00147ed0(void *state, int surface_index)
   int vertex_index;
   float *vertex;
   float *point;
-  float *v0;
-  float *v1;
+  real_point3d *v0;
+  real_point3d *v1;
   int *results;
   short i;
   unsigned char hit;
   float radius2;
   float dist2;
   float sq;
-  float delta[3];
+  real_vector3d delta;
   float pa[2];
   float pb[2];
 
@@ -907,19 +906,19 @@ void FUN_00147ed0(void *state, int surface_index)
         movss dist2, xmm2
       }
 #else
-      delta[0] = vertex[0] - point[0];
-      HALO_FLT_ROUNDTRIP(delta[0]);
-      delta[1] = vertex[1] - point[1];
-      HALO_FLT_ROUNDTRIP(delta[1]);
-      delta[2] = vertex[2] - point[2];
-      HALO_FLT_ROUNDTRIP(delta[2]);
-      dist2 = delta[0] * delta[0];
+      delta.i = vertex[0] - point[0];
+      HALO_FLT_ROUNDTRIP(delta.i);
+      delta.j = vertex[1] - point[1];
+      HALO_FLT_ROUNDTRIP(delta.j);
+      delta.k = vertex[2] - point[2];
+      HALO_FLT_ROUNDTRIP(delta.k);
+      dist2 = delta.i * delta.i;
       HALO_FLT_ROUNDTRIP(dist2);
-      sq = delta[1] * delta[1];
+      sq = delta.j * delta.j;
       HALO_FLT_ROUNDTRIP(sq);
       dist2 = dist2 + sq;
       HALO_FLT_ROUNDTRIP(dist2);
-      sq = delta[2] * delta[2];
+      sq = delta.k * delta.k;
       HALO_FLT_ROUNDTRIP(sq);
       dist2 = dist2 + sq;
       HALO_FLT_ROUNDTRIP(dist2);
@@ -948,15 +947,15 @@ void FUN_00147ed0(void *state, int surface_index)
       edge = (int *)tag_block_get_element((void *)(*(int *)state + 0x48),
                                           edge_index, 0x18);
       side_b = (unsigned char)(edge[5] == surface_index);
-      v0 = (float *)tag_block_get_element((void *)(*(int *)state + 0x54),
-                                          edge[side_b], 0x10);
-      v1 = (float *)tag_block_get_element((void *)(*(int *)state + 0x54),
-                                          edge[!side_b], 0x10);
-      delta[0] = v1[0] - v0[0];
-      delta[1] = v1[1] - v0[1];
-      delta[2] = v1[2] - v0[2];
-      if (fast_vector_intersects_sphere((real_point3d *)v0,
-                                        (real_vector3d *)delta,
+      v0 = tag_block_get_element((void *)(*(int *)state + 0x54),
+                                 edge[side_b], 0x10);
+      v1 = tag_block_get_element((void *)(*(int *)state + 0x54),
+                                 edge[!side_b], 0x10);
+      delta.i = v1->x - v0->x;
+      delta.j = v1->y - v0->y;
+      delta.k = v1->z - v0->z;
+      if (fast_vector_intersects_sphere(v0,
+                                        &delta,
                                         *(real_point3d **)((char *)state + 0xc),
                                         *(float *)((char *)state + 0x10))) {
         results = *(int **)((char *)state + 0x14);
@@ -982,10 +981,10 @@ void FUN_00147ed0(void *state, int surface_index)
         edge = (int *)tag_block_get_element((void *)(*(int *)state + 0x48),
                                             edge_index, 0x18);
         side_b = (unsigned char)(edge[5] == surface_index);
-        v0 = (float *)tag_block_get_element((void *)(*(int *)state + 0x54),
-                                            edge[side_b], 0x10);
-        v1 = (float *)tag_block_get_element((void *)(*(int *)state + 0x54),
-                                            edge[!side_b], 0x10);
+        v0 = tag_block_get_element((void *)(*(int *)state + 0x54),
+                                   edge[side_b], 0x10);
+        v1 = tag_block_get_element((void *)(*(int *)state + 0x54),
+                                   edge[!side_b], 0x10);
         FUN_00061df0(v0, *(short *)((char *)state + 0x21c),
                      *(unsigned char *)((char *)state + 0x21e), pa);
         FUN_00061df0(v1, *(short *)((char *)state + 0x21c),

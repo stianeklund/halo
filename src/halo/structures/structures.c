@@ -3468,7 +3468,7 @@ void FUN_00194070(void)
   int marker_index;
   int extent;
   char clipped;
-  float pos[3];
+  real_point3d pos;
   color4 color;
   float bounds[6]; /* {x0, x1, y0, y1, z0, z1} — see fill order below */
 
@@ -3508,15 +3508,15 @@ void FUN_00194070(void)
                   marker = (unsigned char *)tag_block_get_element(
                     (char *)palette + 0xc, *cell + marker_index, 6);
                   xform = (float *)cell[5];
-                  pos[0] = ((float)marker[0] * *(float *)0x261518 +
+                  pos.x = ((float)marker[0] * *(float *)0x261518 +
                             (float)*(short *)((char *)cell + 8)) *
                            *(float *)0x253f78;
-                  pos[1] = ((float)marker[1] * *(float *)0x261518 +
+                  pos.y = ((float)marker[1] * *(float *)0x261518 +
                             (float)*(short *)((char *)cell + 0xa)) *
                            *(float *)0x253f78;
                   /* Addend order is the one the FADDPs at 0x1941fb/0x1941ff
                    * impose: (b2*m2 + b1*m1) + b0*m0. */
-                  pos[2] = (((float)marker[2] * xform[2] +
+                  pos.z = (((float)marker[2] * xform[2] +
                              (float)marker[1] * xform[1] +
                              (float)marker[0] * xform[0]) *
                               *(float *)0x261518 +
@@ -3527,12 +3527,12 @@ void FUN_00194070(void)
                    * is set when the marker's Z leaves the cell's Z range. */
                   if (((*(float *)((char *)cell + 0xc) + *(float *)0x2533c8) *
                          *(float *)0x253f78 <
-                       pos[2]) ||
-                      (pos[2] <
+                       pos.z) ||
+                      (pos.z <
                        *(float *)((char *)cell + 0xc) * *(float *)0x253f78)) {
                     clipped = '\1';
                   }
-                  render_debug_point(1, (real_point3d *)pos, 0.1f, *(void **)0x2ee6d0);
+                  render_debug_point(1, &pos, 0.1f, *(void **)0x2ee6d0);
                   marker_index = marker_index + 1;
                 } while (marker_index < cell[1]);
               }
