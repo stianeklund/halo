@@ -25,6 +25,12 @@ double __cdecl sqrt(double);
 double __cdecl fabs(double);
 
 #include "types.h"
+
+#ifndef _pi
+#define _pi ((real)3.14159265358979323846)
+#define DEGREES_TO_RADIANS(angle) ((real)(((real)(angle)) * _pi / 180.f))
+#define RADIANS_TO_DEGREES(angle) ((real)(((real)(angle)) * 180.f / _pi))
+#endif
 #define XBOX_REPLACE_STANDARD_NAMES
 #include "inlines.h"
 #include "decl.h"

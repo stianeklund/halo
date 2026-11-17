@@ -1728,7 +1728,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
             }
           }
         } else {
-          float angle = decals_random_real(0.0f, 6.2831855f);
+          float angle = decals_random_real(0.0f, 2.f * _pi);
 
           cosine = x87_fcos(angle);
           sine = x87_fsin(angle);

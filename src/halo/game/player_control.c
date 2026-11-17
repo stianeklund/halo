@@ -22,9 +22,9 @@
 #define REAL_TWO_PI_POOL (*(float *)0x255a54) /* 6.2831855f   */
 
 /* Inline immediates. */
-#define REAL_PI 3.1415927f /* 0x40490fdb */
-#define REAL_TWO_PI 6.2831855f /* 0x40c90fdb */
-#define REAL_HALF_PI 1.5707964f /* 0x3fc90fdb */
+#define REAL_PI _pi /* 0x40490fdb */
+#define REAL_TWO_PI 2.f * _pi /* 0x40c90fdb */
+#define REAL_HALF_PI _pi / 2.f /* 0x3fc90fdb */
 
 /* Limits on player->desired_angles.pitch: +-85.5 degrees, equivalently
  * (PI/2) * 0.95.  float32 0x3fbf0243 / 0xbfbf0243.  The binary uses both
@@ -43,7 +43,7 @@
 #define REAL_TWO_OVER_PI 0.6366197466850281
 
 /* Field-of-view fallback when the tag supplies none: 70 degrees. */
-#define DEFAULT_FIELD_OF_VIEW 1.2217305f
+#define DEFAULT_FIELD_OF_VIEW DEGREES_TO_RADIANS(70.f)
 
 /* Return a pointer to the player control data slot for a local player.
  * Each slot is 0x40 bytes, starting at offset 0x10 in the globals struct.

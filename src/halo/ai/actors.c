@@ -2460,7 +2460,7 @@ void infection_swarm_control(int actor_handle)
                 *(float *)(component + 0x24) = wander_delta[1];
                 *(float *)(component + 0x28) = wander_delta[2];
               } else {
-                angle = FUN_000121e0(-3.1415927f, 3.1415927f);
+                angle = FUN_000121e0(-_pi, _pi);
                 *(int *)(component + 0x20) = *(int *)(unit + 0x24);
                 *(int *)(component + 0x24) = *(int *)(unit + 0x28);
                 *(int *)(component + 0x28) = *(int *)(unit + 0x2c);

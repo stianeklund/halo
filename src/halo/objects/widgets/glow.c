@@ -551,7 +551,7 @@ int glow_normal_particle_new(int glow_widget_ptr, short index, short count)
     }
 
     *(float *)(particle + 8) = random_real_range(
-      random_math_get_local_seed_address(), 0.0f, 6.2831855f);
+      random_math_get_local_seed_address(), 0.0f, 2.f * _pi);
   }
 
   return particle;

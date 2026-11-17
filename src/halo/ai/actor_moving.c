@@ -1847,7 +1847,7 @@ void actor_move_vector_avoidance(int actor_handle /* @<ecx> */, float *facing, f
 
             emergency = PIN_FLOAT(weight_difference / 1.3f - 0.5f, 0.0f, 1.0f);
             emergency = MAX_FLOAT(emergency, emergency_scale);
-            rotation_angle = emergency * (3.14159265f / 3.0f);
+            rotation_angle = emergency * (_pi / 3.0f);
             if (local_movement_direction.k * avoidance_directions[best_avoidance_direction].j -
                 local_movement_direction.j * avoidance_directions[best_avoidance_direction].k > 0.0f) {
               rotation_angle = -rotation_angle;
@@ -1883,7 +1883,7 @@ void actor_move_vector_avoidance(int actor_handle /* @<ecx> */, float *facing, f
         rotation.j += perpendicular.k * avoidance_data.up.j;
         rotation.k += perpendicular.k * avoidance_data.up.k;
         if (normalize3d_inline(&rotation) > 0.0f) {
-          rotation_angle = emergency * (3.14159265f / 3.0f);
+          rotation_angle = emergency * (_pi / 3.0f);
           rotation.i *= rotation_angle;
           rotation.j *= rotation_angle;
           rotation.k *= rotation_angle;
@@ -3130,7 +3130,7 @@ void actor_move_compute_facing(char want_facing /* @<al> */,
     if (facing_dot >= 1.0f) {
       angle = 0.0f;
     } else if (facing_dot <= -1.0f) {
-      angle = 3.1415927f;
+      angle = _pi;
     } else {
       angle = acosf(facing_dot);
     }

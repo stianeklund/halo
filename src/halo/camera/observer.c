@@ -16,7 +16,7 @@ void flying_camera_new(void *flying_camera)
   camera->facing.yaw = 0.0f;
   camera->facing.pitch = 0.0f;
   camera->roll = 0.0f;
-  camera->field_of_view = 1.22173047f;
+  camera->field_of_view = DEGREES_TO_RADIANS(70.f);
 }
 
 /* Initialize a flying camera at a position looking along forward (0x89350). */
@@ -30,7 +30,7 @@ void flying_camera_new_from_point_and_vector(void *camera_data, real_point3d *po
   camera->facing.pitch = 0.0f;
   camera->roll = 0.0f;
   camera->facing.yaw = 0.0f;
-  camera->field_of_view = 1.22173047f;
+  camera->field_of_view = DEGREES_TO_RADIANS(70.f);
   camera->position = *position;
   vector_to_angles(&camera->facing, forward);
 }
@@ -273,7 +273,7 @@ have_track:
   control_points = &camera_track->control_points;
   count = control_points->count;
   count_minus_1 = count - 1;
-  t = (t + 1.5707964f) * 0.31830987f;
+  t = (t + _pi / 2.f) * (1.f / _pi);
   start = (short)(int)(t * (float)count_minus_1);
   if (count < 4) {
     display_assert("camera_track->control_points.count >= 4",
@@ -363,7 +363,7 @@ void following_camera_update(void *camera_data, void *control_data,
   result->position = info.position;
   result->timer = 0.0f;
   result->flags = 0;
-  result->field_of_view = 1.22173047f;
+  result->field_of_view = DEGREES_TO_RADIANS(70.f);
   if (camera->initialized && (info.unit_index != camera->unit_index ||
                               info.seat_index != camera->seat_index))
     result->timer = 1.0f;
@@ -392,10 +392,10 @@ void following_camera_update(void *camera_data, void *control_data,
     facing = *player_control_get_facing_angles(
       controls->local_player_index);
     facing.yaw += camera->facing_offset.yaw;
-    facing.pitch = facing.pitch + camera->facing_offset.pitch < -1.57079637f ?
-                     -1.57079637f :
-                     (facing.pitch + camera->facing_offset.pitch > 1.57079637f ?
-                        1.57079637f :
+    facing.pitch = facing.pitch + camera->facing_offset.pitch < -_pi / 2.f ?
+                     -_pi / 2.f :
+                     (facing.pitch + camera->facing_offset.pitch > _pi / 2.f ?
+                        _pi / 2.f :
                         facing.pitch + camera->facing_offset.pitch);
     angles_to_vector(&result->forward, &facing);
     assert_halt_msg_at(
@@ -441,7 +441,7 @@ void observer_result_initialize(void *observer_data)
 
   observer->forward = *global_forward_vector3d;
   observer->up = *global_up_vector3d;
-  observer->field_of_view = 0.87266463f;
+  observer->field_of_view = DEGREES_TO_RADIANS(50.f);
 
   observer->result.position = *global_origin3d_ptr;
   observer->result.location.cluster_index = -1;
@@ -449,7 +449,7 @@ void observer_result_initialize(void *observer_data)
   observer->result.velocity = *global_zero_vector3d;
   observer->result.forward = *global_forward_vector3d;
   observer->result.up = *global_up_vector3d;
-  observer->result.field_of_view = 0.87266463f;
+  observer->result.field_of_view = DEGREES_TO_RADIANS(50.f);
 
   csmemset(&observer->last_command, 0, sizeof(observer->last_command));
   observer->last_command.forward = observer->forward;
@@ -1449,7 +1449,7 @@ void observer_update_result(int16_t local_player_index)
 
   /* Clamp field_of_view to [fov_min, fov_max] */
   observer->field_of_view = observer->field_of_view < 0.001f ? 0.001f :
-    observer->field_of_view > 1.57079637f ? 1.57079637f :
+    observer->field_of_view > _pi / 2.f ? _pi / 2.f :
     observer->field_of_view;
 
   /* Clamp focus_position components to [-5000, 5000] */
@@ -1568,7 +1568,7 @@ void observer_update_result(int16_t local_player_index)
   /* assert: valid_field_of_view(observer->field_of_view) */
   if (!(valid_real(observer->field_of_view) &&
         observer->field_of_view >= 0.001f &&
-        observer->field_of_view <= 1.57079637f)) {
+        observer->field_of_view <= _pi / 2.f)) {
     display_assert("valid_field_of_view(observer->field_of_view)",
                    "c:\\halo\\SOURCE\\camera\\observer.c", 0x421, 1);
     system_exit(-1);
@@ -1742,10 +1742,10 @@ void orbiting_camera_update(void *camera_data, void *control_data,
   if (controls->active) {
     camera->facing.yaw -= controls->facing_delta.yaw;
     camera->facing.pitch =
-      camera->facing.pitch - controls->facing_delta.pitch < -1.2566371f ?
-        -1.2566371f :
-        (camera->facing.pitch - controls->facing_delta.pitch > 1.2566371f ?
-           1.2566371f :
+      camera->facing.pitch - controls->facing_delta.pitch < -DEGREES_TO_RADIANS(72.f) ?
+        -DEGREES_TO_RADIANS(72.f) :
+        (camera->facing.pitch - controls->facing_delta.pitch > DEGREES_TO_RADIANS(72.f) ?
+           DEGREES_TO_RADIANS(72.f) :
            camera->facing.pitch - controls->facing_delta.pitch);
     director_set_local_player_context(controls->local_player_index);
   }
@@ -1777,7 +1777,7 @@ void orbiting_camera_update(void *camera_data, void *control_data,
          valid_real(result->depth) && result->depth >= 0.0f &&
          result->depth <= 5000.0f && valid_real(orbiting_camera_field_of_view) &&
          orbiting_camera_field_of_view >= 0.001f &&
-         orbiting_camera_field_of_view <= 1.57079637f /* pi/2 */ &&
+         orbiting_camera_field_of_view <= _pi / 2.f &&
          valid_real(orbiting_camera_timer) && orbiting_camera_timer >= 0.0f &&
          orbiting_camera_timer <= 3600.0f))) {
     display_assert(

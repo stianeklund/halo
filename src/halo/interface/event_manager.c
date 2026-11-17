@@ -1544,7 +1544,7 @@ void update_motion_sensor(int local_player_index)
   }
 
   facing = player_control_get_facing_angles((short)local_player_index);
-  *(float *)(sensor + 0x7c) = facing->yaw + 1.5707964f;
+  *(float *)(sensor + 0x7c) = facing->yaw + _pi / 2.f;
   player_index = local_player_get_player_index((short)local_player_index);
   custom_count = game_engine_player_get_custom_motion_sensor_positions(
     player_index, (int)custom_positions, (int)(sensor + 0x60), 0x10);

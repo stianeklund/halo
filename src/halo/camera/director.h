@@ -34,8 +34,6 @@ static __inline const real_point3d *editor_camera_unit_relative_position(void)
   return position;
 }
 
-#define k_half_pi 1.5707964f
-
 /* camera_director_t.camera_proc called as a function by director_update. */
 typedef void (*director_camera_proc)(void *camera_data,
                                      camera_action_t *action,
@@ -132,7 +130,7 @@ co(input_gamepad_state, stick_ry, 0x26);
     real_vector3d_valid(&(command)->velocity) &&                 \
     real_bits_valid((command)->depth) && (command)->depth >= 0.0f &&      \
     (command)->depth <= 5000.0f && real_bits_valid(field_of_view) &&      \
-    (field_of_view) >= 0.001f && (field_of_view) <= k_half_pi &&          \
+    (field_of_view) >= 0.001f && (field_of_view) <= _pi / 2.f &&          \
     real_bits_valid(timer) && (timer) >= 0.0f && (timer) <= 3600.0f))
 
 /* "Invalid camera command." arguments with the field of view and timer

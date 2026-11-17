@@ -175,11 +175,11 @@ void dead_camera_new(void *camera, int16_t local_player_index, int unit_index)
 
   dead_camera = camera;
   dead_camera->position = *observer_position;
-  dead_camera->field_of_view = 1.2217305f; /* 70 degrees */
+  dead_camera->field_of_view = DEGREES_TO_RADIANS(70.f);
   dead_camera->distance =
     random_real_range(random_math_get_local_seed_address(), 2.0f, 6.0f);
   dead_camera->facing.yaw = random_real_range(
-    random_math_get_local_seed_address(), 0.0f, 6.2831855f);
+    random_math_get_local_seed_address(), 0.0f, 2.f * _pi);
   pitch = random_real_range(random_math_get_local_seed_address(),
                             0.47123894f, 1.0995574f);
   /* The timer constant is loaded at 0x85bfc, ahead of the FCHS/FSTP pair at
@@ -1708,7 +1708,7 @@ void editor_camera_set_position_and_roll(const real_point3d *point,
   angles_to_vector(&forward,
                    &editor_camera_globals.camera->facing);
   facing = editor_camera_globals.camera->facing;
-  facing.pitch = facing.pitch + k_half_pi;
+  facing.pitch = facing.pitch + _pi / 2.f;
   angles_to_vector(&pitched, &facing);
   normalize3d(&forward);
   normalize3d(&pitched);
@@ -1896,12 +1896,12 @@ void editor_camera_set_scripted(unsigned char enable)
       source = editor_camera_source;
       scripted_camera_set_camera_point_relative(
         editor_camera_unit_relative_position(), &source->forward,
-        &source->up, 1.2217305f, 0, relative_object_index);
+        &source->up, DEGREES_TO_RADIANS(70.f), 0, relative_object_index);
     } else {
       source = editor_camera_source;
       scripted_camera_set_camera_point_relative(
         &source->position, &source->forward,
-        &source->up, 1.2217305f, 0, NONE);
+        &source->up, DEGREES_TO_RADIANS(70.f), 0, NONE);
     }
   } else {
     /* ADD EAX,0x10 / MOV ECX,EAX at 0x8813a: source->position is held in
@@ -1993,10 +1993,10 @@ void editor_camera_orbiting_update(void *camera_data, void *control_data,
   if (action->active) {
     camera->facing.yaw = action->facing_delta.yaw + camera->facing.yaw;
     pitch = action->facing_delta.pitch + camera->facing.pitch;
-    if (pitch < -1.2566371f) {
-      pitch = -1.2566371f;
-    } else if (pitch > 1.2566371f) {
-      pitch = 1.2566371f;
+    if (pitch < -DEGREES_TO_RADIANS(72.f)) {
+      pitch = -DEGREES_TO_RADIANS(72.f);
+    } else if (pitch > DEGREES_TO_RADIANS(72.f)) {
+      pitch = DEGREES_TO_RADIANS(72.f);
     }
     camera->facing.pitch = pitch;
     director_set_local_player_context(action->local_player_index);

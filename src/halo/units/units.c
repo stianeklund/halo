@@ -6426,8 +6426,8 @@ void unit_start_running_blindly(int unit_handle)
     real_euler_angles2d facing_angles;
 
     vector_to_angles(&facing_angles, (real_vector3d *)(unit + 0x24));
-    if (facing_angles.yaw > 3.1415927f) {
-      facing_angles.yaw -= 6.2831855f;
+    if (facing_angles.yaw > _pi) {
+      facing_angles.yaw -= 2.f * _pi;
     }
     *(float *)(unit + 0x3c4) = facing_angles.yaw;
     angle_range = 1.7453293f;
@@ -10325,9 +10325,9 @@ done_clamp:
   delta_pitch = aim_angles[1] - desired_angles[1];
 
   if (wrapping != 0) {
-    if (delta_yaw > 3.1415927f) {
+    if (delta_yaw > _pi) {
       delta_yaw = delta_yaw - 6.2831853f;
-    } else if (delta_yaw < -3.1415927f) {
+    } else if (delta_yaw < -_pi) {
       delta_yaw = delta_yaw + 6.2831853f;
     }
   }

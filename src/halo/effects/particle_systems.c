@@ -576,7 +576,7 @@ void particle_system_new_particles(void *ps_arg, int16_t type_index, float dt)
     *(char *)(particle + 2) = 1;
     *(float *)(particle + 0x44) = -1.0f;
     *(float *)(particle + 0x40) = random_real_range(
-      random_math_get_local_seed_address(), 0.0f, 3.14159265f * 2.0f);
+      random_math_get_local_seed_address(), 0.0f, _pi * 2.0f);
 
     if (creation_func_idx < 0 || creation_func_idx >= 3) {
       display_assert("creation_function_index>=0 && "

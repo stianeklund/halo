@@ -182,7 +182,7 @@ co(scripted_camera_globals_t, animation_graph_index, 0x38);
 co(scripted_camera_globals_t, animation_index, 0x3c);
 
 /* Default scripted-camera field of view (70 degrees; 0x3f9c61aa). */
-#define SCRIPTED_CAMERA_DEFAULT_FIELD_OF_VIEW 1.22173047f
+#define SCRIPTED_CAMERA_DEFAULT_FIELD_OF_VIEW DEGREES_TO_RADIANS(70.f)
 
 #define __int16 short
 #define __int8 char

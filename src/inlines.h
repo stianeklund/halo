@@ -179,7 +179,7 @@ static float __attribute__((noinline, unused)) xbox_acosf(float x)
 {
   float s;
   if (x >= 1.0f) return 0.0f;
-  if (x <= -1.0f) return 3.14159265f;
+  if (x <= -1.0f) return _pi;
   s = xbox_sqrtf((1.0f + x) * (1.0f - x));
   return (float)xbox_atan2((double)s, (double)x);
 }

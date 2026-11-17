@@ -8647,7 +8647,7 @@ char actor_look_idle_new_major_direction(float *look_vectors, float *dir_vec,
       /* Combat/aim angular constraints from tag */
       if (look_mode != '\0') {
         /* Full 180-degree horizontal range */
-        az_range = 3.1415927f;
+        az_range = _pi;
       } else {
         if (*(float *)(tag_data + 0xa4) <= *(float *)(tag_data + 0xc4)) {
           az_range = *(float *)(tag_data + 0xa4);

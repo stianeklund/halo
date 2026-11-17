@@ -52,7 +52,7 @@ int16_t FUN_0003f350(int unit_handle, int spawn_tag, int16_t count, float radius
         remaining = (unsigned short)count;
         do {
           angle = random_real_range(get_global_random_seed_address(), 0.0f,
-                                    6.2831855f);
+                                    2.f * _pi);
           object_placement_data_new(&placement, *(int *)(actv + 0x20), NONE);
           vector3d_from_angle((float *)&placement.forward, angle);
           object_get_world_position(unit_handle,

@@ -138,7 +138,7 @@ static __inline uint8_t camera_internal_poll_input(void *out_buf, int player)
     (command)->depth <= 5000.0f &&                                         \
     valid_real((command)->field_of_view) &&                                \
     (command)->field_of_view >= 0.001f &&                                  \
-    (command)->field_of_view <= 1.57079637f /* pi/2 */ &&                  \
+    (command)->field_of_view <= _pi / 2.f /* pi/2 */ &&                  \
     valid_real((command)->timer) && (command)->timer >= 0.0f &&            \
     (command)->timer <= 3600.0f))
 

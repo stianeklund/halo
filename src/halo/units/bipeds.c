@@ -2771,7 +2771,7 @@ void biped_update_airborne(int unit_handle, char *state)
           goto have_facing;
         }
       }
-      vector3d_from_angle(facing, FUN_000121e0(0.0f, 6.2831855f));
+      vector3d_from_angle(facing, FUN_000121e0(0.0f, 2.f * _pi));
     have_facing:
       vector3d_scale_add((float *)(object + 0xf) /* +0x3c */, facing, pitch,
                          (float *)(object + 0xf));
@@ -4694,8 +4694,8 @@ void FUN_001a4c50(int unit_handle, unsigned char *state)
       *(float *)(biped + 0x468) = target_bank;
     }
 
-    aiming_bounds[0] = -3.14159265f;
-    aiming_bounds[1] = 3.14159265f;
+    aiming_bounds[0] = -_pi;
+    aiming_bounds[1] = _pi;
     aiming_bounds[2] = -1.57079633f;
     aiming_bounds[3] = 1.57079633f;
     angular_velocity_limit = *(float *)(definition + 0x344) * 0.033333335f;

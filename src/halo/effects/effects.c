@@ -1075,7 +1075,7 @@ void effect_generate_particles(void *effect)
                 if (*(uint8_t *)(part + 0x64) & 2) {
                   seed = random_math_get_local_seed_address();
                   *(float *)(spawn_params.bytes + 0x40) =
-                    random_real_range(seed, 0.0f, 6.2831855f);
+                    random_real_range(seed, 0.0f, 2.f * _pi);
                 } else {
                   *(float *)(spawn_params.bytes + 0x40) = 0.0f;
                 }

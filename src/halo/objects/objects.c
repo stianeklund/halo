@@ -272,7 +272,7 @@ void bored_camera_update(bored_camera_t *camera, camera_action_t *controls,
                                     -1.0995574f, 0.39269909f);
       angles[0] += random_real_range(random_math_get_local_seed_address(),
                                      -0.78539819f, 0.78539819f) +
-                   3.14159265f;
+                   _pi;
       angles_to_vector(&result->forward, (real_euler_angles2d *)angles);
       observer_up_from_forward(&result->forward, &result->up);
       field_of_view = random_real_range(
@@ -2913,7 +2913,7 @@ void light_get_bounding_sphere(int light_index, float *out_center,
     out_radius[0] = definition->lens_flare_only_radius;
     return;
   }
-  if (definition->cutoff_angle < 1.5707964f) {
+  if (definition->cutoff_angle < _pi / 2.f) {
     if (definition->cutoff_angle < 0.7853982f) {
       radius = radius / definition->cosine_cutoff_angle;
       out_radius[0] = radius;

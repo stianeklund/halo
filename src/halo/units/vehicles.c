@@ -599,7 +599,7 @@ void vehicle_accelerate(int handle, float *velocity)
 
     magnitude = normalize3d(&torque);
     if (magnitude > 0.0f) {
-      magnitude = magnitude * 3.14159265f;
+      magnitude = magnitude * _pi;
       torque.i = torque.i * magnitude;
       torque.j = torque.j * magnitude;
       torque.k = torque.k * magnitude;
@@ -1108,7 +1108,7 @@ void update_human_boat_physics(int vehicle_index, void *mass_points,
       vehicle_cross_product3d_in_place(up, forward3d, &cross);
 
       spin = vehicle_triple_product3d(velocity, forward3d, GLOBAL_UP3D) *
-             (2.0f * 3.14159265f);
+             (2.0f * _pi);
 
       rotate_vector3d_by_sincos(&up_relative, (real_vector3d *)forward,
                                 x87_fsin(spin), x87_fcos(spin));
@@ -1310,7 +1310,7 @@ void update_alien_fighter_physics_new(int vehicle_index,
       FUN_0010a330((float *)&rotation, (float *)&rotation_quaternion);
       FUN_0010caf0((float *)&rotation_quaternion, &angle, &axis.i);
 
-      scale = -angle * definition->field_314 * (1.0f / 3.14159265f);
+      scale = -angle * definition->field_314 * (1.0f / _pi);
       desired_angular_velocity.i = axis.i * scale;
       desired_angular_velocity.j = axis.j * scale;
       desired_angular_velocity.k = axis.k * scale;
@@ -1476,7 +1476,7 @@ void update_alien_fighter_physics_old(int vehicle_index,
     }
 
     yaw = (facing.i * velocity.j - facing.j * velocity.i) *
-          (3.14159265f * 0.5f) / x87_fabs(definition->field_2f8[0]);
+          (_pi * 0.5f) / x87_fabs(definition->field_2f8[0]);
 
     yaw_vectors(&perpendicular.i, &facing.i, x87_fsin(yaw), x87_fcos(yaw));
 
@@ -2644,7 +2644,7 @@ void update_human_plane_physics(int vehicle_index, void *powered_mass_points,
       }
 
       yaw = (velocity.j * desired_forward.i - velocity.i * desired_forward.j) *
-            (3.14159265f / 2) / (real)fabs(definition->field_2f8[0]);
+            (_pi / 2) / (real)fabs(definition->field_2f8[0]);
 
       yaw_vectors(&desired_up.i, &desired_forward.i, x87_fsin(yaw),
                   x87_fcos(yaw));

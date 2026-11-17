@@ -79,7 +79,7 @@ void first_person_camera_for_unit_and_vector(const real_vector3d *vector,
   command->offset = *global_zero_vector3d;
   command->depth = 0.0f;
   command->forward = *vector;
-  command->field_of_view = 1.22173047f; /* 70 degrees */
+  command->field_of_view = DEGREES_TO_RADIANS(70.f);
   observer_up_from_forward(&command->forward, &command->up);
   if (!valid_real_normal3d_perpendicular(&command->forward,
                                          &command->up)) {

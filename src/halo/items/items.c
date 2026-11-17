@@ -2153,7 +2153,7 @@ void item_accelerate(int item_handle, float *position, int flag)
       /* Random angle in [-pi/2, pi/2]. The literal must round to the
        * reference's 0x3fc90fdb / 0xbfc90fdb: 1.5707963f is one ULP low
        * (0x3fc90fda), which VC71 emits verbatim. */
-      scale = FUN_000121e0(-1.5707964f, 1.5707964f);
+      scale = FUN_000121e0(-_pi / 2.f, _pi / 2.f);
       scaled_dir[0] = cross[0] * scale;
       scaled_dir[1] = cross[1] * scale;
       scaled_dir[2] = cross[2] * scale;

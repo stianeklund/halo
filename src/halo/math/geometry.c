@@ -1198,7 +1198,7 @@ int16_t convex_hull2d_reduce(int16_t vertex_count, float *vertices,
 #endif
             if (angle < -1e-4f) {
               do {
-                angle = angle + 6.2831855f; /* 2*pi wrap */
+                angle = angle + 2.f * _pi; /* 2*pi wrap */
               } while (angle < -1e-4f);
             }
             if (angle < min_angle) {

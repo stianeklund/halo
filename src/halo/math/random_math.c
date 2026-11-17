@@ -1051,7 +1051,7 @@ float FUN_0010c440(float *a, float *b)
 #endif
 
     if (dot < 0.0f)
-      angle = 3.1415927f - angle;
+      angle = _pi - angle;
   }
   return angle;
 }
@@ -1105,7 +1105,7 @@ float angle_between_vectors3d(const real_vector3d *v1, const real_vector3d *v2)
 #endif
 
   if (dot < 0.0f)
-    return 3.1415927f - half_angle;
+    return _pi - half_angle;
   return half_angle;
 }
 
