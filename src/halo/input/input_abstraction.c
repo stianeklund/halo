@@ -1,19 +1,44 @@
 #include "x87_math.h"
+#include "input_abstraction.h"
+#include "../units/game_globals_definitions.h"
+
+#define _error_silent 2
+
+enum {
+  _error_controller_unplugged_start_to_continue = 0xc,
+  _error_controller_unplugged = 0xd
+};
+
+#define INPUT_DEVICE_SETTLE_MILLISECONDS 2000
+#define INPUT_DEVICE_INSERTION_FLAGS 0xfff000
+
+/* The single-precision 45 and 135 degree angles are promoted before the
+ * double arithmetic below, so they are written as float literals. */
+#define GAMEPAD_AXIS_NORMALIZATION_SCALE (1.f / 32767.f)
+#define STICK_DIAGONAL_ANGLE 0.7853981852531433f
+#define STICK_SECOND_QUADRANT_DIAGONAL_ANGLE 2.356194496154785f
+#define RIGHT_STICK_DIAGONAL_SNAP_ANGLE ((double)0.1745329201221466f)
+#define LEFT_STICK_DIAGONAL_SNAP_ANGLE \
+  ((double)STICK_DIAGONAL_ANGLE - RIGHT_STICK_DIAGONAL_SNAP_ANGLE)
+#define STICK_DIAGONAL_BLEND_SCALE (1.0 / LEFT_STICK_DIAGONAL_SNAP_ANGLE)
+
+/* .rdata table of the four quadrant diagonals: 45, 135, -45, -135 degrees. */
+#define STICK_DIRECTION_ANGLES_ADDRESS 0x280f84
+#define stick_direction_angles ((real const *)STICK_DIRECTION_ANGLES_ADDRESS)
 
 void input_abstraction_dispose(void)
 {
-  csmemset((void *)0x46b820, 0, 0xdc);
+  csmemset(&input_abstraction_globals, 0,
+           offsetof(input_abstraction_globals_t,
+                    time_of_first_device_insertion));
 }
 
-/* Snapshot the current system time into the input abstraction globals.
-   Called each tick to timestamp when input was last processed. */
 void input_abstraction_mark_time(void)
 {
-  *(unsigned int *)0x46b8f0 = system_milliseconds();
+  input_abstraction_globals.device_enumeration_startup_timer =
+    system_milliseconds();
 }
 
-/* Copy a controller's preference block from the per-controller preferences
-   array at 0x46b820 (4 entries of 0x18 bytes). */
 void input_abstraction_get_local_player_preferences(short local_player_index,
                                                     void *preferences_out)
 {
@@ -28,41 +53,43 @@ void input_abstraction_get_local_player_preferences(short local_player_index,
                    "c:\\halo\\SOURCE\\input\\input_abstraction.c", 0x1f0, 1);
     system_exit(-1);
   }
-  csmemcpy(preferences_out, (char *)0x46b820 + local_player_index * 0x18, 0x18);
+  csmemcpy(preferences_out,
+           &input_abstraction_globals
+              .player_control_preferences[local_player_index],
+           sizeof(game_input_preferences_t));
 }
 
-/* Store a controller's preference block into the per-controller preferences
-   array at 0x46b820 (4 entries of 0x18 bytes; entry layout matches the block
-   built by input_abstraction_initialize).  Bytes +0x10/+0x11 of the incoming
-   block are the start/back button slots and must still hold their identity
-   values (0x0c/0x0d) -- the engine refuses remapped start/back. */
 void input_abstraction_update_local_player_preferences(short controller_index,
                                                        void *preferences)
 {
+  game_input_preferences_t *new_preferences;
+
+  new_preferences = preferences;
   if (controller_index < 0 || controller_index >= MAXIMUM_GAMEPADS) {
     display_assert(
       "(controller_index>=0) && (controller_index<MAXIMUM_GAMEPADS)",
       "c:\\halo\\SOURCE\\input\\input_abstraction.c", 0x1fb, 1);
     system_exit(-1);
   }
-  if (preferences == 0) {
+  if (new_preferences == NULL) {
     display_assert("preferences",
                    "c:\\halo\\SOURCE\\input\\input_abstraction.c", 0x1fc, 1);
     system_exit(-1);
   }
-  if (((char *)preferences)[0x10] != '\x0c' ||
-      ((char *)preferences)[0x11] != '\x0d') {
+  if (new_preferences->game_control_to_xbox_buttons[_game_control_start] !=
+        _gamepad_binary_button_start ||
+      new_preferences->game_control_to_xbox_buttons[_game_control_back] !=
+        _gamepad_binary_button_back) {
     display_assert(
       "invalid controller preferences; can't remap start & back buttons",
       "c:\\halo\\SOURCE\\input\\input_abstraction.c", 0x1ff, 1);
     system_exit(-1);
   }
-  csmemcpy((char *)0x46b820 + controller_index * 0x18, preferences, 0x18);
+  csmemcpy(
+    &input_abstraction_globals.player_control_preferences[controller_index],
+    new_preferences, sizeof(game_input_preferences_t));
 }
 
-/* Return the per-local-player input state slot.  The array lives at 0x46b880
-   with a 0x1c-byte stride; element contents are not yet recovered, so the
-   return type stays an opaque pointer. */
 void *input_abstraction_get_input_state(short local_player_index)
 {
   if (local_player_index < 0 || local_player_index >= MAXIMUM_GAMEPADS) {
@@ -71,86 +98,44 @@ void *input_abstraction_get_input_state(short local_player_index)
       "c:\\halo\\SOURCE\\input\\input_abstraction.c", 0x209, 1);
     system_exit(-1);
   }
-  return (char *)0x46b880 + local_player_index * 0x1c;
+  return &input_abstraction_globals.input_states[local_player_index];
 }
 
-/* React to a controller hot-plug/removal event reported by
-   input_get_device_states (0xcf830), which passes a bit field of the devices
-   that changed.  Does nothing until input_abstraction_initialize has set the
-   ready flag at 0x46b8f8.
-
-   Any change stops bink playback, but only once the input system has been
-   settled for 2 seconds: 0x46b8f0 is the last mark_time/initialize timestamp,
-   and 0x46b8fc is the timestamp of the first change in the 0xfff000 class
-   (0 until one is seen).  Bits 0xfff000 additionally arm 0x46b8fc.  The
-   message text (including its "to due" typo) is verbatim from 0x281094. */
+/* The message text, typo included, is verbatim from the binary. */
 void input_abstraction_update_device_changes(unsigned int device_change_flags)
 {
-  if (*(char *)0x46b8f8 == '\0') {
+  if (!input_abstraction_globals.initialized) {
     return;
   }
   if (device_change_flags != 0 &&
-      ((unsigned int)(system_milliseconds() - *(unsigned int *)0x46b8f0) >=
-         2000 ||
-       (*(unsigned int *)0x46b8fc != 0 &&
-        (unsigned int)(system_milliseconds() - *(unsigned int *)0x46b8fc) >=
-          2000))) {
-    error(2, "stopping bink playback to due to change in input devices");
+      (system_milliseconds() -
+           input_abstraction_globals.device_enumeration_startup_timer >=
+         INPUT_DEVICE_SETTLE_MILLISECONDS ||
+       (input_abstraction_globals.time_of_first_device_insertion != 0 &&
+        system_milliseconds() -
+            input_abstraction_globals.time_of_first_device_insertion >=
+          INPUT_DEVICE_SETTLE_MILLISECONDS))) {
+    error(_error_silent,
+          "stopping bink playback to due to change in input devices");
     bink_playback_stop();
   }
-  if ((device_change_flags & 0xfff000) != 0 && *(unsigned int *)0x46b8fc == 0) {
-    *(unsigned int *)0x46b8fc = system_milliseconds();
+  if ((device_change_flags & INPUT_DEVICE_INSERTION_FLAGS) != 0 &&
+      input_abstraction_globals.time_of_first_device_insertion == 0) {
+    input_abstraction_globals.time_of_first_device_insertion =
+      system_milliseconds();
   }
 }
 
-/* input_abstraction_print_config_control (0xce8c0)
- *
- * For the given local player slot, returns whether the player's mounted
- * vehicle should print its "seat prompt" hint (e.g. "press X to fire the
- * turret"). Only fires for vehicle seats whose tag seat type is 3 or 5, and
- * only when bit 2 of the seat-anim block's first byte is set.
- *
- * Disassembly (0xce8c0-0xce992):
- *   TEST SI,SI/JL + CMP SI,0x4/JL -> range guard on controller_index (only
- *   the low 16 bits are inspected, but ESI is pushed unmasked at 0xce8f1;
- *   the sole caller (FUN_000cea90) only ever passes a clean 0..3 loop
- *   index, so this is not behaviourally reachable).
- *   Assert path: PUSH 1/PUSH 0x239/PUSH 0x280fe4/PUSH 0x2810d0 ->
- *   display_assert(reason=0x2810d0, filepath=0x280fe4, lineno=0x239,
- *   halt=1), confirmed via read_memory: reason string is
- *   "(controller_index>=0) &&
- * (controller_index<MAXIMUM_NUMBER_OF_LOCAL_PLAYERS)", filepath is
- * "c:\halo\SOURCE\input\input_abstraction.c"; followed by PUSH -1/CALL
- * system_exit. CALL local_player_get_player_index(ESI); CMP EAX,-1/JZ -> return
- * 0. PUSH EAX(player_index); MOV EAX,[player_data]; PUSH EAX; CALL
- * datum_absolute_index_to_index(player_data, player_index); TEST EAX,EAX/JZ ->
- * return 0. MOV ECX,[EAX+0x34] (player->unit_handle); PUSH 3; PUSH ECX; CALL
- * object_try_and_get_and_verify_type; MOV ESI,EAX (unit); TEST ESI,ESI/JZ ->
- * return 0. MOV EAX,[ESI+0xcc] (unit->object.parent_object_index); CMP
- * EAX,-1/JZ -> return 0. CMP word[ESI+0x2a0],-1/JZ (unit->parent_seat_index) -> return 0.
- *   PUSH 2; PUSH EAX; CALL object_get_and_verify_type -> vehicle (no NULL
- *   check, immediately dereferenced).
- *   MOV EDX,[EAX] (vehicle tag_index, object_data_t offset 0x00); PUSH EDX;
- *   PUSH 'vehi'(0x76656869); CALL tag_get -> vehi_tag.
- *   MOV CX,[EAX+0x2f4]; CMP CX,3/JZ; CMP CX,5/JNZ -> return 0 unless 3 or 5.
- *   MOVSX ECX,word[ESI+0x2a0] (unit->parent_seat_index); PUSH 0x11c; PUSH ECX;
- *   ADD EAX,0x2e4; PUSH EAX; CALL tag_block_get_element -> seat.
- *   MOV CL,[EAX]; TEST CL,4; MOV AL,1/JNZ -> return 1, else MOV AL,BL(=0).
- *
- * Confirmed: all 8 callees resolve to existing kb.json declarations at
- * 0x8d9f0, 0x8e2f0, 0xba3c0, 0x119270, 0x13d640, 0x13d680, 0x1ba140,
- * 0x19b210. Confirmed: sole caller is FUN_000cea90 (0xcf02f), which keeps
- * the return value live in AL across a large switch (never spilled to a
- * named stack slot), matching the existing `cVar7 = ...` call site already
- * in this file. */
+/* Whether the local player drives a human plane or alien fighter. The sole
+ * caller keeps the result in AL, so it returns char. */
 char input_abstraction_print_config_control(int controller_index)
 {
   int player_index;
   player_data_t *player;
   unit_data_t *unit;
-  unit_data_t *vehicle;
-  char *vehi_tag;
-  char *seat;
+  object_data_t *vehicle;
+  vehicle_definition_t *definition;
+  unit_seat_t *seat;
 
   if ((int16_t)controller_index < 0 ||
       (int16_t)controller_index >= MAXIMUM_NUMBER_OF_LOCAL_PLAYERS) {
@@ -161,437 +146,376 @@ char input_abstraction_print_config_control(int controller_index)
   }
 
   player_index = local_player_get_player_index(controller_index);
-  if (player_index == -1) {
-    return 0;
+  if (player_index == NONE) {
+    return false;
   }
 
   player =
     (player_data_t *)datum_absolute_index_to_index(player_data, player_index);
   if (player == NULL) {
-    return 0;
+    return false;
   }
 
-  unit =
-    (unit_data_t *)object_try_and_get_and_verify_type(player->unit_handle, 3);
+  unit = object_try_and_get_and_verify_type(player->unit_handle,
+                                            _object_mask_unit);
   if (unit == NULL) {
-    return 0;
+    return false;
   }
 
-  if (unit->object.parent_object_index.value == -1 ||
-      unit->parent_seat_index == -1) {
-    return 0;
+  if (unit->object.parent_object_index.value == NONE ||
+      unit->parent_seat_index == NONE) {
+    return false;
   }
 
-  vehicle = (unit_data_t *)object_get_and_verify_type(
-    (int)unit->object.parent_object_index.value, 2);
-  vehi_tag = (char *)tag_get(0x76656869, *(int *)vehicle);
-  if (*(int16_t *)(vehi_tag + 0x2f4) == 3 ||
-      *(int16_t *)(vehi_tag + 0x2f4) == 5) {
-    seat = (char *)tag_block_get_element(vehi_tag + 0x2e4,
-                                         (int)unit->parent_seat_index, 0x11c);
-    return (char)((*seat & 4) != 0);
+  vehicle = object_get_and_verify_type(
+    (int)unit->object.parent_object_index.value, _object_mask_vehicle);
+  definition = tag_get(TAG_GROUP_VEHI, vehicle->tag_index);
+  if (definition->vehicle_type == _vehicle_type_human_plane ||
+      definition->vehicle_type == _vehicle_type_alien_fighter) {
+    seat = tag_block_get_element(&((unit_definition_t *)definition)->seats,
+                                 (int)unit->parent_seat_index,
+                                 sizeof(unit_seat_t));
+    return (char)((seat->flags & FLAG(_unit_seat_driver_bit)) != 0);
   }
-  return 0;
+  return false;
 }
 
 void input_abstraction_initialize(void)
 {
-  int i;
-  char *entry;
+  int controller_index;
+  game_input_preferences_t *preferences;
 
-  csmemset((void *)0x46b820, 0, 0xdc);
-  entry = (char *)0x46b828;
-  for (i = 0; i < 4; i++) {
-    *(float *)(entry - 8) = 120.0f;
-    *(float *)(entry - 4) = 60.0f;
-    entry[0] = 0;
-    entry[1] = 4;
-    entry[2] = 2;
-    entry[3] = 3;
-    entry[4] = 1;
-    entry[5] = 5;
-    entry[6] = 6;
-    entry[7] = 7;
-    entry[8] = 0xc;
-    entry[9] = 0xd;
-    entry[10] = 0xe;
-    entry[11] = 0xf;
-    *(int16_t *)(entry + 12) = 0;
-    entry[14] = 0;
-    entry[15] = 0;
-    *(char *)(0x46b8f4 + i) = (char)input_has_gamepad(i);
-    entry += 0x18;
+  csmemset(&input_abstraction_globals, 0,
+           offsetof(input_abstraction_globals_t,
+                    time_of_first_device_insertion));
+  for (controller_index = 0; controller_index < MAXIMUM_GAMEPADS;
+       controller_index++) {
+    preferences =
+      &input_abstraction_globals.player_control_preferences[controller_index];
+    preferences->pitch_rate = 60.f;
+    preferences->yaw_rate = 120.f;
+    preferences->game_control_to_xbox_buttons[_game_control_jump] =
+      _gamepad_analog_button_a;
+    preferences->game_control_to_xbox_buttons[_game_control_switch_grenades] =
+      _gamepad_analog_button_black;
+    preferences->game_control_to_xbox_buttons[_game_control_action] =
+      _gamepad_analog_button_x;
+    preferences->game_control_to_xbox_buttons[_game_control_switch_weapons] =
+      _gamepad_analog_button_y;
+    preferences->game_control_to_xbox_buttons[_game_control_melee] =
+      _gamepad_analog_button_b;
+    preferences->game_control_to_xbox_buttons[_game_control_flashlight] =
+      _gamepad_analog_button_white;
+    preferences->game_control_to_xbox_buttons[_game_control_grenade] =
+      _gamepad_analog_button_left_trigger;
+    preferences->game_control_to_xbox_buttons[_game_control_primary_trigger] =
+      _gamepad_analog_button_right_trigger;
+    preferences->game_control_to_xbox_buttons[_game_control_start] =
+      _gamepad_binary_button_start;
+    preferences->game_control_to_xbox_buttons[_game_control_back] =
+      _gamepad_binary_button_back;
+    preferences->game_control_to_xbox_buttons[_game_control_crouch] =
+      _gamepad_binary_button_left_thumb;
+    preferences->game_control_to_xbox_buttons[_game_control_zoom] =
+      _gamepad_binary_button_right_thumb;
+    preferences->joystick_controls = _joystick_controls_default;
+    preferences->invert_look = false;
+    preferences->invert_look_aircraft_control = false;
+    input_abstraction_globals.controller_available[controller_index] =
+      input_has_gamepad((int16_t)controller_index);
   }
-  *(int *)0x46b8f0 = system_milliseconds();
-  *(char *)0x46b8f8 = 1;
+  input_abstraction_globals.device_enumeration_startup_timer =
+    system_milliseconds();
+  input_abstraction_globals.initialized = true;
 }
 
 void input_abstraction_update(void)
 {
-  float fVar1;
-  float fVar2;
-  float fVar4;
-  float fVar5;
-  char cVar7;
-  uint16_t uVar9;
-  uint16_t uVar10;
-  int16_t sVar11;
-  void *pvVar12;
-  uint8_t *pbVar13;
-  uint8_t *puVar14;
-  int iVar17;
-  int iVar18;
-  float rx;
-  float ry;
-  float lx;
-  float ly;
-  int local_20;
-  int local_18;
-  double lang_d;
-  double rang_d;
-  float lang, rang;
-  float sin_abs, cos_val;
-  double dominant;
-  float left_diff, right_diff;
-  char *state;
-  int error_controller;
-  int error_code;
-  int display_error_flag;
-  int i, connected_count;
+  real stick_x;
+  real stick_y;
+  real left_magnitude;
+  real right_magnitude;
+  char invert_look;
+  int16_t left_quadrant;
+  int16_t right_quadrant;
+  int16_t joystick_controls;
+  gamepad_state_t *gamepad;
+  int control_index;
+  real_point2d left_stick;
+  real_point2d right_stick;
+  real absolute_angle;
+  int controller_index;
+  real left_angle, right_angle;
+  real absolute_sine, absolute_cosine;
+  double scale;
+  real left_difference, right_difference;
+  game_input_preferences_t *preferences;
+  game_input_state_t *state;
+  int16_t error_controller;
+  int16_t error_code;
+  boolean pause_game;
+  boolean show_error;
+  int index, available_controllers;
 
-  tag_block_get_element((char *)game_globals_get() + 0x110, 0, 0x80);
+  tag_block_get_element(&game_globals_player_control(game_globals_get()), 0,
+                        GAME_GLOBALS_PLAYER_CONTROL_SIZE);
 
-  for (local_18 = 0; local_18 < 4; local_18++) {
-    pvVar12 = input_get_gamepad_state(local_18);
-    if (pvVar12 != NULL) {
-      iVar17 = local_18 * 0x18;
-      state = (char *)0x46b880 + local_18 * 0x1c;
+  for (controller_index = 0; controller_index < MAXIMUM_GAMEPADS;
+       controller_index++) {
+    gamepad = input_get_gamepad_state(controller_index);
+    if (gamepad != NULL) {
+      preferences =
+        &input_abstraction_globals.player_control_preferences[controller_index];
+      state = &input_abstraction_globals.input_states[controller_index];
 
-      flt_457098[local_18] = *(float *)((char *)0x46b820 + iVar17);
-      flt_4570A8[local_18] = *(float *)((char *)0x46b824 + iVar17);
+      player_look_yaw_rate[controller_index] =
+        input_abstraction_globals.player_control_preferences[controller_index]
+          .yaw_rate;
+      player_look_pitch_rate[controller_index] =
+        input_abstraction_globals.player_control_preferences[controller_index]
+          .pitch_rate;
 
-      /* Left stick normalization */
-      fVar2 = (float)*(int16_t *)((char *)pvVar12 + 0x22);
-      fVar1 = (float)*(int16_t *)((char *)pvVar12 + 0x20);
+      stick_y = (real)gamepad->sticks[_gamepad_stick_left].y;
+      stick_x = (real)gamepad->sticks[_gamepad_stick_left].x;
 
-      lang = (float)x87_atan2((double)fVar2, (double)fVar1);
-      lang_d = (double)lang;
-      sin_abs = x87_fabs(x87_fsin(lang));
-      cos_val = x87_fabs(x87_fcos(lang));
-      if (sin_abs <= cos_val)
-        dominant = (double)cos_val;
-      else
-        dominant = (double)sin_abs;
-      dominant = *(double *)0x2573d8 / dominant;
+      left_angle = (real)x87_atan2((double)stick_y, (double)stick_x);
+      absolute_sine = x87_fabs(x87_fsin(left_angle));
+      absolute_cosine = x87_fabs(x87_fcos(left_angle));
+      scale = 1.0 / (absolute_sine <= absolute_cosine ? absolute_cosine
+                                                      : absolute_sine);
 
-      fVar1 = (float)((double)(fVar1 * *(float *)0x280f80) * dominant);
-      if (fVar1 < -1.0f) {
-        lx = -1.0f;
-      } else if (fVar1 > 1.0f) {
-        lx = 1.0f;
-      } else {
-        lx = fVar1;
+      stick_x = stick_x * GAMEPAD_AXIS_NORMALIZATION_SCALE * scale;
+      left_stick.x = CLAMP(stick_x, -1.0f, 1.0f);
+
+      stick_y = stick_y * GAMEPAD_AXIS_NORMALIZATION_SCALE * scale;
+      left_stick.y = CLAMP(stick_y, -1.0f, 1.0f);
+
+      stick_y = (real)gamepad->sticks[_gamepad_stick_right].y;
+      stick_x = (real)gamepad->sticks[_gamepad_stick_right].x;
+
+      right_angle = (real)x87_atan2((double)stick_y, (double)stick_x);
+      absolute_sine = x87_fabs(x87_fsin(right_angle));
+      absolute_cosine = x87_fabs(x87_fcos(right_angle));
+      scale = 1.0 / (absolute_sine <= absolute_cosine ? absolute_cosine
+                                                      : absolute_sine);
+
+      stick_x = stick_x * GAMEPAD_AXIS_NORMALIZATION_SCALE * scale;
+      right_stick.x = CLAMP(stick_x, -1.0f, 1.0f);
+
+      stick_y = stick_y * GAMEPAD_AXIS_NORMALIZATION_SCALE * scale;
+      right_stick.y = CLAMP(stick_y, -1.0f, 1.0f);
+
+      for (control_index = 0; control_index < NUMBER_OF_GAME_CONTROLS;
+           control_index++) {
+        state->buttons[control_index] =
+          gamepad->buttons[preferences
+                             ->game_control_to_xbox_buttons[control_index]];
       }
 
-      fVar2 = (float)((double)(fVar2 * *(float *)0x280f80) * dominant);
-      if (fVar2 < -1.0f) {
-        ly = -1.0f;
-      } else if (fVar2 > 1.0f) {
-        ly = 1.0f;
-      } else {
-        ly = fVar2;
-      }
+      joystick_controls = preferences->joystick_controls;
+      if (joystick_controls == _joystick_controls_legacy ||
+          joystick_controls == _joystick_controls_legacy_southpaw) {
+        left_quadrant =
+          (short)((left_stick.x < 0.0f ? 1 : 0) | (left_stick.y < 0.0f ? 2 : 0));
+        right_quadrant =
+          (short)((right_stick.x < 0.0f ? 1 : 0) | (right_stick.y < 0.0f ? 2 : 0));
 
-      /* Right stick normalization */
-      fVar2 = (float)*(int16_t *)((char *)pvVar12 + 0x26);
-      fVar1 = (float)*(int16_t *)((char *)pvVar12 + 0x24);
+        left_difference = left_angle - stick_direction_angles[left_quadrant];
+        right_difference = right_angle - stick_direction_angles[right_quadrant];
 
-      rang = (float)x87_atan2((double)fVar2, (double)fVar1);
-      rang_d = (double)rang;
-      sin_abs = x87_fabs(x87_fsin(rang));
-      cos_val = x87_fabs(x87_fcos(rang));
-      if (sin_abs <= cos_val)
-        dominant = (double)cos_val;
-      else
-        dominant = (double)sin_abs;
-      dominant = *(double *)0x2573d8 / dominant;
+        left_magnitude = x87_sqrt(left_stick.y * left_stick.y + left_stick.x * left_stick.x);
+        right_magnitude = x87_sqrt(right_stick.y * right_stick.y + right_stick.x * right_stick.x);
 
-      fVar1 = (float)((double)(fVar1 * *(float *)0x280f80) * dominant);
-      if (fVar1 < -1.0f) {
-        rx = -1.0f;
-      } else if (fVar1 > 1.0f) {
-        rx = 1.0f;
-      } else {
-        rx = fVar1;
-      }
-
-      fVar2 = (float)((double)(fVar2 * *(float *)0x280f80) * dominant);
-      if (fVar2 < -1.0f) {
-        ry = -1.0f;
-      } else if (fVar2 > 1.0f) {
-        ry = 1.0f;
-      } else {
-        ry = fVar2;
-      }
-
-      /* Remap buttons */
-      pbVar13 = (uint8_t *)((char *)0x46b829 + iVar17);
-      puVar14 = (uint8_t *)state + 1;
-      for (iVar18 = 2; iVar18 != 0; iVar18--) {
-        puVar14[-1] = *(uint8_t *)(pbVar13[-1] + 0x10 + (int)pvVar12);
-        puVar14[0] = *(uint8_t *)(pbVar13[0] + 0x10 + (int)pvVar12);
-        puVar14[1] = *(uint8_t *)(pbVar13[1] + 0x10 + (int)pvVar12);
-        puVar14[2] = *(uint8_t *)(pbVar13[2] + 0x10 + (int)pvVar12);
-        puVar14[3] = *(uint8_t *)(pbVar13[3] + 0x10 + (int)pvVar12);
-        puVar14[4] = *(uint8_t *)(pbVar13[4] + 0x10 + (int)pvVar12);
-        pbVar13 += 6;
-        puVar14 += 6;
-      }
-
-      sVar11 = *(int16_t *)((char *)0x46b834 + iVar17);
-      if (sVar11 == 2 || sVar11 == 3) {
-        uVar9 = (short)((lx < 0.0f ? 1 : 0) | (ly < 0.0f ? 2 : 0));
-        uVar10 = (short)((rx < 0.0f ? 1 : 0) | (ry < 0.0f ? 2 : 0));
-
-        left_diff = lang - *(float *)((char *)0x280f84 + (int16_t)uVar9 * 4);
-        right_diff = rang - *(float *)((char *)0x280f84 + (int16_t)uVar10 * 4);
-
-        fVar4 = x87_sqrt(ly * ly + lx * lx);
-        fVar5 = x87_sqrt(ry * ry + rx * rx);
-
-        if ((double)x87_fabs(left_diff) < *(double *)0x281148) {
-          if (fabs(lang_d) < *(float *)0x254a58 ||
-              fabs(lang_d) > *(float *)0x26af48) {
-            local_20 = (lx < 0.0f) ? -1 : 1;
-            lx = (float)local_20 * fVar4;
-            local_20 = (ly < 0.0f) ? -1 : 1;
-            ly = (float)local_20 * fVar4 * (*(double *)0x2573d8 - (double)left_diff * *(double *)0x281140);
+        if (fabs(left_difference) < LEFT_STICK_DIAGONAL_SNAP_ANGLE) {
+          absolute_angle = fabs(left_angle);
+          if (absolute_angle < STICK_DIAGONAL_ANGLE ||
+              absolute_angle > STICK_SECOND_QUADRANT_DIAGONAL_ANGLE) {
+            left_stick.x = (left_stick.x < 0.f ? -1 : 1) * left_magnitude;
+            left_stick.y = (left_stick.y < 0.f ? -1 : 1) * left_magnitude *
+                     (1.0 - fabs(left_difference) * STICK_DIAGONAL_BLEND_SCALE);
           } else {
-            local_20 = (ly < 0.0f) ? -1 : 1;
-            ly = (float)local_20 * fVar4;
-            local_20 = (lx < 0.0f) ? -1 : 1;
-            lx = (float)local_20 * fVar4 * (*(double *)0x2573d8 - (double)left_diff * *(double *)0x281140);
+            left_stick.y = (left_stick.y < 0.f ? -1 : 1) * left_magnitude;
+            left_stick.x = (left_stick.x < 0.f ? -1 : 1) * left_magnitude *
+                     (1.0 - fabs(left_difference) * STICK_DIAGONAL_BLEND_SCALE);
           }
         } else {
-          if (fabs((double)ly) < fabs((double)lx)) {
-            local_20 = (lx < 0.0f) ? -1 : 1;
-            ly = 0.0f;
-            lx = (float)local_20 * fVar4;
+          if (fabs(left_stick.x) > fabs(left_stick.y)) {
+            left_stick.x = (left_stick.x < 0.f ? -1 : 1) * left_magnitude;
+            left_stick.y = 0.f;
           } else {
-            local_20 = (ly < 0.0f) ? -1 : 1;
-            lx = 0.0f;
-            ly = (float)local_20 * fVar4;
+            left_stick.y = (left_stick.y < 0.f ? -1 : 1) * left_magnitude;
+            left_stick.x = 0.f;
           }
         }
 
-        if ((double)x87_fabs(right_diff) < *(double *)0x281138) {
-          if (fabs(rang_d) < *(float *)0x254a58 ||
-              fabs(rang_d) > *(float *)0x26af48) {
-            local_20 = (rx < 0.0f) ? -1 : 1;
-            rx = (float)local_20 * fVar5;
-            local_20 = (ry < 0.0f) ? -1 : 1;
-            ry = (float)local_20 * fVar5 * (*(double *)0x2573d8 - (double)right_diff * *(double *)0x281140);
+        if (fabs(right_difference) < RIGHT_STICK_DIAGONAL_SNAP_ANGLE) {
+          absolute_angle = fabs(right_angle);
+          if (absolute_angle < STICK_DIAGONAL_ANGLE ||
+              absolute_angle > STICK_SECOND_QUADRANT_DIAGONAL_ANGLE) {
+            right_stick.x = (right_stick.x < 0.f ? -1 : 1) * right_magnitude;
+            right_stick.y = (right_stick.y < 0.f ? -1 : 1) * right_magnitude *
+                     (1.0 - fabs(right_difference) * STICK_DIAGONAL_BLEND_SCALE);
           } else {
-            local_20 = (ry < 0.0f) ? -1 : 1;
-            ry = (float)local_20 * fVar5;
-            local_20 = (rx < 0.0f) ? -1 : 1;
-            rx = (float)local_20 * fVar5 * (*(double *)0x2573d8 - (double)right_diff * *(double *)0x281140);
+            right_stick.y = (right_stick.y < 0.f ? -1 : 1) * right_magnitude;
+            right_stick.x = (right_stick.x < 0.f ? -1 : 1) * right_magnitude *
+                     (1.0 - fabs(right_difference) * STICK_DIAGONAL_BLEND_SCALE);
           }
         } else {
-          if (fabs((double)ry) < fabs((double)rx)) {
-            local_20 = (rx < 0.0f) ? -1 : 1;
-            ry = 0.0f;
-            rx = (float)local_20 * fVar5;
+          if (fabs(right_stick.x) > fabs(right_stick.y)) {
+            right_stick.x = (right_stick.x < 0.f ? -1 : 1) * right_magnitude;
+            right_stick.y = 0.f;
           } else {
-            local_20 = (ry < 0.0f) ? -1 : 1;
-            rx = 0.0f;
-            ry = (float)local_20 * fVar5;
+            right_stick.y = (right_stick.y < 0.f ? -1 : 1) * right_magnitude;
+            right_stick.x = 0.f;
           }
         }
       }
 
-      cVar7 = *(char *)((char *)0x46b836 + iVar17);
-      if (cVar7 == '\0' && *(char *)((char *)0x46b837 + iVar17) != '\0') {
-        cVar7 = input_abstraction_print_config_control(local_18);
+      invert_look = preferences->invert_look;
+      if (invert_look == false && preferences->invert_look_aircraft_control) {
+        invert_look = input_abstraction_print_config_control(controller_index);
       }
 
-      switch (*(int16_t *)((char *)0x46b834 + iVar17)) {
-      case 0:
-        if (*(char *)((char *)pvVar12 + 0x1a) != '\0') {
-          *(float *)(state + 0x10) = 1.0f;
-        } else if (*(char *)((char *)pvVar12 + 0x1b) != '\0') {
-          *(float *)(state + 0x10) = -1.0f;
+      switch (preferences->joystick_controls) {
+      case _joystick_controls_default:
+        if (gamepad->buttons[_gamepad_binary_button_dpad_left]) {
+          state->strafe = 1.0f;
+        } else if (gamepad->buttons[_gamepad_binary_button_dpad_right]) {
+          state->strafe = -1.0f;
         } else {
-          *(float *)(state + 0x10) = -lx;
+          state->strafe = -left_stick.x;
         }
-        if (*(char *)((char *)pvVar12 + 0x18) != '\0') {
-          *(float *)(state + 0xc) = 1.0f;
-        } else if (*(char *)((char *)pvVar12 + 0x19) != '\0') {
-          *(float *)(state + 0xc) = -1.0f;
+        if (gamepad->buttons[_gamepad_binary_button_dpad_up]) {
+          state->forward_movement = 1.0f;
+        } else if (gamepad->buttons[_gamepad_binary_button_dpad_down]) {
+          state->forward_movement = -1.0f;
         } else {
-          *(float *)(state + 0xc) = ly;
+          state->forward_movement = left_stick.y;
         }
-        *(float *)(state + 0x14) = -rx;
-        if (cVar7 == '\0') {
-          *(float *)(state + 0x18) = *(float *)0x2533c8 * ry;
-        } else {
-          *(float *)(state + 0x18) = *(float *)0x255e94 * ry;
-        }
-        *(char *)((char *)0x46b8f4 + local_18) = 1;
+        state->yaw = -right_stick.x;
+        state->pitch = (invert_look ? -1.f : 1.f) * right_stick.y;
         break;
 
-      case 1:
-        if (*(char *)((char *)pvVar12 + 0x1a) != '\0') {
-          *(float *)(state + 0x14) = 1.0f;
-        } else if (*(char *)((char *)pvVar12 + 0x1b) != '\0') {
-          *(float *)(state + 0x14) = -1.0f;
+      case _joystick_controls_southpaw:
+        if (gamepad->buttons[_gamepad_binary_button_dpad_left]) {
+          state->yaw = 1.0f;
+        } else if (gamepad->buttons[_gamepad_binary_button_dpad_right]) {
+          state->yaw = -1.0f;
         } else {
-          *(float *)(state + 0x14) = -lx;
+          state->yaw = -left_stick.x;
         }
-        if (*(char *)((char *)pvVar12 + 0x18) != '\0') {
-          if (cVar7 != '\0') {
-            fVar1 = *(float *)0x255e94;
-          } else {
-            fVar1 = *(float *)0x2533c8;
-          }
+        if (gamepad->buttons[_gamepad_binary_button_dpad_up]) {
+          state->pitch = invert_look ? -1.f : 1.f;
+        } else if (gamepad->buttons[_gamepad_binary_button_dpad_down]) {
+          state->pitch = invert_look ? 1.f : -1.f;
         } else {
-          sVar11 = (cVar7 == '\0');
-          if (*(char *)((char *)pvVar12 + 0x19) != '\0') {
-            if (sVar11) {
-              fVar1 = *(float *)0x255e94;
-            } else {
-              fVar1 = *(float *)0x2533c8;
-            }
-          } else {
-            if (cVar7 != '\0') {
-              fVar1 = *(float *)0x255e94;
-            } else {
-              fVar1 = *(float *)0x2533c8;
-            }
-            fVar1 *= ly;
-          }
+          state->pitch = (invert_look ? -1.f : 1.f) * left_stick.y;
         }
-        *(float *)(state + 0x18) = fVar1;
-        *(float *)(state + 0xc) = ry;
-        *(float *)(state + 0x10) = -rx;
-        *(char *)((char *)0x46b8f4 + local_18) = 1;
+        state->forward_movement = right_stick.y;
+        state->strafe = -right_stick.x;
         break;
 
-      case 2:
-        if (*(char *)((char *)pvVar12 + 0x1a) != '\0') {
-          *(float *)(state + 0x14) = 1.0f;
-        } else if (*(char *)((char *)pvVar12 + 0x1b) != '\0') {
-          *(float *)(state + 0x14) = -1.0f;
+      case _joystick_controls_legacy:
+        if (gamepad->buttons[_gamepad_binary_button_dpad_left]) {
+          state->yaw = 1.0f;
+        } else if (gamepad->buttons[_gamepad_binary_button_dpad_right]) {
+          state->yaw = -1.0f;
         } else {
-          *(float *)(state + 0x14) = -lx;
+          state->yaw = -left_stick.x;
         }
-        if (*(char *)((char *)pvVar12 + 0x18) != '\0') {
-          *(float *)(state + 0xc) = 1.0f;
-        } else if (*(char *)((char *)pvVar12 + 0x19) != '\0') {
-          *(float *)(state + 0xc) = -1.0f;
+        if (gamepad->buttons[_gamepad_binary_button_dpad_up]) {
+          state->forward_movement = 1.0f;
+        } else if (gamepad->buttons[_gamepad_binary_button_dpad_down]) {
+          state->forward_movement = -1.0f;
         } else {
-          *(float *)(state + 0xc) = ly;
+          state->forward_movement = left_stick.y;
         }
-        *(float *)(state + 0x10) = -rx;
-        if (cVar7 == '\0') {
-          *(float *)(state + 0x18) = *(float *)0x2533c8 * ry;
-        } else {
-          *(float *)(state + 0x18) = *(float *)0x255e94 * ry;
-        }
-        *(char *)((char *)0x46b8f4 + local_18) = 1;
+        state->strafe = -right_stick.x;
+        state->pitch = (invert_look ? -1.f : 1.f) * right_stick.y;
         break;
 
-      case 3:
-        if (*(char *)((char *)pvVar12 + 0x1a) != '\0') {
-          *(float *)(state + 0x10) = 1.0f;
-        } else if (*(char *)((char *)pvVar12 + 0x1b) != '\0') {
-          *(float *)(state + 0x10) = -1.0f;
+      case _joystick_controls_legacy_southpaw:
+        if (gamepad->buttons[_gamepad_binary_button_dpad_left]) {
+          state->strafe = 1.0f;
+        } else if (gamepad->buttons[_gamepad_binary_button_dpad_right]) {
+          state->strafe = -1.0f;
         } else {
-          *(float *)(state + 0x10) = -lx;
+          state->strafe = -left_stick.x;
         }
-        if (*(char *)((char *)pvVar12 + 0x18) != '\0') {
-          if (cVar7 != '\0') {
-            fVar1 = *(float *)0x255e94;
-          } else {
-            fVar1 = *(float *)0x2533c8;
-          }
+        if (gamepad->buttons[_gamepad_binary_button_dpad_up]) {
+          state->pitch = invert_look ? -1.f : 1.f;
+        } else if (gamepad->buttons[_gamepad_binary_button_dpad_down]) {
+          state->pitch = invert_look ? 1.f : -1.f;
         } else {
-          sVar11 = (cVar7 == '\0');
-          if (*(char *)((char *)pvVar12 + 0x19) != '\0') {
-            if (sVar11) {
-              fVar1 = *(float *)0x255e94;
-            } else {
-              fVar1 = *(float *)0x2533c8;
-            }
-          } else {
-            if (cVar7 != '\0') {
-              fVar1 = *(float *)0x255e94;
-            } else {
-              fVar1 = *(float *)0x2533c8;
-            }
-            fVar1 *= ly;
-          }
+          state->pitch = (invert_look ? -1.f : 1.f) * left_stick.y;
         }
-        *(float *)(state + 0x18) = fVar1;
-        *(float *)(state + 0xc) = ry;
-        *(float *)(state + 0x14) = -rx;
-        *(char *)((char *)0x46b8f4 + local_18) = 1;
+        state->forward_movement = right_stick.y;
+        state->yaw = -right_stick.x;
         break;
 
       default:
-        error(2, "unknown joystick preset");
-        *(char *)((char *)0x46b8f4 + local_18) = 1;
+        error(_error_silent, "unknown joystick preset");
         break;
       }
+      input_abstraction_globals.controller_available[controller_index] = true;
     } else {
-      if (*(char *)((char *)0x46b8f4 + local_18) != '\0') {
-        error_controller = local_18;
+      if (input_abstraction_globals.controller_available[controller_index]) {
+        error_controller = (int16_t)controller_index;
+        show_error = true;
         if (main_menu_is_active()) {
-          connected_count = 0;
-          i = 0;
+          available_controllers = 0;
+          index = 0;
           do {
-            if (*(char *)((char *)0x46b8f4 + i) != '\0')
-              connected_count++;
-            i++;
-          } while (i < 4);
+            if (input_abstraction_globals.controller_available[index])
+              available_controllers++;
+            index++;
+          } while (index < MAXIMUM_GAMEPADS);
 
-          display_error_flag = 0;
-          error_code = 0xd;
-          if (connected_count < 2) {
-            if (player_ui_get_single_player_local_player_controller(0) != local_18 &&
-                player_ui_get_single_player_local_player_controller(1) != local_18 &&
-                player_ui_get_single_player_local_player_controller(2) != local_18 &&
-                player_ui_get_single_player_local_player_controller(3) != local_18 &&
-                !player_ui_local_player_wants_to_play_multiplayer(local_18)) {
-              error_controller = -1;
+          pause_game = false;
+          error_code = _error_controller_unplugged;
+          if (available_controllers >= 2) {
+            if (player_ui_get_single_player_local_player_controller(0) !=
+                  controller_index &&
+                player_ui_get_single_player_local_player_controller(1) !=
+                  controller_index &&
+                player_ui_get_single_player_local_player_controller(2) !=
+                  controller_index &&
+                player_ui_get_single_player_local_player_controller(3) !=
+                  controller_index &&
+                !player_ui_local_player_wants_to_play_multiplayer(
+                  controller_index)) {
+              show_error = false;
             }
           } else {
-            if (player_ui_get_single_player_local_player_controller(0) != local_18 &&
-                player_ui_get_single_player_local_player_controller(1) != local_18 &&
-                player_ui_get_single_player_local_player_controller(2) != local_18 &&
-                player_ui_get_single_player_local_player_controller(3) != local_18 &&
-                !player_ui_local_player_wants_to_play_multiplayer(local_18)) {
-              goto skip_disconnect_ui;
+            if (player_ui_get_single_player_local_player_controller(0) !=
+                  controller_index &&
+                player_ui_get_single_player_local_player_controller(1) !=
+                  controller_index &&
+                player_ui_get_single_player_local_player_controller(2) !=
+                  controller_index &&
+                player_ui_get_single_player_local_player_controller(3) !=
+                  controller_index &&
+                !player_ui_local_player_wants_to_play_multiplayer(
+                  controller_index)) {
+              error_controller = NONE;
             }
           }
+        } else if (global_network_game_client_get()) {
+          pause_game = false;
+          error_code = _error_controller_unplugged;
+          show_error = local_player_exists((int16_t)controller_index);
         } else {
-          if (global_network_game_client_get() == NULL) {
-            display_error_flag = 1;
-            error_code = 0xc;
-          } else {
-            display_error_flag = 0;
-            error_code = 0xd;
-          }
-          if (local_player_exists((int16_t)local_18) != 1)
-            goto skip_disconnect_ui;
+          pause_game = true;
+          error_code = _error_controller_unplugged_start_to_continue;
+          show_error = local_player_exists((int16_t)controller_index);
         }
-
-        if (virtual_keyboard_active())
-          virtual_keyboard_close();
-        display_error_deferred(error_code, error_controller, display_error_flag, display_error_flag); /* dup-args-ok: display_error_flag pushed twice in pristine at 0x000cf3a8 */
+        if (show_error == true) {
+          if (virtual_keyboard_active())
+            virtual_keyboard_close();
+          display_error_deferred(error_code, error_controller, pause_game, pause_game); /* dup-args-ok: pause_game pushed twice in pristine at 0x000cf3a8 */
+        }
       }
-    skip_disconnect_ui:
-      *(char *)((char *)0x46b8f4 + local_18) = 0;
+      input_abstraction_globals.controller_available[controller_index] = false;
     }
   }
 }

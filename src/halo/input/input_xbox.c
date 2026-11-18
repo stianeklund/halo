@@ -1,670 +1,437 @@
-/* ---- Stick deadzone constants ---- */
-/* The Xbox controller thumbstick range is -32768..32767 (int16_t).
-   A deadzone of 9000 (~27.5% of full range) eliminates stick drift.
-   Values within [-9000, 9000] map to 0. Values above/below are
-   linearly rescaled so that 9001→1, 32767→32767 (positive)
-   and -9001→-1, -32768→-32768 (negative). The positive and negative
-   sides use slightly different scale factors:
-     positive: (v - 9000) * 0x7FFF / 0x5CD7
-     negative: uses fixed-point reciprocal multiply equivalent to
-              (9000 - v) * 0x8000 / 0x5CD7 with arithmetic-shift rounding */
+#include "input.h"
 
-#define STICK_DEADZONE 9000
-#define STICK_POSITIVE_MAX 0x7FFF /* max output for positive side */
-#define STICK_NEGATIVE_MAX 0x8000 /* max magnitude for negative side */
-#define STICK_POSITIVE_RANGE 0x5CD7 /* 32767 - 9000: usable positive range */
-/* 0x4F880E79: fixed-point reciprocal for division by 0x5CD7 in negative path */
+enum {
+  MAXIMUM_BUFFERED_KEYSTROKES = 64,
+  NUMBER_OF_VIRTUAL_CODES = 256,
+  NUMBER_OF_ASCII_CODES = 128,
 
-#define INPUT_ANALOG_BUTTON_COUNT 8
-#define INPUT_DIGITAL_BUTTON_COUNT 8
-#define INPUT_KEY_COUNT 0x68
+  GAMEPAD_STICK_DEAD_RANGE = 9000,
+  ANALOG_BUTTON_PRESS_THRESHOLD_OFFSET = 32,
+  ANALOG_BUTTON_RELEASE_THRESHOLD_OFFSET = 64,
+  ANALOG_BUTTON_RELEASE_SATURATION = 191
+};
 
-#define INPUT_AXIS_KEY_LEFT_X 0x69
-#define INPUT_AXIS_KEY_LEFT_Y 0x6A
-#define INPUT_AXIS_KEY_RIGHT_X 0x6B
-#define INPUT_AXIS_KEY_RIGHT_Y 0x6C
+enum {
+  _input_device_change_gamepad0_removed = 0,
+  _input_device_change_gamepad1_removed,
+  _input_device_change_gamepad2_removed,
+  _input_device_change_gamepad3_removed,
+  _input_device_change_memory_unit0_removed,
+  _input_device_change_memory_unit1_removed,
+  _input_device_change_memory_unit2_removed,
+  _input_device_change_memory_unit3_removed,
+  _input_device_change_memory_unit4_removed,
+  _input_device_change_memory_unit5_removed,
+  _input_device_change_memory_unit6_removed,
+  _input_device_change_memory_unit7_removed,
+  _input_device_change_gamepad0_inserted,
+  _input_device_change_gamepad1_inserted,
+  _input_device_change_gamepad2_inserted,
+  _input_device_change_gamepad3_inserted,
+  _input_device_change_memory_unit0_inserted,
+  _input_device_change_memory_unit1_inserted,
+  _input_device_change_memory_unit2_inserted,
+  _input_device_change_memory_unit3_inserted,
+  _input_device_change_memory_unit4_inserted,
+  _input_device_change_memory_unit5_inserted,
+  _input_device_change_memory_unit6_inserted,
+  _input_device_change_memory_unit7_inserted
+};
 
-/* ---- Analog button hysteresis thresholds ---- */
-#define ANALOG_BTN_DEADZONE 0x20 /* 32/255 ≈ 12.5% — below this = released */
-#define ANALOG_BTN_SATURATE 0xBF /* 191/255 ≈ 75% — above this = full press */
-#define ANALOG_BTN_RELEASE_DECAY 0x40 /* 64 — added each frame during release fade */
+enum {
+  _key_modifier_shift = 0,
+  _key_modifier_control,
+  _key_modifier_alt
+};
 
-/* ---- XInput function pointer typedefs ---- */
-typedef int(__stdcall *xinput_get_changes_fn)(void *, uint32_t *, uint32_t *);
-typedef int(__stdcall *xinput_open_fn)(void *, int, int, int);
-typedef int(__stdcall *xinput_get_state_fn)(int, void *);
-typedef void(__stdcall *xinput_close_fn)(int);
-typedef int(__stdcall *xset_event_fn)(int);
-typedef int(__stdcall *xinput_get_keystroke_fn)(void *);
-typedef int(__stdcall *xinput_debug_init_keyboard_fn)(void *);
+enum {
+  _input_state_mode_record = 3,
+  _input_state_mode_playback,
+  _input_state_mode_loop
+};
 
-typedef struct xinput_gamepad {
+#define _error_silent 2
+
+#define XDEVICE_PORT0 0
+#define XDEVICE_PORT1 1
+#define XDEVICE_PORT2 2
+#define XDEVICE_PORT3 3
+#define XDEVICE_NO_SLOT 0
+#define XDEVICE_PORT0_TOP_MASK 0x00000001
+#define XDEVICE_PORT1_TOP_MASK 0x00000002
+#define XDEVICE_PORT2_TOP_MASK 0x00000004
+#define XDEVICE_PORT3_TOP_MASK 0x00000008
+#define XDEVICE_PORT0_BOTTOM_MASK 0x00010000
+#define XDEVICE_PORT1_BOTTOM_MASK 0x00020000
+#define XDEVICE_PORT2_BOTTOM_MASK 0x00040000
+#define XDEVICE_PORT3_BOTTOM_MASK 0x00080000
+
+#define XINPUT_DEBUG_KEYSTROKE_FLAG_CTRL 0x01
+#define XINPUT_DEBUG_KEYSTROKE_FLAG_SHIFT 0x02
+#define XINPUT_DEBUG_KEYSTROKE_FLAG_ALT 0x04
+#define XINPUT_DEBUG_KEYSTROKE_FLAG_KEYUP 0x40
+
+#define XINPUT_DEBUG_KEYQUEUE_FLAG_KEYDOWN 0x01
+#define XINPUT_DEBUG_KEYQUEUE_FLAG_KEYREPEAT 0x02
+#define XINPUT_DEBUG_KEYQUEUE_FLAG_KEYUP 0x04
+
+#define ERROR_SUCCESS 0
+#define ERROR_IO_PENDING 0x3e5
+#define INFINITE 0xffffffff
+#define CREATE_SUSPENDED 4
+#define THREAD_PRIORITY_HIGHEST 2
+#define GENERIC_READ 0x80000000
+#define GENERIC_WRITE 0x40000000
+#define CREATE_ALWAYS 2
+#define OPEN_EXISTING 3
+#define FILE_FLAG_SEQUENTIAL_SCAN 0x08000000
+#define FILE_BEGIN 0
+#define UNSIGNED_CHAR_MAX 0xff
+#define SHORT_MAX 0x7fff
+#define SHORT_MIN (-0x8000)
+#define LONG_BITS 32
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+#define XDEVICE_TYPE_MEMORY_UNIT ((void *)0x24b218)
+#define XDEVICE_TYPE_GAMEPAD ((void *)0x24b29c)
+#define XDEVICE_TYPE_DEBUG_KEYBOARD ((void *)0x24b2a8)
+
+typedef void *(__stdcall *xinput_open_proc)(void *device_type, uint32_t port,
+                                            uint32_t slot,
+                                            void *polling_parameters);
+typedef int(__stdcall *xinput_get_state_proc)(void *device, void *state);
+typedef int(__stdcall *xget_device_changes_proc)(void *device_type,
+                                                 uint32_t *insertions,
+                                                 uint32_t *removals);
+typedef void(__stdcall *xinput_close_proc)(void *device);
+typedef int(__stdcall *xinput_set_state_proc)(void *device, void *feedback);
+#define XInputOpen ((xinput_open_proc)(void *)XInputOpen)
+#define XInputClose ((xinput_close_proc)(void *)XInputClose)
+#define XInputSetState ((xinput_set_state_proc)XInputSetState)
+#define XInputGetState ((xinput_get_state_proc)(void *)XInputGetState)
+#define XGetDeviceChanges ((xget_device_changes_proc)(void *)XGetDeviceChanges)
+
+typedef struct {
   uint16_t wButtons;
-  uint8_t bAnalogButtons[8];
+  byte bAnalogButtons[NUMBER_OF_GAMEPAD_ANALOG_BUTTONS];
   int16_t sThumbLX;
   int16_t sThumbLY;
   int16_t sThumbRX;
   int16_t sThumbRY;
-} xinput_gamepad;
+} XINPUT_GAMEPAD;
 
-typedef struct xinput_state {
+typedef struct {
   uint32_t dwPacketNumber;
-  xinput_gamepad Gamepad;
-} xinput_state;
-
-typedef struct input_gamepad_state {
-  uint8_t raw_analog[INPUT_ANALOG_BUTTON_COUNT];
-  uint8_t smoothed_analog[INPUT_ANALOG_BUTTON_COUNT];
-  uint8_t analog_hold[INPUT_ANALOG_BUTTON_COUNT];
-  uint8_t digital_hold[INPUT_DIGITAL_BUTTON_COUNT];
-  int16_t stick_lx;
-  int16_t stick_ly;
-  int16_t stick_rx;
-  int16_t stick_ry;
-} input_gamepad_state;
-
-typedef struct input_raw_stick_state {
-  int16_t lx;
-  int16_t ly;
-  int16_t rx;
-  int16_t ry;
-} input_raw_stick_state;
-
-typedef struct input_rumble_state {
-  uint16_t left;
-  uint16_t right;
-} input_rumble_state;
-
-typedef struct input_change_flag_mapping {
-  uint32_t source_mask;
-  uint32_t change_flag;
-} input_change_flag_mapping;
+  XINPUT_GAMEPAD Gamepad;
+} XINPUT_STATE;
 
 #pragma pack(push, 1)
-typedef struct xinput_feedback {
-  uint32_t status;
-  uint8_t header[0x3e];
-  uint16_t left_motor;
-  uint16_t right_motor;
-} xinput_feedback;
+typedef struct {
+  uint32_t dwStatus;
+  uint8_t pad_04[0x3e];
+  uint16_t wLeftMotorSpeed;
+  uint16_t wRightMotorSpeed;
+} XINPUT_FEEDBACK;
 #pragma pack(pop)
+cs(XINPUT_FEEDBACK, 0x46);
 
-cs(xinput_feedback, 0x46);
-co(xinput_feedback, status, 0x0);
-co(xinput_feedback, left_motor, 0x42);
-co(xinput_feedback, right_motor, 0x44);
-cs(input_gamepad_state, 0x28);
-cs(input_raw_stick_state, 0x8);
-cs(input_rumble_state, 0x4);
-co(input_gamepad_state, raw_analog, 0x0);
-co(input_gamepad_state, smoothed_analog, 0x8);
-co(input_gamepad_state, analog_hold, 0x10);
-co(input_gamepad_state, digital_hold, 0x18);
-co(input_gamepad_state, stick_lx, 0x20);
-co(input_gamepad_state, stick_ly, 0x22);
-co(input_gamepad_state, stick_rx, 0x24);
-co(input_gamepad_state, stick_ry, 0x26);
+typedef struct {
+  byte VirtualKey;
+  char Ascii;
+  byte Flags;
+} XINPUT_DEBUG_KEYSTROKE;
 
-#if defined(__clang__) || defined(__GNUC__)
-#define INPUT_UNUSED __attribute__((unused))
-#else
-#define INPUT_UNUSED
-#endif
+typedef struct {
+  uint32_t dwFlags;
+  uint32_t dwQueueSize;
+  uint32_t dwRepeatDelay;
+  uint32_t dwRepeatInterval;
+} XINPUT_DEBUG_KEYQUEUE_PARAMETERS;
 
-static INPUT_UNUSED const input_change_flag_mapping
-k_gamepad_removal_change_flags[4] = {
-  { 0x1, 0x1 },
-  { 0x2, 0x2 },
-  { 0x4, 0x4 },
-  { 0x8, 0x8 },
-};
+typedef struct {
+  void *DeviceType;
+  uint32_t dwPreallocCount;
+} XDEVICE_PREALLOC_TYPE;
 
-static INPUT_UNUSED const input_change_flag_mapping
-k_gamepad_insertion_change_flags[4] = {
-  { 0x1, 0x1000 },
-  { 0x2, 0x2000 },
-  { 0x4, 0x4000 },
-  { 0x8, 0x8000 },
-};
+typedef struct key_stroke {
+  byte modifier_flags;
+  char ascii_code;
+  int16_t key_code;
+} key_stroke_t;
+cs(key_stroke_t, 0x4);
 
-static INPUT_UNUSED const input_change_flag_mapping
-k_mu_removal_change_flags[8] = {
-  { 0x1, 0x10 },  { 0x10000, 0x20 },  { 0x2, 0x40 },  { 0x20000, 0x80 },
-  { 0x4, 0x100 }, { 0x40000, 0x200 }, { 0x8, 0x400 }, { 0x80000, 0x800 },
-};
+typedef struct vibrate_data {
+  uint16_t left_frequency;
+  uint16_t right_frequency;
+} vibrate_data_t;
 
-static INPUT_UNUSED const input_change_flag_mapping
-k_mu_insertion_change_flags[8] = {
-  { 0x1, 0x10000 },     { 0x10000, 0x20000 },  { 0x2, 0x40000 },
-  { 0x20000, 0x80000 }, { 0x4, 0x100000 },     { 0x40000, 0x200000 },
-  { 0x8, 0x400000 },    { 0x80000, 0x800000 },
-};
+typedef struct raw_gamepad_state {
+  point2d sticks[NUMBER_OF_GAMEPAD_STICKS];
+} raw_gamepad_state_t;
+cs(raw_gamepad_state_t, 0x8);
 
-static char *input_suppressed(void)
-{
-  return (char *)0x46ba38;
-}
+typedef struct input_globals {
+  XINPUT_FEEDBACK gamepad_feedbacks[MAXIMUM_GAMEPADS];
+  raw_gamepad_state_t raw_gamepad_states[MAXIMUM_GAMEPADS];
+  boolean suppressed;
+  boolean update_thread_started;
+  uint8_t pad_13a[2];
+  void *gamepad_handles[MAXIMUM_GAMEPADS];
+  gamepad_state_t gamepad_states[MAXIMUM_GAMEPADS];
+  gamepad_state_t suppressed_gamepad_state;
+  vibrate_data_t gamepad_rumbler_states[MAXIMUM_GAMEPADS];
+  int update_thread_handle;
+  void *update_event_handle;
+  boolean update_event_pending;
+  boolean frame_active;
+  uint8_t pad_22e[2];
+  int32_t keyboard_queue_state;
+  void *keyboard_handle;
+  byte key_ticks[NUMBER_OF_KEYS];
+  byte key_latches[NUMBER_OF_KEYS];
+  int16_t buffered_key_read_index;
+  int16_t buffered_key_write_index;
+  key_stroke_t buffered_keys[MAXIMUM_BUFFERED_KEYSTROKES];
+} input_globals_t;
+co(input_globals_t, raw_gamepad_states, 0x118);
+co(input_globals_t, suppressed, 0x138);
+co(input_globals_t, gamepad_handles, 0x13c);
+co(input_globals_t, gamepad_states, 0x14c);
+co(input_globals_t, suppressed_gamepad_state, 0x1ec);
+co(input_globals_t, gamepad_rumbler_states, 0x214);
+co(input_globals_t, update_thread_handle, 0x224);
+co(input_globals_t, update_event_pending, 0x22c);
+co(input_globals_t, frame_active, 0x22d);
+co(input_globals_t, keyboard_queue_state, 0x230);
+co(input_globals_t, key_ticks, 0x238);
+co(input_globals_t, key_latches, 0x2a0);
+co(input_globals_t, buffered_key_read_index, 0x308);
+co(input_globals_t, buffered_keys, 0x30c);
+cs(input_globals_t, 0x40c);
 
-static char *input_initialized(void)
-{
-  return (char *)0x46ba39;
-}
+#define input_globals (*(input_globals_t *)input_globals)
 
-static int *input_gamepad_handles(void)
-{
-  return (int *)0x46ba3c;
-}
 
-static input_gamepad_state *input_gamepad_states(void)
-{
-  return (input_gamepad_state *)0x46ba4c;
-}
-
-static input_raw_stick_state *input_raw_stick_states(void)
-{
-  return (input_raw_stick_state *)0x46ba18;
-}
-
-static void *suppressed_gamepad_state(void)
-{
-  return (void *)0x46baec;
-}
-
-static input_rumble_state *input_rumble_states(void)
-{
-  return (input_rumble_state *)0x46bb14;
-}
-
-static int *input_update_callback_arg(void)
-{
-  return (int *)0x46bb24;
-}
-
-static int *input_update_event_handle(void)
-{
-  return (int *)0x46bb28;
-}
-
-static uint8_t *input_update_event_pending(void)
-{
-  return (uint8_t *)0x46bb2c;
-}
-
-static int *input_keyboard_handle(void)
-{
-  return (int *)0x46bb34;
-}
-
-static int *input_state_file_handle(void)
-{
-  return (int *)0x46b814;
-}
-
-static int *input_state_mode(void)
-{
-  return (int *)0x46b818;
-}
-
-static xinput_feedback *input_feedback_states(void)
-{
-  return (xinput_feedback *)0x46b900;
-}
-
-static uint8_t *input_digital_button_states(void)
-{
-  return (uint8_t *)0x46bb38;
-}
-
-/* Stick-axis-as-key state bytes: each axis is decomposed into positive and
-   negative halves, stored at fixed offsets within the key state region.
-   input_key_is_down returns max(a, b) for each axis pair. */
-static uint8_t *input_stick_axis_key_neg_lx(void)
-{
-  return (uint8_t *)0x46bb71;
-}
-
-static uint8_t *input_stick_axis_key_pos_lx(void)
-{
-  return (uint8_t *)0x46bb7c;
-}
-
-static uint8_t *input_stick_axis_key_neg_ly(void)
-{
-  return (uint8_t *)0x46bb7d;
-}
-
-static uint8_t *input_stick_axis_key_neg_rx(void)
-{
-  return (uint8_t *)0x46bb7e;
-}
-
-static uint8_t *input_stick_axis_key_neg_ry(void)
-{
-  return (uint8_t *)0x46bb7f;
-}
-
-static uint8_t *input_stick_axis_key_pos_ry(void)
-{
-  return (uint8_t *)0x46bb81;
-}
-
-static uint8_t *input_stick_axis_key_pos_rx(void)
-{
-  return (uint8_t *)0x46bb82;
-}
-
-static uint8_t *input_stick_axis_key_pos_ly(void)
-{
-  return (uint8_t *)0x46bb84;
-}
-
-static uint8_t *input_analog_button_states(void)
-{
-  return (uint8_t *)0x46bba0;
-}
-
-static const uint8_t *input_analog_button_index_map(void)
-{
-  return (const uint8_t *)0x281150;
-}
-
-static const uint8_t *input_digital_button_bitmask_map(void)
-{
-  return (const uint8_t *)0x281158;
-}
-
-static int16_t *input_vkey_to_keycode_table(void)
-{
-  return (int16_t *)0x281160;
-}
-
-static int16_t *input_ascii_remap_table(void)
-{
-  return (int16_t *)0x281360;
-}
-
-static uint32_t *input_buffered_key_ring(void)
-{
-  return (uint32_t *)0x46bc0c;
-}
-
-static uint8_t input_saturating_increment(uint8_t value)
-{
-  if (value == 0xFF)
-    return value;
-  return value + 1;
-}
-
-static INPUT_UNUSED uint32_t
-input_apply_change_flags(uint32_t change_flags, uint32_t source_mask,
-                         const input_change_flag_mapping *mappings,
-                         int mapping_count)
-{
-  int i;
-
-  for (i = 0; i < mapping_count; i++) {
-    if (source_mask & mappings[i].source_mask)
-      change_flags |= mappings[i].change_flag;
-  }
-
-  return change_flags;
-}
-
-static void input_update_analog_button_state(input_gamepad_state *gamepad,
-                                             int button_index, uint8_t raw)
-{
-  uint8_t smoothed;
-
-  smoothed = gamepad->smoothed_analog[button_index];
-  gamepad->raw_analog[button_index] = raw;
-  if (raw > smoothed)
-    gamepad->analog_hold[button_index] =
-      input_saturating_increment(gamepad->analog_hold[button_index]);
-  else
-    gamepad->analog_hold[button_index] = 0;
-
-  raw = gamepad->raw_analog[button_index];
-  if (gamepad->analog_hold[button_index] != 0) {
-    if (raw < ANALOG_BTN_DEADZONE)
-      raw = 0;
-    else
-      raw -= ANALOG_BTN_DEADZONE;
-
-    if (raw > smoothed)
-      smoothed = raw;
-  } else {
-    if (raw > ANALOG_BTN_SATURATE)
-      raw = 0xFF;
-    else
-      raw += ANALOG_BTN_RELEASE_DECAY;
-
-    if (raw < smoothed)
-      smoothed = raw;
-  }
-
-  gamepad->smoothed_analog[button_index] = smoothed;
-}
-
-static void input_update_digital_button_state(input_gamepad_state *gamepad,
-                                              int button_index,
-                                              uint16_t buttons)
-{
-  if ((input_digital_button_bitmask_map()[button_index] & buttons) != 0)
-    gamepad->digital_hold[button_index] =
-      input_saturating_increment(gamepad->digital_hold[button_index]);
-  else
-    gamepad->digital_hold[button_index] = 0;
-}
-
-static int16_t input_normalize_stick(int16_t value)
-{
-  int d;
-  int scaled;
-
-  if (value > STICK_DEADZONE)
-    return (int16_t)(((int)value - STICK_DEADZONE) * STICK_POSITIVE_MAX /
-                     STICK_POSITIVE_RANGE);
-
-  if (value < -STICK_DEADZONE) {
-    d = -STICK_DEADZONE - (int)value;
-    scaled = (int)((unsigned long long)((long long)(d * STICK_NEGATIVE_MAX) *
-                                        0x4f880e79LL) >>
-                   32) +
-             d * -STICK_NEGATIVE_MAX;
-    return (int16_t)((scaled >> 14) - (scaled >> 31));
-  }
-
-  return 0;
-}
-
-#ifdef DECOMP_CUSTOM
-/* core-loop debug mode (d:\core_loop.xts): recorded-input playback reloads the
- * saved core and restarts from packet 0 each time the recording ends — a
- * deterministic replay loop that needs no player death. Set in
- * input_check_state_mode, consumed in input_state_process_packet (mode 4 EOF).
- */
-static INPUT_UNUSED int core_loop_enabled = 0;
-#endif
-
-/* 0x000ce4a0 — close the input-state recording/playback file.
- *
- * Confirmed (0xce4a0-0xce4af): loads the global at 0x46b814 once, and when
- * it is non-zero passes it to CloseHandle (0x1cf900, __stdcall — the call is
- * followed directly by RET with no stack cleanup). The handle is NOT zeroed
- * afterwards. 0x46b814 is input_state_file_handle(), the same handle used by
- * FUN_000ce500/FUN_000ce530 (ReadFile/SetFilePointer) and
- * input_recording_write_packet (WriteFile), which is why this function is
- * grouped with input_xbox.obj rather than hs_runtime.obj: its only caller is
- * FUN_000cf490 (0xcf490) here, and the global is referenced exclusively by
- * input_xbox functions (0xce500/0xce530/0xce590/0xce5c0/0xce620).
- * noinline: the original keeps a real CALL here — FUN_000cf490 does not
- * expand this body inline. */
-__declspec(noinline) void FUN_000ce4a0(void)
+/* The original keeps a real call here; input_dispose does not inline it. */
+__declspec(noinline) void input_close_state_file(void)
 {
   int handle;
 
-  handle = *input_state_file_handle();
+  handle = input_state_file_handle;
   if (handle != 0) {
     CloseHandle(handle);
   }
 }
 
-/* input_check_state_mode (0xce4b0)
- * Probe for sentinel files on the D: drive to select input state recording
- * or playback mode.  Sets the global input_state_mode:
- *   d:\write.xts exists  ->  mode 3 (write/record)
- *   d:\read.xts  exists  ->  mode 4 (read/playback)
- *   d:\loop.xts  exists  ->  mode 5 (loop playback)
- * First match wins; if none exist the mode is left unchanged.
- * DECOMP_CUSTOM: d:\core_loop.xts -> mode 4 playback + core_loop_enabled. */
 void input_check_state_mode(void)
 {
   if (file_get_full_attributes("d:\\write.xts") != -1) {
-    *input_state_mode() = 3;
+    input_state_mode = _input_state_mode_record;
     return;
   }
-#if 0 /* DECOMP_CUSTOM core-loop sentinel is not present in debug build 2276. */
-  if (file_get_full_attributes("d:\\core_loop.xts") != -1) {
-    *input_state_mode() = 4;
-    core_loop_enabled = 1;
-    return;
-  }
-#endif
   if (file_get_full_attributes("d:\\read.xts") != -1) {
-    *input_state_mode() = 4;
+    input_state_mode = _input_state_mode_playback;
     return;
   }
   if (file_get_full_attributes("d:\\loop.xts") != -1) {
-    *input_state_mode() = 5;
+    input_state_mode = _input_state_mode_loop;
   }
 }
 
-/* FUN_000ce500 (0xce500)
- * Reads 0x28 bytes from the state file into the buffer via ReadFile. */
-void FUN_000ce500(void *param_1)
+void input_state_read_packet(void *state)
 {
-  void *buf;
-  int handle;
-  uint32_t local_8;
-
-  buf = param_1;
-  handle = *(int *)0x46b814;
-  local_8 = 0;
-  ReadFile(handle, buf, 0x28, &local_8, 0);
-}
-
-/* FUN_000ce530 (0xce530) — read input state packet with seek-and-retry
- *
- * Reads 0x28 bytes from the state file into the provided buffer. If no
- * bytes were read (end-of-file or first read), seeks back to the start
- * of the file and retries once. Used for loop-playback of recorded input. */
-void FUN_000ce530(void *state)
-{
+  int file_handle;
   uint32_t bytes_read;
 
+  file_handle = input_state_file_handle;
   bytes_read = 0;
-  ReadFile(*(int *)0x46b814, state, 0x28, &bytes_read, NULL);
+  ReadFile(file_handle, state, sizeof(gamepad_state_t),
+           &bytes_read, NULL);
+}
+
+void input_state_read_packet_looping(void *state)
+{
+  int file_handle;
+  uint32_t bytes_read;
+
+  file_handle = input_state_file_handle;
+  bytes_read = 0;
+  ReadFile(file_handle, state, sizeof(gamepad_state_t),
+           &bytes_read, NULL);
   if (bytes_read == 0) {
-    SetFilePointer(*(int *)0x46b814, 0, NULL, 0);
-    ReadFile(*(int *)0x46b814, state, 0x28, &bytes_read, NULL);
+    SetFilePointer(input_state_file_handle, 0, NULL, FILE_BEGIN);
+    ReadFile(input_state_file_handle, state, sizeof(gamepad_state_t),
+             &bytes_read, NULL);
   }
 }
 
-/* input_recording_write_packet (0xce590)
- * Write one input_gamepad_state packet (0x28 bytes) to the input state
- * recording file.  Called unconditionally — the caller is responsible for
- * checking the recording mode before invoking this. */
 void input_recording_write_packet(void *state)
 {
+  int file_handle;
   uint32_t bytes_written;
-  int handle;
 
-  handle = *input_state_file_handle();
+  file_handle = input_state_file_handle;
   bytes_written = 0;
-  WriteFile(handle, state, sizeof(input_gamepad_state), &bytes_written, NULL);
+  WriteFile(file_handle, state, sizeof(gamepad_state_t),
+            &bytes_written, NULL);
 }
 
-/* input_open_state_file (0xce5c0)
- * Check for sentinel files to select input state recording/playback mode,
- * then open d:\state.data with the appropriate access flags. */
 void input_open_state_file(void)
 {
   input_check_state_mode();
 
-  if (*input_state_mode() == 3) {
-    *input_state_file_handle() =
-      CreateFileA("d:\\state.data", 0x40000000, 0, 0, 2, 0x8000000, 0);
+  if (input_state_mode == _input_state_mode_record) {
+    input_state_file_handle =
+      CreateFileA("d:\\state.data", GENERIC_WRITE, 0, 0, CREATE_ALWAYS,
+                  FILE_FLAG_SEQUENTIAL_SCAN, 0);
     return;
   }
-  if (*input_state_mode() == 4 || *input_state_mode() == 5) {
-    *input_state_file_handle() =
-      CreateFileA("d:\\state.data", 0x80000000, 0, 0, 3, 0x8000000, 0);
+  if (input_state_mode == _input_state_mode_playback ||
+      input_state_mode == _input_state_mode_loop) {
+    input_state_file_handle =
+      CreateFileA("d:\\state.data", GENERIC_READ, 0, 0, OPEN_EXISTING,
+                  FILE_FLAG_SEQUENTIAL_SCAN, 0);
   }
 }
 
-/* input_state_process_packet (0xce620)
- * Dispatch one input_gamepad_state packet according to the current input
- * state mode:
- *   mode 3 (record)  — write packet to the state file
- *   mode 4 (playback)— read  packet from the state file
- *   mode 5 (loop)    — delegate to FUN_000ce530 for loop-playback handling */
 void input_state_process_packet(void *state)
 {
+  int file_handle;
   uint32_t bytes_transferred;
-  switch (*input_state_mode()) {
-  case 3:
+
+  switch (input_state_mode) {
+  case _input_state_mode_record:
+    file_handle = input_state_file_handle;
     bytes_transferred = 0;
-    WriteFile(*input_state_file_handle(), state, sizeof(input_gamepad_state),
+    WriteFile(file_handle, state, sizeof(gamepad_state_t),
               &bytes_transferred, NULL);
     break;
-  case 4:
+  case _input_state_mode_playback:
+    file_handle = input_state_file_handle;
     bytes_transferred = 0;
-    ReadFile(*input_state_file_handle(), state, sizeof(input_gamepad_state),
+    ReadFile(file_handle, state, sizeof(gamepad_state_t),
              &bytes_transferred, NULL);
     break;
-  case 5:
-    FUN_000ce530(state);
+  case _input_state_mode_loop:
+    input_state_read_packet_looping(state);
     break;
   }
 }
 
-/* FUN_000cf3e0 (0xcf3e0)
- * Remaps a short value from range [-param_2..param_2] to
- * [-0x8000..0x7fff], returning the sign bit if in the dead zone. */
-short FUN_000cf3e0(short param_1, short param_2)
+short fix_dead_zone(short value, short dead_range)
 {
-  if (param_1 > param_2) {
-    return (((int)param_1 - (int)param_2) * 0x7fff) / (0x7fff - (int)param_2);
+  if (value > dead_range) {
+    return (short)((value - dead_range) * SHORT_MAX / (SHORT_MAX - dead_range));
   }
-  if ((int)param_1 < -(int)param_2) {
-    return (((int)param_1 + (int)param_2) * -0x8000) / ((int)param_2 + -0x8000);
+  if (value < -dead_range) {
+    return (short)((value + dead_range) * SHORT_MIN / (SHORT_MIN + dead_range));
   }
   return 0;
 }
 
-/* FUN_000cf430 (0xcf430)
- * Saturating byte counter update. If increment is zero, clears the
- * counter. Otherwise increments it, clamping at 0xff.
- *
- * Reference layout (je/jle): increment path inline, saturation before
- * shared store; set_to_0 is the je target. */
-void FUN_000cf430(uint8_t *counter, char increment)
+void update_ticks(byte *ticks, boolean down)
 {
-  int new_val;
+  int value;
 
-  if (increment != '\0') {
-    new_val = (int)*counter + 1;
-    if (new_val <= 0xff) {
-      goto store;
+  if (down) {
+    value = *ticks + 1;
+    if (value > UNSIGNED_CHAR_MAX) {
+      value = UNSIGNED_CHAR_MAX;
     }
-    new_val = 0xff;
-    *counter = (uint8_t)new_val;
-    return;
+  } else {
+    value = 0;
   }
-  new_val = 0;
-store:
-  *counter = (uint8_t)new_val;
+  *ticks = (byte)value;
 }
 
-/* FUN_000cf490 (0xcf490) */
-void FUN_000cf490(void)
+void input_dispose(void)
 {
-  int *piVar1;
-  int iVar2;
-  int handle;
+  short gamepad_index;
 
-  FUN_000ce4a0();
-  if (*input_keyboard_handle() != 0) {
-    ((xinput_close_fn)0x24c1b8)(*input_keyboard_handle());
-    *input_keyboard_handle() = 0;
+  input_close_state_file();
+  if (input_globals.keyboard_handle != NULL) {
+    XInputClose(input_globals.keyboard_handle);
+    input_globals.keyboard_handle = NULL;
   }
-  piVar1 = input_gamepad_handles();
-  iVar2 = 4;
-  do {
-    if (*piVar1 != 0) {
-      handle = *piVar1;
-      ((xinput_close_fn)0x24c1b8)(handle);
-      *piVar1 = 0;
+  for (gamepad_index = 0; gamepad_index < MAXIMUM_GAMEPADS; gamepad_index++) {
+    if (input_globals.gamepad_handles[gamepad_index] != NULL) {
+      XInputClose(input_globals.gamepad_handles[gamepad_index]);
+      input_globals.gamepad_handles[gamepad_index] = NULL;
     }
-    piVar1 = piVar1 + 1;
-    iVar2 = iVar2 + -1;
-  } while (iVar2 != 0);
-  return;
+  }
 }
 
 void input_flush(void)
 {
-  csmemset(input_gamepad_states(), 0,
-           sizeof(input_gamepad_state) * MAXIMUM_GAMEPADS);
-  csmemset(input_digital_button_states(), 0, INPUT_KEY_COUNT);
-  csmemset(input_analog_button_states(), 0, INPUT_KEY_COUNT);
-  word_46BC08 = 0;
-  word_46BC0A = 0;
-  csmemset(dword_46BC0C, 0, 0x100u);
+  csmemset(input_globals.gamepad_states, 0,
+           sizeof(input_globals.gamepad_states));
+  csmemset(input_globals.key_ticks, 0, sizeof(input_globals.key_ticks));
+  csmemset(input_globals.key_latches, 0, sizeof(input_globals.key_latches));
+  input_globals.buffered_key_read_index = 0;
+  input_globals.buffered_key_write_index = 0;
+  csmemset(input_globals.buffered_keys, 0,
+           sizeof(input_globals.buffered_keys));
 }
 
 bool input_key_is_down(uint16_t key_code)
 {
-  int16_t key = (int16_t)key_code;
-  uint8_t a, b;
+  short key;
+  bool result;
 
-  if (*input_suppressed())
-    return false;
-  switch (key - INPUT_AXIS_KEY_LEFT_X) {
-  case 0: /* left stick X */
-    a = *input_stick_axis_key_pos_lx();
-    b = *input_stick_axis_key_neg_lx();
-    if (b <= a)
-      return a;
-    return b;
-  case 1: /* left stick Y */
-    a = *input_stick_axis_key_pos_ly();
-    b = *input_stick_axis_key_neg_ly();
-    if (b <= a)
-      return a;
-    return b;
-  case 2: /* right stick X */
-    /* The binary uses <= here, unlike the left-stick cases. Preserve that tie
-     * behavior. */
-    a = *input_stick_axis_key_neg_rx();
-    b = *input_stick_axis_key_pos_rx();
-    return a <= b ? b : a;
-  case 3: /* right stick Y */
-    a = *input_stick_axis_key_neg_ry();
-    b = *input_stick_axis_key_pos_ry();
-    return a <= b ? b : a;
-  default:
-    assert_halt_msg_at("key_code>=0 && key_code<NUMBER_OF_KEYS", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x13a, key >= 0 && key < INPUT_KEY_COUNT);
-    return input_digital_button_states()[key];
+  key = (short)key_code;
+  result = false;
+  if (!input_globals.suppressed) {
+    switch (key) {
+    case _key_shift:
+      result = MAX(input_globals.key_ticks[_key_left_shift],
+                   input_globals.key_ticks[_key_right_shift]);
+      break;
+    case _key_control:
+      result = MAX(input_globals.key_ticks[_key_left_control],
+                   input_globals.key_ticks[_key_right_control]);
+      break;
+    case _key_windows:
+      result = MAX(input_globals.key_ticks[_key_left_windows],
+                   input_globals.key_ticks[_key_right_windows]);
+      break;
+    case _key_alt:
+      result = MAX(input_globals.key_ticks[_key_left_alt],
+                   input_globals.key_ticks[_key_right_alt]);
+      break;
+    default:
+      assert_halt_msg_at("key_code>=0 && key_code<NUMBER_OF_KEYS",
+                         "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x13a,
+                         key >= 0 && key < NUMBER_OF_KEYS);
+      result = input_globals.key_ticks[key];
+      break;
+    }
   }
+  return result;
 }
 
-/* Dequeue the next keystroke from the ring buffer.
- *
- * The buffer holds up to 64 entries (MAXIMUM_BUFFERED_KEYSTROKES = 0x40).
- * word_46BC08 = read index, word_46BC0A = write index.
- * Returns true and copies one dword-sized keystroke into *out_keystroke if a
- * key is available; returns false immediately if the buffer is empty.
- *
- * Note: does NOT check input_suppressed — buffered keys always drain even
- * when input is globally suppressed. */
 bool input_get_buffered_key(void *out_keystroke)
 {
-  int16_t read_idx;
+  key_stroke_t *key;
+  bool result;
 
-  if (word_46BC08 >= word_46BC0A)
-    return false;
-
-  assert_halt_msg_at("input_globals.buffered_key_read_index>=0 && input_globals.buffered_key_read_index<MAXIMUM_BUFFERED_KEYSTROKES", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x14e, word_46BC08 >= 0 && word_46BC08 < 0x40);
-
-  read_idx = word_46BC08;
-  *(int *)out_keystroke = dword_46BC0C[read_idx];
-  word_46BC08 = word_46BC08 + 1;
-  return true;
+  key = out_keystroke;
+  result = false;
+  if (input_globals.buffered_key_read_index <
+      input_globals.buffered_key_write_index) {
+    assert_halt_msg_at("input_globals.buffered_key_read_index>=0 && "
+                       "input_globals.buffered_key_read_index<"
+                       "MAXIMUM_BUFFERED_KEYSTROKES",
+                       "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x14e,
+                       input_globals.buffered_key_read_index >= 0 &&
+                         input_globals.buffered_key_read_index <
+                           MAXIMUM_BUFFERED_KEYSTROKES);
+    *key = input_globals
+             .buffered_keys[input_globals.buffered_key_read_index++];
+    result = true;
+  }
+  return result;
 }
 
-/* input_get_mouse_state (0xcf690)
- * Returns NULL: no mouse state. */
 void *input_get_mouse_state(void)
 {
   return NULL;
@@ -672,489 +439,474 @@ void *input_get_mouse_state(void)
 
 bool input_has_gamepad(int16_t gamepad_index)
 {
-  assert_halt_msg_at("gamepad_index>=0 && gamepad_index<MAXIMUM_GAMEPADS", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x171, gamepad_index >= 0 && gamepad_index < MAXIMUM_GAMEPADS);
-  return input_gamepad_handles()[gamepad_index] != 0;
+  assert_halt_msg_at("gamepad_index>=0 && gamepad_index<MAXIMUM_GAMEPADS",
+                     "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x171,
+                     gamepad_index >= 0 && gamepad_index < MAXIMUM_GAMEPADS);
+  return input_globals.gamepad_handles[gamepad_index] != NULL;
 }
 
 void *input_get_gamepad_state(int16_t gamepad_index)
 {
-  void *result;
-  int16_t index;
+  gamepad_state_t *result;
 
   result = NULL;
-  index = gamepad_index;
-  assert_halt_msg_at("gamepad_index>=0 && gamepad_index<MAXIMUM_GAMEPADS", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x17b, index >= 0 && index < MAXIMUM_GAMEPADS);
-  if (input_gamepad_handles()[index] != 0) {
-    if (*input_suppressed())
-      result = suppressed_gamepad_state();
+  assert_halt_msg_at("gamepad_index>=0 && gamepad_index<MAXIMUM_GAMEPADS",
+                     "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x17b,
+                     gamepad_index >= 0 && gamepad_index < MAXIMUM_GAMEPADS);
+  if (input_globals.gamepad_handles[gamepad_index] != NULL) {
+    if (input_globals.suppressed)
+      result = &input_globals.suppressed_gamepad_state;
     else
-      result = &input_gamepad_states()[index];
+      result = &input_globals.gamepad_states[gamepad_index];
   }
   return result;
 }
 
 void input_set_rumble(int16_t gamepad_index, uint16_t left, uint16_t right)
 {
-  int offset;
-
-  assert_halt_msg_at("gamepad_index>=0 && gamepad_index<MAXIMUM_GAMEPADS", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x198, gamepad_index >= 0 && gamepad_index < MAXIMUM_GAMEPADS);
+  assert_halt_msg_at("gamepad_index>=0 && gamepad_index<MAXIMUM_GAMEPADS",
+                     "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x198,
+                     gamepad_index >= 0 && gamepad_index < MAXIMUM_GAMEPADS);
   if (!player_ui_rumble_disabled(gamepad_index)) {
-    offset = (int)gamepad_index << 2;
-    *(uint16_t *)(0x46bb14 + offset) = left;
-    *(uint16_t *)(0x46bb16 + offset) = right;
+    input_globals.gamepad_rumbler_states[gamepad_index].left_frequency = left;
+    input_globals.gamepad_rumbler_states[gamepad_index].right_frequency =
+      right;
   }
 }
 
 void input_tick(void)
 {
-  if (*input_update_event_pending() != 0) {
-    ((xset_event_fn)0x1cfeaa)(*input_update_event_handle());
+  if (input_globals.update_event_pending) {
+    SetEvent(input_globals.update_event_handle);
   }
-  *input_update_event_pending() = *input_update_event_pending() == 0;
+  input_globals.update_event_pending = !input_globals.update_event_pending;
+}
+
+static void input_update_analog_button_state(byte *threshold, byte value,
+                                             boolean pressed)
+{
+  byte new_threshold;
+
+  if (pressed) {
+    if (value < ANALOG_BUTTON_PRESS_THRESHOLD_OFFSET)
+      new_threshold = 0;
+    else
+      new_threshold = value - ANALOG_BUTTON_PRESS_THRESHOLD_OFFSET;
+    if (new_threshold > *threshold)
+      *threshold = new_threshold;
+  } else {
+    if (value > ANALOG_BUTTON_RELEASE_SATURATION)
+      new_threshold = UNSIGNED_CHAR_MAX;
+    else
+      new_threshold = value + ANALOG_BUTTON_RELEASE_THRESHOLD_OFFSET;
+    if (new_threshold < *threshold)
+      *threshold = new_threshold;
+  }
 }
 
 void input_get_device_states(void)
 {
-  uint32_t insertions, removals;
-  uint32_t mu_insertions, mu_removals;
-  uint32_t change_flags;
-  int *handles;
-  input_gamepad_state *gamepad_states;
-  input_raw_stick_state *raw_stick_states;
-  const uint8_t *analog_button_index_map;
-  uint32_t mask;
-  int i, j;
-  int result;
-  xinput_state state;
-  xinput_gamepad *input_state;
-  uint8_t raw;
+  uint32_t memory_unit_insertions;
+  uint32_t memory_unit_removals;
+  uint32_t device_change_flags;
+  short gamepad_index;
 
-  change_flags = 0;
-  result =
-    ((xinput_get_changes_fn)0x24c954)((void *)0x24b29c, &insertions, &removals);
-  if (result != 0) {
-    handles = input_gamepad_handles();
-    i = 0;
-    j = MAXIMUM_GAMEPADS;
-    do {
-      mask = 1 << i;
-      if (removals & mask) {
-        if (*handles == 0) {
-          display_assert("input_globals.gamepad_handles[gamepad_index]",
-                         "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x217, 1);
-          system_exit(-1);
+  device_change_flags = 0;
+  {
+    uint32_t insertions;
+    uint32_t removals;
+
+    if (XGetDeviceChanges(XDEVICE_TYPE_GAMEPAD, &insertions, &removals)) {
+      for (gamepad_index = 0; gamepad_index < MAXIMUM_GAMEPADS;
+           gamepad_index++) {
+        if (removals & FLAG(gamepad_index)) {
+          assert_halt_msg_at("input_globals.gamepad_handles[gamepad_index]",
+                             "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x217,
+                             input_globals.gamepad_handles[gamepad_index] !=
+                               NULL);
+          XInputClose(input_globals.gamepad_handles[gamepad_index]);
+          input_globals.gamepad_handles[gamepad_index] = NULL;
         }
-        ((xinput_close_fn)0x24c1b8)(*handles);
-        *handles = 0;
-      }
-      if (insertions & mask) {
-        if (*handles != 0) {
-          display_assert("input_globals.gamepad_handles[gamepad_index]==NULL",
-                         "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x21e, 1);
-          system_exit(-1);
-        }
-        *handles = ((xinput_open_fn)0x24c143)((void *)0x24b29c, i, 0, 0);
-        if (*handles == 0) {
-          result = ((int(__stdcall *)(void))0x1d2240)();
-          error(2, "XInputOpen (gamepad) failed (#%d) during input_update()",
-                result);
+        if (insertions & FLAG(gamepad_index)) {
+          assert_halt_msg_at(
+            "input_globals.gamepad_handles[gamepad_index]==NULL",
+            "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x21e,
+            input_globals.gamepad_handles[gamepad_index] == NULL);
+          input_globals.gamepad_handles[gamepad_index] =
+            XInputOpen(XDEVICE_TYPE_GAMEPAD, gamepad_index, XDEVICE_NO_SLOT,
+                       NULL);
+          if (input_globals.gamepad_handles[gamepad_index] == NULL) {
+            error(_error_silent,
+                  "XInputOpen (gamepad) failed (#%d) during input_update()",
+                  xapi_GetLastError());
+          }
         }
       }
-      handles++;
-      i++;
-      j--;
-    } while (j != 0);
-    if ((removals & 0x1) != 0) change_flags |= 0x1;
-    if ((removals & 0x2) != 0) change_flags |= 0x2;
-    if ((removals & 0x4) != 0) change_flags |= 0x4;
-    if ((removals & 0x8) != 0) change_flags |= 0x8;
-    if ((insertions & 0x1) != 0) change_flags |= 0x1000;
-    if ((insertions & 0x2) != 0) change_flags |= 0x2000;
-    if ((insertions & 0x4) != 0) change_flags |= 0x4000;
-    if ((insertions & 0x8) != 0) change_flags |= 0x8000;
+
+      if (removals & FLAG(XDEVICE_PORT0))
+        device_change_flags |= FLAG(_input_device_change_gamepad0_removed);
+      if (removals & FLAG(XDEVICE_PORT1))
+        device_change_flags |= FLAG(_input_device_change_gamepad1_removed);
+      if (removals & FLAG(XDEVICE_PORT2))
+        device_change_flags |= FLAG(_input_device_change_gamepad2_removed);
+      if (removals & FLAG(XDEVICE_PORT3))
+        device_change_flags |= FLAG(_input_device_change_gamepad3_removed);
+      if (insertions & FLAG(XDEVICE_PORT0))
+        device_change_flags |= FLAG(_input_device_change_gamepad0_inserted);
+      if (insertions & FLAG(XDEVICE_PORT1))
+        device_change_flags |= FLAG(_input_device_change_gamepad1_inserted);
+      if (insertions & FLAG(XDEVICE_PORT2))
+        device_change_flags |= FLAG(_input_device_change_gamepad2_inserted);
+      if (insertions & FLAG(XDEVICE_PORT3))
+        device_change_flags |= FLAG(_input_device_change_gamepad3_inserted);
+    }
   }
 
-  result = ((xinput_get_changes_fn)0x24c954)((void *)0x24b218, &mu_insertions,
-                                             &mu_removals);
-  if (result != 0) {
-    /* MU (memory unit) insertion/removal flags.
-     * XInput packs controller index (bits 0-3) and MU slot (bits 16-19)
-     * into a single bitmask. The mapping below translates XInput bit
-     * positions to internal change_flags bit positions:
-     *
-     *   XInput bit     →  change_flags bit   meaning
-     *   ─────────────────────────────────────────────────────────
-     *   bit 0  (slot A) → 0x010  MU A removed  │  0x010000  MU A inserted
-     *   bit 16 (MU A)   → 0x020  MU A port gone │  0x020000  MU A port added
-     *   bit 1  (slot B) → 0x040  MU B removed  │  0x040000  MU B inserted
-     *   bit 17 (MU B)   → 0x080  MU B port gone │  0x080000  MU B port added
-     *   bit 2  (slot C) → 0x100  MU C removed  │  0x100000  MU C inserted
-     *   bit 18 (MU C)   → 0x200  MU C port gone │  0x200000  MU C port added
-     *   bit 3  (slot D) → 0x400  MU D removed  │  0x400000  MU D inserted
-     *   bit 19 (MU D)   → 0x800  MU D port gone │  0x800000  MU D port added
-     */
-    if ((mu_removals & 0x1) != 0) change_flags |= 0x10;
-    if ((mu_removals & 0x10000) != 0) change_flags |= 0x20;
-    if ((mu_removals & 0x2) != 0) change_flags |= 0x40;
-    if ((mu_removals & 0x20000) != 0) change_flags |= 0x80;
-    if ((mu_removals & 0x4) != 0) change_flags |= 0x100;
-    if ((mu_removals & 0x40000) != 0) change_flags |= 0x200;
-    if ((mu_removals & 0x8) != 0) change_flags |= 0x400;
-    if ((mu_removals & 0x80000) != 0) change_flags |= 0x800;
-    if ((mu_insertions & 0x1) != 0) change_flags |= 0x10000;
-    if ((mu_insertions & 0x10000) != 0) change_flags |= 0x20000;
-    if ((mu_insertions & 0x2) != 0) change_flags |= 0x40000;
-    if ((mu_insertions & 0x20000) != 0) change_flags |= 0x80000;
-    if ((mu_insertions & 0x4) != 0) change_flags |= 0x100000;
-    if ((mu_insertions & 0x40000) != 0) change_flags |= 0x200000;
-    if ((mu_insertions & 0x8) != 0) change_flags |= 0x400000;
-    if ((mu_insertions & 0x80000) != 0) change_flags |= 0x800000;
+  if (XGetDeviceChanges(XDEVICE_TYPE_MEMORY_UNIT, &memory_unit_insertions,
+                        &memory_unit_removals)) {
+    if (memory_unit_removals & XDEVICE_PORT0_TOP_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit0_removed);
+    if (memory_unit_removals & XDEVICE_PORT0_BOTTOM_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit1_removed);
+    if (memory_unit_removals & XDEVICE_PORT1_TOP_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit2_removed);
+    if (memory_unit_removals & XDEVICE_PORT1_BOTTOM_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit3_removed);
+    if (memory_unit_removals & XDEVICE_PORT2_TOP_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit4_removed);
+    if (memory_unit_removals & XDEVICE_PORT2_BOTTOM_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit5_removed);
+    if (memory_unit_removals & XDEVICE_PORT3_TOP_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit6_removed);
+    if (memory_unit_removals & XDEVICE_PORT3_BOTTOM_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit7_removed);
+    if (memory_unit_insertions & XDEVICE_PORT0_TOP_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit0_inserted);
+    if (memory_unit_insertions & XDEVICE_PORT0_BOTTOM_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit1_inserted);
+    if (memory_unit_insertions & XDEVICE_PORT1_TOP_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit2_inserted);
+    if (memory_unit_insertions & XDEVICE_PORT1_BOTTOM_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit3_inserted);
+    if (memory_unit_insertions & XDEVICE_PORT2_TOP_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit4_inserted);
+    if (memory_unit_insertions & XDEVICE_PORT2_BOTTOM_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit5_inserted);
+    if (memory_unit_insertions & XDEVICE_PORT3_TOP_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit6_inserted);
+    if (memory_unit_insertions & XDEVICE_PORT3_BOTTOM_MASK)
+      device_change_flags |= FLAG(_input_device_change_memory_unit7_inserted);
   }
 
-  ((void (*)(uint32_t))0xce840)(change_flags);
+  input_abstraction_update_device_changes(device_change_flags);
 
-  handles = input_gamepad_handles();
-  gamepad_states = input_gamepad_states();
-  raw_stick_states = input_raw_stick_states();
-  analog_button_index_map = input_analog_button_index_map();
-  for (i = 0; i < MAXIMUM_GAMEPADS; i++) {
-    if (handles[i] != 0) {
-      result = ((xinput_get_state_fn)0x24c3b6)(handles[i], &state);
-      if (result < 0) {
-        error(2, "XGetState (gamepad) failed (#%d) during input_update()",
-              result);
+  for (gamepad_index = 0; gamepad_index < MAXIMUM_GAMEPADS; gamepad_index++) {
+    if (input_globals.gamepad_handles[gamepad_index] != NULL) {
+      XINPUT_STATE input_state;
+      int result;
+
+      result =
+        XInputGetState(input_globals.gamepad_handles[gamepad_index],
+                       &input_state);
+      if (result >= 0) {
+        gamepad_state_t *gamepad_state;
+        short button_index;
+
+        gamepad_state = &input_globals.gamepad_states[gamepad_index];
+        for (button_index = 0; button_index < NUMBER_OF_GAMEPAD_ANALOG_BUTTONS;
+             button_index++) {
+          gamepad_state->analog_buttons[button_index] =
+            input_state.Gamepad
+              .bAnalogButtons[gamepad_analog_button_indices[button_index]];
+          update_ticks(&gamepad_state->buttons[button_index],
+                       gamepad_state->analog_buttons[button_index] >
+                         gamepad_state->analog_button_thresholds[button_index]);
+          input_update_analog_button_state(
+            &gamepad_state->analog_button_thresholds[button_index],
+            gamepad_state->analog_buttons[button_index],
+            gamepad_state->buttons[button_index] != 0);
+        }
+        for (button_index = 0; button_index < NUMBER_OF_GAMEPAD_BINARY_BUTTONS;
+             button_index++) {
+          update_ticks(
+            &gamepad_state->buttons[FIRST_GAMEPAD_BINARY_BUTTON + button_index],
+            (input_state.Gamepad.wButtons &
+             gamepad_binary_button_masks[button_index]) != 0);
+        }
+
+        input_globals.raw_gamepad_states[gamepad_index]
+          .sticks[_gamepad_stick_left].x = input_state.Gamepad.sThumbLX;
+        input_globals.raw_gamepad_states[gamepad_index]
+          .sticks[_gamepad_stick_left].y = input_state.Gamepad.sThumbLY;
+        input_globals.raw_gamepad_states[gamepad_index]
+          .sticks[_gamepad_stick_right].x = input_state.Gamepad.sThumbRX;
+        input_globals.raw_gamepad_states[gamepad_index]
+          .sticks[_gamepad_stick_right].y = input_state.Gamepad.sThumbRY;
+
+        gamepad_state->sticks[_gamepad_stick_left].x =
+          fix_dead_zone(input_state.Gamepad.sThumbLX, GAMEPAD_STICK_DEAD_RANGE);
+        gamepad_state->sticks[_gamepad_stick_left].y =
+          fix_dead_zone(input_state.Gamepad.sThumbLY, GAMEPAD_STICK_DEAD_RANGE);
+        gamepad_state->sticks[_gamepad_stick_right].x =
+          fix_dead_zone(input_state.Gamepad.sThumbRX, GAMEPAD_STICK_DEAD_RANGE);
+        gamepad_state->sticks[_gamepad_stick_right].y =
+          fix_dead_zone(input_state.Gamepad.sThumbRY, GAMEPAD_STICK_DEAD_RANGE);
       } else {
-        input_state = &state.Gamepad;
-
-        /* analog buttons (8): smoothing with hysteresis */
-        for (j = 0; j < INPUT_ANALOG_BUTTON_COUNT; j++) {
-          raw = input_state->bAnalogButtons[analog_button_index_map[j]];
-          input_update_analog_button_state(&gamepad_states[i], j, raw);
-        }
-
-        /* digital buttons (8): press duration */
-        for (j = 0; j < INPUT_DIGITAL_BUTTON_COUNT; j++) {
-          input_update_digital_button_state(&gamepad_states[i], j,
-                                            input_state->wButtons);
-        }
-
-        raw_stick_states[i].lx = input_state->sThumbLX;
-        raw_stick_states[i].ly = input_state->sThumbLY;
-        raw_stick_states[i].rx = input_state->sThumbRX;
-        raw_stick_states[i].ry = input_state->sThumbRY;
-
-        gamepad_states[i].stick_lx =
-          input_normalize_stick(input_state->sThumbLX);
-        gamepad_states[i].stick_ly =
-          input_normalize_stick(input_state->sThumbLY);
-        gamepad_states[i].stick_rx =
-          input_normalize_stick(input_state->sThumbRX);
-        gamepad_states[i].stick_ry =
-          input_normalize_stick(input_state->sThumbRY);
+        error(_error_silent,
+              "XGetState (gamepad) failed (#%d) during input_update()", result);
       }
     }
   }
 }
 
-#define ERROR_IO_PENDING 0x3e5
-
-/* input_flush_rumble (0xcfd00)
- * Send rumble motor commands to all connected gamepads. Called from
- * input_keyboard_thread. Motors are silenced when input is suppressed or
- * game state does not warrant rumble. */
 void input_flush_rumble(void)
 {
-  bool suppress;
-  int handle;
-  int i;
-  xinput_feedback *feedback;
+  boolean suppress_rumble;
+  short gamepad_index;
 
-  if (!*input_suppressed() && !console_is_active() && !game_time_get_paused() &&
-      game_in_progress()) {
-    suppress = false;
-  } else {
-    suppress = true;
-  }
-
-  feedback = input_feedback_states();
-  for (i = 0; i < MAXIMUM_GAMEPADS; i++) {
-    handle = input_gamepad_handles()[i];
-    if (handle != 0) {
-      if (feedback->status == 0) {
-        feedback->left_motor = suppress ? 0 : input_rumble_states()[i].left;
-        feedback->right_motor = suppress ? 0 : input_rumble_states()[i].right;
-        XInputSetState(handle, feedback);
-      } else if (feedback->status != ERROR_IO_PENDING) {
-        feedback->status = 0;
+  suppress_rumble = input_globals.suppressed || console_is_active() ||
+                    game_time_get_paused() || !game_in_progress();
+  for (gamepad_index = 0; gamepad_index < MAXIMUM_GAMEPADS; gamepad_index++) {
+    if (input_globals.gamepad_handles[gamepad_index] != NULL) {
+      if (input_globals.gamepad_feedbacks[gamepad_index].dwStatus ==
+          ERROR_SUCCESS) {
+        input_globals.gamepad_feedbacks[gamepad_index].wLeftMotorSpeed =
+          suppress_rumble ?
+            0 :
+            input_globals.gamepad_rumbler_states[gamepad_index].left_frequency;
+        input_globals.gamepad_feedbacks[gamepad_index].wRightMotorSpeed =
+          suppress_rumble ?
+            0 :
+            input_globals.gamepad_rumbler_states[gamepad_index].right_frequency;
+        XInputSetState(input_globals.gamepad_handles[gamepad_index],
+                       &input_globals.gamepad_feedbacks[gamepad_index]);
+      } else if (input_globals.gamepad_feedbacks[gamepad_index].dwStatus !=
+                 ERROR_IO_PENDING) {
+        input_globals.gamepad_feedbacks[gamepad_index].dwStatus = ERROR_SUCCESS;
       }
     }
-    feedback++;
   }
 }
 
-/* input_update_keyboard_devices (0xcfdb0)
- *
- * Hot-plug XDEVICE_TYPE_DEBUG_KEYBOARD handles, age held-key frame counters,
- * and drain the XInput keystroke ring into the digital/analog key state arrays
- * and the 64-entry buffered-key ring at 0x46bc0c.
- *
- * Keystroke packed event layout (dword stored in ring):
- *   bits 31-16: key_code (0x0000-0x0067)
- *   bits 15-8:  remapped ASCII (0xff if not in remap table)
- *   bits  7-0:  modifier flags (bits 0/1 are flags bits 1/0 swapped; bit 2
- *               is flags bit 2) */
 void input_update_keyboard_devices(void)
 {
-  uint32_t insertions, removals;
-  uint32_t mask;
-  int keyboard_handle;
-  int err;
-  int i;
-  uint8_t *digital;
-  uint8_t *analog;
-  uint32_t keystroke;
-  uint8_t ascii_byte;
-  uint8_t flags_byte;
-  uint8_t modifier;
-  uint8_t ascii_remap;
-  int16_t key_code;
-  uint32_t event_packed;
-  uint32_t hold;
+  {
+    uint32_t insertions;
+    uint32_t removals;
 
-  if (((xinput_get_changes_fn)0x24c954)((void *)0x24b2a8, &insertions,
-                                        &removals)) {
-    keyboard_handle = *input_keyboard_handle();
-    for (i = 0; i < 32; i++) {
-      mask = 1u << i;
-      if (removals & mask) {
-        if (keyboard_handle == 0) {
-          display_assert("input_globals.keyboard_handle",
-                         "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x2d5, 1);
-          system_exit(-1);
-          keyboard_handle = *input_keyboard_handle();
+    if (XGetDeviceChanges(XDEVICE_TYPE_DEBUG_KEYBOARD, &insertions,
+                          &removals)) {
+      int keyboard_index;
+      int keyboard_count;
+
+      keyboard_index = 0;
+      keyboard_count = LONG_BITS;
+      while (keyboard_count) {
+        uint32_t keyboard_mask;
+
+        keyboard_mask = FLAG(keyboard_index);
+        if (removals & keyboard_mask) {
+          assert_halt_msg_at("input_globals.keyboard_handle",
+                             "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x2d5,
+                             input_globals.keyboard_handle != NULL);
+          XInputClose(input_globals.keyboard_handle);
+          input_globals.keyboard_handle = NULL;
         }
-        ((xinput_close_fn)0x24c1b8)(keyboard_handle);
-        keyboard_handle = 0;
-        *input_keyboard_handle() = 0;
-      }
-      if (insertions & mask) {
-        if (keyboard_handle != 0) {
-          display_assert("input_globals.keyboard_handle==NULL",
-                         "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x2dc, 1);
-          system_exit(-1);
+        if (insertions & keyboard_mask) {
+          assert_halt_msg_at("input_globals.keyboard_handle==NULL",
+                             "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x2dc,
+                             input_globals.keyboard_handle == NULL);
+          input_globals.keyboard_handle =
+            XInputOpen(XDEVICE_TYPE_DEBUG_KEYBOARD, keyboard_index,
+                       XDEVICE_NO_SLOT, NULL);
+          if (input_globals.keyboard_handle == NULL) {
+            error(_error_silent,
+                  "XInputOpen (keyboard) failed (#%d) during input_update()",
+                  xapi_GetLastError());
+          }
         }
-        *input_keyboard_handle() =
-          ((xinput_open_fn)0x24c143)((void *)0x24b2a8, i, 0, 0);
-        keyboard_handle = *input_keyboard_handle();
-        if (*input_keyboard_handle() == 0) {
-          err = ((int(__stdcall *)(void))0x1d2240)();
-          error(2, "XInputOpen (keyboard) failed (#%d) during input_update()",
-                err);
-          keyboard_handle = *input_keyboard_handle();
-        }
+        keyboard_index++;
+        keyboard_count--;
       }
     }
   }
 
-  /* aging pass: saturating-increment held-key counters, zero released keys */
-  digital = input_digital_button_states();
-  analog = input_analog_button_states();
-  for (i = 0; i < INPUT_KEY_COUNT; i++) {
-    hold = analog[i] ? (uint32_t)digital[i] + 1 : 0;
-    digital[i] = (uint8_t)(hold > 0xff ? 0xff : hold);
+  {
+    short key_code;
+
+    for (key_code = 0; key_code < NUMBER_OF_KEYS; key_code++) {
+      update_ticks(&input_globals.key_ticks[key_code],
+                   input_globals.key_latches[key_code]);
+    }
   }
 
-  /* reset buffered-key ring before draining new keystrokes */
-  *(uint16_t *)0x46bc08 = 0;
-  *(uint16_t *)0x46bc0a = 0;
+  input_globals.buffered_key_read_index = 0;
+  input_globals.buffered_key_write_index = 0;
 
-  while (((xinput_get_keystroke_fn)0x252ad9)(&keystroke) == 0) {
-    ascii_byte = (uint8_t)(keystroke >> 8);
-    flags_byte = (uint8_t)(keystroke >> 16);
-    modifier = (uint8_t)(((flags_byte >> 1) & 1) | ((flags_byte & 1) << 1) |
-                         (flags_byte & 4));
+  {
+    XINPUT_DEBUG_KEYSTROKE keystroke;
 
-    if (ascii_byte >= 0x80) {
-      display_assert(
+    while (XInputDebugGetKeystroke(&keystroke) == ERROR_SUCCESS) {
+      key_stroke_t key;
+
+      key.modifier_flags =
+        (keystroke.Flags & XINPUT_DEBUG_KEYSTROKE_FLAG_SHIFT) != 0;
+      if (keystroke.Flags & XINPUT_DEBUG_KEYSTROKE_FLAG_CTRL)
+        key.modifier_flags |= FLAG(_key_modifier_control);
+      else
+        key.modifier_flags &= ~FLAG(_key_modifier_control);
+      if (keystroke.Flags & XINPUT_DEBUG_KEYSTROKE_FLAG_ALT)
+        key.modifier_flags |= FLAG(_key_modifier_alt);
+      else
+        key.modifier_flags &= ~FLAG(_key_modifier_alt);
+
+      assert_halt_msg_at(
         "keystroke.Ascii>=0 && keystroke.Ascii<NUMBER_OF_ASCII_CODES",
-        "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x305, 1);
-      system_exit(-1);
-    }
+        "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x305,
+        keystroke.Ascii >= 0 &&
+          (int)keystroke.Ascii < NUMBER_OF_ASCII_CODES);
+      key.ascii_code =
+        ascii_to_key_code[(int)keystroke.Ascii] != NONE ? keystroke.Ascii : NONE;
 
-    ascii_remap = (input_ascii_remap_table()[ascii_byte] != -1) ? ascii_byte :
-                                                                  (uint8_t)0xff;
-
-    /* VirtualKey is 1 byte (0-255), so the < NUMBER_OF_VIRTUAL_CODES (256)
-     * assert can never fail; included to mirror the original binary */
-    if ((uint32_t)(uint8_t)keystroke >= 0x100u) {
-      display_assert("keystroke.VirtualKey>=0 && "
-                     "keystroke.VirtualKey<NUMBER_OF_VIRTUAL_CODES",
-                     "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x308, 1);
-      system_exit(-1);
-    }
-
-    key_code = input_vkey_to_keycode_table()[(uint8_t)keystroke];
-
-    if (key_code != -1) {
-      if (key_code < 0 || key_code >= INPUT_KEY_COUNT) {
-        display_assert("key.key_code>=0 && key.key_code<NUMBER_OF_KEYS",
-                       "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x30e, 1);
-        system_exit(-1);
-      }
-
-      if (flags_byte & 0x40) {
-        analog[key_code] = 0;
-        if (digital[key_code] > 1)
-          digital[key_code] = 0;
-      } else {
-        event_packed = ((uint32_t)(uint16_t)key_code << 16) |
-                       ((uint32_t)ascii_remap << 8) | modifier;
-        if (*(uint16_t *)0x46bc0a < 0x40) {
-          input_buffered_key_ring()[*(uint16_t *)0x46bc0a] = event_packed;
-          (*(uint16_t *)0x46bc0a)++;
+      assert_halt_msg_at("keystroke.VirtualKey>=0 && "
+                         "keystroke.VirtualKey<NUMBER_OF_VIRTUAL_CODES",
+                         "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x308,
+                         keystroke.VirtualKey >= 0 &&
+                           (int)keystroke.VirtualKey < NUMBER_OF_VIRTUAL_CODES);
+      key.key_code = virtual_key_to_key_code[keystroke.VirtualKey];
+      if (key.key_code != NONE) {
+        assert_halt_msg_at("key.key_code>=0 && key.key_code<NUMBER_OF_KEYS",
+                           "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x30e,
+                           key.key_code >= 0 && key.key_code < NUMBER_OF_KEYS);
+        if (keystroke.Flags & XINPUT_DEBUG_KEYSTROKE_FLAG_KEYUP) {
+          input_globals.key_latches[key.key_code] = false;
+          if (input_globals.key_ticks[key.key_code] > 1) {
+            input_globals.key_ticks[key.key_code] = 0;
+          }
+        } else {
+          if (input_globals.buffered_key_write_index <
+              MAXIMUM_BUFFERED_KEYSTROKES) {
+            input_globals
+              .buffered_keys[input_globals.buffered_key_write_index++] = key;
+          }
+          input_globals.key_latches[key.key_code] = true;
+          if (input_globals.key_ticks[key.key_code] == 0) {
+            input_globals.key_ticks[key.key_code] = 1;
+          }
         }
-        analog[key_code] = 1;
-        if (digital[key_code] == 0)
-          digital[key_code] = 1;
       }
     }
   }
 }
 
-/* input_get_raw_data_string (0xd0030) — format raw gamepad stick state into buf
- */
 void input_get_raw_data_string(char *buffer, int16_t size)
 {
-  short written;
-  short delta;
-  int i;
-  short *sticks;
-  int *connected;
-  int count;
+  assert_halt_msg_at("buffer", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x32b,
+                     buffer != NULL);
+  assert_halt_msg_at("size>0", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x32c,
+                     size > 0);
+  if (buffer != NULL && size > 0) {
+    short buffer_length;
+    short gamepad_index;
 
-  if (buffer == NULL) {
-    display_assert("buffer", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x32b, 1);
-    system_exit(-1);
-  }
-  if (size < 1) {
-    display_assert("size>0", "c:\\halo\\SOURCE\\input\\input_xbox.c", 0x32c, 1);
-    system_exit(-1);
-  }
-  if (buffer != NULL && (int)size > 0) {
-    written = (short)snprintf(buffer, (int)size,
-                              "|n|n|n|ngamepad|tleft stick|tright stick|t|n");
-    i = 0;
-    sticks = (short *)0x46ba1c;
-    connected = (int *)0x46ba3c;
-    count = 4;
-    do {
-      if (*connected != 0) {
-        delta = (short)snprintf(buffer + written, (int)size - (int)written,
-                                "gamepad %d|t(%d, %d)|t(%d, %d)|n", i,
-                                (int)sticks[-2], (int)sticks[-1], (int)*sticks,
-                                (int)sticks[1]);
-        written += delta;
+    buffer_length = (short)snprintf(
+      buffer, size, "|n|n|n|ngamepad|tleft stick|tright stick|t|n");
+    for (gamepad_index = 0; gamepad_index < MAXIMUM_GAMEPADS;
+         gamepad_index++) {
+      if (input_globals.gamepad_handles[gamepad_index] != NULL) {
+        buffer_length += (short)snprintf(
+          buffer + buffer_length, size - buffer_length,
+          "gamepad %d|t(%d, %d)|t(%d, %d)|n", gamepad_index,
+          input_globals.raw_gamepad_states[gamepad_index]
+            .sticks[_gamepad_stick_left].x,
+          input_globals.raw_gamepad_states[gamepad_index]
+            .sticks[_gamepad_stick_left].y,
+          input_globals.raw_gamepad_states[gamepad_index]
+            .sticks[_gamepad_stick_right].x,
+          input_globals.raw_gamepad_states[gamepad_index]
+            .sticks[_gamepad_stick_right].y);
       }
-      connected++;
-      i++;
-      sticks += 4;
-      count--;
-    } while (count != 0);
+    }
   }
 }
 
 void input_update(void)
 {
-  *input_suppressed() = 0;
-  if (!*input_initialized()) {
-    ResumeThread(*input_update_callback_arg());
-    *input_initialized() = 1;
+  input_globals.suppressed = false;
+  if (!input_globals.update_thread_started) {
+    ResumeThread(input_globals.update_thread_handle);
+    input_globals.update_thread_started = true;
   }
   input_update_keyboard_devices();
-  input_state_process_packet(&input_gamepad_states()[0]);
-  input_state_process_packet(&input_gamepad_states()[1]);
-  input_state_process_packet(&input_gamepad_states()[2]);
-  input_state_process_packet(&input_gamepad_states()[3]);
+  input_state_process_packet(&input_globals.gamepad_states[0]);
+  input_state_process_packet(&input_globals.gamepad_states[1]);
+  input_state_process_packet(&input_globals.gamepad_states[2]);
+  input_state_process_packet(&input_globals.gamepad_states[3]);
 }
 
 void input_frame_begin(void)
 {
   input_get_device_states();
-  input_frame_tick = 1;
+  input_globals.frame_active = true;
 }
 
 void input_frame_end(void)
 {
-  input_frame_tick = 0;
+  input_globals.frame_active = false;
 }
 
-/* input_keyboard_thread (0xd01a0) — keyboard event thread.
- * Waits on the keyboard event then flushes rumble state.  Created suspended
- * by input_initialize and resumed on the first call to input_update. */
-static uint32_t __stdcall input_keyboard_thread(void *param)
+uint32_t __stdcall input_keyboard_thread(void *context)
 {
-  (void)param;
   for (;;) {
-    ((void(__stdcall *)(int, uint32_t))0x1d0336)(*input_update_event_handle(),
-                                                 0xffffffff);
+    WaitForSingleObject((int)input_globals.update_event_handle, INFINITE);
     input_flush_rumble();
   }
 }
 
-/* input_initialize (0xd01c0) */
-int input_initialize(void)
+bool input_initialize(void)
 {
-  struct {
-    void *ptype;
-    uint32_t max_devices;
-  } device_types[3];
-  struct {
-    uint32_t flags;
-    uint32_t queue_size;
-    uint32_t repeat_delay;
-    uint32_t repeat_period;
-  } kbd_params;
-  int thread_handle;
+  XDEVICE_PREALLOC_TYPE device_types[3];
+  XINPUT_DEBUG_KEYQUEUE_PARAMETERS keyboard_queue_parameters;
   int result;
 
-  device_types[0].ptype = (void *)0x24b29c; /* XDEVICE_TYPE_GAMEPAD */
-  device_types[0].max_devices = 4;
-  device_types[1].ptype = (void *)0x24b2a8; /* XDEVICE_TYPE_DEBUG_KEYBOARD */
-  device_types[1].max_devices = 1;
-  device_types[2].ptype = (void *)0x24b218; /* XDEVICE_TYPE_MEMORY_UNIT */
-  device_types[2].max_devices = 8;
+  device_types[0].DeviceType = XDEVICE_TYPE_GAMEPAD;
+  device_types[0].dwPreallocCount = MAXIMUM_GAMEPADS;
+  device_types[1].DeviceType = XDEVICE_TYPE_DEBUG_KEYBOARD;
+  device_types[1].dwPreallocCount = 1;
+  device_types[2].DeviceType = XDEVICE_TYPE_MEMORY_UNIT;
+  device_types[2].dwPreallocCount = 8;
 
-  csmemset((void *)0x46ba38, 0, 0x2d4);
-  ((void(__stdcall *)(int, void *))0x24c92d)(3, device_types);
+  csmemset(&input_globals.suppressed, 0,
+           sizeof(input_globals_t) - offsetof(input_globals_t, suppressed));
+  thunk_XInitDevices(sizeof(device_types) / sizeof(device_types[0]),
+                     device_types);
 
-  *input_update_event_pending() = 1;
-  *input_update_event_handle() =
-    ((int(__stdcall *)(void *, int, int, const char *))0x1cfded)(NULL, 0, 0,
-                                                                 NULL);
+  input_globals.update_event_pending = true;
+  input_globals.update_event_handle = CreateEventA(NULL, false, false, NULL);
+  input_globals.update_thread_handle =
+    (int)CreateThread(NULL, 0x4000, input_keyboard_thread, NULL,
+                      CREATE_SUSPENDED, NULL);
+  SetThreadPriority(input_globals.update_thread_handle,
+                    THREAD_PRIORITY_HIGHEST);
+  input_globals.update_thread_started = true;
+  input_globals.keyboard_queue_state = 0;
 
-  thread_handle =
-    ((int(__stdcall *)(void *, int, void *, void *, int, void *))0x1cfd8c)(
-      NULL, 0x4000, (void *)input_keyboard_thread, NULL, 4, NULL);
-  *input_update_callback_arg() = thread_handle;
-  ((void(__stdcall *)(int, int))0x1cf999)(thread_handle, 2);
-
-  *input_initialized() = 1;
-  *(uint32_t *)0x46bb30 = 0;
-
-  kbd_params.flags = 7;
-  kbd_params.queue_size = 0x40;
-  kbd_params.repeat_delay = 500;
-  kbd_params.repeat_period = 100;
-  result = ((xinput_debug_init_keyboard_fn)0x252d73)(&kbd_params);
-  if (result < 0)
-    error(2,
+  keyboard_queue_parameters.dwFlags = XINPUT_DEBUG_KEYQUEUE_FLAG_KEYDOWN |
+                                      XINPUT_DEBUG_KEYQUEUE_FLAG_KEYREPEAT |
+                                      XINPUT_DEBUG_KEYQUEUE_FLAG_KEYUP;
+  keyboard_queue_parameters.dwQueueSize = MAXIMUM_BUFFERED_KEYSTROKES;
+  keyboard_queue_parameters.dwRepeatDelay = 500;
+  keyboard_queue_parameters.dwRepeatInterval = 100;
+  result = XInputDebugInitKeyboardQueue(&keyboard_queue_parameters);
+  if (result < ERROR_SUCCESS) {
+    error(_error_silent,
           "XInputDebugInitKeyboardQueue failed (#%d) during input_initialize()",
           result);
+  }
 
   input_open_state_file();
   input_get_device_states();
   input_update();
-
-  *input_initialized() = 0;
-  return 1;
+  input_globals.update_thread_started = false;
+  return true;
 }

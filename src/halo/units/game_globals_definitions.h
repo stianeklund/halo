@@ -6,12 +6,17 @@
 /* Game globals tag blocks and material fields read by the unit code. Each
  * accessor is an lvalue of the field at its tag offset. */
 
+#define GAME_GLOBALS_PLAYER_CONTROL_OFFSET 0x110
+#define GAME_GLOBALS_PLAYER_CONTROL_SIZE 0x80
 #define GAME_GLOBALS_GRENADES_OFFSET 0x128
 #define GAME_GLOBALS_PLAYER_INFORMATION_OFFSET 0x170
 #define GAME_GLOBALS_FIRST_PERSON_INTERFACE_OFFSET 0x17c
 #define GAME_GLOBALS_FALLING_DAMAGE_OFFSET 0x188
 #define MATERIAL_DEFINITION_MELEE_HIT_SOUND_INDEX_OFFSET 0x370
 
+/* Block of GAME_GLOBALS_PLAYER_CONTROL_SIZE-byte player control elements. */
+#define game_globals_player_control(globals) \
+  UNIT_DEFINITION_FIELD(globals, tag_block, GAME_GLOBALS_PLAYER_CONTROL_OFFSET)
 /* Block of game_globals_grenade_t, indexed by grenade type. */
 #define game_globals_grenades(globals) \
   UNIT_DEFINITION_FIELD(globals, tag_block, GAME_GLOBALS_GRENADES_OFFSET)

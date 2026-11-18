@@ -4853,12 +4853,6 @@ char unit_seat_is_driver(int unit_handle, int16_t seat_index)
 
 /* unit_seat_is_gunner (0x1aa7d0)
  * Returns true if the seat at seat_index has the gunner flag (bit 3). */
-enum {
-  _unit_seat_driver_bit = 2,
-  _unit_seat_gunner_bit = 3,
-  _unit_seat_allows_noncombatants_bit = 10
-};
-
 char unit_seat_is_gunner(int unit_handle, int16_t seat_index)
 {
   unit_data_t *unit;

@@ -74,6 +74,13 @@
 #define UNIT_SEAT_DEFINITION_FIELD_104_OFFSET 0x104
 #define UNIT_PLACEMENT_FLAGS_OFFSET 0x04
 
+/* unit_seat_t.flags bits. */
+enum {
+  _unit_seat_driver_bit = 2,
+  _unit_seat_gunner_bit = 3,
+  _unit_seat_allows_noncombatants_bit = 10
+};
+
 #define UNIT_DEFINITION_FIELD(definition, type, offset) \
   (*(type *)((char *)(definition) + (offset)))
 

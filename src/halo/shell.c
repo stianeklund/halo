@@ -75,7 +75,7 @@ bool shell_initialize(void)
 void shell_dispose(void)
 {
   FUN_001cb820();
-  FUN_000cf490();
+  input_dispose();
   rasterizer_dynamic_screen_geometry_draw();
   real_math_dispose();
   tag_groups_checksum();

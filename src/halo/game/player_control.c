@@ -1668,10 +1668,10 @@ void player_control_initialize_for_new_map(void)
   for (i = 0; i < 4; i++) {
     element = tag_block_get_element((void *)((char *)game_globals_get() + 0x110), 0, 0x80);
     player_control_new_unit(i, -1);
-    if (flt_4570A8[i] == 0.0f)
-      flt_4570A8[i] = *(float *)((char *)element + 0x4c);
-    if (flt_457098[i] == 0.0f)
-      flt_457098[i] = *(float *)((char *)element + 0x50);
+    if (player_look_pitch_rate[i] == 0.0f)
+      player_look_pitch_rate[i] = *(float *)((char *)element + 0x4c);
+    if (player_look_yaw_rate[i] == 0.0f)
+      player_look_yaw_rate[i] = *(float *)((char *)element + 0x50);
   }
 }
 

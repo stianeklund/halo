@@ -565,8 +565,8 @@
      "decl": "char local_player_network_indices[64];"
     },
     {
-     "addr": "0x46bb2d",
-     "decl": "char input_frame_tick;"
+     "addr": "0x46b900",
+     "decl": "uint8_t input_globals[0x40c];"
     },
     {
      "addr": "0x46bee0",
@@ -15132,7 +15132,7 @@
    "functions": [
     {
      "addr": "0xce4a0",
-     "decl": "void FUN_000ce4a0(void);",
+     "decl": "void input_close_state_file(void);",
      "ported": true
     },
     {
@@ -15207,7 +15207,7 @@
     },
     {
      "addr": "0xd01c0",
-     "decl": "int input_initialize(void);",
+     "decl": "bool input_initialize(void);",
      "ported": true
     },
     {
@@ -15222,13 +15222,13 @@
     },
     {
      "addr": "0xce500",
-     "decl": "void FUN_000ce500(void *param_1);",
+     "decl": "void input_state_read_packet(void *state);",
      "ported": true,
      "source_path": "src/halo/input/input_xbox.c"
     },
     {
      "addr": "0xce530",
-     "decl": "void FUN_000ce530(void *state);",
+     "decl": "void input_state_read_packet_looping(void *state);",
      "ported": true
     },
     {
@@ -15245,19 +15245,19 @@
     },
     {
      "addr": "0xcf3e0",
-     "decl": "short FUN_000cf3e0(short param_1, short param_2);",
+     "decl": "short fix_dead_zone(short value, short dead_range);",
      "ported": true,
      "source_path": "src/halo/input/input_xbox.c"
     },
     {
      "addr": "0xcf430",
-     "decl": "void FUN_000cf430(uint8_t *counter, char increment);",
+     "decl": "void update_ticks(uint8_t *ticks, uint8_t down);",
      "ported": true,
      "source_path": "src/halo/input/input_xbox.c"
     },
     {
      "addr": "0xcf490",
-     "decl": "void FUN_000cf490(void);",
+     "decl": "void input_dispose(void);",
      "ported": true
     },
     {
@@ -33623,35 +33623,35 @@
     },
     {
      "addr": "0x457098",
-     "decl": "float flt_457098[4];"
+     "decl": "float player_look_yaw_rate[4];"
     },
     {
      "addr": "0x4570a8",
-     "decl": "float flt_4570A8[4];"
+     "decl": "float player_look_pitch_rate[4];"
     },
     {
-     "addr": "0x46ba4c",
-     "decl": "char byte_46BA4C[40];"
+     "addr": "0x46b814",
+     "decl": "int input_state_file_handle;"
     },
     {
-     "addr": "0x46bb38",
-     "decl": "char byte_46BB38[57];"
+     "addr": "0x281150",
+     "decl": "uint8_t gamepad_analog_button_indices[8];"
     },
     {
-     "addr": "0x46bba0",
-     "decl": "char byte_46BBA0[104];"
+     "addr": "0x281158",
+     "decl": "uint8_t gamepad_binary_button_masks[8];"
     },
     {
-     "addr": "0x46bc08",
-     "decl": "short word_46BC08;"
+     "addr": "0x46b818",
+     "decl": "int input_state_mode;"
     },
     {
-     "addr": "0x46bc0a",
-     "decl": "short word_46BC0A;"
+     "addr": "0x281160",
+     "decl": "int16_t virtual_key_to_key_code[256];"
     },
     {
-     "addr": "0x46bc0c",
-     "decl": "int dword_46BC0C[64];"
+     "addr": "0x281360",
+     "decl": "int16_t ascii_to_key_code[128];"
     },
     {
      "addr": "0x46bfc4",
@@ -48844,7 +48844,7 @@
     },
     {
      "addr": "0x252ad9",
-     "decl": "void __stdcall FUN_00252ad9(int a0);"
+     "decl": "int __stdcall XInputDebugGetKeystroke(void *keystroke);"
     },
     {
      "addr": "0x252c8e",
@@ -51151,7 +51151,7 @@
     },
     {
      "addr": "0x24c92d",
-     "decl": "void __stdcall FUN_0024c92d(int a0, int a1);"
+     "decl": "void __stdcall thunk_XInitDevices(uint32_t device_type_count, void *device_types);"
     },
     {
      "addr": "0x24c9eb",
@@ -51563,7 +51563,7 @@
     },
     {
      "addr": "0x252d73",
-     "decl": "void __stdcall FUN_00252d73(int a0);"
+     "decl": "int __stdcall XInputDebugInitKeyboardQueue(void *parameters);"
     },
     {
      "addr": "0x22e3f0",
