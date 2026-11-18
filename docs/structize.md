@@ -1,6 +1,6 @@
 # structize — mechanised struct recovery (ladder rungs 6 and 7)
 
-`tools/recovery/structize.py` turns two source-recovery steps into transcription
+`tools/recovery/structize.py` turns two readability-ladder steps into transcription
 instead of judgement:
 
 - **rung 6, `struct-define`** — subdivide `pad_` runs into `field_XX` at the

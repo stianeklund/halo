@@ -2,7 +2,7 @@
 name: input-replay-testing
 tier: agent
 triggers: ["input replay", "deterministic input", "capture scenario", "capture_scenario", "replay fixture", "input fixture", "halorec", "trajectory", "a/b", "ab check", "ab_check", "behavior_diff", "aa check", "trajectory diff", "regression oracle"]
-description: Deterministic controller-input record/replay and A/B trajectory behavior-diff testing on real engine (xemu/XBDM). Invoke to capture gameplay fixtures, replay inputs, or diff patched vs unpatched game-state trajectories.
+description: "Controller-input record/replay and A/B trajectory diff on xemu/XBDM: capture fixtures, replay inputs, diff patched vs unpatched game state."
 ---
 
 # Input Replay & Trajectory Testing

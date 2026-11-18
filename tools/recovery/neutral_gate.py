@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fast byte-identical gate for one TU (recover-campaign worker loop).
+"""Fast byte-identical gate for one TU (readability campaign worker loop).
 
 ``capture --source TU --dir D`` compiles TU through its CMake rule and records
 the COFF and assertion-metadata baselines in D.  ``check --source TU --dir D``

@@ -2,7 +2,7 @@
 name: lift-score-improve
 tier: agent
 triggers: ["structural ceiling", "vc71", "low match", "score improve", "improve match", "65%", "84%", "looks structural", "store reload", "volatile local", "code after epilogue", "frame size", "score-context", "classification", "fpu_operand_order", "loadw_field_width", "imm_wrong_literal", "fcom_bound_sense", "frame_mismatch", "regarg_structural_ceiling", "anchor_collapse", "chkstk_static_buffer"]
-description: Checklist for recovering VC71 match before declaring a structural ceiling. Invoke when score is 65–84% and the gap looks "structural", or at ANY score when the diff shows systematic frame/layout divergence rather than wrong logic. Organized as a recipe atlas keyed by score-context classification rule id.
+description: "Recipe atlas for recovering VC71 match before declaring a structural ceiling. Use at 65-84%, or at any score with systematic frame/layout divergence."
 ---
 
 # Lift Score Improvement — Recipe Atlas
@@ -22,7 +22,7 @@ Source: `docs/lift-learnings.md` §19, §20, §24, §27, §38; classification ru
 in `tools/verify/vc71_verify.py::_classify_score_context`.
 
 This is mnemonic-score recovery only. Naming, comments, and readability
-cleanups are out of scope for this skill — see the `source-recovery` family instead.
+cleanups are out of scope for this skill — see `readability-ladder` instead.
 
 ---
 

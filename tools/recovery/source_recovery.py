@@ -43,15 +43,15 @@ UNCATEGORIZED = "uncategorized"
 CATEGORIES = LADDER + (UNCATEGORIZED,)
 
 LADDER_SKILLS = {
-    "comments": "re-comment-capture",
-    "local-renames": "local-var-cleanup",
+    "comments": "readability-ladder",
+    "local-renames": "readability-ladder",
     "symbol-names": "naming-confidence",
-    "global-names": "type-recovery",
-    "const-enum": "const-enum-recovery",
-    "struct-define": "type-recovery",
-    "offset-to-field": "type-recovery",
-    "expr-simplify": "expr-simplify",
-    "control-flow": "control-flow-cleanup",
+    "global-names": "readability-ladder",
+    "const-enum": "readability-ladder",
+    "struct-define": "readability-ladder",
+    "offset-to-field": "readability-ladder",
+    "expr-simplify": "readability-ladder",
+    "control-flow": "readability-ladder",
     UNCATEGORIZED: "-",
 }
 

@@ -84,7 +84,7 @@ a campaign-sized target rather than a four-line fix.
 
 The `header?` column is INFORMATIONAL ONLY (never scored): whether the object's
 subsystem already has a binary-proven recovered header (the 2026-07-24 sweep
-recorded in .claude/skills/header-recovery/SKILL.md). A subsystem with a proven
+recorded in .claude/skills/readability-ladder/SKILL.md §8). A subsystem with a proven
 header can move recovered structs into it; one without must leave them in
 types.h, which caps how much of the debt is actually payable.
 

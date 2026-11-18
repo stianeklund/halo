@@ -35,7 +35,7 @@ types, structs, or Ghidra work.
 Lifted code must use the style independently visible in 2276 assert strings and
 target-resident identifiers: `actor->meta.unit_index == NONE`,
 `TEST_FLAG(bitmap->flags, _bitmap_swizzled_bit)`, `MAXIMUM_SQUADS_PER_MAP`,
-`_actor_danger_zone_none`. External PAL/CEA/HCEA/PDB material may identify a
+`_actor_danger_zone_none`. External cross-build material may identify a
 hypothesis to test, but it is not a style, naming, layout, or implementation
 authority. Record historical influence and independently prove every retained
 claim under `PROVENANCE.md`.
@@ -72,7 +72,7 @@ original codegen wins. Keep the raw form and add a one-line comment.
   exact width the original operand uses.
 - Return typed pointers from accessors. Access members through `->`. Do not
   write `char *` element pointers plus `*(T *)(p + 0xNN)` when a struct exists.
-  `type-recovery` owns structs, pointer/local types, aggregate fields, and named
+  `readability-ladder` §3–4 owns structs, pointer/local types, aggregate fields, and named
   globals with correct indirection. When no struct exists, apply it (3+ offsets
   rule in `halo-lift`); post-lift rewrites require strict VC71 byte neutrality.
 - Keep existing type names (`data_t`, `actor_t`, and so on). Do not rename types

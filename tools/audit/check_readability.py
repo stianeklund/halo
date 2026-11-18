@@ -119,7 +119,7 @@ SOFT_CATEGORIES = ('fun_call', 'raw_offset_deref')
 
 
 def _iter_c_files():
-    # .h as well as .c: header recovery (the header-recovery skill) moves real
+    # .h as well as .c: header recovery (readability-ladder §8) moves real
     # code out of .c files into recovered headers -- hs_library_internal_runtime.h
     # alone took 75 raw offset derefs with it. Scanning only .c would let that
     # debt vanish from the ratchet and silently lower the baseline, making a

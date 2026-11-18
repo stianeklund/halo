@@ -178,7 +178,7 @@ re-offered run after run.
    the rung in the ledger row (`"widen_rung": 2`).
 3. **Rotate `--objects`** clusters (the existing rotation list), if any remain.
 4. **Ladder spent** — empty pin-list at rung 2 and no rotation cluster left →
-   run `/byte-campaign --matching-only` once (PAL-guided raw-byte gains on
+   run the user-level `/byte-campaign` once if installed (raw-byte gains on
    ported functions), then **STOP**: the frontier is genuinely dry for this
    branch.
 

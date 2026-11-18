@@ -2,7 +2,7 @@
 name: lift-decompiler-traps
 tier: agent
 triggers: ["call site", "call-site", "add esp", "fstp", "x87", "cross product", "cross-product", "_ftol2", "_chkstk", "__seh", "_allmul", "intrinsic", "decompiler trap", "ghidra wrong", "struct field rotation", "cdecl", "arg hazard", "argument order", "arg order", "operand swap", "stack frame", "frame size", "buffer size", "undersized buffer", "local_", "memset", "memcpy", "stack alias", "buffer alias", "&local_"]
-description: Ghidra decompiler traps, argument hazards, and stack frame hazards — register aliasing, push-then-fstp floats, struct field rotation, cross-product operand swap, buffer-alias confusion, cdecl ADD ESP mis-grouping, NULL @<reg> args, register order swaps, _chkstk frame sizing, and MSVC intrinsics. Consult when verifying call sites or frames in a lift.
+description: "Ghidra decompiler, argument, and frame traps: register aliasing, push-then-fstp, field rotation, ADD ESP grouping, NULL @<reg>, _chkstk, intrinsics. Use when checking call sites/frames."
 ---
 
 # Decompiler Call-Site & Frame Hazards
