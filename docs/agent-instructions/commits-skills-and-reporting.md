@@ -5,9 +5,8 @@ final reports.
 
 ## Lift Commit Discipline
 
-- Use `/lift` for all new function ports. It owns ABI audit, build, and
-  verification.
-- Never write freeform lift commit messages.
+- Never write freeform lift commit messages (`/lift` owns ABI audit, build,
+  verification, and the message).
 - `/auto-lift` commits successful pipeline results through
   `generate_lift_commit.py` and reverts/logs failures under
   `artifacts/auto_lift/failures/`. Do not commit legacy review/promote artifacts
@@ -36,6 +35,17 @@ Never use a fixed shared path such as `/tmp/commit_msg.txt`.
 `generate_lift_commit.py` and the pre-commit hook run register-ABI and baseline
 guards. `--skip-abi-audit` and `--no-verify` are emergency bypasses only.
 
+## Readability and Fix Commits
+
+- Subjects: `Types: …`, `Names: …`, `Readability: …`, `Fix …`. One logical bulk
+  per category per TU or cluster, not one commit per wave or per function.
+- Each commit passes the gates in skill `readability-ladder` §9 on its own.
+- Plain description of what changed. No attribution or co-author lines. No
+  mention of external reference projects (AGENTS.md rule 13).
+- Stash generated noise (`tools/equivalence/leaf_cache.json`,
+  `tools/xbox/aim_ab/`) around commits; never sweep another session's WIP.
+- Never push without explicit approval.
+
 ## Skill Routing
 
 Skills are doctrine agents invoke themselves, not a menu users must choose.
@@ -55,7 +65,7 @@ Shared agent command and skill maintenance follows `docs/agent-content.md`:
 
 ## Reporting
 
-For non-trivial work, report these fields when applicable:
+For lift and RE reports, use these fields when applicable:
 
 - Target
 - Confirmed

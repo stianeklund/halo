@@ -32,7 +32,7 @@ scope is unclear.
 
 | Task | Required instructions |
 |------|-----------------------|
-| Any repository task | [`docs/agent-instructions/README.md`](docs/agent-instructions/README.md), [`research-and-tooling.md`](docs/agent-instructions/research-and-tooling.md) |
+| Any repository task | [`research-and-tooling.md`](docs/agent-instructions/research-and-tooling.md) |
 | C source, `kb.json`, RE, lift, ABI, types, structs, or Ghidra | [`lift-implementation.md`](docs/agent-instructions/lift-implementation.md) |
 | Source edit, build, test, hazard review, VC71, equivalence, or deployment | [`build-and-verification.md`](docs/agent-instructions/build-and-verification.md) |
 | Commit, auto-lift, skill routing, subagent, or final report | [`commits-skills-and-reporting.md`](docs/agent-instructions/commits-skills-and-reporting.md) |
@@ -65,16 +65,14 @@ scope is unclear.
     pipeline and ABI/type gates.
 12. Use `/lift` for every new function port. Do not manually implement and
     commit new lifts outside that workflow.
+13. Never name or path-reference external reference projects (other decomps,
+    other builds) in code, comments, commit messages, skills, or docs. Required
+    provenance disclosures live only in the evidence records `PROVENANCE.md`
+    names. Tooling that needs them explicitly lives outside the repository.
 
 ## Skills
 
-Skills are task doctrine that agents self-invoke, not a user menu. Treat
-`tools/memory/skill_router_hook.py` recommendations and trigger terms such as
-`crash`, `page fault`, `@<reg>`, `ADD ESP`, `_chkstk`, `VC71`, `low match`,
-`permuter`, `wrong color`, `trajectory`, and `xemu` as instructions to load the
-matching skill before work. If routing does not surface a relevant lift,
-score-recovery, call-site, hazard, or regression skill, find it in
-`.claude/skills/SKILLS.md`. Name loaded skills in subagent briefs.
-
-Command/tool selection lives in skill `tool-reference` at
-`.claude/skills/tool-reference/SKILL.md`.
+Skills are doctrine agents self-invoke. Treat `skill_router_hook.py`
+recommendations as required; if routing misses a relevant skill, find it in
+`.claude/skills/SKILLS.md`, and name loaded skills in subagent briefs. Tool
+selection: skill `tool-reference`.
