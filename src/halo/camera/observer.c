@@ -799,7 +799,7 @@ bool observer_collision_test_with_t(real *out_fraction, bool indoor, real_point3
   vector_from_points3d(ray_origin, ray_endpoint, &direction);
 
   if (collision_test_vector(flags, ray_origin, &direction, -1,
-                   &collision.type)) {
+                   (collision_test_result *)&collision)) {
     *out_fraction = collision.t;
     result = true;
   }

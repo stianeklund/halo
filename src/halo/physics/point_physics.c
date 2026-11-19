@@ -89,9 +89,9 @@ static __inline real dot_product3d_inline(const real_vector3d *a,
 static __inline real_plane3d *plane3d_from_point_and_normal_inline(
   real_plane3d *plane, const real_point3d *point, const real_vector3d *normal)
 {
-  *(real_vector3d *)plane->normal = *normal;
+  plane->normal = *normal;
   plane->d = dot_product3d_inline((const real_vector3d *)point,
-                                  (const real_vector3d *)plane->normal);
+                                  &plane->normal);
   return plane;
 }
 
@@ -236,7 +236,7 @@ int FUN_00150790(int param_1, int param_2, float param_3, int param_4,
     do {
       element =
         tag_block_get_element((void *)(base + 0x74), element_index, 0x80);
-      matrix_transform_point((float *)(param_1 + 8),
+      matrix_transform_point((const real_matrix4x3 *)((param_1 + 8)),
                              (real_point3d *)((char *)element + 0x38), &point);
       radius = *(float *)((char *)element + 0x68) * *(float *)(param_1 + 8) +
                *(float *)&param_5;
@@ -329,18 +329,18 @@ void FUN_001508b0(int *state)
   obje_tag = tag_get(0x6f626a65 /* 'obje' */, *object);
 
   matrix = (float *)(state + 2);
-  matrix_transform_point(matrix, (real_point3d *)(state[1] + 0xc), (real_point3d *)local_1c);
-  FUN_0018a990(1, local_1c, (float *)(state + 3), (float *)(state + 9),
+  matrix_transform_point((const real_matrix4x3 *)matrix, (real_point3d *)(state[1] + 0xc), (real_point3d *)local_1c);
+  render_debug_vectors(1, (const real_point3d *)local_1c, (const real_vector3d *)(state + 3), (const real_vector3d *)(state + 9),
                *(float *)((char *)obje_tag + 0x4));
 
   for (i = 0; i < *(int *)(state[1] + 0x74); i++) {
     elem = tag_block_get_element((void *)(state[1] + 0x74), i, 0x80);
-    matrix_transform_point(matrix, (real_point3d *)((char *)elem + 0x38), (real_point3d *)local_10);
+    matrix_transform_point((const real_matrix4x3 *)matrix, (real_point3d *)((char *)elem + 0x38), (real_point3d *)local_10);
     matrix_transform_vector(matrix, (real_vector3d *)((char *)elem + 0x44), (real_vector3d *)local_34);
     matrix_transform_vector(matrix, (real_vector3d *)((char *)elem + 0x50), (real_vector3d *)local_28);
-    render_debug_sphere(1, local_10, *(float *)((char *)elem + 0x68),
+    render_debug_sphere(1, (const real_point3d *)local_10, *(float *)((char *)elem + 0x68),
                  *(void **)0x2ee6c4);
-    FUN_0018a990(1, local_10, local_34, local_28,
+    render_debug_vectors(1, (const real_point3d *)local_10, (const real_vector3d *)local_34, (const real_vector3d *)local_28,
                  *(float *)((char *)elem + 0x68) * *(const float *)0x253398);
   }
 }
@@ -380,7 +380,7 @@ boolean physics_instance_new(void *instance_data, int object_index)
                             -instance->physics->center_of_mass.y,
                             -instance->physics->center_of_mass.z);
     matrix_transform_point(
-      (float *)&instance->world_matrix, &center_of_mass,
+      &instance->world_matrix, &center_of_mass,
       &center_of_mass); /* dup-args-ok: 0x150a40/0x150a47 */
     instance->world_matrix.position = center_of_mass;
 
@@ -442,8 +442,8 @@ boolean FUN_00150b60(void *instance_data, void *point, void *vector,
 
   if (hit)
     matrix4x3_transform_plane(
-      (float *)&instance->world_matrix, (float *)&result->plane,
-      (float *)&result->plane); /* dup-args-ok: PUSH ESI x2 @0x150c5e */
+      &instance->world_matrix, &result->plane,
+      &result->plane); /* dup-args-ok: PUSH ESI x2 @0x150c5e */
 
   return hit;
 }
@@ -756,7 +756,7 @@ void physics_compute_new(
         NULL;
 
     mass_point->flags = 0;
-    matrix_transform_point((float *)&instance->world_matrix,
+    matrix_transform_point(&instance->world_matrix,
                            &mass_point_definition->position,
                            &mass_point->position);
     if (powered_mass_point) {
@@ -793,7 +793,7 @@ void physics_compute_new(
     mass_point->water_depth =
       scenario_location_water_depth(mass_point->location, &mass_point->position);
 
-    ground_normal = (const real_vector3d *)mass_point->ground_plane.normal;
+    ground_normal = &mass_point->ground_plane.normal;
     if (mass_point->ground_depth > 0.0f) {
       const struct material_definition *material;
       x87_wide_t ground_friction; /* ST0-resident @151128..15121e */
@@ -1015,7 +1015,7 @@ void physics_compute_new(
                               &probe_vector);
 
         if (collision_test_vector(0xc0a0, &probe_point, &probe_vector,
-                         instance->object_index, (int16_t *)&collision)) {
+                         instance->object_index, (collision_test_result *)&collision)) {
           real height;
           real alignment;
           real ground_effect;
@@ -1035,9 +1035,9 @@ void physics_compute_new(
               1.0f;
           magnitude =
             (ground_effect * ground_effect * *(float *)0x32512c -
-             (collision.plane.normal[1] * mass_point->velocity.j +
-              collision.plane.normal[2] * mass_point->velocity.k +
-              collision.plane.normal[0] * mass_point->velocity.i) *
+             (collision.plane.normal.j * mass_point->velocity.j +
+              collision.plane.normal.k * mass_point->velocity.k +
+              collision.plane.normal.i * mass_point->velocity.i) *
                powered_mass_point_definition->antigrav_damp_fraction) *
             powered_mass_point->antigrav_fraction *
             powered_mass_point_definition->antigrav_strength * physics->mass *
@@ -1045,7 +1045,7 @@ void physics_compute_new(
 
           point_from_line3d_inline(
             &mass_point->powered_force,
-            (const real_vector3d *)collision.plane.normal, magnitude,
+            &collision.plane.normal, magnitude,
             &mass_point->powered_force); /* dup-args-ok */
           SET_FLAG(mass_point->flags, _point_antigraving_bit, true);
         }
@@ -1263,7 +1263,7 @@ physics_compute_vehicle_collision(const struct physics_instance *instance0,
     real_point3d point0;
     short mass_point1_index;
 
-    matrix_transform_point((float *)&instance0->world_matrix,
+    matrix_transform_point(&instance0->world_matrix,
                            &mass_point0->position, &point0);
 
     for (mass_point1_index = 0;
@@ -1278,7 +1278,7 @@ physics_compute_vehicle_collision(const struct physics_instance *instance0,
       real_vector3d direction;
       real distance;
 
-      matrix_transform_point((float *)&instance1->world_matrix,
+      matrix_transform_point(&instance1->world_matrix,
                              &mass_point1->position, &point1);
       vector_from_points3d_inline(&point0, &point1, &direction);
       distance = normalize3d_inline(&direction);
@@ -1493,8 +1493,8 @@ void rotate_vectors3d_by_angular_velocity(float *forward, float *up,
 
     matrix4x3_rotation_from_axis_and_angle((float *)&rotation, &axis, x87_fsin(magnitude),
                  x87_fcos(magnitude));
-    matrix_scale_transform_vector((float *)&rotation, (real_vector3d *)forward, (real_vector3d *)rotated_forward);
-    matrix_scale_transform_vector((float *)&rotation, (real_vector3d *)up, (real_vector3d *)rotated_up);
+    matrix_scale_transform_vector(&rotation, (real_vector3d *)forward, (real_vector3d *)rotated_forward);
+    matrix_scale_transform_vector(&rotation, (real_vector3d *)up, (real_vector3d *)rotated_up);
     normalize3d((real_vector3d *)rotated_forward);
 
     dot = rotated_up[2] * rotated_forward[2];
@@ -1668,7 +1668,7 @@ void physics_update_new(
                               -instance->physics->center_of_mass.x,
                               -instance->physics->center_of_mass.y,
                               -instance->physics->center_of_mass.z);
-      matrix_transform_point((float *)&world_matrix, &center_of_mass,
+      matrix_transform_point(&world_matrix, &center_of_mass,
                              &center_of_mass); /* dup-args-ok: in-place */
       world_matrix.position = *(vector3_t *)&center_of_mass;
 
@@ -1684,13 +1684,13 @@ void physics_update_new(
         real_vector3d sweep;
         struct collision_result collision;
 
-        matrix_transform_point((float *)&world_matrix,
+        matrix_transform_point(&world_matrix,
                                &mass_point_definition->position,
                                &target);
         vector_from_points3d_inline(&mass_point->position, &target, &sweep);
 
         if (collision_test_vector(0xc0a1, &mass_point->position, &sweep,
-                         instance->object_index, (int16_t *)&collision)) {
+                         instance->object_index, (collision_test_result *)&collision)) {
           penetration_mask |= 1u << mass_point_index;
 
           /* keep the earliest hit (REP MOVSD 0x14 copy of the result) */
@@ -1708,7 +1708,7 @@ void physics_update_new(
         break;
       } else {
         const real_vector3d *normal =
-          (const real_vector3d *)best_collision.plane.normal;
+          &best_collision.plane.normal;
         real approach;
         real backoff;
         real fraction;
@@ -1942,7 +1942,7 @@ void physics_update_old(int object_index,
     vector_from_points3d_inline(&physics->center_of_mass,
                                 &mass_point_definition->position,
                                 (real_vector3d *)&local_position);
-    matrix_transform_point((float *)&world_matrix, &local_position,
+    matrix_transform_point(&world_matrix, &local_position,
                            &mass_point->position);
     if (powered_mass_point) {
       real_matrix4x3 powered_matrix;
@@ -1978,7 +1978,7 @@ void physics_update_old(int object_index,
     mass_point->water_depth =
       scenario_location_water_depth(mass_point->location, &mass_point->position);
 
-    ground_normal = (const real_vector3d *)mass_point->ground_plane.normal;
+    ground_normal = (const real_vector3d *)&mass_point->ground_plane.normal.i;  /* keep: element-address form, codegen-sensitive */
     if (mass_point->ground_depth > 0.0f && physics->ground_depth > 0.0f) {
       x87_wide_t normal_velocity; /* ST0-resident @153284..15330b */
       x87_wide_t normal_force_magnitude; /* FST [EDI+0x80] @1532b8 */
@@ -2187,7 +2187,7 @@ void physics_update_old(int object_index,
                               &probe_vector);
 
         if (collision_test_vector(0xc0a0, &probe_point, &probe_vector, object_index,
-                         (int16_t *)&collision)) {
+                         (collision_test_result *)&collision)) {
           real height;
           real alignment;
           real ground_effect;
@@ -2207,9 +2207,9 @@ void physics_update_old(int object_index,
               1.0f;
           magnitude =
             (ground_effect * ground_effect * *(float *)0x32512c -
-             (collision.plane.normal[1] * mass_point->velocity.j +
-              collision.plane.normal[2] * mass_point->velocity.k +
-              collision.plane.normal[0] * mass_point->velocity.i) *
+             ((&collision.plane.normal.i)[1] * mass_point->velocity.j +
+              (&collision.plane.normal.i)[2] * mass_point->velocity.k +
+              (&collision.plane.normal.i)[0] * mass_point->velocity.i) *
                powered_mass_point_definition->antigrav_damp_fraction) *
             powered_mass_point->antigrav_fraction *
             powered_mass_point_definition->antigrav_strength * alignment *
@@ -2217,7 +2217,7 @@ void physics_update_old(int object_index,
 
           point_from_line3d_inline(
             &mass_point->powered_force,
-            (const real_vector3d *)collision.plane.normal, magnitude,
+            (const real_vector3d *)&collision.plane.normal.i, magnitude,
             &mass_point->powered_force); /* dup-args-ok */
         }
       }
@@ -2906,7 +2906,7 @@ int point_physics_update(int flags, int physics_tag_data,
       delta.k = velocity[2] * delta_time;
 
       if (!collision_test_vector(collision_flags, (real_point3d *)position, &delta, -1,
-                        (int16_t *)&collision)) {
+                        (collision_test_result *)&collision)) {
         if (collision.location.leaf_index != -1)
           *(struct collision_location *)collision_location = collision.location;
 
@@ -2923,12 +2923,12 @@ int point_physics_update(int flags, int physics_tag_data,
 
       if (collision_normal_out)
         *(real_vector3d *)collision_normal_out =
-          *(real_vector3d *)collision.plane.normal;
+          collision.plane.normal;
 
       if (surface_index_out)
         *surface_index_out = collision.material_type;
 
-      component_vectors_from_normal3d((real_vector3d *)velocity, (real_vector3d *)collision.plane.normal, &parallel,
+      component_vectors_from_normal3d((real_vector3d *)velocity, &collision.plane.normal, &parallel,
                    &perpendicular);
       velocity[0] = (1.0f - ((const struct point_physics_definition *)physics_tag_data)->contact_friction) * perpendicular.i -
                     parallel.i * ((const struct point_physics_definition *)physics_tag_data)->elasticity;
@@ -2940,9 +2940,9 @@ int point_physics_update(int flags, int physics_tag_data,
       if (collision.location.leaf_index != -1)
         *(struct collision_location *)collision_location = collision.location;
 
-      position[0] = collision.plane.normal[0] * offset + collision.point.x;
-      position[1] = collision.plane.normal[1] * offset + collision.point.y;
-      position[2] = collision.plane.normal[2] * offset + collision.point.z;
+      position[0] = collision.plane.normal.i * offset + collision.point.x;
+      position[1] = collision.plane.normal.j * offset + collision.point.y;
+      position[2] = collision.plane.normal.k * offset + collision.point.z;
 
       delta_time -= collision.t * delta_time;
     }

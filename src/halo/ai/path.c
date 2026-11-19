@@ -2455,7 +2455,7 @@ void FUN_000609e0(void *path)
             color = *(void **)0x2ee6d0;
           }
         }
-        FUN_00189270(1, point_a, point_b, color);
+        render_debug_line(1, (const real_point3d *)point_a, (const real_point3d *)point_b, color);
       }
     }
   }

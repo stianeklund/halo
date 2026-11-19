@@ -682,11 +682,11 @@ void actor_move_avoidance_setup(int actor_handle)
             /* disasm 0x2af07: CMP AX,0xffff; JZ — node!=0xffff is fall-through. */
             if (*marker != 0xffff) {
               matrix = object_get_node_matrix(object_handle, (int16_t)*marker);
-              matrix_transform_point((float *)matrix,
+              matrix_transform_point(matrix,
                                      (real_point3d *)((char *)marker + 0x10), &out);
               scale_term = *(float *)((char *)marker + 0x1c) * *(float *)matrix;
             } else {
-              matrix_transform_point(world_matrix,
+              matrix_transform_point((const real_matrix4x3 *)world_matrix,
                                      (real_point3d *)((char *)marker + 0x10), &out);
               scale_term = world_matrix[0] * *(float *)((char *)marker + 0x1c);
             }

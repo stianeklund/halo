@@ -94,13 +94,13 @@ typedef struct rasterizer_dynavobgeom_vertex {
 /* 0x15f1f0 */
 void FUN_0015f1f0(void)
 {
-  FUN_0016f910(0x1b);
+  rasterizer_profile_begin(0x1b);
 }
 
 /* 0x15f200 */
 void FUN_0015f200(void)
 {
-  FUN_0016fa40(0x1b);
+  rasterizer_profile_end(0x1b);
 }
 
 /* 0x15f210 */
@@ -585,13 +585,13 @@ void FUN_0015f8e0(void *parameters, void *vertices)
     vs_a[8] = params->map_fade[0] != 0 ? *params->map_fade[0] : 1.0f;
     vs_a[12] = params->map_fade[1] != 0 ? *params->map_fade[1] : 1.0f;
     vs_a[16] = params->map_fade[2] != 0 ? *params->map_fade[2] : 1.0f;
-    *(uint32_t *)0x5a5ae8 = real_argb_color_to_pixel32(&vs_a[8]);
-    *(uint32_t *)0x5a5b08 = real_argb_color_to_pixel32(&vs_a[12]);
-    *(uint32_t *)0x5a5aec = real_argb_color_to_pixel32(&vs_a[16]);
-    *(uint32_t *)0x5a5af8 = real_argb_color_to_pixel32(params->plasma_fade);
-    *(uint32_t *)0x5a5afc = real_argb_color_to_pixel32(params->plasma_fade);
-    *(uint32_t *)0x5a5b00 = real_argb_color_to_pixel32(params->plasma_fade);
-    *(uint32_t *)0x5a5b04 = real_argb_color_to_pixel32(params->plasma_fade);
+    *(uint32_t *)0x5a5ae8 = real_argb_color_to_pixel32((const real_argb_color *)&vs_a[8]);
+    *(uint32_t *)0x5a5b08 = real_argb_color_to_pixel32((const real_argb_color *)&vs_a[12]);
+    *(uint32_t *)0x5a5aec = real_argb_color_to_pixel32((const real_argb_color *)&vs_a[16]);
+    *(uint32_t *)0x5a5af8 = real_argb_color_to_pixel32((const real_argb_color *)params->plasma_fade);
+    *(uint32_t *)0x5a5afc = real_argb_color_to_pixel32((const real_argb_color *)params->plasma_fade);
+    *(uint32_t *)0x5a5b00 = real_argb_color_to_pixel32((const real_argb_color *)params->plasma_fade);
+    *(uint32_t *)0x5a5b04 = real_argb_color_to_pixel32((const real_argb_color *)params->plasma_fade);
     *(uint32_t *)0x5a5b74 = 0x89;
     *(uint32_t *)0x5a5b28 = 0x89;
     *(uint32_t *)0x5a5b48 = 0x8010902;

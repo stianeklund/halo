@@ -130,7 +130,7 @@ void FUN_00171bc0(void)
       0x312, 1);
     system_exit(-1);
   }
-  FUN_0016f910(0x1c);
+  rasterizer_profile_begin(0x1c);
   if (*(char *)0x3256ff != 0 && *(short *)0x5a5df8 != 0) {
     /* Colour set A: each component scaled by the intensity.  Component 0 is
      * duplicated into set B from the same FPU value (FST, no pop). */
@@ -143,8 +143,8 @@ void FUN_00171bc0(void)
     color_b[1] = (*(float *)0x2533c8 - *(float *)0x5a5e04) * *(float *)0x5a5dfc;
     color_b[2] = (*(float *)0x2533c8 - *(float *)0x5a5e08) * *(float *)0x5a5dfc;
     color_b[3] = (*(float *)0x2533c8 - *(float *)0x5a5e0c) * *(float *)0x5a5dfc;
-    color_a_pixel = real_argb_color_to_pixel32(color_a);
-    color_b_pixel_then_width = real_argb_color_to_pixel32(color_b);
+    color_a_pixel = real_argb_color_to_pixel32((const real_argb_color *)color_a);
+    color_b_pixel_then_width = real_argb_color_to_pixel32((const real_argb_color *)color_b);
 
     D3DDevice_SetRenderState_CullMode(0x901);
     D3DDevice_SetRenderState_Simple(NV097_SET_COLOR_MASK_CMD,
@@ -284,5 +284,5 @@ void FUN_00171bc0(void)
     D3DDevice_SetVertexData2s(0, 0, quad_y);
     D3DDevice_End();
   }
-  FUN_0016fa40(0x1c);
+  rasterizer_profile_end(0x1c);
 }

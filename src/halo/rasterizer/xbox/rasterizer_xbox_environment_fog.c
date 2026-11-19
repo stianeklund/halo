@@ -16,7 +16,7 @@
 
 #define _error_silent 2
 
-/* rasterizer_profile_begin/_end sections (FUN_0016f910 / FUN_0016fa40). */
+/* rasterizer_profile_begin/_end sections (rasterizer_profile_begin / rasterizer_profile_end). */
 #define _rasterizer_profile_environment_fog 0x11
 #define _rasterizer_profile_environment_fog_screen 0x12
 
@@ -464,7 +464,7 @@ void FUN_00165cb0(void *shader, int arg2, int arg3, int arg4, int arg5,
 /* 0x165dd0 _rasterizer_environment_fog_end */
 void FUN_00165dd0(void)
 {
-  FUN_0016fa40(_rasterizer_profile_environment_fog);
+  rasterizer_profile_end(_rasterizer_profile_environment_fog);
 }
 
 /* 0x165de0 _rasterizer_environment_fog_screen_wind_get_vector */
@@ -586,11 +586,11 @@ bool rasterizer_environment_fog_screen_is_active(void)
            _fog_runtime_use_fixed_screen_density_flag) ||
          global_window_parameters.fog_screen_external_intensity > 0.0f)) {
       depth = global_window_parameters.fog_planar_maximum_depth;
-      distance = global_window_parameters.fog_plane.normal[2] *
+      distance = global_window_parameters.fog_plane.normal.k *
                    global_window_parameters.camera_position[2] +
-                 global_window_parameters.fog_plane.normal[1] *
+                 global_window_parameters.fog_plane.normal.j *
                    global_window_parameters.camera_position[1] +
-                 global_window_parameters.fog_plane.normal[0] *
+                 global_window_parameters.fog_plane.normal.i *
                    global_window_parameters.camera_position[0] -
                  global_window_parameters.fog_plane.d;
       z = screen->start_distance_from_fog_plane;
@@ -711,13 +711,13 @@ void FUN_00166400(void)
     display_assert("global_d3d_device", kFogFile, 0x125, 1);
     system_exit(-1);
   }
-  FUN_0016f910(_rasterizer_profile_environment_fog);
+  rasterizer_profile_begin(_rasterizer_profile_environment_fog);
   if (debug_drawing_mode == 0 && debug_draw_environment_fog) {
-    distance = global_window_parameters.fog_plane.normal[2] *
+    distance = global_window_parameters.fog_plane.normal.k *
                  global_window_parameters.camera_position[2] +
-               global_window_parameters.fog_plane.normal[1] *
+               global_window_parameters.fog_plane.normal.j *
                  global_window_parameters.camera_position[1] +
-               global_window_parameters.fog_plane.normal[0] *
+               global_window_parameters.fog_plane.normal.i *
                  global_window_parameters.camera_position[0] -
                global_window_parameters.fog_plane.d;
     density =
@@ -831,7 +831,7 @@ void FUN_00166890(int16_t pass)
   }
   fog_globals.local_fog_pass = pass;
   if (pass == 0) {
-    FUN_0016f910(_rasterizer_profile_environment_fog_screen);
+    rasterizer_profile_begin(_rasterizer_profile_environment_fog_screen);
   }
   if (!rasterizer_environment_fog_screen_is_active()) {
     return;
@@ -1058,7 +1058,7 @@ void FUN_00166890(int16_t pass)
         vector[0] = 0.0f;
         vector[1] = 0.0f;
         vector[2] = -z;
-        matrix_transform_point(matrix, (real_point3d *)vector, (real_point3d *)vector);
+        matrix_transform_point((const real_matrix4x3 *)matrix, (real_point3d *)vector, (real_point3d *)vector);
         window->layers[index].u -= (vector[1] * sine + vector[0] * cosine) *
                                    screen->strafing_multiplier *
                                    projection_scale;
@@ -1266,7 +1266,7 @@ void FUN_00166890(int16_t pass)
           D3DDevice_SetTextureStageState(1, D3DTSS_ALPHAKILL,
                                          D3DTALPHAKILL_DISABLE);
         }
-        FUN_00178b40(5, FUN_00184610(group), 0);
+        FUN_00178b40(5, rasterizer_transparent_geometry_get_primary_vertex_type(group), 0);
         if (group->node_matrices && group->node_matrix_count) {
           skinning.node_matrices = group->node_matrices;
           skinning.node_matrix_count = group->node_matrix_count;
@@ -1515,7 +1515,7 @@ void FUN_00167920(void)
     }
   }
   if (fog_globals.local_fog_pass != 0) {
-    FUN_0016fa40(_rasterizer_profile_environment_fog_screen);
+    rasterizer_profile_end(_rasterizer_profile_environment_fog_screen);
   }
 }
 

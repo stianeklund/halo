@@ -28,8 +28,8 @@ void leaf_face_get_vertex3d(int *collision_bsp_ref, int *leaf_face,
   }
   sign = (uint8_t)FUN_00099270(plane, (short)projection);
   project_point2d(
-    (float *)tag_block_get_element((void *)(leaf_face + 1), vertex_index, 8),
-    plane, (int16_t)projection, sign, point);
+    (const real_point2d *)tag_block_get_element((void *)(leaf_face + 1), vertex_index, 8),
+    (const real_plane3d *)plane, (int16_t)projection, sign, (real_point3d *)point);
 }
 
 /* 0x192a50 -- Debug-draw each face of a leaf-map leaf: a triangle fan
@@ -66,11 +66,11 @@ void render_debug_leaf_faces(int *leaf_map, int leaf_index)
     previous[0] = point1[0];
     previous[1] = point1[1];
     previous[2] = point1[2];
-    FUN_00189270(1, point0, point1, *(void **)0x2ee6c4);
+    render_debug_line(1, (const real_point3d *)point0, (const real_point3d *)point1, *(void **)0x2ee6c4);
     for (vertex_index = 2; vertex_index < face[1]; vertex_index++) {
       leaf_face_get_vertex3d(leaf_map, face, vertex_index, point2);
-      FUN_00188890(1, point0, previous, point2, color);
-      FUN_00189270(1, previous, point2, *(void **)0x2ee6c4);
+      render_debug_triangle(1, (const real_point3d *)point0, (const real_point3d *)previous, (const real_point3d *)point2, (const real_argb_color *)color);
+      render_debug_line(1, (const real_point3d *)previous, (const real_point3d *)point2, *(void **)0x2ee6c4);
       previous[0] = point2[0];
       previous[1] = point2[1];
       previous[2] = point2[2];

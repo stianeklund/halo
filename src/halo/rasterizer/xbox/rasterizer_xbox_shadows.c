@@ -562,7 +562,7 @@ void _rasterizer_environment_shadow_draw(void *shader, short bitmap_index,
       }
       rasterizer_environment_shadows_globals.shadow_setup = 1;
     }
-    FUN_00158ae0(RASTERIZER_STENCIL_MODE_REJECT);
+    rasterizer_set_stencil_mode(RASTERIZER_STENCIL_MODE_REJECT);
     rasterizer_draw_dynamic_triangles_static_vertices(
       dynamic_triangle_buffer_index, first_triangle_index, triangle_count,
       vertex_buffer);
@@ -776,7 +776,7 @@ char FUN_00172a30(int param_1, const float *shadow_matrix,
                             ? 0x88888888u
                             : 0u,
                           1, 0);
-    FUN_00158ae0(0);
+    rasterizer_set_stencil_mode(0);
 
     /* Stash the 13-dword matrix, then the RGB color, then the radius. */
     src = (const unsigned long *)shadow_matrix;

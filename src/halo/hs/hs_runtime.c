@@ -2670,7 +2670,7 @@ void hs_runtime_dispose_from_old_map(void)
   idx = *(int16_t *)0x27d504;
   if (idx < (*(data_t **)0x5aa6c0)->current_count) {
     do {
-      datum = datum_absolute_index_to_index(*(data_t **)0x5aa6c0, (int)idx);
+      datum = (int)datum_absolute_index_to_index(*(data_t **)0x5aa6c0, (int)idx);
       if (datum != 0) {
         datum_delete(*(data_t **)0x5aa6c0, (int)idx);
       }
@@ -4049,7 +4049,7 @@ void render_debug_scripting(void)
     }
     buffer[0x400] = 0;
     draw_string_set_tab_stops(tab_stops, 2);
-    FUN_00189c40(1, buffer);
+    render_debug_string(1, buffer);
     draw_string_set_tab_stops(tab_stops, 0);
   }
 }
@@ -4069,9 +4069,9 @@ void render_debug_scripting(void)
  *     extents are matrix_scale_transform_vector(transform, local, world).
  *   6 faces: odd faces start at world_extents + position with negated local
  *   edges, even faces at position; face[3] = face[2] - edge_a (0xcbdfc).
- *   Highlighted (bit in 0x5aa6a0 bitvector) faces: FUN_00189ba0 with the
- *   color pointer [0x2ee6d8]; else FUN_00189ba0 with [0x2ee6d0] then
- *   FUN_00188a90 with a 4-float copy of *[0x2ee6d8] whose first float is
+ *   Highlighted (bit in 0x5aa6a0 bitvector) faces: render_debug_polygon_edges with the
+ *   color pointer [0x2ee6d8]; else render_debug_polygon_edges with [0x2ee6d0] then
+ *   render_debug_polygon with a 4-float copy of *[0x2ee6d8] whose first float is
  *   0.15f (0x3e19999a at 0xcbe64).
  *   Label at center = world_extents * 0.5 + position, visibility-tested with
  *   collision_test_vector(0xc2ad, camera 0x506550, (center-camera)*0.95, -1, 0x50-byte
@@ -4121,7 +4121,7 @@ void render_debug_trigger_volumes(void)
       matrix4x3_from_forward_up_position(transform, (real_point3d *)(volume + 0x48),
                                          (real_vector3d *)(volume + 0x30),
                                          (real_vector3d *)(volume + 0x3c));
-      matrix_scale_transform_vector(transform, (real_vector3d *)&local_extents,
+      matrix_scale_transform_vector((const real_matrix4x3 *)transform, (real_vector3d *)&local_extents,
                                     (real_vector3d *)&world_extents);
       break;
     default:
@@ -4157,8 +4157,8 @@ void render_debug_trigger_volumes(void)
           ((float *)&local_extents)[((int16_t)axis + 2) % 3];
       }
 
-      matrix_scale_transform_vector(transform, &edges[0], &edges[0]); /* dup-args-ok */
-      matrix_scale_transform_vector(transform, &edges[1], &edges[1]); /* dup-args-ok */
+      matrix_scale_transform_vector((const real_matrix4x3 *)transform, &edges[0], &edges[0]); /* dup-args-ok */
+      matrix_scale_transform_vector((const real_matrix4x3 *)transform, &edges[1], &edges[1]); /* dup-args-ok */
 
       face_pts[1].x = face_pts[0].x + edges[0].i;
       face_pts[1].y = edges[0].j + face_pts[0].y;
@@ -4171,7 +4171,7 @@ void render_debug_trigger_volumes(void)
       face_pts[3].z = face_pts[2].z - edges[0].k;
 
       if (*bitvector_word & bit_mask) {
-        FUN_00189ba0((float *)face_pts, 4, *(void **)0x2ee6d8);
+        render_debug_polygon_edges((const real_point3d *)face_pts, 4, *(void **)0x2ee6d8);
       } else {
         src_color = *(float **)0x2ee6d8;
         fill_color[0] = src_color[0];
@@ -4179,8 +4179,8 @@ void render_debug_trigger_volumes(void)
         fill_color[2] = src_color[2];
         fill_color[3] = src_color[3];
         fill_color[0] = 0.15f;
-        FUN_00189ba0((float *)face_pts, 4, *(void **)0x2ee6d0);
-        FUN_00188a90((float *)face_pts, 4, fill_color);
+        render_debug_polygon_edges((const real_point3d *)face_pts, 4, *(void **)0x2ee6d0);
+        render_debug_polygon((const real_point3d *)face_pts, 4, (const real_argb_color *)fill_color);
       }
     }
 
@@ -4193,10 +4193,11 @@ void render_debug_trigger_volumes(void)
     view_dir.z = (center.z - *(float *)0x506558) * *(float *)0x255ed4;
 
     if (!collision_test_vector(0xc2ad, (real_point3d *)(0x506550), (real_vector3d *)&view_dir, -1,
-                      collision_result)) {
+                      (collision_test_result *)collision_result)) {
       render_debug_string_at_point(1, &center, volume + 4,
-                   (*bitvector_word & bit_mask) ? *(int *)0x2ee6e0
-                                                : *(int *)0x2ee6c4);
+                   (*bitvector_word & bit_mask)
+                     ? *(const real_argb_color **)0x2ee6e0
+                     : *(const real_argb_color **)0x2ee6c4);
     }
   }
 }

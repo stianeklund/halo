@@ -293,8 +293,8 @@ static const int16_t g_projection_axes[3][2][2] = {
  *
  * Inlined from ..\\math\\real_math.h (line 0x36f).
  */
-void project_point2d(float *point_2d, float *plane, int16_t projection,
-                     uint8_t sign, float *out_point)
+void project_point2d(const real_point2d *point_2d, const real_plane3d *plane,
+                     int16_t projection, uint8_t sign, real_point3d *out_point)
 {
   int proj_i;
   int16_t axis_a;
@@ -315,14 +315,15 @@ void project_point2d(float *point_2d, float *plane, int16_t projection,
     system_exit(-1);
   }
 
-  out_point[(int)axis_a] = point_2d[0];
-  out_point[(int)axis_b] = point_2d[1];
+  ((real *)out_point)[(int)axis_a] = point_2d->x;
+  ((real *)out_point)[(int)axis_b] = point_2d->y;
 
-  out_point[proj_i] = x87_fabs(plane[proj_i]) < *(double *)0x2533d0
-                          ? 0.0f
-                          : (plane[3] - plane[(int)axis_a] * point_2d[0] -
-                             plane[(int)axis_b] * point_2d[1]) /
-                                plane[proj_i];
+  ((real *)out_point)[proj_i] =
+    x87_fabs((&plane->normal.i)[proj_i]) < *(double *)0x2533d0
+      ? 0.0f
+      : (plane->d - (&plane->normal.i)[(int)axis_a] * point_2d->x -
+         (&plane->normal.i)[(int)axis_b] * point_2d->y) /
+          (&plane->normal.i)[proj_i];
 }
 
 /* triple_product3d (0x993b0)
@@ -408,10 +409,10 @@ void plane3d_from_point_and_normal(float *plane_out, float *point, float *normal
 }
 
 /* Signed distance from a point to a plane (normal·point - d). */
-float plane3d_distance_to_point(float *plane, float *point)
+float plane3d_distance_to_point(const real_plane3d *plane, const real_point3d *point)
 {
-  return plane[0] * point[0] + plane[1] * point[1] + plane[2] * point[2] -
-         plane[3];
+  return plane->normal.i * point->x + plane->normal.j * point->y +
+         plane->normal.k * point->z - plane->d;
 }
 
 uint32_t real_a_rgb_color_to_pixel32(float alpha, float *color)
@@ -509,21 +510,21 @@ uint32_t real_a_rgb_color_to_pixel32(float alpha, float *color)
  * negated, effectively flipping the plane to face the opposite direction.
  * Each plane element is 0x10 bytes (four floats: i, j, k, d).
  */
-float * bsp3d_get_plane_from_designator(int structure_bsp,
-                                     uint32_t plane_reference, float *out_plane)
+real_plane3d *bsp3d_get_plane_from_designator(int structure_bsp,
+                                              uint32_t plane_reference, real_plane3d *out_plane)
 {
-  float *plane_data;
+  real_plane3d *plane;
 
-  plane_data = (float *)tag_block_get_element(
+  plane = (real_plane3d *)tag_block_get_element(
     (char *)structure_bsp + 0xc, (int)(plane_reference & 0x7fffffff), 0x10);
 
   if (plane_reference & 0x80000000) {
-    out_plane[0] = -plane_data[0];
-    out_plane[1] = -plane_data[1];
-    out_plane[2] = -plane_data[2];
-    out_plane[3] = -plane_data[3];
+    out_plane->normal.i = -plane->normal.i;
+    out_plane->normal.j = -plane->normal.j;
+    out_plane->normal.k = -plane->normal.k;
+    out_plane->d = -plane->d;
   } else {
-    *(real_plane3d *)out_plane = *(real_plane3d *)plane_data;
+    *out_plane = *plane;
   }
 return out_plane; }
 
@@ -1286,7 +1287,7 @@ void decal_clip_to_surface(void *geometry, float *projection, int surface_index,
     deviant_count = *deviant_surface_count;
   }
 
-  bsp3d_get_plane_from_designator(structure_bsp, (uint32_t)surface[0], plane);
+  bsp3d_get_plane_from_designator(structure_bsp, (uint32_t)surface[0], (real_plane3d *)plane);
   angle = angle_between_normals3d(plane, projection + 0x11);
 
   /* Original (PAL 2342 source): wrap into neighbours when the surface bends
@@ -1461,11 +1462,11 @@ void decal_clip_to_surface(void *geometry, float *projection, int surface_index,
                   *(int16_t *)(geometry_data + 0x6000) * 0x18 + 0x14) =
           (clipped_flags & (1u << decal_point_index)) != 0;
 
-        project_point2d(point, plane, *(int16_t *)((char *)projection + 0x54),
+        project_point2d((const real_point2d *)point, (const real_plane3d *)plane, *(int16_t *)((char *)projection + 0x54),
                         *(uint8_t *)((char *)projection + 0x56),
-                        (float *)(geometry_data +
+                        (real_point3d *)((float *)(geometry_data +
                                   *(int16_t *)(geometry_data + 0x6000) *
-                                    0x18));
+                                    0x18)));
 
         if (!(clipped_flags & (1u << decal_point_index))) {
           float *vertex = (float *)(geometry_data +
@@ -1733,7 +1734,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
 
           cosine = x87_fcos(angle);
           sine = x87_fsin(angle);
-          perpendicular3d(normal, tangent);
+          perpendicular3d((const real_vector3d *)normal, (real_vector3d *)tangent);
           {
             float k = normal[0] * tangent[1] - normal[1] * tangent[0];
             float j = normal[2] * tangent[0] - normal[0] * tangent[2];
@@ -1906,9 +1907,9 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                     (char *)structure_bsp + 0xc, designator & 0x7fffffff, 0x10);
 
                   if (designator < 0) {
-                    surface_plane[0] = -plane->normal[0];
-                    surface_plane[1] = -plane->normal[1];
-                    surface_plane[2] = -plane->normal[2];
+                    surface_plane[0] = -plane->normal.i;
+                    surface_plane[1] = -plane->normal.j;
+                    surface_plane[2] = -plane->normal.k;
                     surface_plane[3] = -plane->d;
                   } else {
                     *(real_plane3d *)surface_plane = *plane;
@@ -1934,7 +1935,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
 
                     bsp3d_get_plane_from_designator(structure_bsp,
                                                     (uint32_t)next_surface[0],
-                                                    next_plane);
+                                                    (real_plane3d *)next_plane);
 
                     angle = angle_between_normals3d(surface_plane, next_plane);
                     if (angle <= *(float *)(0x269d80 +
@@ -1994,7 +1995,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                            maximum_distance <= closest_maximum_distance)) {
                         bsp3d_get_plane_from_designator(
                           structure_bsp, (uint32_t)bunch_surface[0],
-                          closest_plane);
+                          (real_plane3d *)closest_plane);
                         closest_minimum_distance = minimum_distance;
                         closest_maximum_distance = maximum_distance;
                         closest_edge_start = *(vector3_t *)edge_start;
@@ -2065,7 +2066,7 @@ void decal_new_from_collision(int decal_tag_index, int16_t *collision_result,
                       wrapped_basis[10] = basis[10] - closest_edge_start.x;
                       wrapped_basis[11] = basis[11] - closest_edge_start.y;
                       wrapped_basis[12] = basis[12] - closest_edge_start.z;
-                      matrix_transform_point(rotation, (real_point3d *)&wrapped_basis[10],
+                      matrix_transform_point((const real_matrix4x3 *)rotation, (real_point3d *)&wrapped_basis[10],
                                              (real_point3d *)&wrapped_basis[10]); /* dup-args-ok */
                       matrix_transform_vector(rotation, (real_vector3d *)&basis[1],
                                               (real_vector3d *)&wrapped_basis[1]);
@@ -2381,7 +2382,7 @@ void decal_new(int decal_tag_index, void *origin, void *direction,
     collision_user_stack[global_current_collision_user_depth++] = 9;
 
     if (collision_test_vector(0x100061, origin, direction, -1,
-                     collision_result) &&
+                     (collision_test_result *)collision_result) &&
         collision_result[0] != 0 && collision_result[0] == 2) {
       uint8_t *decal_tag = (uint8_t *)tag_get(0x64656361, decal_tag_index);
       if ((decal_tag[0] & 0x10) == 0) {
@@ -2482,22 +2483,22 @@ void FUN_0017cb10(int decal_index)
   FUN_0015b530(decal_index);
 }
 
-/* Tail-call thunk to decal rendering pass setup (FUN_0015b970).
+/* Tail-call thunk to decal rendering pass setup (_rasterizer_decals_begin).
  * pass_index selects the rendering pass type. */
-void FUN_0017cb20(short pass_index)
+void rasterizer_decals_begin(short pass_index)
 {
-  FUN_0015b970(pass_index);
+  _rasterizer_decals_begin(pass_index);
 }
 
 /* Tail-call thunk to per-cluster decal rendering (FUN_0015bc40).
  * rendered_cluster_data is a pointer to the cluster render data. */
-void FUN_0017cb30(int rendered_cluster_data)
+void rasterizer_decals_draw(int rendered_cluster_data)
 {
   FUN_0015bc40(rendered_cluster_data);
 }
 
 /* Tail-call thunk to rasterizer decal geometry (FUN_0015b5e0). */
-void FUN_0017cb40(void)
+void rasterizer_decals_end(void)
 {
   FUN_0015b5e0();
 }

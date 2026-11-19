@@ -657,8 +657,8 @@ void FUN_00145ad0(unsigned short param_1, void *damage_params, int param_3)
            * our local reference point */
           FUN_00061df0(param_2 + 10, (uint32_t)projection, sign,
                        projected_point);
-          project_point2d((float *)projected_point, plane, (short)projection,
-                          sign, origin);
+          project_point2d((const real_point2d *)projected_point, (const real_plane3d *)plane, (short)projection,
+                          sign, (real_point3d *)origin);
         } else {
           origin[0] = vert_ptr[0];
           origin[1] = vert_ptr[1];

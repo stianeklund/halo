@@ -12,7 +12,7 @@
  * Include it only from the TUs that use it. Not from common.h or
  * xdk_common.h: extra macro names in every TU change VC71 tie-breaks.
  * Pulled in globally, it cost decals_delete_permanent_from_cluster and
- * FUN_0017e190 one byte each, though neither uses any of these names.
+ * rasterizer_debug_draw one byte each, though neither uses any of these names.
  * Some TUs still define a few of these locally with the same values;
  * identical redefinitions are legal. */
 

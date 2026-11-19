@@ -498,13 +498,12 @@ void matrix4x3_rotation_from_quaternion(float *out, float *q)
   out[9] = 1.0f - (yy + xx);
 }
 
-void matrix4x3_from_point_and_quaternion(float *out_matrix, float *position,
-                                     float *basis_data)
+void matrix4x3_from_point_and_quaternion(real_matrix4x3 *matrix,
+                                         const real_point3d *position,
+                                         const real_quaternion *orientation)
 {
-  matrix4x3_rotation_from_quaternion(out_matrix, basis_data);
-  out_matrix[10] = position[0];
-  out_matrix[11] = position[1];
-  out_matrix[12] = position[2];
+  matrix4x3_rotation_from_quaternion((float *)matrix, (float *)orientation);
+  matrix->position = *position;
 }
 
 /* 0x109500 — Convert a quaternion+scale+position to a full 4x3 matrix.
@@ -541,37 +540,31 @@ __declspec(noinline) void matrix4x3_decompose(float *matrix, float *out_pos,
  * out = rotation * (scale * in) + translation.
  * Matrix layout: [scale +0x00][3x3 rotation +0x04..+0x24][translation
  * +0x28..+0x30]. */
-real_point3d *matrix_transform_point(float *matrix, const real_point3d *in,
+real_point3d *matrix_transform_point(const real_matrix4x3 *matrix, const real_point3d *in,
                                      real_point3d *out)
 {
   float x = in->x;
   float y = in->y;
   float z = in->z;
 
-  if (*(int *)matrix != 0x3f800000) {
-    x = x * *matrix;
-    y = y * *matrix;
-    z = z * *matrix;
+  if (*(const int *)&matrix->scale != 0x3f800000) {
+    x = x * matrix->scale;
+    y = y * matrix->scale;
+    z = z * matrix->scale;
   }
 
-  out->x = z * *(float *)((char *)matrix + 0x1c) +
-           y * *(float *)((char *)matrix + 0x10) +
-           x * *(float *)((char *)matrix + 0x04) +
-           *(float *)((char *)matrix + 0x28);
-  out->y = z * *(float *)((char *)matrix + 0x20) +
-           y * *(float *)((char *)matrix + 0x14) +
-           x * *(float *)((char *)matrix + 0x08) +
-           *(float *)((char *)matrix + 0x2c);
-  out->z = z * *(float *)((char *)matrix + 0x24) +
-           y * *(float *)((char *)matrix + 0x18) +
-           x * *(float *)((char *)matrix + 0x0c) +
-           *(float *)((char *)matrix + 0x30);
+  out->x = z * matrix->up.i + y * matrix->left.i + x * matrix->forward.i +
+           matrix->position.x;
+  out->y = z * matrix->up.j + y * matrix->left.j + x * matrix->forward.j +
+           matrix->position.y;
+  out->z = z * matrix->up.k + y * matrix->left.k + x * matrix->forward.k +
+           matrix->position.z;
   return out;
 }
 
 /* 0x109610 — Scale-transform a vector by a 4x3 matrix.
  * If matrix scale != 1.0, scales the input vector components first. */
-real_vector3d *matrix_scale_transform_vector(float *matrix,
+real_vector3d *matrix_scale_transform_vector(const real_matrix4x3 *matrix,
                                              const real_vector3d *in,
                                              real_vector3d *out)
 {
@@ -579,14 +572,14 @@ real_vector3d *matrix_scale_transform_vector(float *matrix,
   float y = in->j;
   float z = in->k;
 
-  if (*(uint32_t *)&matrix[0] != 0x3f800000) {
-    x = x * matrix[0];
-    y = y * matrix[0];
-    z = z * matrix[0];
+  if (*(const uint32_t *)&matrix->scale != 0x3f800000) {
+    x = x * matrix->scale;
+    y = y * matrix->scale;
+    z = z * matrix->scale;
   }
-  out->i = z * matrix[7] + y * matrix[4] + x * matrix[1];
-  out->j = z * matrix[8] + y * matrix[5] + x * matrix[2];
-  out->k = z * matrix[9] + y * matrix[6] + x * matrix[3];
+  out->i = z * matrix->up.i + y * matrix->left.i + x * matrix->forward.i;
+  out->j = z * matrix->up.j + y * matrix->left.j + x * matrix->forward.j;
+  out->k = z * matrix->up.k + y * matrix->left.k + x * matrix->forward.k;
   return out;
 }
 
@@ -1244,19 +1237,21 @@ void vector_from_matrices4x3(const real_matrix4x3 *matrix0,
  * part, and the distance (in_plane[3]) is recomputed from the original
  * distance scaled by matrix[0] plus the dot product of the transformed normal
  * with the matrix's translation (matrix[10..12]). */
-float *matrix4x3_transform_plane(float *matrix, float *in_plane, float *out_plane)
+real_plane3d *matrix4x3_transform_plane(const real_matrix4x3 *matrix,
+                                        const real_plane3d *in_plane,
+                                        real_plane3d *out_plane)
 {
-  float nx = in_plane[0];
-  float ny = in_plane[1];
-  float nz = in_plane[2];
+  float nx = in_plane->normal.i;
+  float ny = in_plane->normal.j;
+  float nz = in_plane->normal.k;
 
-  out_plane[0] = nx * matrix[1] + ny * matrix[4] + nz * matrix[7];
-  HALO_FLT_ROUNDTRIP(out_plane[0]);
-  out_plane[1] = nx * matrix[2] + ny * matrix[5] + nz * matrix[8];
-  HALO_FLT_ROUNDTRIP(out_plane[1]);
-  out_plane[2] = nx * matrix[3] + ny * matrix[6] + nz * matrix[9];
-  out_plane[3] = in_plane[3] * matrix[0] + matrix[10] * out_plane[0] +
-                 matrix[11] * out_plane[1] + matrix[12] * out_plane[2];
+  out_plane->normal.i = nx * matrix->forward.i + ny * matrix->left.i + nz * matrix->up.i;
+  HALO_FLT_ROUNDTRIP(out_plane->normal.i);
+  out_plane->normal.j = nx * matrix->forward.j + ny * matrix->left.j + nz * matrix->up.j;
+  HALO_FLT_ROUNDTRIP(out_plane->normal.j);
+  out_plane->normal.k = nx * matrix->forward.k + ny * matrix->left.k + nz * matrix->up.k;
+  out_plane->d = in_plane->d * matrix->scale + matrix->position.x * out_plane->normal.i +
+                 matrix->position.y * out_plane->normal.j + matrix->position.z * out_plane->normal.k;
   return out_plane;
 }
 
@@ -1358,7 +1353,7 @@ void FUN_0010a4c0(int out_matrix, float *plane)
                    "c:\\halo\\SOURCE\\math\\matrix_math.c", 0x172, 1);
     system_exit(-1);
   }
-  perpendicular3d(plane, axis);
+  perpendicular3d((const real_vector3d *)plane, (real_vector3d *)axis);
   normalize3d((real_vector3d *)axis);
   point[0] = plane[3] * plane[0];
   point[1] = plane[1] * plane[3];
@@ -1677,25 +1672,25 @@ return out; }
  * If abs(y) is smallest: out = (-z, 0, x)
  * If abs(z) is smallest: out = (y, -x, 0)
  */
-void perpendicular3d(float *in, float *out)
+void perpendicular3d(const real_vector3d *vector, real_vector3d *perpendicular)
 {
   /* Intrinsic x87 FABS (fabsf is an out-of-line CRT call under VC71). */
-  float abs_x = (float)real_math_fabs_double_from_float(in[0]);
-  float abs_y = (float)real_math_fabs_double_from_float(in[1]);
-  float abs_z = (float)real_math_fabs_double_from_float(in[2]);
+  float abs_x = (float)real_math_fabs_double_from_float(vector->i);
+  float abs_y = (float)real_math_fabs_double_from_float(vector->j);
+  float abs_z = (float)real_math_fabs_double_from_float(vector->k);
 
   if (abs_x <= abs_y && abs_x <= abs_z) {
-    out[0] = 0.0f;
-    out[1] = in[2];
-    out[2] = -in[1];
+    perpendicular->i = 0.0f;
+    perpendicular->j = vector->k;
+    perpendicular->k = -vector->j;
   } else if (abs_y <= abs_z) {
-    out[0] = -in[2];
-    out[1] = 0.0f;
-    out[2] = in[0];
+    perpendicular->i = -vector->k;
+    perpendicular->j = 0.0f;
+    perpendicular->k = vector->i;
   } else {
-    out[0] = in[1];
-    out[1] = -in[0];
-    out[2] = 0.0f;
+    perpendicular->i = vector->j;
+    perpendicular->j = -vector->i;
+    perpendicular->k = 0.0f;
   }
 }
 
@@ -4395,7 +4390,7 @@ char pin_normal_to_cone3d(float *normal, float *direction, float sin_half_angle,
   axis[2] = direction[0] * normal[1] - normal[0] * direction[1];
   mag = normalize3d((real_vector3d *)axis);
   if (mag == 0.0f) {
-    perpendicular3d(direction, axis);
+    perpendicular3d((const real_vector3d *)direction, (real_vector3d *)axis);
     normalize3d((real_vector3d *)axis);
   }
 

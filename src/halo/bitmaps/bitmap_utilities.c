@@ -1559,7 +1559,7 @@ void *FUN_00076ff0(int tag_index, short bitmap_index)
 }
 
 /*
- * FUN_00077040 -- bitmap_group_get_bitmap: resolve sequence/frame index pair
+ * bitmap_group_get_bitmap_from_sequence -- bitmap_group_get_bitmap: resolve sequence/frame index pair
  * to a bitmap data element in a 'bitm' tag.
  *
  * Walks the tag's sequence block to find the correct bitmap index, handling
@@ -1568,7 +1568,7 @@ void *FUN_00076ff0(int tag_index, short bitmap_index)
  *
  * Source TU: bitmap_group.c (assert strings confirm)
  */
-void *FUN_00077040(int tag_index, short sequence_index, short frame_index)
+void *bitmap_group_get_bitmap_from_sequence(int tag_index, short sequence_index, short frame_index)
 {
   int tag;
   int sequence;

@@ -802,12 +802,12 @@ void particle_new(void *spawn_params)
     /* attached to object — transform through object node matrix */
     float *matrix = (float *)object_get_node_matrix(*(int *)(sp + 0x04),
                                                     *(uint16_t *)(sp + 0x08));
-    matrix_transform_point(matrix, (real_point3d *)position, &local_position);
+    matrix_transform_point((const real_matrix4x3 *)matrix, (real_point3d *)position, &local_position);
   } else {
     /* first-person weapon — transform through FP weapon node matrix */
     float *matrix = (float *)first_person_weapon_get_node_matrix(
       *(uint16_t *)(sp + 0x0a), *(uint16_t *)(sp + 0x08));
-    matrix_transform_point(matrix, (real_point3d *)position, &local_position);
+    matrix_transform_point((const real_matrix4x3 *)matrix, (real_point3d *)position, &local_position);
   }
 
   scenario_location_from_point(location, &local_position);

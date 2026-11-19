@@ -482,7 +482,7 @@ void temporary_hud_draw_reticle(float param_1, const void *param_2)
     vertices[i][0] = x87_fcos(angle) * radius;
     vertices[i][1] = x87_fsin(angle) * radius;
 #endif
-    matrix_transform_point((float *)0x5065e8, (real_point3d *)vertices[i], (real_point3d *)vertices[i]);
+    matrix_transform_point((const real_matrix4x3 *)(0x5065e8), (real_point3d *)vertices[i], (real_point3d *)vertices[i]);
     angle += *(float *)0x26b164;
   }
 
@@ -490,7 +490,7 @@ void temporary_hud_draw_reticle(float param_1, const void *param_2)
   vertex = vertices[0];
   remaining = 16;
   do {
-    FUN_0017eb10(vertex, vertices[index % 16], (int)(long)param_2);
+    rasterizer_debug_line((const real_point3d *)vertex, (const real_point3d *)vertices[index % 16], (const real_argb_color *)((int)(long)param_2));
     index++;
     vertex += 3;
     remaining--;
@@ -558,14 +558,15 @@ void hud_draw_friendly_indicator(int player_handle)
   player = datum_get(*(data_t **)0x5aa6d4, player_handle);
   unit_get_head_position(*(int *)((char *)player + 0x34), head_pos);
   head_pos[2] += *(float *)0x2533e4;
-  matrix_transform_point((float *)0x5065b4, (real_point3d *)head_pos, &cam_pos);
-  if (render_camera_view_to_screen((int *)0x506550, (int *)0x5065a4, &cam_pos,
-                                   screen_xy) == '\0') {
+  matrix_transform_point((const real_matrix4x3 *)(0x5065b4), (real_point3d *)head_pos, &cam_pos);
+  if (render_camera_view_to_screen((camera_t *)0x506550,
+                                   (render_frustum_t *)0x5065a4, &cam_pos,
+                                   (real_point2d *)screen_xy) == '\0') {
     return;
   }
 
   sprite_handle = interface_get_tag_index(9);
-  sprite_handle = (int)FUN_00077040(sprite_handle, 0, 0);
+  sprite_handle = (int)bitmap_group_get_bitmap_from_sequence(sprite_handle, 0, 0);
   if (xbox_texture_cache_get_hardware_format((void *)sprite_handle, 0, 1) ==
       NULL) {
     return;
@@ -1059,7 +1060,7 @@ void hud_retrieve_bitmap_and_bounding_rect(int bitmap_tag, short sequence_index,
       sprite_count = *(int *)((char *)seq_elem + 0x34);
       if (sprite_count == 0) {
         *out_bitmap =
-          (int)FUN_00077040(bitmap_tag, sequence_index, (short)frame_index);
+          (int)bitmap_group_get_bitmap_from_sequence(bitmap_tag, sequence_index, (short)frame_index);
       } else {
         sprite_elem =
           tag_block_get_element((char *)seq_elem + 0x34,
@@ -1281,7 +1282,7 @@ int fast_ftol_C(float param_1)
   return (int)param_1;
 }
 
-uint32_t real_argb_color_to_pixel32(float *color)
+uint32_t real_argb_color_to_pixel32(const real_argb_color *color)
 {
   float scale;
   int a;
@@ -1292,27 +1293,27 @@ uint32_t real_argb_color_to_pixel32(float *color)
   uint32_t verify;
 
   scale = 255.0f;
-  if (!valid_real_argb_color(color)) {
+  if (!valid_real_argb_color((float *)color)) {
     display_assert(
       csprintf((char *)0x5ab100,
                "%s: assert_valid_real_argb_color(%f, %f, %f, %f)",
-               "color", (double)color[0], (double)color[1],
-               (double)color[2], (double)color[3]),
+               "color", (double)color->alpha, (double)color->red,
+               (double)color->green, (double)color->blue),
       "..\\bitmaps\\bitmaps_inlines.h", 0x59, 1);
     system_exit(-1);
   }
 
-  a = x87_round_to_int(color[0] * scale);
-  r = x87_round_to_int(color[1] * scale);
-  g = x87_round_to_int(color[2] * scale);
-  b = x87_round_to_int(color[3] * scale);
+  a = x87_round_to_int(color->alpha * scale);
+  r = x87_round_to_int(color->red * scale);
+  g = x87_round_to_int(color->green * scale);
+  b = x87_round_to_int(color->blue * scale);
   result = (uint32_t)b | ((uint32_t)g << 8) | ((uint32_t)r << 16) |
            ((uint32_t)a << 24);
 
-  verify = (uint32_t)(x87_round_to_int(color[3] * scale) & 0xff) |
-           ((uint32_t)(x87_round_to_int(color[2] * scale) & 0xff) << 8) |
-           ((uint32_t)(x87_round_to_int(color[1] * scale) & 0xff) << 16) |
-           ((uint32_t)x87_round_to_int(color[0] * scale) << 24);
+  verify = (uint32_t)(x87_round_to_int(color->blue * scale) & 0xff) |
+           ((uint32_t)(x87_round_to_int(color->green * scale) & 0xff) << 8) |
+           ((uint32_t)(x87_round_to_int(color->red * scale) & 0xff) << 16) |
+           ((uint32_t)x87_round_to_int(color->alpha * scale) << 24);
   if (verify != result) {
     display_assert("verify == result", "..\\bitmaps\\bitmaps_inlines.h", 0xbc,
                    true);
@@ -1371,7 +1372,7 @@ unsigned int real_alpha_intensity_to_pixel32(float alpha, float intensity)
   color[1] = intensity;
   color[2] = intensity;
   color[3] = intensity;
-  return real_argb_color_to_pixel32(color);
+  return real_argb_color_to_pixel32((const real_argb_color *)color);
 }
 
 /* Resolves an absolute on-screen position (out[0],out[1]) from an anchor-mode
@@ -1635,7 +1636,7 @@ check_guard:
       "c:\\halo\\SOURCE\\interface\\hud_draw.c", 0x137, 1);
     system_exit(-1);
   }
-  return real_argb_color_to_pixel32(out_color);
+  return real_argb_color_to_pixel32((const real_argb_color *)out_color);
 }
 
 /* Builds a rotated 4-corner sprite quad and submits it to the sprite
@@ -1893,11 +1894,11 @@ void hud_draw_multitexture_overlay(int element, float *scale, int local_player_i
    * != 0 unconditionally, so these MUST be written into render_desc, not a
    * separate local array. */
   *(int *)(render_desc + 0xc) =
-    (int)FUN_00077040(*(int *)(element + 0x70), 0, 0); /* map[0] */
+    (int)bitmap_group_get_bitmap_from_sequence(*(int *)(element + 0x70), 0, 0); /* map[0] */
   *(int *)(render_desc + 0x10) =
-    (int)FUN_00077040(*(int *)(element + 0x80), 0, 0); /* map[1] */
+    (int)bitmap_group_get_bitmap_from_sequence(*(int *)(element + 0x80), 0, 0); /* map[1] */
   *(int *)(render_desc + 0x14) =
-    (int)FUN_00077040(*(int *)(element + 0x90), 0, 0); /* map[2] */
+    (int)bitmap_group_get_bitmap_from_sequence(*(int *)(element + 0x90), 0, 0); /* map[2] */
 
   /* Per-icon scale and texture-normalization reciprocals.
    * element+0x34+8k = scale.x, element+0x38+8k = scale.y -> normalize slots

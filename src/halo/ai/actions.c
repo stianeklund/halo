@@ -3622,9 +3622,9 @@ bool actors_searching_same_position(int actor_handle, int param_2)
   if (search1 != NULL && search2 != NULL) {
     kind1 = *search1;
     if (kind1 == 0 && *search2 == 0) {
-      rec1 = datum_absolute_index_to_index(*(data_t **)0x5ab23c,
+      rec1 = (int)datum_absolute_index_to_index(*(data_t **)0x5ab23c,
                                            *(int *)(rec1 + 0x270));
-      rec2 = datum_absolute_index_to_index(*(data_t **)0x5ab23c,
+      rec2 = (int)datum_absolute_index_to_index(*(data_t **)0x5ab23c,
                                            *(int *)(rec2 + 0x270));
       if (rec1 == 0) {
         return 0;

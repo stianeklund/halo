@@ -636,7 +636,7 @@ bool projectile_collision_test_line(int projectile_handle, float *new_pos,
 
   vector_from_points3d(position, destination, &sweep.ray);
   if (SWEEP_LOS(collision_test_vector(0x1000e9, position, &sweep.ray,
-                             projectile->ignore_object_index, collision_result)) == 0) {
+                             projectile->ignore_object_index, (collision_test_result *)collision_result)) == 0) {
     if (definition->collision_radius < REAL_0_0001_POOL) {
       return false;
     }
@@ -663,7 +663,7 @@ bool projectile_collision_test_line(int projectile_handle, float *new_pos,
     vector_from_points3d(&sweep.positive_origin, &sweep.positive_end, &sweep.direction);
 
     if (SWEEP_LOS(collision_test_vector(0x89, &sweep.positive_origin, &sweep.direction,
-                               projectile->ignore_object_index, collision_result)) == 0 &&
+                               projectile->ignore_object_index, (collision_test_result *)collision_result)) == 0 &&
         collision_test_line(0x89, (float *)&sweep.negative_origin, (float *)&sweep.negative_end,
                      projectile->ignore_object_index, collision_result) == 0) {
       return false;
@@ -2011,7 +2011,7 @@ bool projectile_update(int projectile_handle)
             cross_product3d((real_vector3d *)up, (real_vector3d *)forward, (real_vector3d *)&sound_location.position);
             cross_product3d((real_vector3d *)forward, (real_vector3d *)&sound_location.position, (real_vector3d *)up);
             if ((float)normalize3d((real_vector3d *)up) == 0.0f) {
-              perpendicular3d(forward, up);
+              perpendicular3d((const real_vector3d *)forward, (real_vector3d *)up);
               normalize3d((real_vector3d *)up);
             }
           }

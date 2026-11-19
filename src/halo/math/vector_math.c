@@ -1020,7 +1020,7 @@ bool collision_test_line(uint32_t collision_flags, float *point_a, float *point_
   direction[1] = point_b[1] - point_a[1];
   direction[2] = point_b[2] - point_a[2];
   return collision_test_vector(collision_flags, (real_point3d *)point_a, (real_vector3d *)direction, max_distance,
-                      collision_result);
+                      (collision_test_result *)collision_result);
 }
 
 

@@ -1092,7 +1092,7 @@ void FUN_00105980(float *matrix, short *out_vertex_count,
               *out_positions = fVar1 + *out_positions;
               out_positions[2] = out_positions[2];
               out_positions[1] = fVar2 + out_positions[1];
-              matrix_transform_point(matrix, (real_point3d *)out_positions, (real_point3d *)out_positions);
+              matrix_transform_point((const real_matrix4x3 *)matrix, (real_point3d *)out_positions, (real_point3d *)out_positions);
             }
           }
           out_texcoords = out_texcoords + 2;

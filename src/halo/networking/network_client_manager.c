@@ -95,7 +95,8 @@ int16_t model_get_marker_by_name(int model_ref, const char *marker_name, int mag
             (uint16_t) * (int16_t *)(node_remap + (unsigned int)marker[2] * 2);
         }
         matrix4x3_from_point_and_quaternion(
-          (float *)(out + 4), (float *)(marker + 4), (float *)(marker + 0x10));
+          (real_matrix4x3 *)(out + 4), (const real_point3d *)(marker + 4),
+          (const real_quaternion *)(marker + 0x10));
         node_index = *(int16_t *)out;
         if (node_index < 0) {
           goto bad_node_index;

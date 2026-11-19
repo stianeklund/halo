@@ -1282,10 +1282,10 @@ void slowly_stop_vehicle(int vehicle_index)
     if (magnitude != 0.0f) {
       matrix4x3_rotation_from_axis_and_angle((float *)&rotation, &axis, x87_fsin(magnitude),
                    x87_fcos(magnitude));
-      matrix_scale_transform_vector((float *)&rotation,
+      matrix_scale_transform_vector(&rotation,
                                     &vehicle->unit.object.forward,
                                     &forward);
-      matrix_scale_transform_vector((float *)&rotation,
+      matrix_scale_transform_vector(&rotation,
                                     &vehicle->unit.object.up, &up);
     } else {
       forward = vehicle->unit.object.forward;
@@ -1364,11 +1364,11 @@ void create_pelican_effect(int vehicle_handle)
     velocity.k = direction.k * speed;
 
     if (collision_test_vector(0x61, &marker->matrix.position, &velocity,
-                              vehicle_handle, (int16_t *)&collision)) {
+                              vehicle_handle, (collision_test_result *)&collision)) {
       marker_forwards[0].i = -direction.i;
       marker_forwards[0].j = -direction.j;
       marker_forwards[0].k = -direction.k;
-      marker_forwards[1] = *(real_vector3d *)collision.plane.normal;
+      marker_forwards[1] = collision.plane.normal;
 
       marker_points[0] = collision.point;
       marker_points[1] = marker_points[0];
@@ -1378,7 +1378,7 @@ void create_pelican_effect(int vehicle_handle)
       marker_names[1] = "normal";
       marker_names[2] = "reflected";
 
-      reflect_vector3d(&direction, (real_vector3d *)collision.plane.normal,
+      reflect_vector3d(&direction, &collision.plane.normal,
                    &marker_forwards[2]);
 
       fade = REAL_ONE_POOL - collision.t;
@@ -1438,7 +1438,7 @@ void create_ghost_effect(int vehicle_index)
       vector = direction;
 
       if (collision_test_vector(0x61, &marker->matrix.position, &vector,
-                       vehicle_index, (int16_t *)&collision)) {
+                       vehicle_index, (collision_test_result *)&collision)) {
 #define GHOST_WASH_SCALE \
   (-marker->matrix.forward.k * (1.0f - collision.t) * vehicle->unit.seat_power[0])
         scale = GHOST_WASH_SCALE < 0.0f   ? 0.0f
@@ -1456,18 +1456,18 @@ void create_ghost_effect(int vehicle_index)
           marker_names[0] = "incident";
           marker_forwards[0].j = -direction.j;
           marker_names[1] = "normal";
-          marker_forwards[1] = *(real_vector3d *)collision.plane.normal;
+          marker_forwards[1] = collision.plane.normal;
           marker_points[2] = collision.point;
           marker_forwards[0].k = -direction.k;
           marker_names[2] = "reflected";
 
-          reflect_vector3d(&direction, (real_vector3d *)collision.plane.normal,
+          reflect_vector3d(&direction, &collision.plane.normal,
                        &marker_forwards[2]);
 
           marker_points[3] = midpoint;
           marker_names[3] = "midpoint";
 
-          reflect_vector3d(&direction, (real_vector3d *)collision.plane.normal,
+          reflect_vector3d(&direction, &collision.plane.normal,
                        &marker_forwards[3]);
 
           effect_new_unattached_from_markers(
@@ -1641,7 +1641,7 @@ bool update_suspension(int vehicle_index)
       previous = 1.0f;
     else
       previous = (float)vehicle->suspension[i] * 0.003921569f;
-    matrix_transform_point((float *)&matrix, &mass_point->position,
+    matrix_transform_point(&matrix, &mass_point->position,
                            &point);
     matrix_transform_vector((float *)&matrix, &mass_point->up, &mass_point_up);
     length = suspension->field_04 - suspension->field_08;
@@ -1655,7 +1655,7 @@ bool update_suspension(int vehicle_index)
     vector.j = mass_point_up.j * length;
     vector.k = mass_point_up.k * length;
     collision_test_vector(0xc0a0, &start, &vector, vehicle_index,
-                          (int16_t *)&collision);
+                          (collision_test_result *)&collision);
     state = (1.0f - collision.t) * 2.0f;
     if (state < 0.0f)
       state = 0.0f;
@@ -1731,15 +1731,15 @@ void create_slipping_effects(int vehicle_index, void *powered_mass_points,
       continue;
     scale = (speed - 0.03f) * 4.5454545f;
     lift = state->ground_depth - mass_point->radius + 0.003f;
-    position.x = lift * state->ground_plane.normal[0] + state->position.x;
-    position.y = lift * state->ground_plane.normal[1] + state->position.y;
-    position.z = lift * state->ground_plane.normal[2] + state->position.z;
+    position.x = lift * state->ground_plane.normal.i + state->position.x;
+    position.y = lift * state->ground_plane.normal.j + state->position.y;
+    position.z = lift * state->ground_plane.normal.k + state->position.z;
     inverse = 0.8660254f / speed;
-    velocity.i = state->ground_plane.normal[0] * 0.5f +
+    velocity.i = state->ground_plane.normal.i * 0.5f +
                  inverse * state->velocity_relative_to_ground.i;
-    velocity.j = state->ground_plane.normal[1] * 0.5f +
+    velocity.j = state->ground_plane.normal.j * 0.5f +
                  inverse * state->velocity_relative_to_ground.j;
-    velocity.k = state->ground_plane.normal[2] * 0.5f +
+    velocity.k = state->ground_plane.normal.k * 0.5f +
                  inverse * state->velocity_relative_to_ground.k;
     if (scale < 0.0f)
       scale = 0.0f;
@@ -2104,7 +2104,7 @@ char vehicle_stuck(int unit_handle, float *vec)
         center.y *= scale;
         center.z *= scale;
 
-        matrix_transform_point((float *)&instance.world_matrix, &center,
+        matrix_transform_point(&instance.world_matrix, &center,
                                &center_in_world);
         object_get_world_position(unit_handle, (vector3_t *)&origin);
         vec[0] = center_in_world.x - origin.x;
@@ -2362,7 +2362,7 @@ void update_alien_scout_physics(int vehicle_index, float steering,
       }
 
       limit3d(&acceleration, maximum_acceleration);
-      matrix_scale_transform_vector((float *)&matrix, &acceleration,
+      matrix_scale_transform_vector(&matrix, &acceleration,
                                     &acceleration);
 
       scale = physics->mass * vehicle->hover;

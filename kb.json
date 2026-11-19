@@ -489,7 +489,7 @@
  },
  "0xa54b0": {
   "addr": "0xa54b0",
-  "decl": "void FUN_000a54b0(void);",
+  "decl": "void weather_particle_systems_render(void);",
   "ported": true
  },
  "0xa5830": {
@@ -4769,7 +4769,7 @@
    "functions": [
     {
      "addr": "0xa54b0",
-     "decl": "void FUN_000a54b0(void);",
+     "decl": "void weather_particle_systems_render(void);",
      "ported": true
     },
     {
@@ -6077,7 +6077,7 @@
     },
     {
      "addr": "0x14df70",
-     "decl": "bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin, const real_vector3d *direction, int max_distance, int16_t *collision_result);",
+     "decl": "bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin, const real_vector3d *direction, int max_distance, collision_test_result *collision_result);",
      "ported": true
     },
     {
@@ -6936,7 +6936,7 @@
     },
     {
      "addr": "0x119270",
-     "decl": "int datum_absolute_index_to_index(data_t *data, int absolute_index);",
+     "decl": "void *datum_absolute_index_to_index(data_t *data, int absolute_index);",
      "ported": true
     },
     {
@@ -7148,7 +7148,7 @@
     },
     {
      "addr": "0x992d0",
-     "decl": "void project_point2d(float *point_2d, float *plane, int16_t projection, uint8_t sign, float *out_point);",
+     "decl": "void project_point2d(const real_point2d *point_2d, const real_plane3d *plane, int16_t projection, uint8_t sign, real_point3d *out_point);",
      "ported": true
     },
     {
@@ -7170,7 +7170,7 @@
     },
     {
      "addr": "0x99500",
-     "decl": "float plane3d_distance_to_point(float *plane, float *point);",
+     "decl": "float plane3d_distance_to_point(const real_plane3d *plane, const real_point3d *point);",
      "ported": true
     },
     {
@@ -7180,7 +7180,7 @@
     },
     {
      "addr": "0x99640",
-     "decl": "float *bsp3d_get_plane_from_designator(int structure_bsp, uint32_t plane_reference, float *out_plane);",
+     "decl": "real_plane3d *bsp3d_get_plane_from_designator(int structure_bsp, uint32_t plane_reference, real_plane3d *out_plane);",
      "ported": true
     },
     {
@@ -7319,17 +7319,17 @@
     },
     {
      "addr": "0x17cb20",
-     "decl": "void FUN_0017cb20(short pass_index);",
+     "decl": "void rasterizer_decals_begin(short pass_index);",
      "ported": true
     },
     {
      "addr": "0x17cb30",
-     "decl": "void FUN_0017cb30(int rendered_cluster_data);",
+     "decl": "void rasterizer_decals_draw(int rendered_cluster_data);",
      "ported": true
     },
     {
      "addr": "0x17cb40",
-     "decl": "void FUN_0017cb40(void);",
+     "decl": "void rasterizer_decals_end(void);",
      "ported": true
     },
     {
@@ -7936,7 +7936,7 @@
     },
     {
      "addr": "0x977e0",
-     "decl": "void FUN_000977e0(void);",
+     "decl": "void editor_render(void);",
      "ported": true
     },
     {
@@ -10332,7 +10332,7 @@
     },
     {
      "addr": "0xaf9a0",
-     "decl": "void FUN_000af9a0(void);",
+     "decl": "void game_engine_nonplayer_post_rasterize(void);",
      "ported": true
     },
     {
@@ -14345,7 +14345,7 @@
     },
     {
      "addr": "0xd1c90",
-     "decl": "uint32_t real_argb_color_to_pixel32(float *color);",
+     "decl": "uint32_t real_argb_color_to_pixel32(const real_argb_color *color);",
      "ported": true,
      "name": "real_argb_color_to_pixel32"
     },
@@ -23211,7 +23211,7 @@
     },
     {
      "addr": "0x16f8a0",
-     "decl": "void FUN_0016f8a0(bool enable_profiling);",
+     "decl": "void _rasterizer_profile_enable(bool enable_profiling);",
      "ported": true
     },
     {
@@ -23323,7 +23323,7 @@
     },
     {
      "addr": "0x1749b0",
-     "decl": "void FUN_001749b0(void);",
+     "decl": "void rasterizer_transparent_geometry_groups_end(void);",
      "ported": true
     },
     {
@@ -23343,12 +23343,12 @@
     },
     {
      "addr": "0x174cc0",
-     "decl": "void FUN_00174cc0(void);",
+     "decl": "void rasterizer_transparent_geometry_dispose_aux_buffer(void);",
      "ported": true
     },
     {
      "addr": "0x174ce0",
-     "decl": "void FUN_00174ce0(void);",
+     "decl": "void rasterizer_transparent_geometry_groups_begin(void);",
      "ported": true
     },
     {
@@ -23517,7 +23517,7 @@
     },
     {
      "addr": "0x17c930",
-     "decl": "void rasterizer_dynamic_lit_geometry_draw(void *param_1, void *param_2);",
+     "decl": "void rasterizer_present(void *screenshot_bitmap, void *point);",
      "ported": true
     },
     {
@@ -23532,7 +23532,7 @@
     },
     {
      "addr": "0x17c960",
-     "decl": "void rasterizer_psuedo_dynamic_screen_quad_draw(int param_1);",
+     "decl": "void rasterizer_profile_enable(int param_1);",
      "ported": true
     },
     {
@@ -23695,8 +23695,8 @@
    "functions": [
     {
      "addr": "0x157e40",
-     "decl": "void rasterizer_present(void *screenshot_bitmap, short *point);",
-     "name": "rasterizer_present",
+     "decl": "void _rasterizer_present(void *screenshot_bitmap, short *point);",
+     "name": "_rasterizer_present",
      "ported": true
     },
     {
@@ -23723,7 +23723,7 @@
     },
     {
      "addr": "0x158ae0",
-     "decl": "void FUN_00158ae0(int mode);",
+     "decl": "void rasterizer_set_stencil_mode(int mode);",
      "name": null,
      "ported": true,
      "source_path": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
@@ -23917,7 +23917,7 @@
     },
     {
      "addr": "0x15b970",
-     "decl": "void FUN_0015b970(short pass_index);",
+     "decl": "void _rasterizer_decals_begin(short pass_index);",
      "ported": true
     },
     {
@@ -24734,7 +24734,7 @@
     },
     {
      "addr": "0x1094d0",
-     "decl": "void matrix4x3_from_point_and_quaternion(float *out_matrix, float *position, float *basis_data);",
+     "decl": "void matrix4x3_from_point_and_quaternion(real_matrix4x3 *matrix, const real_point3d *position, const real_quaternion *orientation);",
      "ported": true
     },
     {
@@ -24749,12 +24749,12 @@
     },
     {
      "addr": "0x109590",
-     "decl": "real_point3d *matrix_transform_point(float *matrix, const real_point3d *in, real_point3d *out);",
+     "decl": "real_point3d *matrix_transform_point(const real_matrix4x3 *matrix, const real_point3d *in, real_point3d *out);",
      "ported": true
     },
     {
      "addr": "0x109610",
-     "decl": "real_vector3d *matrix_scale_transform_vector(float *matrix, const real_vector3d *in, real_vector3d *out);",
+     "decl": "real_vector3d *matrix_scale_transform_vector(const real_matrix4x3 *matrix, const real_vector3d *in, real_vector3d *out);",
      "ported": true
     },
     {
@@ -24845,7 +24845,7 @@
     },
     {
      "addr": "0x10a1c0",
-     "decl": "float *matrix4x3_transform_plane(float *matrix, float *in_plane, float *out_plane);",
+     "decl": "real_plane3d *matrix4x3_transform_plane(const real_matrix4x3 *matrix, const real_plane3d *in_plane, real_plane3d *out_plane);",
      "ported": true
     },
     {
@@ -24916,7 +24916,7 @@
     },
     {
      "addr": "0x10b620",
-     "decl": "void perpendicular3d(float *in, float *out);",
+     "decl": "void perpendicular3d(const real_vector3d *vector, real_vector3d *perpendicular);",
      "ported": true
     },
     {
@@ -25883,32 +25883,32 @@
     },
     {
      "addr": "0x185680",
-     "decl": "void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6, float a7);",
+     "decl": "void render_frame(void *a2, int16_t a3, const int16_t *a4, const int16_t *a5, void *a6, float a7);",
      "ported": true
     },
     {
      "addr": "0x184570",
-     "decl": "char FUN_00184570(void *group);",
+     "decl": "char rasterizer_transparent_geometry_get_group_pending_status(void *group);",
      "ported": true
     },
     {
      "addr": "0x1845b0",
-     "decl": "void FUN_001845b0(void *group, int clear_bit);",
+     "decl": "void rasterizer_transparent_geometry_set_group_pending_status(void *group, int pending);",
      "ported": true
     },
     {
      "addr": "0x184610",
-     "decl": "short FUN_00184610(void *group);",
+     "decl": "short rasterizer_transparent_geometry_get_primary_vertex_type(void *group);",
      "ported": true
     },
     {
      "addr": "0x184680",
-     "decl": "void FUN_00184680(void);",
+     "decl": "void rasterizer_transparent_geometry_end(void);",
      "ported": true
     },
     {
      "addr": "0x184690",
-     "decl": "void FUN_00184690(void);"
+     "decl": "void rasterizer_transparent_geometry_dispose(void);"
     },
     {
      "addr": "0x184710",
@@ -25929,17 +25929,17 @@
     },
     {
      "addr": "0x184980",
-     "decl": "void FUN_00184980(char param_1);",
+     "decl": "void rasterizer_transparent_geometry_draw(char water);",
      "ported": true
     },
     {
      "addr": "0x184b60",
-     "decl": "void render_effects(int a);",
+     "decl": "void render_effects(int enable);",
      "ported": true
     },
     {
      "addr": "0x184de0",
-     "decl": "char render_location_visible(void *location);",
+     "decl": "char render_location_visible(const location_t *location);",
      "ported": true
     },
     {
@@ -25949,11 +25949,11 @@
     },
     {
      "addr": "0x184ea0",
-     "decl": "void render_scene(int16_t player_index@<ebx>, void *render_cam, void *render_frustum, void *rasterizer_cam, void *rasterizer_frustum, int16_t pass_type, char reflected);",
+     "decl": "void render_scene(int16_t player_index@<ebx>, camera_t *render_camera, render_frustum_t *render_frustum, camera_t *rasterizer_camera, render_frustum_t *rasterizer_frustum, int16_t pass_type, char reflected);",
      "name": "render_scene",
      "ported": false,
      "source_path": "src/halo/render/render.c",
-     "comment": "Dormant lift 2026-09-27 (standalone bring-up): body in render.c transcribes all 0x184ea0 callees in order; needed so FUN_001959f0 clears structure_render_globals.fog_offset_valid each frame."
+     "comment": "Dormant lift 2026-09-27 (standalone bring-up): body in render.c transcribes all 0x184ea0 callees in order; needed so structure_render_preprocess clears structure_render_globals.fog_offset_valid each frame."
     }
    ],
    "name": "render.obj",
@@ -25973,7 +25973,7 @@
     },
     {
      "addr": "0x185830",
-     "decl": "void render_camera_hack_frustum_z(void *frustum, float near_z, float far_z);",
+     "decl": "void render_camera_hack_frustum_z(render_frustum_t *frustum, float near_z, float far_z);",
      "ported": true
     },
     {
@@ -25983,32 +25983,32 @@
     },
     {
      "addr": "0x185a70",
-     "decl": "float render_frustum_sphere_diameter_in_pixels(void *frustum, float *center, float radius);",
+     "decl": "float render_frustum_sphere_diameter_in_pixels(const render_frustum_t *frustum, const real_point3d *center, float radius);",
      "ported": true
     },
     {
      "addr": "0x185ad0",
-     "decl": "float render_frustum_cube_view_fraction(void *frustum, float *bounds);",
+     "decl": "float render_frustum_cube_view_fraction(const render_frustum_t *frustum, const real_rectangle3d *bounds);",
      "ported": true
     },
     {
      "addr": "0x185f80",
-     "decl": "void render_frustum_get_projection_bounds(void *param_1, void *param_2);",
+     "decl": "void render_frustum_get_projection_bounds(const render_frustum_t *frustum, real_rectangle2d *bounds);",
      "ported": true
     },
     {
      "addr": "0x186050",
-     "decl": "char render_camera_view_to_screen(int *param_1, int *param_2, void *param_3, void *param_4);",
+     "decl": "char render_camera_view_to_screen(const camera_t *camera, const render_frustum_t *frustum, const real_point3d *view_point, real_point2d *screen_point);",
      "ported": true
     },
     {
      "addr": "0x186230",
-     "decl": "void render_camera_screen_to_view(void *camera, void *frustum, float *screen_point, float *view_vector);",
+     "decl": "void render_camera_screen_to_view(const camera_t *camera, const render_frustum_t *frustum, const real_point2d *screen_point, real_vector3d *view_vector);",
      "ported": true
     },
     {
      "addr": "0x186330",
-     "decl": "void render_camera_screen_to_world(camera_t *camera, float *frustum, float *screen_point, vector3_t *world_point, float *world_vector);",
+     "decl": "void render_camera_screen_to_world(const camera_t *camera, const render_frustum_t *frustum, const real_point2d *screen_point, real_point3d *world_point, real_vector3d *world_vector);",
      "ported": true
     },
     {
@@ -26018,7 +26018,7 @@
     },
     {
      "addr": "0x186480",
-     "decl": "bool render_camera_build_clipped_frustum_bounds(camera_t *camera, float *in_bounds, float *out_bounds);",
+     "decl": "bool render_camera_build_clipped_frustum_bounds(const camera_t *camera, const real_rectangle2d *clip, real_rectangle2d *frustum_bounds);",
      "ported": true
     },
     {
@@ -26028,32 +26028,32 @@
     },
     {
      "addr": "0x186690",
-     "decl": "int16_t render_frustum_build_point_flags(void *plane_ctx, void *point);",
+     "decl": "int16_t render_frustum_build_point_flags(const render_frustum_t *frustum, const real_point3d *point);",
      "ported": true
     },
     {
      "addr": "0x186790",
-     "decl": "bool render_frustum_triangle_visible(void *plane_ctx, void *v0, void *v1, void *v2);",
+     "decl": "bool render_frustum_triangle_visible(const render_frustum_t *frustum, const real_point3d *point0, const real_point3d *point1, const real_point3d *point2);",
      "ported": true
     },
     {
      "addr": "0x1867f0",
-     "decl": "int16_t render_frustum_cube_visible(void *frustum, float *bounds, bool test_frustum_against_cube);",
+     "decl": "int16_t render_frustum_cube_visible(const render_frustum_t *frustum, const real_rectangle3d *bounds, bool test_frustum_against_cube);",
      "ported": true
     },
     {
      "addr": "0x186ac0",
-     "decl": "int16_t render_frustum_sphere_visible(void *frustum, float *center, float radius);",
+     "decl": "int16_t render_frustum_sphere_visible(const render_frustum_t *frustum, const real_point3d *center, float radius);",
      "ported": true
     },
     {
      "addr": "0x186c70",
-     "decl": "char render_camera_world_to_screen(void *camera, float *frustum, float *world_point, float *screen_point);",
+     "decl": "char render_camera_world_to_screen(const camera_t *camera, const render_frustum_t *frustum, const real_point3d *world_point, real_point2d *screen_point);",
      "ported": true
     },
     {
      "addr": "0x186d40",
-     "decl": "void render_camera_debug_frustum(camera_t *camera, void *frustum);",
+     "decl": "void render_camera_debug_frustum(const camera_t *camera, const render_frustum_t *frustum);",
      "ported": true
     },
     {
@@ -26063,18 +26063,18 @@
     },
     {
      "addr": "0x187250",
-     "decl": "void render_camera_build_frustum(camera_t *camera, float *bounds, float *frustum, bool do_projection);",
+     "decl": "void render_camera_build_frustum(const camera_t *camera, const real_rectangle2d *bounds, render_frustum_t *frustum, bool do_projection);",
      "ported": true
     },
     {
      "addr": "0x187f80",
-     "decl": "float contrail_fade(contrail_definition_t *definition, int16_t fade_mode, vector3_t *world_point, vector3_t *world_normal);",
+     "decl": "float contrail_fade(contrail_definition_t *definition, int16_t fade_mode, real_point3d *world_point, real_vector3d *world_normal);",
      "comment": "[NAME: contrail_fade \u2014 name_source=2276-symbol-dump method=exact_address tier=confirmed (T1), cea-apply-unified 2026-09-14]",
      "ported": true
     },
     {
      "addr": "0x188010",
-     "decl": "void render_contrail(void *contrail, void *definition, int16_t point_index);",
+     "decl": "void render_contrail(contrail_datum_t *contrail, contrail_definition_t *definition, int16_t point_index);",
      "ported": true
     },
     {
@@ -26097,182 +26097,182 @@
    "functions": [
     {
      "addr": "0x188890",
-     "decl": "void FUN_00188890(char flag, float *point0, float *point1, float *point2, void *color);",
+     "decl": "void render_debug_triangle(char flag, const real_point3d *point0, const real_point3d *point1, const real_point3d *point2, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x188970",
-     "decl": "void FUN_00188970(char flag, float *point0, float *point1, float *point2, float *point3, void *color);",
+     "decl": "void render_debug_quadrilateral(char flag, const real_point3d *point0, const real_point3d *point1, const real_point3d *point2, const real_point3d *point3, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x188a90",
-     "decl": "void FUN_00188a90(float *points, short count, void *color);",
+     "decl": "void render_debug_polygon(const real_point3d *points, short count, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x188b20",
-     "decl": "char *FUN_00188b20(const char *str@<edi>);",
+     "decl": "char *render_debug_add_cache_string(const char *str@<edi>);",
      "ported": true
     },
     {
      "addr": "0x188bf0",
-     "decl": "void FUN_00188bf0(float *table@<ecx>, float radius);",
+     "decl": "void build_circle_points(real_point2d *table@<ecx>, float radius);",
      "ported": true
     },
     {
      "addr": "0x188c60",
-     "decl": "float FUN_00188c60(float *frame@<ecx>, float *in_vec@<eax>, float *position);",
+     "decl": "float build_height_matrix(real_matrix4x3 *matrix@<ecx>, const real_vector3d *height@<eax>, const real_point3d *position);",
      "ported": true
     },
     {
      "addr": "0x188d00",
-     "decl": "void FUN_00188d00(float *buffer1@<ecx>, float *buffer2@<edx>, float *center@<eax>, float *height_vec, float radius, float *buffer3, float *buffer4, float *buffer5, float *buffer6);",
+     "decl": "void build_pill_points(real_point3d *buffer1@<ecx>, real_point3d *buffer2@<edx>, const real_point3d *center@<eax>, const real_vector3d *height, float radius, real_point3d *buffer3, real_point3d *buffer4, real_point3d *buffer5, real_point3d *buffer6);",
      "ported": true
     },
     {
      "addr": "0x188ec0",
-     "decl": "void FUN_00188ec0(int type, ...);",
+     "decl": "void render_debug_add_cache_entry(int type, ...);",
      "ported": true
     },
     {
      "addr": "0x189150",
-     "decl": "void render_debug_point(char flag, const real_point3d *position, float scale, void *color);",
+     "decl": "void render_debug_point(char flag, const real_point3d *position, float scale, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x189270",
-     "decl": "void FUN_00189270(char flag, float *point_a, float *point_b, void *color);",
+     "decl": "void render_debug_line(char flag, const real_point3d *point0, const real_point3d *point1, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x189320",
-     "decl": "void render_debug_vector(int flag, const real_point3d *point, const real_vector3d *vector, float scale, void *color);",
+     "decl": "void render_debug_vector(int flag, const real_point3d *point, const real_vector3d *vector, float scale, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x1893e0",
-     "decl": "void FUN_001893e0(int flag, float *point, float *dir, float scale, void *color);",
+     "decl": "void render_debug_tick(int flag, const real_point3d *point, const real_vector3d *vector, float scale, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x189450",
-     "decl": "void FUN_00189450(int flag, float *point_a, float *point_b, void *color, float scale);",
+     "decl": "void render_debug_line_offset(int flag, const real_point3d *point0, const real_point3d *point1, const real_argb_color *color, float scale);",
      "ported": true
     },
     {
      "addr": "0x1894d0",
-     "decl": "void FUN_001894d0(int flag, float *matrix, float scale);",
+     "decl": "void render_debug_matrix(int flag, const real_matrix4x3 *matrix, float scale);",
      "ported": true
     },
     {
      "addr": "0x189540",
-     "decl": "void render_debug_sphere(char flag, void *center, float radius, void *color);",
+     "decl": "void render_debug_sphere(char flag, const real_point3d *center, float radius, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x1896d0",
-     "decl": "void FUN_001896d0(char flag, void *center, void *height_vec, float radius, void *color);",
+     "decl": "void render_debug_cylinder(char flag, const real_point3d *center, const real_vector3d *height, float radius, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x189860",
-     "decl": "void render_debug_pill(char flag, void *center, void *height_vec, float radius, void *color);",
+     "decl": "void render_debug_pill(char flag, const real_point3d *center, const real_vector3d *height, float radius, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x189a20",
-     "decl": "void FUN_00189a20(char flag, float *bounds, void *color);",
+     "decl": "void render_debug_box(char flag, const real_rectangle3d *bounds, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x189ba0",
-     "decl": "void FUN_00189ba0(float *points, short count, void *color);",
+     "decl": "void render_debug_polygon_edges(const real_point3d *points, short count, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x189c40",
-     "decl": "void FUN_00189c40(char flag, const char *string);",
+     "decl": "void render_debug_string(char flag, const char *string);",
      "ported": true
     },
     {
      "addr": "0x189cb0",
-     "decl": "void render_debug_string_at_point(char flag, void *position, void *string, int color);",
+     "decl": "void render_debug_string_at_point(char flag, const real_point3d *position, const char *string, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x189de0",
-     "decl": "void FUN_00189de0(void);",
+     "decl": "void render_debug_camera(void);",
      "ported": true
     },
     {
      "addr": "0x18a000",
-     "decl": "void FUN_0018a000(void);",
+     "decl": "void render_debug_player(void);",
      "ported": true
     },
     {
      "addr": "0x18a110",
-     "decl": "void FUN_0018a110(void);",
+     "decl": "void render_debug_structure(void);",
      "ported": true
     },
     {
      "addr": "0x18a190",
-     "decl": "void FUN_0018a190(void);",
+     "decl": "void render_debug_bsp(void);",
      "ported": true
     },
     {
      "addr": "0x18a370",
-     "decl": "void FUN_0018a370(void);",
+     "decl": "void render_debug_input(void);",
      "ported": true
     },
     {
      "addr": "0x18a3e0",
-     "decl": "void FUN_0018a3e0(void);",
+     "decl": "void render_debug_structure_decals(void);",
      "ported": true
     },
     {
      "addr": "0x18a580",
-     "decl": "void FUN_0018a580(int flag, float *plane, int projection, int sign, float *point, float scale, void *color, float offset);",
+     "decl": "void render_debug_point2d(int flag, const real_plane3d *plane, int projection, int sign, const real_point2d *point, float scale, const real_argb_color *color, float offset);",
      "ported": true
     },
     {
      "addr": "0x18a650",
-     "decl": "void FUN_0018a650(int flag, float *plane, int projection, int sign, float *point_a, float *point_b, void *color, float offset);",
+     "decl": "void render_debug_line2d(int flag, const real_plane3d *plane, int projection, int sign, const real_point2d *point_a, const real_point2d *point_b, const real_argb_color *color, float offset);",
      "ported": true
     },
     {
      "addr": "0x18a770",
-     "decl": "void FUN_0018a770(int flag, float *plane, int projection, int sign, float *point, float *vector, float scale, void *color, float offset);",
+     "decl": "void render_debug_vector2d(int flag, const real_plane3d *plane, int projection, int sign, const real_point2d *point, const real_vector2d *vector, float scale, const real_argb_color *color, float offset);",
      "ported": true
     },
     {
      "addr": "0x18a860",
-     "decl": "void FUN_0018a860(char flag, float *plane, int projection, int sign, float *center, float radius, void *color, float offset);",
+     "decl": "void render_debug_circle(char flag, const real_plane3d *plane, int projection, int sign, const real_point2d *center, float radius, const real_argb_color *color, float offset);",
      "ported": true
     },
     {
      "addr": "0x18a990",
-     "decl": "void FUN_0018a990(int flag, float *position, float *forward, float *up, float scale);",
+     "decl": "void render_debug_vectors(int flag, const real_point3d *position, const real_vector3d *forward, const real_vector3d *up, float scale);",
      "ported": true
     },
     {
      "addr": "0x18a9d0",
-     "decl": "void FUN_0018a9d0(int flag, float *position, float *basis_data, float scale);",
+     "decl": "void render_debug_quaternion(int flag, const real_point3d *position, const real_quaternion *orientation, float scale);",
      "ported": true
     },
     {
      "addr": "0x18aa00",
-     "decl": "void FUN_0018aa00(char flag, float *bounds, void *color);",
+     "decl": "void render_debug_box2d_outline(char flag, const real_rectangle2d *bounds, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x18ab30",
-     "decl": "void FUN_0018ab30(char wireframe, float *bounds, void *color);",
+     "decl": "void render_debug_box_outline(char wireframe, const real_rectangle3d *bounds, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x18ac50",
-     "decl": "void FUN_0018ac50(void);",
+     "decl": "void render_debug(void);",
      "ported": true
     }
    ],
@@ -26754,7 +26754,7 @@
     },
     {
      "addr": "0x18e420",
-     "decl": "void *FUN_0018e420(void);",
+     "decl": "void *global_bsp3d_get(void);",
      "ported": true
     }
    ],
@@ -26973,22 +26973,22 @@
     },
     {
      "addr": "0x18af90",
-     "decl": "void FUN_0018AF90(void);",
+     "decl": "void render_objects_initialize(void);",
      "ported": true
     },
     {
      "addr": "0x18afd0",
-     "decl": "void FUN_0018afd0(void);",
+     "decl": "void render_objects_initialize_for_new_map(void);",
      "ported": true
     },
     {
      "addr": "0x18afe0",
-     "decl": "void FUN_0018afe0(void);",
+     "decl": "void render_objects_dispose_from_old_map(void);",
      "ported": true
     },
     {
      "addr": "0x18b000",
-     "decl": "void FUN_0018B000(void);",
+     "decl": "void render_objects_dispose(void);",
      "ported": true
     },
     {
@@ -27093,7 +27093,7 @@
     },
     {
      "addr": "0x18c5b0",
-     "decl": "void FUN_0018c5b0(void);",
+     "decl": "void render_particles(void);",
      "ported": true
     },
     {
@@ -27289,7 +27289,7 @@
     },
     {
      "addr": "0x18fbc0",
-     "decl": "void FUN_0018fbc0(int16_t window_index, int structure_bsp_index, const float *camera_position, char *out);",
+     "decl": "void scenario_get_atmospheric_fog(int16_t window_index, int structure_bsp_index, const real_point3d *camera_position, void *fog_out);",
      "ported": true
     },
     {
@@ -28456,7 +28456,7 @@
    "functions": [
     {
      "addr": "0x61ca0",
-     "decl": "void FUN_00061ca0(void);",
+     "decl": "void render_debug_obstacle_path(void);",
      "ported": true
     },
     {
@@ -28548,7 +28548,7 @@
     },
     {
      "addr": "0x99070",
-     "decl": "void FUN_00099070(void);",
+     "decl": "void render_debug_decals(void);",
      "ported": true
     },
     {
@@ -28846,7 +28846,7 @@
     },
     {
      "addr": "0x194070",
-     "decl": "void FUN_00194070(void);",
+     "decl": "void render_debug_detail_objects(void);",
      "ported": true
     },
     {
@@ -28902,59 +28902,59 @@
     },
     {
      "addr": "0x1959f0",
-     "decl": "void FUN_001959f0(void);",
+     "decl": "void structure_render_preprocess(void);",
      "ported": true,
      "source_path": "src/halo/structures/structures.c"
     },
     {
      "addr": "0x195b10",
-     "decl": "void FUN_00195b10(void);",
+     "decl": "void structure_render_lightmaps(void);",
      "ported": true,
      "source_path": "src/halo/structures/structures.c"
     },
     {
      "addr": "0x195bc0",
-     "decl": "void FUN_00195bc0(void);",
+     "decl": "void structure_render_diffuse_texture(void);",
      "ported": true
     },
     {
      "addr": "0x195c40",
-     "decl": "void FUN_00195c40(void);",
+     "decl": "void structure_render_specular_lightmaps(void);",
      "ported": true,
      "source_path": "src/halo/structures/structures.c"
     },
     {
      "addr": "0x195cb0",
-     "decl": "void FUN_00195cb0(void);",
+     "decl": "void structure_render_reflection_lightmap_masks(void);",
      "ported": true
     },
     {
      "addr": "0x195d00",
-     "decl": "void FUN_00195d00(void);",
+     "decl": "void structure_render_reflection_mirrors(void);",
      "ported": true,
      "source_path": "src/halo/structures/structures.c"
     },
     {
      "addr": "0x195d40",
-     "decl": "void FUN_00195d40(void);",
+     "decl": "void structure_render_reflections(void);",
      "ported": true,
      "source_path": "src/halo/structures/structures.c"
     },
     {
      "addr": "0x195dc0",
-     "decl": "void FUN_00195dc0(void);",
+     "decl": "void structure_render_transparent_geometry(void);",
      "ported": true,
      "source_path": "src/halo/structures/structures.c"
     },
     {
      "addr": "0x195e40",
-     "decl": "void FUN_00195e40(void);",
+     "decl": "void structure_render_fog(void);",
      "ported": true,
      "source_path": "src/halo/structures/structures.c"
     },
     {
      "addr": "0x195ec0",
-     "decl": "void FUN_00195ec0(void);",
+     "decl": "void structure_render_fog_screen(void);",
      "ported": true,
      "source_path": "src/halo/structures/structures.c"
     },
@@ -29023,7 +29023,7 @@
     },
     {
      "addr": "0x1975e0",
-     "decl": "char FUN_001975e0(void *ref, void *frustum, void *out);",
+     "decl": "char structure_visibility_find_mirror(void *ref, void *frustum, void *out);",
      "ported": true
     },
     {
@@ -29115,7 +29115,7 @@
     },
     {
      "addr": "0x198cb0",
-     "decl": "char structure_test_vector(float *point, float *direction, float *out_point, int16_t *out_collection_index, int16_t *out_material_index, int32_t *out_surface_index, float *out_u, float *out_v);",
+     "decl": "char structure_test_vector(const real_point3d *point, const real_vector3d *vector, real_point3d *out_point, int16_t *out_collection_index, int16_t *out_material_index, int32_t *out_surface_index, float *out_u, float *out_v);",
      "name": "structure_test_vector",
      "ported": true,
      "source_path": "src/halo/structures/structures.c"
@@ -29215,7 +29215,7 @@
     },
     {
      "addr": "0x193c00",
-     "decl": "void FUN_00193c00(void);",
+     "decl": "void structure_render_detail_objects(void);",
      "ported": true
     }
    ],
@@ -33839,7 +33839,7 @@
     },
     {
      "addr": "0x5065a4",
-     "decl": "float global_frustum[4];"
+     "decl": "render_frustum_t global_frustum;"
     }
    ],
    "functions": [],
@@ -34292,14 +34292,14 @@
     },
     {
      "addr": "0x181a90",
-     "decl": "void FUN_00181a90(void);",
+     "decl": "void rasterizer_lens_flares_submit_occlusion_tests(void);",
      "ported": false,
      "source_path": "src/halo/rasterizer/rasterizer_text.c"
     },
     {
      "addr": "0x181c20",
-     "decl": "void FUN_00181c20(void);",
-     "name": "FUN_00181c20",
+     "decl": "void rasterizer_lens_flares_draw(void);",
+     "name": "rasterizer_lens_flares_draw",
      "ported": false,
      "source_path": "src/halo/rasterizer/rasterizer_text.c"
     },
@@ -34792,7 +34792,7 @@
     },
     {
      "addr": "0x17cf60",
-     "decl": "void FUN_0017cf60(uint32_t source, uint32_t param, int arg3, int arg4, uint32_t handle, int subcount2, float *origin, uint32_t widget_flags);",
+     "decl": "void rasterizer_dynamic_unlit_geometry_draw(uint32_t source, uint32_t param, int arg3, int arg4, uint32_t handle, int subcount2, real_point3d *origin, uint32_t widget_flags);",
      "ported": true
     },
     {
@@ -35013,12 +35013,12 @@
     },
     {
      "addr": "0x17e190",
-     "decl": "void FUN_0017e190(void);",
+     "decl": "void rasterizer_debug_draw(void);",
      "ported": true
     },
     {
      "addr": "0x17e5b0",
-     "decl": "void FUN_0017e5b0(float *p0, float *p1, float *color0, float *color1);",
+     "decl": "void rasterizer_debug_line_shaded(float *p0, float *p1, float *color0, float *color1);",
      "ported": true
     },
     {
@@ -35029,12 +35029,12 @@
     },
     {
      "addr": "0x17eb10",
-     "decl": "void FUN_0017eb10(float *vert_a, float *vert_b, int param_3);",
+     "decl": "void rasterizer_debug_line(const real_point3d *point0, const real_point3d *point1, const real_argb_color *color);",
      "ported": true
     },
     {
      "addr": "0x17eb30",
-     "decl": "void FUN_0017eb30(float *point0, float *point1, float *point2, void *color);",
+     "decl": "void rasterizer_debug_triangle(const real_point3d *point0, const real_point3d *point1, const real_point3d *point2, const real_argb_color *color);",
      "ported": true
     },
     {
@@ -36095,8 +36095,8 @@
     },
     {
      "addr": "0x77040",
-     "decl": "void *FUN_00077040(int tag_index, short sequence_index, short frame_index);",
-     "name": "FUN_00077040",
+     "decl": "void *bitmap_group_get_bitmap_from_sequence(int tag_index, short sequence_index, short frame_index);",
+     "name": "bitmap_group_get_bitmap_from_sequence",
      "ported": true
     },
     {
@@ -43810,7 +43810,7 @@
     },
     {
      "addr": "0x1be7b0",
-     "decl": "void FUN_001be7b0(void);",
+     "decl": "void sound_cache_debug_render(void);",
      "ported": true
     },
     {
@@ -44318,7 +44318,7 @@
     },
     {
      "addr": "0x149ce0",
-     "decl": "void FUN_00149ce0(void);"
+     "decl": "void collision_debug_render(void);"
     },
     {
      "addr": "0x14dc30",
@@ -44910,12 +44910,12 @@
    "functions": [
     {
      "addr": "0x16f910",
-     "decl": "void FUN_0016f910(int16_t profile);",
+     "decl": "void rasterizer_profile_begin(int16_t profile);",
      "ported": true
     },
     {
      "addr": "0x16fa40",
-     "decl": "void FUN_0016fa40(int16_t profile);",
+     "decl": "void rasterizer_profile_end(int16_t profile);",
      "ported": true
     }
    ],

@@ -184,7 +184,7 @@ void lightning_offset_marker_position(real_matrix4x3 *matrix,
   offset.i = (2.0f * random_x - 1.0f) * random_position_bounds->i;
   offset.j = (2.0f * random_y - 1.0f) * random_position_bounds->j;
   offset.k = (2.0f * random_z - 1.0f) * random_position_bounds->k;
-  matrix_scale_transform_vector(&matrix->scale, &offset, &offset);
+  matrix_scale_transform_vector((const real_matrix4x3 *)&matrix->scale, &offset, &offset);
 
   position->x += offset.i;
   position->y += offset.j;
@@ -346,7 +346,7 @@ void lightning_submit(int object_index, int lightning_index, void *lighting,
                     color.red = points[vertex_index].color.red * tint->red;
                     color.green = points[vertex_index].color.green * tint->green;
                     color.blue = points[vertex_index].color.blue * tint->blue;
-                    pixel = real_argb_color_to_pixel32(&color.alpha);
+                    pixel = real_argb_color_to_pixel32((const real_argb_color *)&color.alpha);
 
                     vertices->point.x = position->x + up.i * width;
                     vertices->point.y = position->y + up.j * width;
@@ -391,10 +391,10 @@ void lightning_submit(int object_index, int lightning_index, void *lighting,
                     shader = &global_shader_effect_additive;
 
                   rasterizer_dynamic_vertices_unlock(vertex_buffer_index);
-                  FUN_0017cf60((uint32_t)shader, (uint32_t)bitmap,
+                  rasterizer_dynamic_unlit_geometry_draw((uint32_t)shader, (uint32_t)bitmap,
                                (int)animation, -2 * point_count,
                                vertex_buffer_index, 2 * point_count - 2,
-                               &centroid.x, 0);
+                               &centroid, 0);
                   rasterizer_dynamic_vertices_delete(vertex_buffer_index);
                 }
                 first_marker = true;

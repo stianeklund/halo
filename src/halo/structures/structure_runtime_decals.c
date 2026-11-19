@@ -28,7 +28,7 @@ void structure_decals_update(uint32_t *old_cluster_visibility,
       (structure_bsp_cluster_t *)tag_block_get_element(clusters, cluster_index, sizeof(structure_bsp_cluster_t));
     bool should_render_cluster_decals;
     volatile bool should_delete_cluster_decals;
-    if (cluster->field_0c == -1 || cluster->field_0e == 0) {
+    if (cluster->first_decal_index == -1 || cluster->decal_count == 0) {
       should_delete_cluster_decals = false;
       should_render_cluster_decals = false;
     } else {
@@ -59,25 +59,25 @@ void structure_decals_update(uint32_t *old_cluster_visibility,
 
     if (should_render_cluster_decals) {
       int runtime_decal_offset;
-      for (runtime_decal_offset = 0; runtime_decal_offset < cluster->field_0e;
+      for (runtime_decal_offset = 0; runtime_decal_offset < cluster->decal_count;
            ++runtime_decal_offset) {
         structure_runtime_decal_t *runtime_decal =
           (structure_runtime_decal_t *)tag_block_get_element(
-            structure_runtime_decals, cluster->field_0c + runtime_decal_offset,
+            structure_runtime_decals, cluster->first_decal_index + runtime_decal_offset,
             sizeof(structure_runtime_decal_t));
-        tag_reference *structure_bsp = (tag_reference *)tag_block_get_element(
-          &((scenario_structure_bsps_t *)global_scenario_get())->structure_bsps,
-          runtime_decal->field_0c, sizeof(tag_reference));
-        int decal_tag_index = structure_bsp->tag_index;
+        tag_reference *palette_entry = (tag_reference *)tag_block_get_element(
+          &((scenario_structure_bsps_t *)global_scenario_get())->decal_palette,
+          runtime_decal->palette_index, sizeof(tag_reference));
+        int decal_tag_index = palette_entry->tag_index;
         float decal_angles[2];
         float decal_vector[3];
 
         tag_get(TAG_GROUP_DECAL, decal_tag_index);
 
         decal_angles[0] =
-          (float)(int)runtime_decal->field_0e * RUNTIME_DECAL_YAW_SCALE;
+          (float)(int)runtime_decal->yaw * RUNTIME_DECAL_YAW_SCALE;
         decal_angles[1] =
-          (float)(int)runtime_decal->field_0f * RUNTIME_DECAL_PITCH_SCALE;
+          (float)(int)runtime_decal->pitch * RUNTIME_DECAL_PITCH_SCALE;
         angles_to_vector((real_vector3d *)decal_vector, (real_euler_angles2d *)decal_angles);
 
         decal_new(decal_tag_index, runtime_decal, decal_vector, 1.0f, 1, -1,

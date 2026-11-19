@@ -3399,12 +3399,12 @@ void main_pregame_render(void)
   unk[2].x = 0;
   unk[2].y = 0;
   unk[2].z = 0;
-  pregame_render_info.cam1.field_00 = unk[2];
+  pregame_render_info.cam1.position = unk[2];
 
   unk[1].x = 0;
   unk[1].y = 0;
   unk[1].z = 1.0;
-  pregame_render_info.cam1.field_0c = unk[1];
+  pregame_render_info.cam1.forward = *(real_vector3d *)&unk[1];
 
   pregame_render_info.unk_0 = -1;
   pregame_render_info.unk_2 = 1;
@@ -3412,15 +3412,15 @@ void main_pregame_render(void)
   unk[0].x = 0;
   unk[0].y = 1.0;
   unk[0].z = 0;
-  pregame_render_info.cam1.field_18 = unk[0];
+  pregame_render_info.cam1.up = *(real_vector3d *)&unk[0];
 
-  pregame_render_info.cam1.unk_36 = 0;
+  pregame_render_info.cam1.mirrored = 0;
   pregame_render_info.cam1.vertical_field_of_view =
     2 *
     atan2(render_camera_get_adjusted_field_of_view_tangent(1.3962634) * 0.75,
           1.0);
   compute_window_bounds(0, 1, &pregame_render_info.cam1.viewport_bounds,
-                        &pregame_render_info.cam1.unk_52);
+                        &pregame_render_info.cam1.window_bounds);
   pregame_render_info.cam1.z_near = 0.0099999998;
   pregame_render_info.cam1.z_far = 1.0;
   qmemcpy(&pregame_render_info.cam0, &pregame_render_info.cam1,
@@ -3981,21 +3981,21 @@ void halt_and_catch_fire(void)
      * pointer VALUE to a live 3-float vector each (same idiom already
      * established above for 0x31fc1c/0x31fc3c/0x31fc44). */
     default_pos = *(float **)0x31fc1c;
-    window_params.camera.field_00.x = default_pos[0];
-    window_params.camera.field_00.y = default_pos[1];
-    window_params.camera.field_00.z = default_pos[2];
+    window_params.camera.position.x = default_pos[0];
+    window_params.camera.position.y = default_pos[1];
+    window_params.camera.position.z = default_pos[2];
 
     default_fwd = *(float **)0x31fc3c;
-    window_params.camera.field_0c.x = default_fwd[0];
-    window_params.camera.field_0c.y = default_fwd[1];
-    window_params.camera.field_0c.z = default_fwd[2];
+    window_params.camera.forward.i = default_fwd[0];
+    window_params.camera.forward.j = default_fwd[1];
+    window_params.camera.forward.k = default_fwd[2];
 
     default_up = *(float **)0x31fc44;
-    window_params.camera.field_18.x = default_up[0];
-    window_params.camera.field_18.y = default_up[1];
-    window_params.camera.field_18.z = default_up[2];
+    window_params.camera.up.i = default_up[0];
+    window_params.camera.up.j = default_up[1];
+    window_params.camera.up.k = default_up[2];
 
-    window_params.camera.unk_36 = 0;
+    window_params.camera.mirrored = 0;
 
     window_params.camera.viewport_bounds.y0 = 0;
     window_params.camera.viewport_bounds.x0 = 0;
@@ -4012,7 +4012,8 @@ void halt_and_catch_fire(void)
     angle = atan2(scaled, *(double *)0x2573d8);
     window_params.camera.vertical_field_of_view = (float)(angle + angle);
 
-    render_camera_build_frustum(&window_params.camera, 0, window_params.frustum,
+    render_camera_build_frustum(&window_params.camera, 0,
+                                (render_frustum_t *)window_params.frustum,
                                 1);
 
     window_params.unk_0[0] = 0;
@@ -4064,17 +4065,17 @@ void halt_and_catch_fire(void)
                            (const char *)error_msg);
     }
 
-    FUN_00184980(1);
-    FUN_00184980(0);
-    FUN_0017e190();
+    rasterizer_transparent_geometry_draw(1);
+    rasterizer_transparent_geometry_draw(0);
+    rasterizer_debug_draw();
     FUN_00158f90();
     _rasterizer_windows_end();
     _rasterizer_frame_end();
     /* Original calls the thunk at 0x17c930 (jmps to 0x157e40) with two null
-     * args -- rasterizer_dynamic_lit_geometry_draw, NOT render_frame_present
+     * args -- rasterizer_present, NOT render_frame_present
      * (0x184dc0). Both args are used by the callee (edi=[ebp+8], esi=[ebp+c]);
      * (0,0) selects its null/no-geometry path. */
-    rasterizer_dynamic_lit_geometry_draw(0, 0);
+    rasterizer_present(0, 0);
     input_update();
   }
 }
@@ -5309,8 +5310,8 @@ void FUN_00103e80(float *p0, float *p1, float *color)
     system_exit(-1);
   }
   if (FUN_00103d30()) {
-    matrix_transform_point((float *)0x31fb08, (real_point3d *)p0, (real_point3d *)&pt[0]);
-    matrix_transform_point((float *)0x31fb08, (real_point3d *)p1, (real_point3d *)&pt[3]);
+    matrix_transform_point((const real_matrix4x3 *)(0x31fb08), (real_point3d *)p0, (real_point3d *)&pt[0]);
+    matrix_transform_point((const real_matrix4x3 *)(0x31fb08), (real_point3d *)p1, (real_point3d *)&pt[3]);
     crt_fprintf(*(void **)0x46e394, "Separator\n{\n");
     crt_fprintf(*(void **)0x46e394,
                 "\tCoordinate3 { point[%f %f %f, %f %f %f] }\n",
@@ -5389,9 +5390,9 @@ void FUN_00104040(float *p0, float *p1, float *p2, float *color)
     system_exit(-1);
   }
   if (FUN_00103d30()) {
-    matrix_transform_point((float *)0x31fb08, (real_point3d *)p0, (real_point3d *)&pt[0]);
-    matrix_transform_point((float *)0x31fb08, (real_point3d *)p1, (real_point3d *)&pt[3]);
-    matrix_transform_point((float *)0x31fb08, (real_point3d *)p2, (real_point3d *)&pt[6]);
+    matrix_transform_point((const real_matrix4x3 *)(0x31fb08), (real_point3d *)p0, (real_point3d *)&pt[0]);
+    matrix_transform_point((const real_matrix4x3 *)(0x31fb08), (real_point3d *)p1, (real_point3d *)&pt[3]);
+    matrix_transform_point((const real_matrix4x3 *)(0x31fb08), (real_point3d *)p2, (real_point3d *)&pt[6]);
     crt_fprintf(*(void **)0x46e394, "Separator\n{\n");
     crt_fprintf(*(void **)0x46e394,
                 "\tCoordinate3 { point[%f %f %f, %f %f %f, %f %f %f] }\n",
@@ -5471,7 +5472,7 @@ void FUN_00104240(int point_count, float *points, float *color)
         pt = points;
         n = (unsigned int)(unsigned short)count;
         do {
-          matrix_transform_point((float *)0x31fb08, (real_point3d *)pt, &p);
+          matrix_transform_point((const real_matrix4x3 *)(0x31fb08), (real_point3d *)pt, &p);
           sep = ", ";
           if (i >= last)
             sep = "] }\n";
@@ -5584,7 +5585,7 @@ void FUN_00104430(int polygon_count, short *point_counts, float *points,
           if (*pc > 0) {
             pt = points + vertex_index * 3;
             do {
-              matrix_transform_point((float *)0x31fb08, (real_point3d *)pt, &p);
+              matrix_transform_point((const real_matrix4x3 *)(0x31fb08), (real_point3d *)pt, &p);
               crt_fprintf(*(void **)0x46e394, "\t\t\t%f %f %f,\n",
                           p.x * *(float *)0x253f00, p.y * *(float *)0x253f00,
                           p.z * *(float *)0x253f00);

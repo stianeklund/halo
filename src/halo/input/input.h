@@ -68,4 +68,9 @@ co(gamepad_state_t, analog_button_thresholds, 0x08);
 co(gamepad_state_t, buttons, 0x10);
 co(gamepad_state_t, sticks, 0x20);
 
+#define MAXIMUM_MEMORY_UNITS 8
+#define INPUT_UPDATE_THREAD_STACK_SIZE 0x4000
+#define KEYBOARD_REPEAT_DELAY_MILLISECONDS 500
+#define KEYBOARD_REPEAT_INTERVAL_MILLISECONDS 100
+
 #endif

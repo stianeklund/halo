@@ -14,7 +14,7 @@ extern double __cdecl fabs(double);
 #define fabs __builtin_fabs
 #endif
 
-/* FUN_00061ca0 (0x61ca0)
+/* render_debug_obstacle_path (0x61ca0)
  *
  * Per-tick debug path-obstacle-avoidance key handler.  When the debug enable
  * byte (0x3340a9) is set and the developer console is not active, polls debug
@@ -34,7 +34,7 @@ extern double __cdecl fabs(double);
  *   - path_obstacles_debug_render(&0x3334a0 obstacles, 0x5ab240 radius) and
  *     FUN_000609e0(&0x331f68 path) are clean cdecl (ADD ESP,0xc = 2+1).
  */
-void FUN_00061ca0(void)
+void render_debug_obstacle_path(void)
 {
   void *scenario;
 
@@ -460,11 +460,11 @@ void obstacles_get_discs_in_sphere(int16_t *obstacle_set, float *center,
         if (node_index != 0xffff) {
           node_matrix =
             (float *)object_get_node_matrix((int)handle, node_index);
-          matrix_transform_point(node_matrix, (real_point3d *)(element + 0x10),
+          matrix_transform_point((const real_matrix4x3 *)node_matrix, (real_point3d *)(element + 0x10),
                                  (real_point3d *)position);
           disc_radius = *(float *)(element + 0x1c) * *node_matrix;
         } else {
-          matrix_transform_point(matrix, (real_point3d *)(element + 0x10), (real_point3d *)position);
+          matrix_transform_point((const real_matrix4x3 *)matrix, (real_point3d *)(element + 0x10), (real_point3d *)position);
           disc_radius = matrix[0] * *(float *)(element + 0x1c);
         }
 
@@ -879,7 +879,7 @@ void FUN_000628b0(int16_t *partition, uint32_t arg2)
   }
 }
 
-/* FUN_00099070 (0x99070)
+/* render_debug_decals (0x99070)
  *
  * Debug overlay for the decal render queue and per-cluster decal labels.
  * Runs only when the global debug flag at 0x5aa8b4 is set.
@@ -888,7 +888,7 @@ void FUN_000628b0(int16_t *partition, uint32_t arg2)
  * *0x453fda[queue] elements.  Elements are 0x18-byte records in three
  * parallel arrays: point_a base 0x44dfc0, point_b base 0x44dfd8, and a
  * flag byte base 0x44dfec, all indexed by (element + base)*0x18.  For each
- * element FUN_00189270 draws the edge (running point) -> point_b in the
+ * element render_debug_line draws the edge (running point) -> point_b in the
  * global color at 0x2ee6e0, then render_debug_point draws point_b as a 0.0625f
  * point using color 0x2ee6d0 (flag set) or 0x2ee6c4 (flag clear).  After
  * each queue a duplicate-surface-index scan over 0x4547dc reports an error.
@@ -906,7 +906,7 @@ void FUN_000628b0(int16_t *partition, uint32_t arg2)
  *   - the linked-list "next" is read from the resolved record pointer +0x34.
  * ABI: cdecl, no args, void return.
  */
-void FUN_00099070(void)
+void render_debug_decals(void)
 {
   char local_50[64];
   int base_element;
@@ -941,7 +941,7 @@ void FUN_00099070(void)
         do {
           byte_off = (e + (short)base_element) * 0x18;
           point_b = (float *)(0x44dfd8 + byte_off);
-          FUN_00189270(1, point_a, point_b, *(void **)0x2ee6e0);
+          render_debug_line(1, (const real_point3d *)point_a, (const real_point3d *)point_b, *(void **)0x2ee6e0);
           color = *(void **)0x2ee6d0;
           /* flag byte lives at 0x44dfec + byte_off (== point_b + 0x14); both
            * are byte reads, so the [LOADW-WARN] is a benign addressing-encoding
@@ -983,7 +983,7 @@ void FUN_00099070(void)
         while (node != -1) {
           rec = (char *)datum_get(*(void **)0x5aa8b8, node);
           crt_sprintf(local_50, "%d", (int)*(short *)(rec + 0x2a) << 2);
-          render_debug_string_at_point(0, rec + 8, local_50, *(int *)0x2ee6d0);
+          render_debug_string_at_point(0, (const real_point3d *)(rec + 8), local_50, *(const real_argb_color **)0x2ee6d0);
           node = *(int *)(rec + 0x34);
         }
         layer = layer + 1;
@@ -2702,17 +2702,17 @@ void FUN_00191de0(int descriptor, int dst, unsigned int cluster_index)
  * The high bit of param_2 selects one of two hard-coded fill colors.
  *
  * For each vertex i in [2, count):
- *   - FUN_00188890 fills the fan triangle (vertex0, vertex(i-1),
+ *   - render_debug_triangle fills the fan triangle (vertex0, vertex(i-1),
  *     vertex(i)) with the selected color.
- *   - FUN_00189270 draws the edge line vertex(i-1)->vertex(i) in the
+ *   - render_debug_line draws the edge line vertex(i-1)->vertex(i) in the
  *     global debug color pointed to by [0x2ee6d0].
- * Two trailing FUN_00189270 calls close the fan: edge (0,1) and edge
+ * Two trailing render_debug_line calls close the fan: edge (0,1) and edge
  * (0,count-1).
  *
  * Confirmed from disassembly at 0x191e90:
  *   - Ghidra mis-groups the cdecl args (§7): each tag_block_get_element
  *     cleans only 3 args (ADD ESP,0xc); the surplus pushes belong to the
- *     outer FUN_00188890 (ADD ESP,0x14) / FUN_00189270 (ADD ESP,0x10).
+ *     outer render_debug_triangle (ADD ESP,0x14) / render_debug_line (ADD ESP,0x10).
  *   - color select: TEST ESI,0x80000000; SETNZ CL; color = colors+CL*0x10.
  *   - fan index is a signed short widened to int each iteration (INC;MOVSX).
  *   - the global color [0x2ee6d0] is re-read fresh on every call.
@@ -2743,24 +2743,24 @@ void FUN_00191e90(int param_1, int param_2)
   idx = 2;
   if (2 < *verts) {
     do {
-      FUN_00188890(
-        1, (float *)tag_block_get_element(verts, 0, 0xc),
-        (float *)tag_block_get_element(verts, idx - 1, 0xc),
-        (float *)tag_block_get_element(verts, idx, 0xc),
+      render_debug_triangle(
+        1, (const real_point3d *)tag_block_get_element(verts, 0, 0xc),
+        (const real_point3d *)tag_block_get_element(verts, idx - 1, 0xc),
+        (const real_point3d *)tag_block_get_element(verts, idx, 0xc),
         (void *)((char *)colors +
                  (((unsigned int)param_2 & 0x80000000) != 0) * 0x10));
-      FUN_00189270(1, (float *)tag_block_get_element(verts, idx - 1, 0xc),
-                   (float *)tag_block_get_element(verts, idx, 0xc),
+      render_debug_line(1, (const real_point3d *)tag_block_get_element(verts, idx - 1, 0xc),
+                   (const real_point3d *)tag_block_get_element(verts, idx, 0xc),
                    *(void **)0x2ee6d0);
       i = i + 1;
       idx = (int)i;
     } while (idx < *verts);
   }
-  FUN_00189270(1, (float *)tag_block_get_element(verts, 0, 0xc),
-               (float *)tag_block_get_element(verts, 1, 0xc),
+  render_debug_line(1, (const real_point3d *)tag_block_get_element(verts, 0, 0xc),
+               (const real_point3d *)tag_block_get_element(verts, 1, 0xc),
                *(void **)0x2ee6d0);
-  FUN_00189270(1, (float *)tag_block_get_element(verts, 0, 0xc),
-               (float *)tag_block_get_element(verts, *verts - 1, 0xc),
+  render_debug_line(1, (const real_point3d *)tag_block_get_element(verts, 0, 0xc),
+               (const real_point3d *)tag_block_get_element(verts, *verts - 1, 0xc),
                *(void **)0x2ee6d0);
 }
 
@@ -2978,7 +2978,7 @@ void leaf_map_build_portal_from_leaves(void *structure /* @<edi> */,
     dst = coord_buffer;
     for (i = 0; i < vertex_count; ++i) {
       vertex = tag_block_get_element(vertices_block, i, 0xc);
-      project_point2d(dst, plane, (int16_t)projection, sign, (float *)vertex);
+      project_point2d((const real_point2d *)dst, (const real_plane3d *)plane, (int16_t)projection, sign, (real_point3d *)vertex);
       dst += 2;
     }
   }
@@ -3148,8 +3148,8 @@ void FUN_00192390(void *bsp, unsigned int leaf_index, float *out_center,
         if (*edge_block > 0) {
           do {
             project_point2d(
-              (float *)tag_block_get_element(edge_block, (short)edge_i, 8),
-              plane_data, axis, axis_sign, projected);
+              (const real_point2d *)tag_block_get_element(edge_block, (short)edge_i, 8),
+              (const real_plane3d *)plane_data, axis, axis_sign, (real_point3d *)projected);
             if (projected[0] < bounds[0]) {
               bounds[0] = projected[0];
             }
@@ -3349,12 +3349,12 @@ char FUN_00192710(void *bsp, int index, float *plane, int16_t projection,
       if (*edge_block > 0) {
         do {
           project_point2d(
-            (float *)tag_block_get_element(edge_block, (short)j, 8), plane_data,
-            index, axis_sign, a);
+            (const real_point2d *)tag_block_get_element(edge_block, (short)j, 8), (const real_plane3d *)plane_data,
+            index, axis_sign, (real_point3d *)a);
           project_point2d(
-            (float *)tag_block_get_element(
+            (const real_point2d *)tag_block_get_element(
               edge_block, ((short)j + 1 == *edge_block) ? 0 : (short)j + 1, 8),
-            plane_data, index, axis_sign, b);
+            (const real_plane3d *)plane_data, index, axis_sign, (real_point3d *)b);
 
           dot0 =
             (a[0] * plane[0] + a[1] * plane[1]) + a[2] * plane[2] - plane[3];
@@ -3417,7 +3417,7 @@ __declspec(noinline) void structure_detail_objects_initialize_for_new_map(void)
   *(uint8_t *)(*(int *)0x4d8ea0 + 0x520e) = 0;
 }
 
-/* FUN_00194070 (0x194070) — structures.obj / structures.c (relocated here by
+/* render_debug_detail_objects (0x194070) — structures.obj / structures.c (relocated here by
  * maintain.py from the kb object mapping; the code is detail-object debug
  * rendering and shares every global with structure_detail_objects.c)
  *
@@ -3445,7 +3445,7 @@ __declspec(noinline) void structure_detail_objects_initialize_for_new_map(void)
  *                the scroll accumulator bumps
  * Row table entry (stride 8, at base+0x5100): { void **elements; short count; }
  * with the count at +4; the row count itself is a short at base+0x5204. */
-void FUN_00194070(void)
+void render_debug_detail_objects(void)
 {
   /* Four contiguous floats read from the debug colour pointer global at
    * 0x2ee6c8. Component order is unproven, so the member stays mechanical.
@@ -3550,12 +3550,12 @@ void FUN_00194070(void)
               bounds[5] =
                 (*(float *)((char *)cell + 0xc) + *(float *)0x2533c8) *
                 *(float *)0x253f78;
-              FUN_0018ab30(1, bounds, *(void **)0x2ee6d8);
+              render_debug_box_outline(1, (const real_rectangle3d *)bounds, *(void **)0x2ee6d8);
 
               if (clipped != '\0') {
                 color = *(const color4 *)*(void **)0x2ee6c8;
                 color.v[0] = 0.3f;
-                FUN_0018ab30(1, bounds, &color);
+                render_debug_box_outline(1, (const real_rectangle3d *)bounds, (const real_argb_color *)&color);
               }
 
               cell_index = cell_index + 1;
@@ -4592,7 +4592,7 @@ void FUN_00195790(int *surface_material_offsets /* @<eax> */,
   }
 }
 
-/* FUN_001959f0 (0x1959f0)
+/* structure_render_preprocess (0x1959f0)
  *
  * Structure render-triangle build entry.  Under the profiler gate
  * (0x449ef1 && 0x3275c8), brackets the build call in
@@ -4616,7 +4616,7 @@ void FUN_00195790(int *surface_material_offsets /* @<eax> */,
  *   - forward-vector snapshot copied as raw dwords (no FPU).
  * All calls cdecl, args pushed right-to-left.
  */
-void FUN_001959f0(void)
+void structure_render_preprocess(void)
 {
   int scenario;
   int index;
@@ -4659,7 +4659,7 @@ void FUN_001959f0(void)
   *(int *)0x4d8ec4 = fwd[2];
 }
 
-/* FUN_00195b10 (0x195b10)
+/* structure_render_lightmaps (0x195b10)
  *
  * render_structure_lightmaps: thin render-orchestration wrapper (string ref
  * "render_structure_lightmaps" @0x327bb8).  Profiles the scope, and when the
@@ -4678,7 +4678,7 @@ void FUN_001959f0(void)
  *    table) plus 6 stack args (confirmed: its decompile uses int *in_EAX as
  *    in_EAX + param_1).  arg1 is the zero-extended uint16 at 0x5937d0.
  */
-void FUN_00195b10(void)
+void structure_render_lightmaps(void)
 {
   int scenario;
   int saved_flag;
@@ -4707,7 +4707,7 @@ void FUN_00195b10(void)
   }
 }
 
-/* FUN_00195bc0 (0x195bc0)
+/* structure_render_diffuse_texture (0x195bc0)
  *
  * render_structure_diffuse_texture: thin render-orchestration wrapper (string
  * ref "render_structure_diffuse_texture" @0x3281b0).  Profiles the scope, and
@@ -4725,7 +4725,7 @@ void FUN_00195b10(void)
  *    material_begin_cb / pass_end_cb / param_7 are all 0.  (Confirmed via push
  *    order: ADD ESP,0x18 = 6 stack dwords.)
  */
-void FUN_00195bc0(void)
+void structure_render_diffuse_texture(void)
 {
   if (*(char *)0x449ef1 != 0 && *(char *)0x3281b8 != 0) {
     profile_enter_private((void *)0x3281b0);
@@ -4743,14 +4743,14 @@ void FUN_00195bc0(void)
   }
 }
 
-/* FUN_00195c40 (0x195c40)
+/* structure_render_specular_lightmaps (0x195c40)
  *
- * Sibling of FUN_00195b10: when the map has a valid lightmap pass (byte at
+ * Sibling of structure_render_lightmaps: when the map has a valid lightmap pass (byte at
  * 0x4d8eb0 != 0), briefly forces the 16-bit word at 0x3256b0 to 1 -- only when
  * the scenario has no bsp switch pending (scenario+0xc == -1) and the word is
  * currently 0 -- brackets a rasterizer setup/teardown pair (thunks 0x17cda0 /
  * 0x17cde0 -> FUN_00163c40 / FUN_001609a0) around the per-surface draw walk
- * (FUN_00195790), then restores the saved low word.  Unlike FUN_00195b10 this
+ * (FUN_00195790), then restores the saved low word.  Unlike structure_render_lightmaps this
  * variant has no profiler scope.
  *
  * Confirmed from disassembly at 0x195c40:
@@ -4766,7 +4766,7 @@ void FUN_00195bc0(void)
  *    (lightmap_pass_index), uint16 @0x5937d0 (surface_count).  0x17cdd0 is the
  *    FUN_0017cdd0 JMP thunk.
  */
-void FUN_00195c40(void)
+void structure_render_specular_lightmaps(void)
 {
   int scenario;
   int saved_flag;
@@ -4786,7 +4786,7 @@ void FUN_00195c40(void)
   }
 }
 
-/* FUN_00195cb0 (0x195cb0)
+/* structure_render_reflection_lightmap_masks (0x195cb0)
  *
  * Sibling of FUN_00195af0: when the map has a valid lightmap pass (byte at
  * 0x4d8eb0 != 0), brackets a setup/teardown pair (1-instr JMP thunks
@@ -4803,7 +4803,7 @@ void FUN_00195c40(void)
  *    MOV CX,word ptr).  ADD ESP,0x18 = 6 stack dwords confirms.
  *  - The teardown is emitted in the original as a tail JMP 0x17ce30.
  */
-void FUN_00195cb0(void)
+void structure_render_reflection_lightmap_masks(void)
 {
   if (*(char *)0x4d8eb0 != 0) {
     FUN_0017cdf0();
@@ -4814,9 +4814,9 @@ void FUN_00195cb0(void)
   }
 }
 
-/* FUN_00195d00 (0x195d00)
+/* structure_render_reflection_mirrors (0x195d00)
  *
- * Sibling of FUN_00195d40 (render_structure_reflections): when the map has a
+ * Sibling of structure_render_reflections (render_structure_reflections): when the map has a
  * valid reflection/lightmap pass (byte at 0x4d8eb0 != 0), brackets a scope
  * enter/exit pair (FUN_0017ce40 / FUN_0017ce60, 1-instr JMP thunks forwarding
  * to FUN_00160bd0 / FUN_00160be0) around the per-surface draw walk
@@ -4834,7 +4834,7 @@ void FUN_00195cb0(void)
  *  - Two distinct globals: uint16 count @0x5937d0 vs int[] offsets @0x5937d4.
  *  - The teardown FUN_0017ce60 is reached via a tail-call JMP in the original.
  */
-void FUN_00195d00(void)
+void structure_render_reflection_mirrors(void)
 {
   if (*(char *)0x4d8eb0 != 0) {
     FUN_0017ce40();
@@ -4844,7 +4844,7 @@ void FUN_00195d00(void)
   }
 }
 
-/* FUN_00195d40 (0x195d40)
+/* structure_render_reflections (0x195d40)
  *
  * render_structure_reflections: thin render-orchestration wrapper (string ref
  * "render_structure_reflections" @0x3287a8).  Profiles the scope, and when the
@@ -4861,7 +4861,7 @@ void FUN_00195d00(void)
  *    the 5th param (surface_draw_cb); material_begin_cb / pass_end_cb / param_7
  *    are all 0.  (Confirmed via push order: ADD ESP,0x18 = 6 stack dwords.)
  */
-void FUN_00195d40(void)
+void structure_render_reflections(void)
 {
   if (*(char *)0x449ef1 != 0 && *(char *)0x3287b0 != 0) {
     profile_enter_private((void *)0x3287a8);
@@ -4879,7 +4879,7 @@ void FUN_00195d40(void)
   }
 }
 
-/* FUN_00195dc0 (0x195dc0)
+/* structure_render_transparent_geometry (0x195dc0)
  *
  * render_structure_transparent_geo: thin render-orchestration wrapper (string
  * ref "render_structure_transparent_geo" @0x328da0).  Profiles the scope, and
@@ -4904,7 +4904,7 @@ void FUN_00195d40(void)
  *    sibling reflection/lightmap passes which use surface_draw_cb.
  * All calls cdecl, args pushed right-to-left.
  */
-void FUN_00195dc0(void)
+void structure_render_transparent_geometry(void)
 {
   if (*(char *)0x449ef1 != 0 && *(char *)0x328da8 != 0) {
     profile_enter_private((void *)0x328da0);
@@ -4922,14 +4922,14 @@ void FUN_00195dc0(void)
   }
 }
 
-/* FUN_00195e40 (0x195e40)
+/* structure_render_fog (0x195e40)
  *
  * render_structure_fog: thin render-orchestration wrapper (string ref
  * "render_structure_fog" @0x329398).  Profiles the scope, and when the map has
  * a valid lightmap/material pass (byte at 0x4d8eb0 != 0) it brackets a
  * rasterizer setup/teardown pair (thunks 0x17ced0 / 0x17cef0 forwarding to
  * FUN_00166400 / FUN_00165dd0) around the per-surface fog draw walk
- * (FUN_00195790).  Simpler than FUN_00195b10: no scenario_get / 0x3256b0
+ * (FUN_00195790).  Simpler than structure_render_lightmaps: no scenario_get / 0x3256b0
  * save-restore.
  *
  * Confirmed from disassembly at 0x195e40:
@@ -4948,7 +4948,7 @@ void FUN_00195dc0(void)
  *  - Two distinct globals: uint16 count @0x5937d0 vs int[] offsets @0x5937d4.
  * All calls cdecl, args pushed right-to-left.
  */
-void FUN_00195e40(void)
+void structure_render_fog(void)
 {
   if (*(char *)0x449ef1 != 0 && *(char *)0x3293a0 != 0) {
     profile_enter_private((void *)0x329398);
@@ -4966,10 +4966,10 @@ void FUN_00195e40(void)
   }
 }
 
-/* FUN_00195ec0 (0x195ec0)
+/* structure_render_fog_screen (0x195ec0)
  *
- * Two-pass structure lightmap draw driver.  Sibling of FUN_00195b10 /
- * FUN_00195c40 but with no scenario_get / 0x3256b0 save-restore: when the map
+ * Two-pass structure lightmap draw driver.  Sibling of structure_render_lightmaps /
+ * structure_render_specular_lightmaps but with no scenario_get / 0x3256b0 save-restore: when the map
  * has a valid lightmap pass (byte at 0x4d8eb0 != 0) it runs the per-surface
  * draw walk (FUN_00195790) twice, once per pass -- FUN_0017cf10(0) then
  * FUN_0017cf10(1) select the pass index -- with a fog emit (FUN_00167920)
@@ -4989,7 +4989,7 @@ void FUN_00195e40(void)
  *  - FUN_0017cf20 is passed as a raw callback address, not called here.
  *  - FUN_00167920 (fog emit) takes no args.
  */
-void FUN_00195ec0(void)
+void structure_render_fog_screen(void)
 {
   if (*(char *)0x4d8eb0 != 0) {
     FUN_0017cf10(0);
@@ -5619,7 +5619,7 @@ typedef struct mirror_edge_poly2d {
  * Index narrowing is load-bearing: the surface counter and the element index
  * are both truncated through MOVSX AX/DX before every compare and every
  * tag_block_get_element call. */
-char FUN_001975e0(void *ref, void *frustum, void *out)
+char structure_visibility_find_mirror(void *ref, void *frustum, void *out)
 {
   char found;
   int surface_index;
@@ -5650,7 +5650,7 @@ char FUN_001975e0(void *ref, void *frustum, void *out)
    *   -0x828=b[0] -0x824=b[2] | -0x820=b[1] -0x81c=b[2]
    *   -0x818=b[1] -0x814=b[3] | -0x810=b[0] -0x80c=b[3]
    * i.e. (x0,y0) (x1,y0) (x1,y1) (x0,y1); the count word lands at -0x82c. */
-  render_frustum_get_projection_bounds(frustum, bounds);
+  render_frustum_get_projection_bounds(frustum, (real_rectangle2d *)bounds);
   quad.points[0][0] = bounds[0];
   quad.points[0][1] = bounds[2];
   quad.points[1][0] = bounds[1];
@@ -5923,7 +5923,8 @@ void FUN_00198070(void)
 
   scenario = (char *)scenario_get();
   if (*(int *)0x506784 != -1) {
-    render_frustum_get_projection_bounds((void *)0x5065a4, proj_bounds);
+    render_frustum_get_projection_bounds((render_frustum_t *)0x5065a4,
+                                         (real_rectangle2d *)proj_bounds);
 
     sound_list.v[0] = proj_bounds[0]; /* +0x04 */
     sound_list.v[1] = proj_bounds[2]; /* +0x08 */
@@ -5945,9 +5946,11 @@ void FUN_00198070(void)
         cluster = (int16_t *)rendered_cluster_get(cluster_index);
         tag_block_get_element(scenario + 0x134, *cluster, 0x68);
         render_camera_build_clipped_frustum_bounds(
-          (camera_t *)0x506550, (float *)(cluster + 2), frustum_bounds);
-        render_camera_build_frustum((camera_t *)0x506550, frustum_bounds,
-                                    (float *)(cluster + 10), 1);
+          (camera_t *)0x506550, (real_rectangle2d *)(cluster + 2),
+          (real_rectangle2d *)frustum_bounds);
+        render_camera_build_frustum((camera_t *)0x506550,
+                                    (real_rectangle2d *)frustum_bounds,
+                                    (render_frustum_t *)(cluster + 10), 1);
         cluster_index += 1;
       } while ((int16_t)cluster_index < *(int16_t *)0x5137cc);
     }
@@ -6033,8 +6036,8 @@ void render_structure_visibility(void)
           cluster_rec = (short *)rendered_cluster_get(
             ((unsigned short *)0x4d8edc)[bit_index]);
           *cluster_rec = (short)cluster_index;
-          render_frustum_get_projection_bounds((void *)0x5065a4,
-                                               cluster_rec + 2);
+          render_frustum_get_projection_bounds((render_frustum_t *)0x5065a4,
+                                               (real_rectangle2d *)(cluster_rec + 2));
         }
         cluster_index = cluster_index + 1;
         bit_index = (int)(short)cluster_index;
@@ -6315,7 +6318,7 @@ int32_t structure_get_planar_fog_definition_index(void *structure_bsp,
   return result;
 }
 
-/* VC71: the original calls FUN_0018e420 out of line (ref has 11 calls, we
+/* VC71: the original calls global_bsp3d_get out of line (ref has 11 calls, we
  * emitted 12 after cl.exe inlined it plus its assert).  Scoped
  * inline_depth(0) restores the call. */
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -6351,7 +6354,7 @@ bool structure_get_planar_fog(void *scenario, int16_t portal_index,
 
     if (dz * dz + dx * dx + dy * dy < expanded_radius * expanded_radius) {
       int portal_plane_index = *(int *)(portal + 4);
-      char *bsp3d = FUN_0018e420();
+      char *bsp3d = global_bsp3d_get();
       short plane_basis;
       uint8_t plane_axis;
       int *portal_vertices = (int *)(portal + 0x34);
@@ -6590,7 +6593,8 @@ int16_t structure_clusters_in_cone(int16_t starting_cluster, float *point,
  *   - Assert condition strings (single-letter param names): "p", "v",
  *     "material_index", "surface_index", "s", "t" at lines 0x188-0x18d.
  */
-char structure_test_vector(float *point, float *direction, float *out_point,
+char structure_test_vector(const real_point3d *point,
+                           const real_vector3d *vector, real_point3d *out_point,
                            int16_t *out_collection_index,
                            int16_t *out_material_index,
                            int32_t *out_surface_index, float *out_u,
@@ -6609,7 +6613,7 @@ char structure_test_vector(float *point, float *direction, float *out_point,
                    true);
     system_exit(-1);
   }
-  if (direction == NULL) {
+  if (vector == NULL) {
     display_assert("v", "c:\\halo\\SOURCE\\structures\\structures.c", 0x189,
                    true);
     system_exit(-1);
@@ -6635,9 +6639,9 @@ char structure_test_vector(float *point, float *direction, float *out_point,
     system_exit(-1);
   }
 
-  out_point[0] = point[0];
-  out_point[1] = point[1];
-  out_point[2] = point[2];
+  out_point->x = point->x;
+  out_point->y = point->y;
+  out_point->z = point->z;
 
   do {
     terminate = 1;
@@ -6651,12 +6655,12 @@ char structure_test_vector(float *point, float *direction, float *out_point,
     *(int16_t *)0x4761d8 = depth + 1;
     *(int16_t *)(0x5a8c80 + depth * 2) = 0xf;
 
-    if (collision_test_vector(0x21, (real_point3d *)out_point, (real_vector3d *)direction, -1,
-                     (int16_t *)collision_result) != 0) {
+    if (collision_test_vector(0x21, out_point, vector, -1,
+                     (collision_test_result *)collision_result) != 0) {
       scenario = scenario_get();
-      out_point[0] = *(float *)(collision_result + 0x18);
-      out_point[1] = *(float *)(collision_result + 0x1c);
-      out_point[2] = *(float *)(collision_result + 0x20);
+      out_point->x = *(float *)(collision_result + 0x18);
+      out_point->y = *(float *)(collision_result + 0x1c);
+      out_point->z = *(float *)(collision_result + 0x20);
       if (structure_render_surface_from_point_and_leaf(
             out_point, *(uint32_t *)(collision_result + 0xc),
             *(uint32_t *)(collision_result + 0x48) & 0x7fffffff,
@@ -6671,9 +6675,9 @@ char structure_test_vector(float *point, float *direction, float *out_point,
       }
       if ((collision_result[0x4c] & 1) != 0) {
         terminate = 0;
-        out_point[0] = direction[0] * *(float *)0x29ca28 + out_point[0];
-        out_point[1] = direction[1] * *(float *)0x29ca28 + out_point[1];
-        out_point[2] = direction[2] * *(float *)0x29ca28 + out_point[2];
+        out_point->x = vector->i * *(float *)0x29ca28 + out_point->x;
+        out_point->y = vector->j * *(float *)0x29ca28 + out_point->y;
+        out_point->z = vector->k * *(float *)0x29ca28 + out_point->z;
       }
     }
 
@@ -6858,10 +6862,10 @@ void render_debug_fog_planes(void)
         vert_b[0] = fVar1 * *(float *)(iVar2 + 4) + pfVar5[0];
         vert_b[1] = fVar1 * *(float *)(iVar2 + 8) + pfVar5[1];
         vert_b[2] = fVar1 * *(float *)(iVar2 + 0xc) + pfVar5[2];
-        FUN_0017eb10(pfVar4, pfVar5, *(int *)0x2ee6c4);
-        FUN_0017eb10(vert_a, vert_b, *(int *)0x2ee6cc);
-        FUN_0017e5b0(pfVar4, vert_a, *(float **)0x2ee6c4, *(float **)0x2ee6cc);
-        FUN_0017e5b0(pfVar5, vert_b, *(float **)0x2ee6c4, *(float **)0x2ee6cc);
+        rasterizer_debug_line((const real_point3d *)pfVar4, (const real_point3d *)pfVar5, *(const real_argb_color **)0x2ee6c4);
+        rasterizer_debug_line((const real_point3d *)vert_a, (const real_point3d *)vert_b, *(const real_argb_color **)0x2ee6cc);
+        rasterizer_debug_line_shaded(pfVar4, vert_a, *(float **)0x2ee6c4, *(float **)0x2ee6cc);
+        rasterizer_debug_line_shaded(pfVar5, vert_b, *(float **)0x2ee6c4, *(float **)0x2ee6cc);
         local_c = *(int *)(iVar2 + 0x14);
         local_8 = local_8 + 1;
         iVar3 = (int)(short)local_8;

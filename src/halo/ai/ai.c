@@ -2372,7 +2372,7 @@ int ai_test_line_of_sight(float *origin, int bsp, float *target, int param_4,
   direction[0] = target[0] - origin[0];
   direction[1] = target[1] - origin[1];
   direction[2] = target[2] - origin[2];
-  if (!collision_test_vector(flags, (real_point3d *)origin, (real_vector3d *)direction, param_7, (int16_t *)&collision)) {
+  if (!collision_test_vector(flags, (real_point3d *)origin, (real_vector3d *)direction, param_7, (collision_test_result *)&collision)) {
     no_hit = 1;
   } else {
     no_hit = 0;

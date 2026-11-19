@@ -506,7 +506,7 @@ void FUN_0016ab00(int16_t detail_function /* @<ax> */,
  * Guarded by the profile-collection master switch (DAT_003256c4); when
  * active, records that a models profile section has been requested
  * (DAT_00325173 = 1), latches the requested sub-state (DAT_0047e002), and
- * opens the corresponding profile section via FUN_0016f910 (1 = models with
+ * opens the corresponding profile section via rasterizer_profile_begin (1 = models with
  * the flag set, 2 = models without). */
 void FUN_0016b180(bool flag)
 {
@@ -514,10 +514,10 @@ void FUN_0016b180(bool flag)
     *(char *)0x325173 = 1;
     *(char *)0x47e002 = flag;
     if (flag != 0) {
-      FUN_0016f910(1);
+      rasterizer_profile_begin(1);
       return;
     }
-    FUN_0016f910(2);
+    rasterizer_profile_begin(2);
   }
 }
 
@@ -529,7 +529,7 @@ void FUN_0016b180(bool flag)
  * flushes the pending sub-pass when DAT_0047e004 is set (FUN_00165fc0), then
  * - only when the block's first byte is negative and DAT_0047e005 is clear,
  * mirroring the open path's entry condition - restores the default projection
- * with FUN_00158ae0(2) and rasterizer_set_frustum_z(0.0f, 0.0f). Finally
+ * with rasterizer_set_stencil_mode(2) and rasterizer_set_frustum_z(0.0f, 0.0f). Finally
  * clears DAT_0047dff8 to mark the block closed. */
 void FUN_0016b1c0(void)
 {
@@ -547,7 +547,7 @@ void FUN_0016b1c0(void)
     }
 
     if (*(signed char *)*(void **)0x47dff8 < 0 && *(char *)0x47e005 == 0) {
-      FUN_00158ae0(2);
+      rasterizer_set_stencil_mode(2);
       rasterizer_set_frustum_z(0.0f, 0.0f);
     }
 
@@ -558,16 +558,16 @@ void FUN_0016b1c0(void)
 /* 0x16b240 — model-rendering profile close; the counterpart of FUN_0016b180.
  * Guarded by the same profile-collection master switch (DAT_003256c4); reads
  * back the sub-state latched by FUN_0016b180 (DAT_0047e002) and closes the
- * matching profile section via FUN_0016fa40 (1 = models with the flag set,
+ * matching profile section via rasterizer_profile_end (1 = models with the flag set,
  * 2 = models without). */
 void FUN_0016b240(void)
 {
   if (*(char *)0x3256c4 != 0) {
     if (*(char *)0x47e002 != 0) {
-      FUN_0016fa40(1);
+      rasterizer_profile_end(1);
       return;
     }
-    FUN_0016fa40(2);
+    rasterizer_profile_end(2);
   }
 }
 
@@ -890,10 +890,10 @@ void rasterizer_model_draw_environment_shader(void *shader,
     /* Sum order follows the 2276 x87 sequence (z, y, then x term). */
     planar_fog_fraction =
       (global_window_parameters.camera_position.z *
-         global_window_parameters.fog.plane.normal[2] +
+         global_window_parameters.fog.plane.normal.k +
        global_window_parameters.camera_position.y *
-         global_window_parameters.fog.plane.normal[1] +
-       global_window_parameters.fog.plane.normal[0] *
+         global_window_parameters.fog.plane.normal.j +
+       global_window_parameters.fog.plane.normal.i *
          global_window_parameters.camera_position.x -
        global_window_parameters.fog.plane.d) /
       global_window_parameters.fog.atmospheric_maximum_distance;
@@ -1036,7 +1036,7 @@ void rasterizer_model_draw_environment_shader(void *shader,
       system_exit(-1);
     }
 
-    cc0_pixel = real_argb_color_to_pixel32(&cc0.alpha);
+    cc0_pixel = real_argb_color_to_pixel32((const real_argb_color *)&cc0.alpha);
     cc0_error_pixel = real_rgb_color_to_pixel32(&cc0_error.red);
     cc1_pixel = real_rgb_color_to_pixel32(&cc1.red);
   } else {
@@ -1096,7 +1096,7 @@ void rasterizer_model_draw_environment_shader(void *shader,
  *
  * When the block's flags byte is negative (bit 0x80 set) and param_2's low
  * byte is 0, forces a near/far-frustum override before anything else:
- * FUN_00158ae0(1) then rasterizer_set_frustum_z(DAT_0032569c, DAT_003256a0).
+ * rasterizer_set_stencil_mode(1) then rasterizer_set_frustum_z(DAT_0032569c, DAT_003256a0).
  *
  * Stashes the parameter block pointer (DAT_0047dff8), clears DAT_0047dffc,
  * and records param_2's low byte into DAT_0047e005.
@@ -1144,7 +1144,7 @@ void FUN_0016bed0(void *param_1, int param_2)
   }
 
   if (*(signed char *)param_1 < 0 && (char)param_2 == 0) {
-    FUN_00158ae0(1);
+    rasterizer_set_stencil_mode(1);
     rasterizer_set_frustum_z(*(float *)0x32569c, *(float *)0x3256a0);
   }
 
@@ -1417,9 +1417,9 @@ void *FUN_0016c090(void *shader, short param_2, int param_3, int param_4,
           *(char **)(group + 0x68) = lp + 0x10;
           *(char **)(group + 0x6c) = lp + 0x84;
         }
-        FUN_00174ce0();
+        rasterizer_transparent_geometry_groups_begin();
         rasterizer_transparent_geometry_group_draw(group, 0);
-        FUN_001749b0();
+        rasterizer_transparent_geometry_groups_end();
         *(char *)0x325173 = 1;
       } else {
         if (*(char *)0x47dffc == 0) {
@@ -1954,7 +1954,7 @@ void FUN_0016c5a0(int param_1, int param_2, int param_3, int param_4,
 
     if (*(char *)0x3256d4 != 0 && (**(unsigned char **)0x47dff8 & 4) == 0) {
       planar_fog_fraction =
-        plane3d_distance_to_point((float *)0x5a5dc8, (float *)0x5a5bc8) /
+        plane3d_distance_to_point((const real_plane3d *)(0x5a5dc8), (const real_point3d *)(0x5a5bc8)) /
         *(float *)0x5a5dc0;
       if (planar_fog_fraction < 0.0f) {
         planar_fog_fraction = 0.0f;
@@ -2074,7 +2074,7 @@ void FUN_0016c5a0(int param_1, int param_2, int param_3, int param_4,
         system_exit(-1);
       }
 
-      cc0_pixel = real_argb_color_to_pixel32(cc0);
+      cc0_pixel = real_argb_color_to_pixel32((const real_argb_color *)cc0);
       cc0_error_pixel = real_rgb_color_to_pixel32(cc0_error);
       cc1_pixel = real_rgb_color_to_pixel32(cc1);
     } else {

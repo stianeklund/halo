@@ -150,8 +150,7 @@ char input_abstraction_print_config_control(int controller_index)
     return false;
   }
 
-  player =
-    (player_data_t *)datum_absolute_index_to_index(player_data, player_index);
+  player = datum_absolute_index_to_index(player_data, player_index);
   if (player == NULL) {
     return false;
   }

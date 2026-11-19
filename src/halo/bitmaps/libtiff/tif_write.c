@@ -2503,7 +2503,7 @@ void bitmap_tile_and_bevel_rectangle(void *destination, int bitmap_tag_index,
     }
     if ((param_7 & (1 << (((unsigned short *)0x261564)[(short)i] << 1))) != 0) {
       frame_bitmap =
-        FUN_00077040(bitmap_tag_index, sequence_index, (short)frame);
+        bitmap_group_get_bitmap_from_sequence(bitmap_tag_index, sequence_index, (short)frame);
       frame++;
       if (frame_bitmap != NULL) {
         *(unsigned long *)&clipped[0] = *(unsigned long *)&bounds[0];

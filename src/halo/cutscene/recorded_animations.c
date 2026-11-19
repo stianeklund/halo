@@ -1031,7 +1031,7 @@ void render_debug_recording(void)
   }
   buf[0x400] = 0;
   draw_string_set_tab_stops(tab_stops, 2);
-  FUN_00189c40(1, buf);
+  render_debug_string(1, buf);
   draw_string_set_tab_stops(tab_stops, 0);
 }
 

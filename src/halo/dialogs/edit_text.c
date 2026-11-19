@@ -73,7 +73,7 @@ void FUN_00096d70(int object_handle)
     position.x = up[0] * 0.4f + position.x;
     position.y = up[1] * 0.4f + position.y;
     position.z = up[2] * 0.4f + position.z;
-    render_debug_string_at_point('\0', &position, buffer, *(int *)0x2ee6c4);
+    render_debug_string_at_point('\0', &position, buffer, *(const real_argb_color **)0x2ee6c4);
   }
 }
 

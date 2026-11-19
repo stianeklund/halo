@@ -624,7 +624,7 @@ void FUN_0016eef0(void *group)
   *(uint32_t *)0x1fb77c = 0x203;
   D3DDevice_SetRenderState_ZBias(0);
 
-  FUN_00178b40(0xf, FUN_00184610(grp), 0);
+  FUN_00178b40(0xf, rasterizer_transparent_geometry_get_primary_vertex_type(grp), 0);
 
   if (!(*(float *)(p + 0x98) != 0.0f)) {
     display_assert("plasma->primary_noise_map_animation_period!=0.0f",
@@ -772,7 +772,7 @@ void FUN_0016f480(const char *message, int16_t profile_index, char condition)
  *   0x325184  short     – gate: must be 0 for profiling
  *   0x47e458  short     – profile-suppression nesting counter ("local_
  *                        profile_enable"); must be 0 for profiling.  Pushed/
- *                        popped by FUN_0016f8a0, which asserts 0 <= it < 100
+ *                        popped by _rasterizer_profile_enable, which asserts 0 <= it < 100
  *   0x325180  short     – currently open profile index, -1 = none
  *   0x47e45c  unsigned  – bitmask of profiles completed this frame
  *   0x47e460  short     – sticky profile error bits, drained by FUN_0016f730:
@@ -798,7 +798,7 @@ void FUN_0016f480(const char *message, int16_t profile_index, char condition)
 
 /* 0x16f500 — GPU push-buffer profile callback: timestamps the begin or the
  * end of a profile section.  Registered with D3DDevice_InsertCallback by
- * FUN_0016f910 (type 0, context = index | 0x80000000) and FUN_0016fa40
+ * rasterizer_profile_begin (type 0, context = index | 0x80000000) and rasterizer_profile_end
  * (type 1, context = index), so the single stack argument packs two fields:
  *
  *   bit 31    - begin flag (SHR EBX,0x1f / AND BL,0x1 at 0x16f50d)
@@ -949,8 +949,8 @@ void FUN_0016f610(uint32_t marker)
  *
  * NOTE: this kb.json entry carries no object mapping, so maintain.py routes
  * it to rasterizer.c; binary evidence (the 0x47eXXX profile record arrays and
- * the 0x1d NUMBER_OF_RASTERIZER_PROFILES count shared with FUN_0016f910 /
- * FUN_0016fa40) places it in this TU. */
+ * the 0x1d NUMBER_OF_RASTERIZER_PROFILES count shared with rasterizer_profile_begin /
+ * rasterizer_profile_end) places it in this TU. */
 bool FUN_0016f6c0(void)
 {
   int count;
@@ -1091,8 +1091,8 @@ void FUN_0016f880(void)
  * strings name the counter "local_profile_enable").
  *
  * A non-zero argument decrements the counter (asserting it is > 0 first); a
- * zero argument increments it (asserting it is < 100).  Since FUN_0016f910 /
- * FUN_0016fa40 only profile while 0x47e458 == 0, the counter is a
+ * zero argument increments it (asserting it is < 100).  Since rasterizer_profile_begin /
+ * rasterizer_profile_end only profile while 0x47e458 == 0, the counter is a
  * suppression depth: the zero-argument call pushes a suppression, the
  * non-zero call pops one.  The parameter name follows that reading
  * (true => allow profiling again); the polarity is Inferred from the gate
@@ -1104,9 +1104,9 @@ void FUN_0016f880(void)
  *
  * Like FUN_0016f6c0 above, this kb.json entry carries no object mapping, so
  * maintain.py wants to route it to rasterizer.c; it is kept here on the same
- * binary evidence (the 0x47e458 gate shared with FUN_0016f910 /
- * FUN_0016fa40 and the shared __FILE__ string at 0x2a3ca4). */
-void FUN_0016f8a0(bool enable_profiling)
+ * binary evidence (the 0x47e458 gate shared with rasterizer_profile_begin /
+ * rasterizer_profile_end and the shared __FILE__ string at 0x2a3ca4). */
+void _rasterizer_profile_enable(bool enable_profiling)
 {
   if (enable_profiling) {
     if (*(short *)0x47e458 <= 0) {
@@ -1151,7 +1151,7 @@ void FUN_0016f8a0(bool enable_profiling)
  * Uncertain: the kb.json name "rasterizer_initialize" does not describe this
  * body -- nothing here initializes anything; it is a profile-name accessor
  * (rasterizer_profile_get_name shape), and its __FILE__ places it in
- * rasterizer_xbox_profile.c alongside FUN_0016f910 / FUN_0016fa40.  The name
+ * rasterizer_xbox_profile.c alongside rasterizer_profile_begin / rasterizer_profile_end.  The name
  * and the rasterizer.obj mapping are left as-is rather than churned through
  * the ABI baseline; treat both as unverified.
  */
@@ -1548,7 +1548,7 @@ co(rasterizer_pixel_shader_definition, texture_modes, 0xd8);
 /* 0x170c90 -- rasterizer_xbox_screen_effect.c (assert __FILE__ 0x2a3e80).
  *
  * - The single call-site ARG_COUNT hazard at 0x170ccf is a false positive:
- *   ADD ESP,8 at 0x170cd6 retires both the FUN_0016f910 push and the effect
+ *   ADD ESP,8 at 0x170cd6 retires both the rasterizer_profile_begin push and the effect
  *   push.
  * - Overbright clamp (0x1712c7): TEST AH,5/JP then TEST AH,0x41/JNZ, i.e.
  *   x < 0 -> 0, x > 1 -> 1, otherwise (including NaN) x.
@@ -1587,7 +1587,7 @@ void FUN_00170c90(void *effect)
     system_exit(-1);
   }
 
-  FUN_0016f910(0x1a);
+  rasterizer_profile_begin(0x1a);
   parameters = (rasterizer_screen_effect_parameters *)
     rasterizer_screen_effect_get_cinematic_parameters(effect);
   if (parameters != NULL &&
@@ -2052,7 +2052,7 @@ void FUN_00170c90(void *effect)
       (unsigned short)global_screen_effect_window_parameters.rasterizer_target,
       0, 0, 0, 1);
   }
-  FUN_0016fa40(0x1a);
+  rasterizer_profile_end(0x1a);
   if (!success) {
     error(2, "### ERROR rasterizer_screen_effect failed");
   }
@@ -2060,7 +2060,7 @@ void FUN_00170c90(void *effect)
 
 void FUN_00172520(void)
 {
-  FUN_0016f910(4);
+  rasterizer_profile_begin(4);
 }
 
 /* 0x172640
@@ -2106,7 +2106,7 @@ int FUN_00172650(void *device, uint32_t reg, float a, float b)
  */
 void rasterizer_window_get_fog(void)
 {
-  FUN_0016fa40(4);
+  rasterizer_profile_end(4);
 }
 
 void FUN_00173ae0(void)
@@ -2401,15 +2401,15 @@ void FUN_00173b40(float *parameters)
     vs_a[12] = (*(float **)(p + 0x7c) != 0) ? **(float **)(p + 0x7c) : 1.0f;
     vs_a[16] = (*(float **)(p + 0x80) != 0) ? **(float **)(p + 0x80) : 1.0f;
 
-    *(uint32_t *)0x5a5ae8 = real_argb_color_to_pixel32(&vs_a[8]);
-    *(uint32_t *)0x5a5b08 = real_argb_color_to_pixel32(&vs_a[12]);
-    *(uint32_t *)0x5a5aec = real_argb_color_to_pixel32(&vs_a[16]);
+    *(uint32_t *)0x5a5ae8 = real_argb_color_to_pixel32((const real_argb_color *)&vs_a[8]);
+    *(uint32_t *)0x5a5b08 = real_argb_color_to_pixel32((const real_argb_color *)&vs_a[12]);
+    *(uint32_t *)0x5a5aec = real_argb_color_to_pixel32((const real_argb_color *)&vs_a[16]);
     /* ADD ESI,0x64 then PUSH ESI four times — the same colour is packed into
      * four consecutive slots; the repetition is in the original. */
-    *(uint32_t *)0x5a5af8 = real_argb_color_to_pixel32((float *)(p + 0x64));
-    *(uint32_t *)0x5a5afc = real_argb_color_to_pixel32((float *)(p + 0x64));
-    *(uint32_t *)0x5a5b00 = real_argb_color_to_pixel32((float *)(p + 0x64));
-    *(uint32_t *)0x5a5b04 = real_argb_color_to_pixel32((float *)(p + 0x64));
+    *(uint32_t *)0x5a5af8 = real_argb_color_to_pixel32((const real_argb_color *)((p + 0x64)));
+    *(uint32_t *)0x5a5afc = real_argb_color_to_pixel32((const real_argb_color *)((p + 0x64)));
+    *(uint32_t *)0x5a5b00 = real_argb_color_to_pixel32((const real_argb_color *)((p + 0x64)));
+    *(uint32_t *)0x5a5b04 = real_argb_color_to_pixel32((const real_argb_color *)((p + 0x64)));
 
     *(uint32_t *)0x5a5b74 = 0x89;
     *(uint32_t *)0x5a5b28 = 0x89;
@@ -2906,7 +2906,7 @@ int FUN_00174980(int r1, int r2, int r3, int s1, int s2)
  *
  * The failure string names rasterizer_transparent_geometry_groups_begin even
  * though this ends a visibility test; the literal is copied verbatim. */
-void FUN_001749b0(void)
+void rasterizer_transparent_geometry_groups_end(void)
 {
   unsigned int enable_flags;
   short rect[4]; /* [EBP-0xc] x0, y0, x1, y1 */
@@ -2984,7 +2984,7 @@ void FUN_001749b0(void)
     draw_string_set_style_justify_flags(-1, 1, 0);
     draw_string_set_color(*(void **)0x2ee6e0);
     draw_string_set_font_tag(font_tag);
-    FUN_00158ae0(0);
+    rasterizer_set_stencil_mode(0);
     rasterizer_text_draw(rect, (short *)0, (const void *)0, 0, text);
   }
 
@@ -3149,7 +3149,7 @@ char FUN_00174bd0(void)
  * global. The D3DResource_Release return value is discarded (the original
  * never tests EAX after the CALL), and the null-out lives inside the guard
  * because the JZ at 0x174cc7 skips both the CALL and the store (0x174cc0). */
-void FUN_00174cc0(void)
+void rasterizer_transparent_geometry_dispose_aux_buffer(void)
 {
   if (*(void **)0x47e4bc != (void *)0x0) {
     D3DResource_Release(*(void **)0x47e4bc);
@@ -3158,7 +3158,7 @@ void FUN_00174cc0(void)
 }
 
 /* begin the per-frame GPU visibility (occlusion) test -- the Begin counterpart
- * of FUN_001749b0, which ends the test and reports the pixel ratio.
+ * of rasterizer_transparent_geometry_groups_end, which ends the test and reports the pixel ratio.
  *
  * The two counters are cleared UNCONDITIONALLY, before any branch: the
  * scheduler interleaved the stores with the CMPs (0x174ce9 / 0x174cef sit
@@ -3168,7 +3168,7 @@ void FUN_00174cc0(void)
  *
  * Globals (from the disassembly at 0x174ce0-0x174d0a):
  *   0x325740  two enable bytes, both must be non-zero (CMP AL,CL; CMP AH,CL)
- *             -- read as one dword, same as FUN_001749b0
+ *             -- read as one dword, same as rasterizer_transparent_geometry_groups_end
  *   0x5a5bc2  short  current window index; -1 is the "no window" sentinel and
  *             suppresses the test (CMP word [0x5a5bc2],-1; JZ to the RET)
  *   0x47e4b8  int    per-frame counter, cleared here
@@ -3181,7 +3181,7 @@ void FUN_00174cc0(void)
  * enable pair on the fall-through path -- two different values, so no caller
  * can be consuming an implicit return; the decl stays void (lift-learnings
  * S16). */
-void FUN_00174ce0(void)
+void rasterizer_transparent_geometry_groups_begin(void)
 {
   union {
     unsigned int dword;
@@ -3244,10 +3244,10 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
   if (*(int *)(grp + 0x98) != 0 && (char)dirty == 0) {
     return;
   }
-  if (FUN_00184570(grp) == 0) {
+  if (rasterizer_transparent_geometry_get_group_pending_status(grp) == 0) {
     return;
   }
-  FUN_001845b0(grp, 0);
+  rasterizer_transparent_geometry_set_group_pending_status(grp, 0);
   if (*(short *)(grp + 0x94) != -1) {
     rasterizer_transparent_geometry_group_draw(
       rasterizer_transparent_geometry_group_get(*(short *)(grp + 0x94)), dirty);
@@ -3286,7 +3286,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       vertex_shader_table[9] = -1;
       vertex_shader_table[10] = -1;
       vertex_shader_table[11] = -1;
-      vertex_type = (short)FUN_00184610(grp);
+      vertex_type = (short)rasterizer_transparent_geometry_get_primary_vertex_type(grp);
       if (*(short *)0x3256ea >= 1000 || *(short *)0x3256ea < 0) {
         solid_color = 1;
       } else {
@@ -3449,7 +3449,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
           argb[2] = dim;
           argb[3] = dim;
         }
-        render_debug_string_at_point(0, grp + 0x74, text_buffer, (int)argb);
+        render_debug_string_at_point(0, (const real_point3d *)(grp + 0x74), text_buffer, (const real_argb_color *)argb);
       }
     }
     goto tail;
@@ -3467,7 +3467,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
 
     first_tag = *(int *)(grp + 8);
     g2 = grp;
-    vertex_type = FUN_00184610(grp);
+    vertex_type = rasterizer_transparent_geometry_get_primary_vertex_type(grp);
     FUN_00178b40(0xd, vertex_type, 0);
     SetRenderStateSmart(0x7f, 0);
     SetRenderStateSmart(0x43, 0);
@@ -3537,7 +3537,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
   }
 
   permutation = shader_get_vertex_shader_permutation(*(void **)(grp + 0xc));
-  vertex_type = FUN_00184610(grp);
+  vertex_type = rasterizer_transparent_geometry_get_primary_vertex_type(grp);
   if ((*grp & 2) == 0) {
     struct {
       void *matrices;
@@ -3579,7 +3579,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         }
         rasterizer_set_frustum_z(*(float *)0x32569c, *(float *)0x3256a0);
       } else if ((short)pass != 0) {
-        FUN_00158ae0(2);
+        rasterizer_set_stencil_mode(2);
         SetRenderStateSmart(0x7b, 0);
       } else {
         sh = *(char **)(grp + 0xc);
@@ -3589,7 +3589,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
             goto next_pass;
           }
         }
-        FUN_00158ae0(3);
+        rasterizer_set_stencil_mode(3);
       }
     } else if ((short)pass > 0) {
       break;
@@ -4096,7 +4096,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       }
       if ((*grp & 0x10) != 0 && *(short *)(gen + 0x2c) == 0) {
         /* fog-plane driven fade into an extra combiner stage */
-        t = -(plane3d_distance_to_point((float *)0x5a5dc8, (float *)0x5a5bc8) /
+        t = -(plane3d_distance_to_point((const real_plane3d *)(0x5a5dc8), (const real_point3d *)(0x5a5bc8)) /
               *(float *)0x5a5dec);
         if (t < *(float *)0x2533c0) {
           t = 0.0f;
@@ -4303,7 +4303,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
             c[2] = c[2] * pf[1];
             c[3] = c[3] * pf[2];
           }
-          ((uint32_t *)0x5a5ae8)[(short)j] = real_argb_color_to_pixel32(c);
+          ((uint32_t *)0x5a5ae8)[(short)j] = real_argb_color_to_pixel32((const real_argb_color *)c);
           j = j + 1;
         } while ((int)(short)j < *(int *)(gen + 0x60));
       }
@@ -4528,7 +4528,7 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
       }
       nstages2 = *(short *)(chi + 0x54);
       if ((*grp & 0x10) != 0 && *(short *)(chi + 0x2c) == 0) {
-        t2 = -(plane3d_distance_to_point((float *)0x5a5dc8, (float *)0x5a5bc8) /
+        t2 = -(plane3d_distance_to_point((const real_plane3d *)(0x5a5dc8), (const real_point3d *)(0x5a5bc8)) /
                *(float *)0x5a5dec);
         if (t2 < *(float *)0x2533c0) {
           t2 = 0.0f;
@@ -4870,9 +4870,9 @@ void rasterizer_transparent_geometry_group_draw(void *group, int dirty)
         *(uint32_t *)0x5a5b50 = 0xc0c0d0d;
         *(uint32_t *)0x5a5b7c = 0xd;
         *(uint32_t *)0x5a5af4 =
-          real_argb_color_to_pixel32((float *)(gls + 0x8c));
+          real_argb_color_to_pixel32((const real_argb_color *)((gls + 0x8c)));
         *(uint32_t *)0x5a5b14 =
-          real_argb_color_to_pixel32((float *)(gls + 0x9c));
+          real_argb_color_to_pixel32((const real_argb_color *)((gls + 0x9c)));
         *(uint32_t *)0x5a5b34 = 0xc00;
         *(uint32_t *)0x5a5b80 = 0xc00;
         *(uint32_t *)0x5a5b84 = 0xc00;
@@ -5676,7 +5676,7 @@ void FUN_001795c0(void *shader)
      ripples[2].contribution_factor + ripples[3].contribution_factor));
 
   rasterizer_set_pixel_shader((void *)0x5a5ac0);
-  FUN_00158ae0(0);
+  rasterizer_set_stencil_mode(0);
 
   /* Dual induction, as the original: the short loop counter ([EBP-0x4],
    * CMP AX vs layer_count at 0x179d8f) plus a separate int copy that is
@@ -5741,7 +5741,7 @@ void FUN_001795c0(void *shader)
   }
 
   rasterizer_set_target(*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
-  FUN_00158ae0(2);
+  rasterizer_set_stencil_mode(2);
   if (!success) {
     error(2, "### ERROR rasterizer_water_build_bumpmap failed");
   }
@@ -5802,7 +5802,7 @@ void FUN_00179de0(void *group)
   shader = shader_get_and_verify_type(*(void **)((char *)group + 0xc), 7);
   permutation =
     shader_get_vertex_shader_permutation(*(void **)((char *)group + 0xc));
-  vertex_type = FUN_00184610(group);
+  vertex_type = rasterizer_transparent_geometry_get_primary_vertex_type(group);
   /* 16-bit load/AND, as the original: MOV AX,[ESI+0x28]; AND AX,0x8. */
   water_flag = *(unsigned short *)((char *)shader + 0x28);
   water_flag &= 8;
@@ -6097,7 +6097,7 @@ bool FUN_0017a8a0(float *point, float radius, float *out_extent,
     viewport_width = VIEWPORT_RIGHT - VIEWPORT_LEFT;
     viewport_extent = *(int *)0x5a5bf8 - *(int *)0x5a5bf4;
 
-    matrix_transform_point(WORLD_TO_VIEW_MATRIX, (real_point3d *)point, &view_point);
+    matrix_transform_point((const real_matrix4x3 *)WORLD_TO_VIEW_MATRIX, (real_point3d *)point, &view_point);
 
     proj_y = PROJECTION_MATRIX(0, 1) * view_point.x +
              PROJECTION_MATRIX(1, 1) * view_point.y +
@@ -6973,7 +6973,7 @@ char FUN_0017c2f0(void *shader, void *pixel_shader)
       }
 
       *(unsigned int *)((char *)pixel_shader + index * 4 + 0x48) =
-        real_argb_color_to_pixel32((float *)(stage + 0x2c));
+        real_argb_color_to_pixel32((const real_argb_color *)((stage + 0x2c)));
 
       color_in0 =
         FUN_0017be50(*(short *)(stage + 0x3c), *(short *)(stage + 0x3e));
@@ -7210,9 +7210,9 @@ void rasterizer_frame_end(void)
   _rasterizer_frame_end();
 }
 
-void rasterizer_dynamic_lit_geometry_draw(void *param_1, void *param_2)
+void rasterizer_present(void *screenshot_bitmap, void *point)
 {
-  rasterizer_present(param_1, (short *)param_2);
+  _rasterizer_present(screenshot_bitmap, (short *)point);
 }
 
 void rasterizer_dynamic_screen_geometry_draw(void)
@@ -7225,9 +7225,9 @@ void rasterizer_set_vblank_callback(void *cb)
   FUN_00155c10(cb);
 }
 
-void rasterizer_psuedo_dynamic_screen_quad_draw(int param_1)
+void rasterizer_profile_enable(int param_1)
 {
-  FUN_0016f8a0((bool)param_1);
+  _rasterizer_profile_enable((bool)param_1);
 }
 
 int rasterizer_dynamic_triangles_new(int mode)

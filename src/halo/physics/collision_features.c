@@ -14,13 +14,13 @@ void collision_features_init(void *features)
 /* 0x14ad60 — Render a collision sphere with the supplied debug color */
 void render_debug_collision_sphere(void *sphere, void *color)
 {
-  render_debug_sphere(1, (char *)sphere + 0x0c, *(float *)((char *)sphere + 0x18),
+  render_debug_sphere(1, (const real_point3d *)((char *)sphere + 0x0c), *(float *)((char *)sphere + 0x18),
                color);
 }
 
 void render_debug_collision_cylinder(void *cylinder, void *color)
 {
-  FUN_001896d0(1, (char *)cylinder + 0x0c, (char *)cylinder + 0x18,
+  render_debug_cylinder(1, (const real_point3d *)((char *)cylinder + 0x0c), (const real_vector3d *)((char *)cylinder + 0x18),
                *(float *)((char *)cylinder + 0x24), color);
 }
 
@@ -373,7 +373,7 @@ void collision_features_from_vertex(int param_1, int param_2, int param_3,
   }
 
   if (param_3 != 0) {
-    matrix_transform_point((float *)param_3, elem, &local_10);
+    matrix_transform_point((const real_matrix4x3 *)param_3, elem, &local_10);
     elem = &local_10;
   }
 
@@ -450,11 +450,11 @@ void collision_features_from_polygon(int param_1, int object_handle,
       pfVar5 = local_24;
     } else {
       matrix_scale_transform_vector(
-        (float *)param_3, (real_vector3d *)local_24,
+        (const real_matrix4x3 *)param_3, (real_vector3d *)local_24,
         (real_vector3d *)local_24); /* dup-args-ok: in-place transform, confirmed LEA [EBP-0x24]
                       pushed twice */
       pfVar5 = local_24;
-      matrix_transform_point((float *)param_3, (real_point3d *)pfVar7, (real_point3d *)local_34);
+      matrix_transform_point((const real_matrix4x3 *)param_3, (real_point3d *)pfVar7, (real_point3d *)local_34);
       pfVar7 = local_34;
     }
 
@@ -484,20 +484,20 @@ void FUN_0014b620(int param_1, int param_2, int param_3, int param_4,
     (int *)tag_block_get_element((void *)(param_1 + 0x3c), param_2, 0xc);
   point_count_packed =
     collision_surface_polygon(param_1, param_2, (void *)points);
-  bsp3d_get_plane_from_designator(param_1, (uint32_t)*material_elem, plane);
+  bsp3d_get_plane_from_designator(param_1, (uint32_t)*material_elem, (real_plane3d *)plane);
 
   if (param_3 != 0) {
     if ((short)point_count_packed > 0) {
       unsigned int n = (unsigned short)(short)point_count_packed;
       float *p = points;
       do {
-        matrix_transform_point((float *)param_3, (real_point3d *)p, (real_point3d *)p);
+        matrix_transform_point((const real_matrix4x3 *)param_3, (real_point3d *)p, (real_point3d *)p);
         p += 3;
         n--;
       } while (n != 0);
     }
-    matrix4x3_transform_plane((float *)param_3, plane,
-                 plane); /* dup-args-ok: in-place transform, confirmed LEA
+    matrix4x3_transform_plane((const real_matrix4x3 *)param_3, (const real_plane3d *)plane,
+                 (real_plane3d *)plane); /* dup-args-ok: in-place transform, confirmed LEA
                             [EBP-0x14] pushed twice */
   }
 

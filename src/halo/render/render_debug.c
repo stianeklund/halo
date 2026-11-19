@@ -10,50 +10,76 @@
  */
 
 #include <stdarg.h>
+#include <limits.h>
 
 #include "x87_math.h"
 
-/* Per-frame debug primitive cache record (0x38 bytes, array based at 0x4d1220).
- * The payload is a tagged union keyed by `type`; individual offsets are reused
- * per primitive kind, so the fields carry raw-offset names. */
+enum debug_primitive_type {
+  _debug_primitive_circle,
+  _debug_primitive_point,
+  _debug_primitive_line,
+  _debug_primitive_sphere,
+  _debug_primitive_cylinder,
+  _debug_primitive_pill,
+  _debug_primitive_box,
+  _debug_primitive_box_outline,
+  _debug_primitive_string,
+  _debug_primitive_string_at_point
+};
+
 typedef struct debug_primitive {
-  short type; /* +0x00 primitive type (0..9)          */
-  short pad02; /* +0x02                                */
-  float f04; /* +0x04                                */
-  float f08; /* +0x08                                */
-  float f0c; /* +0x0c                                */
-  float f10; /* +0x10                                */
-  unsigned short s14; /* +0x14                                */
-  unsigned char b16; /* +0x16                                */
-  unsigned char pad17; /* +0x17                                */
-  float f18; /* +0x18                                */
-  float f1c; /* +0x1c                                */
-  float f20; /* +0x20                                */
-  float f24; /* +0x24                                */
-  float f28; /* +0x28                                */
-  float f2c; /* +0x2c                                */
-  float f30; /* +0x30                                */
-  float f34; /* +0x34                                */
-} debug_primitive; /* sizeof == 0x38 */
+  short type;
+  short pad_02;
+  union {
+    struct {
+      real_plane3d plane;
+      short projection;
+      uint8_t sign;
+      uint8_t pad_17;
+      real_point2d center;
+      float radius;
+      real_argb_color color;
+      float offset;
+    } circle;
+    struct {
+      real_point3d position;
+      float scale;
+      real_argb_color color;
+    } point;
+    struct {
+      real_point3d point0;
+      real_point3d point1;
+      real_argb_color color;
+    } line;
+    struct {
+      real_point3d center;
+      float radius;
+      real_argb_color color;
+    } sphere;
+    struct {
+      real_point3d base;
+      real_vector3d height;
+      float radius;
+      real_argb_color color;
+    } cylinder;
+    struct {
+      real_rectangle3d bounds;
+      real_argb_color color;
+    } box;
+    struct {
+      const char *string;
+      real_point3d position;
+      real_argb_color color;
+    } string;
+  } data;
+} debug_primitive;
 
 typedef char
   debug_primitive_size_check[sizeof(debug_primitive) == 0x38 ? 1 : -1];
 
-/* Payload copy shapes used by the cache writer (0x188ec0). The reference codes
- * every 3- and 4-float payload store as a whole-aggregate assignment -- it
- * materializes the destination with `lea <off>(<rec>), <reg>` and then stores
- * at 0/4/8(/0xc) of that register. Element-wise float stores instead compile to
- * direct-displacement stores off the record base, so the payload copies are
- * written as aggregate assignments here. 1- and 2-dword payloads stay scalar;
- * the reference keeps those in direct-displacement form too. */
-typedef struct debug_float3 {
-  float v[3];
-} debug_float3;
-
-typedef struct debug_float4 {
-  float v[4];
-} debug_float4;
-
+#define k_radians_to_degrees (*(const float *)0x2b073c)
+#define k_runtime_decal_yaw_scale (*(const float *)0x2b1958)
+#define k_runtime_decal_pitch_scale (*(const float *)0x2b1954)
 #define debug_primitives ((debug_primitive *)0x4d1220)
 #define debug_primitive_count (*(short *)0x4d8224)
 #define debug_primitive_frame (*(short *)0x4d8220)
@@ -65,13 +91,82 @@ typedef struct debug_float4 {
 #define debug_string_pool_count (*(short *)0x4d8228)
 #define debug_string_overflow_warned (*(char *)0x4d822b)
 
-/* Draw a debug triangle immediately (0x188890). Immediate-mode only: asserts
- * the caller passed flag != 0 and three non-null vertex pointers plus a color,
- * then hands them to the sprite-triangle rasterizer (0x17eb30). Unlike the
- * cached point and line drawers there is no flag == 0 branch -- callers reach
- * this only on their immediate render path. */
-void FUN_00188890(char flag, float *point0, float *point1, float *point2,
-                  void *color)
+#define global_real_argb_red (*(const real_argb_color **)0x2ee6d0)
+#define global_real_argb_green (*(const real_argb_color **)0x2ee6d4)
+#define global_real_argb_blue (*(const real_argb_color **)0x2ee6d8)
+#define global_real_argb_yellow (*(const real_argb_color **)0x2ee6e0)
+#define global_real_argb_orange (*(const real_argb_color **)0x2ee6f0)
+#define global_up3d (*(real_vector3d **)0x31fc44)
+#define player_data (*(data_t **)0x5aa6d4)
+
+#define global_scenario_decal_palette \
+  (&((scenario_structure_bsps_t *)global_scenario_get())->decal_palette)
+
+/* structure_bsp_t leaves (structure_leaf_t) and lightmaps
+ * (structure_lightmap_t) blocks. */
+typedef struct structure_bsp_render_debug {
+  char pad_00[0xe0];
+  tag_block leaves;
+  char pad_ec[0x104 - 0xec];
+  tag_block lightmaps;
+} structure_bsp_render_debug_t;
+
+#define global_structure_bsp_leaves \
+  (&((structure_bsp_render_debug_t *)global_structure_bsp_get())->leaves)
+#define structure_bsp_lightmaps(bsp) \
+  (&((structure_bsp_render_debug_t *)(bsp))->lightmaps)
+
+typedef struct structure_lightmap {
+  char pad_00[0x14];
+  tag_block materials;
+} structure_lightmap_t;
+
+typedef struct structure_material {
+  char pad_00[0x04];
+  const char *shader_name;
+  char pad_08[0x100 - 0x08];
+} structure_material_t;
+
+#define render_leaf_index (*(int32_t *)0x506780)
+#define render_cluster_index (*(int32_t *)0x506784)
+
+typedef struct rectangle2d {
+  short top;
+  short left;
+  short bottom;
+  short right;
+} rectangle2d;
+
+/* Structure-BSP leaf element; only the cluster index is proven. */
+typedef struct structure_leaf {
+  char pad_00[0x08];
+  int16_t cluster_index;
+  char pad_0a[0x10 - 0x0a];
+} structure_leaf_t;
+
+/* unit_data_t covers only the bytes below 0x424. */
+typedef struct render_debug_biped {
+  unit_data_t unit;
+  char pad_424[0x42c - 0x424];
+  int32_t field_42c; /* != NONE: "riding an elevator" */
+} render_debug_biped;
+#define DEBUG_CIRCLE_SEGMENT_COUNT 16
+#define point3d_component(point, axis) (((real *)&(point))[axis])
+#define global_down3d (*(real_vector3d **)0x31fc50)
+
+#define debug_permanent_decals (*(char *)0x506530)
+#define debug_input (*(char *)0x506531)
+#define debug_bsp (*(char *)0x506532)
+#define debug_structure (*(char *)0x506533)
+#define debug_player (*(char *)0x506534)
+#define debug_camera (*(char *)0x506535)
+#define render_local_player_index (*(short *)0x506548)
+#define render_camera_position (*(real_point3d *)0x506550)
+#define render_camera_forward (*(real_vector3d *)0x50655c)
+
+void render_debug_triangle(char flag, const real_point3d *point0,
+                           const real_point3d *point1,
+                           const real_point3d *point2, const real_argb_color *color)
 {
   if (flag == 0) {
     display_assert("immediate", "c:\\halo\\SOURCE\\render\\render_debug.c",
@@ -98,14 +193,13 @@ void FUN_00188890(char flag, float *point0, float *point1, float *point2,
                    1);
     system_exit(-1);
   }
-  FUN_0017eb30(point0, point1, point2, color);
+  rasterizer_debug_triangle(point0, point1, point2, color);
 }
 
-/* Draw a debug quad immediately as two triangles (0x188970). Splits the quad
- * (point0..point3) into triangles (0,1,2) and (0,2,3), each drawn via the
- * immediate triangle drawer. Immediate-mode only (asserts flag != 0). */
-void FUN_00188970(char flag, float *point0, float *point1, float *point2,
-                  float *point3, void *color)
+void render_debug_quadrilateral(char flag, const real_point3d *point0,
+                                const real_point3d *point1,
+                                const real_point3d *point2,
+                                const real_point3d *point3, const real_argb_color *color)
 {
   if (flag == 0) {
     display_assert("immediate", "c:\\halo\\SOURCE\\render\\render_debug.c",
@@ -137,18 +231,14 @@ void FUN_00188970(char flag, float *point0, float *point1, float *point2,
                    1);
     system_exit(-1);
   }
-  FUN_00188890(flag, point0, point1, point2, color);
-  FUN_00188890(flag, point0, point2, point3, color);
+  render_debug_triangle(flag, point0, point1, point2, color);
+  render_debug_triangle(flag, point0, point2, point3, color);
 }
 
-/* Draw a filled debug polygon immediately as a triangle fan (0x188a90). Fans
- * from points[0]: for each i in 1..count-2 draws triangle
- * (points[0], points[i], points[i+1]). Each point is three floats.
- * Immediate-mode only. */
-void FUN_00188a90(float *points, short count, void *color)
+void render_debug_polygon(const real_point3d *points, short count, const real_argb_color *color)
 {
   short i;
-  float *pi;
+  const real_point3d *pi;
 
   if (points == 0) {
     display_assert("points", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x357,
@@ -163,19 +253,14 @@ void FUN_00188a90(float *points, short count, void *color)
   i = 1;
   if (1 < count - 1) {
     do {
-      pi = points + i * 3;
-      FUN_00188890(1, points, pi, pi + 3, color);
+      pi = points + i;
+      render_debug_triangle(1, points, pi, pi + 1, color);
       i = (short)(i + 1);
     } while (i < count - 1);
   }
 }
 
-/* Intern a string into the per-frame debug string arena (0x188b20). Scans the
- * arena for an identical string already present and returns its address;
- * otherwise appends a null-terminated copy and advances the cursor. Returns
- * NULL (with a one-shot overflow warning) when the arena is full. The source
- * string is passed in EDI. */
-char *FUN_00188b20(const char *str)
+char *render_debug_add_cache_string(const char *str)
 {
   char *result;
   short i;
@@ -235,7 +320,7 @@ done:
 #define HALO_DEBUG_TRIG_COS x87_fcos_d
 #endif
 
-void FUN_00188bf0(float *table, float radius)
+void build_circle_points(real_point2d *table, float radius)
 {
   x87_wide_t sn;
   x87_wide_t cs;
@@ -243,124 +328,102 @@ void FUN_00188bf0(float *table, float radius)
   int idx;
 
   sn = HALO_DEBUG_TRIG_SIN(debug_circle_angle);
-  memcpy(&table[0], &radius, sizeof(radius));
-  table[1] = 0.0f;
+  memcpy(&table[0].x, &radius, sizeof(radius));
+  table[0].y = 0.0f;
   idx = 0;
   cs = HALO_DEBUG_TRIG_COS(debug_circle_angle);
   i = 0;
   do {
     i = (short)(i + 1);
-    table[idx * 2 + 2] = (float)(cs * table[idx * 2] - sn * table[idx * 2 + 1]);
-    table[idx * 2 + 3] = (float)(sn * table[idx * 2] + cs * table[idx * 2 + 1]);
+    table[idx + 1].x = (float)(cs * table[idx].x - sn * table[idx].y);
+    table[idx + 1].y = (float)(sn * table[idx].x + cs * table[idx].y);
     idx = (int)i;
-  } while (idx + 1 < 0x10);
-  table[0x20] = table[0];
-  table[0x21] = table[1];
+  } while (idx + 1 < DEBUG_CIRCLE_SEGMENT_COUNT);
+  table[DEBUG_CIRCLE_SEGMENT_COUNT] = table[0];
 }
 
 #undef HALO_DEBUG_TRIG_SIN
 #undef HALO_DEBUG_TRIG_COS
 
-/* Build a debug coordinate frame from a direction vector (0x188c60). Given a
- * forward direction (EAX) and an origin position, fills a 13-float frame:
- *   frame[0]      = 1.0
- *   frame[1..3]   = side    = cross(up, forward)
- *   frame[4..6]   = up      = perpendicular3d(forward), normalized
- *   frame[7..9]   = forward = the input direction, normalized
- *   frame[10..12] = position
- * Returns the length of the input direction before normalization. The frame
- * pointer arrives in ECX and the direction in EAX. */
-float FUN_00188c60(float *frame, float *in_vec, float *position)
+float build_height_matrix(real_matrix4x3 *matrix, const real_vector3d *height,
+                          const real_point3d *position)
 {
-  float *fwd;
-  float *up;
   float length;
 
-  frame[0] = 1.0f;
-  fwd = frame + 7;
-  fwd[0] = in_vec[0];
-  fwd[1] = in_vec[1];
-  fwd[2] = in_vec[2];
-  up = frame + 4;
-  perpendicular3d(fwd, up);
-  length = normalize3d((real_vector3d *)fwd);
-  normalize3d((real_vector3d *)up);
-  frame[1] = up[1] * fwd[2] - fwd[1] * up[2];
-  frame[2] = fwd[0] * up[2] - up[0] * fwd[2];
-  frame[3] = up[0] * fwd[1] - fwd[0] * up[1];
-  frame[10] = position[0];
-  frame[11] = position[1];
-  frame[12] = position[2];
+  matrix->scale = 1.0f;
+  matrix->up = *height;
+  perpendicular3d(&matrix->up, &matrix->left);
+  length = normalize3d(&matrix->up);
+  normalize3d(&matrix->left);
+  matrix->forward.i =
+    matrix->left.j * matrix->up.k - matrix->up.j * matrix->left.k;
+  matrix->forward.j =
+    matrix->up.i * matrix->left.k - matrix->left.i * matrix->up.k;
+  matrix->forward.k =
+    matrix->left.i * matrix->up.j - matrix->up.i * matrix->left.j;
+  matrix->position = *position;
   return length;
 }
 
-/* Build cylinder/capsule vertex rings for the debug cylinder and cone drawers
- * (0x188d00). Builds an orthonormal frame from height_vec at center
- * (FUN_00188c60, returning the height as len) and a unit circle of the given
- * radius (FUN_00188bf0), then fills the caller's vertex buffers:
- *   buffer1/buffer2 -- the bottom (z=0) and top (z=len) circle rings, 17 points
- *     each, transformed into world space by the frame.
- *   buffer3..buffer6 -- when all four are supplied (type 5 / dome), two half-
- *     rings of 9 points closing the top, built from opposite circle points.
- * Every vertex is transformed in place by the frame (matrix_transform_point).
- * The two ring buffers arrive in ECX/EDX and the center in EAX. */
-void FUN_00188d00(float *buffer1, float *buffer2, float *center,
-                  float *height_vec, float radius, float *buffer3,
-                  float *buffer4, float *buffer5, float *buffer6)
+void build_pill_points(real_point3d *buffer1, real_point3d *buffer2,
+                       const real_point3d *center,
+                       const real_vector3d *height, float radius,
+                       real_point3d *buffer3, real_point3d *buffer4,
+                       real_point3d *buffer5, real_point3d *buffer6)
 {
-  float frame[13];
-  float circle[34];
+  real_matrix4x3 frame;
+  real_point2d circle[DEBUG_CIRCLE_SEGMENT_COUNT + 1];
   float len;
-  float *b1;
-  float *b2;
-  float *cp;
+  real_point3d *b1;
+  real_point3d *b2;
+  const real_point2d *cp;
   int i;
   int n;
 
-  len = FUN_00188c60(frame, height_vec, center);
-  FUN_00188bf0(circle, radius);
+  len = build_height_matrix(&frame, height, center);
+  build_circle_points(circle, radius);
   if (buffer2 != 0 && buffer1 != 0) {
     b1 = buffer1;
     b2 = buffer2;
     cp = circle;
-    n = 0x11;
+    n = DEBUG_CIRCLE_SEGMENT_COUNT + 1;
     do {
-      b2[0] = cp[0];
-      b2[1] = cp[1];
-      b2[2] = len;
-      b1[0] = cp[0];
-      b1[1] = cp[1];
-      b1[2] = 0.0f;
-      matrix_transform_point(frame, (real_point3d *)b2, (real_point3d *)b2);
-      matrix_transform_point(frame, (real_point3d *)b1, (real_point3d *)b1);
-      cp = cp + 2;
-      b1 = b1 + 3;
-      b2 = b2 + 3;
+      b2->x = cp->x;
+      b2->y = cp->y;
+      b2->z = len;
+      b1->x = cp->x;
+      b1->y = cp->y;
+      b1->z = 0.0f;
+      matrix_transform_point(&frame, b2, b2);
+      matrix_transform_point(&frame, b1, b1);
+      cp = cp + 1;
+      b1 = b1 + 1;
+      b2 = b2 + 1;
       n = n - 1;
     } while (n != 0);
   }
   if (buffer3 != 0 && buffer4 != 0 && buffer5 != 0 && buffer6 != 0) {
     for (i = 0; i < 9; i++) {
-      buffer3[0] = 0.0f;
-      buffer3[1] = circle[i * 2];
-      buffer3[2] = len + circle[i * 2 + 1];
-      buffer4[0] = 0.0f;
-      buffer4[1] = circle[i * 2 + 16];
-      buffer4[2] = circle[i * 2 + 17];
-      buffer5[0] = circle[i * 2];
-      buffer5[1] = 0.0f;
-      buffer5[2] = len + circle[i * 2 + 1];
-      buffer6[0] = circle[i * 2 + 16];
-      buffer6[1] = 0.0f;
-      buffer6[2] = circle[i * 2 + 17];
-      matrix_transform_point(frame, (real_point3d *)buffer3, (real_point3d *)buffer3);
-      matrix_transform_point(frame, (real_point3d *)buffer4, (real_point3d *)buffer4);
-      matrix_transform_point(frame, (real_point3d *)buffer5, (real_point3d *)buffer5);
-      matrix_transform_point(frame, (real_point3d *)buffer6, (real_point3d *)buffer6);
-      buffer3 = buffer3 + 3;
-      buffer4 = buffer4 + 3;
-      buffer5 = buffer5 + 3;
-      buffer6 = buffer6 + 3;
+      buffer3->x = 0.0f;
+      buffer3->y = circle[i].x;
+      buffer3->z = len + circle[i].y;
+      buffer4->x = 0.0f;
+      buffer4->y = circle[i + 8].x;
+      buffer4->z = circle[i + 8].y;
+      buffer5->x = circle[i].x;
+      buffer5->y = 0.0f;
+      buffer5->z = len + circle[i].y;
+      buffer6->x = circle[i + 8].x;
+      buffer6->y = 0.0f;
+      buffer6->z = circle[i + 8].y;
+      matrix_transform_point(&frame, buffer3, buffer3);
+      matrix_transform_point(&frame, buffer4, buffer4);
+      matrix_transform_point(&frame, buffer5, buffer5);
+      matrix_transform_point(&frame, buffer6, buffer6);
+      buffer3 = buffer3 + 1;
+      buffer4 = buffer4 + 1;
+      buffer5 = buffer5 + 1;
+      buffer6 = buffer6 + 1;
     }
   }
 }
@@ -368,37 +431,17 @@ void FUN_00188d00(float *buffer1, float *buffer2, float *center,
 /* Cache overflow one-shot warning flag (0x4d822a). */
 #define cache_overflow_warned (*(char *)0x4d822a)
 
-/* Submit a debug primitive to the per-frame cache (0x188ec0). Variadic tagged
- * builder: `type` (0..9) selects how the trailing arguments are interpreted and
- * packed into a fresh 0x38-byte cache record. Float arguments arrive promoted
- * to double (varargs default promotion) and are narrowed back to float on
- * store. When the game frame advances the cache is reset; when it fills (0x200
- * records) a one-shot overflow warning is emitted and the record is dropped.
- *
- * The trailing arguments MUST be read with <stdarg.h> va_arg, not by taking
- * the address of `type` and walking past it: the original's raw
- * `[ebp+N]`-relative reads happen to work because MSVC's unoptimized cdecl
- * layout keeps a named parameter at its real incoming stack slot, but clang
- * gives `type` its own local storage, so `&type + 4` does not reliably land on
- * the caller's next pushed argument. Under clang this silently read whatever
- * scratch stack data happened to sit next to `type`'s local copy: harmless for
- * the float/int cases (wrong-looking debug geometry at worst), but for the
- * string cases (8/9) it fed a garbage pointer straight into `FUN_00188b20` ->
- * `csstrncpy`, which faulted -- this was the `debug_sprites true`
- * crash/freeze.
- *
- * case 0's final `offset` field (rec+0x34) matches the original: the push-side
- * call site (FUN_0018a860) never actually passes an `offset` argument, so both
- * the original binary and this port read one double past the real argument
- * list there. That field is never read back meaningfully; preserved as-is
- * rather than inventing a value the original never had. */
-void FUN_00188ec0(int type, ...)
+void render_debug_add_cache_entry(int type, ...)
 {
   va_list ap;
-  char *rec;
-  float *p1;
-  float *p2;
-  float *color;
+  debug_primitive *rec;
+  const real_point3d *point0;
+  const real_point3d *point1;
+  const real_vector3d *height;
+  const real_argb_color *color;
+  const real_plane3d *plane;
+  const real_point2d *center;
+  const real_rectangle3d *bounds;
   char *interned;
   short frame;
   short count;
@@ -423,94 +466,94 @@ void FUN_00188ec0(int type, ...)
     }
   }
 
-  rec = (char *)&debug_primitives[count];
+  rec = &debug_primitives[count];
   debug_primitive_count = count + 1;
-  *(short *)rec = type;
+  rec->type = type;
 
   va_start(ap, type);
   switch (type) {
-  case 0:
-    p1 = va_arg(ap, float *);
-    *(debug_float4 *)(rec + 0x04) = *(debug_float4 *)p1;
+  case _debug_primitive_circle:
+    plane = va_arg(ap, const real_plane3d *);
+    rec->data.circle.plane = *plane;
     ival = va_arg(ap, int);
-    *(short *)(rec + 0x14) = (short)ival;
+    rec->data.circle.projection = (short)ival;
     ival = va_arg(ap, int);
-    *(unsigned char *)(rec + 0x16) = (unsigned char)ival;
-    p2 = va_arg(ap, float *);
-    *(float *)(rec + 0x18) = p2[0];
-    *(float *)(rec + 0x1c) = p2[1];
+    rec->data.circle.sign = (uint8_t)ival;
+    center = va_arg(ap, const real_point2d *);
+    rec->data.circle.center = *center;
     dval = va_arg(ap, double);
-    *(float *)(rec + 0x20) = (float)dval;
-    color = va_arg(ap, float *);
-    *(debug_float4 *)(rec + 0x24) = *(debug_float4 *)color;
-    dval = va_arg(ap, double); /* past the real args; see comment above */
-    *(float *)(rec + 0x34) = (float)dval;
-    break;
-  case 1:
-  case 3:
-    p1 = va_arg(ap, float *);
-    *(debug_float3 *)(rec + 0x04) = *(debug_float3 *)p1;
+    rec->data.circle.radius = (float)dval;
+    color = va_arg(ap, const real_argb_color *);
+    rec->data.circle.color = *color;
     dval = va_arg(ap, double);
-    *(float *)(rec + 0x10) = (float)dval;
-    color = va_arg(ap, float *);
-    *(debug_float4 *)(rec + 0x14) = *(debug_float4 *)color;
+    rec->data.circle.offset = (float)dval;
     break;
-  case 2:
-    p1 = va_arg(ap, float *);
-    *(debug_float3 *)(rec + 0x04) = *(debug_float3 *)p1;
-    p2 = va_arg(ap, float *);
-    *(debug_float3 *)(rec + 0x10) = *(debug_float3 *)p2;
-    color = va_arg(ap, float *);
-    *(debug_float4 *)(rec + 0x1c) = *(debug_float4 *)color;
-    break;
-  case 4:
-    p1 = va_arg(ap, float *);
-    *(debug_float3 *)(rec + 0x04) = *(debug_float3 *)p1;
-    p2 = va_arg(ap, float *);
-    *(debug_float3 *)(rec + 0x10) = *(debug_float3 *)p2;
+  case _debug_primitive_point:
+  case _debug_primitive_sphere:
+    point0 = va_arg(ap, const real_point3d *);
+    rec->data.point.position = *point0;
     dval = va_arg(ap, double);
-    *(float *)(rec + 0x1c) = (float)dval;
-    color = va_arg(ap, float *);
-    *(debug_float4 *)(rec + 0x20) = *(debug_float4 *)color;
+    rec->data.point.scale = (float)dval;
+    color = va_arg(ap, const real_argb_color *);
+    rec->data.point.color = *color;
     break;
-  case 5:
-    p1 = va_arg(ap, float *);
-    *(debug_float3 *)(rec + 0x04) = *(debug_float3 *)p1;
-    p2 = va_arg(ap, float *);
-    *(debug_float3 *)(rec + 0x10) = *(debug_float3 *)p2;
+  case _debug_primitive_line:
+    point0 = va_arg(ap, const real_point3d *);
+    rec->data.line.point0 = *point0;
+    point1 = va_arg(ap, const real_point3d *);
+    rec->data.line.point1 = *point1;
+    color = va_arg(ap, const real_argb_color *);
+    rec->data.line.color = *color;
+    break;
+  case _debug_primitive_cylinder:
+    point0 = va_arg(ap, const real_point3d *);
+    rec->data.cylinder.base = *point0;
+    height = va_arg(ap, const real_vector3d *);
+    rec->data.cylinder.height = *height;
     dval = va_arg(ap, double);
-    *(float *)(rec + 0x1c) = (float)dval;
-    color = va_arg(ap, float *);
-    *(debug_float4 *)(rec + 0x20) = *(debug_float4 *)color;
+    rec->data.cylinder.radius = (float)dval;
+    color = va_arg(ap, const real_argb_color *);
+    rec->data.cylinder.color = *color;
     break;
-  case 6:
-  case 7:
-    p1 = va_arg(ap, float *);
+  case _debug_primitive_pill:
+    point0 = va_arg(ap, const real_point3d *);
+    rec->data.cylinder.base = *point0;
+    height = va_arg(ap, const real_vector3d *);
+    rec->data.cylinder.height = *height;
+    dval = va_arg(ap, double);
+    rec->data.cylinder.radius = (float)dval;
+    color = va_arg(ap, const real_argb_color *);
+    rec->data.cylinder.color = *color;
+    break;
+  case _debug_primitive_box:
+  case _debug_primitive_box_outline:
+    bounds = va_arg(ap, const real_rectangle3d *);
+    /* keep: an element loop, not a struct copy (register order) */
     for (i = 0; i < 6; i++) {
-      *(float *)(rec + 0x04 + i * 4) = p1[i];
+      ((float *)&rec->data.box.bounds)[i] = ((const float *)bounds)[i];
     }
-    color = va_arg(ap, float *);
-    *(debug_float4 *)(rec + 0x1c) = *(debug_float4 *)color;
+    color = va_arg(ap, const real_argb_color *);
+    rec->data.box.color = *color;
     break;
-  case 8:
-    interned = FUN_00188b20(va_arg(ap, char *));
+  case _debug_primitive_string:
+    interned = render_debug_add_cache_string(va_arg(ap, char *));
     if (interned != 0) {
-      *(char **)(rec + 0x04) = interned;
+      rec->data.string.string = interned;
     } else {
       debug_primitive_count = debug_primitive_count - 1;
     }
     break;
-  case 9:
-    interned = FUN_00188b20(va_arg(ap, char *));
+  case _debug_primitive_string_at_point:
+    interned = render_debug_add_cache_string(va_arg(ap, char *));
     if (interned == 0) {
       debug_primitive_count = debug_primitive_count - 1;
       break;
     }
-    *(char **)(rec + 0x04) = interned;
-    p1 = va_arg(ap, float *);
-    *(debug_float3 *)(rec + 0x08) = *(debug_float3 *)p1;
-    color = va_arg(ap, float *);
-    *(debug_float4 *)(rec + 0x14) = *(debug_float4 *)color;
+    rec->data.string.string = interned;
+    point0 = va_arg(ap, const real_point3d *);
+    rec->data.string.position = *point0;
+    color = va_arg(ap, const real_argb_color *);
+    rec->data.string.color = *color;
     break;
   default:
     break;
@@ -518,17 +561,11 @@ void FUN_00188ec0(int type, ...)
   va_end(ap);
 }
 
-/* Draw or cache a debug point marker (0x189150). type 1. With flag set, render
- * a 3D crosshair: three axis-aligned line segments through `position`, each
- * 2*s long where s = scale * the global debug marker size (0x253398). The
- * 18-float vertex buffer is a single contiguous block walked in 6-float
- * (two-endpoint) strides by the line helper. With flag clear, submit a type-1
- * primitive (position, scale, color) to the per-frame cache. */
 void render_debug_point(char flag, const real_point3d *position, float scale,
-                        void *color)
+                        const real_argb_color *color)
 {
-  float v[18];
-  float *p;
+  real_point3d points[6];
+  const real_point3d *point;
   int i;
   float s;
 
@@ -544,49 +581,49 @@ void render_debug_point(char flag, const real_point3d *position, float scale,
   }
 
   if (flag != 0) {
-    s = scale * *(float *)0x253398;
-    v[0] = position->x - s;
-    v[1] = position->y;
-    v[2] = position->z;
-    v[3] = position->x + s;
-    v[4] = position->y;
-    v[5] = position->z;
-    v[6] = position->x;
-    v[7] = position->y - s;
-    v[8] = position->z;
-    v[9] = position->x;
-    v[10] = position->y + s;
-    v[11] = position->z;
-    v[12] = position->x;
-    v[13] = position->y;
-    v[14] = position->z - s;
-    v[15] = position->x;
-    v[16] = position->y;
-    v[17] = position->z + s;
-    p = &v[0];
+    s = scale * 0.5f;
+    points[0].x = position->x - s;
+    points[0].y = position->y;
+    points[0].z = position->z;
+    points[1].x = position->x + s;
+    points[1].y = position->y;
+    points[1].z = position->z;
+    points[2].x = position->x;
+    points[2].y = position->y - s;
+    points[2].z = position->z;
+    points[3].x = position->x;
+    points[3].y = position->y + s;
+    points[3].z = position->z;
+    points[4].x = position->x;
+    points[4].y = position->y;
+    points[4].z = position->z - s;
+    points[5].x = position->x;
+    points[5].y = position->y;
+    points[5].z = position->z + s;
+    point = &points[0];
     i = 3;
     do {
-      FUN_0017eb10(p, p + 3, (int)color);
-      p = p + 6;
+      rasterizer_debug_line(point, point + 1, color);
+      point = point + 2;
       i--;
     } while (i != 0);
     return;
   }
 
-  FUN_00188ec0(1, position, (double)scale, color);
+  render_debug_add_cache_entry(1, position, (double)scale, color);
 }
 
-/* Draw or cache a debug line (0x189270). type 2. With flag set, render the line
- * segment point_a->point_b immediately; otherwise submit a type-2 primitive
- * (point_a, point_b, color) to the per-frame cache. */
-__declspec(noinline) void FUN_00189270(char flag, float *point_a, float *point_b, void *color)
+__declspec(noinline) void render_debug_line(char flag,
+                                            const real_point3d *point0,
+                                            const real_point3d *point1,
+                                            const real_argb_color *color)
 {
-  if (point_a == 0) {
+  if (point0 == 0) {
     display_assert("point0", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x16b,
                    1);
     system_exit(-1);
   }
-  if (point_b == 0) {
+  if (point1 == 0) {
     display_assert("point1", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x16c,
                    1);
     system_exit(-1);
@@ -598,20 +635,18 @@ __declspec(noinline) void FUN_00189270(char flag, float *point_a, float *point_b
   }
 
   if (flag != 0) {
-    FUN_0017eb10(point_a, point_b, (int)color);
+    rasterizer_debug_line(point0, point1, color);
     return;
   }
 
-  FUN_00188ec0(2, point_a, point_b, color);
+  render_debug_add_cache_entry(2, point0, point1, color);
 }
 
-/* Draw a debug vector as a line from a point along a direction (0x189320).
- * The line runs from point to point + scale*vector; the cache flag is forwarded
- * to the line drawer. */
 void render_debug_vector(int flag, const real_point3d *point,
-                         const real_vector3d *vector, float scale, void *color)
+                         const real_vector3d *vector, float scale,
+                         const real_argb_color *color)
 {
-  float endpoint[3];
+  real_point3d endpoint;
 
   if (point == 0) {
     display_assert("point", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x184,
@@ -628,76 +663,64 @@ void render_debug_vector(int flag, const real_point3d *point,
                    1);
     system_exit(-1);
   }
-  endpoint[0] = scale * vector->i + point->x;
-  endpoint[1] = scale * vector->j + point->y;
-  endpoint[2] = scale * vector->k + point->z;
-  FUN_00189270(flag, (float *)point, endpoint, color);
+  endpoint.x = scale * vector->i + point->x;
+  endpoint.y = scale * vector->j + point->y;
+  endpoint.z = scale * vector->k + point->z;
+  render_debug_line(flag, point, &endpoint, color);
 }
 
-/* Draw a debug tick as a line centered on a point (0x1893e0). Extends the line
- * from point + scale*dir to point - scale*dir; the cache flag is forwarded to
- * the line drawer. */
-void FUN_001893e0(int flag, float *point, float *dir, float scale, void *color)
+void render_debug_tick(int flag, const real_point3d *point,
+                       const real_vector3d *vector, float scale, const real_argb_color *color)
 {
-  float pts[6];
+  real_point3d points[2];
 
-  pts[0] = scale * dir[0] + point[0];
-  pts[1] = scale * dir[1] + point[1];
-  pts[2] = scale * dir[2] + point[2];
+  points[0].x = scale * vector->i + point->x;
+  points[0].y = scale * vector->j + point->y;
+  points[0].z = scale * vector->k + point->z;
   scale = -scale;
-  pts[3] = scale * dir[0] + point[0];
-  pts[4] = scale * dir[1] + point[1];
-  pts[5] = scale * dir[2] + point[2];
-  FUN_00189270(flag, pts, pts + 3, color);
+  points[1].x = scale * vector->i + point->x;
+  points[1].y = scale * vector->j + point->y;
+  points[1].z = scale * vector->k + point->z;
+  render_debug_line(flag, &points[0], &points[1], color);
 }
 
-/* Draw a debug line between two points, each offset by scale times a shared
- * vector (0x189450). The offset vector is *(float **)0x31fc44 (a camera basis
- * vector); the line runs from point_a + scale*V to point_b + scale*V. */
-void FUN_00189450(int flag, float *point_a, float *point_b, void *color,
-                  float scale)
+void render_debug_line_offset(int flag, const real_point3d *point0,
+                              const real_point3d *point1,
+                              const real_argb_color *color, float scale)
 {
-  float pts[6];
-  float *v;
+  real_point3d points[2];
+  const real_vector3d *offset;
 
-  v = *(float **)0x31fc44;
-  pts[0] = scale * v[0] + point_a[0];
-  pts[1] = scale * v[1] + point_a[1];
-  pts[2] = scale * v[2] + point_a[2];
-  pts[3] = scale * v[0] + point_b[0];
-  pts[4] = scale * v[1] + point_b[1];
-  pts[5] = scale * v[2] + point_b[2];
-  FUN_00189270(flag, pts, pts + 3, color);
+  offset = global_up3d;
+  points[0].x = scale * offset->i + point0->x;
+  points[0].y = scale * offset->j + point0->y;
+  points[0].z = scale * offset->k + point0->z;
+  points[1].x = scale * offset->i + point1->x;
+  points[1].y = scale * offset->j + point1->y;
+  points[1].z = scale * offset->k + point1->z;
+  render_debug_line(flag, &points[0], &points[1], color);
 }
 
-/* Draw a debug coordinate frame as three colored axis lines (0x1894d0). The
- * frame (as built by FUN_00188c60) stores its length at matrix[0], the side/up/
- * forward basis vectors at matrix[1..3]/[4..6]/[7..9], and the origin at
- * matrix[10..12]. Draws each basis vector from the origin, scaled by
- * scale*matrix[0], in the standard axis colors. */
-void FUN_001894d0(int flag, float *matrix, float scale)
+void render_debug_matrix(int flag, const real_matrix4x3 *matrix, float scale)
 {
-  float *origin;
+  const real_point3d *origin;
 
-  origin = matrix + 10;
-  render_debug_vector(flag, (real_point3d *)origin, (real_vector3d *)(matrix + 1), scale * matrix[0], *(void **)0x2ee6d0);
-  render_debug_vector(flag, (real_point3d *)origin, (real_vector3d *)(matrix + 4), scale * matrix[0], *(void **)0x2ee6d4);
-  render_debug_vector(flag, (real_point3d *)origin, (real_vector3d *)(matrix + 7), scale * matrix[0], *(void **)0x2ee6d8);
+  origin = &matrix->position;
+  render_debug_vector(flag, origin, &matrix->forward, scale * matrix->scale,
+                      global_real_argb_red);
+  render_debug_vector(flag, origin, &matrix->left, scale * matrix->scale,
+                      global_real_argb_green);
+  render_debug_vector(flag, origin, &matrix->up, scale * matrix->scale,
+                      global_real_argb_blue);
 }
 
-/* Draw or cache a debug sphere (0x189540). type 3. With flag clear, caches a
- * type-3 primitive (center, radius, color). With flag set, first culls
- * against the debug frustum (render_frustum_sphere_visible); if visible,
- * builds a 16-segment circle table (FUN_00188bf0) and draws three great
- * circles (in the XY, XZ and YZ planes) as line segments. Each iteration
- * walks two adjacent circle points (cp[-3..-2] current, cp[-1..0] next) and
- * emits one segment per plane into a contiguous six-float endpoint buffer. */
-void render_debug_sphere(char flag, void *center, float radius, void *color)
+void render_debug_sphere(char flag, const real_point3d *center, float radius,
+                         const real_argb_color *color)
 {
-  float circle[34];
-  float verts[6]; /* verts[3..5] = endpoint A, verts[0..2] = endpoint B */
-  float *c;
-  float *cp;
+  real_point2d circle[DEBUG_CIRCLE_SEGMENT_COUNT + 1];
+  real_point3d points[2];
+  const real_point3d *c;
+  const real_point2d *cp;
   short i;
   short vis;
 
@@ -712,67 +735,62 @@ void render_debug_sphere(char flag, void *center, float radius, void *color)
     system_exit(-1);
   }
   if (flag == 0) {
-    FUN_00188ec0(3, center, (double)radius, color);
+    render_debug_add_cache_entry(3, center, (double)radius, color);
     return;
   }
-  vis = (short)render_frustum_sphere_visible((void *)0x5065a4, center, radius);
+  vis = (short)render_frustum_sphere_visible(&global_frustum, center, radius);
   if (vis == 0) {
     return;
   }
-  FUN_00188bf0(circle, radius);
+  build_circle_points(circle, radius);
   c = center;
-  cp = circle + 3;
-  i = 0x10;
+  cp = &circle[1];
+  i = DEBUG_CIRCLE_SEGMENT_COUNT;
   do {
     /* XY-plane great circle */
-    verts[3] = c[0] + cp[-3];
-    verts[5] = c[2];
-    verts[2] = c[2];
-    verts[4] = c[1] + cp[-2];
-    verts[0] = c[0] + cp[-1];
-    verts[1] = c[1] + cp[0];
-    FUN_0017eb10(&verts[3], &verts[0], (int)color);
+    points[1].x = c->x + cp[-1].x;
+    points[1].z = c->z;
+    points[0].z = c->z;
+    points[1].y = c->y + cp[-1].y;
+    points[0].x = c->x + cp->x;
+    points[0].y = c->y + cp->y;
+    rasterizer_debug_line(&points[1], &points[0], color);
     /* XZ-plane great circle */
-    verts[3] = c[0] + cp[-2];
-    verts[4] = c[1];
-    verts[5] = c[2] + cp[-3];
-    verts[1] = c[1];
-    verts[0] = c[0] + cp[0];
-    verts[2] = c[2] + cp[-1];
-    FUN_0017eb10(&verts[3], &verts[0], (int)color);
+    points[1].x = c->x + cp[-1].y;
+    points[1].y = c->y;
+    points[1].z = c->z + cp[-1].x;
+    points[0].y = c->y;
+    points[0].x = c->x + cp->y;
+    points[0].z = c->z + cp->x;
+    rasterizer_debug_line(&points[1], &points[0], color);
     /* YZ-plane great circle */
-    verts[4] = c[1] + cp[-3];
-    verts[3] = c[0];
-    verts[5] = c[2] + cp[-2];
-    verts[0] = c[0];
-    verts[1] = c[1] + cp[-1];
-    verts[2] = c[2] + cp[0];
-    FUN_0017eb10(&verts[3], &verts[0], (int)color);
-    cp = cp + 2;
+    points[1].y = c->y + cp[-1].x;
+    points[1].x = c->x;
+    points[1].z = c->z + cp[-1].y;
+    points[0].x = c->x;
+    points[0].y = c->y + cp->x;
+    points[0].z = c->z + cp->y;
+    rasterizer_debug_line(&points[1], &points[0], color);
+    cp = cp + 1;
     i = (short)(i - 1);
   } while (i != 0);
 }
 
-/* Draw or cache a debug cylinder (0x1896d0). type 4. With flag clear, caches a
- * type-4 primitive (base, height vector, radius, color). With flag set, builds
- * the two circle rings via the cylinder builder (FUN_00188d00) into a pair of
- * 17-vertex buffers, then draws the wireframe: each ring as a 16-segment strip,
- * four vertical edges connecting the rings, and two diameter cross-lines per
- * ring. */
-void FUN_001896d0(char flag, void *center, void *height_vec, float radius,
-                  void *color)
+void render_debug_cylinder(char flag, const real_point3d *center,
+                           const real_vector3d *height, float radius,
+                           const real_argb_color *color)
 {
-  float buffers[102]; /* buf1 = [0..50], buf2 = [51..101]; 17 vertices each */
+  real_point3d points[34];
   int i;
-  float *p1;
-  float *p2;
+  real_point3d *p1;
+  real_point3d *p2;
 
   if (center == 0) {
     display_assert("base", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x285,
                    1);
     system_exit(-1);
   }
-  if (height_vec == 0) {
+  if (height == 0) {
     display_assert("height", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x286,
                    1);
     system_exit(-1);
@@ -783,53 +801,48 @@ void FUN_001896d0(char flag, void *center, void *height_vec, float radius,
     system_exit(-1);
   }
   if (flag == 0) {
-    FUN_00188ec0(4, center, height_vec, (double)radius, color);
+    render_debug_add_cache_entry(4, center, height, (double)radius, color);
     return;
   }
-  FUN_00188d00(buffers, buffers + 51, center, height_vec, radius, 0, 0, 0, 0);
+  build_pill_points(points, points + 17, center, height, radius, 0, 0, 0, 0);
 
-  p1 = buffers;
-  p2 = buffers + 51;
+  p1 = points;
+  p2 = points + 17;
   for (i = 16; i > 0; i--) {
-    FUN_0017eb10(p1, p1 + 3, (int)color);
-    FUN_0017eb10(p2, p2 + 3, (int)color);
-    p1 += 3;
-    p2 += 3;
+    rasterizer_debug_line(p1, p1 + 1, color);
+    rasterizer_debug_line(p2, p2 + 1, color);
+    p1 += 1;
+    p2 += 1;
   }
 
-  p1 = buffers;
-  p2 = buffers + 51;
+  p1 = points;
+  p2 = points + 17;
   for (i = 4; i > 0; i--) {
-    FUN_0017eb10(p1, p2, (int)color);
-    p1 += 12;
-    p2 += 12;
+    rasterizer_debug_line(p1, p2, color);
+    p1 += 4;
+    p2 += 4;
   }
 
-  p1 = buffers;
-  p2 = buffers + 51;
+  p1 = points;
+  p2 = points + 17;
   for (i = 2; i > 0; i--) {
-    FUN_0017eb10(p1, p1 + 24, (int)color);
-    FUN_0017eb10(p2, p2 + 24, (int)color);
-    p1 += 12;
-    p2 += 12;
+    rasterizer_debug_line(p1, p1 + 8, color);
+    rasterizer_debug_line(p2, p2 + 8, color);
+    p1 += 4;
+    p2 += 4;
   }
 }
 
-/* Draw or cache a debug capsule/dome (0x189860). type 5. With flag clear,
- * caches a type-5 primitive. With flag set, calls the cylinder builder
- * (FUN_00188d00) to fill two 17-vertex main rings plus four 9-vertex dome
- * half-rings, then draws: each main ring as a 16-segment strip, four vertical
- * edges connecting the main rings, and the four dome half-rings as 8-segment
- * strips. */
-void render_debug_pill(char flag, void *center, void *height_vec, float radius,
-                  void *color)
+void render_debug_pill(char flag, const real_point3d *center,
+                       const real_vector3d *height, float radius,
+                       const real_argb_color *color)
 {
-  float buf1[51];
-  float buf2[51];
-  float buf3[27];
-  float buf4[27];
-  float buf5[27];
-  float buf6[27];
+  real_point3d buf1[17];
+  real_point3d buf2[17];
+  real_point3d buf3[9];
+  real_point3d buf4[9];
+  real_point3d buf5[9];
+  real_point3d buf6[9];
   int i;
 
   if (center == 0) {
@@ -837,7 +850,7 @@ void render_debug_pill(char flag, void *center, void *height_vec, float radius,
                    1);
     system_exit(-1);
   }
-  if (height_vec == 0) {
+  if (height == 0) {
     display_assert("height", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x2b6,
                    1);
     system_exit(-1);
@@ -848,33 +861,28 @@ void render_debug_pill(char flag, void *center, void *height_vec, float radius,
     system_exit(-1);
   }
   if (flag == 0) {
-    FUN_00188ec0(5, center, height_vec, (double)radius, color);
+    render_debug_add_cache_entry(5, center, height, (double)radius, color);
     return;
   }
-  FUN_00188d00(buf1, buf2, center, height_vec, radius, buf3, buf4, buf5, buf6);
+  build_pill_points(buf1, buf2, center, height, radius, buf3, buf4, buf5, buf6);
   for (i = 0; i < 16; i++) {
-    FUN_0017eb10(&buf2[i * 3], &buf2[i * 3 + 3], (int)color);
-    FUN_0017eb10(&buf1[i * 3], &buf1[i * 3 + 3], (int)color);
+    rasterizer_debug_line(&buf2[i], &buf2[i + 1], color);
+    rasterizer_debug_line(&buf1[i], &buf1[i + 1], color);
   }
   for (i = 0; i < 4; i++) {
-    FUN_0017eb10(&buf2[i * 12], &buf1[i * 12], (int)color);
+    rasterizer_debug_line(&buf2[i * 4], &buf1[i * 4], color);
   }
   for (i = 0; i < 8; i++) {
-    FUN_0017eb10(&buf3[i * 3], &buf3[i * 3 + 3], (int)color);
-    FUN_0017eb10(&buf4[i * 3], &buf4[i * 3 + 3], (int)color);
-    FUN_0017eb10(&buf5[i * 3], &buf5[i * 3 + 3], (int)color);
-    FUN_0017eb10(&buf6[i * 3], &buf6[i * 3 + 3], (int)color);
+    rasterizer_debug_line(&buf3[i], &buf3[i + 1], color);
+    rasterizer_debug_line(&buf4[i], &buf4[i + 1], color);
+    rasterizer_debug_line(&buf5[i], &buf5[i + 1], color);
+    rasterizer_debug_line(&buf6[i], &buf6[i + 1], color);
   }
 }
 
-/* Draw or cache a debug box (0x189a20). type 6. With flag clear, caches a
- * type-6 primitive (six bounds floats + color). With flag set, expands the
- * bounds {x0,x1,y0,y1,z0,z1} into the eight box corners and draws the six faces
- * as quads (FUN_00188970). Corners are held in one contiguous 24-float buffer.
- */
-void FUN_00189a20(char flag, float *bounds, void *color)
+void render_debug_box(char flag, const real_rectangle3d *bounds, const real_argb_color *color)
 {
-  float corners[24];
+  real_point3d corners[8];
 
   if (bounds == 0) {
     display_assert("bounds", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x308,
@@ -887,47 +895,44 @@ void FUN_00189a20(char flag, float *bounds, void *color)
     system_exit(-1);
   }
   if (flag == 0) {
-    FUN_00188ec0(6, bounds, color);
+    render_debug_add_cache_entry(6, bounds, color);
     return;
   }
-  corners[0] = bounds[0]; /* c0 (x0,y0,z0) */
-  corners[1] = bounds[2];
-  corners[2] = bounds[4];
-  corners[3] = bounds[1]; /* c1 (x1,y0,z0) */
-  corners[4] = bounds[2];
-  corners[5] = bounds[4];
-  corners[6] = bounds[0]; /* c2 (x0,y0,z1) */
-  corners[7] = bounds[2];
-  corners[8] = bounds[5];
-  corners[9] = bounds[1]; /* c3 (x1,y0,z1) */
-  corners[10] = bounds[2];
-  corners[11] = bounds[5];
-  corners[12] = bounds[0]; /* c4 (x0,y1,z1) */
-  corners[13] = bounds[3];
-  corners[14] = bounds[5];
-  corners[15] = bounds[1]; /* c5 (x1,y1,z1) */
-  corners[16] = bounds[3];
-  corners[17] = bounds[5];
-  corners[18] = bounds[0]; /* c6 (x0,y1,z0) */
-  corners[19] = bounds[3];
-  corners[20] = bounds[4];
-  corners[21] = bounds[1]; /* c7 (x1,y1,z0) */
-  corners[22] = bounds[3];
-  corners[23] = bounds[4];
-  FUN_00188970(1, &corners[0], &corners[6], &corners[12], &corners[18], color);
-  FUN_00188970(1, &corners[3], &corners[9], &corners[15], &corners[21], color);
-  FUN_00188970(1, &corners[0], &corners[3], &corners[9], &corners[6], color);
-  FUN_00188970(1, &corners[12], &corners[15], &corners[21], &corners[18],
+  corners[0].x = bounds->x0; /* c0 (x0,y0,z0) */
+  corners[0].y = bounds->y0;
+  corners[0].z = bounds->z0;
+  corners[1].x = bounds->x1; /* c1 (x1,y0,z0) */
+  corners[1].y = bounds->y0;
+  corners[1].z = bounds->z0;
+  corners[2].x = bounds->x0; /* c2 (x0,y0,z1) */
+  corners[2].y = bounds->y0;
+  corners[2].z = bounds->z1;
+  corners[3].x = bounds->x1; /* c3 (x1,y0,z1) */
+  corners[3].y = bounds->y0;
+  corners[3].z = bounds->z1;
+  corners[4].x = bounds->x0; /* c4 (x0,y1,z1) */
+  corners[4].y = bounds->y1;
+  corners[4].z = bounds->z1;
+  corners[5].x = bounds->x1; /* c5 (x1,y1,z1) */
+  corners[5].y = bounds->y1;
+  corners[5].z = bounds->z1;
+  corners[6].x = bounds->x0; /* c6 (x0,y1,z0) */
+  corners[6].y = bounds->y1;
+  corners[6].z = bounds->z0;
+  corners[7].x = bounds->x1; /* c7 (x1,y1,z0) */
+  corners[7].y = bounds->y1;
+  corners[7].z = bounds->z0;
+  render_debug_quadrilateral(1, &corners[0], &corners[2], &corners[4], &corners[6], color);
+  render_debug_quadrilateral(1, &corners[1], &corners[3], &corners[5], &corners[7], color);
+  render_debug_quadrilateral(1, &corners[0], &corners[1], &corners[3], &corners[2], color);
+  render_debug_quadrilateral(1, &corners[4], &corners[5], &corners[7], &corners[6],
                color);
-  FUN_00188970(1, &corners[0], &corners[3], &corners[21], &corners[18], color);
-  FUN_00188970(1, &corners[6], &corners[9], &corners[15], &corners[12], color);
+  render_debug_quadrilateral(1, &corners[0], &corners[1], &corners[7], &corners[6], color);
+  render_debug_quadrilateral(1, &corners[2], &corners[3], &corners[5], &corners[4], color);
 }
 
-/* Draw a closed debug polyline (0x189ba0). Immediate-mode only: with three or
- * more points draws the closing edge from the last point back to the first,
- * then a line between each pair of consecutive points, forming a line loop.
- * Each point is three floats. */
-void FUN_00189ba0(float *points, short count, void *color)
+void render_debug_polygon_edges(const real_point3d *points, short count,
+                                const real_argb_color *color)
 {
   unsigned int n;
 
@@ -942,24 +947,20 @@ void FUN_00189ba0(float *points, short count, void *color)
     system_exit(-1);
   }
   if (2 < count) {
-    FUN_00189270(1, points + (count - 1) * 3, points, color);
+    render_debug_line(1, points + (count - 1), points, color);
     if (1 < count) {
-      points = points + 3;
+      points = points + 1;
       n = (unsigned short)(count - 1);
       do {
-        FUN_00189270(1, points - 3, points, color);
-        points = points + 3;
+        render_debug_line(1, points - 1, points, color);
+        points = points + 1;
         n = n - 1;
       } while (n != 0);
     }
   }
 }
 
-/* Draw or cache a debug string (0x189c40). type 8. With flag set, prime the
- * debug text state (font 1, style -1, color tag 5) and draw the string
- * immediately; otherwise submit a type-8 primitive (the string, interned by
- * the cache writer) to the per-frame cache. */
-void FUN_00189c40(char flag, const char *string)
+void render_debug_string(char flag, const char *string)
 {
   if (string == 0) {
     display_assert("string", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x37d,
@@ -973,19 +974,15 @@ void FUN_00189c40(char flag, const char *string)
     return;
   }
 
-  FUN_00188ec0(8, string);
+  render_debug_add_cache_entry(8, string);
 }
 
-/* Draw or cache a debug string at a 3D position (0x189cb0). type 9. With flag
- * clear, caches a type-9 primitive (string, position, color). With flag set,
- * projects the world position to screen space (render_camera_world_to_screen);
- * if on screen, converts the screen coordinates to integer text coordinates
- * (relative to the viewport size at 0x50657c/0x50657e), primes the debug text
- * state, sets the text color, and draws the string. */
-void render_debug_string_at_point(char flag, void *position, void *string, int color)
+void render_debug_string_at_point(char flag, const real_point3d *position,
+                                  const char *string,
+                                  const real_argb_color *color)
 {
-  float proj[2];
-  short text_pos[4];
+  real_point2d screen_point;
+  rectangle2d text_bounds;
   char visible;
 
   if (position == 0) {
@@ -1004,179 +1001,158 @@ void render_debug_string_at_point(char flag, void *position, void *string, int c
     system_exit(-1);
   }
   if (flag == 0) {
-    FUN_00188ec0(9, string, position, color);
+    render_debug_add_cache_entry(9, string, position, color);
     return;
   }
-  visible = render_camera_world_to_screen((void *)0x506550, (void *)0x5065a4,
-                                          position, proj);
+  visible = render_camera_world_to_screen(&unknown_global_camera, &global_frustum,
+                                          position, &screen_point);
   if (visible != 0) {
-    text_pos[1] = (short)(int)(proj[0] - (float)*(short *)0x50657e);
-    text_pos[0] = (short)(int)(proj[1] - (float)*(short *)0x50657c);
-    text_pos[2] = 0x7fff;
-    text_pos[3] = 0x7fff;
+    text_bounds.left = (short)(int)(screen_point.x - (float)screen_bounds_left);
+    text_bounds.top = (short)(int)(screen_point.y - (float)screen_bounds_top);
+    text_bounds.bottom = SHRT_MAX;
+    text_bounds.right = SHRT_MAX;
     interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
-    draw_string_set_color((void *)color);
-    rasterizer_text_draw(text_pos, 0, 0, 0, string);
+    draw_string_set_color(color);
+    rasterizer_text_draw(&text_bounds, 0, 0, 0, string);
   }
 }
 
-/* Draw the collision-BSP leaf/cluster info text overlay (0x189de0). Gated on
- * the debug flag at 0x506535. Formats the debug point's (0x506550) leaf and
- * cluster indices; probes along the scaled forward vector (0x31fc50) and, on a
- * surface hit, appends the ground point, facing angle and surface index; if the
- * structure vector test (0x198cb0) passes, appends the containing structure
- * material's tag name; then draws the accumulated text. */
-void FUN_00189de0(void)
+void render_debug_camera(void)
 {
   char text[0x800];
-  char collision_result[0x50];
-  float scaled[3];
-  float out40[3];
-  float dir[3];
-  float out34;
-  float out30;
-  float out2c;
-  int out8;
-  int out4;
-  char location[8];
-  float *fwd;
-  void *e1;
-  void *e2;
+  collision_test_result collision_result;
+  real_vector3d forward;
+  real_point3d collision_point;
+  real_vector3d down;
+  float t;
+  float s;
+  int32_t surface_index;
+  int16_t lightmap_index;
+  int16_t material_index;
+  location_t location;
+  const real_vector3d *down_direction;
+  structure_lightmap_t *lightmap;
+  structure_material_t *material;
 
-  if (*(char *)0x506535 == 0) {
+  if (debug_camera == 0) {
     return;
   }
-  scenario_location_from_point(location, (void *)0x506550);
-  snprintf(text, 0x800,
+  scenario_location_from_point(&location, &render_camera_position);
+  snprintf(text, sizeof(text),
            "point(%01.2f,%01.2f,%01.2f) leaf(#%d [%d]) cluster(#%d [%d])",
-           *(float *)0x506550, *(float *)0x506554, *(float *)0x506558,
-           *(int *)location, *(int *)0x506780, (int)*(short *)(location + 4),
-           *(int *)0x506784);
-  fwd = *(float **)0x31fc50;
-  dir[0] = fwd[0] * *(float *)0x254cb8;
-  dir[1] = fwd[1] * *(float *)0x254cb8;
-  dir[2] = fwd[2] * *(float *)0x254cb8;
-  if (collision_test_vector(0x21, (real_point3d *)(0x506550), (real_vector3d *)dir, -1,
-                   (short *)collision_result)) {
+           render_camera_position.x, render_camera_position.y, render_camera_position.z,
+           location.leaf_index, render_leaf_index, (int)location.cluster_index,
+           render_cluster_index);
+  down_direction = global_down3d;
+  down.i = down_direction->i * 1000.0f;
+  down.j = down_direction->j * 1000.0f;
+  down.k = down_direction->k * 1000.0f;
+  if (collision_test_vector(0x21, &render_camera_position, &down, NONE,
+                   &collision_result)) {
     snprintf(
-      text + csstrlen(text), 0x800 - csstrlen(text),
+      text + csstrlen(text), sizeof(text) - csstrlen(text),
       "|nground_point(%01.2f,%01.2f,%01.2f) facing(%01.2f) surface(#%d)",
-      *(float *)(collision_result + 0x18), *(float *)(collision_result + 0x1c),
-      *(float *)(collision_result + 0x20),
-      x87_fatan2f(*(float *)0x506560, *(float *)0x50655c) * *(float *)0x2b073c,
-      *(int *)(collision_result + 0x44));
+      collision_result.position.x, collision_result.position.y,
+      collision_result.position.z,
+      x87_fatan2f(render_camera_forward.j, render_camera_forward.i) * k_radians_to_degrees,
+      collision_result.surface_index);
   }
-  scaled[0] = *(float *)0x50655c * *(float *)0x25acf0;
-  scaled[1] = *(float *)0x506560 * *(float *)0x25acf0;
-  scaled[2] = *(float *)0x506564 * *(float *)0x25acf0;
-  if (structure_test_vector((float *)0x506550, scaled, out40, (int16_t *)&out8,
-                            (int16_t *)&out4, (int32_t *)&out2c, &out30,
-                            &out34)) {
-    e1 =
-      tag_block_get_element((char *)scenario_get() + 0x104, (short)out8, 0x20);
-    e2 = tag_block_get_element((char *)e1 + 0x14, (short)out4, 0x100);
-    snprintf(text + csstrlen(text), 0x800 - csstrlen(text), "|n%s",
-             *(void **)((char *)e2 + 4));
+  forward.i = render_camera_forward.i * 50.0f;
+  forward.j = render_camera_forward.j * 50.0f;
+  forward.k = render_camera_forward.k * 50.0f;
+  if (structure_test_vector(&render_camera_position, &forward, &collision_point, &lightmap_index,
+                            &material_index, &surface_index, &s,
+                            &t)) {
+    lightmap = tag_block_get_element(structure_bsp_lightmaps(scenario_get()),
+                                     lightmap_index,
+                                     sizeof(structure_lightmap_t));
+    material = tag_block_get_element(&lightmap->materials, material_index,
+                                     sizeof(structure_material_t));
+    snprintf(text + csstrlen(text), sizeof(text) - csstrlen(text), "|n%s",
+             material->shader_name);
   }
   interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
   rasterizer_text_draw(0, 0, 0, 0, text);
 }
 
-/* Draw the local player's vehicle-state debug text (0x18a000). Gated on the
- * flag at 0x506534. Resolves the local player's unit, and if it is riding an
- * object (unit+0x42c) shows "riding an elevator"; if the unit is in a vehicle
- * (unit+0xcc / unit+0x2a0) formats and draws the vehicle's speed/slide/turn
- * (vehicle+0x42c/0x430/0x434), plus "stuck!" when vehicle+0x478 is set. */
-void FUN_0018a000(void)
+void render_debug_player(void)
 {
   char buffer[0x400];
   int player_idx;
-  void *player;
+  player_data_t *player;
   int unit_handle;
-  void *unit;
-  void *vehicle;
+  render_debug_biped *unit;
+  vehicle_data_t *vehicle;
   char *stuck_str;
 
-  if (*(char *)0x506534 == 0 || *(short *)0x506548 == -1 ||
-      local_player_get_player_index(*(short *)0x506548) == -1) {
+  if (debug_player == 0 || render_local_player_index == -1 ||
+      local_player_get_player_index(render_local_player_index) == -1) {
     return;
   }
-  player_idx = local_player_get_player_index(*(short *)0x506548);
-  player = datum_get(*(void **)0x5aa6d4, player_idx);
-  unit_handle = *(int *)((char *)player + 0x34);
+  player_idx = local_player_get_player_index(render_local_player_index);
+  player = datum_get(player_data, player_idx);
+  unit_handle = player->unit_handle;
   if (unit_handle == -1) {
     return;
   }
   unit = object_try_and_get_and_verify_type(unit_handle, 1);
-  if (unit != 0 && *(int *)((char *)unit + 0x42c) != -1) {
-    FUN_00189c40(1, "riding an elevator");
+  if (unit != 0 && unit->field_42c != -1) {
+    render_debug_string(1, "riding an elevator");
   }
-  if (*(int *)((char *)unit + 0xcc) != -1 &&
-      *(short *)((char *)unit + 0x2a0) != -1) {
+  if (unit->unit.object.parent_object_index.value != -1 &&
+      unit->unit.parent_seat_index != -1) {
     vehicle =
-      object_try_and_get_and_verify_type(*(int *)((char *)unit + 0xcc), 2);
-    if (*(int *)((char *)vehicle + 0x478) != 0) {
+      object_try_and_get_and_verify_type(unit->unit.object.parent_object_index.value, 2);
+    if (vehicle->stuck_mass_point_flags != 0) {
       stuck_str = "|nstuck!";
     } else {
       stuck_str = "";
     }
-    crt_sprintf(buffer, "speed %5f|nslide %5f|nturn  %5f%s",
-                *(float *)((char *)vehicle + 0x42c),
-                *(float *)((char *)vehicle + 0x430),
-                *(float *)((char *)vehicle + 0x434), stuck_str);
-    FUN_00189c40(1, buffer);
+    crt_sprintf(buffer, "speed %5f|nslide %5f|nturn  %5f%s", vehicle->speed,
+                vehicle->slide, vehicle->turn, stuck_str);
+    render_debug_string(1, buffer);
   }
 }
 
-/* Draw the collision-BSP portal edges (0x18a110). A debug sub-renderer gated on
- * the flag at 0x506533. Iterates the portal block of the global collision BSP
- * (bsp+0x48); for each portal, looks up its two vertices in the vertex block
- * (bsp+0x54) by the indices stored in the portal element, and draws a line
- * between them. */
-void FUN_0018a110(void)
+void render_debug_structure(void)
 {
-  void *bsp;
-  int *portal_block;
-  void *vertex_block;
+  collision_bsp_t *bsp;
+  tag_block *edges;
+  tag_block *vertices;
   int i;
-  int *portal;
-  void *v0;
-  void *v1;
+  collision_edge_t *edge;
+  collision_vertex_t *start_vertex;
+  collision_vertex_t *end_vertex;
 
-  if (*(char *)0x506533 != 0) {
+  if (debug_structure != 0) {
     bsp = global_collision_bsp_get();
-    portal_block = (int *)((char *)bsp + 0x48);
+    edges = &bsp->edges;
     i = 0;
-    if (0 < *portal_block) {
-      vertex_block = (char *)bsp + 0x54;
+    if (0 < edges->count) {
+      vertices = &bsp->vertices;
       do {
-        portal = (int *)tag_block_get_element(portal_block, i, 0x18);
-        v0 = tag_block_get_element(vertex_block, portal[0], 0x10);
-        v1 = tag_block_get_element(vertex_block, portal[1], 0x10);
-        FUN_00189270(1, v0, v1, *(void **)0x2ee6d4);
+        edge = tag_block_get_element(edges, i, sizeof(collision_edge_t));
+        start_vertex = tag_block_get_element(vertices, edge->start_vertex,
+                                             sizeof(collision_vertex_t));
+        end_vertex = tag_block_get_element(vertices, edge->end_vertex,
+                                           sizeof(collision_vertex_t));
+        render_debug_line(1, &start_vertex->point, &end_vertex->point,
+                          global_real_argb_green);
         i++;
-      } while (i < *portal_block);
+      } while (i < edges->count);
     }
   }
 }
 
-/* Dump the collision-BSP descent path for the debug point (0x18a190). Gated on
- * the debug flag at 0x506532. Walks the structure BSP from the root: at each
- * node it evaluates the node's plane against the debug point (0x506550),
- * records the plane index, appends a "node plane side" text token ('+' front /
- * '-' back), and descends to the child on the point's side. On reaching a leaf
- * it appends the leaf index, or "solid" for the -1 child. Draws the accumulated
- * path text, and -- while key 0x3e is held -- writes the recorded plane indices
- * to d:\debug_bsp.txt. */
-void FUN_0018a190(void)
+void render_debug_bsp(void)
 {
   char text[0x800];
   int plane_stack[0x80];
-  void *root;
+  collision_bsp_t *root;
   short node_count;
   char *cursor;
-  void *node;
-  float *plane;
+  bsp3d_node_t *node;
+  real_plane3d *plane;
   int node_index;
   int child;
   char side;
@@ -1184,21 +1160,23 @@ void FUN_0018a190(void)
   void *file;
   int i;
 
-  if (*(char *)0x506532 == 0) {
+  if (debug_bsp == 0) {
     return;
   }
   node_count = 0;
-  root = FUN_0018e420();
+  root = global_bsp3d_get();
   len = crt_sprintf(text, " node plane|n");
   cursor = text + len;
   node_index = 0;
   for (;;) {
-    node = tag_block_get_element(root, node_index, 0xc);
-    plane =
-      (float *)tag_block_get_element((char *)root + 0xc, *(int *)node, 0x10);
-    if (*(float *)0x506554 * plane[1] + *(float *)0x506558 * plane[2] +
-          *(float *)0x506550 * plane[0] - plane[3] >=
-        *(float *)0x2533c0) {
+    node = tag_block_get_element(&root->bsp3d_nodes, node_index,
+                                 sizeof(bsp3d_node_t));
+    plane = tag_block_get_element(&root->planes, node->plane,
+                                  sizeof(real_plane3d));
+    if (render_camera_position.y * plane->normal.j +
+          render_camera_position.z * plane->normal.k +
+          render_camera_position.x * plane->normal.i - plane->d >=
+        0.0f) {
       side = 1;
     } else {
       side = 0;
@@ -1208,12 +1186,12 @@ void FUN_0018a190(void)
                      "c:\\halo\\SOURCE\\render\\render_debug.c", 0x652, 1);
       system_exit(-1);
     }
-    plane_stack[node_count] = *(int *)node;
+    plane_stack[node_count] = node->plane;
     node_count = (short)(node_count + 1);
-    len = crt_sprintf(cursor, "%5d %5d %c|n", node_index, *(int *)node,
+    len = crt_sprintf(cursor, "%5d %5d %c|n", node_index, node->plane,
                       side != 0 ? '+' : '-');
     cursor = cursor + len;
-    child = *(int *)((char *)node + 4 + side * 4);
+    child = node->children[(int)side];
     if (child < 0) {
       break;
     }
@@ -1222,7 +1200,7 @@ void FUN_0018a190(void)
   if (child == -1) {
     crt_sprintf(cursor, "solid");
   } else {
-    crt_sprintf(cursor, " leaf %5d", child & 0x7fffffff);
+    crt_sprintf(cursor, " leaf %5d", child & LONG_MAX);
   }
   interface_set_bitmap_text_draw_mode(1, -1, 0, 0, 5, 0);
   rasterizer_text_draw(0, 0, 0, 0, text);
@@ -1238,15 +1216,12 @@ void FUN_0018a190(void)
   }
 }
 
-/* Draw the raw controller-input debug overlay (0x18a370). Gated on the flag at
- * 0x506531. Sets three text tab stops (200, 400, 550), fetches the raw input
- * data string, primes the debug text state, and draws the string. */
-void FUN_0018a370(void)
+void render_debug_input(void)
 {
   short tab_stops[3];
   char buffer[512];
 
-  if (*(char *)0x506531 != 0) {
+  if (debug_input != 0) {
     tab_stops[0] = 0xc8;
     tab_stops[1] = 0x190;
     tab_stops[2] = 0x226;
@@ -1257,91 +1232,87 @@ void FUN_0018a370(void)
   }
 }
 
-/* Draw encounter/actor firing-position debug markers (0x18a3e0). Gated on the
- * flag at 0x506530. Iterates the scenario's actor-starting-location block
- * (scenario+0x258): for each entry it resolves the actor palette tag, probes a
- * ray from the entry position (collision_test_vector) built from the entry's two packed
- * angle bytes (elem+0xe/+0xf), draws a small sphere at the entry (or, on a
- * surface hit, at the hit point) colored by whether the entry is within its
- * encounter's active squad range, and labels it with the stripped actor tag
- * name via the cached text-at-position drawer. */
-void FUN_0018a3e0(void)
+void render_debug_structure_decals(void)
 {
-  char collision_result[0x50];
-  float dir[3];
-  float angles[2];
-  int tag_index;
-  int angle_tmp;
-  void *actor_block;
-  int *block;
-  void *scenario;
-  int i;
-  void *elem;
-  void *pal_elem;
-  void *e;
-  void *enc;
-  int actor_idx;
-  void *point;
-  void *color;
+  collision_test_result collision_result;
+  real_vector3d vector;
+  real_euler_angles2d angles;
+  int decal_definition_index;
+  int angle;
+  tag_block *clusters;
+  tag_block *runtime_decals;
+  structure_bsp_t *structure_bsp;
+  int decal_index;
+  structure_runtime_decal_t *decal;
+  tag_reference *palette_entry;
+  structure_leaf_t *leaf;
+  structure_bsp_cluster_t *cluster;
+  int cluster_index;
+  const real_point3d *point;
+  const real_argb_color *color;
 
-  if (*(char *)0x506530 == 0) {
+  if (debug_permanent_decals == 0) {
     return;
   }
-  scenario = scenario_get();
-  block = (int *)((char *)scenario + 0x258);
-  if (*block <= 0) {
+  structure_bsp = global_structure_bsp_get();
+  runtime_decals = &structure_bsp->runtime_decals;
+  if (runtime_decals->count <= 0) {
     return;
   }
-  actor_block = (char *)scenario + 0x134;
-  i = 0;
+  clusters = &structure_bsp->clusters;
+  decal_index = 0;
   do {
-    elem = tag_block_get_element(block, i, 0x10);
-    pal_elem =
-      tag_block_get_element((char *)global_scenario_get() + 0x3b4,
-                            *(unsigned char *)((char *)elem + 0xc), 0x10);
-    tag_index = *(int *)((char *)pal_elem + 0xc);
-    tag_get(0x64656361, tag_index);
-    if (scenario_leaf_index_from_point((int)elem) == -1) {
-      actor_idx = -1;
+    decal = tag_block_get_element(runtime_decals, decal_index,
+                                  sizeof(structure_runtime_decal_t));
+    palette_entry = tag_block_get_element(global_scenario_decal_palette,
+                                          decal->palette_index,
+                                          sizeof(tag_reference));
+    decal_definition_index = palette_entry->tag_index;
+    tag_get(TAG_GROUP_DECAL, decal_definition_index);
+    if (scenario_leaf_index_from_point((int)&decal->position) == NONE) {
+      cluster_index = NONE;
     } else {
-      e = tag_block_get_element((char *)scenario_get() + 0xe0,
-                                scenario_leaf_index_from_point((int)elem) & 0x7fffffff, 0x10);
-      actor_idx = *(short *)((char *)e + 8);
+      leaf = tag_block_get_element(
+        global_structure_bsp_leaves,
+        scenario_leaf_index_from_point((int)&decal->position) & LONG_MAX,
+        sizeof(structure_leaf_t));
+      cluster_index = leaf->cluster_index;
     }
-    enc = tag_block_get_element(actor_block, actor_idx, 0x68);
-    angle_tmp = *(signed char *)((char *)elem + 0xe);
-    angles[0] = (float)angle_tmp * *(float *)0x2b1958;
-    angle_tmp = *(signed char *)((char *)elem + 0xf);
-    angles[1] = (float)angle_tmp * *(float *)0x2b1954;
-    angles_to_vector((real_vector3d *)dir, (real_euler_angles2d *)angles);
-    if (collision_test_vector(0x61, elem, (real_vector3d *)dir, -1, (short *)collision_result)) {
-      if (*(short *)((char *)enc + 0xc) == -1 ||
-          (int)*(unsigned short *)((char *)enc + 0xe) <=
-            i - *(short *)((char *)enc + 0xc)) {
-        point = (char *)collision_result + 0x18;
-        color = *(void **)0x2ee6f0;
+    cluster = tag_block_get_element(clusters, cluster_index,
+                                    sizeof(structure_bsp_cluster_t));
+    angle = decal->yaw;
+    angles.yaw = (float)angle * k_runtime_decal_yaw_scale;
+    angle = decal->pitch;
+    angles.pitch = (float)angle * k_runtime_decal_pitch_scale;
+    angles_to_vector(&vector, &angles);
+    if (collision_test_vector(0x61, &decal->position, &vector, NONE,
+                              &collision_result)) {
+      if (cluster->first_decal_index == NONE ||
+          (int)cluster->decal_count <= decal_index - cluster->first_decal_index) {
+        point = &collision_result.position;
+        color = global_real_argb_orange;
       } else {
-        point = (char *)collision_result + 0x18;
-        color = *(void **)0x2ee6e0;
+        point = &collision_result.position;
+        color = global_real_argb_yellow;
       }
     } else {
-      point = elem;
-      color = *(void **)0x2ee6d0;
+      point = &decal->position;
+      color = global_real_argb_red;
     }
     render_debug_sphere(1, point, 0.1f, color);
-    render_debug_string_at_point(0, elem, (void *)tag_name_strip_path(tag_get_name(tag_index)),
-                 *(int *)0x2ee6d4);
-    i = i + 1;
-  } while (i < *block);
+    render_debug_string_at_point(
+      0, &decal->position,
+      tag_name_strip_path(tag_get_name(decal_definition_index)),
+      global_real_argb_green);
+    decal_index = decal_index + 1;
+  } while (decal_index < runtime_decals->count);
 }
 
-/* Draw a debug point on a plane (0x18a580). Projects a 2D point onto the plane,
- * lifts it off the plane along the projection axis by +/- offset (sign selects
- * the direction), then draws it as a debug point (render_debug_point). */
-void FUN_0018a580(int flag, float *plane, int projection, int sign,
-                  float *point, float scale, void *color, float offset)
+void render_debug_point2d(int flag, const real_plane3d *plane, int projection,
+                          int sign, const real_point2d *point, float scale,
+                          const real_argb_color *color, float offset)
 {
-  float pos[3];
+  real_point3d position;
   float d;
   int axis;
 
@@ -1360,25 +1331,22 @@ void FUN_0018a580(int flag, float *plane, int projection, int sign,
                    1);
     system_exit(-1);
   }
-  project_point2d(point, plane, projection, sign, pos);
+  project_point2d(point, plane, projection, sign, &position);
   d = offset;
   if ((char)sign == 0) {
     d = -offset;
   }
   axis = (short)projection;
-  pos[axis] = d + pos[axis];
-  render_debug_point(flag, (real_point3d *)pos, scale, color);
+  point3d_component(position, axis) = d + point3d_component(position, axis);
+  render_debug_point(flag, &position, scale, color);
 }
 
-/* Draw one edge of a debug plane as a 3D line segment (0x18a650). Projects
- * two 2D endpoints (point_a, point_b) onto the plane, lifts each off the
- * plane along the projection axis by +/- offset (sign selects the direction),
- * then draws the connecting line. The two projected points share a contiguous
- * six-float buffer: pts[3..5] is endpoint A, pts[0..2] is endpoint B. */
-void FUN_0018a650(int flag, float *plane, int projection, int sign,
-                  float *point_a, float *point_b, void *color, float offset)
+void render_debug_line2d(int flag, const real_plane3d *plane, int projection,
+                         int sign, const real_point2d *point_a,
+                         const real_point2d *point_b,
+                         const real_argb_color *color, float offset)
 {
-  float pts[6];
+  real_point3d points[2];
   float d;
   int axis;
 
@@ -1400,30 +1368,30 @@ void FUN_0018a650(int flag, float *plane, int projection, int sign,
                    1);
     system_exit(-1);
   }
-  project_point2d(point_a, plane, projection, sign, pts + 3);
-  project_point2d(point_b, plane, projection, sign, pts);
+  project_point2d(point_a, plane, projection, sign, &points[1]);
+  project_point2d(point_b, plane, projection, sign, &points[0]);
   d = offset;
   if ((char)sign == 0) {
     d = -offset;
   }
   axis = (short)projection;
-  pts[axis + 3] = d + pts[axis + 3];
+  point3d_component(points[1], axis) =
+    d + point3d_component(points[1], axis);
   d = offset;
   if ((char)sign == 0) {
     d = -offset;
   }
-  pts[axis] = d + pts[axis];
-  FUN_00189270(flag, pts + 3, pts, color);
+  point3d_component(points[0], axis) =
+    d + point3d_component(points[0], axis);
+  render_debug_line(flag, &points[1], &points[0], color);
 }
 
-/* Draw a debug vector on a plane (0x18a770). Computes the 2D endpoint
- * point + scale*vector, then draws a plane-edge line from point to that
- * endpoint (FUN_0018a650, which projects both onto the plane). */
-void FUN_0018a770(int flag, float *plane, int projection, int sign,
-                  float *point, float *vector, float scale, void *color,
-                  float offset)
+void render_debug_vector2d(int flag, const real_plane3d *plane, int projection,
+                           int sign, const real_point2d *point,
+                           const real_vector2d *vector, float scale,
+                           const real_argb_color *color, float offset)
 {
-  float endpoint[2];
+  real_point2d endpoint;
 
   if (plane == 0) {
     display_assert("plane", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x10d,
@@ -1445,22 +1413,19 @@ void FUN_0018a770(int flag, float *plane, int projection, int sign,
                    1);
     system_exit(-1);
   }
-  endpoint[0] = scale * vector[0] + point[0];
-  endpoint[1] = scale * vector[1] + point[1];
-  FUN_0018a650(flag, plane, projection, sign, point, endpoint, color, offset);
+  endpoint.x = scale * vector->i + point->x;
+  endpoint.y = scale * vector->j + point->y;
+  render_debug_line2d(flag, plane, projection, sign, point, &endpoint, color,
+                      offset);
 }
 
-/* Draw or cache a debug plane disc (0x18a860). type 0. With flag clear, caches
- * a type-0 primitive. With flag set, builds a 16-segment circle table
- * (FUN_00188bf0) and, for each segment, offsets two adjacent circle points by
- * the center, then hands them to the plane-edge drawer (FUN_0018a650) which
- * projects them onto the plane and draws the connecting 3D line. */
-void FUN_0018a860(char flag, float *plane, int projection, int sign,
-                  float *center, float radius, void *color, float offset)
+void render_debug_circle(char flag, const real_plane3d *plane, int projection,
+                         int sign, const real_point2d *center, float radius,
+                         const real_argb_color *color, float offset)
 {
-  float circle[34];
-  float pts[4]; /* pts[2..3] = current circle point, pts[0..1] = next */
-  float *cp;
+  real_point2d circle[DEBUG_CIRCLE_SEGMENT_COUNT + 1];
+  real_point2d points[2];
+  const real_point2d *cp;
   short i;
 
   if (plane == 0) {
@@ -1479,54 +1444,48 @@ void FUN_0018a860(char flag, float *plane, int projection, int sign,
     system_exit(-1);
   }
   if (flag == 0) {
-    FUN_00188ec0(0, plane, (short)projection, (unsigned char)sign, center,
+    render_debug_add_cache_entry(0, plane, (short)projection, (unsigned char)sign, center,
                  (double)radius, color);
     return;
   }
-  FUN_00188bf0(circle, radius);
-  cp = circle + 3;
-  i = 0x10;
+  build_circle_points(circle, radius);
+  cp = &circle[1];
+  i = DEBUG_CIRCLE_SEGMENT_COUNT;
   do {
-    pts[2] = center[0] + cp[-3];
-    pts[3] = center[1] + cp[-2];
-    pts[0] = center[0] + cp[-1];
-    pts[1] = center[1] + cp[0];
-    FUN_0018a650(1, plane, projection, sign, &pts[2], &pts[0], color, offset);
-    cp = cp + 2;
+    points[1].x = center->x + cp[-1].x;
+    points[1].y = center->y + cp[-1].y;
+    points[0].x = center->x + cp->x;
+    points[0].y = center->y + cp->y;
+    render_debug_line2d(1, plane, projection, sign, &points[1], &points[0],
+                        color, offset);
+    cp = cp + 1;
     i = (short)(i - 1);
   } while (i != 0);
 }
 
-/* Draw a debug coordinate frame built from a forward/up basis (0x18a990).
- * Builds a 4x3 frame at position from the forward and up vectors, then draws
- * its axes. */
-void FUN_0018a990(int flag, float *position, float *forward, float *up,
-                  float scale)
+void render_debug_vectors(int flag, const real_point3d *position,
+                          const real_vector3d *forward,
+                          const real_vector3d *up, float scale)
 {
-  float matrix[13];
+  real_matrix4x3 matrix;
 
-  matrix4x3_from_forward_up_position(matrix, (real_point3d *)position, (real_vector3d *)forward, (real_vector3d *)up);
-  FUN_001894d0(flag, matrix, scale);
+  matrix4x3_from_forward_up_position(&matrix, position, forward, up);
+  render_debug_matrix(flag, &matrix, scale);
 }
 
-/* Draw a debug coordinate frame built from a surface normal (0x18a9d0).
- * Derives an orthonormal basis at position from the normal, then draws its
- * axes. */
-void FUN_0018a9d0(int flag, float *position, float *basis_data, float scale)
+void render_debug_quaternion(int flag, const real_point3d *position,
+                             const real_quaternion *orientation, float scale)
 {
-  float matrix[13];
+  real_matrix4x3 matrix;
 
-  matrix4x3_from_point_and_quaternion(matrix, position, basis_data);
-  FUN_001894d0(flag, matrix, scale);
+  matrix4x3_from_point_and_quaternion(&matrix, position, orientation);
+  render_debug_matrix(flag, &matrix, scale);
 }
 
-/* Draw a 2D debug box in screen space (0x18aa00). Immediate-mode only (there
- * is no cache path -- flag == 0 asserts). Expands the {x0,x1,y0,y1} bounds
- * into four corners at z = -1, transforms each by the debug screen matrix at
- * 0x5065e8, then draws them as a closed polyline. */
-void FUN_0018aa00(char flag, float *bounds, void *color)
+void render_debug_box2d_outline(char flag, const real_rectangle2d *bounds,
+                                const real_argb_color *color)
 {
-  float corners[12];
+  real_point3d corners[4];
 
   if (bounds == 0) {
     display_assert("bounds", "c:\\halo\\SOURCE\\render\\render_debug.c", 0x2e9,
@@ -1539,23 +1498,23 @@ void FUN_0018aa00(char flag, float *bounds, void *color)
     system_exit(-1);
   }
   if (flag != 0) {
-    corners[0] = bounds[0];
-    corners[1] = bounds[2];
-    corners[2] = -1.0f;
-    corners[3] = bounds[1];
-    corners[4] = bounds[2];
-    corners[5] = -1.0f;
-    corners[6] = bounds[1];
-    corners[7] = bounds[3];
-    corners[8] = -1.0f;
-    corners[9] = bounds[0];
-    corners[10] = bounds[3];
-    corners[11] = -1.0f;
-    matrix_transform_point((float *)0x5065e8, (real_point3d *)corners, (real_point3d *)corners);
-    matrix_transform_point((float *)0x5065e8, (real_point3d *)(corners + 3), (real_point3d *)(corners + 3));
-    matrix_transform_point((float *)0x5065e8, (real_point3d *)(corners + 6), (real_point3d *)(corners + 6));
-    matrix_transform_point((float *)0x5065e8, (real_point3d *)(corners + 9), (real_point3d *)(corners + 9));
-    FUN_00189ba0(corners, 4, color);
+    corners[0].x = bounds->x0;
+    corners[0].y = bounds->y0;
+    corners[0].z = -1.0f;
+    corners[1].x = bounds->x1;
+    corners[1].y = bounds->y0;
+    corners[1].z = -1.0f;
+    corners[2].x = bounds->x1;
+    corners[2].y = bounds->y1;
+    corners[2].z = -1.0f;
+    corners[3].x = bounds->x0;
+    corners[3].y = bounds->y1;
+    corners[3].z = -1.0f;
+    matrix_transform_point(&global_frustum.view_to_world, &corners[0], &corners[0]);
+    matrix_transform_point(&global_frustum.view_to_world, &corners[1], &corners[1]);
+    matrix_transform_point(&global_frustum.view_to_world, &corners[2], &corners[2]);
+    matrix_transform_point(&global_frustum.view_to_world, &corners[3], &corners[3]);
+    render_debug_polygon_edges(corners, 4, color);
     return;
   }
   display_assert("can't add box2d to debug cache",
@@ -1563,14 +1522,11 @@ void FUN_0018aa00(char flag, float *bounds, void *color)
   system_exit(-1);
 }
 
-/* Render a debug bounding box (0x18ab30). With wireframe set, expand the six
- * min/max bounds {x0,x1,y0,y1,z0,z1} into the eight box corners and draw the
- * two z-faces as line loops plus the four vertical edges; otherwise submit a
- * solid box primitive (type 7) to the cache. */
-void FUN_0018ab30(char wireframe, float *bounds, void *color)
+void render_debug_box_outline(char wireframe, const real_rectangle3d *bounds,
+                              const real_argb_color *color)
 {
-  float v[24];
-  float *p;
+  real_point3d corners[8];
+  const real_point3d *corner;
   int i;
 
   if (bounds == 0) {
@@ -1585,52 +1541,48 @@ void FUN_0018ab30(char wireframe, float *bounds, void *color)
   }
 
   if (wireframe != 0) {
-    /* Eight corners, three floats each, grouped as two z-faces of four. */
-    v[0] = bounds[0];
-    v[1] = bounds[2];
-    v[2] = bounds[4]; /* x0 y0 z0 */
-    v[3] = bounds[1];
-    v[4] = bounds[2];
-    v[5] = bounds[4]; /* x1 y0 z0 */
-    v[6] = bounds[1];
-    v[7] = bounds[3];
-    v[8] = bounds[4]; /* x1 y1 z0 */
-    v[9] = bounds[0];
-    v[10] = bounds[3];
-    v[11] = bounds[4]; /* x0 y1 z0 */
-    v[12] = bounds[0];
-    v[13] = bounds[2];
-    v[14] = bounds[5]; /* x0 y0 z1 */
-    v[15] = bounds[1];
-    v[16] = bounds[2];
-    v[17] = bounds[5]; /* x1 y0 z1 */
-    v[18] = bounds[1];
-    v[19] = bounds[3];
-    v[20] = bounds[5]; /* x1 y1 z1 */
-    v[21] = bounds[0];
-    v[22] = bounds[3];
-    v[23] = bounds[5]; /* x0 y1 z1 */
+    corners[0].x = bounds->x0;
+    corners[0].y = bounds->y0;
+    corners[0].z = bounds->z0;
+    corners[1].x = bounds->x1;
+    corners[1].y = bounds->y0;
+    corners[1].z = bounds->z0;
+    corners[2].x = bounds->x1;
+    corners[2].y = bounds->y1;
+    corners[2].z = bounds->z0;
+    corners[3].x = bounds->x0;
+    corners[3].y = bounds->y1;
+    corners[3].z = bounds->z0;
+    corners[4].x = bounds->x0;
+    corners[4].y = bounds->y0;
+    corners[4].z = bounds->z1;
+    corners[5].x = bounds->x1;
+    corners[5].y = bounds->y0;
+    corners[5].z = bounds->z1;
+    corners[6].x = bounds->x1;
+    corners[6].y = bounds->y1;
+    corners[6].z = bounds->z1;
+    corners[7].x = bounds->x0;
+    corners[7].y = bounds->y1;
+    corners[7].z = bounds->z1;
 
-    FUN_00189ba0(&v[0], 4, color); /* bottom z-face line loop */
-    FUN_00189ba0(&v[12], 4, color); /* top z-face line loop    */
+    render_debug_polygon_edges(&corners[0], 4, color);
+    render_debug_polygon_edges(&corners[4], 4, color);
 
-    p = &v[0];
+    corner = &corners[0];
     i = 4;
     do {
-      FUN_00189270(1, p, p + 12, color); /* vertical edge */
-      p += 3;
+      render_debug_line(1, corner, corner + 4, color);
+      corner++;
       i--;
     } while (i != 0);
     return;
   }
 
-  FUN_00188ec0(7, bounds, color);
+  render_debug_add_cache_entry(7, bounds, color);
 }
 
-/* Flush the per-frame debug primitive cache (0x18ac50). Run the fixed debug
- * sub-renderers, dispatch every cached primitive to its draw routine, then
- * reset the cache once the game frame advances past the cached frame. */
-void FUN_0018ac50(void)
+void render_debug(void)
 {
   short i;
   debug_primitive *rec;
@@ -1641,55 +1593,67 @@ void FUN_0018ac50(void)
   render_debug_scripting();
   render_debug_trigger_volumes();
   texture_cache_debug_render();
-  FUN_001be7b0();
+  sound_cache_debug_render();
   render_debug_recording();
-  FUN_00194070();
-  FUN_00149ce0();
+  render_debug_detail_objects();
+  collision_debug_render();
   collision_log_render();
-  FUN_00061ca0();
+  render_debug_obstacle_path();
   render_debug_fog_planes();
-  FUN_00099070();
-  FUN_00189de0();
-  FUN_0018a000();
-  FUN_0018a110();
-  FUN_0018a190();
-  FUN_0018a370();
-  FUN_0018a3e0();
+  render_debug_decals();
+  render_debug_camera();
+  render_debug_player();
+  render_debug_structure();
+  render_debug_bsp();
+  render_debug_input();
+  render_debug_structure_decals();
   players_debug_render();
 
   for (i = 0; i < debug_primitive_count; i++) {
     rec = &debug_primitives[i];
     switch (rec->type) {
-    case 0:
-      FUN_0018a860(1, &rec->f04, rec->s14, rec->b16, &rec->f18, rec->f20,
-                   &rec->f24, rec->f34);
+    case _debug_primitive_circle:
+      render_debug_circle(1, &rec->data.circle.plane,
+                          rec->data.circle.projection, rec->data.circle.sign,
+                          &rec->data.circle.center,
+                          rec->data.circle.radius, &rec->data.circle.color,
+                          rec->data.circle.offset);
       break;
-    case 1:
-      render_debug_point(1, (real_point3d *)&rec->f04, rec->f10, &rec->s14);
+    case _debug_primitive_point:
+      render_debug_point(1, &rec->data.point.position, rec->data.point.scale,
+                         &rec->data.point.color);
       break;
-    case 2:
-      FUN_00189270(1, &rec->f04, &rec->f10, &rec->f1c);
+    case _debug_primitive_line:
+      render_debug_line(1, &rec->data.line.point0, &rec->data.line.point1,
+                        &rec->data.line.color);
       break;
-    case 3:
-      render_debug_sphere(1, &rec->f04, rec->f10, &rec->s14);
+    case _debug_primitive_sphere:
+      render_debug_sphere(1, &rec->data.sphere.center, rec->data.sphere.radius,
+                          &rec->data.sphere.color);
       break;
-    case 4:
-      FUN_001896d0(1, &rec->f04, &rec->f10, rec->f1c, &rec->f20);
+    case _debug_primitive_cylinder:
+      render_debug_cylinder(1, &rec->data.cylinder.base,
+                            &rec->data.cylinder.height,
+                            rec->data.cylinder.radius,
+                            &rec->data.cylinder.color);
       break;
-    case 5:
-      render_debug_pill(1, &rec->f04, &rec->f10, rec->f1c, &rec->f20);
+    case _debug_primitive_pill:
+      render_debug_pill(1, &rec->data.cylinder.base, &rec->data.cylinder.height,
+                        rec->data.cylinder.radius, &rec->data.cylinder.color);
       break;
-    case 6:
-      FUN_00189a20(1, &rec->f04, &rec->f1c);
+    case _debug_primitive_box:
+      render_debug_box(1, &rec->data.box.bounds, &rec->data.box.color);
       break;
-    case 7:
-      FUN_0018ab30(1, &rec->f04, &rec->f1c);
+    case _debug_primitive_box_outline:
+      render_debug_box_outline(1, &rec->data.box.bounds, &rec->data.box.color);
       break;
-    case 8:
-      FUN_00189c40(1, *(const char **)&rec->f04);
+    case _debug_primitive_string:
+      render_debug_string(1, rec->data.string.string);
       break;
-    case 9:
-      render_debug_string_at_point(1, &rec->f08, *(void **)&rec->f04, (int)&rec->s14);
+    case _debug_primitive_string_at_point:
+      render_debug_string_at_point(1, &rec->data.string.position,
+                                   rec->data.string.string,
+                                   &rec->data.string.color);
       break;
     default:
       display_assert(0, "c:\\halo\\SOURCE\\render\\render_debug.c", 0x4f5, 1);
@@ -1700,7 +1664,7 @@ void FUN_0018ac50(void)
   if ((int)debug_primitive_frame != (int)(short)game_time_get() - 1) {
     debug_primitive_frame = (short)game_time_get();
     debug_primitive_count = 0;
-    *(short *)0x4d8228 = 0;
-    *(char *)0x4d0e20 = 0;
+    debug_string_pool_count = 0;
+    debug_string_pool[0] = 0;
   }
 }

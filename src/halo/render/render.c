@@ -1,43 +1,176 @@
-/* Test the per-group flag bit for a transparent geometry group (0x184570).
- * Returns 1 when the group's bit in the 384-bit flag array at 0x4d0cbc is
- * CLEAR (or when the group pointer does not resolve to a presorted index),
- * 0 when the bit is SET. The array is 0x30 bytes (0x180 groups, one bit per
- * group) and is cleared by rasterizer_transparent_geometry_begin.
- * Binary: MOVSX EDX,AX / SAR EDX,5 -> signed word index; NEG EAX / SBB AL,AL /
- * INC AL -> AL = (bit == 0). */
-char FUN_00184570(void *group)
+#include "../../shader_model.h"
+
+#define k_real_zero (*(const float *)0x2533c0)
+#define k_real_one (*(const float *)0x2533c8)
+#define render_contrails_enabled (*(boolean *)0x32574a)
+#define render_particles_enabled (*(boolean *)0x32574b)
+#define render_particle_systems_enabled (*(boolean *)0x32574c)
+#define render_weather_particle_systems_enabled (*(boolean *)0x32574d)
+#define transparent_geometry_group_index (*(int16_t *)0x4d0cb8)
+#define transparent_geometry_group_pending_flags ((uint32_t *)0x4d0cbc)
+#define transparent_geometry_groups \
+  (*(struct transparent_geometry_group **)0x4d0cec)
+#define transparent_geometry_groups2 \
+  (*(struct transparent_geometry_group **)0x4d0cf0)
+#define transparent_geometry_group_count (*(int32_t *)0x4d0cf4)
+#define transparent_geometry_group_count2 (*(int32_t *)0x4d0cf8)
+#define transparent_geometry_group_sorted_indices (*(int16_t **)0x4d0cfc)
+/* Absolute form: the kb extern leaves an unpaired relocation. */
+#define global_window_parameters \
+  (*(rasterizer_window_begin_parameters *)0x5a5bc0)
+#define rasterizer_transparent_pixel_counter_active (*(boolean *)0x325740)
+#define rasterizer_first_person_weapon_near_clip_distance (*(real *)0x32569c)
+#define rasterizer_first_person_weapon_far_clip_distance (*(real *)0x3256a0)
+
+#define RASTERIZER_TRANSPARENT_GEOMETRY_FILE \
+  "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c"
+
+/* rasterizer_profile_begin/end indices; NUMBER_OF_RASTERIZER_PROFILES (0x1d)
+ * bounds the profile table. */
+enum {
+  _rasterizer_profile_water = 0x13,
+  _rasterizer_profile_queued_transparents = 0x16,
+  NUMBER_OF_RASTERIZER_PROFILES = 0x1d
+};
+
+enum {
+  _shader_type_transparent_water = 7
+};
+
+enum {
+  _rasterizer_geometry_first_person_bit = 7
+};
+
+/* The 2276 assert strings name the struct, transparent_geometry_groups and
+ * sorted_index; the element stride is 0xa0. */
+struct transparent_geometry_group {
+  dword geometry_flags;                 ///< offset=0x00
+  byte pad_04[4];                       ///< offset=0x04
+  int32_t source_object_index;          ///< offset=0x08
+  shader_base *shader;                  ///< offset=0x0c
+  byte pad_10[0x44];                    ///< offset=0x10
+  int32_t dynamic_vertex_buffer_index;  ///< offset=0x54
+  vertex_buffer *vertex_buffer;         ///< offset=0x58
+  byte pad_5c[0x14];                    ///< offset=0x5c
+  real z_sort;                          ///< offset=0x70
+  byte pad_74[0x1c];                    ///< offset=0x74
+  int32_t sorted_index;                 ///< offset=0x90
+  byte pad_94[9];                       ///< offset=0x94
+  boolean field_9d;                     ///< offset=0x9d
+  byte pad_9e[2];                       ///< offset=0x9e
+};
+cs(struct transparent_geometry_group, 0xa0);
+co(struct transparent_geometry_group, source_object_index, 0x08);
+co(struct transparent_geometry_group, shader, 0x0c);
+co(struct transparent_geometry_group, dynamic_vertex_buffer_index, 0x54);
+co(struct transparent_geometry_group, vertex_buffer, 0x58);
+co(struct transparent_geometry_group, z_sort, 0x70);
+co(struct transparent_geometry_group, sorted_index, 0x90);
+co(struct transparent_geometry_group, field_9d, 0x9d);
+
+#define RASTERIZER_TARGET_RENDER_PRIMARY_WIDTH 640
+#define RASTERIZER_TARGET_RENDER_PRIMARY_HEIGHT 480
+
+enum {
+  _render_planar_fog_mode_fully_fogged = 2
+};
+
+enum {
+  _decal_layer_primary,
+  _decal_layer_secondary,
+  _decal_layer_light,
+  _decal_layer_alpha_tested,
+  _decal_layer_water
+};
+
+struct render_fog {
+  byte pad_00[2];                     ///< offset=0x00
+  word runtime_flags;                 ///< offset=0x02
+  real_rgb_color atmospheric_color;   ///< offset=0x04
+  real atmospheric_maximum_density;   ///< offset=0x10
+  byte pad_14[4];                     ///< offset=0x14
+  real atmospheric_maximum_distance;  ///< offset=0x18
+  int16_t planar_mode;                ///< offset=0x1c
+  byte pad_1e[0x22];                  ///< offset=0x1e
+  real planar_maximum_distance;       ///< offset=0x40
+  byte pad_44[0xc];                   ///< offset=0x44
+};
+cs(struct render_fog, 0x50);
+co(struct render_fog, runtime_flags, 0x02);
+co(struct render_fog, atmospheric_maximum_density, 0x10);
+co(struct render_fog, atmospheric_maximum_distance, 0x18);
+co(struct render_fog, planar_mode, 0x1c);
+co(struct render_fog, planar_maximum_distance, 0x40);
+
+/* Typed view of window_parameters_t, the block rasterizer_window_begin copies
+ * to global_window_parameters. */
+typedef struct render_window_parameters {
+  int16_t rasterizer_target;
+  int16_t window_index;
+  boolean has_mirror;
+  boolean field_05;
+  int16_t pad_06;
+  camera_t camera;
+  render_frustum_t frustum;
+  struct render_fog fog;
+  byte screen_flash[0x20];
+} render_window_parameters_t;
+cs(render_window_parameters_t, 0x258);
+
+/* structure_visibility_find_mirror output: the mirror and its cluster. */
+typedef struct render_reflection {
+  render_mirror_t mirror;
+  int16_t cluster_index;
+  int16_t pad_1a;
+} render_reflection_t;
+cs(render_reflection_t, 0x1c);
+
+/* The 2276 asserts name window->render_camera and window->rasterizer_camera;
+ * render_frame steps windows by 0xac. */
+struct render_window {
+  int16_t local_player_index;  ///< offset=0x00
+  boolean console_window;      ///< offset=0x02
+  byte pad_03;                 ///< offset=0x03
+  camera_t render_camera;      ///< offset=0x04
+  camera_t rasterizer_camera;  ///< offset=0x58
+};
+cs(struct render_window, 0xac);
+co(struct render_window, render_camera, 0x04);
+co(struct render_window, rasterizer_camera, 0x58);
+
+/* Fields of render (0x506540); the absolute form keeps the relocations
+ * paired. */
+#define render_frame_index (*(int32_t *)0x506540)
+#define render_scene_index (*(int32_t *)0x506544)
+#define render_window_index (*(int16_t *)0x50654a)
+#define render_time_delta_since_tick (*(real *)0x50654c)
+#define render_fog_parameters (*(struct render_fog *)0x506730)
+#define render_cluster_index (*(int32_t *)0x506784)
+#define render_visible_sky_index (*(int16_t *)0x50678a)
+#define render_visible_cluster_bits ((unsigned int *)0x50678c)
+#define render_rendered_clusters ((char *)0x5067cc)
+#define RENDERED_CLUSTER_SIZE 0x1a0
+#define render_rendered_cluster_count (*(int16_t *)0x5137cc)
+#define render_invalid_fog_warning_displayed (*(boolean *)0x4d0d02)
+#define global_screenshot_count (*(int16_t *)0x31fa98)
+#define global_screenshot_size (*(int16_t *)0x46e008)
+
+char rasterizer_transparent_geometry_get_group_pending_status(void *group)
 {
   short presorted_index;
 
   presorted_index = rasterizer_transparent_geometry_group_to_presorted_index(
     (unsigned int)group);
-  if (presorted_index != -1) {
-    return (char)(((1 << (presorted_index & 0x1f)) &
-                   ((unsigned int *)0x4d0cbc)[presorted_index >> 5]) == 0);
+  if (presorted_index != NONE) {
+    return (char)((FLAG(presorted_index & 0x1f) &
+                   transparent_geometry_group_pending_flags[presorted_index >>
+                                                            5]) == 0);
   }
   return 1;
 }
 
-/* FUN_001845b0: set or clear this group's bit in the transparent-geometry-group
- * bit vector at 0x4d0cbc (0x30 bytes = 12 dwords = 384 bits, matching the
- * 0x180 group cap; zeroed by the csmemset above). A group pointer that does not
- * resolve to a presorted index (-1) is silently ignored.
- *
- * NOTE the branch polarity, which is the opposite of what a "set flag" reading
- * would suggest and must not be "normalized": only the LOW BYTE of clear_bit is
- * tested (MOV CL,[EBP+0xc]; TEST CL,CL), and
- *   low byte == 0  -> OR   mask (SET the bit)   [own POP EBP/RET at 0x1845e8]
- *   low byte != 0  -> ANDN mask (CLEAR the bit) [RET at 0x18460d]
- * The set path returns early (two distinct RET sites), so the early-return
- * shape is reproduced here rather than an if/else.
- *
- * The index math runs on the SIGN-EXTENDED short (MOVSX ECX,AX then SAR ECX,5),
- * so the shift must stay arithmetic on a signed int. The explicit `& 0x1f` on
- * the shift count is real, not a Ghidra artifact: the original emits
- * AND ECX,0x1f before SHL EDX,CL in both branches. The word index (SAR ECX,5)
- * is recomputed inside each branch rather than hoisted above the TEST, so the
- * expression is written out per branch here. (0x1845b0) */
-void FUN_001845b0(void *group, int clear_bit)
+void rasterizer_transparent_geometry_set_group_pending_status(void *group,
+                                                              int pending)
 {
   short group_presorted_index;
   int index;
@@ -45,180 +178,136 @@ void FUN_001845b0(void *group, int clear_bit)
   group_presorted_index =
     rasterizer_transparent_geometry_group_to_presorted_index(
       (unsigned int)group);
-  if (group_presorted_index == -1) {
+  if (group_presorted_index == NONE) {
     return;
   }
   index = group_presorted_index;
-  if ((char)clear_bit == 0) {
-    *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) =
-      *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) | (1 << (index & 0x1f));
+  if ((char)pending == 0) {
+    transparent_geometry_group_pending_flags[index >> 5] =
+      transparent_geometry_group_pending_flags[index >> 5] |
+      FLAG(index & 0x1f);
     return;
   }
-  *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) =
-    *(unsigned int *)(0x4d0cbc + (index >> 5) * 4) & ~(1 << (index & 0x1f));
+  transparent_geometry_group_pending_flags[index >> 5] =
+    transparent_geometry_group_pending_flags[index >> 5] & ~FLAG(index & 0x1f);
 }
 
-/* FUN_00184610: resolve the first vertex index of a transparent geometry group
- * (0x184610). Two mutually exclusive sources on the group record:
- *   +0x58  pointer to an int16 vertex index (nullable) -- when set, the stored
- *          index is returned directly. The load is `MOV AX,word ptr [EAX]`, a
- *          WORD load, so this must stay a 16-bit read (Ghidra models the upper
- *          half of EAX as CONCAT22 garbage).
- *   +0x54  dynamic-vertex-buffer index, sentinel -1 -- when not -1 it is passed
- *          (PUSH ESI / CALL 0x17c9c0 / ADD ESP,4 -- one stack arg; Ghidra drops
- *          it and shows a 0-arg call) to 0x17c9c0, whose short result is the
- *          return value.
- * With neither source the group has no vertices: report through error() at
- * level 2 and return -1 (EDI is pre-seeded 0xffffffff at entry purely to feed
- * `MOV AX,DI` on this path, so it is not modelled as a variable here).
- * The null-group assert tail is CALL 0x8e2f0 = system_exit(-1), not
- * halt_and_catch_fire (Ghidra prints thunk_FUN_001029a0). Every return path is
- * `MOV AX,...`, hence the 16-bit return type. */
-short FUN_00184610(void *group)
+short rasterizer_transparent_geometry_get_primary_vertex_type(
+  void *group_pointer)
 {
-  short *vertex_index;
+  struct transparent_geometry_group *group;
+  vertex_buffer *primary_vertex_buffer;
   int dynamic_vertex_buffer_index;
 
-  if (group == 0) {
-    display_assert(
-      "group",
-      "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0xf4,
-      1);
+  group = group_pointer;
+  if (group == NULL) {
+    display_assert("group", RASTERIZER_TRANSPARENT_GEOMETRY_FILE, 0xf4, 1);
     system_exit(-1);
   }
-  vertex_index = *(short **)((char *)group + 0x58);
-  if (vertex_index != 0) {
-    return *vertex_index;
+  primary_vertex_buffer = group->vertex_buffer;
+  if (primary_vertex_buffer != NULL) {
+    return primary_vertex_buffer->type;
   }
-  dynamic_vertex_buffer_index = *(int *)((char *)group + 0x54);
-  if (dynamic_vertex_buffer_index != -1) {
+  dynamic_vertex_buffer_index = group->dynamic_vertex_buffer_index;
+  if (dynamic_vertex_buffer_index != NONE) {
     return rasterizer_dynamic_vertices_get_type(dynamic_vertex_buffer_index);
   }
   error(2, "### ERROR transparent geometry group has no vertices");
-  return -1;
+  return NONE;
 }
 
-/* FUN_00184680 @ 0x184680 -- confirmed empty: the function body in the
- * binary is a single RET with no prologue/epilogue. Called unconditionally
- * from FUN_00158f90's per-frame "first init" block (guarded by
- * DAT_00476ab8=='\0', alongside FUN_001825d0/FUN_0015d160/FUN_00165a00/
- * FUN_00181410/FUN_0017e030/FUN_0017e010), so this is a genuine no-op in the
- * original debug build, not an unrecovered stub. */
-void FUN_00184680(void)
+void rasterizer_transparent_geometry_end(void)
 {
 }
 
-/* rasterizer_transparent_geometry dispose counterpart to
- * rasterizer_transparent_geometry_new (0x184260): tears down the vertex
- * cache (FUN_00174cc0), frees the three group/index/vertex buffers if
- * allocated, and zeroes the buffer pointers plus the group/dynamic-vertex
- * counters. Each buffer is freed then zeroed individually (not batched) --
- * matches the disassembly's per-buffer CMP/JZ/CALL/MOV-zero sequence
- * (0x184690). */
-void FUN_00184690(void)
+void rasterizer_transparent_geometry_dispose(void)
 {
-  FUN_00174cc0();
-  if (*(void **)0x4d0cec != 0) {
-    debug_free(
-      *(void **)0x4d0cec,
-      "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0x111);
+  rasterizer_transparent_geometry_dispose_aux_buffer();
+  if (transparent_geometry_groups != NULL) {
+    debug_free(transparent_geometry_groups,
+               RASTERIZER_TRANSPARENT_GEOMETRY_FILE, 0x111);
   }
-  *(void **)0x4d0cec = 0;
-  if (*(void **)0x4d0cfc != 0) {
-    debug_free(
-      *(void **)0x4d0cfc,
-      "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0x114);
+  transparent_geometry_groups = NULL;
+  if (transparent_geometry_group_sorted_indices != NULL) {
+    debug_free(transparent_geometry_group_sorted_indices,
+               RASTERIZER_TRANSPARENT_GEOMETRY_FILE, 0x114);
   }
-  *(void **)0x4d0cfc = 0;
-  if (*(void **)0x4d0cf0 != 0) {
-    debug_free(
-      *(void **)0x4d0cf0,
-      "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c", 0x118);
+  transparent_geometry_group_sorted_indices = NULL;
+  if (transparent_geometry_groups2 != NULL) {
+    debug_free(transparent_geometry_groups2,
+               RASTERIZER_TRANSPARENT_GEOMETRY_FILE, 0x118);
   }
-  *(void **)0x4d0cf0 = 0;
-  *(int *)0x4d0cf8 = 0;
-  *(int *)0x4d0cf4 = 0;
+  transparent_geometry_groups2 = NULL;
+  transparent_geometry_group_count2 = 0;
+  transparent_geometry_group_count = 0;
 }
 
-/* rasterizer_transparent_geometry_stop (0x184710): resets stencil rendering
- * to mode 0 after transparent-geometry rendering. */
 void rasterizer_transparent_geometry_stop(void)
 {
-  FUN_00158ae0(0);
+  rasterizer_set_stencil_mode(0);
 }
 
-/* group_sorted_indices_cmpfn (0x184750): qsort comparator over int16 group
- * indices into the 0xa0-byte transparent geometry group table at 0x4d0cec.
- * cdecl (two stack pointers, plain RET), int result in EAX.
- * Order: a group whose shader (+0x0c) passes shader_is_water_decal sorts
- * first (-1), then the second group's (+1); then a shader whose type word
- * (+0x24) is 7; then the group flag bit 0x80 of the first dword (a set group
- * sorts after a clear one); then the float at +0x70 descending-first (+1
- * when the first is greater, -1 when less); then the int at +0x08 (+1 when
- * greater, -1 when less).  The byte at +0x9d overrides every comparison:
- * a set byte on only one side sorts that side after the other. */
 int group_sorted_indices_cmpfn(const void *a, const void *b)
 {
   const int16_t *group_index1;
   const int16_t *group_index2;
-  char *group1;
-  char *group2;
+  struct transparent_geometry_group *group1;
+  struct transparent_geometry_group *group2;
   int result;
-  int flag1;
+  int first_person1;
   char last1;
   char last2;
 
-  group_index1 = (const int16_t *)a;
-  group_index2 = (const int16_t *)b;
+  group_index1 = a;
+  group_index2 = b;
   result = 0;
   if (group_index1 == NULL || *group_index1 < 0 ||
-      *group_index1 >= *(int *)0x4d0cf4) {
+      *group_index1 >= transparent_geometry_group_count) {
     display_assert("group_index1 && (*group_index1)>=0 && "
                    "(*group_index1)<transparent_geometry_group_count",
-                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_"
-                   "geometry.c",
-                   0x1aa, 1);
+                   RASTERIZER_TRANSPARENT_GEOMETRY_FILE, 0x1aa, 1);
     system_exit(-1);
   }
   if (group_index2 == NULL || *group_index2 < 0 ||
-      *group_index2 >= *(int *)0x4d0cf4) {
+      *group_index2 >= transparent_geometry_group_count) {
     display_assert("group_index2 && (*group_index2)>=0 && "
                    "(*group_index2)<transparent_geometry_group_count",
-                   "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_"
-                   "geometry.c",
-                   0x1ab, 1);
+                   RASTERIZER_TRANSPARENT_GEOMETRY_FILE, 0x1ab, 1);
     system_exit(-1);
   }
-  group1 = *(char **)0x4d0cec + *group_index1 * 0xa0;
-  group2 = *(char **)0x4d0cec + *group_index2 * 0xa0;
-  if (shader_is_water_decal(*(void **)(group1 + 0xc))) {
+  group1 = transparent_geometry_groups + *group_index1;
+  group2 = transparent_geometry_groups + *group_index2;
+  if (shader_is_water_decal(group1->shader)) {
     result = -1;
-  } else if (shader_is_water_decal(*(void **)(group2 + 0xc))) {
+  } else if (shader_is_water_decal(group2->shader)) {
     result = 1;
-  } else if (*(char **)(group1 + 0xc) != NULL &&
-             *(int16_t *)(*(char **)(group1 + 0xc) + 0x24) == 7) {
+  } else if (group1->shader != NULL &&
+             group1->shader->type == _shader_type_transparent_water) {
     result = -1;
-  } else if (*(char **)(group2 + 0xc) != NULL &&
-             *(int16_t *)(*(char **)(group2 + 0xc) + 0x24) == 7) {
+  } else if (group2->shader != NULL &&
+             group2->shader->type == _shader_type_transparent_water) {
     result = 1;
   } else {
-    flag1 = *(int *)group1 & 0x80;
-    if (flag1 != 0 && !(*(signed char *)group2 < 0)) {
+    first_person1 = group1->geometry_flags &
+                    FLAG(_rasterizer_geometry_first_person_bit);
+    if (first_person1 != 0 && (group2->geometry_flags & FLAG(_rasterizer_geometry_first_person_bit)) == 0) {
       result = 1;
-    } else if (flag1 == 0 && *(signed char *)group2 < 0) {
+    } else if (first_person1 == 0 &&
+               (group2->geometry_flags &
+                FLAG(_rasterizer_geometry_first_person_bit)) != 0) {
       result = -1;
-    } else if (*(float *)(group1 + 0x70) > *(float *)(group2 + 0x70)) {
+    } else if (group1->z_sort > group2->z_sort) {
       result = 1;
-    } else if (*(float *)(group1 + 0x70) < *(float *)(group2 + 0x70)) {
+    } else if (group1->z_sort < group2->z_sort) {
       result = -1;
-    } else if (*(int *)(group1 + 0x8) > *(int *)(group2 + 0x8)) {
+    } else if (group1->source_object_index > group2->source_object_index) {
       result = 1;
-    } else if (*(int *)(group1 + 0x8) < *(int *)(group2 + 0x8)) {
+    } else if (group1->source_object_index < group2->source_object_index) {
       result = -1;
     }
   }
-  last1 = *(group1 + 0x9d);
-  last2 = *(group2 + 0x9d);
+  last1 = group1->field_9d;
+  last2 = group2->field_9d;
   if (last1 != 0 && last2 == 0)
     return 1;
   if (last1 == 0 && last2 != 0)
@@ -226,203 +315,176 @@ int group_sorted_indices_cmpfn(const void *a, const void *b)
   return result;
 }
 
-/* rasterizer_sort_internal (0x1848d0): builds the presorted index list for
- * the transparent geometry groups, sorts it, then writes each group's sorted
- * position back into its record.
- *   0x4d0cec  group table, 0xa0-byte records (LEA/SHL 5 on index*5)
- *   0x4d0cf4  group count (the first loop's bound and the qsort count are the
- *             single EAX load at 0x1848d0; the second loop reloads it)
- *   0x4d0cfc  int16 index array (qsort element size 2)
- * The null-group assert (line 0x192) is display_assert + system_exit(-1).
- * The comparator is group_sorted_indices_cmpfn (0x184750).
- * The second loop stores the loop counter (MOVSX EAX,DX before the store) as
- * an int at record +0x90; the record's element index comes from the sorted
- * int16 array (MOVSX ECX,word ptr [EBX+EAX*2]). */
 void rasterizer_sort_internal(void)
 {
   int count;
   int16_t index;
   int16_t *sorted_indices;
-  char *groups;
+  struct transparent_geometry_group *groups;
 
-  count = *(int *)0x4d0cf4;
+  count = transparent_geometry_group_count;
   index = 0;
   if (count > 0) {
     do {
-      if ((char *)(index * 0xa0 + *(int *)0x4d0cec) == 0) {
-        display_assert(
-          "group",
-          "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c",
-          0x192, 1);
+      if (transparent_geometry_groups + index == NULL) {
+        display_assert("group", RASTERIZER_TRANSPARENT_GEOMETRY_FILE, 0x192,
+                       1);
         system_exit(-1);
       }
-      (*(int16_t **)0x4d0cfc)[index] = index;
+      transparent_geometry_group_sorted_indices[index] = index;
       index++;
     } while (index < count);
   }
-  qsort(*(void **)0x4d0cfc, (size_t)count, 2, group_sorted_indices_cmpfn);
-  count = *(int *)0x4d0cf4;
+  qsort(transparent_geometry_group_sorted_indices, (size_t)count,
+        sizeof(*transparent_geometry_group_sorted_indices),
+        group_sorted_indices_cmpfn);
+  count = transparent_geometry_group_count;
   index = 0;
   if (count > 0) {
-    groups = *(char **)0x4d0cec;
-    sorted_indices = *(int16_t **)0x4d0cfc;
+    groups = transparent_geometry_groups;
+    sorted_indices = transparent_geometry_group_sorted_indices;
     do {
-      *(int *)(groups + sorted_indices[index] * 0xa0 + 0x90) = index;
+      groups[sorted_indices[index]].sorted_index = index;
       index++;
     } while (index < count);
   }
 }
 
-/* render_effects (0x184b60)
- *
- * Broadcasts a single cdecl byte argument (the record's first byte, per the
- * caller render_effects_evaluate at 0xbee00) to four adjacent global enable
- * bytes: 0x32574a, 0x32574b, 0x32574c, 0x32574d. All four are set to the same
- * incoming value (000184b63 MOV AL,[EBP+8]; four MOV [addr],AL stores, no
- * branch). 0x32574c is read elsewhere as the particle-system-update gate
- * (particle_systems_render, 0xa1170) and 0x32574b as the scenario particles
- * gate; the other two bytes' readers are not evidenced in this bundle. */
-/* 0x184980 — draw transparent geometry groups in presorted order.  The
- * group-table record is 0xa0 bytes: byte +0 selects the first-person frustum
- * path and pointer +0xc supplies the shader used for the water-decal filter.
- * The index list and the current index are 16-bit; preserve both signed word
- * accesses when walking the table. */
-void FUN_00184980(char param_1)
+void rasterizer_transparent_geometry_draw(char water)
 {
   char first_person_flag;
-  char *group;
+  struct transparent_geometry_group *group;
   int group_index;
   int profile;
-  void *shader;
+  shader_base *shader;
 
-  profile = param_1 != 0 ? 0x13 : 0x16;
-  FUN_0016f910(profile);
-  if (*(int *)0x4d0cf4 > 0) {
+  profile = water != 0 ? _rasterizer_profile_water
+                       : _rasterizer_profile_queued_transparents;
+  rasterizer_profile_begin(profile);
+  if (transparent_geometry_group_count > 0) {
     first_person_flag = 0;
-    if (param_1 != 0) {
+    if (water != 0) {
       rasterizer_sort_internal();
-      *(short *)0x4d0cb8 = 0;
-      if (*(short *)0x5a5bc2 != -1) {
-        *(char *)0x325740 = 1;
+      transparent_geometry_group_index = 0;
+      if (global_window_parameters.window_index != NONE) {
+        rasterizer_transparent_pixel_counter_active = 1;
       }
     }
-    FUN_00174ce0();
-    *(char *)0x325740 = 0;
-    while ((int)*(short *)0x4d0cb8 < *(int *)0x4d0cf4) {
-      group_index = *(short *)(*(int *)0x4d0cfc + (int)*(short *)0x4d0cb8 * 2);
-      group = (char *)(group_index * 0xa0 + *(int *)0x4d0cec);
-      if (param_1 != 0) {
-        shader = *(void **)(group + 0xc);
-        if (shader == 0 || (*(short *)((char *)shader + 0x24) != 7 &&
-                            shader_is_water_decal(shader) == 0)) {
+    rasterizer_transparent_geometry_groups_begin();
+    rasterizer_transparent_pixel_counter_active = 0;
+    while ((int)transparent_geometry_group_index <
+           transparent_geometry_group_count) {
+      group_index = transparent_geometry_group_sorted_indices
+        [transparent_geometry_group_index];
+      group = transparent_geometry_groups + group_index;
+      if (water != 0) {
+        shader = group->shader;
+        if (shader == NULL ||
+            (shader->type != _shader_type_transparent_water &&
+             shader_is_water_decal(shader) == 0)) {
           break;
         }
       }
-      if (*(signed char *)group < 0) {
-        if (param_1 != 0) {
-          display_assert(
-            "!water",
-            "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c",
-            0x154, 1);
+      if ((group->geometry_flags &
+           FLAG(_rasterizer_geometry_first_person_bit)) != 0) {
+        if (water != 0) {
+          display_assert("!water", RASTERIZER_TRANSPARENT_GEOMETRY_FILE, 0x154,
+                         1);
           system_exit(-1);
         }
-        if (*(short *)0x5a5bc0 != 0) {
+        if (global_window_parameters.rasterizer_target !=
+            _rasterizer_target_render_primary) {
           display_assert(
             "global_window_parameters.rasterizer_target==_rasterizer_target_"
             "render_primary",
-            "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c",
-            0x155, 1);
+            RASTERIZER_TRANSPARENT_GEOMETRY_FILE, 0x155, 1);
           system_exit(-1);
         }
         if (first_person_flag == 0) {
-          FUN_00158ae0(0);
-          rasterizer_set_frustum_z(*(float *)0x32569c, *(float *)0x3256a0);
+          rasterizer_set_stencil_mode(0);
+          rasterizer_set_frustum_z(
+            rasterizer_first_person_weapon_near_clip_distance,
+            rasterizer_first_person_weapon_far_clip_distance);
           first_person_flag = 1;
         }
       } else if (first_person_flag != 0) {
-        display_assert(
-          "!first_person_flag",
-          "c:\\halo\\SOURCE\\rasterizer\\rasterizer_transparent_geometry.c",
-          0x163, 1);
+        display_assert("!first_person_flag",
+                       RASTERIZER_TRANSPARENT_GEOMETRY_FILE, 0x163, 1);
         system_exit(-1);
       }
       rasterizer_transparent_geometry_group_draw(group, 0);
-      *(short *)0x4d0cb8 = *(short *)0x4d0cb8 + 1;
+      transparent_geometry_group_index = transparent_geometry_group_index + 1;
     }
-    if (param_1 == 0 && *(short *)0x5a5bc2 != -1) {
-      *(char *)0x325740 = 1;
+    if (water == 0 && global_window_parameters.window_index != NONE) {
+      rasterizer_transparent_pixel_counter_active = 1;
     }
-    FUN_001749b0();
-    *(char *)0x325740 = 0;
+    rasterizer_transparent_geometry_groups_end();
+    rasterizer_transparent_pixel_counter_active = 0;
     if (first_person_flag != 0) {
       rasterizer_set_frustum_z(0.0f, 0.0f);
     }
   }
-  FUN_0016fa40(profile);
+  rasterizer_profile_end(profile);
 }
 
-void render_effects(int a)
+void render_effects(int enable)
 {
-  *(char *)0x32574d = (char)a;
-  *(char *)0x32574c = (char)a;
-  *(char *)0x32574b = (char)a;
-  *(char *)0x32574a = (char)a;
+  render_weather_particle_systems_enabled = (boolean)enable;
+  render_particle_systems_enabled = (boolean)enable;
+  render_particles_enabled = (boolean)enable;
+  render_contrails_enabled = (boolean)enable;
 }
 
 void render_initialize(void)
 {
-  FUN_0018AF90();
+  render_objects_initialize();
 }
 
 void render_initialize_for_new_map(void)
 {
-  FUN_0018afd0();
+  render_objects_initialize_for_new_map();
 }
 
-/* Invalidate the cached render states data if it exists and is valid
- * (0x184ba0). Thunk through 0x18afe0. */
 void j__render_dispose_from_old_map(void)
 {
-  FUN_0018afe0();
+  render_objects_dispose_from_old_map();
 }
 
 void render_dispose(void)
 {
-  FUN_0018B000();
+  render_objects_dispose();
 }
 
-/* Render a window in pregame mode. window_type selects the render path:
- *   0 = full pregame UI (loading screen, menus, bink playback)
- *   1 = inactive window (no player assigned, simpler scene render)
- * Called from render_frame with window_type passed via EBX register. */
 void render_window_pregame(int window_type, int16_t *win)
 {
-  window_parameters_t window_params;
+  render_window_parameters_t window_params;
+  struct render_window *window;
 
+  window = (struct render_window *)win;
   profile_render_window_start(0);
-  csmemset(&window_params, 0, sizeof(window_parameters_t));
+  csmemset(&window_params, 0, sizeof(window_params));
 
-  qmemcpy(&unknown_global_camera, (char *)win + 4, sizeof(camera_t));
-  render_camera_build_frustum(&unknown_global_camera, 0, global_frustum, 1);
+  unknown_global_camera = window->render_camera;
+  render_camera_build_frustum(&unknown_global_camera, 0, &global_frustum, 1);
 
-  qmemcpy(&window_params.camera, (char *)win + 0x58, sizeof(camera_t));
-  render_camera_build_frustum(&window_params.camera, 0, window_params.frustum,
+  window_params.camera = window->rasterizer_camera;
+  render_camera_build_frustum(&window_params.camera, 0, &window_params.frustum,
                               1);
 
   /* set up scene parameters */
-  window_params.unk_0[0] = 0;
-  window_params.unk_0[1] = -1;
-  *((uint8_t *)&window_params + 5) = (window_type == 0);
+  window_params.rasterizer_target = 0;
+  window_params.window_index = NONE;
+  window_params.field_05 = (window_type == 0);
 
-  rasterizer_window_begin(&window_params);
+  rasterizer_window_begin((window_parameters_t *)&window_params);
 
   switch (window_type) {
   case 0:
-    ((void (*)(void))0x0dff70)();
-    ((void (*)(void))0x17e190)();
+    interface_draw_fullscreen_overlays();
+    rasterizer_debug_draw();
     break;
   case 1:
-    ((void (*)(void))0x0af9a0)();
+    game_engine_nonplayer_post_rasterize();
     break;
   default:
     display_assert("!\"unreachable\"", "c:\\halo\\SOURCE\\render\\render.c",
@@ -438,7 +500,7 @@ void render_window_pregame(int window_type, int16_t *win)
 void render_frame_pregame(pregame_render_info_t *pregame_info,
                           void *main_globals_movie)
 {
-  window_parameters_t window_parameters;
+  render_window_parameters_t window_parameters;
   float elapsed[2];
   float progress;
 
@@ -446,18 +508,16 @@ void render_frame_pregame(pregame_render_info_t *pregame_info,
   rasterizer_frame_begin(elapsed);
   rasterizer_windows_begin();
   profile_render_window_start(0);
-  csmemset(&window_parameters, 0, 0x258u);
+  csmemset(&window_parameters, 0, sizeof(window_parameters));
 
-  qmemcpy(&unknown_global_camera, &pregame_info->cam0,
-          sizeof(unknown_global_camera));
-  render_camera_build_frustum(&unknown_global_camera, 0, global_frustum, 1);
+  unknown_global_camera = pregame_info->cam0;
+  render_camera_build_frustum(&unknown_global_camera, 0, &global_frustum, 1);
 
-  qmemcpy(&window_parameters.camera, &pregame_info->cam1,
-          sizeof(window_parameters.camera));
+  window_parameters.camera = pregame_info->cam1;
   render_camera_build_frustum(&window_parameters.camera, 0,
-                              window_parameters.frustum, 1);
-  window_parameters.unk_0[0] = 0;
-  rasterizer_window_begin(&window_parameters);
+                              &window_parameters.frustum, 1);
+  window_parameters.rasterizer_target = 0;
+  rasterizer_window_begin((window_parameters_t *)&window_parameters);
   render_ui_widgets(0, &pregame_info->cam1.viewport_bounds);
   bink_playback_render();
   if (game_map_loading_in_progress(&progress)) {
@@ -471,114 +531,69 @@ void render_frame_pregame(pregame_render_info_t *pregame_info,
 
 void render_frame_present(_WORD *a1, void *a2)
 {
-  ((void (*)(_WORD *, void *))0x17c930)(a2, a1);
+  rasterizer_present(a2, a1);
 }
 
-/* render_location_visible (0x184de0): test the location's cluster bit in the
- * visible-cluster bit vector at 0x50678c. The cluster index is the int16 at
- * location+0x4 (CMP word [ESI+4],0 / JL; MOVSX ECX,word [ESI+4]); it is
- * bounds-checked against the dword count at +0x134 of the structure returned
- * by 0x18e3c0 (kb: scenario_get; the assert text names it
- * global_structure_bsp_get()). The bit test re-reads the word (MOVSX EDX),
- * masks the shift with AND ECX,0x1f and indexes by SAR EDX,5 (signed), and
- * NEG/SBB/NEG yields (bit != 0). Assert line 0x248. */
-/* File-local bit-vector test helper (no out-of-line copy in the binary).
- * The reference materializes the test as an int (NEG/SBB/NEG) before the
- * char return; an inline int-returning test reproduces that, whereas a direct
- * char-typed `!= 0` compiles to TEST/SETNE. */
+/* keep: an int-returning test (NEG/SBB/NEG); a char `!= 0` compiles to
+ * TEST/SETNE. */
 static __inline int render_bit_vector_test(const unsigned int *vector,
                                            int bit)
 {
   return ((1 << (bit & 0x1f)) & vector[bit >> 5]) != 0;
 }
 
-char render_location_visible(void *location)
+char render_location_visible(const location_t *location)
 {
-  int16_t *cluster_index;
-
-  cluster_index = (int16_t *)((char *)location + 0x4);
-  if (*cluster_index < 0 ||
-      *cluster_index >= *(int *)((char *)scenario_get() + 0x134)) {
+  if (location->cluster_index < 0 ||
+      location->cluster_index >= global_structure_bsp_get()->clusters.count) {
     display_assert("location->cluster_index>=0 && "
                    "location->cluster_index<global_structure_bsp_get()->"
                    "clusters.count",
                    "c:\\halo\\SOURCE\\render\\render.c", 0x248, 1);
     system_exit(-1);
   }
-  return (char)render_bit_vector_test((unsigned int *)0x50678c,
-                                      *cluster_index);
+  return (char)render_bit_vector_test(render_visible_cluster_bits,
+                                      location->cluster_index);
 }
 
-/* rendered_cluster_get (0x184e50): bounds-checked accessor into the
- * rendered-cluster array. Index and count (*0x5137cc) are compared as
- * signed int16 (MOV SI,[EBP+8]; TEST SI,SI/JL; CMP SI,word[0x5137cc]/JL);
- * each element is 0x1a0 (416) bytes at base 0x5067cc (MOVSX EAX,SI;
- * IMUL EAX,EAX,0x1a0; ADD EAX,0x5067cc — the decompiler's "*0xd0" is a
- * mis-rendered immediate, disassembly is authoritative). Caller
- * FUN_00198070 (structures.c) treats the result as int16_t*, so element
- * layout is not yet a named struct. */
 void *rendered_cluster_get(int rendered_cluster_index)
 {
   int16_t index;
 
   index = (int16_t)rendered_cluster_index;
-  if (index < 0 || index >= *(int16_t *)0x5137cc) {
+  if (index < 0 || index >= render_rendered_cluster_count) {
     display_assert("rendered_cluster_index>=0 && "
                    "rendered_cluster_index<render.rendered_cluster_count",
                    "c:\\halo\\SOURCE\\render\\render.c", 0x250, 1);
     system_exit(-1);
   }
-  return (char *)0x5067cc + index * 0x1a0;
+  return render_rendered_clusters + index * RENDERED_CLUSTER_SIZE;
 }
 
-/* render_scene (0x184ea0): render one scene pass for a window.
- * player_index arrives in EBX (@<ebx>) and is pushed on to
- * player_effect_get_screen_flash (0x184f50) and render_ui_widgets
- * (0x185242). Stack args: [EBP+8] render_cam, [EBP+0xc] render_frustum,
- * [EBP+0x10] rasterizer_cam, [EBP+0x14] rasterizer_frustum, [EBP+0x18]
- * pass_type (word), [EBP+0x1c] reflected (byte).
- *
- * Local window-parameter block is 0x258 bytes at [EBP-0x258] (csmemset size):
- *   +0x000 word  pass_type
- *   +0x002 word  copy of *(int16_t *)0x50654a (window index, set by
- *                render_frame)
- *   +0x004 byte  reflected
- *   +0x008 0x54  rasterizer camera copy (REP MOVSD ECX=0x15)
- *   +0x05c 0x18c rasterizer frustum copy (REP MOVSD ECX=0x63)
- *   +0x1e8 0x50  copy of 0x506730 (fog block written by render_window;
- *                REP MOVSD ECX=0x14 into [EBP-0x70])
- *   +0x238       screen flash, filled by player_effect_get_screen_flash
- *                ([EBP-0x20]); read back as 0x5a5bc0+0x238 = 0x5a5df8 by
- *                FUN_00171bc0 after rasterizer_window_begin copies the block.
- * The render camera/frustum go to 0x506550 (0x54) and 0x5065a4 (0x18c).
- *
- * The five rendered-cluster loops inline rendered_cluster_get (same assert
- * string, render.c line 0x250) and push the element's first word
- * zero-extended (XOR reg,reg; MOV reg16,[elem]). The whole scene body is
- * skipped while bink_playback_has_video() is true (TEST AL,AL; JNZ). */
-void render_scene(int16_t player_index, void *render_cam, void *render_frustum,
-                  void *rasterizer_cam, void *rasterizer_frustum,
-                  int16_t pass_type, char reflected)
+void render_scene(int16_t player_index, camera_t *render_cam,
+                  render_frustum_t *render_frustum, camera_t *rasterizer_cam,
+                  render_frustum_t *rasterizer_frustum, int16_t pass_type,
+                  char reflected)
 {
-  window_parameters_t window_params;
+  render_window_parameters_t window_params;
   int16_t i;
 
   profile_render_window_start(1);
-  *(int *)0x506544 = *(int *)0x506544 + 1;
-  csmemset(&window_params, 0, sizeof(window_parameters_t));
-  *(int16_t *)0x506548 = player_index;
-  qmemcpy(&unknown_global_camera, render_cam, sizeof(camera_t));
-  qmemcpy(global_frustum, render_frustum, 0x18c);
-  qmemcpy(&window_params.camera, rasterizer_cam, sizeof(camera_t));
-  qmemcpy(window_params.frustum, rasterizer_frustum, 0x18c);
-  window_params.unk_0[0] = pass_type;
-  *((char *)&window_params + 4) = reflected;
-  window_params.unk_0[1] = *(int16_t *)0x50654a;
-  qmemcpy((char *)&window_params + 0x1e8, (void *)0x506730, 0x50);
+  render_scene_index = render_scene_index + 1;
+  csmemset(&window_params, 0, sizeof(window_params));
+  render.local_player_index = player_index;
+  unknown_global_camera = *render_cam;
+  global_frustum = *render_frustum;
+  window_params.camera = *rasterizer_cam;
+  window_params.frustum = *rasterizer_frustum;
+  window_params.rasterizer_target = pass_type;
+  window_params.has_mirror = reflected;
+  window_params.window_index = render_window_index;
+  window_params.fog = render_fog_parameters;
   render_structure_visibility();
   player_effect_get_screen_flash(player_index,
-                                 (char *)&window_params + 0x238);
-  rasterizer_window_begin(&window_params);
+                                 window_params.screen_flash);
+  rasterizer_window_begin((window_parameters_t *)&window_params);
 
   if (!bink_playback_has_video()) {
     scenario_fog_region_get_fog_index();
@@ -586,147 +601,157 @@ void render_scene(int16_t player_index, void *render_cam, void *render_frustum,
     first_person_weapon_render_update();
     lights_preprocess_scene();
     render_objects();
-    FUN_001959f0();
-    FUN_00195b10();
-    FUN_00181a90();
+    structure_render_preprocess();
+    structure_render_lightmaps();
+    rasterizer_lens_flares_submit_occlusion_tests();
     scenario_test_pas();
     lights_render_diffuse();
 
-    FUN_0017cb20(2);
-    for (i = 0; i < *(int16_t *)0x5137cc; i++) {
-      FUN_0017cb30(*(uint16_t *)rendered_cluster_get(i));
+    rasterizer_decals_begin(_decal_layer_light);
+    for (i = 0; i < render_rendered_cluster_count; i++) {
+      rasterizer_decals_draw(*(uint16_t *)rendered_cluster_get(i));
     }
-    FUN_0017cb40();
+    rasterizer_decals_end();
 
-    FUN_0017cb20(3);
-    for (i = 0; i < *(int16_t *)0x5137cc; i++) {
-      FUN_0017cb30(*(uint16_t *)rendered_cluster_get(i));
+    rasterizer_decals_begin(_decal_layer_alpha_tested);
+    for (i = 0; i < render_rendered_cluster_count; i++) {
+      rasterizer_decals_draw(*(uint16_t *)rendered_cluster_get(i));
     }
-    FUN_0017cb40();
+    rasterizer_decals_end();
 
-    FUN_00195bc0();
+    structure_render_diffuse_texture();
 
-    FUN_0017cb20(0);
-    for (i = 0; i < *(int16_t *)0x5137cc; i++) {
-      FUN_0017cb30(*(uint16_t *)rendered_cluster_get(i));
+    rasterizer_decals_begin(_decal_layer_primary);
+    for (i = 0; i < render_rendered_cluster_count; i++) {
+      rasterizer_decals_draw(*(uint16_t *)rendered_cluster_get(i));
     }
-    FUN_0017cb40();
+    rasterizer_decals_end();
 
-    FUN_0017cb20(1);
-    for (i = 0; i < *(int16_t *)0x5137cc; i++) {
-      FUN_0017cb30(*(uint16_t *)rendered_cluster_get(i));
+    rasterizer_decals_begin(_decal_layer_secondary);
+    for (i = 0; i < render_rendered_cluster_count; i++) {
+      rasterizer_decals_draw(*(uint16_t *)rendered_cluster_get(i));
     }
-    FUN_0017cb40();
+    rasterizer_decals_end();
 
     lights_render_specular();
-    FUN_00195c40();
-    FUN_00195cb0();
-    FUN_00195d00();
-    FUN_00195d40();
-    FUN_00195dc0();
-    FUN_00195e40();
+    structure_render_specular_lightmaps();
+    structure_render_reflection_lightmap_masks();
+    structure_render_reflection_mirrors();
+    structure_render_reflections();
+    structure_render_transparent_geometry();
+    structure_render_fog();
     get_postgame_hilite_colors();
-    FUN_000a54b0();
-    FUN_0018c5b0();
+    weather_particle_systems_render();
+    render_particles();
     particle_systems_render();
     render_contrails_normal();
-    FUN_00184980(1);
+    rasterizer_transparent_geometry_draw(1);
 
-    FUN_0017cb20(4);
-    for (i = 0; i < *(int16_t *)0x5137cc; i++) {
-      FUN_0017cb30(*(uint16_t *)rendered_cluster_get(i));
+    rasterizer_decals_begin(_decal_layer_water);
+    for (i = 0; i < render_rendered_cluster_count; i++) {
+      rasterizer_decals_draw(*(uint16_t *)rendered_cluster_get(i));
     }
-    FUN_0017cb40();
+    rasterizer_decals_end();
 
-    FUN_00193c00();
-    FUN_00184980(0);
+    structure_render_detail_objects();
+    rasterizer_transparent_geometry_draw(0);
     rasterizer_transparent_geometry_stop();
-    FUN_00195ec0();
-    FUN_00181c20();
+    structure_render_fog_screen();
+    rasterizer_lens_flares_draw();
     interface_draw_screen();
     rasterizer_screen_flash();
     render_ui_widgets(player_index,
-                      &((camera_t *)rasterizer_cam)->viewport_bounds);
+                      &rasterizer_cam->viewport_bounds);
   }
 
   bink_playback_render();
-  render_camera_debug_frustum(&unknown_global_camera, global_frustum);
-  FUN_0018ac50();
-  FUN_000977e0();
-  FUN_0017e190();
+  render_camera_debug_frustum(&unknown_global_camera, &global_frustum);
+  render_debug();
+  editor_render();
+  rasterizer_debug_draw();
   rasterizer_window_end();
   profile_render_window_end();
 }
 
-/* Render a single game window. win is the window struct (passed via ESI in the
- * original binary). offset_or_null points to a packed (x_tile, y_tile) pair
- * for split-screen tile subdivision, or NULL for full-screen rendering.
- * Handles fog distance clamping, camera frustum setup, optional water/sky
- * reflection rendering, and the main scene render pass. */
 void render_window(int16_t *win, void *offset_or_null)
 {
-  char *esi = (char *)win;
-  char *render_cam = esi + 4;
-  char *rasterizer_cam = esi + 0x58;
-  float bounds[4];
-  int rendered_reflection = 0;
-  char reflection_info[28];
+  struct render_window *window = (struct render_window *)win;
+  camera_t *render_cam = &window->render_camera;
+  camera_t *rasterizer_cam = &window->rasterizer_camera;
+  real_rectangle2d frustum_bounds;
+  char rendered_reflection = 0;
+  render_reflection_t reflection;
   camera_t reflection_cam;
-  float render_frustum[99];
-  float rasterizer_frustum[99];
-  float reflection_frustum[99];
+  render_frustum_t render_frustum;
+  render_frustum_t rasterizer_frustum;
+  render_frustum_t reflection_frustum;
 
   /* initialize render pass for this camera */
-  ((void (*)(void *))0x1965f0)(render_cam);
+  structure_visibility_find_camera(render_cam);
 
   /* update render globals from scene */
-  *(int16_t *)0x506732 = 0;
-  FUN_0018fbc0(*(int16_t *)esi, (int)(uint16_t) * (int16_t *)0x50678a,
-               (const float *)render_cam, (char *)0x506730);
-  ((void (*)(int, void *))0x198f10)((int)(uint16_t) * (int16_t *)0x506784,
-                                    (void *)0x506730);
+  render_fog_parameters.runtime_flags = 0;
+  scenario_get_atmospheric_fog(
+    window->local_player_index, (int)(uint16_t)render_visible_sky_index,
+    &render_cam->position, &render_fog_parameters);
+  FUN_00198f10((int)(uint16_t)render_cluster_index, &render_fog_parameters);
 
   /* track closest fog distance when BSP index is unknown */
-  if (*(float *)0x506748 != *(float *)0x2533c0) {
-    if (*(int16_t *)0x50678a == -1 && *(float *)0x506770 > *(float *)0x506748) {
-      *(float *)0x506770 = *(float *)0x506748;
+  if (render_fog_parameters.atmospheric_maximum_distance !=
+      k_real_zero) {
+    if (render_visible_sky_index == NONE &&
+        render_fog_parameters.planar_maximum_distance >
+          render_fog_parameters.atmospheric_maximum_distance) {
+      render_fog_parameters.planar_maximum_distance =
+        render_fog_parameters.atmospheric_maximum_distance;
     }
   }
 
   /* clamp z_far to fog distance when fog type matches */
-  if (*(float *)0x506740 == *(float *)0x2533c8 &&
-      *(float *)0x506748 != *(float *)0x2533c0) {
-    float fog = *(float *)0x506748;
-    if (fog < *(float *)(esi + 0x44))
-      *(float *)(esi + 0x44) = fog;
+  if (render_fog_parameters.atmospheric_maximum_density == k_real_one &&
+      render_fog_parameters.atmospheric_maximum_distance !=
+        k_real_zero) {
+    window->render_camera.z_far =
+      window->render_camera.z_far >
+          render_fog_parameters.atmospheric_maximum_distance ?
+        render_fog_parameters.atmospheric_maximum_distance :
+        window->render_camera.z_far;
   }
 
   /* clamp z_far to closest fog in mode 2 */
-  if (*(int16_t *)0x50674c == 2 && *(float *)0x506770 != *(float *)0x2533c0) {
-    float fog = *(float *)0x506770;
-    if (fog < *(float *)(esi + 0x44))
-      *(float *)(esi + 0x44) = fog;
+  if (render_fog_parameters.planar_mode ==
+        _render_planar_fog_mode_fully_fogged &&
+      render_fog_parameters.planar_maximum_distance != k_real_zero) {
+    window->render_camera.z_far =
+      window->render_camera.z_far >
+          render_fog_parameters.planar_maximum_distance ?
+        render_fog_parameters.planar_maximum_distance :
+        window->render_camera.z_far;
   }
 
   /* fog sanity: z_far must exceed z_near */
-  if (*(float *)(esi + 0x44) <= *(float *)(esi + 0x40)) {
-    if (!*(uint8_t *)0x4d0d02) {
+  if (window->render_camera.z_far <= window->render_camera.z_near) {
+    if (!render_invalid_fog_warning_displayed) {
       error(2, "### ERROR something is wrong with the fog in the "
                "sky tag or the fog tag");
-      *(uint8_t *)0x4d0d02 = 1;
+      render_invalid_fog_warning_displayed = 1;
     }
-    *(float *)(esi + 0x44) = *(float *)(esi + 0x40) + *(float *)0x25bb10;
+    window->render_camera.z_far = window->render_camera.z_near + 0.01f;
   }
 
   /* assert viewport and window bounds match between cameras */
-  if (((int (*)(void *, void *, int))0x8da40)(esi + 0x30, esi + 0x84, 8) != 0) {
+  if (csmemcmp(&window->render_camera.viewport_bounds,
+               &window->rasterizer_camera.viewport_bounds,
+               sizeof(viewport_bounds_t)) != 0) {
     display_assert("!memcmp(&window->render_camera.viewport_bounds, "
                    "&window->rasterizer_camera.viewport_bounds, "
                    "sizeof(rectangle2d))",
                    "c:\\halo\\SOURCE\\render\\render.c", 0xbb, 1);
     system_exit(-1);
   }
-  if (((int (*)(void *, void *, int))0x8da40)(esi + 0x38, esi + 0x8c, 8) != 0) {
+  if (csmemcmp(&window->render_camera.window_bounds,
+               &window->rasterizer_camera.window_bounds,
+               sizeof(viewport_bounds_t)) != 0) {
     display_assert("!memcmp(&window->render_camera.window_bounds, "
                    "&window->rasterizer_camera.window_bounds, "
                    "sizeof(rectangle2d))",
@@ -734,57 +759,63 @@ void render_window(int16_t *win, void *offset_or_null)
     system_exit(-1);
   }
 
-  /* compute frustum bounds from the render camera */
-  ((void (*)(void *, float *))0x185950)(render_cam, bounds);
+  render_camera_build_frustum_bounds(render_cam, &frustum_bounds);
 
-  /* split-screen tile adjustment: narrow bounds to this tile */
   if (offset_or_null != NULL) {
-    int16_t *tile = (int16_t *)offset_or_null;
-    int total = (int)*(int16_t *)0x31fa98 * (int)*(int16_t *)0x46e008;
-    if (total > 0) {
-      float tw = (bounds[1] - bounds[0]) / (float)total;
-      float th = (bounds[3] - bounds[2]) / (float)total;
-      int y_idx = total - (int)tile[1] - 1;
-      float x0 = (float)(int)tile[0] * tw + bounds[0];
-      float y0 = (float)y_idx * th + bounds[2];
-      bounds[0] = x0;
-      bounds[1] = x0 + tw;
-      bounds[2] = y0;
-      bounds[3] = y0 + th;
+    const int16_t *screenshot_combined_index = offset_or_null;
+    int tile_count;
+
+    tile_count = global_screenshot_count * global_screenshot_size;
+    if (tile_count > 0) {
+      real tile_width;
+      real tile_height;
+      real_rectangle2d adjusted_bounds;
+
+      tile_width = (frustum_bounds.x1 - frustum_bounds.x0) / (real)tile_count;
+      tile_height = (frustum_bounds.y1 - frustum_bounds.y0) / (real)tile_count;
+      adjusted_bounds.x0 =
+        (real)screenshot_combined_index[0] * tile_width + frustum_bounds.x0;
+      adjusted_bounds.y0 =
+        (real)(tile_count - screenshot_combined_index[1] - 1) * tile_height +
+        frustum_bounds.y0;
+      adjusted_bounds.x1 = adjusted_bounds.x0 + tile_width;
+      adjusted_bounds.y1 = adjusted_bounds.y0 + tile_height;
+      frustum_bounds = adjusted_bounds;
     }
   }
 
   /* build projection frustums for both cameras */
-  render_camera_build_frustum((camera_t *)render_cam, bounds, render_frustum,
-                              1);
-  render_camera_build_frustum((camera_t *)rasterizer_cam, bounds,
-                              rasterizer_frustum, 1);
+  render_camera_build_frustum(render_cam, &frustum_bounds, &render_frustum, 1);
+  render_camera_build_frustum(rasterizer_cam, &frustum_bounds,
+                              &rasterizer_frustum, 1);
 
   /* reflection rendering (single player local only) */
   if (game_connection() == 1) {
-    char has_refl = ((char (*)(void *, void *, void *))0x1975e0)(
-      render_cam, render_frustum, reflection_info);
+    char has_refl = structure_visibility_find_mirror(render_cam, &render_frustum,
+                                                     &reflection);
     if (has_refl) {
-      int saved_bsp = *(int *)0x506784;
+      int saved_bsp = render_cluster_index;
 
       /* reflection requires full-screen viewport */
-      if (*(int16_t *)(esi + 0x32) != 0) {
+      if (window->render_camera.viewport_bounds.x0 != 0) {
         display_assert("window->render_camera.viewport_bounds.x0==0",
                        "c:\\halo\\SOURCE\\render\\render.c", 0xe1, 1);
         system_exit(-1);
       }
-      if (*(int16_t *)(esi + 0x30) != 0) {
+      if (window->render_camera.viewport_bounds.y0 != 0) {
         display_assert("window->render_camera.viewport_bounds.y0==0",
                        "c:\\halo\\SOURCE\\render\\render.c", 0xe2, 1);
         system_exit(-1);
       }
-      if (*(int16_t *)(esi + 0x36) != 0x280) {
+      if (window->render_camera.viewport_bounds.x1 !=
+          RASTERIZER_TARGET_RENDER_PRIMARY_WIDTH) {
         display_assert("window->render_camera.viewport_bounds.x1=="
                        "RASTERIZER_TARGET_RENDER_PRIMARY_WIDTH",
                        "c:\\halo\\SOURCE\\render\\render.c", 0xe3, 1);
         system_exit(-1);
       }
-      if (*(int16_t *)(esi + 0x34) != 0x1e0) {
+      if (window->render_camera.viewport_bounds.y1 !=
+          RASTERIZER_TARGET_RENDER_PRIMARY_HEIGHT) {
         display_assert("window->render_camera.viewport_bounds.y1=="
                        "RASTERIZER_TARGET_RENDER_PRIMARY_HEIGHT",
                        "c:\\halo\\SOURCE\\render\\render.c", 0xe4, 1);
@@ -792,31 +823,32 @@ void render_window(int16_t *win, void *offset_or_null)
       }
 
       /* build reflection camera and frustum */
-      ((void (*)(void *, void *, void *))0x186ef0)(render_cam, reflection_info,
-                                                   &reflection_cam);
-      render_camera_build_frustum(&reflection_cam, bounds, reflection_frustum,
+      render_camera_mirror(render_cam, &reflection.mirror,
+                           &reflection_cam);
+      render_camera_build_frustum(&reflection_cam, &frustum_bounds, &reflection_frustum,
                                   1);
 
       /* render reflection to secondary target */
-      ((void (*)(int))0x17c960)(0);
-      *(int *)0x506784 = (int)*(int16_t *)(reflection_info + 0x18);
+      rasterizer_profile_enable(0);
+      render_cluster_index = reflection.cluster_index;
 
-      render_scene(-1, &reflection_cam, reflection_frustum, &reflection_cam,
-                   reflection_frustum, 1, 0);
+      render_scene(-1, &reflection_cam, &reflection_frustum, &reflection_cam,
+                   &reflection_frustum, 1, 0);
 
       /* restore BSP and switch back to main render target */
-      *(int *)0x506784 = saved_bsp;
-      ((void (*)(int))0x17c960)(1);
+      render_cluster_index = saved_bsp;
+      rasterizer_profile_enable(1);
 
       rendered_reflection = 1;
     }
   }
 
-  render_scene(*(int16_t *)win, render_cam, render_frustum, rasterizer_cam,
-               rasterizer_frustum, 0, (char)rendered_reflection);
+  render_scene(window->local_player_index, render_cam, &render_frustum,
+               rasterizer_cam, &rasterizer_frustum, 0,
+               (char)rendered_reflection);
 }
 
-void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
+void render_frame(void *a2, int16_t a3, const int16_t *a4, const int16_t *a5, void *a6,
                   float a7)
 {
   int16_t i;
@@ -825,16 +857,16 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
   int tick;
   int16_t offset[2];
 
-  *(int32_t *)0x506540 += 1;
-  *(float *)0x50654c = a7;
+  render_frame_index += 1;
+  render_time_delta_since_tick = a7;
   csmemset(elapsed, 0, 8);
   tick = game_time_get();
-  elapsed[0] = (float)tick * *(float *)0x2546a4;
+  elapsed[0] = (float)tick * (1.0f / 30.0f);
   rasterizer_frame_begin(elapsed);
   rasterizer_windows_begin();
-  win = (int16_t *)a2;
+  win = a2;
   for (i = 0; i < a3; i++) {
-    *(int16_t *)0x50654a = i;
+    render_window_index = i;
     if ((char)win[1] != '\0') {
       render_window_pregame(0, win);
     } else if (win[0] == -1) {
@@ -842,15 +874,14 @@ void render_frame(void *a2, __int16 a3, _WORD *a4, _WORD *a5, void *a6,
     } else {
       if (a5 != NULL && a4 != NULL) {
         offset[0] =
-          (int16_t)(*(int16_t *)a4 * *(int16_t *)0x31fa98 + *(int16_t *)a5);
-        offset[1] = (int16_t)(((int16_t *)a4)[1] * *(int16_t *)0x31fa98 +
-                              ((int16_t *)a5)[1]);
+          (int16_t)(a4[0] * global_screenshot_count + a5[0]);
+        offset[1] = (int16_t)(a4[1] * global_screenshot_count + a5[1]);
       }
-      render_window(win, a5 != NULL ? (void *)offset : NULL);
+      render_window(win, a5 != NULL ? offset : NULL);
     }
     win += 0x56;
   }
-  ((void (*)(void))0xe28e0)();
+  progress_bar_eachframe();
   rasterizer_windows_end();
   rasterizer_frame_end();
 }

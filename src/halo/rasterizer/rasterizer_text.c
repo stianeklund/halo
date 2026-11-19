@@ -939,7 +939,7 @@ void FUN_00181180(void)
   unsigned char old_alpha; /* *alpha_ptr before the blend (AL) */
   unsigned char new_alpha; /* clamped alpha ratio (CL) */
 
-  FUN_0016f910(0x18);
+  rasterizer_profile_begin(0x18);
 
   if (*(char *)0x3256d7 != 0 && *(short *)0x46e008 <= 1 &&
       (*(short *)0x46e008 != 1 || *(short *)0x31fa98 <= 1)) {
@@ -991,7 +991,7 @@ void FUN_00181180(void)
     *(int *)0x4d0480 = 0;
   }
 
-  FUN_0016fa40(0x18);
+  rasterizer_profile_end(0x18);
 }
 
 /* rasterizer_lights_reset_stat: zero stat counter at 0x5a37e0 (0x1812b0) */
@@ -1235,7 +1235,7 @@ void rasterizer_lens_flare_submit_for_cluster(short param_1)
     dir[2] = (float)dir_z * *(float *)0x2820c0;
 
     /* Compute perpendicular and normalize both */
-    perpendicular3d(dir, perp);
+    perpendicular3d((const real_vector3d *)dir, (real_vector3d *)perp);
     normalize3d((real_vector3d *)dir);
     normalize3d((real_vector3d *)perp);
 
@@ -1264,8 +1264,8 @@ void rasterizer_lens_flare_submit_for_cluster(short param_1)
 
 /* lens_flare_occlusion_submit: for each queued lens flare entry, compute the
  * occlusion test position and submit via FUN_0017d030. Wrapped by
- * FUN_0016f910/FUN_0016fa40 rasterizer widget begin/end. (0x181a90) */
-void FUN_00181a90(void)
+ * rasterizer_profile_begin/rasterizer_profile_end rasterizer widget begin/end. (0x181a90) */
+void rasterizer_lens_flares_submit_occlusion_tests(void)
 {
   int *entry; /* pointer to queued lens flare slot (from FUN_00181020) */
   int definition; /* *entry = definition tag ptr */
@@ -1276,7 +1276,7 @@ void FUN_00181a90(void)
   real_vector3d pos; /* occlusion test position */
   short screenshot_count;
 
-  FUN_0016f910(0x17);
+  rasterizer_profile_begin(0x17);
 
   if (*(char *)0x3256d7 != 0 &&
       (screenshot_count = *(short *)0x46e008) <= 1 &&
@@ -1323,7 +1323,7 @@ void FUN_00181a90(void)
     FUN_0017d020();
   }
 
-  FUN_0016fa40(0x17);
+  rasterizer_profile_end(0x17);
 }
 
 /* rasterizer_lights_draw_lens_flares: render all queued lens flare reflections
@@ -1332,7 +1332,7 @@ void FUN_00181a90(void)
  * then for each reflection element calls the widget draw path
  * (FUN_0017d010 / FUN_0017b7d0). A second pass renders sun-glow overlays
  * (DAT_003256fe guard). (0x181c20) */
-void FUN_00181c20(void)
+void rasterizer_lens_flares_draw(void)
 {
   /* atan2 from libm (used for flare screen-angle computation) */
   extern double atan2(double, double);
@@ -1419,7 +1419,7 @@ void FUN_00181c20(void)
   int iVar1; /* iVar1 = i * 0x28 */
   float *camera_forward_x;
 
-  FUN_0016f910(0x19);
+  rasterizer_profile_begin(0x19);
 
   if (*(char *)0x3256d7 == '\0' || *(short *)0x5a5bc0 != 0 ||
       *(int *)0x4d0480 <= 0) {
@@ -1719,7 +1719,7 @@ void FUN_00181c20(void)
                     anim_color[3] = anim_color[3] * anim_rgb[2];
                   }
 
-                  color = real_argb_color_to_pixel32(anim_color);
+                  color = real_argb_color_to_pixel32((const real_argb_color *)anim_color);
                   tex_flags = *(unsigned int *)((char *)refl + 0x40);
                 }
 
@@ -1779,7 +1779,7 @@ void FUN_00181c20(void)
                 } else {
                   stencil_mode = 0;
                 }
-                FUN_00158ae0((short)stencil_mode);
+                rasterizer_set_stencil_mode((short)stencil_mode);
 
                 /* Draw the lens flare reflection:
                  * FUN_0017d010(&pos, refl_size, &scale2d,
@@ -1804,7 +1804,7 @@ void FUN_00181c20(void)
     } while (i < lf_count);
   }
 
-  FUN_00158ae0(0);
+  rasterizer_set_stencil_mode(0);
   FUN_0017d020(); /* CALL 0x17d020 (thunk to 0x17ad90) at 0x182428 */
 
   /* Second pass: render sun glow overlays (DAT_003256fe guard) */
@@ -1841,7 +1841,7 @@ void FUN_00181c20(void)
   }
 
 cleanup:
-  FUN_0016fa40(0x19);
+  rasterizer_profile_end(0x19);
 }
 
 /* rasterizer_memory_pool.c */

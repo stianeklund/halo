@@ -5,12 +5,12 @@ void _rasterizer_environment_lightmap_end(void)
 }
 
 /* 0x160920 — end rasterizer profile section 3.
- * Binary: PUSH 0x3 / CALL FUN_0016fa40 / POP ECX / RET.
- * FUN_0016fa40 takes an int16_t profile index; the semantic role of the
+ * Binary: PUSH 0x3 / CALL rasterizer_profile_end / POP ECX / RET.
+ * rasterizer_profile_end takes an int16_t profile index; the semantic role of the
  * index is unproven. */
 void _rasterizer_environment_lightmaps_end(void)
 {
-  FUN_0016fa40(3);
+  rasterizer_profile_end(3);
 }
 
 /* 0x160930 — empty body.
@@ -21,21 +21,21 @@ void _rasterizer_environment_diffuse_light_end(void)
 
 /* 0x160940 — begin the HUD rasterizer profile section.
  * Binary: PUSH 0x5 / CALL 0x16fa40 / POP ECX / RET.
- * FUN_0016fa40 takes an int16_t profile index; the semantic role of the
+ * rasterizer_profile_end takes an int16_t profile index; the semantic role of the
  * callee and of index 5 is unproven (no assert or string evidence). */
 void _rasterizer_hud_begin(void)
 {
-  FUN_0016fa40(5);
+  rasterizer_profile_end(5);
 }
 
 /* 0x160950 — end diffuse-texture scope.
- * Binary: PUSH 2 / CALL FUN_00158ae0 / PUSH 8 / CALL FUN_0016fa40 /
+ * Binary: PUSH 2 / CALL rasterizer_set_stencil_mode / PUSH 8 / CALL rasterizer_profile_end /
  * ADD ESP,8 / RET. Call order and profile index are binary-fixed; their
  * semantic roles are unproven. */
 void _rasterizer_environment_diffuse_textures_end(void)
 {
-  FUN_00158ae0(2);
-  FUN_0016fa40(8);
+  rasterizer_set_stencil_mode(2);
+  rasterizer_profile_end(8);
 }
 
 /* 0x160970 — empty body.
@@ -45,11 +45,11 @@ void _rasterizer_hud_end(void)
 }
 
 /* 0x160980 — end rasterizer profile section 0xb.
- * Binary: PUSH 0xb / CALL FUN_0016fa40 / POP ECX / RET.
+ * Binary: PUSH 0xb / CALL rasterizer_profile_end / POP ECX / RET.
  * The profile index semantic role is unproven. */
 void _rasterizer_environment_specular_lights_end(void)
 {
-  FUN_0016fa40(0xb);
+  rasterizer_profile_end(0xb);
 }
 
 /* 0x160990 — empty body.
@@ -59,12 +59,12 @@ void FUN_00160990(void)
 }
 
 /* 0x1609a0 — end rasterizer profile section 0xc.
- * Binary: PUSH 0xc / CALL FUN_0016fa40 / POP ECX / RET.
- * FUN_0016fa40 takes an int16_t profile index; the semantic role of the
+ * Binary: PUSH 0xc / CALL rasterizer_profile_end / POP ECX / RET.
+ * rasterizer_profile_end takes an int16_t profile index; the semantic role of the
  * index is unproven. */
 void _rasterizer_dynamic_lit_geometry_draw(void)
 {
-  FUN_0016fa40(0xc);
+  rasterizer_profile_end(0xc);
 }
 
 /* 0x1609b0 — draw one environment geometry batch through the shared
@@ -227,7 +227,7 @@ void FUN_00160bb0(void)
  * Profile index 0xd is unnamed (no assert or string evidence). */
 void FUN_00160bc0(void)
 {
-  FUN_0016fa40(0xd);
+  rasterizer_profile_end(0xd);
 }
 
 /* 0x160bd0 — begin rasterizer profile section 0xe.
@@ -235,7 +235,7 @@ void FUN_00160bc0(void)
  * Profile index 0xe is unnamed (no assert or string evidence). */
 void FUN_00160bd0(void)
 {
-  FUN_0016f910(0xe);
+  rasterizer_profile_begin(0xe);
 }
 
 /* 0x160be0 — begin rasterizer profile section 0xe.
@@ -243,46 +243,46 @@ void FUN_00160bd0(void)
  * Profile index 0xe is unnamed (no assert or string evidence). */
 void FUN_00160be0(void)
 {
-  FUN_0016fa40(0xe);
+  rasterizer_profile_end(0xe);
 }
 
 /* 0x160bf0 — one-arg wrapper.
  * Binary: PUSH 0xf / CALL 0x16f910 / POP ECX / RET.
- * Callee FUN_0016f910 takes an int16_t profile index; the role of the callee
+ * Callee rasterizer_profile_begin takes an int16_t profile index; the role of the callee
  * and the meaning of index 0xf are unproven (no assert or string evidence). */
 void FUN_00160bf0(void)
 {
-  FUN_0016f910(0xf);
+  rasterizer_profile_begin(0xf);
 }
 
 /* 0x160c00 — one-arg wrapper.
  * Binary: PUSH 0xf / CALL 0x16fa40 / POP ECX / RET.
- * Callee FUN_0016fa40 takes an int16_t profile index; the role of the callee
+ * Callee rasterizer_profile_end takes an int16_t profile index; the role of the callee
  * and the meaning of index 0xf are unproven (no assert or string evidence). */
 void FUN_00160c00(void)
 {
-  FUN_0016fa40(0xf);
+  rasterizer_profile_end(0xf);
 }
 
 /* 0x160c10 — one-arg wrapper followed by a tail call.
  * Binary: PUSH 0x10 / CALL 0x16f910 / ADD ESP,0x4 / JMP 0x174ce0.
- * FUN_0016f910 takes an int16_t profile index; the role of both callees and
+ * rasterizer_profile_begin takes an int16_t profile index; the role of both callees and
  * the meaning of index 0x10 are unproven (no assert or string evidence). */
 void FUN_00160c10(void)
 {
-  FUN_0016f910(0x10);
-  FUN_00174ce0();
+  rasterizer_profile_begin(0x10);
+  rasterizer_transparent_geometry_groups_begin();
 }
 
 /* 0x160c20 — a no-arg call followed by a one-arg wrapper.
  * Binary: CALL 0x1749b0 / PUSH 0x10 / CALL 0x16fa40 / POP ECX / RET.
- * FUN_0016fa40 takes an int16_t profile index; the role of both callees and
+ * rasterizer_profile_end takes an int16_t profile index; the role of both callees and
  * the meaning of index 0x10 are unproven (no assert or string evidence).
- * Call order is binary-fixed: FUN_001749b0 runs before FUN_0016fa40. */
+ * Call order is binary-fixed: rasterizer_transparent_geometry_groups_end runs before rasterizer_profile_end. */
 void FUN_00160c20(void)
 {
-  FUN_001749b0();
-  FUN_0016fa40(0x10);
+  rasterizer_transparent_geometry_groups_end();
+  rasterizer_profile_end(0x10);
 }
 
 /* 0x160c30 — begin rasterizer profile section 3 and, for a set of accepted
@@ -310,7 +310,7 @@ void FUN_00160c30(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(3);
+  rasterizer_profile_begin(3);
 
   mode = *(uint16_t *)0x3256bc;
   if ((mode == 0 || mode == 2 || mode == 6 || mode == 3 || mode == 4 ||
@@ -1034,7 +1034,7 @@ void FUN_00161f00(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(5);
+  rasterizer_profile_begin(5);
 
   if (*(uint16_t *)0x3256bc == 0 && *(uint8_t *)0x3256cb != 0) {
     rasterizer_set_texture_direct(2, *(int *)(*(char **)0x476204 + 0xc), 0);
@@ -1494,7 +1494,7 @@ void FUN_00162790(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(8);
+  rasterizer_profile_begin(8);
 
   if ((*(uint16_t *)0x3256bc == 0 || *(uint16_t *)0x3256bc == 1 ||
        *(uint16_t *)0x3256bc == 3 || *(uint16_t *)0x3256bc == 4 ||
@@ -1535,7 +1535,7 @@ void FUN_00162790(void)
 
     D3DDevice_SetRenderState_ZBias(0);
 
-    FUN_00158ae0(5);
+    rasterizer_set_stencil_mode(5);
   }
 }
 
@@ -1854,7 +1854,7 @@ void FUN_00162f90(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(0xb);
+  rasterizer_profile_begin(0xb);
 
   if (*(uint16_t *)0x3256bc == 0 && *(uint8_t *)0x3256ce != 0) {
     rasterizer_set_texture_direct(2, *(int *)(*(int *)0x476204 + 0x1c), 0);
@@ -2458,7 +2458,7 @@ void FUN_00163c40(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(0xc);
+  rasterizer_profile_begin(0xc);
 
   if (*(uint16_t *)0x3256bc == 0 && *(uint8_t *)0x3256cf != 0 &&
       *(uint16_t *)0x3256b0 == 0) {
@@ -2811,7 +2811,7 @@ void FUN_001643e0(void)
     system_exit(-1);
   }
 
-  FUN_0016f910(0xd);
+  rasterizer_profile_begin(0xd);
 
   if (*(uint16_t *)0x3256bc == 0 && *(uint8_t *)0x3256d0 != 0 &&
       *(uint8_t *)0x3256d2 != 0 && *(uint16_t *)0x3256b0 == 0) {
@@ -3679,7 +3679,7 @@ void FUN_00165420(void *shader, int16_t a2, int a3, int vertices_per_primitive,
         }
         *(uint32_t *)group = *(uint32_t *)group | 2;
         rasterizer_transparent_geometry_group_draw(group, 0);
-        FUN_001845b0(group, 1);
+        rasterizer_transparent_geometry_set_group_pending_status(group, 1);
         *(uint32_t *)group = *(uint32_t *)group & 0xfffffffd;
         goto drawn;
       }

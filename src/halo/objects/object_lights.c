@@ -303,7 +303,7 @@ void light_particle(void *position, void *tint_color, void *out_color,
   ((int *)out_color)[1] = ambient[1];
   ((int *)out_color)[2] = ambient[2];
 
-  hit = structure_test_vector((float *)position, (float *)0x29b204, point,
+  hit = structure_test_vector((const real_point3d *)position, (const real_vector3d *)0x29b204, (real_point3d *)point,
                               &collection_index, &material_index,
                               &surface_index, &u, &v);
   if (hit == 0) {

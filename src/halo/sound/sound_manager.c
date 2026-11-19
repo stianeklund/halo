@@ -1944,7 +1944,7 @@ void FUN_001cc4f0(int sound_handle)
     crt_sprintf(text, "%s|n%f %f", tag_get_name(*(int *)(sound_entry + 8)),
                 (double)*(float *)(sound_entry + 0x4c),
                 (double)*(float *)(sound_entry + 0x50));
-    render_debug_string_at_point('\0', position, text, (int)*(void **)0x2ee6c4);
+    render_debug_string_at_point('\0', position, text, *(const real_argb_color **)0x2ee6c4);
   }
 }
 
@@ -2029,7 +2029,7 @@ void render_debug_looping_sound(int definition_index, void *entry)
   draw:
     position = (void *)((char *)entry + 0xc);
     render_debug_string_at_point('\0', position, (void *)tag_get_name(definition_index),
-                 (int)*(void **)0x2ee6c4);
+                 *(const real_argb_color **)0x2ee6c4);
     render_debug_sphere('\0', position, priority, *(void **)0x2ee6dc);
     render_debug_sphere('\0', position, min_distance, *(void **)0x2ee6d8);
   }
@@ -2312,7 +2312,7 @@ void sound_stop_channel(int sound_handle /* @<ebx> */)
 
   /* If this is a looping sound (type != 0), update the looping-sound entry. */
   if (*(short *)(sound_entry + 0x2) != 0) {
-    int looping_sound = datum_absolute_index_to_index(
+    int looping_sound = (int)datum_absolute_index_to_index(
       *(data_t **)0x4fdba0, *(int *)(sound_entry + 0xc));
 
     if (looping_sound != 0) {

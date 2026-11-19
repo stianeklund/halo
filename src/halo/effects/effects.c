@@ -569,7 +569,7 @@ bool dangerous_effects_near_player(void)
           }
           /* transform local position to world space via node matrix */
           matrix_transform_point(
-            (float *)matrix, (real_point3d *)((char *)location + 0x30), &position);
+            matrix, (real_point3d *)((char *)location + 0x30), &position);
         }
 
         /* squared-distance check against player bounding sphere */
@@ -916,7 +916,7 @@ void effect_generate_particles(void *effect)
                   random_seed_get_direction3d(seed, random_dir);
 
                   matrix_scale_transform_vector(
-                    (float *)(location + 8), (real_vector3d *)(part + 0x14), &scaled_dir);
+                    (const real_matrix4x3 *)((location + 8)), (real_vector3d *)(part + 0x14), &scaled_dir);
 
                   spawn_params.fields.position.x = random_dir[0] * random_distance +
                                                      *(float *)(location + 0x30) + scaled_dir.i;
@@ -938,7 +938,7 @@ void effect_generate_particles(void *effect)
                   (float *)(location + 8), (real_vector3d *)spawn_params.fields.direction,
                   (real_vector3d *)spawn_params.fields.direction); /* dup-args-ok: in-place transform */
                 matrix_scale_transform_vector(
-                  (float *)(location + 8), (real_vector3d *)spawn_params.fields.velocity,
+                  (const real_matrix4x3 *)((location + 8)), (real_vector3d *)spawn_params.fields.velocity,
                   (real_vector3d *)spawn_params.fields.velocity); /* dup-args-ok: in-place transform */
 
                 {
@@ -964,11 +964,11 @@ void effect_generate_particles(void *effect)
                       node_matrix = (float *)object_get_node_matrix(
                         *(int *)(ef + 0x3c), (int16_t)(node_idx & 0x7fff));
                     }
-                    matrix_transform_point(node_matrix, &spawn_params.fields.position,
+                    matrix_transform_point((const real_matrix4x3 *)node_matrix, &spawn_params.fields.position,
                                            (real_point3d *)world_pos);
                     matrix_transform_vector(node_matrix, (real_vector3d *)spawn_params.fields.direction,
                                             (real_vector3d *)dir_world);
-                    matrix_scale_transform_vector(node_matrix,
+                    matrix_scale_transform_vector((const real_matrix4x3 *)node_matrix,
                                                   (real_vector3d *)spawn_params.fields.velocity,
                                                   &vel_world);
                   }
@@ -1430,7 +1430,7 @@ void effect_marker_list_get_marker(void *output, int16_t marker_index /* @<ax> *
     system_exit(-1);
   }
 
-  perpendicular3d(local_forward, local_up);
+  perpendicular3d((const real_vector3d *)local_forward, (real_vector3d *)local_up);
   normalize3d((real_vector3d *)local_up);
   matrix4x3_from_forward_up_position((char *)output + 4, (real_point3d *)local_position,
                                      (real_vector3d *)local_forward, (real_vector3d *)local_up);
@@ -1496,7 +1496,7 @@ void effect_generate_parts(void *effect)
                 *(int *)(ef + 0x3c),
                 (int16_t)(node_designator & 0x7fff));
             }
-            matrix_transform_point(node_matrix, (real_point3d *)(location + 0x30),
+            matrix_transform_point((const real_matrix4x3 *)node_matrix, (real_point3d *)(location + 0x30),
                                    (real_point3d *)position);
             matrix_transform_vector(node_matrix, (real_vector3d *)(location + 0xc),
                                     (real_vector3d *)forward);

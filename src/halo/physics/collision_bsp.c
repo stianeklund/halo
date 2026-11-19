@@ -180,7 +180,7 @@ void render_debug_collision_vertex(int bsp, int vertex_index, float *matrix,
 
   point = tag_block_get_element((void *)(bsp + 0x54), vertex_index, 0x10);
   if (matrix != 0) {
-    point = matrix_transform_point(matrix, point, &transformed);
+    point = matrix_transform_point((const real_matrix4x3 *)matrix, point, &transformed);
   }
   render_debug_point(1, point, scale, color);
 }
@@ -215,12 +215,12 @@ void render_debug_collision_edge(int bsp, int edge_index, int matrix_or_flag,
   point_a = (float *)tag_block_get_element((void *)(bsp + 0x54), edge[0], 0x10);
   point_b = (float *)tag_block_get_element((void *)(bsp + 0x54), edge[1], 0x10);
   if (matrix_or_flag != 0) {
-    point_a = (float *)matrix_transform_point((float *)matrix_or_flag, (real_point3d *)point_a,
+    point_a = (float *)matrix_transform_point((const real_matrix4x3 *)matrix_or_flag, (real_point3d *)point_a,
                                      (real_point3d *)xformed_a);
-    point_b = (float *)matrix_transform_point((float *)matrix_or_flag, (real_point3d *)point_b,
+    point_b = (float *)matrix_transform_point((const real_matrix4x3 *)matrix_or_flag, (real_point3d *)point_b,
                                      (real_point3d *)xformed_b);
   }
-  FUN_00189270(1, point_a, point_b, color);
+  render_debug_line(1, (const real_point3d *)point_a, (const real_point3d *)point_b, color);
 }
 
 /* 0x1475f0 - render_debug_collision_surface
@@ -440,7 +440,7 @@ float collision_surface_area(int bsp, int surface_index)
   anchor = (float *)tag_block_get_element((void *)verts_block,
                                           *(int *)(edge + side * 4), 0x10);
   bsp3d_get_plane_from_designator(bsp, (unsigned int)surface[0],
-                                  (float *)&plane);
+                                  &plane);
   edge = (int)tag_block_get_element((void *)edges_block,
                                     *(int *)(edge + 8 + side * 4), 0x18);
   is_owner = (*(int *)(edge + 0x14) == surface_index);
@@ -461,8 +461,8 @@ float collision_surface_area(int bsp, int surface_index)
       cross_x = qa_z * pa_y - qa_y * pa_z;
       cross_y = pa_z * qa_x - qa_z * pa_x;
       cross_z = pa_x * qa_y - qa_x * pa_y;
-      area = plane.normal[2] * cross_z + plane.normal[1] * cross_y +
-             cross_x * plane.normal[0] + area;
+      area = plane.normal.k * cross_z + plane.normal.j * cross_y +
+             cross_x * plane.normal.i + area;
       edge = (int)tag_block_get_element((void *)edges_block,
                                         *(int *)(edge + 8 + side * 4), 0x18);
       is_owner = (*(int *)(edge + 0x14) == surface_index);
@@ -515,7 +515,7 @@ int collision_surface_project_point2d(int bsp, int surface_index, int param3,
     (int *)tag_block_get_element((void *)(bsp + 0x3c), surface_index, 0xc);
   plane = (float *)tag_block_get_element((void *)(bsp + 0xc),
                                          *surface & 0x7fffffff, 0x10);
-  project_point2d((float *)point, plane, param3, param4, (float *)out_point);
+  project_point2d((const real_point2d *)point, (const real_plane3d *)plane, param3, param4, (real_point3d *)out_point);
   return (int)out_point;
 }
 
@@ -1820,11 +1820,11 @@ char FUN_00148eb0(void *data, int node_index, float param_3, float max_t)
     /* Operand order is verbatim from 0x148ee9 FLD [ECX+4] (matches the
      * sibling dot-product ordering at 0x148bd4). Note: no -d term for dot --
      * field_14 is a direction vector, not a point. */
-    distance = origin[1] * plane->normal[1] + origin[2] * plane->normal[2] +
-               origin[0] * plane->normal[0] - plane->d;
+    distance = origin[1] * plane->normal.j + origin[2] * plane->normal.k +
+               origin[0] * plane->normal.i - plane->d;
     direction = (float *)VECTOR_DATA->field_14;
-    dot = direction[1] * plane->normal[1] + direction[2] * plane->normal[2] +
-          direction[0] * plane->normal[0];
+    dot = direction[1] * plane->normal.j + direction[2] * plane->normal.k +
+          direction[0] * plane->normal.i;
 
     distance0 = dot * param_3 + distance;
     distance1 = dot * max_t + distance;
@@ -2000,24 +2000,24 @@ bool collision_surface_test_pill(void *state, int surface_index)
       pill_point[2] = t * data->transformed_20[2] + data->transformed_2c[2];
 
       result = data->result;
-      result->plane.normal[0] = pill_point[0] - edge_point[0];
-      result->plane.normal[1] = pill_point[1] - edge_point[1];
-      result->plane.normal[2] = pill_point[2] - edge_point[2];
+      result->plane.normal.i = pill_point[0] - edge_point[0];
+      result->plane.normal.j = pill_point[1] - edge_point[1];
+      result->plane.normal.k = pill_point[2] - edge_point[2];
 
       result = data->result;
-      length = x87_sqrtd((double)result->plane.normal[0] *
-                           result->plane.normal[0] +
-                         (double)result->plane.normal[1] *
-                           result->plane.normal[1] +
-                         (double)result->plane.normal[2] *
-                           result->plane.normal[2]);
+      length = x87_sqrtd((double)result->plane.normal.i *
+                           result->plane.normal.i +
+                         (double)result->plane.normal.j *
+                           result->plane.normal.j +
+                         (double)result->plane.normal.k *
+                           result->plane.normal.k);
       /* 0x149332 FCOMP double [0x2533d0] = (double)0.0001f; TEST AH,5 / JNP
        * skips only when |length| < eps. */
       if (!(((length < 0.0) ? -length : length) < (double)0.0001f)) {
         inverse = 1.0 / length;
-        result->plane.normal[0] = (float)(inverse * result->plane.normal[0]);
-        result->plane.normal[1] = (float)(inverse * result->plane.normal[1]);
-        result->plane.normal[2] = (float)(inverse * result->plane.normal[2]);
+        result->plane.normal.i = (float)(inverse * result->plane.normal.i);
+        result->plane.normal.j = (float)(inverse * result->plane.normal.j);
+        result->plane.normal.k = (float)(inverse * result->plane.normal.k);
       }
 
       data->result->plane.d = 3.4028235e+38f;
@@ -2319,12 +2319,12 @@ char collision_bsp_test_pill(void *state, int node_index)
     bsp = (collision_bsp_t *)PILL_DATA->block_ptr;
     plane =
       (real_plane3d *)tag_block_get_element(&bsp->planes, node->plane, 0x10);
-    start_distance = PILL_DATA->transformed_2c[2] * plane->normal[2] +
-                     PILL_DATA->transformed_2c[1] * plane->normal[1] +
-                     PILL_DATA->transformed_2c[0] * plane->normal[0] - plane->d;
-    along = PILL_DATA->transformed_20[2] * plane->normal[2] +
-            PILL_DATA->transformed_20[1] * plane->normal[1] +
-            plane->normal[0] * PILL_DATA->transformed_20[0];
+    start_distance = PILL_DATA->transformed_2c[2] * plane->normal.k +
+                     PILL_DATA->transformed_2c[1] * plane->normal.j +
+                     PILL_DATA->transformed_2c[0] * plane->normal.i - plane->d;
+    along = PILL_DATA->transformed_20[2] * plane->normal.k +
+            PILL_DATA->transformed_20[1] * plane->normal.j +
+            plane->normal.i * PILL_DATA->transformed_20[0];
     end_distance = along + start_distance;
 
     radius_plus = PILL_DATA->scale + 0.000244140625f;
@@ -2390,12 +2390,12 @@ char collision_bsp_test_pill(void *state, int node_index)
     plane = (real_plane3d *)tag_block_get_element(
       &bsp->planes, reference->plane & 0x7fffffff, 0x10);
     fraction = 0.0f;
-    start_distance = PILL_DATA->transformed_2c[2] * plane->normal[2] +
-                     PILL_DATA->transformed_2c[1] * plane->normal[1] +
-                     PILL_DATA->transformed_2c[0] * plane->normal[0] - plane->d;
-    along = PILL_DATA->transformed_20[2] * plane->normal[2] +
-            PILL_DATA->transformed_20[1] * plane->normal[1] +
-            PILL_DATA->transformed_20[0] * plane->normal[0];
+    start_distance = PILL_DATA->transformed_2c[2] * plane->normal.k +
+                     PILL_DATA->transformed_2c[1] * plane->normal.j +
+                     PILL_DATA->transformed_2c[0] * plane->normal.i - plane->d;
+    along = PILL_DATA->transformed_20[2] * plane->normal.k +
+            PILL_DATA->transformed_20[1] * plane->normal.j +
+            PILL_DATA->transformed_20[0] * plane->normal.i;
     if (along != 0.0f) {
       inverse = 1.0 / (double)along;
       fraction =
@@ -2412,9 +2412,9 @@ char collision_bsp_test_pill(void *state, int node_index)
       continue;
     }
 
-    ax = x87_fabs(plane->normal[0]);
-    ay = x87_fabs(plane->normal[1]);
-    az = x87_fabs(plane->normal[2]);
+    ax = x87_fabs(plane->normal.i);
+    ay = x87_fabs(plane->normal.j);
+    az = x87_fabs(plane->normal.k);
     if (az < ay || az < ax) {
       if (ay < ax) {
         projection = 0;
@@ -2431,7 +2431,7 @@ char collision_bsp_test_pill(void *state, int node_index)
       system_exit(-1);
     }
 
-    positive = (unsigned char)(plane->normal[projection] > 0.0f);
+    positive = (unsigned char)((&plane->normal.i)[projection] > 0.0f);
     sign =
       (unsigned char)(positive !=
                       (unsigned char)((reference->plane & 0x80000000) != 0));
@@ -2444,11 +2444,11 @@ char collision_bsp_test_pill(void *state, int node_index)
       fraction * PILL_DATA->transformed_20[1] + PILL_DATA->transformed_2c[1];
     point[2] =
       fraction * PILL_DATA->transformed_20[2] + PILL_DATA->transformed_2c[2];
-    distance = -(point[2] * plane->normal[2] + point[0] * plane->normal[0] +
-                 point[1] * plane->normal[1] - plane->d);
-    hit_point[0] = distance * plane->normal[0] + point[0];
-    hit_point[1] = distance * plane->normal[1] + point[1];
-    hit_point[2] = distance * plane->normal[2] + point[2];
+    distance = -(point[2] * plane->normal.k + point[0] * plane->normal.i +
+                 point[1] * plane->normal.j - plane->d);
+    hit_point[0] = distance * plane->normal.i + point[0];
+    hit_point[1] = distance * plane->normal.j + point[1];
+    hit_point[2] = distance * plane->normal.k + point[2];
 
     FUN_00061df0(hit_point, PILL_DATA->projection, sign, point2d);
     bsp = (collision_bsp_t *)PILL_DATA->block_ptr;
@@ -2463,9 +2463,9 @@ char collision_bsp_test_pill(void *state, int node_index)
       PILL_DATA->result->t = fraction;
       if (reference->plane < 0) {
         result = PILL_DATA->result;
-        result->plane.normal[0] = -plane->normal[0];
-        result->plane.normal[1] = -plane->normal[1];
-        result->plane.normal[2] = -plane->normal[2];
+        result->plane.normal.i = -plane->normal.i;
+        result->plane.normal.j = -plane->normal.j;
+        result->plane.normal.k = -plane->normal.k;
         result->plane.d = -plane->d;
       } else {
         PILL_DATA->result->plane = *plane;
@@ -2478,16 +2478,16 @@ char collision_bsp_test_pill(void *state, int node_index)
     /* Sweep origin and sweep vector, each with its plane component removed,
      * projected to 2D for the swept test. */
     start_point[0] =
-      -start_distance * plane->normal[0] + PILL_DATA->transformed_2c[0];
+      -start_distance * plane->normal.i + PILL_DATA->transformed_2c[0];
     start_point[1] =
-      -start_distance * plane->normal[1] + PILL_DATA->transformed_2c[1];
+      -start_distance * plane->normal.j + PILL_DATA->transformed_2c[1];
     start_point[2] =
-      -start_distance * plane->normal[2] + PILL_DATA->transformed_2c[2];
+      -start_distance * plane->normal.k + PILL_DATA->transformed_2c[2];
     FUN_00061df0(start_point, PILL_DATA->projection, PILL_DATA->projection_sign,
                  PILL_DATA->point2d);
-    vector_point[0] = -along * plane->normal[0] + PILL_DATA->transformed_20[0];
-    vector_point[1] = -along * plane->normal[1] + PILL_DATA->transformed_20[1];
-    vector_point[2] = -along * plane->normal[2] + PILL_DATA->transformed_20[2];
+    vector_point[0] = -along * plane->normal.i + PILL_DATA->transformed_20[0];
+    vector_point[1] = -along * plane->normal.j + PILL_DATA->transformed_20[1];
+    vector_point[2] = -along * plane->normal.k + PILL_DATA->transformed_20[2];
     FUN_00061df0(vector_point, PILL_DATA->projection,
                  PILL_DATA->projection_sign, PILL_DATA->vector2d);
 
@@ -2569,7 +2569,7 @@ char FUN_0014dc30(int param_1, float *pos, int param_3)
   int iter_state;
 
   if ((param_1 & 0xe0) != 0) {
-    leaf = bsp3d_find_leaf(FUN_0018e420(), 0, pos);
+    leaf = bsp3d_find_leaf(global_bsp3d_get(), 0, pos);
 
     /* SHR ECX,7 / AND CL,1, then zeroed when the global is set. */
     use_water = (char)(((uint32_t)param_1 >> 7) & 1);
@@ -2712,8 +2712,8 @@ char FUN_0014dce0(int object_handle, unsigned int type_mask, int param_3,
           idx = *(int16_t *)bres;
           *(int16_t *)res = 3;
           *(int32_t *)(res + 0x14) = *(int32_t *)(bres + 8);
-          matrix4x3_transform_plane((float *)(bsp_ctx[3] + idx * 0x34),
-                       *(float **)(bres + 0xc), (float *)(res + 0x24));
+          matrix4x3_transform_plane((const real_matrix4x3 *)(bsp_ctx[3] + idx * 0x34),
+                       (const real_plane3d *)(*(float **)(bres + 0xc)), (real_plane3d *)(res + 0x24));
           if (*(int32_t *)(bres + 0x14) < 0)
             plane_negate((float *)(res + 0x24), (float *)(res + 0x24));
           *(int16_t *)(res + 0x34) =
@@ -2835,8 +2835,8 @@ char FUN_0014e640(void *test_record, float *origin, float *delta, void *result)
       idx = *(int16_t *)bres;
       *(float *)(res + 0x14) = 1.0f - *(float *)(bres + 8);
       *(int16_t *)res = 3;
-      matrix4x3_transform_plane((float *)(bsp_ctx[3] + idx * 0x34), *(float **)(bres + 0xc),
-                   (float *)(res + 0x24));
+      matrix4x3_transform_plane((const real_matrix4x3 *)(bsp_ctx[3] + idx * 0x34), (const real_plane3d *)(*(float **)(bres + 0xc)),
+                   (real_plane3d *)(res + 0x24));
       if (*(int32_t *)(bres + 0x14) < 0)
         plane_negate((float *)(res + 0x24), (float *)(res + 0x24));
       *(int16_t *)(res + 0x34) =

@@ -1,5 +1,5 @@
 // 0x977e0
-void FUN_000977e0(void)
+void editor_render(void)
 {
 }
 

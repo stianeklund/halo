@@ -74,14 +74,14 @@ void FUN_0017cdb0(void *param_1)
  * before the jump, so 0x1640d0 inherits this function's stack arguments and
  * reads them as its own [EBP+8] .. [EBP+0x1c] (six dwords).  Semantics of the
  * arguments are unknown; they are forwarded unchanged.  Reached only through a
- * data (function-table) reference at 0x195c88 (in FUN_00195c40). */
+ * data (function-table) reference at 0x195c88 (in structure_render_specular_lightmaps). */
 void FUN_0017cdc0(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
 {
   FUN_001640d0((void *)arg1, arg2, arg3, arg4, arg5, (void *)arg6);
 }
 
 /* 0x17cdd0: bare JMP 0x160990.  Passed by address as the pass-end callback of
- * FUN_00195790 from FUN_00195c40. */
+ * FUN_00195790 from structure_render_specular_lightmaps. */
 void FUN_0017cdd0(void)
 {
   FUN_00160990();
@@ -105,7 +105,7 @@ void FUN_0017cdf0(void)
  * reads the incoming dword as its own [EBP+8].  This wrapper never touches the
  * argument slot itself, so the semantics of the dword are unknown here; it is
  * forwarded unchanged.  Reached only through a data (function-table) reference
- * at 0x195cd8 (in FUN_00195cb0). */
+ * at 0x195cd8 (in structure_render_reflection_lightmap_masks). */
 void FUN_0017ce00(int arg1)
 {
   FUN_00164590((void *)arg1);
@@ -117,14 +117,14 @@ void FUN_0017ce00(int arg1)
  * reads them as its own [EBP+8] .. [EBP+0x1c] (six dwords).  This wrapper
  * never touches the argument slots itself, so their semantics are unknown
  * here; they are forwarded unchanged.  Reached only through a data
- * (function-table) reference at 0x195cd3 (in FUN_00195cb0). */
+ * (function-table) reference at 0x195cd3 (in structure_render_reflection_lightmap_masks). */
 void FUN_0017ce10(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
 {
   FUN_001609b0((void *)arg1, arg2, arg3, arg4, arg5, (void *)arg6);
 }
 
 /* 0x17ce20: bare JMP 0x160bb0.  Passed by address as the pass-end callback of
- * FUN_00195790 from FUN_00195cb0. */
+ * FUN_00195790 from structure_render_reflection_lightmap_masks. */
 void FUN_0017ce20(void)
 {
   FUN_00160bb0();
@@ -149,7 +149,7 @@ void FUN_0017ce40(void)
  * disassembling 0x164690 in the pristine XBE).  This wrapper never touches the
  * argument slots itself, so their semantics are unknown here; they are
  * forwarded unchanged.  Reached only through a data (function-table) reference
- * at 0x195d20 (in FUN_00195d00). */
+ * at 0x195d20 (in structure_render_reflection_mirrors). */
 void FUN_0017ce50(int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
 {
   FUN_00164690((void *)arg1, arg2, arg3, arg4, arg5, (void *)arg6);
@@ -178,7 +178,7 @@ void FUN_0017ce70(void)
  * (c:\halo\SOURCE\rasterizer\xbox\rasterizer_xbox_environment.c:0x9a6 and
  * :0x9bf); the remaining slots have unknown meaning here and are forwarded
  * unchanged.  Reached only through a data (function-table) reference at
- * 0x195d7f (in FUN_00195d40). */
+ * 0x195d7f (in structure_render_reflections). */
 void FUN_0017ce80(void *shader, int arg2, int arg3, int arg4, int arg5,
                   void *vertex_buffer)
 {
@@ -210,7 +210,7 @@ void FUN_0017cea0(void)
  * unchanged; the two pointer types are the only proven facts (0x165420 reads a
  * word at +0x24 of the first slot's pointer, and three floats at +0x0/+0x4/+0x8
  * of the eighth slot's pointer).  Reached only through a data (function-table)
- * reference at 0x195df2 (in FUN_00195dc0). */
+ * reference at 0x195df2 (in structure_render_transparent_geometry). */
 void FUN_0017ceb0(void *arg1, int arg2, int arg3, int arg4, int arg5, int arg6,
                   int arg7, void *arg8, int arg9, int arg10, int arg11,
                   int arg12)
@@ -284,7 +284,7 @@ void FUN_0017cf00(int param_1, float param_2, float *param_3)
  * `MOV DI, WORD PTR [EBP+8]` at 0x16689a -- and immediately asserts
  * "pass==0 || pass==1" (rasterizer_xbox_environment_fog.c:499), so the dword
  * is a 0/1 pass index; the narrowing cast reflects the callee's declared
- * width.  Reached by two calls from FUN_00195ec0 (0x195ecb, 0x195efc). */
+ * width.  Reached by two calls from structure_render_fog_screen (0x195ecb, 0x195efc). */
 void FUN_0017cf10(int pass_index)
 {
   FUN_00166890((int16_t)pass_index);
@@ -304,7 +304,7 @@ void FUN_0017cf10(int pass_index)
  * semantics beyond that are unknown here and are forwarded unchanged.
  * 0x1677d0 writes nothing back into its argument slots, so a plain call is
  * sufficient.  Reached only through two data (function-table) references at
- * 0x195ee2 and 0x195f13 in FUN_00195ec0. */
+ * 0x195ee2 and 0x195f13 in structure_render_fog_screen. */
 void FUN_0017cf20(void *shader, int arg2, int arg3, int arg4, int arg5,
                   void *arg6)
 {
@@ -362,11 +362,11 @@ void FUN_0017cf50(void)
  * signature; this wrapper's own decl is caller-derived and left unchanged.
  * The wrapper's name is unproven (no string or PDB evidence), so the
  * mechanical name is kept. */
-void FUN_0017cf60(uint32_t source, uint32_t param, int arg3, int arg4,
-                  uint32_t handle, int subcount2, float *origin,
+void rasterizer_dynamic_unlit_geometry_draw(uint32_t source, uint32_t param, int arg3, int arg4,
+                  uint32_t handle, int subcount2, real_point3d *origin,
                   uint32_t widget_flags)
 {
-  FUN_0015f630((void *)source, param, arg3, arg4, handle, subcount2, origin,
+  FUN_0015f630((void *)source, param, arg3, arg4, handle, subcount2, (float *)origin,
                widget_flags);
 }
 
@@ -616,7 +616,7 @@ void FUN_0017d020(void)
  * binary-backed one, and matching it keeps the forward conversion-free -- an
  * `int` parameter would insert a FILD that the reference does not have.
  *
- * The only reference is a call at 0x181bdb inside FUN_00181a90, which is not
+ * The only reference is a call at 0x181bdb inside rasterizer_lens_flares_submit_occlusion_tests, which is not
  * yet lifted, so the caller-side meaning of the arguments is unknown beyond
  * the callee's use of them. */
 int FUN_0017d030(float *position, float radius, unsigned int index)
@@ -897,7 +897,7 @@ void FUN_0017d1a0(bool param_1)
     direction[2] = *(float *)0x5a5bdc * *(float *)0x2af240;
 
     if (collision_test_vector(0xfff80, (real_point3d *)(0x5a5bc8), (real_vector3d *)direction, local_player,
-                     (int16_t *)collision_result)) {
+                     (collision_test_result *)collision_result)) {
       *(int *)0x47e4cc = *(int *)(collision_result + 0x38);
     }
 
@@ -1101,15 +1101,15 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
                          node_weight0 >= 0.0f && node_weight0 <= 1.0f);
 
       if (node_index0 >= 0) {
-        matrix_transform_point((float *)(*skinning + node_index0 * 0x34),
+        matrix_transform_point((const real_matrix4x3 *)((*skinning + node_index0 * 0x34)),
                                (real_point3d *)vertex, &point0);
-        matrix_scale_transform_vector((float *)(*skinning + node_index0 * 0x34),
+        matrix_scale_transform_vector((const real_matrix4x3 *)((*skinning + node_index0 * 0x34)),
                                       &vertex_normal, &normal0);
       }
       if (node_index1 >= 0) {
-        matrix_transform_point((float *)(*skinning + node_index1 * 0x34),
+        matrix_transform_point((const real_matrix4x3 *)((*skinning + node_index1 * 0x34)),
                                (real_point3d *)vertex, &point1);
-        matrix_scale_transform_vector((float *)(*skinning + node_index1 * 0x34),
+        matrix_scale_transform_vector((const real_matrix4x3 *)((*skinning + node_index1 * 0x34)),
                                       &vertex_normal, &normal1);
       }
 
@@ -1197,7 +1197,7 @@ void rasterizer_debug_model_vertices(int render_data, int *skinning,
           csstrcat((char *)0x5ab100, vertex_text);
         }
         render_debug_point(0, &points[j].position, 0.03125f, *(void **)0x2ee6d0);
-        render_debug_string_at_point(0, &points[j].position, (void *)0x5ab100, *(int *)0x2ee6e0);
+        render_debug_string_at_point(0, &points[j].position, (void *)0x5ab100, *(const real_argb_color **)0x2ee6e0);
       } else {
         render_debug_point(0, &points[j].position, 0.03125f, *(void **)0x2ee6c4);
       }
@@ -2291,7 +2291,7 @@ int FUN_0017e130(void *record_a, void *record_b)
  * The 4th argument of the last draw is zero-extended in the reference
  * (XOR EAX,EAX / MOV AX,word ptr at 0x17e539) unlike the MOVSX reads
  * elsewhere, so that one read is spelled unsigned. */
-void FUN_0017e190(void)
+void rasterizer_debug_draw(void)
 {
   char ok;
   int handle;
@@ -2471,9 +2471,9 @@ finished:
  * (lines 0xab..0xae) -- Bungie's TU was rasterizer_debug.c, but kb.json maps
  * this address into rasterizer_sprites.obj, so the string is copied verbatim
  * as binary data and the object mapping is left alone, exactly as for
- * FUN_0017df80 / FUN_0017e040 / FUN_0017e190 above.
+ * FUN_0017df80 / FUN_0017e040 / rasterizer_debug_draw above.
  *
- * Globals are the same debug_data set FUN_0017e190 documents: 0x47e4d8 the
+ * Globals are the same debug_data set rasterizer_debug_draw documents: 0x47e4d8 the
  * byte "buffers valid" flag, 0x3256dd the byte rendering-enabled flag,
  * 0x47e4e4/0x47e4e8 the opaque_lines buffer and its count, 0x47e4ec/0x47e4f0
  * the non_opaque_primitives buffer and its count.  0x5a5bc8/cc/d0 is the
@@ -2492,7 +2492,7 @@ finished:
  *     list, otherwise the non_opaque_primitives list.
  *
  * The record is 0x3c bytes (IMUL EAX,EAX,0x3c), matching the qsort element
- * size and the ADD EDI,0x3c stride in FUN_0017e190.  Store offsets taken from
+ * size and the ADD EDI,0x3c stride in rasterizer_debug_draw.  Store offsets taken from
  * the raw MOV/FSTP destinations:
  *   +0x00/+0x04/+0x08  p0 xyz, copied as three dword MOVs (MSVC copies the
  *                      12-byte point as integers, not FLD/FSTP)
@@ -2504,7 +2504,7 @@ finished:
  *   +0x20..+0x2f       never written here -- the third vertex slot, used only
  *                      by the triangle entry point
  *   +0x30              word 2, the int16 vertex count FUN_0017e130 sorts on
- *                      and FUN_0017e190 MOVSXs (2 vertices = a line)
+ *                      and rasterizer_debug_draw MOVSXs (2 vertices = a line)
  *   +0x34              float sort key
  *   +0x38              byte flag, the opaque selector, the same byte
  *                      FUN_0017e130 tests
@@ -2523,7 +2523,7 @@ finished:
  * Call-site audit note: ADD ESP,0x8 at 0017e799 is the coalesced cleanup for
  * the two 1-argument real_argb_color_to_pixel32 calls, the same artifact class already
  * documented for FUN_0017e040. */
-void FUN_0017e5b0(float *p0, float *p1, float *color0, float *color1)
+void rasterizer_debug_line_shaded(float *p0, float *p1, float *color0, float *color1)
 {
   float delta1[3];
   float delta0[3];
@@ -2578,8 +2578,8 @@ void FUN_0017e5b0(float *p0, float *p1, float *color0, float *color1)
         *(uint32_t *)(record + 0x10) = ((uint32_t *)p1)[0];
         *(uint32_t *)(record + 0x14) = ((uint32_t *)p1)[1];
         *(uint32_t *)(record + 0x18) = ((uint32_t *)p1)[2];
-        *(uint32_t *)(record + 0x0c) = real_argb_color_to_pixel32(color0);
-        *(uint32_t *)(record + 0x1c) = real_argb_color_to_pixel32(color1);
+        *(uint32_t *)(record + 0x0c) = real_argb_color_to_pixel32((const real_argb_color *)color0);
+        *(uint32_t *)(record + 0x1c) = real_argb_color_to_pixel32((const real_argb_color *)color1);
         distance0 = *(float *)0x5a5bdc * delta0[2] +
                     *(float *)0x5a5bd8 * delta0[1] +
                     *(float *)0x5a5bd4 * delta0[0];
@@ -2597,7 +2597,7 @@ void FUN_0017e5b0(float *p0, float *p1, float *color0, float *color1)
 }
 
 /* 0x17e800: append one debug triangle to the debug-geometry record list.  The
- * triangle sibling of FUN_0017e5b0 above -- same globals, same 0x3c record,
+ * triangle sibling of rasterizer_debug_line_shaded above -- same globals, same 0x3c record,
  * same guards, one more vertex.
  *
  * The six parameters are string-proven by the assert at rasterizer_debug.c
@@ -2716,9 +2716,9 @@ void rasterizer_debug_triangle_shaded(float *p0, float *p1, float *p2,
         *(uint32_t *)(record + 0x20) = ((uint32_t *)p2)[0];
         *(uint32_t *)(record + 0x24) = ((uint32_t *)p2)[1];
         *(uint32_t *)(record + 0x28) = ((uint32_t *)p2)[2];
-        *(uint32_t *)(record + 0x0c) = real_argb_color_to_pixel32(color0);
-        *(uint32_t *)(record + 0x1c) = real_argb_color_to_pixel32(color1);
-        *(uint32_t *)(record + 0x2c) = real_argb_color_to_pixel32(color2);
+        *(uint32_t *)(record + 0x0c) = real_argb_color_to_pixel32((const real_argb_color *)color0);
+        *(uint32_t *)(record + 0x1c) = real_argb_color_to_pixel32((const real_argb_color *)color1);
+        *(uint32_t *)(record + 0x2c) = real_argb_color_to_pixel32((const real_argb_color *)color2);
         distance1 = *(float *)0x5a5bdc * delta1[2] +
                     *(float *)0x5a5bd8 * delta1[1] +
                     *(float *)0x5a5bd4 * delta1[0];
@@ -2750,9 +2750,12 @@ void rasterizer_debug_triangle_shaded(float *p0, float *p1, float *p2,
  * float pointers.  This wrapper's own slot stays `int` because its ten call
  * sites in render_debug.c / hud.c already pass `(int)color`; the cast is done
  * here rather than churning those TUs. */
-void FUN_0017eb10(float *vert_a, float *vert_b, int param_3)
+void rasterizer_debug_line(const real_point3d *point0,
+                           const real_point3d *point1,
+                           const real_argb_color *color)
 {
-  FUN_0017e5b0(vert_a, vert_b, (float *)param_3, (float *)param_3);
+  rasterizer_debug_line_shaded((float *)point0, (float *)point1, (float *)color,
+                               (float *)color);
 }
 
 /* Forwarding wrapper (0x17eb30).  Full EBP frame, cdecl call, no tail call:
@@ -2779,9 +2782,14 @@ void FUN_0017eb10(float *vert_a, float *vert_b, int param_3)
  * the ADD ESP,0x18 here proves six cdecl dword arguments and the decl is
  * widened accordingly.  The return stays void: EAX is not consumed after the
  * CALL at 0x17eb45. */
-void FUN_0017eb30(float *point0, float *point1, float *point2, void *color)
+void rasterizer_debug_triangle(const real_point3d *point0,
+                               const real_point3d *point1,
+                               const real_point3d *point2,
+                               const real_argb_color *color)
 {
-  rasterizer_debug_triangle_shaded(point0, point1, point2, color, color, color);
+  rasterizer_debug_triangle_shaded((float *)point0, (float *)point1,
+                                   (float *)point2, (float *)color,
+                                   (float *)color, (float *)color);
 }
 
 /* Allocator/initializer (0x17eb50).  Returns bool in AL: the reference sets

@@ -2068,10 +2068,10 @@ void players_debug_render(void)
             if (collision_test_pill(0x4029, (float *)&position, height_vec,
                              camera_height, unit_handle,
                              collision_result) != '\0')
-              render_debug_pill('\0', &position, height_vec, camera_height,
+              render_debug_pill('\0', &position, (const real_vector3d *)height_vec, camera_height,
                            *(void **)0x2ee6d0);
             else
-              render_debug_pill('\0', &position, height_vec, camera_height,
+              render_debug_pill('\0', &position, (const real_vector3d *)height_vec, camera_height,
                            *(void **)0x2ee6d4);
           }
         }
@@ -14223,7 +14223,7 @@ char player_teleport_internal(int player_index, int object_handle, void *positio
       matrix[0] = scale;
 
       for (i = 0; i < 9 && !moved; i++) {
-        matrix_transform_point(matrix, (real_point3d *)((real *)(0x26ea88 + i * 12)), (real_point3d *)candidate_pos);
+        matrix_transform_point((const real_matrix4x3 *)matrix, (real_point3d *)((real *)(0x26ea88 + i * 12)), (real_point3d *)candidate_pos);
         moved = biped_fix_position(unit_index, root_parent, candidate_pos, NULL, 2.0f, 0, 0, 1);
         if (!moved) {
           for (j = 0; j < 8 && !moved; j++) {

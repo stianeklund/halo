@@ -5,7 +5,7 @@ extern real_point3d *vector3d_scale_add(const real_point3d *base,
 extern real_point3d *matrix_transform_point(float *matrix,
                                             const real_point3d *in,
                                             real_point3d *out);
-extern void perpendicular3d(float *in, float *out);
+extern void perpendicular3d(const real_vector3d *vector, real_vector3d *perpendicular);
 extern real_vector3d *angles_to_vector(real_vector3d *out, const real_euler_angles2d *angles);
 
 extern void object_placement_data_new(void *placement, int tag_index,

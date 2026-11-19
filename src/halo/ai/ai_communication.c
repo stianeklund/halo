@@ -2154,7 +2154,7 @@ float ai_communication_get_player_rating(int unit_handle, char test_line_of_sigh
                                &line_of_sight_vector);
 
           blocked = collision_test_vector(0x27, &player_position,
-                                 &line_of_sight_vector, -1, collision);
+                                 &line_of_sight_vector, -1, (collision_test_result *)collision);
           if (global_current_collision_user_depth <= 1) {
             display_assert("global_current_collision_user_depth > 1",
                            "c:\\halo\\SOURCE\\ai\\ai_communication.c", 0xe97, 1);

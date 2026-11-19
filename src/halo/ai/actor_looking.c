@@ -66,7 +66,7 @@ int action_charge_valid_melee_destination(int actor_handle, float *source_pos)
   dir[0] = source_pos[0] - target_pos[0];
   dir[1] = source_pos[1] - target_pos[1];
   dir[2] = source_pos[2] - target_pos[2];
-  collision_test_vector(0x33, (real_point3d *)target_pos, (real_vector3d *)dir, -1, collision_result);
+  collision_test_vector(0x33, (real_point3d *)target_pos, (real_vector3d *)dir, -1, (collision_test_result *)collision_result);
 
   if (*(volatile short *)0x4761d8 <= 1) {
     display_assert("global_current_collision_user_depth > 1",
@@ -8560,7 +8560,7 @@ char FUN_000283b0(float *actor_facing, char is_aim, float az_min, float az_max,
     ray[0] = direction[0] * *(float *)0x254644;
     ray[1] = direction[1] * *(float *)0x254644;
     ray[2] = direction[2] * *(float *)0x254644;
-    clear = !collision_test_vector(0x21, (real_point3d *)actor_facing, (real_vector3d *)ray, -1, collision_result);
+    clear = !collision_test_vector(0x21, (real_point3d *)actor_facing, (real_vector3d *)ray, -1, (collision_test_result *)collision_result);
     if (*(volatile short *)0x4761d8 <= 1) {
       display_assert("global_current_collision_user_depth > 1",
                      "c:\\halo\\SOURCE\\ai\\actor_looking.c", 0x42e, 1);

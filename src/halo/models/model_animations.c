@@ -2623,8 +2623,9 @@ void model_get_node_matrices(void *mode_tag, float *node_matrices,
     node_index = node_indices[(short)read_index];
     read_index = read_index + 1;
     node = (char *)tag_block_get_element(node_block, (int)node_index, 0x9c);
-    matrix4x3_from_point_and_quaternion(node_matrix, (float *)(node + 0x28),
-                                    (float *)(node + 0x34));
+    matrix4x3_from_point_and_quaternion((real_matrix4x3 *)node_matrix,
+                                        (const real_point3d *)(node + 0x28),
+                                        (const real_quaternion *)(node + 0x34));
     if (node_index == 0) {
       matrix4x3_from_forward_up_position(
         node_matrices, (real_point3d *)(position != NULL ? position : *(float **)0x31fc1c),
@@ -2963,13 +2964,13 @@ void render_model(int model_ref, float distance, void *node_matrices,
                                                node_index, 0x9c);
           parent_node_index = *(short *)(node + 0x24);
           if (parent_node_index != -1) {
-            FUN_00189270(
-              1, (float *)((char *)node_matrices + node_index * 0x34 + 0x28),
-              (float *)((char *)node_matrices + parent_node_index * 0x34 +
+            render_debug_line(
+              1, (const real_point3d *)((char *)node_matrices + node_index * 0x34 + 0x28),
+              (const real_point3d *)((char *)node_matrices + parent_node_index * 0x34 +
                         0x28),
               global_real_argb_white);
           }
-          FUN_001894d0(1, (float *)((char *)node_matrices + node_index * 0x34),
+          render_debug_matrix(1, (const real_matrix4x3 *)((char *)node_matrices + node_index * 0x34),
                        0.05f);
         }
       }
@@ -2995,15 +2996,15 @@ void render_model(int model_ref, float distance, void *node_matrices,
                 instance[1]) {
               real_matrix4x3 marker_matrix;
 
-              matrix4x3_from_point_and_quaternion((float *)&marker_matrix,
-                                              (float *)(instance + 4),
-                                              (float *)(instance + 0x10));
+              matrix4x3_from_point_and_quaternion(&marker_matrix,
+                                              (const real_point3d *)(instance + 4),
+                                              (const real_quaternion *)(instance + 0x10));
               matrix4x3_multiply(
                 (float *)((char *)node_matrices + instance[2] * 0x34),
                 (float *)&marker_matrix, (float *)&marker_matrix);
-              FUN_001894d0(0, (float *)&marker_matrix, 0.05f);
+              render_debug_matrix(0, (const real_matrix4x3 *)&marker_matrix, 0.05f);
               render_debug_string_at_point(0, &marker_matrix.position, marker,
-                           (int)global_real_argb_white);
+                           global_real_argb_white);
             }
           }
         }
@@ -3137,7 +3138,7 @@ void render_model(int model_ref, float distance, void *node_matrices,
             point[0] = *(float *)centroid;
             point[1] = *((float *)centroid + 1);
             point[2] = screen_offset + *((float *)centroid + 2);
-            render_debug_string_at_point(0, point, text, (int)color);
+            render_debug_string_at_point(0, (const real_point3d *)point, text, (const real_argb_color *)color);
           }
         }
       }

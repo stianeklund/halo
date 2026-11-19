@@ -182,7 +182,7 @@ void biped_limp_noodle_move_relax_and_constrain_positions(int unit_handle, void 
           delta.j *= 1.03f;
           delta.k *= 1.03f;
           if (collision_test_vector(0xc0a8, &ray_start, &delta, unit_handle,
-                           (int16_t *)&collision)) {
+                           (collision_test_result *)&collision)) {
             touching[0] = (unsigned char)collision_test_sphere((int)node_pos,
                                                       0x3cf5c28f);
             touching[1] = (unsigned char)collision_test_sphere((int)parent_pos,
@@ -190,14 +190,14 @@ void biped_limp_noodle_move_relax_and_constrain_positions(int unit_handle, void 
             if ((int)touching[0] + (int)touching[1] != 0) {
               plane = &collision.plane;
               if ((int)touching[0] + (int)touching[1] == 2) {
-                nn = plane->normal[1] * plane->normal[1] +
-                     plane->normal[2] * plane->normal[2] +
-                     plane->normal[0] * plane->normal[0];
+                nn = plane->normal.j * plane->normal.j +
+                     plane->normal.k * plane->normal.k +
+                     plane->normal.i * plane->normal.i;
                 for (k = 0; k < 2; k++) {
                   p = (k == 0) ? node_pos : parent_pos;
                   dist[k] =
-                    -((plane->normal[1] * p[1] + plane->normal[2] * p[2] +
-                       plane->normal[0] * p[0] - plane->d) /
+                    -((plane->normal.j * p[1] + plane->normal.k * p[2] +
+                       plane->normal.i * p[0] - plane->d) /
                       nn);
                   if (dist[k] != 0.0f)
                     dist[k] = radius * 2.5f + dist[k];
@@ -207,11 +207,11 @@ void biped_limp_noodle_move_relax_and_constrain_positions(int unit_handle, void 
                   if (touching[k]) {
                     p = (k == 0) ? node_pos : parent_pos;
                     dist[k] =
-                      -((plane->normal[1] * p[1] + plane->normal[2] * p[2] +
-                         plane->normal[0] * p[0] - plane->d) /
-                        (plane->normal[1] * plane->normal[1] +
-                         plane->normal[2] * plane->normal[2] +
-                         plane->normal[0] * plane->normal[0]));
+                      -((plane->normal.j * p[1] + plane->normal.k * p[2] +
+                         plane->normal.i * p[0] - plane->d) /
+                        (plane->normal.j * plane->normal.j +
+                         plane->normal.k * plane->normal.k +
+                         plane->normal.i * plane->normal.i));
                     if (dist[k] != 0.0f)
                       dist[k] = radius * 2.5f + dist[k];
                   } else {
@@ -223,9 +223,9 @@ void biped_limp_noodle_move_relax_and_constrain_positions(int unit_handle, void 
                 if (!(fabs(dist[k]) < REAL_EPSILON_DOUBLE_POOL)) {
                   p = (k == 0) ? node_pos : parent_pos;
                   s = frac * dist[k];
-                  p[0] = plane->normal[0] * s + p[0];
-                  p[1] = plane->normal[1] * s + p[1];
-                  p[2] = plane->normal[2] * s + p[2];
+                  p[0] = plane->normal.i * s + p[0];
+                  p[1] = plane->normal.j * s + p[1];
+                  p[2] = plane->normal.k * s + p[2];
                 }
               }
             }
@@ -2593,22 +2593,22 @@ void biped_find_nearby_support_surface(int unit_handle /* @ecx */)
         plane = (float *)tag_block_get_element((void *)((char *)bsp + 0xc),
                                                plane_index & 0x7fffffff, 0x10);
         if (plane_index < 0) {
-          n.normal[0] = -plane[0];
-          n.normal[1] = -plane[1];
-          n.normal[2] = -plane[2];
+          n.normal.i = -plane[0];
+          n.normal.j = -plane[1];
+          n.normal.k = -plane[2];
           n.d = -plane[3];
         } else {
-          n.normal[0] = plane[0];
-          n.normal[1] = plane[1];
-          n.normal[2] = plane[2];
+          n.normal.i = plane[0];
+          n.normal.j = plane[1];
+          n.normal.k = plane[2];
           n.d = plane[3];
         }
-        dist = (cam_pos.z * n.normal[2] + n.normal[0] * cam_pos.x + cam_pos.y * n.normal[1]) - n.d;
+        dist = (cam_pos.z * n.normal.k + n.normal.i * cam_pos.x + cam_pos.y * n.normal.j) - n.d;
         if (dist < best_dist) {
           best_index = results[1 + i];
-          best_n.normal[0] = n.normal[0];
-          best_n.normal[1] = n.normal[1];
-          best_n.normal[2] = n.normal[2];
+          best_n.normal.i = n.normal.i;
+          best_n.normal.j = n.normal.j;
+          best_n.normal.k = n.normal.k;
           best_n.d = n.d;
           best_dist = dist;
         }
@@ -2617,13 +2617,13 @@ void biped_find_nearby_support_surface(int unit_handle /* @ecx */)
 
       if (best_index != -1) {
         biped->support_surface_index = best_index;
-        biped->ground_plane.normal[0] = best_n.normal[0];
-        biped->ground_plane.normal[1] = best_n.normal[1];
-        biped->ground_plane.normal[2] = best_n.normal[2];
+        biped->ground_plane.normal.i = best_n.normal.i;
+        biped->ground_plane.normal.j = best_n.normal.j;
+        biped->ground_plane.normal.k = best_n.normal.k;
         biped->ground_plane.d = best_n.d;
-        biped->unit.object.up.i = best_n.normal[0];
-        biped->unit.object.up.j = best_n.normal[1];
-        biped->unit.object.up.k = best_n.normal[2];
+        biped->unit.object.up.i = best_n.normal.i;
+        biped->unit.object.up.j = best_n.normal.j;
+        biped->unit.object.up.k = best_n.normal.k;
       }
     }
   }
@@ -3364,7 +3364,7 @@ void biped_update_physics(void *physics_arg /* @esi */)
 
     if (submode != 0) {
       /* ---- 0x1a329e: in-plane axis recovery via cross products ---- */
-      ground_normal = (real_vector3d *)physics->ground_plane.normal;
+      ground_normal = &physics->ground_plane.normal;
       plane_forward.i = physics->aiming.i;
       plane_forward.j = physics->aiming.j;
       plane_forward.k = physics->aiming.k;
@@ -3389,30 +3389,30 @@ void biped_update_physics(void *physics_arg /* @esi */)
     } else {
       /* else-if and else share the normalize at 0x34ea; only else has
        * the material multiply. */
-      /* Routing (0x1a3?: flds physics->ground_plane.normal[2]; fcomps threshold; test 0x41/jne
-       * 0x1a33ed): the JUMP taken when physics->ground_plane.normal[2] <= threshold goes to the
+      /* Routing (0x1a3?: flds physics->ground_plane.normal.k; fcomps threshold; test 0x41/jne
+       * 0x1a33ed): the JUMP taken when physics->ground_plane.normal.k <= threshold goes to the
        * full-projection body (0x1a33ed, else below); the fall-through
-       * (physics->ground_plane.normal[2] > threshold) runs the single-component solve at
+       * (physics->ground_plane.normal.k > threshold) runs the single-component solve at
        * 0x1a339b. The lift had this inverted (`<=`), so steep planes
-       * (physics->ground_plane.normal[2] ~ 0) hit the divide-by-physics->ground_plane.normal[2] below -> 0/0 NaN
+       * (physics->ground_plane.normal.k ~ 0) hit the divide-by-physics->ground_plane.normal.k below -> 0/0 NaN
        * (new_position.z = -1.#IND) and broken slope movement; full projection
        * (cross-product/Gram-Schmidt) is the steep-plane path. */
-      if (physics->ground_plane.normal[2] > REAL_0_0001_POOL) {
+      if (physics->ground_plane.normal.k > REAL_0_0001_POOL) {
         /* ---- 0x1a339b: solve direction.k via the dominant (z) normal component ----
          */
-        ground_normal = (real_vector3d *)physics->ground_plane.normal;
+        ground_normal = &physics->ground_plane.normal;
         direction.i = physics->movement_desired.i * physics->forward.i -
                physics->forward.j * physics->movement_desired.j;
         gx = direction.i;
         direction.j = physics->movement_desired.j * physics->forward.i +
                physics->movement_desired.i * physics->forward.j;
         gy = direction.j;
-        direction.k = (direction.j * physics->ground_plane.normal[1] + direction.i * ground_normal->i) /
-               physics->ground_plane.normal[2];
+        direction.k = (direction.j * physics->ground_plane.normal.j + direction.i * ground_normal->i) /
+               physics->ground_plane.normal.k;
         direction.k = physics->movement_desired.k - direction.k;
       } else {
         /* ---- 0x1a33ed: full ground-plane projection ---- */
-        ground_normal = (real_vector3d *)physics->ground_plane.normal;
+        ground_normal = &physics->ground_plane.normal;
         plane_forward.i = physics->aiming.i;
         plane_forward.j = physics->aiming.j;
         plane_forward.k = physics->aiming.k;
@@ -3511,10 +3511,10 @@ void biped_update_physics(void *physics_arg /* @esi */)
       }
 
       /* new_velocity = disp - ground_normal*0x25f0d0 + velocity (0x1a3637..) */
-      ground_normal = (real_vector3d *)physics->ground_plane.normal;
-      r = physics->ground_plane.normal[0] * REAL_ONE_OVER_128_POOL; /* ground_normal->i */
-      t = physics->ground_plane.normal[1] * REAL_ONE_OVER_128_POOL;
-      fdist = physics->ground_plane.normal[2] * REAL_ONE_OVER_128_POOL;
+      ground_normal = &physics->ground_plane.normal;
+      r = physics->ground_plane.normal.i * REAL_ONE_OVER_128_POOL; /* ground_normal->i */
+      t = physics->ground_plane.normal.j * REAL_ONE_OVER_128_POOL;
+      fdist = physics->ground_plane.normal.k * REAL_ONE_OVER_128_POOL;
       physics->out_flags =
         (unsigned short)(-(unsigned short)(curve_flag != 0) & 2); /* 0x1a364d */
       physics->new_velocity.i = (disp.i - r) + velocity->i; /* 0x1a3672 */
@@ -3592,10 +3592,10 @@ LAB_001a36a4:
     results[0].point[1] = physics->position.x;
     results[0].point[2] = physics->position.y;
     results[0].point[3] = physics->position.z;
-    results[0].plane.normal[0] = global_up_vector_ptr[0];
+    results[0].plane.normal.i = global_up_vector_ptr[0];
     results[0].point[0] = 0.0f;
-    results[0].plane.normal[1] = global_up_vector_ptr[1];
-    results[0].plane.normal[2] = global_up_vector_ptr[2];
+    results[0].plane.normal.j = global_up_vector_ptr[1];
+    results[0].plane.normal.k = global_up_vector_ptr[2];
     results[0].plane.d = -physics->position.z;
     los_dir.i = new_pos.i;
     results[0].surface_handle = -1;
@@ -3670,7 +3670,7 @@ LAB_001a36a4:
         tag_block_get_element((void *)(surf_block + 0x3c), surf_index, 0xc);
       edge0 = surf->plane;
       edge1 = surf->first_edge;
-      bsp3d_get_plane_from_designator(surf_block, edge0, plane0.normal);
+      bsp3d_get_plane_from_designator(surf_block, edge0, &plane0);
       /* DEVIATION-FIX 2026-06-17: this count==0 mach-edge block operates on the
        * collision-query swept out-points, NOT physics+0xb8. The original keeps
        * THREE distinct stack vec3s; the prior lift collapsed two of them, which
@@ -3682,11 +3682,11 @@ LAB_001a36a4:
        * distance los_dir  (EBP-0x78) = query out-point-2 -> new_velocity
        * (+0xb8): side dot, face dot, in-place scale_add nrm_d / proj-base read
        * los_dir2 (disasm 0x9cc..0xa14). */
-      nrm_d = -(plane0.normal[0] * los_dir2.x + plane0.normal[1] * los_dir2.y +
-                plane0.normal[2] * los_dir2.z - plane0.d);
-      proj.x = plane0.normal[0] * nrm_d + los_dir2.x;
-      proj.y = plane0.normal[1] * nrm_d + los_dir2.y;
-      proj.z = plane0.normal[2] * nrm_d + los_dir2.z;
+      nrm_d = -(plane0.normal.i * los_dir2.x + plane0.normal.j * los_dir2.y +
+                plane0.normal.k * los_dir2.z - plane0.d);
+      proj.x = plane0.normal.i * nrm_d + los_dir2.x;
+      proj.y = plane0.normal.j * nrm_d + los_dir2.y;
+      proj.z = plane0.normal.k * nrm_d + los_dir2.z;
       ce = (void *)edge1;
       do {
         collision_edge_t *edge =
@@ -3706,15 +3706,15 @@ LAB_001a36a4:
           if ((((uint8_t *)&physics->in_flags)[1] & 2) != 0 ||
               (e2->flags & 4) != 0) {
             float side;
-            bsp3d_get_plane_from_designator(surf_block, e2->plane, plane0.normal);
+            bsp3d_get_plane_from_designator(surf_block, e2->plane, &plane0);
             /* side dots plane0 with los_dir (out-point-2), disasm 0xa8b */
-            side = plane0.normal[0] * los_dir.i + plane0.normal[1] * los_dir.j +
-                   plane0.normal[2] * los_dir.k;
+            side = plane0.normal.i * los_dir.i + plane0.normal.j * los_dir.j +
+                   plane0.normal.k * los_dir.k;
             nrm_d = side;
             if (!(REAL_ZERO_POOL < side) &&
                 physics->width * REAL_NEG_0_5_POOL <
-                  (plane0.normal[0] * los_dir2.x + plane0.normal[1] * los_dir2.y +
-                   plane0.normal[2] * los_dir2.z - plane0.d)) {
+                  (plane0.normal.i * los_dir2.x + plane0.normal.j * los_dir2.y +
+                   plane0.normal.k * los_dir2.z - plane0.d)) {
               void *v0 = tag_block_get_element((void *)(surf_block + 0x54),
                                                edge->start_vertex, 0x10);
               void *v1 = tag_block_get_element(
@@ -3743,9 +3743,9 @@ LAB_001a36a4:
               if (dist < best_dist) {
                 best_dist = dist;
                 best_edge = sel_edge;
-                bestN.normal[0] = plane0.normal[0];
-                bestN.normal[1] = plane0.normal[1];
-                bestN.normal[2] = plane0.normal[2];
+                bestN.normal.i = plane0.normal.i;
+                bestN.normal.j = plane0.normal.j;
+                bestN.normal.k = plane0.normal.k;
                 bestN.d = plane0.d;
                 nrm_d = side;
               }
@@ -3761,19 +3761,19 @@ LAB_001a36a4:
             best_dist &&
           nrm_d <= REAL_0_053333_POOL) {
         /* depth dots bestN with los_dir2 (out-point-1), disasm 0xc83 */
-        float depth = (bestN.normal[0] * los_dir2.x + bestN.normal[1] * los_dir2.y +
-                       bestN.normal[2] * los_dir2.z) -
+        float depth = (bestN.normal.i * los_dir2.x + bestN.normal.j * los_dir2.y +
+                       bestN.normal.k * los_dir2.z) -
                       (bestN.d + physics->width);
         if ((depth < 0.0f ? -depth : depth) <=
             physics->width * REAL_0_5_POOL) {
           /* face dots bestN with los_dir (out-point-2), disasm 0xcc8 */
-          float face = bestN.normal[0] * los_dir.i + bestN.normal[2] * los_dir.k +
-                       bestN.normal[1] * los_dir.j;
+          float face = bestN.normal.i * los_dir.i + bestN.normal.k * los_dir.k +
+                       bestN.normal.j * los_dir.j;
           /* push-out de-penetrates los_dir2 (-> new_position), disasm 0xcec */
           float pushv = -best_dist;
-          los_dir2.x = bestN.normal[0] * pushv + los_dir2.x;
-          los_dir2.y = bestN.normal[1] * pushv + los_dir2.y;
-          los_dir2.z = bestN.normal[2] * pushv + los_dir2.z;
+          los_dir2.x = bestN.normal.i * pushv + los_dir2.x;
+          los_dir2.y = bestN.normal.j * pushv + los_dir2.y;
+          los_dir2.z = bestN.normal.k * pushv + los_dir2.z;
           if (REAL_NEG_ONE_THIRTIETH_POOL < face) {
             /* In-place adjust of the swept out-point (new_velocity source):
              * los_dir += -(face+k)*bestN. Original (0x1a3c65..0x1a3c8b) aliases
@@ -3792,14 +3792,14 @@ LAB_001a36a4:
            *   this synthetic edge contact (prior lift left result_count==0, so
            *   the loop skipped it and the ground-plane snap never ran). */
           pushv = -physics->width;
-          results[0].plane.normal[0] = bestN.normal[0];
-          results[0].plane.normal[1] = bestN.normal[1];
-          results[0].plane.normal[2] = bestN.normal[2];
+          results[0].plane.normal.i = bestN.normal.i;
+          results[0].plane.normal.j = bestN.normal.j;
+          results[0].plane.normal.k = bestN.normal.k;
           results[0].plane.d = bestN.d;
           results[0].point[0] = 0.0f; /* +0x00 */
-          results[0].point[1] = bestN.normal[0] * pushv + los_dir2.x; /* +0x04 X */
-          results[0].point[2] = bestN.normal[1] * pushv + los_dir2.y; /* +0x08 Y */
-          results[0].point[3] = bestN.normal[2] * pushv + los_dir2.z; /* +0x0c Z */
+          results[0].point[1] = bestN.normal.i * pushv + los_dir2.x; /* +0x04 X */
+          results[0].point[2] = bestN.normal.j * pushv + los_dir2.y; /* +0x08 Y */
+          results[0].point[3] = bestN.normal.k * pushv + los_dir2.z; /* +0x0c Z */
           results[0].object_handle = -1; /* +0x20 */
           results[0].surface_handle = best_edge; /* +0x24 */
           results[0].flags = 0;
@@ -3868,9 +3868,9 @@ LAB_001a36a4:
       } else {
         same = 0;
       }
-      metric = -(physics->new_velocity.i * e->plane.normal[0] +
-                 e->plane.normal[2] * physics->new_velocity.k +
-                 physics->new_velocity.j * e->plane.normal[1]);
+      metric = -(physics->new_velocity.i * e->plane.normal.i +
+                 e->plane.normal.k * physics->new_velocity.k +
+                 physics->new_velocity.j * e->plane.normal.j);
       if (want == 0) {
         /* 0x1a3f13: FCOMP normal[2] (flds 0x4(%edi)) vs loop_best, test
          * 0x41/jne
@@ -3880,11 +3880,11 @@ LAB_001a36a4:
          * lets a vertical wall (normal ~= +/-Y, Z~=0) win as "ground", so the
          * biped is projected along/up the wall after a high-velocity contact.
          */
-        if (loop_flag9 == 0 && e->plane.normal[2] > loop_best) {
+        if (loop_flag9 == 0 && e->plane.normal.k > loop_best) {
           goto loopA_take;
         }
       } else if ((material_local != 0 ||
-                  gx * e->plane.normal[0] + gy * e->plane.normal[1] <=
+                  gx * e->plane.normal.i + gy * e->plane.normal.j <=
                     REAL_0_5_POOL) &&
                  (loop_flag9 == 0 || same ||
                   (loop_flag1 == 0 && loop_metric < metric))) {
@@ -3893,7 +3893,7 @@ LAB_001a36a4:
         best_index = n;
         loop_flag1 = same;
         loop_best =
-          e->plane.normal[2]; /* 0x1a3f26: mov 0x4(%edi) = normal[2] (Z/up) */
+          e->plane.normal.k; /* 0x1a3f26: mov 0x4(%edi) = normal[2] (Z/up) */
         loop_metric = metric;
       }
       if ((*(uint8_t *)&physics->out_flags & 0x10) == 0) {
@@ -3936,8 +3936,8 @@ LAB_001a36a4:
     e = &results[(short)best_index];
     /* selected entry: compute the result normal dot (local_3c) */
     /* 0x1a3ef6-0x1a3f24: (n1*p1 + n2*p2) + n0*p0 */
-    best_t = -(e->plane.normal[1] * new_pos.j + e->plane.normal[2] * new_pos.k +
-               e->plane.normal[0] * new_pos.i);
+    best_t = -(e->plane.normal.j * new_pos.j + e->plane.normal.k * new_pos.k +
+               e->plane.normal.i * new_pos.i);
     if (loop_flag9 == 0 && loop_flag1 == 0) {
       /* 0x1a3ff8: flds -0x48(%ebp) = loop_best (the selected entry's normal[2],
        * Z/up), compared against physics->minimum_normal_k (stand-on-slope threshold). */
@@ -3947,7 +3947,7 @@ LAB_001a36a4:
       if ((physics->in_flags & 1) != 0 &&
           physics->ground_tangential_velocity_max < REAL_MAX_POOL) {
         float slen;
-        vector3d_scale_add((real_point3d *)&new_pos, (real_vector3d *)&e->plane.normal[0], best_t, &surf);
+        vector3d_scale_add((real_point3d *)&new_pos, &e->plane.normal, best_t, &surf);
         slen = magnitude_squared3d((real_vector3d *)&surf);
         if (physics->ground_tangential_velocity_max *
               physics->ground_tangential_velocity_max <
@@ -3975,9 +3975,9 @@ LAB_001a36a4:
        * on AI-spawned bipeds. Restored to match the binary. */
       int sel_surface = e->surface_handle;
       *(uint8_t *)&physics->out_flags &= 0xfe;
-      *(int *)&physics->ground_plane.normal[0] = *(int *)&e->plane.normal[0];
-      *(int *)&physics->ground_plane.normal[1] = *(int *)&e->plane.normal[1];
-      *(int *)&physics->ground_plane.normal[2] = *(int *)&e->plane.normal[2];
+      *(int *)&physics->ground_plane.normal.i = *(int *)&e->plane.normal.i;
+      *(int *)&physics->ground_plane.normal.j = *(int *)&e->plane.normal.j;
+      *(int *)&physics->ground_plane.normal.k = *(int *)&e->plane.normal.k;
       *(int *)&physics->ground_plane.d = *(int *)&e->plane.d;
       physics->support_surface_index = sel_surface;
       if (sel_surface != -1 &&
@@ -3987,9 +3987,9 @@ LAB_001a36a4:
       }
       /* 0x1a3ff6-0x1a4012: (p1*n1 + p2*n2) + p0*n0 */
       physics->landing_velocity =
-        -(new_pos.j * physics->ground_plane.normal[1] +
-          new_pos.k * physics->ground_plane.normal[2] +
-          new_pos.i * physics->ground_plane.normal[0]);
+        -(new_pos.j * physics->ground_plane.normal.j +
+          new_pos.k * physics->ground_plane.normal.k +
+          new_pos.i * physics->ground_plane.normal.i);
       goto LAB_001a4062;
     }
   }
@@ -3997,9 +3997,9 @@ LAB_001a36a4:
 
 LAB_001a401e:
   *(uint8_t *)&physics->out_flags |= 1;
-  *(int *)&physics->ground_plane.normal[0] = DEPTHS_OF_HELL_PLANE_NORMAL_I_BITS;
-  *(int *)&physics->ground_plane.normal[1] = DEPTHS_OF_HELL_PLANE_NORMAL_J_BITS;
-  *(int *)&physics->ground_plane.normal[2] = DEPTHS_OF_HELL_PLANE_NORMAL_K_BITS;
+  *(int *)&physics->ground_plane.normal.i = DEPTHS_OF_HELL_PLANE_NORMAL_I_BITS;
+  *(int *)&physics->ground_plane.normal.j = DEPTHS_OF_HELL_PLANE_NORMAL_J_BITS;
+  *(int *)&physics->ground_plane.normal.k = DEPTHS_OF_HELL_PLANE_NORMAL_K_BITS;
   *(int *)&physics->ground_plane.d = DEPTHS_OF_HELL_PLANE_D_BITS;
   physics->support_surface_index = 0xffffffff;
   physics->landing_velocity = 0.0f;
@@ -4302,7 +4302,7 @@ void biped_snap_facing(int biped_index)
     } else {
       bool tilt_toward_surface = true;
 
-      normal = *(real_vector3d *)biped->ground_plane.normal;
+      normal = biped->ground_plane.normal;
       cross_product3d(up, &normal, &axis);
       if (normalize3d(&axis) == 0.0f) {
         if (normal.j * up->j + normal.k * up->k + normal.i * up->i > 0.0f)
@@ -4358,7 +4358,7 @@ void biped_snap_facing(int biped_index)
 
     biped_verify_object_vectors(biped_index, "pre-deadplane-snapfacing");
 
-    ground_normal = (real_vector3d *)biped->ground_plane.normal;
+    ground_normal = &biped->ground_plane.normal;
     up = &biped->unit.object.up;
     cosine_of_angle = ground_normal->k * up->k + ground_normal->j * up->j +
                       up->i * ground_normal->i;
@@ -4441,9 +4441,9 @@ char biped_new(int unit_handle)
   biped = object_get_and_verify_type(unit_handle, 1 << _object_type_biped);
   definition = tag_get(TAG_GROUP_BIPD, biped->unit.object.tag_index);
 
-  *(int *)&biped->ground_plane.normal[0] = DEPTHS_OF_HELL_PLANE_NORMAL_I_BITS;
-  *(int *)&biped->ground_plane.normal[1] = DEPTHS_OF_HELL_PLANE_NORMAL_J_BITS;
-  *(int *)&biped->ground_plane.normal[2] = DEPTHS_OF_HELL_PLANE_NORMAL_K_BITS;
+  *(int *)&biped->ground_plane.normal.i = DEPTHS_OF_HELL_PLANE_NORMAL_I_BITS;
+  *(int *)&biped->ground_plane.normal.j = DEPTHS_OF_HELL_PLANE_NORMAL_J_BITS;
+  *(int *)&biped->ground_plane.normal.k = DEPTHS_OF_HELL_PLANE_NORMAL_K_BITS;
   *(int *)&biped->ground_plane.d = DEPTHS_OF_HELL_PLANE_D_BITS;
 
   biped->jump_recovery_timer = 0x7f;
@@ -4916,9 +4916,9 @@ void biped_update_moving(int unit_handle, unsigned char *state)
   physics.uphill_k0 = biped_definition_runtime_uphill_k0(definition);
   physics.uphill_k1 = biped_definition_runtime_uphill_k1(definition);
   physics.uphill_velocity_scale = biped_definition_uphill_velocity_scale(definition);
-  physics.ground_plane.normal[0] = biped->ground_plane.normal[0];
-  physics.ground_plane.normal[1] = biped->ground_plane.normal[1];
-  physics.ground_plane.normal[2] = biped->ground_plane.normal[2];
+  physics.ground_plane.normal.i = biped->ground_plane.normal.i;
+  physics.ground_plane.normal.j = biped->ground_plane.normal.j;
+  physics.ground_plane.normal.k = biped->ground_plane.normal.k;
   physics.ground_plane.d = biped->ground_plane.d;
   physics.ground_tangential_velocity_max = 3.4028235e38f;
   physics.ground_tangential_angle = 0.0f;
@@ -5279,9 +5279,9 @@ void biped_update_moving(int unit_handle, unsigned char *state)
   else
     biped->flags &= ~0x10u;
 
-  biped->ground_plane.normal[0] = physics.ground_plane.normal[0];
-  biped->ground_plane.normal[1] = physics.ground_plane.normal[1];
-  biped->ground_plane.normal[2] = physics.ground_plane.normal[2];
+  biped->ground_plane.normal.i = physics.ground_plane.normal.i;
+  biped->ground_plane.normal.j = physics.ground_plane.normal.j;
+  biped->ground_plane.normal.k = physics.ground_plane.normal.k;
   biped->ground_plane.d = physics.ground_plane.d;
   if (physics.landing_velocity > 0.0f)
     biped_start_landing(physics.landing_velocity, unit_handle);
@@ -5325,13 +5325,13 @@ void biped_update_moving(int unit_handle, unsigned char *state)
                                       (int16_t *)&model_result) &&
           !collision_test_vector(0xc2a0, &physics.position,
                                  &melee_vector, unit_handle,
-                                 (int16_t *)&world_collision)) {
+                                 (collision_test_result *)&world_collision)) {
         vector3d_scale_add(&physics.position, &melee_vector,
                            model_result.t,
                            &impact_point);
         matrix4x3_transform_plane(
-          (float *)&instance.node_matrices[model_result.node_index],
-                     (float *)model_result.plane, (float *)&impact_plane);
+          &instance.node_matrices[model_result.node_index],
+                     model_result.plane, &impact_plane);
         if (model_result.plane_designator < 0)
           plane_negate((float *)&impact_plane, (float *)&impact_plane);
         unit_impact_melee_damage(

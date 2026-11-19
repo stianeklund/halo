@@ -874,7 +874,7 @@ bool input_initialize(void)
   device_types[1].DeviceType = XDEVICE_TYPE_DEBUG_KEYBOARD;
   device_types[1].dwPreallocCount = 1;
   device_types[2].DeviceType = XDEVICE_TYPE_MEMORY_UNIT;
-  device_types[2].dwPreallocCount = 8;
+  device_types[2].dwPreallocCount = MAXIMUM_MEMORY_UNITS;
 
   csmemset(&input_globals.suppressed, 0,
            sizeof(input_globals_t) - offsetof(input_globals_t, suppressed));
@@ -884,8 +884,8 @@ bool input_initialize(void)
   input_globals.update_event_pending = true;
   input_globals.update_event_handle = CreateEventA(NULL, false, false, NULL);
   input_globals.update_thread_handle =
-    (int)CreateThread(NULL, 0x4000, input_keyboard_thread, NULL,
-                      CREATE_SUSPENDED, NULL);
+    (int)CreateThread(NULL, INPUT_UPDATE_THREAD_STACK_SIZE,
+                      input_keyboard_thread, NULL, CREATE_SUSPENDED, NULL);
   SetThreadPriority(input_globals.update_thread_handle,
                     THREAD_PRIORITY_HIGHEST);
   input_globals.update_thread_started = true;
@@ -895,8 +895,8 @@ bool input_initialize(void)
                                       XINPUT_DEBUG_KEYQUEUE_FLAG_KEYREPEAT |
                                       XINPUT_DEBUG_KEYQUEUE_FLAG_KEYUP;
   keyboard_queue_parameters.dwQueueSize = MAXIMUM_BUFFERED_KEYSTROKES;
-  keyboard_queue_parameters.dwRepeatDelay = 500;
-  keyboard_queue_parameters.dwRepeatInterval = 100;
+  keyboard_queue_parameters.dwRepeatDelay = KEYBOARD_REPEAT_DELAY_MILLISECONDS;
+  keyboard_queue_parameters.dwRepeatInterval = KEYBOARD_REPEAT_INTERVAL_MILLISECONDS;
   result = XInputDebugInitKeyboardQueue(&keyboard_queue_parameters);
   if (result < ERROR_SUCCESS) {
     error(_error_silent,

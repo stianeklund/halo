@@ -49,7 +49,7 @@ void structure_detail_objects_dispose(void)
  * game_state_revert table at 0x32eaa8.
  *
  * Clears the byte at detail-object runtime data + 0x520e, the flag
- * FUN_00193c00 tests before reusing its cached cell data and sets to 1 once
+ * structure_render_detail_objects tests before reusing its cached cell data and sets to 1 once
  * the cache is rebuilt. structure_detail_objects_initialize_for_new_map
  * clears the same byte. The base pointer (0x4d8ea0) is read with no NULL
  * check, exactly as in the original (MOV EAX,[0x4d8ea0]; MOV BYTE
@@ -150,7 +150,7 @@ float FUN_00193b80(float *param_1, float *param_2)
  *     in_EAX@eax = end (last elem + 0x20); stack = &key.
  *   - record float at +0xc stored via FSTP (float, NOT (int)).
  */
-void FUN_00193c00(void)
+void structure_render_detail_objects(void)
 {
   short player_count;
   char *scn;

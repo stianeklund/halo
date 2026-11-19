@@ -30,7 +30,7 @@ void FUN_0018aef0(int object_handle, float *center, float *radius)
 /* 0x18af90 — cached object render-states pool: allocate the game-state
  * data array (0x100 entries x 0x100 bytes) and store it at the global
  * pool pointer; assert on allocation failure. */
-void FUN_0018AF90(void)
+void render_objects_initialize(void)
 {
   *(data_t **)0x50652c =
     game_state_data_new("cached object render states", 0x100, 0x100);
@@ -43,14 +43,14 @@ void FUN_0018AF90(void)
 
 /* 0x18afd0 — cached object render-states pool free: delete all entries in the
  * cached_object_render_states data pool. */
-void FUN_0018afd0(void)
+void render_objects_initialize_for_new_map(void)
 {
   data_delete_all(*(data_t **)0x50652c);
 }
 
 /* 0x18afe0 — cached object render-states pool dispose: if the pool exists
  * and is initialized (+0x24 valid flag set), invalidate its data array. */
-void FUN_0018afe0(void)
+void render_objects_dispose_from_old_map(void)
 {
   if (*(data_t **)0x50652c != 0 &&
       *(char *)((char *)*(data_t **)0x50652c + 0x24) != 0) {
@@ -60,7 +60,7 @@ void FUN_0018afe0(void)
 
 /* 0x18b000 — cached object render-states pool clear: reset the global pool
  * pointer to NULL. */
-void FUN_0018B000(void)
+void render_objects_dispose(void)
 {
   *(data_t **)0x50652c = 0;
 }
@@ -150,8 +150,8 @@ float FUN_0018b130(int object_handle)
     }
   }
   object_get_bounding_sphere(object_handle, center, &radius);
-  return render_frustum_sphere_diameter_in_pixels((void *)0x5065a4, center,
-                                                  radius);
+  return render_frustum_sphere_diameter_in_pixels(
+    (render_frustum_t *)0x5065a4, (real_point3d *)center, radius);
 }
 
 /* parent_model_effect — 40-byte (0x28) render-effect descriptor threaded down
@@ -250,8 +250,8 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
                                 4) &
               0x400000) == 0)) {
           object_get_bounding_sphere(object_handle, center, &radius);
-          dist = render_frustum_sphere_diameter_in_pixels((void *)0x5065a4,
-                                                          center, radius);
+          dist = render_frustum_sphere_diameter_in_pixels(
+            (render_frustum_t *)0x5065a4, (real_point3d *)center, radius);
         } else {
           dist = 3.4028235e+38f;
         }
@@ -318,7 +318,7 @@ void FUN_0018b190(void *render_data, void *parent_model_effect,
                         tag_name_strip_path(tag_get_name(*(int *)obj)));
             render_debug_point(0, (real_point3d *)(obj + 0x50), *(float *)(obj + 0x5c),
                          *(void **)0x2ee6d8);
-            render_debug_string_at_point(0, marker, text, *(int *)0x2ee6d8);
+            render_debug_string_at_point(0, (const real_point3d *)marker, text, *(const real_argb_color **)0x2ee6d8);
           }
 
           /* Single 13-argument model-submit. MSVC evaluates the cdecl args
@@ -458,7 +458,7 @@ char FUN_0018b830(void *ctx, float fade)
 
   fade_local = fade;
   object_get_bounding_sphere(*(int *)ctx, center, &radius);
-  perpendicular3d((float *)(*(int *)((char *)ctx + 4) + 0x5c), perp);
+  perpendicular3d((const real_vector3d *)((float *)(*(int *)((char *)ctx + 4) + 0x5c)), (real_vector3d *)perp);
   /* length result discarded (FSTP ST0 in the original) */
   normalize3d((real_vector3d *)perp);
   matrix4x3_from_forward_up_position(
@@ -526,44 +526,44 @@ void render_object_shadow_end(object_render_data *data)
   real_plane3d shadow_volume_planes[NUMBER_OF_SHADOW_VOLUME_PLANES];
   real_rectangle3d shadow_volume_bounds;
 
-  shadow_volume_planes[0].normal[0] = data->shadow_matrix.up.i;
-  shadow_volume_planes[0].normal[1] = data->shadow_matrix.up.j;
-  shadow_volume_planes[0].normal[2] = data->shadow_matrix.up.k;
+  shadow_volume_planes[0].normal.i = data->shadow_matrix.up.i;
+  shadow_volume_planes[0].normal.j = data->shadow_matrix.up.j;
+  shadow_volume_planes[0].normal.k = data->shadow_matrix.up.k;
   shadow_volume_planes[0].d =
     data->shadow_matrix.up.k * data->shadow_matrix.position.z +
     data->shadow_matrix.up.j * data->shadow_matrix.position.y +
     data->shadow_matrix.up.i * data->shadow_matrix.position.x;
-  shadow_volume_planes[1].normal[0] = -shadow_volume_planes[0].normal[0];
-  shadow_volume_planes[1].normal[1] = -shadow_volume_planes[0].normal[1];
-  shadow_volume_planes[1].normal[2] = -shadow_volume_planes[0].normal[2];
+  shadow_volume_planes[1].normal.i = -shadow_volume_planes[0].normal.i;
+  shadow_volume_planes[1].normal.j = -shadow_volume_planes[0].normal.j;
+  shadow_volume_planes[1].normal.k = -shadow_volume_planes[0].normal.k;
   shadow_volume_planes[1].d = -shadow_volume_planes[0].d;
   shadow_volume_planes[0].d -= data->shadow_bounding_radius * 0.5f;
   shadow_volume_planes[1].d -= data->shadow_bounding_radius * 4.0f;
 
-  shadow_volume_planes[2].normal[0] = data->shadow_matrix.forward.i;
-  shadow_volume_planes[2].normal[1] = data->shadow_matrix.forward.j;
-  shadow_volume_planes[2].normal[2] = data->shadow_matrix.forward.k;
+  shadow_volume_planes[2].normal.i = data->shadow_matrix.forward.i;
+  shadow_volume_planes[2].normal.j = data->shadow_matrix.forward.j;
+  shadow_volume_planes[2].normal.k = data->shadow_matrix.forward.k;
   shadow_volume_planes[2].d =
     data->shadow_matrix.forward.k * data->shadow_matrix.position.z +
     data->shadow_matrix.forward.j * data->shadow_matrix.position.y +
     data->shadow_matrix.forward.i * data->shadow_matrix.position.x;
-  shadow_volume_planes[3].normal[0] = -shadow_volume_planes[2].normal[0];
-  shadow_volume_planes[3].normal[1] = -shadow_volume_planes[2].normal[1];
-  shadow_volume_planes[3].normal[2] = -shadow_volume_planes[2].normal[2];
+  shadow_volume_planes[3].normal.i = -shadow_volume_planes[2].normal.i;
+  shadow_volume_planes[3].normal.j = -shadow_volume_planes[2].normal.j;
+  shadow_volume_planes[3].normal.k = -shadow_volume_planes[2].normal.k;
   shadow_volume_planes[3].d = -shadow_volume_planes[2].d;
   shadow_volume_planes[2].d -= data->shadow_bounding_radius;
   shadow_volume_planes[3].d -= data->shadow_bounding_radius;
 
-  shadow_volume_planes[4].normal[0] = data->shadow_matrix.left.i;
-  shadow_volume_planes[4].normal[1] = data->shadow_matrix.left.j;
-  shadow_volume_planes[4].normal[2] = data->shadow_matrix.left.k;
+  shadow_volume_planes[4].normal.i = data->shadow_matrix.left.i;
+  shadow_volume_planes[4].normal.j = data->shadow_matrix.left.j;
+  shadow_volume_planes[4].normal.k = data->shadow_matrix.left.k;
   shadow_volume_planes[4].d =
     data->shadow_matrix.left.k * data->shadow_matrix.position.z +
     data->shadow_matrix.left.j * data->shadow_matrix.position.y +
     data->shadow_matrix.left.i * data->shadow_matrix.position.x;
-  shadow_volume_planes[5].normal[0] = -shadow_volume_planes[4].normal[0];
-  shadow_volume_planes[5].normal[1] = -shadow_volume_planes[4].normal[1];
-  shadow_volume_planes[5].normal[2] = -shadow_volume_planes[4].normal[2];
+  shadow_volume_planes[5].normal.i = -shadow_volume_planes[4].normal.i;
+  shadow_volume_planes[5].normal.j = -shadow_volume_planes[4].normal.j;
+  shadow_volume_planes[5].normal.k = -shadow_volume_planes[4].normal.k;
   shadow_volume_planes[5].d = -shadow_volume_planes[4].d;
   shadow_volume_planes[4].d -= data->shadow_bounding_radius;
   shadow_volume_planes[5].d -= data->shadow_bounding_radius;
@@ -1121,7 +1121,7 @@ int FUN_0018c580(int param_1, int param_2)
   return diff;
 }
 
-/* Sort record built by FUN_0018c5b0's gather pass; FUN_0018c580 is the
+/* Sort record built by render_particles's gather pass; FUN_0018c580 is the
  * matching qsort comparator (tag, then sort key, then first-person flag). */
 typedef struct particle_sort_record {
   int16_t datum_index;
@@ -1154,7 +1154,7 @@ typedef struct particle_sort_record {
  * into the animation record (+0x8 -> +0x98, divides by the emitted count
  * even when zero, matching the original) and FUN_0018d360. cdecl,
  * void(void), 0x24e8-byte frame via _chkstk. */
-void FUN_0018c5b0(void)
+void render_particles(void)
 {
   particle_sort_record_t gather[0x400]; /* EBP-0x24E8 */
   int16_t runs[0x200]; /* EBP-0x4E8 */
@@ -1202,7 +1202,7 @@ void FUN_0018c5b0(void)
       do {
         part = (char *)datum_get(*(data_t **)0x5aa8a0, index);
         is_fp = (int)*(uint8_t *)(part + 0xf) == fp_index;
-        if (render_location_visible(part + 0x28) != 0 &&
+        if (render_location_visible((const location_t *)(part + 0x28)) != 0 &&
             ((*(uint8_t *)(part + 2) & 0x10) == 0 || !is_fp) &&
             ((*(uint8_t *)(part + 2) & 0x20) == 0 || is_fp)) {
           rec = &gather[(int16_t)count];
@@ -1284,13 +1284,13 @@ void FUN_0018c5b0(void)
                     marker = (float *)object_get_node_matrix(
                       *(int *)(part + 8), *(int16_t *)(part + 0xc));
                   }
-                  matrix_transform_point(marker, (real_point3d *)(part + 0x30),
+                  matrix_transform_point((const real_matrix4x3 *)marker, (real_point3d *)(part + 0x30),
                                          (real_point3d *)position);
                   matrix_transform_vector(marker, (real_vector3d *)(part + 0x3c),
                                           (real_vector3d *)direction);
                 }
                 pixels = render_frustum_sphere_diameter_in_pixels(
-                  (void *)0x5065a4, position, radius);
+                  (render_frustum_t *)0x5065a4, (real_point3d *)position, radius);
                 if (pixels > *(float *)(tag + 0x90)) {
                   emitted++;
                   scale = 1.0f;
@@ -1478,7 +1478,7 @@ void render_sky(void)
             negdir[0] = -delta[0];
             negdir[1] = -delta[1];
             negdir[2] = -delta[2];
-            perpendicular3d(negdir, perp);
+            perpendicular3d((const real_vector3d *)negdir, (real_vector3d *)perp);
             len =
               sqrtf(perp[2] * perp[2] + perp[1] * perp[1] + perp[0] * perp[0]);
             if (fabs((double)len) >= *(const double *)0x2533d0) {
@@ -1560,8 +1560,10 @@ void FUN_0018cf10(void *data, float *untransformed_origin,
     system_exit(-1);
   }
   if ((*(uint8_t *)((char *)data + 0x10) & 1) != 0) {
-    render_camera_screen_to_view((void *)0x506550, (void *)0x5065a4,
-                                 untransformed_origin, view_vector);
+    render_camera_screen_to_view((camera_t *)0x506550,
+                                 (render_frustum_t *)0x5065a4,
+                                 (real_point2d *)untransformed_origin,
+                                 (real_vector3d *)view_vector);
     if (untransformed_direction != NULL) {
       display_assert("!untransformed_direction",
                      "c:\\halo\\SOURCE\\render\\render_sprite.c", 0x54, 1);
@@ -1581,7 +1583,7 @@ void FUN_0018cf10(void *data, float *untransformed_origin,
         *(int32_t *)(untransformed_direction + 2);
     }
   } else {
-    matrix_transform_point((float *)0x5065b4, (real_point3d *)untransformed_origin,
+    matrix_transform_point((const real_matrix4x3 *)(0x5065b4), (real_point3d *)untransformed_origin,
                            (real_point3d *)transformed_origin);
     if (untransformed_direction != NULL) {
       matrix_transform_vector((float *)0x5065b4, (real_vector3d *)untransformed_direction,
@@ -1617,7 +1619,7 @@ void FUN_0018d040(void *state, float *value, int16_t p1, int p2, void *src,
 /* 0x18d0b0 — per-frame coverage/big-sprite stats reset (kb name is a
  * misnomer). If the debug flag at 0x5064e8 is set, format the accumulated
  * coverage (float @0x506504) and big-sprite count (short @0x506508) into a
- * line and emit it via FUN_00189c40(0, ...). Then zero both accumulators and
+ * line and emit it via render_debug_string(0, ...). Then zero both accumulators and
  * run two matrix_transform_vector passes over the 0x5065b4 matrix using the
  * pointers at *0x31fc44 / *0x31fc40 into the 0x506510 / 0x50651c buffers.
  * cdecl, void(void). */
@@ -1628,7 +1630,7 @@ void scenario_fog_region_get_fog_index(void)
   if (*(char *)0x5064e8 != 0) {
     crt_sprintf(line, "   coverage: %.1f big sprites: %d",
                 (double)*(float *)0x506504, (int)*(short *)0x506508);
-    FUN_00189c40(0, line);
+    render_debug_string(0, line);
   }
   *(float *)0x506504 = 0.0f;
   *(short *)0x506508 = 0;
@@ -1802,7 +1804,7 @@ void FUN_0018d360(void *sprite_build_data)
   origin[0] *= scale;
   origin[1] *= scale;
   origin[2] *= scale;
-  matrix_transform_point((float *)0x5065e8, (real_point3d *)origin, (real_point3d *)origin);
+  matrix_transform_point((const real_matrix4x3 *)(0x5065e8), (real_point3d *)origin, (real_point3d *)origin);
 
   for (i = 0; i < *(int16_t *)(data + 0x20); i++) {
     rec = (uint32_t *)(data + 0x24 + (int)i * 0x10);
@@ -1815,8 +1817,8 @@ void FUN_0018d360(void *sprite_build_data)
         system_exit(-1);
         FUN_0017cf80(0, -4, rec[0], (int)*(int16_t *)((char *)rec + 0x8) << 1);
       } else {
-        FUN_0017cf60(*(uint32_t *)(data + 8), rec[3], 0, -4, rec[0],
-                     (int)*(int16_t *)((char *)rec + 0x8) << 1, origin,
+        rasterizer_dynamic_unlit_geometry_draw(*(uint32_t *)(data + 8), rec[3], 0, -4, rec[0],
+                     (int)*(int16_t *)((char *)rec + 0x8) << 1, (real_point3d *)origin,
                      ((*(uint32_t *)(data + 0x10) & 2) << 6) | 0x20);
       }
       rasterizer_dynamic_vertices_delete((int)rec[0]);
@@ -2069,7 +2071,7 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
                                        transformed_origin, basis + 7) *
                           intensity;
             }
-            pixel = real_argb_color_to_pixel32(color);
+            pixel = real_argb_color_to_pixel32((const real_argb_color *)color);
             anim = (char *)*(int *)((char *)data + 8);
             if (anim != NULL && *(int16_t *)(anim + 0x2a) != 0 &&
                 (*(uint8_t *)(anim + 0x28) & 2) == 0) {
@@ -2160,7 +2162,8 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
               *(int16_t *)((char *)data + 0xc) + 1;
             if ((*(uint8_t *)((char *)data + 0x10) & 1) == 0) {
               area =
-                render_frustum_cube_view_fraction((void *)0x5065a4, bounds);
+                render_frustum_cube_view_fraction(
+                  (render_frustum_t *)0x5065a4, (real_rectangle3d *)bounds);
               *(float *)0x506504 = *(float *)0x506504 + area;
               if (area > *(const float *)0x253398) {
                 old_count = *(int16_t *)0x506508;
@@ -2174,22 +2177,22 @@ void FUN_0018d6e0(void *data, int16_t mode, int16_t sequence_index,
               if (*(char *)0x5064e8 != 0) {
                 idx = (int)(int16_t)vertex_index;
                 verts = *(int *)(group + 4);
-                matrix_transform_point((float *)0x5065e8,
+                matrix_transform_point((const real_matrix4x3 *)(0x5065e8),
                                        (real_point3d *)(verts + (idx * 3 - 12) * 8),
                                        (real_point3d *)wpoint);
-                matrix_transform_point((float *)0x5065e8,
+                matrix_transform_point((const real_matrix4x3 *)(0x5065e8),
                                        (real_point3d *)(verts + (idx * 3 - 9) * 8),
                                        (real_point3d *)dbg_b);
-                matrix_transform_point((float *)0x5065e8,
+                matrix_transform_point((const real_matrix4x3 *)(0x5065e8),
                                        (real_point3d *)(verts + (idx * 3 - 6) * 8),
                                        (real_point3d *)dbg_c);
-                matrix_transform_point((float *)0x5065e8,
+                matrix_transform_point((const real_matrix4x3 *)(0x5065e8),
                                        (real_point3d *)(verts + idx * 0x18 - 0x18),
                                        (real_point3d *)dbg_d);
-                FUN_0017eb10(wpoint, dbg_b, *(int *)0x2ee6c4);
-                FUN_0017eb10(wpoint, dbg_c, *(int *)0x2ee6c4);
-                FUN_0017eb10(dbg_c, dbg_d, *(int *)0x2ee6c4);
-                FUN_0017eb10(dbg_d, dbg_b, *(int *)0x2ee6c4);
+                rasterizer_debug_line((const real_point3d *)wpoint, (const real_point3d *)dbg_b, *(const real_argb_color **)0x2ee6c4);
+                rasterizer_debug_line((const real_point3d *)wpoint, (const real_point3d *)dbg_c, *(const real_argb_color **)0x2ee6c4);
+                rasterizer_debug_line((const real_point3d *)dbg_c, (const real_point3d *)dbg_d, *(const real_argb_color **)0x2ee6c4);
+                rasterizer_debug_line((const real_point3d *)dbg_d, (const real_point3d *)dbg_b, *(const real_argb_color **)0x2ee6c4);
               }
             }
           }
@@ -3709,7 +3712,7 @@ float scenario_location_water_depth(void *location, void *position)
     return -3.4028235e+38f;
 
   if (plane != NULL) {
-    d = plane3d_distance_to_point(plane, position);
+    d = plane3d_distance_to_point((const real_plane3d *)plane, position);
     return -(d + *(float *)(fog_tag + 0x74));
   }
 
@@ -3839,7 +3842,7 @@ void scenario_get_sound_environment(int32_t *out_datum, void **out_env,
       env_name = tag_get_name(snde_datum);
     }
     crt_sprintf((char *)0x5ab100, "|n|n|n|n%s", env_name);
-    FUN_00189c40(0, (char *)0x5ab100);
+    render_debug_string(0, (char *)0x5ab100);
   }
 
   /* Source environment block: the resolved 'snde' tag, or module default. */
@@ -4021,9 +4024,10 @@ void FUN_0018fb20(float *position, const float *target, float max_delta)
  * chain from TEST AH,0x5/0x44 decode; smooth rate = dist, then
  * dist * DAT_002533e8 for distance/color/scale. Sole caller
  * render_window (render.c). */
-void FUN_0018fbc0(int16_t window_index, int structure_bsp_index,
-                  const float *camera_position, char *out)
+void scenario_get_atmospheric_fog(int16_t window_index, int structure_bsp_index,
+                  const real_point3d *camera_position, void *fog_out)
 {
+  char *out = fog_out;
   int sky_tag;
   int tag_ref;
   char *scnr;
@@ -4107,9 +4111,9 @@ void FUN_0018fbc0(int16_t window_index, int structure_bsp_index,
       target_scale = 0.0f;
     }
 
-    dx = camera_position[0] - *(float *)(rec + 4);
-    dy = camera_position[1] - *(float *)(rec + 8);
-    dz = camera_position[2] - *(float *)(rec + 0xc);
+    dx = camera_position->x - *(float *)(rec + 4);
+    dy = camera_position->y - *(float *)(rec + 8);
+    dz = camera_position->z - *(float *)(rec + 0xc);
     dist = sqrtf(dx * dx + dy * dy + dz * dz);
 
     if (window_index != -1 && dist < *(const float *)0x254cc0 && *rec != 0 &&
@@ -4133,9 +4137,9 @@ void FUN_0018fbc0(int16_t window_index, int structure_bsp_index,
       *(float *)(rec + 0x28) = target_scale;
       *rec = 1;
     }
-    *(float *)(rec + 4) = camera_position[0];
-    *(float *)(rec + 8) = camera_position[1];
-    *(float *)(rec + 0xc) = camera_position[2];
+    *(float *)(rec + 4) = camera_position->x;
+    *(float *)(rec + 8) = camera_position->y;
+    *(float *)(rec + 0xc) = camera_position->z;
   }
 
   /* publish the record into the render fog output block */
@@ -4175,7 +4179,7 @@ __declspec(noinline) void FUN_0018fef0(void)
   *(char *)0x5057c0 = 0;
 }
 
-/* FUN_0018e420 (0x18e420)
+/* global_bsp3d_get (0x18e420)
  *
  * Returns the global BSP3D pointer (DAT_005064d8). Asserts with a halt if
  * the pointer has not been initialized (i.e. is NULL). Called by BSP
@@ -4185,7 +4189,7 @@ __declspec(noinline) void FUN_0018fef0(void)
  * Confirmed: no parameters (plain MOV EAX,[global]; TEST; RET).
  * Confirmed: assert string "global_bsp3d", file scenario.c, line 0xd5.
  */
-void *FUN_0018e420(void)
+void *global_bsp3d_get(void)
 {
   if (*(void **)0x5064d8 == NULL) {
     display_assert("global_bsp3d", "c:\\halo\\SOURCE\\scenario\\scenario.c",

@@ -451,7 +451,7 @@ bool sound_cache_request_sound(void *sound_ptr, bool block, bool load,
 /* Debug draw of sound-cache page usage: one bit per page, 640 pages per
  * 4-row band, each set bit drawn as a 10-unit vertical line projected
  * through the camera.  0x50658c is an unrecovered render_globals_t field. */
-void FUN_001be7b0(void)
+void sound_cache_debug_render(void)
 {
   unsigned char usage[1024];
   float points[2][3];
@@ -492,7 +492,7 @@ void FUN_001be7b0(void)
             points[i][1] = direction[1] * scale + points[i][1];
             points[i][2] = direction[2] * scale + points[i][2];
           }
-          FUN_00189270(1, points[0], points[1], colors[bit_index]);
+          render_debug_line(1, (const real_point3d *)points[0], (const real_point3d *)points[1], colors[bit_index]);
         }
       }
     }

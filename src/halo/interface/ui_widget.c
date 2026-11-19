@@ -2399,7 +2399,7 @@ void draw_string_and_hack_in_icons(short *bounds, int param_2, int param_3,
         icon_color.blue *= text_color.alpha;
         render_state_bitmap(
           cursor, icon, (int)bounds,
-          (int)((real_argb_color_to_pixel32((float *)&icon_color) & 0xffffff) |
+          (int)((real_argb_color_to_pixel32(&icon_color) & 0xffffff) |
                 alpha),
           0);
         bounds[1]++;
@@ -2686,7 +2686,7 @@ void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
     }
   }
 
-  bitmap = FUN_00077040(definition->list_header_bitmap.tag_index, 0,
+  bitmap = bitmap_group_get_bitmap_from_sequence(definition->list_header_bitmap.tag_index, 0,
                         (short)header_frame_index);
   if (bitmap != NULL) {
     alpha = x87_round_to_int(alpha_modifier * 255.0f);
@@ -2701,7 +2701,7 @@ void widget_instance_render_spinner_list(void *widget_ptr, void *definition_ptr,
                         (int)parameters, 0); /* dup-args-ok */
   }
 
-  bitmap = FUN_00077040(definition->list_footer_bitmap.tag_index, 0,
+  bitmap = bitmap_group_get_bitmap_from_sequence(definition->list_footer_bitmap.tag_index, 0,
                         (short)footer_frame_index);
   if (bitmap != NULL) {
     alpha = x87_round_to_int(alpha_modifier * 255.0f);
@@ -3482,7 +3482,7 @@ void widget_instance_render_recursive(int widget_address,
     return;
   }
 
-  bitmap = (int)FUN_00077040(definition->field_44, 0,
+  bitmap = (int)bitmap_group_get_bitmap_from_sequence(definition->field_44, 0,
                              (short)(uint16_t)widget->field_50);
   if (bitmap != 0) {
     alpha = alpha_modifier;

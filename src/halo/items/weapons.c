@@ -3078,7 +3078,7 @@ void trigger_create_projectiles(int weapon_handle, int16_t trigger_index)
         }
 
         /* perpendicular3d returns its out pointer; 0xfdb2c normalizes through it. */
-        perpendicular3d(&placement.forward.x, &placement.up.x);
+        perpendicular3d((const real_vector3d *)&placement.forward.x, (real_vector3d *)&placement.up.x);
         len = sqrtf(placement.up.x * placement.up.x + placement.up.y * placement.up.y +
                     placement.up.z * placement.up.z);
         if (!(fabs((double)len) < 0.0001f)) {

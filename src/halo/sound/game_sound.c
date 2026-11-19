@@ -767,7 +767,7 @@ void FUN_001c77a0(int looping_sound_index, void *location)
                        0x269, 1);
         system_exit(-1);
       }
-      matrix_transform_point(node_matrix, (real_point3d *)(entry + 0x1c),
+      matrix_transform_point((const real_matrix4x3 *)node_matrix, (real_point3d *)(entry + 0x1c),
                              (real_point3d *)(source + 0xc));
       matrix_transform_vector(node_matrix, (real_vector3d *)(entry + 0x28),
                               (real_vector3d *)(source + 0x18));
@@ -860,7 +860,7 @@ bool FUN_001c7a10(int object_handle, void *attachment_data, void *source)
       *(int *)((char *)source + 0x30) = location[0];
       *(int *)((char *)source + 0x34) = location[1];
 
-      matrix_transform_point(node_matrix,
+      matrix_transform_point((const real_matrix4x3 *)node_matrix,
                              (real_point3d *)((char *)attachment_data + 4),
                              (real_point3d *)((char *)source + 0xc));
       matrix_transform_vector(node_matrix,
@@ -1408,7 +1408,7 @@ void sound_compute_source_obstruction(int channel_index, void *source,
         direction[1] = *(float *)((char *)source + 0x10) - camera[1];
         direction[2] = *(float *)((char *)source + 0x14) - camera[2];
 
-        if (!collision_test_vector(0xc0e1, (real_point3d *)camera, (real_vector3d *)direction, -1, collision_result)) {
+        if (!collision_test_vector(0xc0e1, (real_point3d *)camera, (real_vector3d *)direction, -1, (collision_test_result *)collision_result)) {
           /* No line of sight — fully occluded. */
           *(float *)new_var = 0.0f;
           *(float *)((char *)source + 0x3c) = 0.0f;

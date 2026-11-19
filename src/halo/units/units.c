@@ -118,8 +118,8 @@ void animation_get_root_matrix(void *mode_tag, void *animation, int animation_in
   uint8_t node_data[0x800];
 
   animation_get_frame_orientations(mode_tag, animation, animation_index, node_data);
-  matrix4x3_from_point_and_quaternion(out_matrix, (float *)(node_data + 0x10),
-                                  (float *)node_data);
+  matrix4x3_from_point_and_quaternion(out_matrix, (const real_point3d *)(node_data + 0x10),
+                                  (const real_quaternion *)node_data);
 }
 
 /* -----------------------------------------------------------------------
@@ -320,7 +320,7 @@ void render_model_parts(int model_tag, int region_permutation_indices,
                         system_exit(-1);
                       }
                       matrix_transform_point(
-                        (float *)((int)part->centroid_primary_node_index * 0x34 +
+                        (const real_matrix4x3 *)((int)part->centroid_primary_node_index * 0x34 +
                                   *node_matrices),
                         &part->centroid, &centroid);
                       permutation_index = forced_shader_permutation_index;
@@ -4608,7 +4608,7 @@ void unit_debug_ninja_rope(int unit_handle)
   collision_user_stack[depth] = 0x15;
 
   if (collision_test_vector(0x22, &origin, &direction, unit_handle,
-                   (int16_t *)&collision)) {
+                   &collision)) {
     if (collision.normal.k > 0.95f) {
       collision.position.z += 0.25f;
       object_translate(unit_handle, &collision.position, 0);
@@ -5356,7 +5356,7 @@ skip_decrement:
   forward.j = unit->aiming_vector.j;
   forward.k = unit->aiming_vector.k;
 
-  perpendicular3d((float *)&forward, (float *)&perpendicular[0]);
+  perpendicular3d((const real_vector3d *)&forward, (real_vector3d *)&perpendicular[0]);
   normalize3d(&perpendicular[0]);
 
   placement.position_x = marker.matrix.position.x;
@@ -6120,8 +6120,8 @@ void unit_cause_continuous_melee_damage(int unit_handle)
             /* bsp.plane is a POINTER to the surface plane, not an inline
              * plane (ref 0x1abee0 loads the slot's value and pushes it). */
             matrix4x3_transform_plane(
-              (float *)(surface_base + collision_result.node_index * 0x34),
-              (float *)collision_result.bsp.plane, (float *)&normal_out);
+              (const real_matrix4x3 *)(surface_base + collision_result.node_index * 0x34),
+              collision_result.bsp.plane, &normal_out);
           }
 
           /* Negate normal if backfacing */
@@ -6936,7 +6936,7 @@ void unit_render_debug(int unit_handle)
     render_debug_string_at_point(0, &head_pos,
                  csprintf(error_string_buffer, "%.2f",
                           (double)unit->mouth_aperture),
-                 GLOBAL_REAL_ARGB_ORANGE_BITS);
+                 (const real_argb_color *)GLOBAL_REAL_ARGB_ORANGE_BITS);
   }
 }
 
@@ -8392,7 +8392,7 @@ void unit_cause_melee_damage(int unit_handle, char melee_hit, int target_handle,
     direction.k = melee_position.z - position->z;
 
     coll_hit = (char)collision_test_vector(0x1000e9, position, &direction, -1,
-                                           (int16_t *)&collision);
+                                           &collision);
     if (coll_hit != 0) {
       melee_position.x = position->x;
       melee_position.y = position->y;
@@ -8528,7 +8528,7 @@ void unit_cause_player_melee_damage(int unit_handle)
   collision_user_stack[depth] = 8;
 
   facing = &unit->aiming_vector;
-  perpendicular3d(&facing->i, perp);
+  perpendicular3d(facing, (real_vector3d *)perp);
   normalize3d((real_vector3d *)perp);
 
   best_type = 0;
@@ -8555,7 +8555,7 @@ void unit_cause_player_melee_damage(int unit_handle)
         facing->k * 0.8f + (fi * perp[2] + fj * cross_vec[2]) * 0.1f;
 
       hit = collision_test_vector(0x1000e9, &ray_origin, &ray_direction, unit_handle,
-                         (int16_t *)&collision);
+                         &collision);
 
       if (hit != 0) {
         if (collision.type == 2) {
@@ -10151,7 +10151,7 @@ short unit_update_animation(int unit_handle, char *anim_state)
         animation_get_root_velocity((void *)mode_tag, (void *)anim_element,
                      (unsigned short)unit->object.unk_130, &delta);
         matrix_scale_transform_vector(
-          (float *)object_get_world_matrix(unit_handle, out_matrix), &delta, &delta);
+          (const real_matrix4x3 *)(object_get_world_matrix(unit_handle, out_matrix)), &delta, &delta);
         unit_exit_seat_end(unit_handle);
         vector3d_add(&unit->object.translational_velocity, &delta,
                      &unit->object.translational_velocity);

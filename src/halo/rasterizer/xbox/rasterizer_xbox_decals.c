@@ -58,7 +58,7 @@ typedef struct {
 
 /* 0x157e40
  *
- * rasterizer_present
+ * _rasterizer_present
  *
  * Presents the current back buffer to the display.  When a non-NULL
  * screenshot_bitmap with pixel data (bitmap+0x2c != 0) is supplied, the
@@ -86,7 +86,7 @@ typedef struct s_rectangle2d {
   int16_t right;
 } s_rectangle2d;
 
-void rasterizer_present(void *screenshot_bitmap, short *point)
+void _rasterizer_present(void *screenshot_bitmap, short *point)
 {
   bool ok;
   s_rectangle2d rect;
@@ -865,7 +865,7 @@ void FUN_00158800(unsigned short *bounds)
  *
  *   param_1 - requested stencil mode (used as short)
  */
-void FUN_00158ae0(int param_1)
+void rasterizer_set_stencil_mode(int param_1)
 {
   short sVar1;
 
@@ -1049,7 +1049,7 @@ void FUN_00158df0(unsigned short *parameters)
   FUN_001792C0(0);
   FUN_001592e0(0);
   FUN_0016f880();
-  FUN_00158ae0(0);
+  rasterizer_set_stencil_mode(0);
   rasterizer_environment_fog_screen_end((char *)parameters + 0x1e8);
 
   if (*(short *)0x3256bc == 1) {
@@ -1059,12 +1059,12 @@ void FUN_00158df0(unsigned short *parameters)
   }
 
   if (*parameters == 0 || *parameters == 1) {
-    FUN_0016f910(0);
+    rasterizer_profile_begin(0);
     /* arg4 is a byte-wide bool; Ghidra's CONCAT31(extraout_EAX>>8,...) is an
      * artifact of the bool being built in EAX — the upper bytes are garbage. */
     rasterizer_set_target((unsigned int)*parameters, 0, color_pixel,
                  (*((char *)parameters + 5) == 0), 1);
-    FUN_0016fa40(0);
+    rasterizer_profile_end(0);
     if (*parameters == 0 && *(float *)((char *)parameters + 0x44) == 0.0f) {
       display_assert("parameters->camera.z_near!=0.0f",
                      "c:\\halo\\SOURCE\\rasterizer\\xbox\\rasterizer_xbox.c",
@@ -1143,7 +1143,7 @@ void FUN_00158f90(void)
   if (*(char *)0x476ab8 == 0) {
     FUN_001825d0();
     FUN_0015d160();
-    FUN_00184680();
+    rasterizer_transparent_geometry_end();
     FUN_00165a00();
     FUN_00181410();
     FUN_0017e030();
@@ -1608,7 +1608,7 @@ void FUN_001595c0(void)
     rasterizer_set_pixel_shader((void *)0x5a5ac0);
 
     rasterizer_set_target(1, 0, 0, 0, 0);
-    FUN_00158ae0(0);
+    rasterizer_set_stencil_mode(0);
 
     /* full-screen 320x240 quad; texcoords are the 16-bit viewport-rect
      * globals, zero-extended (order per reference relocations). */
@@ -1630,7 +1630,7 @@ void FUN_001595c0(void)
     /* first arg is the zero-extended WORD at 0x5a5bc0 (XOR EAX,EAX;
      * MOV AX,[0x5a5bc0]) — asserted 0 above, but re-read here. */
     rasterizer_set_target(*(unsigned short *)0x5a5bc0, 0, 0, 0, 1);
-    FUN_00158ae0(2);
+    rasterizer_set_stencil_mode(2);
 
     {
       /* bounds math reads the FULL 32-bit dword at 0x476ac4 */
@@ -1811,7 +1811,7 @@ void FUN_00159900(void *group)
     *(uint32_t *)0x1fb77c = 0x203;
     D3DDevice_SetRenderState_ZBias(0);
 
-    FUN_00178b40(0xd, FUN_00184610(group), 0);
+    FUN_00178b40(0xd, rasterizer_transparent_geometry_get_primary_vertex_type(group), 0);
 
     /* vs row 0: field_d8 and field_ec * field_d8 (raw copy + product); rows 1-2 hold the
      * animated scroll matrix filled by FUN_00190e10 (out ptrs &vs[4]/&vs[8]),
@@ -1863,7 +1863,7 @@ void FUN_00159900(void *group)
     } else {
       csmemset(desc.tc, 0, 8);
     }
-    rasterizer_psuedo_dynamic_screen_quad_draw(0);
+    rasterizer_profile_enable(0);
     FUN_0017d1a0(0);
     FUN_0017cbb0(&desc, 1);
     rasterizer_model_draw(*(int *)(grp + 0xc), *(unsigned short *)(grp + 0x10),
@@ -1872,7 +1872,7 @@ void FUN_00159900(void *group)
                  *(int *)(grp + 0x54));
     FUN_0016b1c0();
     FUN_0016b240();
-    rasterizer_psuedo_dynamic_screen_quad_draw(1);
+    rasterizer_profile_enable(1);
   }
 
   /* ---- COMMON SECOND PASS: screen-space distortion ---- */
@@ -1919,7 +1919,7 @@ void FUN_00159900(void *group)
     SetRenderStateSmart(0x3b, 0);
   }
 
-  FUN_00178b40(0x40, FUN_00184610(group), 0);
+  FUN_00178b40(0x40, rasterizer_transparent_geometry_get_primary_vertex_type(group), 0);
 
   /* Screen-space distortion matrix: lerp camera-matrix rows (view-params
    * block at *(char **)0x476204, current row at +0x174.. vs target row at
@@ -2790,7 +2790,7 @@ int FUN_0015b5a0(int index, int a1, int a2, int a3)
  *
  * Sets the appropriate rasterizer blend/render state for decals based on
  * the current decal rendering mode (global at 0x476ac8). If mode is 3
- * (shadow), calls FUN_00158ae0 to set up shadow state first. Then selects
+ * (shadow), calls rasterizer_set_stencil_mode to set up shadow state first. Then selects
  * a texture stage configuration from a local lookup table indexed by mode.
  */
 void FUN_0015b5e0(void)
@@ -2800,7 +2800,7 @@ void FUN_0015b5e0(void)
 
   mode = *(short *)0x476ac8;
   if (mode == 3) {
-    FUN_00158ae0(2);
+    rasterizer_set_stencil_mode(2);
     mode = *(short *)0x476ac8;
   }
   stage_table[0] = 9;
@@ -2809,7 +2809,7 @@ void FUN_0015b5e0(void)
   stage_table[3] = 7;
   stage_table[4] = 0x14;
   if (mode >= 0 && mode < 5) {
-    FUN_0016fa40((int)stage_table[mode]);
+    rasterizer_profile_end((int)stage_table[mode]);
   }
 }
 
@@ -3020,11 +3020,11 @@ void FUN_0015b960(void)
 }
 
 /*
- * FUN_0015b970 (0x15b970)  rasterizer_decals_begin / decal-layer render setup
+ * _rasterizer_decals_begin (0x15b970)  rasterizer_decals_begin / decal-layer render setup
  *
  * Sets up decal render state for a given decal layer (pass_index, 0..4).
  * Selects a rasterizer texture profile from a 5-entry local table via
- * FUN_0016f910, records the active layer in the 0x476ac8 shadow, and (when
+ * rasterizer_profile_begin, records the active layer in the 0x476ac8 shadow, and (when
  * the two early-out gates pass) resets the cached texture/blend state,
  * programs texture-stage + cull/z/alpha render state (each mirrored into the
  * 0x1fb7xx shadow copies), and rebuilds the 0xf0-byte pixel-shader/format
@@ -3032,7 +3032,7 @@ void FUN_0015b960(void)
  * 0x10).
  *
  * pass_index==3 forces alpha-blend on with alpha-ref 0x7f and switches
- * texture mode via FUN_00158ae0(4). Other layers latch 0x476ae2 from an FPU
+ * texture mode via rasterizer_set_stencil_mode(4). Other layers latch 0x476ae2 from an FPU
  * equality test (fld 0x5a5db8; fcomp 0x2533c8; test ah,0x44; jp) gated by
  * byte 0x325719; the latch selects stream format 3 (with extra combiner
  * dwords) vs 2 in the state block. Branch shape below mirrors the original
@@ -3062,7 +3062,7 @@ void FUN_0015b960(void)
  *
  * 0x15b970 / rasterizer_decals.obj
  */
-void FUN_0015b970(short pass_index)
+void _rasterizer_decals_begin(short pass_index)
 {
   short profile_table[6];
 
@@ -3080,7 +3080,7 @@ void FUN_0015b970(short pass_index)
   profile_table[4] = 0x14;
 
   if ((pass_index >= 0) && (pass_index < 5)) {
-    FUN_0016f910(profile_table[pass_index]);
+    rasterizer_profile_begin(profile_table[pass_index]);
   }
 
   *(short *)0x476ac8 = pass_index;
@@ -3125,7 +3125,7 @@ void FUN_0015b970(short pass_index)
     *(uint32_t *)0x1fb788 = 1;
     D3DDevice_SetRenderState_Simple(0x40340, 0x7f);
     *(uint32_t *)0x1fb78c = 0x7f;
-    FUN_00158ae0(4);
+    rasterizer_set_stencil_mode(4);
   } else {
     /* fld [0x5a5db8]; fcomp [0x2533c8]; test ah,0x44; jp — equality test;
      * the equal path latches 0x476ae2 and falls into the enable block. */
@@ -3625,13 +3625,13 @@ int FUN_0015c340(int a0, int state, uint32_t value)
 
 /*
  * FUN_0015c5f0 @ 0x15c5f0 — dead wrapper: calls the rasterizer profile
- * function FUN_0016fa40 with profile id 0x15 and returns. PUSH 0x15;
+ * function rasterizer_profile_end with profile id 0x15 and returns. PUSH 0x15;
  * CALL 0x16fa40; POP ECX; RET. No direct call sites.
  */
 /* 0x15c5f0 */
 void FUN_0015c5f0(void)
 {
-  FUN_0016fa40(0x15);
+  rasterizer_profile_end(0x15);
 }
 
 /*
@@ -3749,7 +3749,7 @@ void FUN_0015c6f0(void)
 {
   unsigned int vs[24]; /* ebp-0x60..ebp-0x4: 6 vec4 vertex-shader constants */
 
-  FUN_0016f910(0x15); /* profile begin, id 0x15 */
+  rasterizer_profile_begin(0x15); /* profile begin, id 0x15 */
 
   if (*(char *)0x3256dc == 0) {
     return;

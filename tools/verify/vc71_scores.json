@@ -891,7 +891,7 @@
       "score": 98.1,
       "source": "src/halo/ai/path.c"
     },
-    "FUN_00061ca0": {
+    "render_debug_obstacle_path": {
       "addr": "0x61ca0",
       "end": "0x61d80",
       "kind": "auto",
@@ -2396,7 +2396,7 @@
       "score": 100.0,
       "source": "src/halo/bitmaps/bitmap_utilities.c"
     },
-    "FUN_00077040": {
+    "bitmap_group_get_bitmap_from_sequence": {
       "addr": "0x77040",
       "end": "0x7711c",
       "kind": "auto",
@@ -4343,7 +4343,7 @@
       "score": 100.0,
       "source": "src/halo/dialogs/edit_text.c"
     },
-    "FUN_000977e0": {
+    "editor_render": {
       "addr": "0x977e0",
       "end": "0x977e1",
       "kind": "auto",
@@ -4365,7 +4365,7 @@
       "score": 100.0,
       "source": "src/halo/game/editor_stubs.c"
     },
-    "FUN_00099070": {
+    "render_debug_decals": {
       "addr": "0x99070",
       "end": "0x9921b",
       "kind": "auto",
@@ -4409,7 +4409,7 @@
       "score": 93.2,
       "source": "src/halo/game/game.c"
     },
-    "FUN_000a54b0": {
+    "weather_particle_systems_render": {
       "addr": "0xa54b0",
       "end": "0xa5586",
       "kind": "auto",
@@ -4893,7 +4893,7 @@
       "score": 98.2,
       "source": "src/halo/game/game_engine.c"
     },
-    "FUN_000af9a0": {
+    "game_engine_nonplayer_post_rasterize": {
       "addr": "0xaf9a0",
       "end": "0xafa23",
       "kind": "auto",
@@ -10700,7 +10700,7 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
-    "FUN_0015b970": {
+    "_rasterizer_decals_begin": {
       "addr": "0x15b970",
       "end": "0x15bc34",
       "kind": "auto",
@@ -11965,7 +11965,7 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer.c"
     },
-    "FUN_0016f8a0": {
+    "_rasterizer_profile_enable": {
       "addr": "0x16f8a0",
       "end": "0x16f910",
       "kind": "auto",
@@ -12702,7 +12702,7 @@
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
-    "FUN_0017cb20": {
+    "rasterizer_decals_begin": {
       "addr": "0x17cb20",
       "end": "0x17cb29",
       "kind": "auto",
@@ -12713,7 +12713,7 @@
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
-    "FUN_0017cb30": {
+    "rasterizer_decals_draw": {
       "addr": "0x17cb30",
       "end": "0x17cb39",
       "kind": "auto",
@@ -12724,7 +12724,7 @@
       "score": 100.0,
       "source": "src/halo/effects/decals.c"
     },
-    "FUN_0017cb40": {
+    "rasterizer_decals_end": {
       "addr": "0x17cb40",
       "end": "0x17cb45",
       "kind": "thunk",
@@ -13318,7 +13318,7 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer_sprites.c"
     },
-    "FUN_0017cf60": {
+    "rasterizer_dynamic_unlit_geometry_draw": {
       "addr": "0x17cf60",
       "end": "0x17cf69",
       "kind": "auto",
@@ -13736,7 +13736,7 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer_sprites.c"
     },
-    "FUN_0017e190": {
+    "rasterizer_debug_draw": {
       "addr": "0x17e190",
       "end": "0x17e5a4",
       "kind": "auto",
@@ -13747,7 +13747,7 @@
       "score": 92.6,
       "source": "src/halo/rasterizer/rasterizer_sprites.c"
     },
-    "FUN_0017e5b0": {
+    "rasterizer_debug_line_shaded": {
       "addr": "0x17e5b0",
       "end": "0x17e7f3",
       "kind": "auto",
@@ -13758,7 +13758,7 @@
       "score": 94.5,
       "source": "src/halo/rasterizer/rasterizer_sprites.c"
     },
-    "FUN_0017eb10": {
+    "rasterizer_debug_line": {
       "addr": "0x17eb10",
       "end": "0x17eb2a",
       "kind": "auto",
@@ -13769,7 +13769,7 @@
       "score": 100.0,
       "source": "src/halo/rasterizer/rasterizer_sprites.c"
     },
-    "FUN_0017eb30": {
+    "rasterizer_debug_triangle": {
       "addr": "0x17eb30",
       "end": "0x17eb4f",
       "kind": "auto",
@@ -14088,7 +14088,7 @@
       "score": 91.8,
       "source": "src/halo/rasterizer/rasterizer_lights.c"
     },
-    "FUN_00181a90": {
+    "rasterizer_lens_flares_submit_occlusion_tests": {
       "addr": "0x181a90",
       "end": "0x181c11",
       "kind": "auto",
@@ -14099,7 +14099,7 @@
       "score": 94.8,
       "source": "src/halo/rasterizer/rasterizer_text.c"
     },
-    "FUN_00181c20": {
+    "rasterizer_lens_flares_draw": {
       "addr": "0x181c20",
       "end": "0x1824d2",
       "kind": "auto",
@@ -14231,7 +14231,7 @@
       "score": 96.2,
       "source": "src/halo/render/render.c"
     },
-    "FUN_00188890": {
+    "render_debug_triangle": {
       "addr": "0x188890",
       "end": "0x18896d",
       "kind": "auto",
@@ -14242,7 +14242,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00188970": {
+    "render_debug_quadrilateral": {
       "addr": "0x188970",
       "end": "0x188a8b",
       "kind": "auto",
@@ -14253,7 +14253,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00188a90": {
+    "render_debug_polygon": {
       "addr": "0x188a90",
       "end": "0x188b1b",
       "kind": "auto",
@@ -14264,7 +14264,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00188b20": {
+    "render_debug_add_cache_string": {
       "addr": "0x188b20",
       "end": "0x188be3",
       "kind": "auto",
@@ -14275,7 +14275,7 @@
       "score": 84.1,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00188bf0": {
+    "build_circle_points": {
       "addr": "0x188bf0",
       "end": "0x188c56",
       "kind": "auto",
@@ -14286,7 +14286,7 @@
       "score": 92.1,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00188c60": {
+    "build_height_matrix": {
       "addr": "0x188c60",
       "end": "0x188cf1",
       "kind": "auto",
@@ -14297,7 +14297,7 @@
       "score": 85.2,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00188d00": {
+    "build_pill_points": {
       "addr": "0x188d00",
       "end": "0x188eb5",
       "kind": "auto",
@@ -14308,7 +14308,7 @@
       "score": 82.2,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00188ec0": {
+    "render_debug_add_cache_entry": {
       "addr": "0x188ec0",
       "end": "0x18911a",
       "kind": "auto",
@@ -14330,7 +14330,7 @@
       "score": 96.2,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00189270": {
+    "render_debug_line": {
       "addr": "0x189270",
       "end": "0x189311",
       "kind": "auto",
@@ -14352,7 +14352,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_001893e0": {
+    "render_debug_tick": {
       "addr": "0x1893e0",
       "end": "0x18944c",
       "kind": "auto",
@@ -14363,7 +14363,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00189450": {
+    "render_debug_line_offset": {
       "addr": "0x189450",
       "end": "0x1894c1",
       "kind": "auto",
@@ -14374,7 +14374,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_001894d0": {
+    "render_debug_matrix": {
       "addr": "0x1894d0",
       "end": "0x18953d",
       "kind": "auto",
@@ -14396,7 +14396,7 @@
       "score": 77.6,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_001896d0": {
+    "render_debug_cylinder": {
       "addr": "0x1896d0",
       "end": "0x189852",
       "kind": "auto",
@@ -14418,7 +14418,7 @@
       "score": 82.1,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00189a20": {
+    "render_debug_box": {
       "addr": "0x189a20",
       "end": "0x189b9a",
       "kind": "auto",
@@ -14429,7 +14429,7 @@
       "score": 93.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00189ba0": {
+    "render_debug_polygon_edges": {
       "addr": "0x189ba0",
       "end": "0x189c3c",
       "kind": "auto",
@@ -14440,7 +14440,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00189c40": {
+    "render_debug_string": {
       "addr": "0x189c40",
       "end": "0x189ca5",
       "kind": "auto",
@@ -14462,7 +14462,7 @@
       "score": 87.3,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_00189de0": {
+    "render_debug_camera": {
       "addr": "0x189de0",
       "end": "0x189ffe",
       "kind": "auto",
@@ -14473,7 +14473,7 @@
       "score": 93.6,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018AF90": {
+    "render_objects_initialize": {
       "addr": "0x18af90",
       "end": "0x18afce",
       "kind": "auto",
@@ -14484,7 +14484,7 @@
       "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
-    "FUN_0018B000": {
+    "render_objects_dispose": {
       "addr": "0x18b000",
       "end": "0x18b00b",
       "kind": "auto",
@@ -14495,7 +14495,7 @@
       "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
-    "FUN_0018a000": {
+    "render_debug_player": {
       "addr": "0x18a000",
       "end": "0x18a10a",
       "kind": "auto",
@@ -14506,7 +14506,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018a110": {
+    "render_debug_structure": {
       "addr": "0x18a110",
       "end": "0x18a18f",
       "kind": "auto",
@@ -14517,7 +14517,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018a190": {
+    "render_debug_bsp": {
       "addr": "0x18a190",
       "end": "0x18a367",
       "kind": "auto",
@@ -14528,7 +14528,7 @@
       "score": 87.7,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018a370": {
+    "render_debug_input": {
       "addr": "0x18a370",
       "end": "0x18a3dc",
       "kind": "auto",
@@ -14539,7 +14539,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018a3e0": {
+    "render_debug_structure_decals": {
       "addr": "0x18a3e0",
       "end": "0x18a578",
       "kind": "auto",
@@ -14550,7 +14550,7 @@
       "score": 91.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018a580": {
+    "render_debug_point2d": {
       "addr": "0x18a580",
       "end": "0x18a64c",
       "kind": "auto",
@@ -14561,7 +14561,7 @@
       "score": 98.7,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018a650": {
+    "render_debug_line2d": {
       "addr": "0x18a650",
       "end": "0x18a767",
       "kind": "auto",
@@ -14572,7 +14572,7 @@
       "score": 97.5,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018a770": {
+    "render_debug_vector2d": {
       "addr": "0x18a770",
       "end": "0x18a854",
       "kind": "auto",
@@ -14583,7 +14583,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018a860": {
+    "render_debug_circle": {
       "addr": "0x18a860",
       "end": "0x18a985",
       "kind": "auto",
@@ -14594,7 +14594,7 @@
       "score": 82.9,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018a990": {
+    "render_debug_vectors": {
       "addr": "0x18a990",
       "end": "0x18a9c3",
       "kind": "auto",
@@ -14605,7 +14605,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018a9d0": {
+    "render_debug_quaternion": {
       "addr": "0x18a9d0",
       "end": "0x18a9ff",
       "kind": "auto",
@@ -14616,7 +14616,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018aa00": {
+    "render_debug_box2d_outline": {
       "addr": "0x18aa00",
       "end": "0x18ab2b",
       "kind": "auto",
@@ -14627,7 +14627,7 @@
       "score": 95.9,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018ab30": {
+    "render_debug_box_outline": {
       "addr": "0x18ab30",
       "end": "0x18ac4f",
       "kind": "auto",
@@ -14638,7 +14638,7 @@
       "score": 100.0,
       "source": "src/halo/render/render_debug.c"
     },
-    "FUN_0018ac50": {
+    "render_debug": {
       "addr": "0x18ac50",
       "end": "0x18ae59",
       "kind": "auto",
@@ -14660,7 +14660,7 @@
       "score": 99.0,
       "source": "src/halo/scenario/scenario.c"
     },
-    "FUN_0018afd0": {
+    "render_objects_initialize_for_new_map": {
       "addr": "0x18afd0",
       "end": "0x18afdd",
       "kind": "auto",
@@ -14671,7 +14671,7 @@
       "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
-    "FUN_0018afe0": {
+    "render_objects_dispose_from_old_map": {
       "addr": "0x18afe0",
       "end": "0x18aff8",
       "kind": "auto",
@@ -14847,7 +14847,7 @@
       "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
-    "FUN_0018c5b0": {
+    "render_particles": {
       "addr": "0x18c5b0",
       "end": "0x18ca32",
       "kind": "auto",
@@ -15001,7 +15001,7 @@
       "score": 100.0,
       "source": "src/halo/scenario/scenario.c"
     },
-    "FUN_0018e420": {
+    "global_bsp3d_get": {
       "addr": "0x18e420",
       "end": "0x18e44f",
       "kind": "auto",
@@ -15210,7 +15210,7 @@
       "score": 97.7,
       "source": "src/halo/scenario/scenario.c"
     },
-    "FUN_0018fbc0": {
+    "scenario_get_atmospheric_fog": {
       "addr": "0x18fbc0",
       "end": "0x18fee5",
       "kind": "auto",
@@ -15573,7 +15573,7 @@
       "score": 100.0,
       "source": "src/halo/structures/structure_detail_objects.c"
     },
-    "FUN_00193c00": {
+    "structure_render_detail_objects": {
       "addr": "0x193c00",
       "end": "0x19406d",
       "kind": "auto",
@@ -15584,7 +15584,7 @@
       "score": 88.4,
       "source": "src/halo/structures/structure_detail_objects.c"
     },
-    "FUN_00194070": {
+    "render_debug_detail_objects": {
       "addr": "0x194070",
       "end": "0x194354",
       "kind": "auto",
@@ -15694,7 +15694,7 @@
       "score": 97.2,
       "source": "src/halo/structures/structures.c"
     },
-    "FUN_001959f0": {
+    "structure_render_preprocess": {
       "addr": "0x1959f0",
       "end": "0x195b0a",
       "kind": "auto",
@@ -15705,7 +15705,7 @@
       "score": 91.4,
       "source": "src/halo/structures/structures.c"
     },
-    "FUN_00195b10": {
+    "structure_render_lightmaps": {
       "addr": "0x195b10",
       "end": "0x195bbb",
       "kind": "auto",
@@ -15716,7 +15716,7 @@
       "score": 94.5,
       "source": "src/halo/structures/structures.c"
     },
-    "FUN_00195bc0": {
+    "structure_render_diffuse_texture": {
       "addr": "0x195bc0",
       "end": "0x195c38",
       "kind": "auto",
@@ -15727,7 +15727,7 @@
       "score": 98.6,
       "source": "src/halo/structures/structures.c"
     },
-    "FUN_00195c40": {
+    "structure_render_specular_lightmaps": {
       "addr": "0x195c40",
       "end": "0x195caf",
       "kind": "auto",
@@ -15738,7 +15738,7 @@
       "score": 98.2,
       "source": "src/halo/structures/structures.c"
     },
-    "FUN_00195cb0": {
+    "structure_render_reflection_lightmap_masks": {
       "addr": "0x195cb0",
       "end": "0x195cf2",
       "kind": "auto",
@@ -15749,7 +15749,7 @@
       "score": 97.1,
       "source": "src/halo/structures/structures.c"
     },
-    "FUN_00195d00": {
+    "structure_render_reflection_mirrors": {
       "addr": "0x195d00",
       "end": "0x195d3c",
       "kind": "auto",
@@ -15760,7 +15760,7 @@
       "score": 97.1,
       "source": "src/halo/structures/structures.c"
     },
-    "FUN_00195d40": {
+    "structure_render_reflections": {
       "addr": "0x195d40",
       "end": "0x195db8",
       "kind": "auto",
@@ -15771,7 +15771,7 @@
       "score": 98.6,
       "source": "src/halo/structures/structures.c"
     },
-    "FUN_00195dc0": {
+    "structure_render_transparent_geometry": {
       "addr": "0x195dc0",
       "end": "0x195e38",
       "kind": "auto",
@@ -15782,7 +15782,7 @@
       "score": 98.6,
       "source": "src/halo/structures/structures.c"
     },
-    "FUN_00195e40": {
+    "structure_render_fog": {
       "addr": "0x195e40",
       "end": "0x195eb8",
       "kind": "auto",
@@ -15793,7 +15793,7 @@
       "score": 98.6,
       "source": "src/halo/structures/structures.c"
     },
-    "FUN_00195ec0": {
+    "structure_render_fog_screen": {
       "addr": "0x195ec0",
       "end": "0x195f2f",
       "kind": "auto",
@@ -15969,7 +15969,7 @@
       "score": 85.3,
       "source": "src/halo/structures/structures.c"
     },
-    "FUN_001975e0": {
+    "structure_visibility_find_mirror": {
       "addr": "0x1975e0",
       "end": "0x19789c",
       "kind": "auto",
@@ -61003,7 +61003,7 @@
       "score": 95.3,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_draw_primitives.c"
     },
-    "rasterizer_dynamic_lit_geometry_draw": {
+    "rasterizer_present": {
       "addr": "0x17c930",
       "end": "0x17c939",
       "kind": "auto",
@@ -61476,7 +61476,7 @@
       "score": 93.4,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox.c"
     },
-    "rasterizer_present": {
+    "_rasterizer_present": {
       "addr": "0x157e40",
       "end": "0x1580ab",
       "kind": "auto",
@@ -61487,7 +61487,7 @@
       "score": 92.1,
       "source": "src/halo/rasterizer/xbox/rasterizer_xbox_decals.c"
     },
-    "rasterizer_psuedo_dynamic_screen_quad_draw": {
+    "rasterizer_profile_enable": {
       "addr": "0x17c960",
       "end": "0x17c969",
       "kind": "auto",

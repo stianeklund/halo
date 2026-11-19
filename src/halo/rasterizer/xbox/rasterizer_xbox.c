@@ -822,7 +822,7 @@ void _rasterizer_dispose(void)
 {
   rasterizer_memory_pool_delete();
   rasterizer_dynamic_geometry_dispose();
-  FUN_00184690();
+  rasterizer_transparent_geometry_dispose();
   rasterizer_vertex_shaders_dispose();
   FUN_0017e040();
   FUN_0017ff60();

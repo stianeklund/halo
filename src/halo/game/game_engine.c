@@ -6203,7 +6203,7 @@ apply_clamp:
                            dead_handle);
 }
 
-/* FUN_000af9a0 (0xaf9a0) — game_engine post-rasterize hook
+/* game_engine_nonplayer_post_rasterize (0xaf9a0) — game_engine post-rasterize hook
  *
  * Called during post-rasterize. For game types 2 (post-game scoreboard)
  * and 3 (post-game delay), renders post-game UI widgets across all four
@@ -6215,7 +6215,7 @@ apply_clamp:
  * FUN_000b0xxx helpers further down, 0xaf9a0 appears nowhere as a dword in
  * cachebeta.xbe, so it is NOT a game-engine record slot — it is reached by a
  * direct call from an unlifted post-rasterize caller. */
-void FUN_000af9a0(void)
+void game_engine_nonplayer_post_rasterize(void)
 {
   int i;
   int16_t bounds[4];
@@ -7914,7 +7914,7 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
   *(float *)(render_state + 0xbc) = centroid[2];
   *(float *)(render_state + 0xc4) = param_5;
   *(float *)(render_state + 0xc8) = param_6;
-  rasterizer_psuedo_dynamic_screen_quad_draw(0);
+  rasterizer_profile_enable(0);
   FUN_0017d1a0(0);
   FUN_0017cbb0(render_state, 1);
   {
@@ -7928,7 +7928,7 @@ void FUN_000b1b30(float *param_1, int param_2, void *param_3, void *param_4,
   }
   FUN_0016b1c0();
   FUN_0016b240();
-  rasterizer_psuedo_dynamic_screen_quad_draw(1);
+  rasterizer_profile_enable(1);
   rasterizer_dynamic_triangles_delete(widget_a);
   rasterizer_dynamic_vertices_delete(local_8);
   *(int16_t *)0x325652 = 0;

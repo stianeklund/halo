@@ -278,8 +278,8 @@ void ai_debug_select_encounter(int encounter_idx)
  *
  * No __FILE__ string. 2 register args (point@<ecx>, color@<ebx>) + 2 stack
  * args ([EBP+0x8] count (short), [EBP+0xc] entries); caller cleans (ADD
- * ESP after each CALL, not RET N).  Callees FUN_00189450 (line between two
- * points) and FUN_001893e0 (point + direction marker), both no-reg-arg,
+ * ESP after each CALL, not RET N).  Callees render_debug_line_offset (line between two
+ * points) and render_debug_tick (point + direction marker), both no-reg-arg,
  * already ported.
  *
  * Called 3x from ai_debug_render_path_storage (0x4c774/0x4c79f/0x4c7ca; static
@@ -312,16 +312,16 @@ void ai_debug_render_path_line(float *point, void *color, int16_t count,
   int16_t i;
 
   if (0 < count) {
-    FUN_00189450(1, point, entries + 1, color, 0.1f);
+    render_debug_line_offset(1, (const real_point3d *)point, (const real_point3d *)(entries + 1), color, 0.1f);
   }
   i = 0;
   if (0 < count) {
     pfVar1 = entries + 1;
     do {
       if (0 < i) {
-        FUN_00189450(1, pfVar1 - 4, pfVar1, color, 0.1f);
+        render_debug_line_offset(1, (const real_point3d *)(pfVar1 - 4), (const real_point3d *)pfVar1, color, 0.1f);
       }
-      FUN_001893e0(1, pfVar1, global_up_vector_ptr, 0.02f, color);
+      render_debug_tick(1, (const real_point3d *)pfVar1, (const real_vector3d *)global_up_vector_ptr, 0.02f, color);
       i = i + 1;
       pfVar1 = pfVar1 + 4;
     } while (i < count);
@@ -352,15 +352,15 @@ void ai_debug_render_path_line(float *point, void *color, int16_t count,
  * boolean array-index `edge[2 + (edge[5] == surface_index)]` to match the
  * disassembly's shape, not rewritten as an if/else). The vertex tag_block
  * sits at bsp_surfaces+0x54, element size 0x10; only the leading floats are
- * used (forwarded as FUN_00189450's float* point_a/point_b).
+ * used (forwarded as render_debug_line_offset's float* point_a/point_b).
  *
  * scale is combined ONCE before the loop with the unnamed float constant at
  * 0x25abcc (FADD [0x25abcc] at 0x4932c) and the sum is reused for every
- * FUN_00189450 call in the loop (matches the original's reuse of the
+ * render_debug_line_offset call in the loop (matches the original's reuse of the
  * [EBP+0xc] argument slot as a local after the FSTP at 0x4933e).
  *
  * Loop walks the surface's edge ring starting at first_edge, drawing a line
- * per edge between its two vertices with FUN_00189450(1, point_a, point_b,
+ * per edge between its two vertices with render_debug_line_offset(1, point_a, point_b,
  * color, scale), and follows forward_edge or backward_edge depending on
  * which side of the edge this surface is on, until the ring returns to
  * first_edge. */
@@ -390,7 +390,7 @@ void ai_debug_render_surface(void *structure_bsp /* @<eax> */,
                                              edge[0], 0x10);
     point_b = (float *)tag_block_get_element((char *)bsp_surfaces + 0x54,
                                              edge[1], 0x10);
-    FUN_00189450(1, point_a, point_b, color, scale);
+    render_debug_line_offset(1, (const real_point3d *)point_a, (const real_point3d *)point_b, color, scale);
     cur_edge = edge[2 + side];
   } while (cur_edge != *(int *)(coll_surface + 4));
 }
@@ -565,7 +565,7 @@ void ai_debug_lineoffire_success(char success)
  * relocation against 0x5acae8), not as a separate absolute base.
  *
  * Call-site verification (both cdecl, caller-cleaned):
- *   0x49543 FUN_00189270, ADD ESP,0x10 (4 dwords).  Pushes, in reverse order:
+ *   0x49543 render_debug_line, ADD ESP,0x10 (4 dwords).  Pushes, in reverse order:
  *     color, LEA EBP-0xc (endpoint), 0x5acabc (start), 1 -> C order
  *     (1, (float *)0x5acabc, endpoint, color)  [match]
  *   0x49581 render_debug_pill, ADD ESP,0x14 (5 dwords).  Pushes, in reverse order:
@@ -607,7 +607,7 @@ void ai_debug_render_lineoffire(void)
     if (*(uint8_t *)0x5acab9 == 0) {
       color = *(void **)0x2ee6d0;
     }
-    FUN_00189270(1, (float *)0x5acabc, endpoint, color);
+    render_debug_line(1, (const real_point3d *)0x5acabc, (const real_point3d *)endpoint, color);
     i = 0;
     if (0 < *(int32_t *)0x5acad4) {
       point = (float *)0x5acae8;
@@ -616,7 +616,7 @@ void ai_debug_render_lineoffire(void)
         if (((uint8_t *)0x5acad8)[i] == 0) {
           color = *(void **)0x2ee6d8;
         }
-        render_debug_pill(1, point, point + 48, ((float *)0x5acc68)[i], color);
+        render_debug_pill(1, (const real_point3d *)point, (const real_vector3d *)(point + 48), ((float *)0x5acc68)[i], color);
         i++;
         point += 3;
       } while (i < *(int32_t *)0x5acad4);
@@ -652,7 +652,7 @@ void ai_debug_render_lineoffire(void)
  *   0x49635 render_debug_pill, ADD ESP,0x14.  PUSH EDX([0x2ee6d8]); PUSH
  *     EAX([EAX*4+0x5f8e54]); PUSH EDX(ECX+0x5f8d94); PUSH EAX(ECX+0x5f8cd4);
  *     PUSH 1 -> (1, centre+i*12, endpoint+i*12, radius[i], colour)  [match]
- *   0x4969c FUN_00189270, ADD ESP,0x10.  PUSH ECX(colour); PUSH
+ *   0x4969c render_debug_line, ADD ESP,0x10.  PUSH ECX(colour); PUSH
  *     ECX(EAX+0x5f8ea4); PUSH EDX(EAX+0x5f8e98); PUSH 1 ->
  *     (1, pt+i*12, pt+i*12+0xc, colour)  [match]
  *   The two point bases in each of the last two calls are separate LEAs
@@ -699,7 +699,7 @@ void ai_debug_render_ballistic_lineoffire(void)
       i = 0;
       do {
         off = i * 12;
-        render_debug_pill(1, (char *)0x5f8cd4 + off, (char *)0x5f8d94 + off,
+        render_debug_pill(1, (const real_point3d *)((char *)0x5f8cd4 + off), (const real_vector3d *)((char *)0x5f8d94 + off),
                      ((float *)0x5f8e54)[i], *(void **)0x2ee6d8);
         counter++;
         i = counter;
@@ -719,8 +719,8 @@ void ai_debug_render_ballistic_lineoffire(void)
           }
         }
         off = i * 12;
-        FUN_00189270(1, (float *)((char *)0x5f8e98 + off),
-                     (float *)((char *)0x5f8ea4 + off), color);
+        render_debug_line(1, (const real_point3d *)((char *)0x5f8e98 + off),
+                     (const real_point3d *)((char *)0x5f8ea4 + off), color);
         counter++;
         i = counter;
         if (counter) {
@@ -1000,7 +1000,7 @@ void ai_debug_render_lineofsight(void)
       if (0xc < color_index) {
         color_index = 0xc;
       }
-      render_debug_string_at_point(1, point, (void *)0x5ab100, (int)*colors[color_index]);
+      render_debug_string_at_point(1, (const real_point3d *)point, (void *)0x5ab100, (const real_argb_color *)*colors[color_index]);
       i = i + 1;
       point = point + 3;
     } while (i < *(int32_t *)0x5accac);
@@ -1014,8 +1014,8 @@ void ai_debug_render_lineofsight(void)
       if (0xc < color_index) {
         color_index = 0xc;
       }
-      FUN_00189270(1, (float *)0x5accb0 + line[-2] * 3,
-                   (float *)0x5accb0 + line[-1] * 3, *colors[color_index]);
+      render_debug_line(1, (const real_point3d *)((float *)0x5accb0 + line[-2] * 3),
+                   (const real_point3d *)((float *)0x5accb0 + line[-1] * 3), *colors[color_index]);
       i = i + 1;
       line = line + 3;
     } while (i < *(int32_t *)0x5eccb0);
@@ -1234,7 +1234,7 @@ int ai_debug_get_this_actor(void)
   delta[2] = camera[10] * *(float *)0x25acf0;
 
   if (!collision_test_vector(0x81, (real_point3d *)camera, (real_vector3d *)delta, player_unit,
-                    (int16_t *)collision_result)) {
+                    (collision_test_result *)collision_result)) {
     return result;
   }
   if (*(int16_t *)collision_result != 3) {
@@ -2215,9 +2215,9 @@ void ai_debug_render_idle_look(void)
             color = *(int *)0x2ee6c4;
           }
           render_debug_string_at_point(
-            1, position,
+            1, (const real_point3d *)position,
             csprintf((char *)0x5ab100, "%.2f", (double)((float *)0x632460)[i]),
-            color);
+            (const real_argb_color *)color);
         }
       }
     }
@@ -2302,16 +2302,16 @@ void ai_debug_render_spatial_effects(void)
       if (type >= 0 && type < 3) {
         color = *color_table[type];
       }
-      render_debug_sphere(1, pos, 0.2f, color);
+      render_debug_sphere(1, (const real_point3d *)pos, 0.2f, color);
       up = *(float **)0x31fc44;
       text_position[0] = up[0] * 0.3f + pos[0];
       text_position[1] = up[1] * 0.3f + pos[1];
       text_position[2] = up[2] * 0.3f + pos[2];
-      render_debug_string_at_point(1, text_position,
+      render_debug_string_at_point(1, (const real_point3d *)text_position,
                    csprintf((char *)0x5ab100, "c%d t%d",
                             (int)*(int16_t *)(entry + 2),
                             game_time - *(int32_t *)(entry + 0x10)),
-                   (int)color);
+                   (const real_argb_color *)color);
       ai_globals = *(char **)0x632574;
     }
     index = (short)((index + 1) & 0x1f);
@@ -2478,7 +2478,7 @@ void ai_debug_update(void)
         dir[0] = fwd[0] * scale;
         dir[1] = fwd[1] * scale;
         dir[2] = fwd[2] * scale;
-        if (collision_test_vector(0x21, cam, (real_vector3d *)dir, -1, (int16_t *)hitbuf) != 0) {
+        if (collision_test_vector(0x21, cam, (real_vector3d *)dir, -1, (collision_test_result *)hitbuf) != 0) {
           /* hitbuf offsets relative to local_20 (EBP-0x1c):
            * local_58 = EBP-0x58 = local_20 - 0x3c (+0x3c back from
            * local_20); Ghidra shows local_58/54/50/2c.
@@ -3048,12 +3048,12 @@ void ai_debug_highlight_unit(int object_handle, void *color, char draw_flag)
   }
 
   if (draw_flag == 0 || height_offset <= *(float *)0x2533c0) {
-    render_debug_sphere(1, center, camera_height * *(float *)0x25afcc, color);
+    render_debug_sphere(1, (const real_point3d *)center, camera_height * *(float *)0x25afcc, color);
   } else {
     height_vec[0] = 0.0f;
     height_vec[1] = 0.0f;
     height_vec[2] = height_offset;
-    render_debug_pill(1, center, height_vec, camera_height, color);
+    render_debug_pill(1, (const real_point3d *)center, (const real_vector3d *)height_vec, camera_height, color);
   }
 
   if (draw_flag != 0) {
@@ -3188,10 +3188,10 @@ void ai_debug_render_vehicles_enterable(void)
       position[1] = up[1] * *(float *)0x253398 + position[1];
       position[2] = up[2] * *(float *)0x253398 + position[2];
       ai_debug_drawstack_setup(position);
-      render_debug_string_at_point(1, ai_debug_drawstack(),
+      render_debug_string_at_point(1, (const real_point3d *)(ai_debug_drawstack()),
                    csprintf((char *)0x5ab100, "enterable: dist %.1f",
                             (double)*(float *)(entry + 4)),
-                   *(int *)0x2ee6e8);
+                   *(const real_argb_color **)0x2ee6e8);
 
       if (*(int16_t *)(entry + 8) != 0) {
         team_names[0] = "default";
@@ -3221,7 +3221,7 @@ void ai_debug_render_vehicles_enterable(void)
         *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
         *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
         *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
-        render_debug_string_at_point(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
+        render_debug_string_at_point(1, (void *)0x5ac9a0, (void *)0x5ab100, *(const real_argb_color **)0x2ee6e8);
       }
 
       if (*(int16_t *)(entry + 0xa) != 0) {
@@ -3258,7 +3258,7 @@ void ai_debug_render_vehicles_enterable(void)
         *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
         *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
         *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
-        render_debug_string_at_point(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
+        render_debug_string_at_point(1, (void *)0x5ac9a0, (void *)0x5ab100, *(const real_argb_color **)0x2ee6e8);
       }
 
       if (*(int16_t *)(entry + 0xc) > 0) {
@@ -3279,7 +3279,7 @@ void ai_debug_render_vehicles_enterable(void)
         *(float *)0x5ac9b0 = *(float *)0x5ac990 * up[0] + *(float *)0x5ac9b0;
         *(float *)0x5ac9b4 = *(float *)0x5ac990 * up[1] + *(float *)0x5ac9a4;
         *(float *)0x5ac9b8 = *(float *)0x5ac990 * up[2] + *(float *)0x5ac9a8;
-        render_debug_string_at_point(1, (void *)0x5ac9a0, (void *)0x5ab100, *(int *)0x2ee6e8);
+        render_debug_string_at_point(1, (void *)0x5ac9a0, (void *)0x5ab100, *(const real_argb_color **)0x2ee6e8);
       }
     }
   }
@@ -3347,7 +3347,7 @@ void ai_debug_render_speech(void)
                      csprintf((char *)0x5ab100, "variant %d dialogue %d %s",
                               (int)*(int16_t *)(object + 0x6e),
                               (int)dialogue_index, variant_name),
-                     *(int *)0x2ee6e8);
+                     *(const real_argb_color **)0x2ee6e8);
       }
     }
 
@@ -3379,7 +3379,7 @@ void ai_debug_render_speech(void)
                    vocalization_name, tag_name,
                    (int)*(int16_t *)(object + 0x3aa),
                    (int)*(int16_t *)(object + 0x3ae)),
-          *(int *)0x2ee6c4);
+          *(const real_argb_color **)0x2ee6c4);
       }
       if (*(int16_t *)(object + 0x368) > 0) {
         if (*(int32_t *)(object + 0x36c) == -1) {
@@ -3406,7 +3406,7 @@ void ai_debug_render_speech(void)
           csprintf((char *)0x5ab100, "%s %s %s",
                    unit_get_speech_priority_name(*(int16_t *)(object + 0x368)),
                    vocalization_name, tag_name),
-          *(int *)0x2ee6e0);
+          *(const real_argb_color **)0x2ee6e0);
       }
     }
 
@@ -3427,9 +3427,9 @@ void ai_debug_render_speech(void)
           break;
         }
         render_debug_string_at_point(
-          1, ai_debug_drawstack(),
+          1, (const real_point3d *)(ai_debug_drawstack()),
           unit_describe_speech(iter.last_handle, 0, 0x200, speech_string),
-          color);
+          (const real_argb_color *)color);
       }
     }
     object = (char *)object_iterator_next(&iter);
@@ -3590,7 +3590,7 @@ void ai_debug_change_selected_actor(int param)
  *           "%s / %s (%d)", traverse, build, game_time_get() - +0x4), color)
  *           with color = [0x2ee6d4] when both results are 5 ("success"),
  *           else [0x2ee6d0]; the color is pushed before game_time_get.
- *   If byte 0x5acaa4: if byte +0x60, FUN_00189450 (+0x28 -> +0x64,
+ *   If byte 0x5acaa4: if byte +0x60, render_debug_line_offset (+0x28 -> +0x64,
  *           [0x2ee6e8], 0.1f), render_debug_point(+0x64, 0.3f, [0x2ee6d4]),
  *           render_debug_sphere(+0x64, +0x74, [0x2ee6d4]) only when
  *           [0x2533c0] < +0x74 (FCOMP + TEST AH,0x41 + JNZ skip), and
@@ -3656,19 +3656,19 @@ void ai_debug_render_path_storage(void *entry /* @<esi> */)
   } else {
     color = *(void **)0x2ee6d0;
   }
-  render_debug_string_at_point(1, ai_debug_drawstack(),
+  render_debug_string_at_point(1, (const real_point3d *)(ai_debug_drawstack()),
                csprintf((char *)0x5ab100, "%s / %s (%d)",
                         traverse_names[*(int16_t *)(path + 0x10)],
                         build_names[*(int16_t *)(path + 0x12)],
                         game_time_get() - *(int32_t *)(path + 0x4)),
-               (int)color);
+               (const real_argb_color *)color);
   if (*(char *)0x5acaa4 != 0) {
     if (*(char *)(path + 0x60) != 0) {
-      FUN_00189450(1, (float *)(path + 0x28), (float *)(path + 0x64),
+      render_debug_line_offset(1, (const real_point3d *)(path + 0x28), (const real_point3d *)(path + 0x64),
                    *(void **)0x2ee6e8, 0.1f);
       render_debug_point(1, (real_point3d *)(path + 0x64), 0.3f, *(void **)0x2ee6d4);
       if (*(float *)(path + 0x74) > *(float *)0x2533c0) {
-        render_debug_sphere(1, path + 0x64, *(float *)(path + 0x74),
+        render_debug_sphere(1, (const real_point3d *)(path + 0x64), *(float *)(path + 0x74),
                      *(void **)0x2ee6d4);
       }
       if (*(int32_t *)(path + 0x70) != -1 && on_current_bsp) {
@@ -3677,7 +3677,7 @@ void ai_debug_render_path_storage(void *entry /* @<esi> */)
                                 *(void **)0x2ee6d4);
       }
     } else {
-      render_debug_string_at_point(1, ai_debug_drawstack(), "undirected", *(int *)0x2ee6d4);
+      render_debug_string_at_point(1, (const real_point3d *)(ai_debug_drawstack()), "undirected", *(const real_argb_color **)0x2ee6d4);
     }
   }
   if (*(char *)0x5aca9d != 0) {
@@ -3729,7 +3729,7 @@ void ai_debug_render_path_storage(void *entry /* @<esi> */)
  *   - colors[11] (0x2ee6e0) if DAT_5f925c (signed int16) >= 0x400.
  *   - colors[7] (0x2ee6e8) otherwise.
  * Draws a line from DAT_5f91ac (captured position) to DAT_5f91c4 (LOS-hit
- * slot 0) via FUN_00189270.
+ * slot 0) via render_debug_line.
  *
  * Confirmed from disassembly (0x4c890-0x4c91a): the color selection is not
  * the nested-if the decompiler's comma-operator reconstruction suggests.
@@ -3765,7 +3765,7 @@ void ai_debug_render_path(void)
     } else {
       color = *(void **)0x2ee6e8;
     }
-    FUN_00189270(1, (float *)0x5f91ac, (float *)0x5f91c4, color);
+    render_debug_line(1, (const real_point3d *)0x5f91ac, (const real_point3d *)0x5f91c4, color);
   }
 
   if (*(uint8_t *)0x60d2d0 != 0) {
@@ -3843,7 +3843,7 @@ void ai_debug_render_paths_failed(void)
       position[2] = up[2] + *(float *)(entry + 0x30);
       ai_debug_drawstack_setup(position);
       ai_debug_describe_actor(*(int *)entry, -1, 1, buf, 0x100);
-      render_debug_string_at_point(1, ai_debug_drawstack(), buf, *(int *)0x2ee6d0);
+      render_debug_string_at_point(1, (const real_point3d *)(ai_debug_drawstack()), buf, *(const real_argb_color **)0x2ee6d0);
       ai_debug_render_path_storage(entry);
     }
     offset += 0x1ca7c;

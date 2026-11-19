@@ -41,7 +41,7 @@ void hud_draw_static_element(int param_1, short *param_2, int param_3,
   i1 = verify_tag_reference((int *)(param_3 + 0x24));
   l_8 = (short *)tag_get(0x6269746d, i1);
   l_c =
-    (int)FUN_00077040(*(int *)(param_3 + 0x30), *(short *)(param_3 + 0x54), 0);
+    (int)bitmap_group_get_bitmap_from_sequence(*(int *)(param_3 + 0x30), *(short *)(param_3 + 0x54), 0);
   i2 = (int)xbox_texture_cache_get_hardware_format((void *)l_c, 0, 1);
   if (i2 != 0) {
     pu3 =
@@ -677,7 +677,7 @@ void hud_render_timer(void)
     }
     crt_sprintf((char *)0x5ab100, (const char *)0x25acb8,
                 loading_time - *(int *)0x2f66e4);
-    FUN_00189c40(1, (const char *)0x5ab100);
+    render_debug_string(1, (const char *)0x5ab100);
   }
 }
 
@@ -1139,7 +1139,7 @@ void hud_messaging_update(int param_1)
         color[1] = *(float *)(*(int *)0x5aa68c + 0x74);
         color[2] = *(float *)(*(int *)0x5aa68c + 0x78);
         color[3] = *(float *)(*(int *)0x5aa68c + 0x7c);
-        packed_color = real_argb_color_to_pixel32(color);
+        packed_color = real_argb_color_to_pixel32((const real_argb_color *)color);
       } else {
         if (*(char *)(*(int *)0x46bd18 + 0x1184) == '\0') {
           if ((*(unsigned char *)(*(int *)0x46bd0c + 0xe2) & 1) == 0) {
@@ -1172,7 +1172,7 @@ void hud_messaging_update(int param_1)
         }
         color[0] = fade * color[0];
       }
-      packed_color = real_argb_color_to_pixel32(color);
+      packed_color = real_argb_color_to_pixel32((const real_argb_color *)color);
     }
 
     rect_a[3] = *(short *)0x50658a - *(short *)0x50657e;
@@ -1930,7 +1930,7 @@ short hud_get_nav_point_render_type(int param_1, float *param_2, float *param_3,
   direction[2] = param_3[2] - param_2[2];
 
   if (collision_test_vector(0xc2ad, (real_point3d *)param_2, (real_vector3d *)direction, unit_handle,
-                   (short *)collision_result) == '\0' ||
+                   (collision_test_result *)collision_result) == '\0' ||
       (*(short *)collision_result == 3 &&
        *(int *)(collision_result + 0x38) == param_4)) {
     result = 0;
@@ -2002,10 +2002,11 @@ void custom_render_nav_point(int param_1, float *param_2, short param_3, short p
                  *(double *)0x281e18) +
       *(float *)0x253398;
   }
-  matrix_transform_point((float *)0x5065b4, &l_30, &l_30);
+  matrix_transform_point((const real_matrix4x3 *)(0x5065b4), &l_30, &l_30);
   s7 = param_4;
   if (s7 == 1 || (c5 = render_camera_view_to_screen(
-                       (int *)0x506550, (int *)0x5065a4, &l_30, screen_pos),
+                       (camera_t *)0x506550, (render_frustum_t *)0x5065a4, &l_30,
+                       (real_point2d *)screen_pos),
                      c5 == '\0')) {
     screen_pos[0] = l_30.x;
     screen_pos[1] = -l_30.y;

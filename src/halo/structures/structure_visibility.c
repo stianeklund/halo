@@ -89,7 +89,8 @@ void FUN_001966b0(int param_1)
           if (*(short *)0x5937d0 >= 0x4000)
             break;
           iVar4 = (int)tag_block_get_element(iVar3, sVar6, 0x24);
-          if (render_frustum_cube_visible(local_8, (float *)iVar4, 0) != 0) {
+          if (render_frustum_cube_visible((render_frustum_t *)local_8,
+                                      (real_rectangle3d *)iVar4, 0) != 0) {
             piVar1 = (int *)(iVar4 + 0x18);
             piVar5 = (int *)tag_block_get_element(piVar1, 0, 4);
             sVar2 = 0;
@@ -205,9 +206,9 @@ void FUN_00196850(int param_1)
                 (char *)param_1 + 0xf8, surface_index, 6);
               vertex_base = *(char **)(part + 0xf8);
               if (render_frustum_triangle_visible(
-                    plane_ctx, vertex_base + (surface[0] << 5),
-                    vertex_base + (surface[1] << 5),
-                    vertex_base + (surface[2] << 5)) != 0) {
+                    plane_ctx, (real_point3d *)(vertex_base + (surface[0] << 5)),
+                    (real_point3d *)(vertex_base + (surface[1] << 5)),
+                    (real_point3d *)(vertex_base + (surface[2] << 5))) != 0) {
                 *(unsigned int *)((char *)0x5137d0 +
                                   (surface_index >> 5) * 4) |= bit_mask;
                 *(short *)0x5937d0 = *(short *)0x5937d0 + 1;
@@ -355,7 +356,7 @@ short FUN_00196c90(int out_handles, short max_count, void *iter_first,
               (*(int *)0x506784 == -1 ||
                /* TEST AX,AX: only the low 16 bits of the result are tested. */
                (short)render_frustum_sphere_visible(
-                 (void *)(rendered_cluster + 10), center, radius) != 0)) {
+                 (void *)(rendered_cluster + 10), (real_point3d *)center, radius) != 0)) {
             *(int *)(out_handles + count * 4) = object_handle;
             count = count + 1;
             ((void (*)(int))mark)(object_handle);
@@ -422,12 +423,12 @@ void FUN_00196d60(float *rect, int16_t *hull)
  * Draws a closed polyline through a point list laid out like a portal hull:
  * int16 point count at +0, float (x, y) pairs from +4. Each point is lifted to
  * (x, y, -1.0) and transformed in place by the matrix at 0x5065e8, then a
- * segment is drawn from it to the previous point via FUN_00189270(1, ...).
+ * segment is drawn from it to the previous point via render_debug_line(1, ...).
  * The first "previous" point is the last point of the list (only built when
  * the count is non-zero).
  *
  * ABI: EDI = sound_list (kb name), EBX = env, passed through untouched as the
- * last FUN_00189270 argument. The stack `distance` argument is never read
+ * last render_debug_line argument. The stack `distance` argument is never read
  * (no [EBP+8] access in 0x196e10..0x196eaf). The counter is 16-bit
  * (INC ESI / CMP SI,[EDI]) and the count is re-read every iteration. */
 void FUN_00196e10(uint16_t *sound_list, void *env, float distance)
@@ -440,14 +441,14 @@ void FUN_00196e10(uint16_t *sound_list, void *env, float distance)
     prev[0] = *(float *)(sound_list + (short)sound_list[0] * 4 - 2);
     prev[1] = *(float *)(sound_list + (short)sound_list[0] * 4);
     prev[2] = -1.0f;
-    matrix_transform_point((float *)0x5065e8, (real_point3d *)prev, (real_point3d *)prev);
+    matrix_transform_point((const real_matrix4x3 *)(0x5065e8), (real_point3d *)prev, (real_point3d *)prev);
   }
   for (i = 0; i < (short)sound_list[0]; i++) {
     cur[0] = *(float *)(sound_list + i * 4 + 2);
     cur[1] = *(float *)(sound_list + i * 4 + 4);
     cur[2] = -1.0f;
-    matrix_transform_point((float *)0x5065e8, (real_point3d *)cur, (real_point3d *)cur);
-    FUN_00189270(1, cur, prev, env);
+    matrix_transform_point((const real_matrix4x3 *)(0x5065e8), (real_point3d *)cur, (real_point3d *)cur);
+    render_debug_line(1, (const real_point3d *)cur, (const real_point3d *)prev, env);
     prev[0] = cur[0];
     prev[1] = cur[1];
     prev[2] = cur[2];
@@ -614,7 +615,7 @@ short FUN_00197310(void *verts, void *plane, void *ref, void *arg1,
   if (count > 0) {
     float *mtx = (float *)((char *)arg1 + 0x10);
     for (j = 0; j < count; j++) {
-      matrix_transform_point(mtx, (real_point3d *)(v + j * 3), (real_point3d *)&buf[j][0]);
+      matrix_transform_point((const real_matrix4x3 *)mtx, (real_point3d *)(v + j * 3), (real_point3d *)&buf[j][0]);
     }
   }
 

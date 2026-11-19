@@ -972,7 +972,7 @@ int glow_new(int tag_index)
         frame = tag_block_get_element(sequence_block, 0, 0x40);
         frame = tag_block_get_element((void *)((int)frame + 0x34), 0, 0x20);
         lookup =
-          FUN_00077040(*(int *)(glow_definition + 0x150), 0, *(int16_t *)frame);
+          bitmap_group_get_bitmap_from_sequence(*(int *)(glow_definition + 0x150), 0, *(int16_t *)frame);
         *(int *)(glow_widget + 0x224) = tag_index;
         *(int16_t *)(glow_widget + 0x24c) =
           *(int16_t *)(glow_definition + 0x20);
@@ -1868,7 +1868,7 @@ void light_volume_render(int object_handle, int light_volume_datum)
                          (REAL_ONE_POOL - fn_val) *
                            *(float *)(marker_state + 0x68)) *
                         depth_factor;
-            color_argb = real_argb_color_to_pixel32(color2);
+            color_argb = real_argb_color_to_pixel32((const real_argb_color *)color2);
             FUN_0017d010(out_pos, interp_a, (float *)0, 0.0f, color_argb);
 
             i = (short)(i + 1);
@@ -3121,7 +3121,7 @@ void lights_illumination_at_point(int point, int location, float *color)
     float t;
     float collision_point[3];
 
-    if (structure_test_vector((float *)point, (float *)0x29b204, collision_point,
+    if (structure_test_vector((const real_point3d *)point, (const real_vector3d *)0x29b204, (real_point3d *)collision_point,
                               &lightmap_index, &material_index, &surface_index,
                               &s, &t)) {
       char *structure = (char *)scenario_get();
@@ -3325,7 +3325,7 @@ char lights_distant_lighting_at_point(unsigned int flags, int point,
   if (ray_count != 0) {
     do {
       hit =
-        structure_test_vector((float *)point, (float *)(rays + (int)ray_index * 0xc), (float *)collision_point,
+        structure_test_vector((const real_point3d *)point, (const real_vector3d *)(rays + (int)ray_index * 0xc), (real_point3d *)collision_point,
                               lightmap_index, material_index, (int32_t *)&surface_index, &s, &t);
       if (hit != '\0')
         break;
@@ -3396,7 +3396,7 @@ char lights_distant_lighting_at_point(unsigned int flags, int point,
           local_28 = local_40[1];
           local_24 = local_40[2];
           local_30 = 0x3f800000;
-          render_debug_point(1, (real_point3d *)point, 0.5f, &local_30);
+          render_debug_point(1, (real_point3d *)point, 0.5f, (const real_argb_color *)&local_30);
           {
             int ds_bits;
             memcpy(&ds_bits, &distance_scale, 4);
@@ -3453,11 +3453,11 @@ void light_reconnect_to_map(int object_handle)
       node_matrix =
         object_get_node_matrix(light->object_index,
                                light->attachment_marker_index);
-      matrix_transform_point((float *)node_matrix, &light->attachment.relative_position,
+      matrix_transform_point(node_matrix, &light->attachment.relative_position,
                              &light->position);
       matrix_transform_vector((float *)node_matrix, &light->relative_forward,
                               &light->forward);
-      perpendicular3d(&light->forward.i, &light->up.i);
+      perpendicular3d(&light->forward, &light->up);
       normalize3d(&light->up);
     }
   }
@@ -4987,7 +4987,7 @@ void object_types_place_objects(int do_spawn)
             *(int *)(matrix + 0x28) = *(int *)((char *)element + 0x8);
             *(int *)(matrix + 0x2c) = *(int *)((char *)element + 0xc);
             *(int *)(matrix + 0x30) = *(int *)((char *)element + 0x10);
-            matrix_transform_point((float *)matrix, (real_point3d *)(obj_tag + 8),
+            matrix_transform_point((const real_matrix4x3 *)matrix, (real_point3d *)(obj_tag + 8),
                                    &xform_point);
             if ((scenario_leaf_index_from_point((int)((char *)element + 8)) == -1) &&
                 (scenario_leaf_index_from_point((int)&xform_point) == -1)) {
@@ -8071,7 +8071,7 @@ void object_placement_data_new(void *placement, int tag_index,
   *(int16_t *)(p + 0x16) = 0;
 
   /* Resolve parent: datum_absolute_index_to_index returns header or 0 */
-  header = datum_absolute_index_to_index(*(data_t **)0x5a8d50, parent_handle);
+  header = (int)datum_absolute_index_to_index(*(data_t **)0x5a8d50, parent_handle);
   if (header == 0 || (1 << (*(uint8_t *)(header + 0x3) & 0x1f)) == 0 ||
       *(int *)(header + 0x8) == 0) {
     /* No valid parent */
@@ -9741,7 +9741,7 @@ vector3_t *object_get_world_position(int object_handle, vector3_t *out_position)
   /* Parented — transform local position through parent's node matrix */
   node_mat = object_get_node_matrix(obj->parent_object_index.value,
                                     (int16_t) * (int8_t *)((char *)obj + 0xd0));
-  matrix_transform_point((float *)node_mat, &obj->position,
+  matrix_transform_point(node_mat, &obj->position,
                          (real_point3d *)out_position);
   return out_position;
 }
@@ -11246,7 +11246,7 @@ void object_compute_node_matrices(int object_handle)
   }
 
   /* Apply origin offset from model tag and set bounding sphere radius */
-  matrix_transform_point(node_matrices, (real_point3d *)((char *)object_tag + 0x08),
+  matrix_transform_point((const real_matrix4x3 *)node_matrices, (real_point3d *)((char *)object_tag + 0x08),
                          (real_point3d *)((char *)obj + 0x50));
   {
     float radius = *(float *)((char *)object_tag + 0x04);
@@ -11292,7 +11292,7 @@ void object_render_debug(int param_1)
   if (*(char *)0x5a8d27 != '\0') {
     void *nm;
     nm = object_get_node_matrix(param_1, 0);
-    FUN_001894d0(1, nm, 0.3f);
+    render_debug_matrix(1, nm, 0.3f);
   }
 
   if (*(char *)0x5a8d24 != '\0' && *(short *)((char *)obj + 0x6a) != -1) {
@@ -11302,7 +11302,7 @@ void object_render_debug(int param_1)
     block_elem = tag_block_get_element(
       (void *)(scen_elem + 0x204), (int)*(short *)((char *)obj + 0x6a), 0x24);
     object_get_world_position(param_1, (vector3_t *)&root_pos);
-    render_debug_string_at_point(0, &root_pos, block_elem, *(int *)0x2ee6f4);
+    render_debug_string_at_point(0, (const real_point3d *)&root_pos, block_elem, *(const real_argb_color **)0x2ee6f4);
     tag_data = (char *)tag_get(0x6f626a65, *obj);
   }
 
@@ -11317,8 +11317,8 @@ void object_render_debug(int param_1)
     } else {
       name_ptr = backslash + 1;
     }
-    render_debug_string_at_point(0, &info_text_buf, name_ptr, *(int *)0x2ee6f0);
-    FUN_001894d0(1, world_matrix, ((float *)obj)[0x17]);
+    render_debug_string_at_point(0, &info_text_buf, name_ptr, *(const real_argb_color **)0x2ee6f0);
+    render_debug_matrix(1, (const real_matrix4x3 *)world_matrix, ((float *)obj)[0x17]);
     render_debug_vector(1, &info_text_buf, &root_pos, 1.0f, *(void **)0x2ee6e0);
     tag_data = (char *)tag_get(0x6f626a65, *obj);
   }
@@ -11342,7 +11342,7 @@ void object_render_debug(int param_1)
       } else {
         scale_val = 1.0f;
       }
-      render_debug_sphere(1, (char *)obj + 0x50, scale_val, sphere_color);
+      render_debug_sphere(1, (const real_point3d *)((char *)obj + 0x50), scale_val, sphere_color);
       tag_data = (char *)tag_get(0x6f626a65, *obj);
     }
   }
@@ -11399,12 +11399,12 @@ void object_render_debug(int param_1)
         elem_node = *(short *)coll_elem;
         if (elem_node == -1) {
           matrix_transform_point(
-            world_matrix, (real_point3d *)((char *)coll_elem + 0x10), &point_out);
+            (const real_matrix4x3 *)world_matrix, (real_point3d *)((char *)coll_elem + 0x10), &point_out);
         } else {
           void *nm;
           nm = object_get_node_matrix(param_1, elem_node);
           matrix_transform_point(
-            (float *)nm, (real_point3d *)((char *)coll_elem + 0x10), &point_out);
+            nm, (real_point3d *)((char *)coll_elem + 0x10), &point_out);
         }
         render_debug_sphere(1, &point_out, *(float *)((char *)coll_elem + 0x1c),
                      *(void **)0x2ee6d8);
@@ -11434,7 +11434,7 @@ void object_render_debug(int param_1)
                   dst[0] = *xr;
                   dst[1] = *yr;
                   dst[2] = *zr;
-                  matrix_transform_point(world_matrix, (real_point3d *)dst, (real_point3d *)dst);
+                  matrix_transform_point((const real_matrix4x3 *)world_matrix, (real_point3d *)dst, (real_point3d *)dst);
                   zr++;
                   dst += 3;
                 }
@@ -11449,18 +11449,18 @@ void object_render_debug(int param_1)
               for (bk = 0; bk < 2; bk++) {
                 if (bi == 0) {
                   int e = bk + bj * 2;
-                  FUN_00189270(1, &bbox_corners[e * 3],
-                               &bbox_corners[(e + 4) * 3], *(void **)0x2ee6d8);
+                  render_debug_line(1, (const real_point3d *)&bbox_corners[e * 3],
+                               (const real_point3d *)&bbox_corners[(e + 4) * 3], *(void **)0x2ee6d8);
                 }
                 if (bj == 0) {
                   int e = bk + bi * 4;
-                  FUN_00189270(1, &bbox_corners[e * 3],
-                               &bbox_corners[(e + 2) * 3], *(void **)0x2ee6d8);
+                  render_debug_line(1, (const real_point3d *)&bbox_corners[e * 3],
+                               (const real_point3d *)&bbox_corners[(e + 2) * 3], *(void **)0x2ee6d8);
                 }
                 if (bk == 0) {
                   int e = bj + bi * 2;
-                  FUN_00189270(1, &bbox_corners[e * 6],
-                               &bbox_corners[e * 6 + 3], *(void **)0x2ee6d8);
+                  render_debug_line(1, (const real_point3d *)&bbox_corners[e * 6],
+                               (const real_point3d *)&bbox_corners[e * 6 + 3], *(void **)0x2ee6d8);
                 }
               }
             }
@@ -12058,7 +12058,7 @@ void object_attach_to_parent(int parent_handle, int child_handle,
   node_mat =
     (float *)object_get_node_matrix(parent_handle, (int16_t)parent_node_index);
   matrix_inverse(node_mat, local_matrix);
-  matrix_transform_point(local_matrix,
+  matrix_transform_point((const real_matrix4x3 *)local_matrix,
                          &child_obj->position, /* dup-args-ok */
                          &child_obj->position);
   matrix_transform_vector(local_matrix,
@@ -12158,7 +12158,7 @@ bool object_try_place(int object_handle, const real_point3d *position)
   delta.k = *(float *)(obj + 0x14) - position->z;
 
   /* Cast collision ray from target position along delta direction. */
-  if (collision_test_vector(0x1000e9, position, &delta, -1, collision_result) ||
+  if (collision_test_vector(0x1000e9, position, &delta, -1, (collision_test_result *)collision_result) ||
       *(int16_t *)(obj + 0x4c) == -1) {
     /* Collision found or object has no cluster placement. */
     if (*(int16_t *)col_surface_ptr == -1) {
@@ -12502,7 +12502,7 @@ void object_attach_to_marker(int parent_handle, void *marker_name,
        transform the parent marker's position/up/forward into the child's
        local coordinate space. */
     matrix_inverse((float *)(child_markers + 4), inverse);
-    matrix_transform_point(inverse, (real_point3d *)(parent_markers + 0x60),
+    matrix_transform_point((const real_matrix4x3 *)inverse, (real_point3d *)(parent_markers + 0x60),
                            (real_point3d *)((char *)child_obj + 0xC));
     matrix_transform_vector(inverse, (real_vector3d *)(parent_markers + 0x3C),
                             (real_vector3d *)((char *)child_obj + 0x24));

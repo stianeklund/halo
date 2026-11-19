@@ -27,9 +27,9 @@ void FUN_0014c6d0(int param_1, void *param_2)
     i = 0;
     do {
       pfVar1 = local_64 + i * 3;
-      project_point2d((float *)(param_1 + 0x28 + i * 8),
-                      (float *)(param_1 + 0xc), *(int16_t *)(param_1 + 0x20),
-                      *(uint8_t *)(param_1 + 0x22), pfVar1);
+      project_point2d((const real_point2d *)(param_1 + 0x28 + i * 8),
+                      (const real_plane3d *)(param_1 + 0xc), *(int16_t *)(param_1 + 0x20),
+                      *(uint8_t *)(param_1 + 0x22), (real_point3d *)pfVar1);
       fVar2 = *(float *)(param_1 + 0x1c);
       n = *(int *)(param_1 + 0x24);
       sVar5 = sVar5 + 1;
@@ -46,7 +46,7 @@ void FUN_0014c6d0(int param_1, void *param_2)
   if (0 < n) {
     i = 0;
     do {
-      FUN_00189270(1, local_64 + i * 3, local_64 + ((i + 1) % n) * 3, param_2);
+      render_debug_line(1, (const real_point3d *)(local_64 + i * 3), (const real_point3d *)(local_64 + ((i + 1) % n) * 3), param_2);
       n = *(int *)(param_1 + 0x24);
       sVar5 = sVar5 + 1;
       i = (int)sVar5;
@@ -92,8 +92,8 @@ void FUN_0014c7b0(int16_t *param_1)
   if (0 < param_1[1]) {
     do {
       iVar1 = (int)sVar2;
-      FUN_001896d0(
-        1, param_1 + iVar1 * 0x14 + 0xe0a, param_1 + iVar1 * 0x14 + 0xe10,
+      render_debug_cylinder(
+        1, (const real_point3d *)(param_1 + iVar1 * 0x14 + 0xe0a), (const real_vector3d *)(param_1 + iVar1 * 0x14 + 0xe10),
         *(float *)(param_1 + iVar1 * 0x14 + 0xe16), *(void **)0x2ee6d4);
       sVar2 = sVar2 + 1;
     } while (sVar2 < param_1[1]);
@@ -101,7 +101,7 @@ void FUN_0014c7b0(int16_t *param_1)
   sVar2 = 0;
   if (0 < *param_1) {
     do {
-      render_debug_sphere(1, param_1 + sVar2 * 0xe + 10,
+      render_debug_sphere(1, (const real_point3d *)(param_1 + sVar2 * 0xe + 10),
                    *(float *)(param_1 + sVar2 * 0xe + 0x10),
                    *(void **)0x2ee6d0);
       sVar2 = sVar2 + 1;
@@ -226,7 +226,7 @@ bool FUN_0014ca30(int param_1, void *param_2)
             if (0 < *piVar5) {
               matrix_inverse((float *)(iVar8 * 0x34 + *(int *)(param_1 + 0xc)),
                              local_44);
-              matrix_transform_point(local_44, (real_point3d *)param_2, &local_10);
+              matrix_transform_point((const real_matrix4x3 *)local_44, (real_point3d *)param_2, &local_10);
             }
           }
         }
@@ -304,8 +304,8 @@ char collision_model_test_vector(int param_1, void *param_2, void *param_3, void
             if (0 < *piVar3) {
               matrix_inverse((float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc)),
                              local_5c);
-              matrix_transform_point(local_5c, (real_point3d *)param_3, &local_28);
-              matrix_scale_transform_vector(local_5c, (real_vector3d *)param_4,
+              matrix_transform_point((const real_matrix4x3 *)local_5c, (real_point3d *)param_3, &local_28);
+              matrix_scale_transform_vector((const real_matrix4x3 *)local_5c, (real_vector3d *)param_4,
                                             &local_1c);
 #ifdef HALO_RNG_TRACE
               trace_node_matrix =
@@ -435,8 +435,8 @@ bool collision_model_test_pill(int param_1, int param_2, int param_3, float para
             if (0 < *piVar3) {
               matrix_inverse((float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc)),
                              local_60);
-              matrix_transform_point(local_60, (real_point3d *)param_2, &local_2c);
-              matrix_scale_transform_vector(local_60, (real_vector3d *)param_3,
+              matrix_transform_point((const real_matrix4x3 *)local_60, (real_point3d *)param_2, &local_2c);
+              matrix_scale_transform_vector((const real_matrix4x3 *)local_60, (real_vector3d *)param_3,
                                             &local_20);
               cVar2 =
                 FUN_00149c60(piVar3, &local_2c, &local_20, local_60[0] * param_4,
@@ -511,7 +511,7 @@ char FUN_0014cde0(int param_1, int param_2, float param_3, int param_4,
             if (0 < *piVar3) {
               node_matrix = (float *)(iVar6 * 0x34 + *(int *)(param_1 + 0xc));
               matrix_inverse(node_matrix, local_48);
-              matrix_transform_point(local_48, (real_point3d *)param_2, &local_14);
+              matrix_transform_point((const real_matrix4x3 *)local_48, (real_point3d *)param_2, &local_14);
               radius_f = local_48[0] * param_3;
               cVar2 = (char)collision_bsp_test_sphere(
                 (int)piVar3, 0, 0, (int)&local_14, *(int *)&radius_f,
@@ -1001,14 +1001,14 @@ int FUN_0014da80(int tag_data, int16_t collision_fn_index)
 }
 
 /* 0x14dab0 — Tests whether a point (param_1) passes a sphere–BSP collision
- * check. Finds the BSP3D leaf for param_1 via FUN_0018e420; if found, tests the
+ * check. Finds the BSP3D leaf for param_1 via global_bsp3d_get; if found, tests the
  * collision BSP sphere. Returns 1 if outside BSP or collision sphere
  * intersects, 0 on pass. Confirmed: cdecl, 2 stack args. _chkstk(0x1010) for
  * 4112-byte buf local. */
 char collision_test_sphere(int param_1, int param_2)
 {
   char buf[0x1010];
-  if ((int)bsp3d_find_leaf(FUN_0018e420(), 0, (void *)param_1) == -1)
+  if ((int)bsp3d_find_leaf(global_bsp3d_get(), 0, (void *)param_1) == -1)
     goto fail;
   if (!(char)collision_bsp_test_sphere(
         (int)global_collision_bsp_get(), 0x100,
@@ -1079,7 +1079,7 @@ char FUN_0014db10(int param_1, int param_2, int param_3, int param_4)
  */
 bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
                            const real_vector3d *direction,
-                  int max_distance, int16_t *collision_result)
+                  int max_distance, collision_test_result *collision_result)
 {
   char result;
   char use_water;
@@ -1112,30 +1112,30 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
   result = 0;
 
   /* Init collision_result to invalid */
-  collision_result[0] = (int16_t)-1;
-  *(int *)((char *)collision_result + 4) = -1;
-  collision_result[4] = (int16_t)-1;
-  *(int *)((char *)collision_result + 0xc) = -1;
-  collision_result[8] = (int16_t)-1;
-  *(float *)((char *)collision_result + 0x14) = 1.0f;
+  collision_result->type = (int16_t)-1;
+  collision_result->start_location.leaf_index = -1;
+  collision_result->start_location.cluster_index = (int16_t)-1;
+  collision_result->location.leaf_index = -1;
+  collision_result->location.cluster_index = (int16_t)-1;
+  collision_result->t = 1.0f;
 
   /* Check if relevant flags are set */
   if ((collision_flags & 0xe0) == 0 || *(char *)0x4761f9 != '\0') {
     /* No BSP test: just compute end point */
-    *(float *)((char *)collision_result + 0x14) = 1.0f;
-    ((float *)((char *)collision_result + 0x18))[0] = origin->x + direction->i;
-    ((float *)((char *)collision_result + 0x18))[1] = origin->y + direction->j;
-    ((float *)((char *)collision_result + 0x18))[2] = origin->z + direction->k;
-    scenario_location_from_point((char *)collision_result + 0xc,
-                                 (char *)collision_result + 0x18);
+    collision_result->t = 1.0f;
+    collision_result->position.x = origin->x + direction->i;
+    collision_result->position.y = origin->y + direction->j;
+    collision_result->position.z = origin->z + direction->k;
+    scenario_location_from_point(&collision_result->location,
+                                 &collision_result->position);
 #ifdef HALO_RNG_TRACE
   /* Only calls returning into the area-damage applier FUN_00138900
    * (0x138900..0x138e30); the render path calls this thousands of times per
    * frame and would flood the ring.  Same guard as the host detour. */
   if ((unsigned int)__builtin_return_address(0) - 0x138900u < 0x530u)
     RNG_TRACE_EX(RNG_TRACE_KIND_LOS_RESULT,
-                 ((unsigned int)(unsigned char)result << 16) | (unsigned short)collision_result[0],
-                 *(unsigned int *)((char *)collision_result + 0x14));
+                 ((unsigned int)(unsigned char)result << 16) | (unsigned short)collision_result->type,
+                 *(unsigned int *)&collision_result->t);
 #endif
 #line 1051
     return result;
@@ -1201,17 +1201,17 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
        * meaningful data into garbage. */
       int *hit_plane = *(int **)(local_buf + 0x4);
 
-      *(int *)((char *)collision_result + 0x14) = *(int *)(local_buf);
-      collision_result[0] = 2;
+      *(int *)&collision_result->t = *(int *)(local_buf);
+      collision_result->type = 2;
 
-      *(int *)((char *)collision_result + 0x24) = hit_plane[0];
-      *(int *)((char *)collision_result + 0x28) = hit_plane[1];
-      *(int *)((char *)collision_result + 0x2c) = hit_plane[2];
-      *(int *)((char *)collision_result + 0x30) = hit_plane[3];
+      *(int *)&collision_result->normal.i = hit_plane[0];
+      *(int *)&collision_result->normal.j = hit_plane[1];
+      *(int *)&collision_result->normal.k = hit_plane[2];
+      *(int *)&collision_result->field_30 = hit_plane[3];
 
       if (*(int *)(local_buf + 0xc) < 0)
-        plane_negate((float *)((char *)collision_result + 0x24),
-                     (float *)((char *)collision_result + 0x24));
+        plane_negate((float *)&collision_result->normal,
+                     (float *)&collision_result->normal);
 
       /* Leaf/surface index */
       {
@@ -1219,16 +1219,16 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
         if (leaf_idx != -1) {
           scen_elem = tag_block_get_element((char *)scenario_h + 0xa4,
                                             (int)leaf_idx, 0x14);
-          collision_result[0x1a] = *(short *)((char *)scen_elem + 0x12);
+          collision_result->material_type = *(short *)((char *)scen_elem + 0x12);
         } else {
-          collision_result[0x1a] = -1;
+          collision_result->material_type = -1;
         }
       }
-      *(int *)((char *)collision_result + 0x44) = *(int *)(local_buf + 0x8);
-      *(int *)((char *)collision_result + 0x48) = *(int *)(local_buf + 0xc);
-      *(char *)((char *)collision_result + 0x4c) = *(char *)(local_buf + 0x10);
-      *(char *)((char *)collision_result + 0x4d) = *(char *)(local_buf + 0x11);
-      collision_result[0x4e / 2] = *(short *)(local_buf + 0x12);
+      collision_result->surface_index = *(int *)(local_buf + 0x8);
+      collision_result->plane_designator = *(int *)(local_buf + 0xc);
+      collision_result->flags = *(char *)(local_buf + 0x10);
+      collision_result->breakable_surface_index = *(char *)(local_buf + 0x11);
+      collision_result->material_index = *(short *)(local_buf + 0x12);
       result = 1;
     }
 
@@ -1249,7 +1249,7 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
       int cluster_first;
       int cluster_last;
 
-      *(int *)((char *)collision_result + 4) = obj_ref_first;
+      collision_result->start_location.leaf_index = obj_ref_first;
       if (obj_ref_first == -1) {
         cluster_first = -1;
       } else {
@@ -1257,11 +1257,11 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
                                      obj_ref_first & 0x7fffffff, 0x10);
         cluster_first = *(int16_t *)((char *)elem + 8);
       }
-      *(int16_t *)((char *)collision_result + 8) = (int16_t)cluster_first;
+      collision_result->start_location.cluster_index = (int16_t)cluster_first;
 
       obj_ref_last =
         *(int *)(local_buf + (*(int *)(local_buf + 0x14)) * 4 + 0x14);
-      *(int *)((char *)collision_result + 0xc) = obj_ref_last;
+      collision_result->location.leaf_index = obj_ref_last;
       if (obj_ref_last == -1) {
         cluster_last = -1;
       } else {
@@ -1269,7 +1269,7 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
                                      obj_ref_last & 0x7fffffff, 0x10);
         cluster_last = *(int16_t *)((char *)elem + 8);
       }
-      *(int16_t *)((char *)collision_result + 0x10) = (int16_t)cluster_last;
+      collision_result->location.cluster_index = (int16_t)cluster_last;
     }
   }
 
@@ -1277,10 +1277,10 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
   /* collision_log_add_time(0, *(unsigned int *)0x4761f0, *(int *)0x4761f4); */
 
   /* Atmosphere/fog zone test */
-  if ((collision_flags & 0x40) && collision_result[8] != -1) {
+  if ((collision_flags & 0x40) && collision_result->location.cluster_index != -1) {
     void *scen = scenario_h;
     void *bsp_zone = tag_block_get_element(
-      (char *)scen + 0x134, (int)(short)collision_result[8], 0x68);
+      (char *)scen + 0x134, (int)(short)collision_result->location.cluster_index, 0x68);
     short zone_ref = *(short *)((char *)bsp_zone + 2);
 
     if (zone_ref != -1 && ((unsigned short)zone_ref & 0x8000)) {
@@ -1314,7 +1314,7 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
          * 3-float normal with no d component, so plane3d_distance_to_point read
          * a garbage plane distance -> a spurious near fog fraction that
          * collapsed the observer/vehicle chase camera onto the vehicle. */
-        fVar_dist = plane3d_distance_to_point(local_18, (float *)origin);
+        fVar_dist = plane3d_distance_to_point((const real_plane3d *)local_18, origin);
         /* Ref 0x14e295-0x14e2ad: FLD [ebp-0x14]*dir[1]; FLD [ebp-0x10]*dir[2];
          * FADDP; FLD [ebp-0x18]*dir[0]; FADDP -> (n1*d1 + n2*d2) + n0*d0. The
          * association is not free: x87 rounds each FADDP, so the plain
@@ -1327,21 +1327,21 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
             fabs((double)fVar_dist) < fabs((double)fVar_dir_dot) &&
             fabs((double)fVar_dir_dot) >= *(double *)0x2533d0 &&
             -(fVar_dist / fVar_dir_dot) <
-              *(float *)((char *)collision_result + 0x14)) {
+              collision_result->t) {
           /* Ref 0x14e324-0x14e338: MOV BYTE [ebp+0x1b],1; FLD dist;
            * FCOMP 0.0; TEST AH,5; JNP over MOV BYTE [ebp+0x1b],0 -- i.e.
            * preset 1 and clear it when dist >= 0. */
           fog_side = 1;
           if (fVar_dist >= 0.0f)
             fog_side = 0;
-          *(float *)((char *)collision_result + 0x14) =
+          collision_result->t =
             -(fVar_dist / fVar_dir_dot);
 
-          *(int *)((char *)collision_result + 0x24) = *(int *)local_18;
-          *(int *)((char *)collision_result + 0x28) = *(int *)(local_18 + 1);
-          *(int *)((char *)collision_result + 0x2c) = *(int *)(local_18 + 2);
-          *(int *)((char *)collision_result + 0x30) = *(int *)(local_18 + 3);
-          collision_result[0] = 0;
+          *(int *)&collision_result->normal.i = *(int *)local_18;
+          *(int *)&collision_result->normal.j = *(int *)(local_18 + 1);
+          *(int *)&collision_result->normal.k = *(int *)(local_18 + 2);
+          *(int *)&collision_result->field_30 = *(int *)(local_18 + 3);
+          collision_result->type = 0;
 
           if (fog_side) {
             /* Back-facing fog plane: flip the plane so its normal points
@@ -1352,12 +1352,12 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
              * computes n + 1.0*n = 2n instead of -n: a unit normal (0,0,1)
              * became (0,0,2), tripping assert_valid_real_normal3d in the
              * vehicle thruster effect (effects.c#1121) on checkpoint load. */
-            plane_negate((float *)((char *)collision_result + 0x24),
-                         (float *)((char *)collision_result + 0x24));
-            collision_result[0x1a] = 0x1c;
+            plane_negate((float *)&collision_result->normal,
+                         (float *)&collision_result->normal);
+            collision_result->material_type = 0x1c;
             result = 1;
           } else {
-            collision_result[0x1a] = *(short *)((char *)pg_list + 2);
+            collision_result->material_type = *(short *)((char *)pg_list + 2);
             result = 1;
           }
         }
@@ -1407,7 +1407,7 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
               char obj_hit =
                 FUN_0014dce0(object_handle, collision_flags, flags_computed,
                              (int)origin, (int)direction, max_distance,
-                             (int16_t *)((char *)collision_result));
+                             (int16_t *)collision_result);
               if (obj_hit)
                 result = 1;
             }
@@ -1426,14 +1426,14 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
 
   /* Compute final hit position if we got a hit */
   if (!result) {
-    *(float *)((char *)collision_result + 0x14) = 1.0f;
+    collision_result->t = 1.0f;
   }
-  saved_dist = *(float *)((char *)collision_result + 0x14);
-  ((float *)((char *)collision_result + 0x18))[0] =
+  saved_dist = collision_result->t;
+  collision_result->position.x =
     saved_dist * direction->i + origin->x;
-  ((float *)((char *)collision_result + 0x18))[1] =
+  collision_result->position.y =
     saved_dist * direction->j + origin->y;
-  ((float *)((char *)collision_result + 0x18))[2] =
+  collision_result->position.z =
     saved_dist * direction->k + origin->z;
   /* Zone-tracking refinement (original 0x14e500-0x14e631), gated on
    * (collision_flags & 0x100000) — i.e. the detonation/effects callers
@@ -1458,42 +1458,42 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
    * Only refines collision_result+0xc/+0x14/+0x18; does not touch the hit type
    * (+0), the material (+0x34), or the AL return value. */
   if (collision_flags & 0x100000) {
-    if (result && *(int *)((char *)collision_result + 0xc) != -1) {
+    if (result && collision_result->location.leaf_index != -1) {
       int cur_zone;
-      cur_zone = scenario_leaf_index_from_point((int)((char *)collision_result + 0x18));
-      if (cur_zone != *(int *)((char *)collision_result + 0xc)) {
-        vector3d_scale_add((real_point3d *)((char *)collision_result + 0x18),
-                           (real_vector3d *)((char *)collision_result + 0x24),
+      cur_zone = scenario_leaf_index_from_point((int)(&collision_result->position));
+      if (cur_zone != collision_result->location.leaf_index) {
+        vector3d_scale_add((real_point3d *)(&collision_result->position),
+                           &collision_result->normal,
                            0.000244140625f,
-                           (real_point3d *)((char *)collision_result + 0x18));
-        scenario_location_from_point((char *)collision_result + 0xc,
-                                     (char *)collision_result + 0x18);
-        if (*(int *)((char *)collision_result + 0xc) == -1) {
+                           (real_point3d *)(&collision_result->position));
+        scenario_location_from_point(&collision_result->location,
+                                     &collision_result->position);
+        if (collision_result->location.leaf_index == -1) {
           float d;
           float step;
           d =
-            dot_product3d(direction, (real_vector3d *)((char *)collision_result + 0x24));
+            dot_product3d(direction, &collision_result->normal);
           if (d != 0.0f)
             step = (float)(0.000244140625 / fabs((double)d));
           else
             step = 0.03125f;
           for (;;) {
             float frac;
-            frac = *(float *)((char *)collision_result + 0x14) - step;
+            frac = collision_result->t - step;
             if (!(frac > 0.0f))
               frac = 0.0f;
-            *(float *)((char *)collision_result + 0x14) = frac;
-            ((float *)((char *)collision_result + 0x18))[0] =
+            collision_result->t = frac;
+            collision_result->position.x =
               frac * direction->i + origin->x;
-            ((float *)((char *)collision_result + 0x18))[1] =
+            collision_result->position.y =
               frac * direction->j + origin->y;
-            ((float *)((char *)collision_result + 0x18))[2] =
+            collision_result->position.z =
               frac * direction->k + origin->z;
-            scenario_location_from_point((char *)collision_result + 0xc,
-                                         (char *)collision_result + 0x18);
-            if (*(float *)((char *)collision_result + 0x14) <= 0.0f)
+            scenario_location_from_point(&collision_result->location,
+                                         &collision_result->position);
+            if (collision_result->t <= 0.0f)
               break;
-            if (*(int *)((char *)collision_result + 0xc) != -1)
+            if (collision_result->location.leaf_index != -1)
               return result;
           }
         }
@@ -1507,8 +1507,8 @@ bool collision_test_vector(uint32_t collision_flags, const real_point3d *origin,
    * frame and would flood the ring.  Same guard as the host detour. */
   if ((unsigned int)__builtin_return_address(0) - 0x138900u < 0x530u)
     RNG_TRACE_EX(RNG_TRACE_KIND_LOS_RESULT,
-                 ((unsigned int)(unsigned char)result << 16) | (unsigned short)collision_result[0],
-                 *(unsigned int *)((char *)collision_result + 0x14));
+                 ((unsigned int)(unsigned char)result << 16) | (unsigned short)collision_result->type,
+                 *(unsigned int *)&collision_result->t);
 #endif
 #line 1414
   return result;

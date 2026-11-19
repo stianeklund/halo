@@ -20,7 +20,7 @@ void data_initialize(data_t *data, char *name, __int16 maximum_count,
   data->valid = 0;
 }
 
-int datum_absolute_index_to_index(data_t *data, int absolute_index)
+void *datum_absolute_index_to_index(data_t *data, int absolute_index)
 {
   int16_t identifier;
   int16_t index;
@@ -39,13 +39,13 @@ int datum_absolute_index_to_index(data_t *data, int absolute_index)
       datum = (int16_t *)((char *)data->data + data->size * index);
       if (*datum != 0) {
         if (identifier == 0)
-          return (int)datum;
+          return datum;
         if (*datum == identifier)
-          return (int)datum;
+          return datum;
       }
     }
   }
-  return 0;
+  return NULL;
 }
 
 void *datum_get(data_t *data, int datum_handle)

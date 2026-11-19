@@ -42,7 +42,7 @@ void material_effect_new_from_point(int effect_tag_index, int param_2, void *pos
   direction[2] = down[2] * 0.3f;
 
   if (collision_test_vector(0xc2a0, (real_point3d *)origin, (real_vector3d *)direction, -1,
-                   (int16_t *)collision_result)) {
+                   (collision_test_result *)collision_result)) {
     surface_index =
       scenario_location_underwater(collision_result + 0x0c, collision_result + 0x18, NULL) ?
         0x1c :
@@ -1137,11 +1137,11 @@ void particle_system_render(int particle_system_handle)
           particle =
             (char *)datum_get(particle_system_data, (int)particle_index);
           if (*(char *)(particle + 3) != 0 &&
-              render_location_visible(particle + 0x14) != 0) {
+              render_location_visible((const location_t *)(particle + 0x14)) != 0) {
             particle_state_a = (char *)tag_block_get_element(
               type_def + 0x74, (int)*(short *)(particle + 8), 0x178);
             shader_b = NULL;
-            matrix_transform_point((float *)0x5065b4,
+            matrix_transform_point((const real_matrix4x3 *)(0x5065b4),
                                    (real_point3d *)(particle + 0x1c), (real_point3d *)origin);
             matrix_transform_vector((float *)0x5065b4,
                                     (real_vector3d *)(particle + 0x34), (real_vector3d *)direction);

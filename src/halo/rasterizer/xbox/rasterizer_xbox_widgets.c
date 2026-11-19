@@ -747,7 +747,7 @@ void FUN_0017b5c0(float *point, float radius, float *scale,
 /* 0x17b7d0 — FUN_0017b7d0
  *
  * Emits one screen-space quad (D3DPT_QUADLIST) around a world point: the lens
- * flare reflection billboard, reached from FUN_00181c20 through the
+ * flare reflection billboard, reached from rasterizer_lens_flares_draw through the
  * FUN_0017d010 tail thunk.  FUN_0017a8a0 projects `point` into `screen`
  * (x, y, z) and returns the half-extent of `radius` in `extent`; the extent is
  * rotated by theta, scaled per axis, and the four corners are emitted at the

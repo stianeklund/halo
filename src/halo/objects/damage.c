@@ -950,7 +950,7 @@ void render_debug_object_damage(void)
 
   /* Cast a collision ray from camera position along the scaled direction */
   if (collision_test_vector(0x81, (real_point3d *)(0x506550), (real_vector3d *)direction, object_handle,
-                   collision_result) == 0)
+                   (collision_test_result *)collision_result) == 0)
     return;
 
   /* Verify collision result is an object hit */
@@ -2414,7 +2414,7 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
         *(float *)(obj + 0x58) - *(float *)((char *)damage_params + 0x30);
       all_second_casts_blocked = 1;
 
-      perpendicular3d(delta, axis_a);
+      perpendicular3d((const real_vector3d *)delta, (real_vector3d *)axis_a);
       normalize3d((real_vector3d *)axis_a);
 
       axis_b[0] = axis_a[2] * delta[1] - axis_a[1] * delta[2];
@@ -2453,7 +2453,7 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
 
         root_parent = object_get_root_parent(object_handle);
         collision_test_vector(0xc221, (real_point3d *)((char *)damage_params + 0x28), (real_vector3d *)cast_dir,
-                     root_parent, cast_result);
+                     root_parent, (collision_test_result *)cast_result);
         collision[0] = *(float *)((char *)cast_result + 0x18);
         collision[1] = *(float *)((char *)cast_result + 0x1c);
         collision[2] = *(float *)((char *)cast_result + 0x20);
@@ -2462,7 +2462,7 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
         dir2[0] = *(float *)(obj + 0x50) - collision[0];
         dir2[1] = *(float *)(obj + 0x54) - collision[1];
         dir2[2] = *(float *)(obj + 0x58) - collision[2];
-        if (collision_test_vector(0xc221, (real_point3d *)collision, (real_vector3d *)dir2, root_parent, cast_result) ==
+        if (collision_test_vector(0xc221, (real_point3d *)collision, (real_vector3d *)dir2, root_parent, (collision_test_result *)cast_result) ==
             0)
           all_second_casts_blocked = 0;
       }
@@ -2480,7 +2480,7 @@ void area_of_effect_cause_damage_to_object(void *damage_params,
       dir[2] =
         *(float *)(obj + 0x58) - *(float *)((char *)damage_params + 0x30);
       if (collision_test_vector(0xc221, (real_point3d *)((char *)damage_params + 0x28), (real_vector3d *)dir,
-                       root_parent, cast_result) != 0)
+                       root_parent, (collision_test_result *)cast_result) != 0)
         may_apply_damage = 0;
     }
 

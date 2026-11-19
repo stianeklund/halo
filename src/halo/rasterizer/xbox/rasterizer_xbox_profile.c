@@ -1,7 +1,7 @@
 
 /* 0x16f910 — profile section begin (asserts at rasterizer_xbox_profile.c
  * lines 0x103/0x109/0x10a) */
-void FUN_0016f910(short profile)
+void rasterizer_profile_begin(short profile)
 {
   int slot;
   unsigned int bit;
@@ -48,7 +48,7 @@ void FUN_0016f910(short profile)
 
 /* 0x16fa40 — profile section end (asserts at rasterizer_xbox_profile.c
  * lines 0x126/0x12c/0x12d) */
-void FUN_0016fa40(short profile)
+void rasterizer_profile_end(short profile)
 {
   int slot;
   /* volatile reproduces the original's [EBP-4] spill of the profile bit:

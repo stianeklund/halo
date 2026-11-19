@@ -132,7 +132,7 @@ co(real_vector3d, k, 0x8);
 
 /// size=0x10
 typedef struct real_plane3d {
-  real normal[3];                  ///< offset=0x00
+  real_vector3d normal;            ///< offset=0x00
   real d;                          ///< offset=0x0c
 } real_plane3d;
 
@@ -1358,17 +1358,17 @@ co(real_matrix4x3, position, 0x28);
 
 /// size=0x54
 typedef struct {
-  vector3_t         field_00;               ///< offset=0x00
-  vector3_t         field_0c;               ///< offset=0x0c
-  vector3_t         field_18;               ///< offset=0x18
-  uint8_t           unk_36;                 ///< offset=0x24
-  char              unk_37[3];              ///< offset=0x25
+  vector3_t         position;               ///< offset=0x00
+  real_vector3d     forward;                ///< offset=0x0c
+  real_vector3d     up;                     ///< offset=0x18
+  uint8_t           mirrored;               ///< offset=0x24
+  char              pad_25[3];              ///< offset=0x25
   float             vertical_field_of_view; ///< offset=0x28
   viewport_bounds_t viewport_bounds;        ///< offset=0x2c
-  viewport_bounds_t unk_52;                 ///< offset=0x34
+  viewport_bounds_t window_bounds;          ///< offset=0x34
   float             z_near;                 ///< offset=0x3c
   float             z_far;                  ///< offset=0x40
-  float             field_44[4];            ///< offset=0x44
+  real_plane3d      mirror_plane;           ///< offset=0x44
 } camera_t;
 cs(camera_t, 0x54);
 
@@ -1538,14 +1538,14 @@ co(environment_shadows_globals, shadow_matrix, 0x10);
 co(environment_shadows_globals, local_parameters, 0x44);
 co(environment_shadows_globals, shadow_setup, 0x48);
 co(environment_shadows_globals, shadow_used, 0x49);
-co(camera_t, field_00, 0x00);
-co(camera_t, field_0c, 0x0c);
-co(camera_t, field_18, 0x18);
+co(camera_t, position, 0x00);
+co(camera_t, forward, 0x0c);
+co(camera_t, up, 0x18);
 co(camera_t, vertical_field_of_view, 0x28);
 co(camera_t, viewport_bounds, 0x2c);
 co(camera_t, z_near, 0x3c);
 co(camera_t, z_far, 0x40);
-co(camera_t, field_44, 0x44);
+co(camera_t, mirror_plane, 0x44);
 
 /// size=0x14. One screen-space vertex handed to rasterizer_sprites_render
 /// (0x17cfa0). Offsets from draw_bitmap_in_rect (0xe3e80): position copied to
@@ -1607,33 +1607,33 @@ co(rasterizer_dynamic_screen_geometry_parameters_t, point_sampled, 0x8a);
 
 /// size=0x18c. Recovered from render_camera_build_frustum (0x187250).
 typedef struct {
-  real_rectangle2d field_00;  ///< offset=0x000
-  real_matrix4x3 field_10;    ///< offset=0x010
-  real_matrix4x3 field_44;    ///< offset=0x044
-  real_plane3d field_78[6];   ///< offset=0x078
-  float        field_d8;      ///< offset=0x0d8
-  float        field_dc;      ///< offset=0x0dc
-  vector3_t    field_e0[5];   ///< offset=0x0e0 [4] = camera position
-  vector3_t    field_11c;     ///< offset=0x11c
-  float        field_128[6];  ///< offset=0x128
-  uint8_t      field_140;     ///< offset=0x140
+  real_rectangle2d frustum_bounds;  ///< offset=0x000
+  real_matrix4x3 world_to_view;    ///< offset=0x010
+  real_matrix4x3 view_to_world;    ///< offset=0x044
+  real_plane3d world_planes[6];   ///< offset=0x078
+  float        z_near;      ///< offset=0x0d8
+  float        z_far;      ///< offset=0x0dc
+  vector3_t    world_vertices[5];   ///< offset=0x0e0 [4] = camera position
+  vector3_t    world_midpoint;     ///< offset=0x11c
+  real_rectangle3d world_bounds;  ///< offset=0x128
+  uint8_t      projection_valid;     ///< offset=0x140
   uint8_t      pad_141[3];    ///< offset=0x141
-  float        field_144[16]; ///< offset=0x144
-  float        field_184[2];  ///< offset=0x184
+  float        projection_matrix[4][4]; ///< offset=0x144
+  float        projection_world_to_screen[2];  ///< offset=0x184
 } render_frustum_t;
 cs(render_frustum_t, 0x18c);
-co(render_frustum_t, field_00, 0x000);
-co(render_frustum_t, field_10, 0x010);
-co(render_frustum_t, field_44, 0x044);
-co(render_frustum_t, field_78, 0x078);
-co(render_frustum_t, field_d8, 0x0d8);
-co(render_frustum_t, field_dc, 0x0dc);
-co(render_frustum_t, field_e0, 0x0e0);
-co(render_frustum_t, field_11c, 0x11c);
-co(render_frustum_t, field_128, 0x128);
-co(render_frustum_t, field_140, 0x140);
-co(render_frustum_t, field_144, 0x144);
-co(render_frustum_t, field_184, 0x184);
+co(render_frustum_t, frustum_bounds, 0x000);
+co(render_frustum_t, world_to_view, 0x010);
+co(render_frustum_t, view_to_world, 0x044);
+co(render_frustum_t, world_planes, 0x078);
+co(render_frustum_t, z_near, 0x0d8);
+co(render_frustum_t, z_far, 0x0dc);
+co(render_frustum_t, world_vertices, 0x0e0);
+co(render_frustum_t, world_midpoint, 0x11c);
+co(render_frustum_t, world_bounds, 0x128);
+co(render_frustum_t, projection_valid, 0x140);
+co(render_frustum_t, projection_matrix, 0x144);
+co(render_frustum_t, projection_world_to_screen, 0x184);
 
 /// size=0xac
 typedef struct {
@@ -3498,7 +3498,7 @@ co(collision_edge_t, left_surface, 0x10);
 co(collision_edge_t, right_surface, 0x14);
 
 typedef struct collision_vertex_t {
-  real    point[3];                 ///< offset=0x00
+  real_point3d point;               ///< offset=0x00
   int32_t field_0c;                 ///< offset=0x0c
 } collision_vertex_t;
 cs(collision_vertex_t, 0x10);
@@ -3549,27 +3549,27 @@ co(bsp2d_node_t, children, 0x0c);
 /* Structure-BSP cluster element. Only the runtime-decal range is proven. */
 typedef struct {
   char    pad_00[0x0c];
-  int16_t field_0c;
-  uint16_t field_0e;
+  int16_t first_decal_index;
+  uint16_t decal_count;
   char    pad_10[0x58];
 } structure_bsp_cluster_t;
 cs(structure_bsp_cluster_t, 0x68);
-co(structure_bsp_cluster_t, field_0c, 0x0c);
-co(structure_bsp_cluster_t, field_0e, 0x0e);
+co(structure_bsp_cluster_t, first_decal_index, 0x0c);
+co(structure_bsp_cluster_t, decal_count, 0x0e);
 
 /// size=0x10
 /* Structure runtime-decal element. */
 typedef struct {
-  char   pad_00[0x0c];
-  uint8_t field_0c;
+  real_point3d position;
+  uint8_t palette_index;
   int8_t pad_0d;
-  int8_t field_0e;
-  int8_t field_0f;
+  int8_t yaw;
+  int8_t pitch;
 } structure_runtime_decal_t;
 cs(structure_runtime_decal_t, 0x10);
-co(structure_runtime_decal_t, field_0c, 0x0c);
-co(structure_runtime_decal_t, field_0e, 0x0e);
-co(structure_runtime_decal_t, field_0f, 0x0f);
+co(structure_runtime_decal_t, palette_index, 0x0c);
+co(structure_runtime_decal_t, yaw, 0x0e);
+co(structure_runtime_decal_t, pitch, 0x0f);
 
 /// size=0x264
 /* Runtime structure-BSP tag blocks used by structure_decals_update. */
@@ -3924,13 +3924,13 @@ co(virtual_keyboard_globals_t, saved_text, 0x28);
 
 
 /// size=0x3C0
-/* Scenario overlay for the structure-BSP tag block used by runtime decals. */
+/* Scenario overlay for the decal palette (tag_reference elements). */
 typedef struct {
   char pad_00[0x3b4];
-  tag_block structure_bsps;
+  tag_block decal_palette;
 } scenario_structure_bsps_t;
 cs(scenario_structure_bsps_t, 0x3c0);
-co(scenario_structure_bsps_t, structure_bsps, 0x3b4);
+co(scenario_structure_bsps_t, decal_palette, 0x3b4);
 
 /* -------------------------------------------------------------------------
  * netgame_flag -- 0x94-byte element of the scenario netgame-flags tag block

@@ -868,7 +868,7 @@ void virtual_keyboard_render_internal(void)
     bounds.x0 = 0;
     bounds.y1 = 480;
     bounds.x1 = 640;
-    bitmap = FUN_00077040(
+    bitmap = bitmap_group_get_bitmap_from_sequence(
       virtual_keyboard_globals.keyboard->background_bitmap_tag.tag_index, 0, 0);
     if (bitmap == NULL) {
       display_assert("bitmap",
@@ -908,7 +908,7 @@ void virtual_keyboard_render_internal(void)
     bounds.x1 = 420;
     if (virtual_keyboard_globals.first_key_replaces_buffer == 1) {
       void *bitmap =
-        FUN_00077040(virtual_keyboard_globals.caret_bitmap_index, 0, 0);
+        bitmap_group_get_bitmap_from_sequence(virtual_keyboard_globals.caret_bitmap_index, 0, 0);
 
       if (bitmap != NULL) {
         viewport_bounds_t text_bounds;
@@ -937,7 +937,7 @@ void virtual_keyboard_render_internal(void)
     short cursor_offset = 0;
     short width = 0;
     void *bitmap =
-      FUN_00077040(virtual_keyboard_globals.caret_bitmap_index, 0, 0);
+      bitmap_group_get_bitmap_from_sequence(virtual_keyboard_globals.caret_bitmap_index, 0, 0);
     viewport_bounds_t caret_bounds;
 
     if (bitmap != NULL) {
@@ -1013,7 +1013,7 @@ void virtual_keyboard_render_internal(void)
       }
 
       if (bitmap_index != -1) {
-        void *bitmap = FUN_00077040(bitmap_index, 0, 0);
+        void *bitmap = bitmap_group_get_bitmap_from_sequence(bitmap_index, 0, 0);
 
         if (bitmap != NULL) {
           draw_bitmap_in_rect((int)bitmap, (int16_t *)&keyboard_rect[key_index],
@@ -1096,7 +1096,7 @@ void virtual_keyboard_render_internal(void)
         }
 
         if (bitmap_index != -1) {
-          bitmap = FUN_00077040(bitmap_index, 0, 0);
+          bitmap = bitmap_group_get_bitmap_from_sequence(bitmap_index, 0, 0);
         }
 
         if (label != NULL) {
@@ -2082,7 +2082,7 @@ void item_accelerate(int item_handle, const real_vector3d *acceleration, int fla
         bsp = (int)global_collision_bsp_get();
         plane_ref = (int *)tag_block_get_element(
           (void *)(bsp + 0x3c), (int)*(int16_t *)(item_obj + 0x1aa), 0xc);
-        bsp3d_get_plane_from_designator(bsp, *plane_ref, plane);
+        bsp3d_get_plane_from_designator(bsp, *plane_ref, (real_plane3d *)plane);
 
         /* Compute offset from plane: 0.05 - (dot(normal, ground_pos) -
          * distance) */
