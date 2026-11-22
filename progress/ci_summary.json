@@ -1,45 +1,45 @@
 {
-  "generated": "2026-11-21T04:43:29.417107+00:00",
+  "generated": "2026-11-22T03:56:46.112068+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-11-21T04:41:26Z",
+    "last_run_time": "2026-11-22T03:54:45Z",
     "last_commit": "9ccec0f4",
     "workflows": [
       {
         "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-11-21T04:41:26Z",
+        "created_at": "2026-11-22T03:54:45Z",
         "head_sha": "9ccec0f4",
-        "url": "https://github.com/stianeklund/halo/actions/runs/44867330245"
+        "url": "https://github.com/stianeklund/halo/actions/runs/44982720081"
       },
       {
         "name": "Equivalence Tests",
         "conclusion": "failure",
-        "created_at": "2026-11-21T04:37:24Z",
+        "created_at": "2026-11-22T03:51:17Z",
         "head_sha": "9ccec0f4",
-        "url": "https://github.com/stianeklund/halo/actions/runs/44867013771"
+        "url": "https://github.com/stianeklund/halo/actions/runs/44982482893"
       },
       {
         "name": "Runtime Oracle Tests",
         "conclusion": "success",
-        "created_at": "2026-11-20T12:25:09Z",
+        "created_at": "2026-11-21T11:59:05Z",
         "head_sha": "9ccec0f4",
-        "url": "https://github.com/stianeklund/halo/actions/runs/44735615968"
+        "url": "https://github.com/stianeklund/halo/actions/runs/44901645566"
       },
       {
         "name": "Audit Gates",
         "conclusion": "failure",
-        "created_at": "2026-11-20T10:50:02Z",
+        "created_at": "2026-11-21T10:33:52Z",
         "head_sha": "9ccec0f4",
-        "url": "https://github.com/stianeklund/halo/actions/runs/44722534459"
+        "url": "https://github.com/stianeklund/halo/actions/runs/44894939267"
       },
       {
         "name": "pages-build-deployment",
         "conclusion": "success",
-        "created_at": "2026-11-20T04:48:18Z",
-        "head_sha": "05546957",
-        "url": "https://github.com/stianeklund/halo/actions/runs/44676826506"
+        "created_at": "2026-11-21T04:44:31Z",
+        "head_sha": "395da3a6",
+        "url": "https://github.com/stianeklund/halo/actions/runs/44867566626"
       },
       {
         "name": "Provenance Artifact Guard",
@@ -65,12 +65,12 @@
     ]
   },
   "equivalence": {
-    "tested": 865,
-    "classified": 8031,
-    "high_confidence": 314,
-    "moderate_confidence": 285,
-    "weak_coverage": 154,
-    "avg_coverage": 58.2
+    "tested": 1010,
+    "classified": 8036,
+    "high_confidence": 355,
+    "moderate_confidence": 361,
+    "weak_coverage": 179,
+    "avg_coverage": 59.5
   },
   "snapshot": {
     "total": 20,
