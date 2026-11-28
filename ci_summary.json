@@ -1,45 +1,45 @@
 {
-  "generated": "2026-11-27T05:49:16.449831+00:00",
+  "generated": "2026-11-28T05:26:40.316218+00:00",
   "ci_runs": {
     "available": true,
     "total": 60,
-    "last_run_time": "2026-11-27T05:46:55Z",
+    "last_run_time": "2026-11-28T05:24:39Z",
     "last_commit": "9ccec0f4",
     "workflows": [
       {
         "name": "Progress Report",
         "conclusion": "",
-        "created_at": "2026-11-27T05:46:55Z",
+        "created_at": "2026-11-28T05:24:39Z",
         "head_sha": "9ccec0f4",
-        "url": "https://github.com/stianeklund/halo/actions/runs/45947832806"
+        "url": "https://github.com/stianeklund/halo/actions/runs/46111980731"
       },
       {
         "name": "Equivalence Tests",
         "conclusion": "failure",
-        "created_at": "2026-11-27T05:41:10Z",
+        "created_at": "2026-11-28T05:19:55Z",
         "head_sha": "9ccec0f4",
-        "url": "https://github.com/stianeklund/halo/actions/runs/45947267295"
+        "url": "https://github.com/stianeklund/halo/actions/runs/46111609767"
       },
       {
         "name": "Runtime Oracle Tests",
         "conclusion": "success",
-        "created_at": "2026-11-26T13:28:29Z",
+        "created_at": "2026-11-27T13:24:30Z",
         "head_sha": "9ccec0f4",
-        "url": "https://github.com/stianeklund/halo/actions/runs/45829482548"
+        "url": "https://github.com/stianeklund/halo/actions/runs/46006845574"
       },
       {
         "name": "Audit Gates",
-        "conclusion": "failure",
-        "created_at": "2026-11-26T11:48:16Z",
+        "conclusion": "cancelled",
+        "created_at": "2026-11-27T11:40:59Z",
         "head_sha": "9ccec0f4",
-        "url": "https://github.com/stianeklund/halo/actions/runs/45813843690"
+        "url": "https://github.com/stianeklund/halo/actions/runs/45992469655"
       },
       {
         "name": "pages-build-deployment",
         "conclusion": "success",
-        "created_at": "2026-11-26T05:54:58Z",
-        "head_sha": "42177f55",
-        "url": "https://github.com/stianeklund/halo/actions/runs/45764663638"
+        "created_at": "2026-11-27T05:50:27Z",
+        "head_sha": "640d30f0",
+        "url": "https://github.com/stianeklund/halo/actions/runs/45948175790"
       },
       {
         "name": "Compiler Profile Calibration",
@@ -72,12 +72,12 @@
     ]
   },
   "equivalence": {
-    "tested": 1515,
+    "tested": 1629,
     "classified": 8047,
-    "high_confidence": 552,
-    "moderate_confidence": 604,
-    "weak_coverage": 231,
-    "avg_coverage": 64.8
+    "high_confidence": 606,
+    "moderate_confidence": 644,
+    "weak_coverage": 243,
+    "avg_coverage": 65.5
   },
   "snapshot": {
     "total": 20,
